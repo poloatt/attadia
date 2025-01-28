@@ -1,4 +1,4 @@
-import { AppBar, Toolbar, Typography, IconButton, Avatar, Menu, MenuItem, Box, Tooltip } from '@mui/material';
+import { AppBar, Toolbar, Typography, IconButton, Avatar, Menu, MenuItem, Box, Tooltip, Badge } from '@mui/material';
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -8,40 +8,64 @@ import StorageIcon from '@mui/icons-material/Storage';
 import CircleIcon from '@mui/icons-material/Circle';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useSidebar } from '../context/SidebarContext';
+import LogoutIcon from '@mui/icons-material/Logout';
+import LoginIcon from '@mui/icons-material/Login';
+import { BASE_URL, HEALTH_URL } from '../config';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
+import { CircularProgress } from '@mui/material';
 
-export default function Header() {
+export default function Header({ onMenuClick }) {
   const { user, logout } = useAuth();
   const { isOpen, toggleSidebar } = useSidebar();
   const location = useLocation();
   const [anchorEl, setAnchorEl] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState({
-    api: false,
-    database: false
+    backend: false,
+    database: false,
+    loading: true
   });
 
   useEffect(() => {
     const checkConnections = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/health');
-        const data = await response.json();
+        const response = await fetch('/health', {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const text = await response.text(); // Primero obtén el texto
+        let data;
+        try {
+          data = JSON.parse(text); // Intenta parsearlo como JSON
+        } catch (e) {
+          console.error('Invalid JSON response:', text);
+          throw new Error('Invalid JSON response');
+        }
+        
         setConnectionStatus({
-          api: response.ok,
-          database: data.database === 'connected'
+          backend: true,
+          database: data.database === 'connected',
+          loading: false
         });
       } catch (error) {
+        console.error('Error checking connections:', error);
         setConnectionStatus({
-          api: false,
-          database: false
+          backend: false,
+          database: false,
+          loading: false
         });
       }
     };
 
-    // Verificar conexión inicial
     checkConnections();
-
-    // Configurar verificación periódica cada 30 segundos
     const interval = setInterval(checkConnections, 30000);
-
     return () => clearInterval(interval);
   }, []);
 
@@ -63,6 +87,17 @@ export default function Header() {
   const handleToggle = () => {
     console.log('Toggle sidebar:', !isOpen);
     toggleSidebar();
+  };
+
+  const getStatusIcon = (isConnected, isLoading) => {
+    if (isLoading) {
+      return <CircularProgress size={20} />;
+    }
+    return isConnected ? (
+      <CheckCircleIcon sx={{ color: 'success.main' }} />
+    ) : (
+      <ErrorIcon sx={{ color: 'error.main' }} />
+    );
   };
 
   return (
@@ -117,49 +152,19 @@ export default function Header() {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             {/* API Status */}
-            <Tooltip title="Estado de la API">
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <CircleIcon 
-                  sx={{ 
-                    width: 8,
-                    height: 8,
-                    color: connectionStatus.api ? 'success.main' : 'error.main',
-                    filter: (theme) => `drop-shadow(0 0 1px ${connectionStatus.api ? theme.palette.success.main : theme.palette.error.main})`
-                  }}
-                />
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: connectionStatus.api ? 'success.main' : 'error.main',
-                    fontSize: '0.7rem',
-                  }}
-                >
-                  API
-                </Typography>
-              </Box>
+            <Tooltip title={`API Status: ${connectionStatus.backend ? 'Connected' : 'Disconnected'}`}>
+              <IconButton color="inherit" sx={{ mr: 1 }}>
+                {getStatusIcon(connectionStatus.backend, connectionStatus.loading)}
+              </IconButton>
             </Tooltip>
 
             {/* Database Status */}
-            <Tooltip title="Estado de la Base de Datos">
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <CircleIcon 
-                  sx={{ 
-                    width: 8,
-                    height: 8,
-                    color: connectionStatus.database ? 'success.main' : 'error.main',
-                    filter: (theme) => `drop-shadow(0 0 1px ${connectionStatus.database ? theme.palette.success.main : theme.palette.error.main})`
-                  }}
-                />
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: connectionStatus.database ? 'success.main' : 'error.main',
-                    fontSize: '0.7rem',
-                  }}
-                >
-                  DB
-                </Typography>
-              </Box>
+            <Tooltip title={`Database Status: ${connectionStatus.database ? 'Connected' : 'Disconnected'}`}>
+              <IconButton color="inherit" sx={{ mr: 2 }}>
+                <Badge color={connectionStatus.database ? "success" : "error"} variant="dot">
+                  <StorageIcon />
+                </Badge>
+              </IconButton>
             </Tooltip>
           </Box>
           <IconButton
@@ -203,6 +208,16 @@ export default function Header() {
             }}>Cerrar Sesión</MenuItem>
           </Menu>
         </Box>
+        
+        {user ? (
+          <IconButton onClick={logout} color="inherit">
+            <LogoutIcon />
+          </IconButton>
+        ) : (
+          <IconButton color="inherit">
+            <LoginIcon />
+          </IconButton>
+        )}
       </Toolbar>
     </AppBar>
   );

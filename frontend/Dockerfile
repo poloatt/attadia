@@ -1,29 +1,21 @@
-FROM node:18
+FROM node:18-alpine
 
 WORKDIR /app
 
-# Crear nuevo proyecto React primero
-RUN npx create-react-app .
+# Copiar package.json y package-lock.json
+COPY package*.json ./
 
-# Instalar dependencias incluyendo la que falta
-RUN npm install @mui/material @mui/icons-material @emotion/react @emotion/styled react-router-dom@6.21.3 axios && \
-    npm install --save-dev @babel/plugin-proposal-private-property-in-object
+# Instalar dependencias
+RUN npm install
 
-# Limpiar la carpeta src por defecto pero mantener index.html
-RUN find src -type f ! -name 'index.html' -delete
+# Copiar el resto de la aplicación
+COPY . .
 
-# Crear estructura de carpetas
-RUN mkdir -p src/components \
-    src/context \
-    src/hooks \
-    src/layouts \
-    src/pages \
-    src/services \
-    src/utils
+# Exponer el puerto de Vite
+EXPOSE 5173
 
-# Copiar todo el código fuente
-COPY ./src ./src
+# Configurar Vite para escuchar en todas las interfaces
+ENV VITE_HOST=0.0.0.0
 
-EXPOSE 3000
-
-CMD ["npm", "start"]
+# Comando para desarrollo
+CMD ["npm", "run", "dev"]

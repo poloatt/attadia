@@ -1,21 +1,30 @@
 {
-  "name": "present-frontend",
-  "version": "1.0.0",
+  "name": "frontend",
   "private": true,
-  "dependencies": {
-    "@emotion/react": "^11.x.x",
-    "@emotion/styled": "^11.x.x",
-    "@mui/icons-material": "^5.x.x",
-    "@mui/material": "^5.x.x",
-    "react": "^18.x.x",
-    "react-dom": "^18.x.x",
-    "react-router-dom": "^6.x.x"
-  },
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview"
   },
-  "proxy": "http://localhost:5000"
+  "dependencies": {
+    "@emotion/react": "^11.11.3",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.15.6",
+    "@mui/material": "^5.15.6",
+    "notistack": "^3.0.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.21.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "eslint": "^8.55.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.5",
+    "vite": "^5.0.8"
+  }
 }

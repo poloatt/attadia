@@ -1,26 +1,25 @@
-const router = require('express').Router();
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+import express from 'express';
+const router = express.Router();
 
 // La ruta base será '/' ya que '/health' se especifica en el index.js
 router.get('/', async (req, res) => {
   try {
-    // Verificar conexión a la base de datos
+    const prisma = req.app.get('prisma');
     await prisma.$queryRaw`SELECT 1`;
     
-    res.status(200).json({
+    res.json({
       status: 'ok',
-      api: 'connected',
+      timestamp: new Date().toISOString(),
       database: 'connected'
     });
   } catch (error) {
-    res.status(503).json({
+    console.error('Health check error:', error);
+    res.status(500).json({
       status: 'error',
-      api: 'connected',
-      database: 'disconnected',
-      message: 'Database connection failed'
+      message: error.message,
+      timestamp: new Date().toISOString()
     });
   }
 });
 
-module.exports = router; 
+export default router; 

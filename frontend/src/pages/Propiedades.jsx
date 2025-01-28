@@ -15,58 +15,90 @@ import HomeWorkIcon from '@mui/icons-material/HomeWork';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import BedroomParentIcon from '@mui/icons-material/BedroomParent';
 import EntityDetails from '../components/EntityDetails';
+import EntityForm from '../components/EntityForm';
+import { API_URL } from '../config';
+import { useSnackbar } from 'notistack';
 
 export default function Propiedades() {
-  // Datos de prueba mientras se implementa el backend
-  const [propiedades, setPropiedades] = useState([
-    {
-      id: '1',
-      direccion: 'Calle Falsa 123',
-      barrio: 'Springfield',
-      provincia: 'Buenos Aires',
-      pais: 'Argentina',
-      cuentas: ['Cuenta 1', 'Cuenta 2'],
-      habitaciones: [{ id: '1', nombre: 'Habitación 1' }]
-    },
-    {
-      id: '2',
-      direccion: 'Avenida Siempreviva 742',
-      barrio: 'Palermo',
-      provincia: 'CABA',
-      pais: 'Argentina',
-      cuentas: ['Cuenta Principal'],
-      habitaciones: [
-        { id: '2', nombre: 'Habitación 1' },
-        { id: '3', nombre: 'Habitación 2' }
-      ]
-    },
-    {
-      id: '3',
-      direccion: 'Baker Street 221B',
-      barrio: 'Recoleta',
-      provincia: 'CABA',
-      pais: 'Argentina',
-      cuentas: ['Cuenta Ahorro', 'Cuenta Corriente', 'Caja de Ahorro'],
-      habitaciones: [
-        { id: '4', nombre: 'Habitación 1' },
-        { id: '5', nombre: 'Habitación 2' },
-        { id: '6', nombre: 'Habitación 3' }
-      ]
-    }
-  ]);
+  const [propiedades, setPropiedades] = useState([]);
+  const [openForm, setOpenForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { enqueueSnackbar } = useSnackbar();
 
+  const fields = [
+    {
+      name: 'direccion',
+      label: 'Dirección',
+      type: 'text',
+      required: true
+    },
+    {
+      name: 'barrio',
+      label: 'Barrio',
+      type: 'text',
+      required: true
+    },
+    {
+      name: 'provincia',
+      label: 'Provincia',
+      type: 'text',
+      required: true
+    },
+    {
+      name: 'pais',
+      label: 'País',
+      type: 'text',
+      required: true
+    },
+    {
+      name: 'cuentas',
+      label: 'Cuenta',
+      type: 'array'
+    }
+  ];
+
+  // Datos de prueba mientras se implementa el backend
   useEffect(() => {
     // Cuando el backend esté listo, descomentar esto:
     // fetchPropiedades();
   }, []);
 
   const fetchPropiedades = async () => {
+    setIsLoading(true);
     try {
-      const response = await fetch('/api/propiedades');
+      const response = await fetch(`${API_URL}/propiedades`);
+      if (!response.ok) throw new Error('Error al cargar propiedades');
+      
       const data = await response.json();
       setPropiedades(data);
     } catch (error) {
-      console.error('Error al cargar propiedades:', error);
+      console.error('Error:', error);
+      enqueueSnackbar('Error al cargar propiedades', { variant: 'error' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = async (data) => {
+    try {
+      const response = await fetch(`${API_URL}/propiedades`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      });
+      
+      if (!response.ok) throw new Error('Error al crear la propiedad');
+
+      const newPropiedad = await response.json();
+      setPropiedades(prev => [...prev, newPropiedad]);
+      enqueueSnackbar('Propiedad creada exitosamente', { variant: 'success' });
+      setOpenForm(false);
+    } catch (error) {
+      console.error('Error:', error);
+      enqueueSnackbar('Error al crear la propiedad', { variant: 'error' });
+      throw error;
     }
   };
 
@@ -74,7 +106,12 @@ export default function Propiedades() {
     <EntityDetails 
       title="Propiedades"
       action={
-        <Button variant="contained" startIcon={<AddIcon />} size="small">
+        <Button 
+          variant="contained" 
+          startIcon={<AddIcon />} 
+          size="small"
+          onClick={() => setOpenForm(true)}
+        >
           Nueva Propiedad
         </Button>
       }
@@ -150,6 +187,14 @@ export default function Propiedades() {
           ))}
         </Grid>
       </Box>
+      
+      <EntityForm
+        open={openForm}
+        onClose={() => setOpenForm(false)}
+        onSubmit={handleSubmit}
+        title="Nueva Propiedad"
+        fields={fields}
+      />
     </EntityDetails>
   );
 }
