@@ -1,0 +1,24 @@
+import { Button, Grid, Paper, Typography } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+
+export default function Rutinas() {
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+        >
+          Nueva Rutina
+        </Button>
+      </div>
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="h6">Rutinas Activas</Typography>
+          </Paper>
+        </Grid>
+      </Grid>
+    </div>
+  );
+}
