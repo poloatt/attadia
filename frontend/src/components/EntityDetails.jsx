@@ -5,11 +5,12 @@ export default function EntityDetails({ title, children, action }) {
     <Paper 
       elevation={0}
       sx={{ 
-        backgroundColor: 'background.paper',
-        borderRadius: 1,
         height: '100%',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        backgroundColor: 'background.paper',
+        borderRadius: 1,
+        overflow: 'hidden'
       }}
     >
       <Box sx={{ 
@@ -30,9 +31,9 @@ export default function EntityDetails({ title, children, action }) {
         )}
       </Box>
       <Box sx={{ 
-        p: 2,
         flexGrow: 1,
-        overflow: 'auto'
+        overflow: 'auto',
+        minHeight: 0
       }}>
         {children}
       </Box>

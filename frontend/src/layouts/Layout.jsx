@@ -26,15 +26,8 @@ export default function Layout({ children }) {
   const { isOpen } = useSidebar();
 
   return (
-    <Box sx={{ display: 'flex' }}>
-      <Header 
-        sx={{ 
-          position: 'fixed',
-          width: '100%',
-          top: 0,
-          zIndex: (theme) => theme.zIndex.drawer + 1 
-        }} 
-      />
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      <Header />
       <Drawer
         variant="permanent"
         sx={{
@@ -47,11 +40,13 @@ export default function Layout({ children }) {
             borderColor: 'divider',
             position: 'fixed',
             height: '100vh',
-            top: '48px',
+            top: 0,
             left: 0,
+            zIndex: (theme) => theme.zIndex.drawer
           },
         }}
       >
+        <Box sx={{ height: '48px' }} />
         <List sx={{ p: 1 }}>
           {menuItems.map((item) => (
             <ListItem key={item.text} disablePadding>
@@ -93,15 +88,24 @@ export default function Layout({ children }) {
         component="main"
         sx={{
           flexGrow: 1,
-          mt: '48px',
-          ml: isOpen ? '240px' : '56px',
-          transition: 'margin-left 0.3s ease',
-          backgroundColor: 'background.default',
-          minHeight: 'calc(100vh - 48px)',
-          p: 2
+          pt: '48px',
+          pl: isOpen ? '240px' : '56px',
+          transition: 'padding-left 0.3s ease',
+          height: '100vh',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column'
         }}
       >
-        {children}
+        <Box sx={{ 
+          p: 2,
+          height: 'calc(100vh - 48px)',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          {children}
+        </Box>
       </Box>
     </Box>
   );
