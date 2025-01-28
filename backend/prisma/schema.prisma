@@ -1,0 +1,168 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  nombre        String
+  password      String
+  isAdmin       Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  transacciones Transaccion[]
+  propiedades   Propiedad[]
+  inventarios   Inventario[]
+  rutinas       Rutina[]
+  labResults    LabResult[]
+  proyectos     Proyecto[]
+}
+
+model Transaccion {
+  id          String    @id @default(uuid())
+  fecha       DateTime
+  monto       Float
+  moneda      Moneda
+  descripcion String
+  cuenta      String
+  estado      Estado
+  recurrencia Boolean   @default(false)
+  tipo        String
+  categoria   String
+  locacion    String
+  usuario     Usuario   @relation(fields: [usuarioId], references: [id])
+  usuarioId   String
+  propiedad   Propiedad? @relation(fields: [propiedadId], references: [id])
+  propiedadId String?
+}
+
+model Propiedad {
+  id            String        @id @default(uuid())
+  direccion     String
+  barrio        String
+  provincia     String
+  pais          String
+  cuentas       String[]
+  inventarios   Inventario[]
+  transacciones Transaccion[]
+  habitaciones  Habitacion[]
+  usuario       Usuario       @relation(fields: [usuarioId], references: [id])
+  usuarioId     String
+}
+
+model Habitacion {
+  id          String    @id @default(uuid())
+  nombre      String
+  descripcion String?
+  propiedad   Propiedad @relation(fields: [propiedadId], references: [id])
+  propiedadId String
+}
+
+model Inventario {
+  id          String     @id @default(uuid())
+  locacion    String
+  sublocacion String?
+  categoria   String
+  item        String
+  cantidad    Int
+  consumible  Boolean    @default(false)
+  propiedad   Propiedad? @relation(fields: [propiedadId], references: [id])
+  propiedadId String?
+  usuario     Usuario    @relation(fields: [usuarioId], references: [id])
+  usuarioId   String
+}
+
+model Rutina {
+  id           String   @id @default(uuid())
+  fecha        DateTime
+  wakeup       Boolean  @default(false)
+  meds         Boolean  @default(false)
+  skincareDay  Boolean  @default(false)
+  makeBed      Boolean  @default(false)
+  clean        Boolean  @default(false)
+  meditate     Boolean  @default(false)
+  stretch      Boolean  @default(false)
+  protein      Boolean  @default(false)
+  gym          Boolean  @default(false)
+  water        Boolean  @default(false)
+  cooking      Boolean  @default(false)
+  eating       Boolean  @default(false)
+  bath         Boolean  @default(false)
+  cream        Boolean  @default(false)
+  skincareNight Boolean @default(false)
+  completitud  Float
+  muscle       Float?
+  fat          Float?
+  fatPercent   Float?
+  weight       Float?
+  stress       Int?
+  sleep        Float?
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id])
+  usuarioId    String
+}
+
+model LabResult {
+  id        String   @id @default(uuid())
+  fecha     DateTime
+  tipo      String
+  valor     Float
+  unidad    String
+  notas     String?
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+  usuarioId String
+}
+
+model Proyecto {
+  id        String    @id @default(uuid())
+  titulo    String
+  descripcion String?
+  fechaInicio DateTime
+  fechaFin   DateTime?
+  estado     EstadoProyecto @default(EN_PROGRESO)
+  tareas     Tarea[]
+  tags       String[]
+  usuario    Usuario   @relation(fields: [usuarioId], references: [id])
+  usuarioId  String
+}
+
+model Tarea {
+  id          String    @id @default(uuid())
+  titulo      String
+  descripcion String?
+  completada  Boolean   @default(false)
+  proyecto    Proyecto  @relation(fields: [proyectoId], references: [id])
+  proyectoId  String
+  subtareas   Subtarea[]
+}
+
+model Subtarea {
+  id          String    @id @default(uuid())
+  titulo      String
+  completada  Boolean   @default(false)
+  tarea       Tarea     @relation(fields: [tareaId], references: [id])
+  tareaId     String
+}
+
+enum Moneda {
+  EUR
+  USD
+  ARS
+}
+
+enum Estado {
+  PENDIENTE
+  PAGADO
+  CANCELADO
+}
+
+enum EstadoProyecto {
+  PENDIENTE
+  EN_PROGRESO
+  COMPLETADO
+  CANCELADO
+} 
