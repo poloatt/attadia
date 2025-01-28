@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const { PrismaClient } = require('@prisma/client');
+const healthRoutes = require('./routes/health');
 
 dotenv.config();
 
@@ -16,6 +17,9 @@ app.use(express.json());
 app.get('/api/test', (req, res) => {
   res.json({ message: '¡API funcionando correctamente!' });
 });
+
+// Health check endpoint
+app.use('/api/health', healthRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);

@@ -1,26 +1,25 @@
-import { Grid, Paper, Typography } from '@mui/material';
-import { useAuth } from '../context/AuthContext';
+import { Box } from '@mui/material';
+import EntityDetails from '../components/EntityDetails';
 
 export default function Dashboard() {
-  const { user } = useAuth();
-
   return (
-    <Grid container spacing={3}>
-      <Grid item xs={12} md={6} lg={4}>
-        <Paper sx={{ p: 2 }}>
-          <Typography variant="h6">Resumen de Transacciones</Typography>
-        </Paper>
-      </Grid>
-      <Grid item xs={12} md={6} lg={4}>
-        <Paper sx={{ p: 2 }}>
-          <Typography variant="h6">Rutinas Pendientes</Typography>
-        </Paper>
-      </Grid>
-      <Grid item xs={12} md={6} lg={4}>
-        <Paper sx={{ p: 2 }}>
-          <Typography variant="h6">Proyectos Activos</Typography>
-        </Paper>
-      </Grid>
-    </Grid>
+    <Box sx={{ 
+      display: 'grid',
+      gap: 2,
+      gridTemplateRows: 'repeat(3, 1fr)', // Divide en 3 filas iguales
+      height: 'calc(100vh - 80px)', // Altura total menos header y padding
+    }}>
+      <EntityDetails title="Resumen de Transacciones">
+        {/* Contenido del resumen */}
+      </EntityDetails>
+
+      <EntityDetails title="Rutinas Pendientes">
+        {/* Contenido de rutinas */}
+      </EntityDetails>
+
+      <EntityDetails title="Proyectos Activos">
+        {/* Contenido de proyectos */}
+      </EntityDetails>
+    </Box>
   );
 }

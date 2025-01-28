@@ -1,57 +1,52 @@
-import { Box, Drawer, List, ListItem, ListItemIcon, ListItemText, ListItemButton } from '@mui/material';
+import { Drawer, Box, List, ListItem, ListItemIcon, ListItemText, ListItemButton } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
-import Header from '../components/Header';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import HomeIcon from '@mui/icons-material/Home';
+import HomeWorkIcon from '@mui/icons-material/HomeWork';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import ScienceIcon from '@mui/icons-material/Science';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 
-const menuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-  { text: 'Transacciones', icon: <AccountBalanceWalletIcon />, path: '/transacciones' },
-  { text: 'Propiedades', icon: <HomeIcon />, path: '/propiedades' },
-  { text: 'Inventario', icon: <InventoryIcon />, path: '/inventario' },
-  { text: 'Rutinas', icon: <FitnessCenterIcon />, path: '/rutinas' },
-  { text: 'Lab', icon: <ScienceIcon />, path: '/lab' },
-  { text: 'Proyectos', icon: <AssignmentIcon />, path: '/proyectos' },
-];
-
-export default function Layout({ children }) {
+export default function Sidebar() {
+  const { isOpen } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
-  const { isOpen } = useSidebar();
+
+  const menuItems = [
+    { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
+    { text: 'Transacciones', icon: <AccountBalanceWalletIcon />, path: '/transacciones' },
+    { text: 'Propiedades', icon: <HomeWorkIcon />, path: '/propiedades' },
+    { text: 'Inventario', icon: <InventoryIcon />, path: '/inventario' },
+    { text: 'Rutinas', icon: <FitnessCenterIcon />, path: '/rutinas' },
+    { text: 'Lab', icon: <ScienceIcon />, path: '/lab' },
+    { text: 'Proyectos', icon: <AssignmentIcon />, path: '/proyectos' },
+  ];
 
   return (
-    <Box sx={{ display: 'flex' }}>
-      <Header 
-        sx={{ 
-          position: 'fixed',
-          width: '100%',
-          top: 0,
-          zIndex: (theme) => theme.zIndex.drawer + 1 
-        }} 
-      />
+    <Box sx={{ 
+      width: isOpen ? 240 : 56,
+      transition: 'width 0.3s ease',
+      flexShrink: 0 
+    }}>
       <Drawer
         variant="permanent"
         sx={{
+          width: 'auto',
           '& .MuiDrawer-paper': {
+            position: 'fixed',
             width: isOpen ? 240 : 56,
             transition: 'width 0.3s ease',
             overflowX: 'hidden',
             backgroundColor: 'background.paper',
             borderRight: '1px solid',
             borderColor: 'divider',
-            position: 'fixed',
-            height: '100vh',
-            top: '48px',
-            left: 0,
-          },
+            height: '100%'
+          }
         }}
       >
+        <Box sx={{ height: '48px' }} />
         <List sx={{ p: 1 }}>
           {menuItems.map((item) => (
             <ListItem key={item.text} disablePadding>
@@ -81,7 +76,8 @@ export default function Layout({ children }) {
                   primary={item.text} 
                   sx={{ 
                     opacity: isOpen ? 1 : 0,
-                    transition: 'opacity 0.3s ease'
+                    transition: 'opacity 0.3s ease',
+                    m: 0,
                   }} 
                 />
               </ListItemButton>
@@ -89,20 +85,6 @@ export default function Layout({ children }) {
           ))}
         </List>
       </Drawer>
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          mt: '48px',
-          ml: isOpen ? '240px' : '56px',
-          transition: 'margin-left 0.3s ease',
-          backgroundColor: 'background.default',
-          minHeight: 'calc(100vh - 48px)',
-          p: 2
-        }}
-      >
-        {children}
-      </Box>
     </Box>
   );
-}
+} 

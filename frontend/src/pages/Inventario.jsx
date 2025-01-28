@@ -1,24 +1,22 @@
-import { Button, Grid, Paper, Typography } from '@mui/material';
+import { Button } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import EntityDetails from '../components/EntityDetails';
 
 export default function Inventario() {
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
+    <EntityDetails 
+      title="Inventario"
+      action={
         <Button
           variant="contained"
           startIcon={<AddIcon />}
+          size="small"
         >
           Nuevo Item
         </Button>
-      </div>
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6">Lista de Items</Typography>
-          </Paper>
-        </Grid>
-      </Grid>
-    </div>
+      }
+    >
+      {/* Contenido del inventario */}
+    </EntityDetails>
   );
 }

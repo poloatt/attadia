@@ -1,22 +1,22 @@
-import { Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import { Button } from '@mui/material';
+import EntityDetails from '../components/EntityDetails';
 import AddIcon from '@mui/icons-material/Add';
 
 export default function Transacciones() {
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
+    <EntityDetails 
+      title="Transacciones"
+      action={
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => {/* Aquí irá la lógica para abrir el modal de nueva transacción */}}
+          size="small"
         >
           Nueva Transacción
         </Button>
-      </div>
-
-      <TableContainer component={Paper}>
-        {/* ... resto del contenido ... */}
-      </TableContainer>
-    </div>
+      }
+    >
+      {/* Contenido de transacciones */}
+    </EntityDetails>
   );
 }

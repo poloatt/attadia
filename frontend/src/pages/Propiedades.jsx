@@ -1,24 +1,22 @@
-import { Button, Grid, Paper, Typography } from '@mui/material';
+import { Button } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import EntityDetails from '../components/EntityDetails';
 
 export default function Propiedades() {
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
+    <EntityDetails 
+      title="Propiedades"
+      action={
         <Button
           variant="contained"
           startIcon={<AddIcon />}
+          size="small"
         >
           Nueva Propiedad
         </Button>
-      </div>
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6} lg={4}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6">Propiedades Activas</Typography>
-          </Paper>
-        </Grid>
-      </Grid>
-    </div>
+      }
+    >
+      {/* Contenido de propiedades */}
+    </EntityDetails>
   );
 }

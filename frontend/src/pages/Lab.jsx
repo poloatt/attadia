@@ -1,24 +1,22 @@
-import { Button, Grid, Paper, Typography } from '@mui/material';
+import { Button } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import EntityDetails from '../components/EntityDetails';
 
 export default function Lab() {
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
+    <EntityDetails 
+      title="Laboratorio"
+      action={
         <Button
           variant="contained"
           startIcon={<AddIcon />}
+          size="small"
         >
           Nuevo Experimento
         </Button>
-      </div>
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6">Experimentos en Curso</Typography>
-          </Paper>
-        </Grid>
-      </Grid>
-    </div>
+      }
+    >
+      {/* Contenido del laboratorio */}
+    </EntityDetails>
   );
 }
