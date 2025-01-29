@@ -6,8 +6,8 @@ export const propiedadController = {
   getAll: async (req, res) => {
     try {
       const propiedades = await prisma.propiedad.findMany({
-        include: {
-          habitaciones: true,
+        where: {
+          userId: req.userId
         }
       });
       
@@ -20,26 +20,33 @@ export const propiedadController = {
 
   // Crear una nueva propiedad
   create: async (req, res) => {
-    const { direccion, barrio, provincia, pais, cuentas } = req.body;
-
     try {
+      const { direccion, barrio, provincia, pais } = req.body;
+      const userId = req.userId; // Obtenido del middleware de auth
+      
+      if (!direccion || !barrio || !provincia || !pais) {
+        return res.status(400).json({
+          error: 'Faltan campos requeridos'
+        });
+      }
+
       const propiedad = await prisma.propiedad.create({
         data: {
           direccion,
           barrio,
           provincia,
           pais,
-          cuentas: cuentas || []
-        },
-        include: {
-          habitaciones: true
+          cuentas: req.body.cuentas || [],
+          userId // Asociar con el usuario autenticado
         }
       });
       
       res.status(201).json(propiedad);
     } catch (error) {
       console.error('Error al crear propiedad:', error);
-      res.status(500).json({ error: 'Error al crear la propiedad' });
+      res.status(500).json({
+        error: 'Error al crear la propiedad'
+      });
     }
   },
 

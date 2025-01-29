@@ -4,6 +4,25 @@ Este proyecto es una aplicación web full-stack para la gestión personal de fin
 
 ## Estructura del Proyecto
 
+# Present
+
+Present es una aplicación web moderna para gestión personal y profesional.
+
+## Tecnologías
+
+### Frontend
+- React 18
+- Material-UI (MUI) v5
+- React Router v6
+- Vite
+- Context API para gestión de estado
+
+### Backend
+- Node.js
+- Express
+- MongoDB
+- Docker
+
 ```
 present/
 ├── docker-compose.yml
@@ -209,3 +228,17 @@ REACT_APP_API_URL=http://localhost:5000/api
 
 ## Licencia
 Este proyecto está bajo la Licencia MIT
+
+## Estado de Conexiones
+
+La aplicación monitorea constantemente:
+- Conectividad con el backend (API)
+- Estado de la base de datos
+
+## Contribución
+
+1. Fork el repositorio
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request

@@ -81,24 +81,30 @@ export default function Propiedades() {
 
   const handleSubmit = async (data) => {
     try {
-      const response = await fetch(`${API_URL}/propiedades`, {
+      console.log('Enviando datos:', data); // Para debugging
+
+      const response = await fetch('/api/propiedades', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data)
       });
-      
-      if (!response.ok) throw new Error('Error al crear la propiedad');
 
-      const newPropiedad = await response.json();
-      setPropiedades(prev => [...prev, newPropiedad]);
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseData.details || responseData.error || 'Error al crear la propiedad');
+      }
+
+      console.log('Propiedad creada:', responseData);
+      setPropiedades(prev => [...prev, responseData]);
       enqueueSnackbar('Propiedad creada exitosamente', { variant: 'success' });
       setOpenForm(false);
     } catch (error) {
-      console.error('Error:', error);
-      enqueueSnackbar('Error al crear la propiedad', { variant: 'error' });
-      throw error;
+      console.error('Error completo:', error);
+      // Aquí puedes mostrar un mensaje de error al usuario
+      throw new Error(error.message);
     }
   };
 

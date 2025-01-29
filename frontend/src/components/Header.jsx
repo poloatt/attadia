@@ -1,79 +1,33 @@
-import { AppBar, Toolbar, Typography, IconButton, Avatar, Menu, MenuItem, Box, Tooltip, Badge } from '@mui/material';
-import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { 
+  AppBar, 
+  Toolbar, 
+  Typography, 
+  IconButton, 
+  Avatar, 
+  Menu, 
+  MenuItem, 
+  Box, 
+  Tooltip
+} from '@mui/material';
+import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import { alpha } from '@mui/material/styles';
-import StorageIcon from '@mui/icons-material/Storage';
-import CircleIcon from '@mui/icons-material/Circle';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useSidebar } from '../context/SidebarContext';
 import LogoutIcon from '@mui/icons-material/Logout';
-import LoginIcon from '@mui/icons-material/Login';
-import { BASE_URL, HEALTH_URL } from '../config';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ErrorIcon from '@mui/icons-material/Error';
-import { CircularProgress } from '@mui/material';
+import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 
-export default function Header({ onMenuClick }) {
+export default function Header() {
   const { user, logout } = useAuth();
-  const { isOpen, toggleSidebar } = useSidebar();
+  const navigate = useNavigate();
   const location = useLocation();
+  const { toggleSidebar } = useSidebar();
   const [anchorEl, setAnchorEl] = useState(null);
-  const [connectionStatus, setConnectionStatus] = useState({
-    backend: false,
-    database: false,
-    loading: true
-  });
+  
+  const path = location.pathname === '/' ? 'inicio' : location.pathname.slice(1);
 
-  useEffect(() => {
-    const checkConnections = async () => {
-      try {
-        const response = await fetch('/health', {
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const text = await response.text(); // Primero obtén el texto
-        let data;
-        try {
-          data = JSON.parse(text); // Intenta parsearlo como JSON
-        } catch (e) {
-          console.error('Invalid JSON response:', text);
-          throw new Error('Invalid JSON response');
-        }
-        
-        setConnectionStatus({
-          backend: true,
-          database: data.database === 'connected',
-          loading: false
-        });
-      } catch (error) {
-        console.error('Error checking connections:', error);
-        setConnectionStatus({
-          backend: false,
-          database: false,
-          loading: false
-        });
-      }
-    };
-
-    checkConnections();
-    const interval = setInterval(checkConnections, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Función para obtener el título de la página actual
-  const getPageTitle = () => {
-    const path = location.pathname.substring(1); // Elimina el '/' inicial
-    if (path === '') return ''; // Si estamos en la raíz, no mostramos nada después de "present"
-    return path.charAt(0).toUpperCase() + path.slice(1); // Capitaliza la primera letra
+  const handleAuthClick = () => {
+    navigate('/login');
   };
 
   const handleMenu = (event) => {
@@ -84,20 +38,13 @@ export default function Header({ onMenuClick }) {
     setAnchorEl(null);
   };
 
-  const handleToggle = () => {
-    console.log('Toggle sidebar:', !isOpen);
-    toggleSidebar();
+  const handleLogout = () => {
+    handleClose();
+    logout();
   };
 
-  const getStatusIcon = (isConnected, isLoading) => {
-    if (isLoading) {
-      return <CircularProgress size={20} />;
-    }
-    return isConnected ? (
-      <CheckCircleIcon sx={{ color: 'success.main' }} />
-    ) : (
-      <ErrorIcon sx={{ color: 'error.main' }} />
-    );
+  const handleHomeClick = () => {
+    navigate('/');
   };
 
   return (
@@ -105,118 +52,132 @@ export default function Header({ onMenuClick }) {
       position="fixed" 
       sx={{ 
         zIndex: (theme) => theme.zIndex.drawer + 1,
-        backgroundColor: (theme) => alpha(theme.palette.background.default, 0.8),
-        backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid',
-        borderColor: 'divider',
-        boxShadow: 'none',
+        backgroundColor: '#0A0A0A',
+        color: 'white',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.5)',
+        height: '48px'
       }}
     >
-      <Toolbar sx={{ justifyContent: 'space-between', minHeight: '48px' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Tooltip title={isOpen ? "Ocultar menú" : "Mostrar menú"}>
-            <IconButton
-              onClick={handleToggle}
-              size="small"
-              sx={{ color: 'text.primary' }}
-            >
-              <MenuIcon 
-                sx={{ 
-                  fontSize: 20,
-                  transform: isOpen ? 'none' : 'rotate(180deg)',
-                  transition: 'transform 0.2s'
-                }} 
-              />
-            </IconButton>
-          </Tooltip>
-          <Typography 
-            variant="subtitle1" 
-            noWrap 
-            component="div"
-            sx={{ 
-              color: 'text.primary',
-              fontWeight: 600,
-              fontSize: '0.875rem'
-            }}
-          >
-            present
-            {getPageTitle() && (
-              <>
-                <span style={{ margin: '0 4px', color: 'text.secondary' }}>/</span>
-                <span style={{ color: 'text.secondary' }}>{getPageTitle()}</span>
-              </>
-            )}
-          </Typography>
-        </Box>
-        
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {/* API Status */}
-            <Tooltip title={`API Status: ${connectionStatus.backend ? 'Connected' : 'Disconnected'}`}>
-              <IconButton color="inherit" sx={{ mr: 1 }}>
-                {getStatusIcon(connectionStatus.backend, connectionStatus.loading)}
-              </IconButton>
-            </Tooltip>
-
-            {/* Database Status */}
-            <Tooltip title={`Database Status: ${connectionStatus.database ? 'Connected' : 'Disconnected'}`}>
-              <IconButton color="inherit" sx={{ mr: 2 }}>
-                <Badge color={connectionStatus.database ? "success" : "error"} variant="dot">
-                  <StorageIcon />
-                </Badge>
-              </IconButton>
-            </Tooltip>
-          </Box>
+      <Toolbar 
+        sx={{ 
+          justifyContent: 'space-between', 
+          minHeight: '48px !important',
+          px: 2
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <IconButton
-            size="small"
-            onClick={handleMenu}
-            sx={{ 
-              color: 'text.primary',
-              padding: '4px'
-            }}
+            color="inherit"
+            aria-label="open drawer"
+            onClick={toggleSidebar}
+            edge="start"
+            sx={{ mr: 2 }}
           >
-            {user?.avatar ? (
-              <Avatar 
-                src={user.avatar} 
-                alt={user.name}
-                sx={{ width: 24, height: 24 }}
-              />
-            ) : (
-              <AccountCircleIcon sx={{ width: 24, height: 24 }} />
-            )}
+            <MenuIcon />
           </IconButton>
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleClose}
-            PaperProps={{
-              sx: {
-                mt: 1,
-                minWidth: 180,
-                boxShadow: 'rgb(0 0 0 / 8%) 0px 3px 14px',
-                borderRadius: 1.5,
-                border: '1px solid',
-                borderColor: 'divider',
+          <Box 
+            sx={{ 
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              cursor: 'pointer',
+              '&:hover': {
+                '& .MuiTypography-root': {
+                  color: 'rgba(255, 255, 255, 0.9)'
+                }
               }
             }}
+            onClick={handleHomeClick}
           >
-            <MenuItem onClick={handleClose}>Perfil</MenuItem>
-            <MenuItem onClick={handleClose}>Configuración</MenuItem>
-            <MenuItem onClick={() => {
-              handleClose();
-              logout();
-            }}>Cerrar Sesión</MenuItem>
-          </Menu>
+            <Typography 
+              variant="subtitle1" 
+              noWrap 
+              component="div"
+              sx={{ 
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                color: 'rgba(255, 255, 255, 0.7)',
+                transition: 'color 0.2s'
+              }}
+            >
+              Present
+              <Box 
+                component="span" 
+                sx={{ 
+                  color: 'rgba(255, 255, 255, 0.5)',
+                  mx: 0.5 
+                }}
+              >
+                /
+              </Box>
+              {path}
+            </Typography>
+          </Box>
         </Box>
-        
-        {user ? (
-          <IconButton onClick={logout} color="inherit">
-            <LogoutIcon />
-          </IconButton>
+
+        {/* Auth Button */}
+        {!user ? (
+          <Tooltip title="Iniciar Sesión / Registrarse">
+            <IconButton 
+              size="small" 
+              onClick={handleAuthClick}
+              sx={{ 
+                color: 'rgba(255, 255, 255, 0.7)',
+                '&:hover': {
+                  color: 'rgba(255, 255, 255, 0.9)'
+                }
+              }}
+            >
+              <PersonOutlineIcon sx={{ fontSize: 20 }} />
+            </IconButton>
+          </Tooltip>
         ) : (
-          <IconButton color="inherit">
-            <LoginIcon />
-          </IconButton>
+          <>
+            <Tooltip title={user.email}>
+              <IconButton
+                size="small"
+                onClick={handleMenu}
+                sx={{ ml: 1 }}
+              >
+                <Avatar 
+                  sx={{ 
+                    width: 28, 
+                    height: 28, 
+                    bgcolor: 'primary.main',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  {user.name ? user.name[0].toUpperCase() : 'U'}
+                </Avatar>
+              </IconButton>
+            </Tooltip>
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleClose}
+              sx={{ 
+                mt: 1,
+                '& .MuiPaper-root': {
+                  backgroundColor: '#0A0A0A',
+                  color: 'white',
+                  border: '1px solid rgba(255, 255, 255, 0.1)'
+                }
+              }}
+            >
+              <MenuItem 
+                onClick={handleLogout}
+                sx={{ 
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)'
+                  }
+                }}
+              >
+                <LogoutIcon sx={{ mr: 1, fontSize: 20 }} />
+                <Typography variant="body2">Cerrar Sesión</Typography>
+              </MenuItem>
+            </Menu>
+          </>
         )}
       </Toolbar>
     </AppBar>

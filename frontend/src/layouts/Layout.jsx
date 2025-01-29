@@ -2,6 +2,7 @@ import { Box, Drawer, List, ListItem, ListItemIcon, ListItemText, ListItemButton
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import Header from '../components/Header';
+import Footer from '../components/Footer';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import HomeIcon from '@mui/icons-material/Home';
@@ -99,13 +100,14 @@ export default function Layout({ children }) {
       >
         <Box sx={{ 
           p: 2,
-          height: 'calc(100vh - 48px)',
-          overflow: 'hidden',
+          height: 'calc(100vh - 80px)', // Ajustado para el footer (48px header + 32px footer)
+          overflow: 'auto',
           display: 'flex',
           flexDirection: 'column'
         }}>
           {children}
         </Box>
+        <Footer />
       </Box>
     </Box>
   );

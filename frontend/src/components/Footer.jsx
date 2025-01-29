@@ -1,0 +1,97 @@
+import { Box, Chip } from '@mui/material';
+import CloudDoneIcon from '@mui/icons-material/CloudDone';
+import CloudOffIcon from '@mui/icons-material/CloudOff';
+import SignalWifiStatusbar4BarIcon from '@mui/icons-material/SignalWifiStatusbar4Bar';
+import SignalWifiOffIcon from '@mui/icons-material/SignalWifiOff';
+import { useState, useEffect } from 'react';
+
+export default function Footer() {
+  const [connectionStatus, setConnectionStatus] = useState({
+    backend: false,
+    database: false,
+    loading: true
+  });
+
+  useEffect(() => {
+    const checkConnections = async () => {
+      try {
+        const response = await fetch('/health');
+        const data = await response.json();
+        setConnectionStatus({
+          backend: true,
+          database: data.database === 'connected',
+          loading: false
+        });
+      } catch (error) {
+        setConnectionStatus({
+          backend: false,
+          database: false,
+          loading: false
+        });
+      }
+    };
+
+    checkConnections();
+    const interval = setInterval(checkConnections, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <Box
+      component="footer"
+      sx={{
+        position: 'fixed',
+        bottom: 0,
+        width: '100%',
+        height: '32px',
+        backgroundColor: '#0A0A0A',
+        color: 'rgba(255, 255, 255, 0.7)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 2,
+        borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+        zIndex: (theme) => theme.zIndex.drawer + 1
+      }}
+    >
+      <Chip
+        icon={
+          connectionStatus.backend ? 
+            <SignalWifiStatusbar4BarIcon sx={{ color: '#4caf50', fontSize: 16 }} /> : 
+            <SignalWifiOffIcon sx={{ color: '#f44336', fontSize: 16 }} />
+        }
+        label={connectionStatus.backend ? 'Conectado al backend' : 'Sin conexión al backend'}
+        size="small"
+        sx={{ 
+          height: '24px',
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          color: 'rgba(255, 255, 255, 0.9)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          '& .MuiChip-label': {
+            fontSize: '0.75rem',
+            px: 1
+          }
+        }}
+      />
+      <Chip
+        icon={
+          connectionStatus.database ? 
+            <CloudDoneIcon sx={{ color: '#4caf50', fontSize: 16 }} /> : 
+            <CloudOffIcon sx={{ color: '#f44336', fontSize: 16 }} />
+        }
+        label={connectionStatus.database ? 'Conectado a la base de datos' : 'Sin conexión a la base de datos'}
+        size="small"
+        sx={{ 
+          height: '24px',
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          color: 'rgba(255, 255, 255, 0.9)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          '& .MuiChip-label': {
+            fontSize: '0.75rem',
+            px: 1
+          }
+        }}
+      />
+    </Box>
+  );
+} 

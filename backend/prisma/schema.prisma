@@ -7,20 +7,32 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Usuario {
-  id            String         @id @default(uuid())
-  email         String         @unique
-  nombre        String
-  password      String
-  isAdmin       Boolean        @default(false)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  transacciones Transaccion[]
-  propiedades   Propiedad[]
-  inventarios   Inventario[]
-  rutinas       Rutina[]
-  labResults    LabResult[]
-  proyectos     Proyecto[]
+model User {
+  id        String      @id @default(uuid())
+  email     String      @unique
+  password  String
+  name      String?
+  role      String      @default("user")
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  propiedades Propiedad[]
+
+  @@map("users")
+}
+
+model Propiedad {
+  id        String   @id @default(uuid())
+  direccion String
+  barrio    String
+  provincia String
+  pais      String
+  cuentas   String[]
+  userId    String   // Campo para la relación
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("propiedades")
 }
 
 model Transaccion {
@@ -35,24 +47,10 @@ model Transaccion {
   tipo        String
   categoria   String
   locacion    String
-  usuario     Usuario   @relation(fields: [usuarioId], references: [id])
+  usuario     User   @relation(fields: [usuarioId], references: [id])
   usuarioId   String
   propiedad   Propiedad? @relation(fields: [propiedadId], references: [id])
   propiedadId String?
-}
-
-model Propiedad {
-  id            String        @id @default(uuid())
-  direccion     String
-  barrio        String
-  provincia     String
-  pais          String
-  cuentas       String[]
-  inventarios   Inventario[]
-  transacciones Transaccion[]
-  habitaciones  Habitacion[]
-  usuario       Usuario       @relation(fields: [usuarioId], references: [id])
-  usuarioId     String
 }
 
 model Habitacion {
@@ -73,7 +71,7 @@ model Inventario {
   consumible  Boolean    @default(false)
   propiedad   Propiedad? @relation(fields: [propiedadId], references: [id])
   propiedadId String?
-  usuario     Usuario    @relation(fields: [usuarioId], references: [id])
+  usuario     User    @relation(fields: [usuarioId], references: [id])
   usuarioId   String
 }
 
@@ -102,7 +100,7 @@ model Rutina {
   weight       Float?
   stress       Int?
   sleep        Float?
-  usuario      Usuario  @relation(fields: [usuarioId], references: [id])
+  usuario      User  @relation(fields: [usuarioId], references: [id])
   usuarioId    String
 }
 
@@ -113,7 +111,7 @@ model LabResult {
   valor     Float
   unidad    String
   notas     String?
-  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+  usuario   User  @relation(fields: [usuarioId], references: [id])
   usuarioId String
 }
 
@@ -126,7 +124,7 @@ model Proyecto {
   estado     EstadoProyecto @default(EN_PROGRESO)
   tareas     Tarea[]
   tags       String[]
-  usuario    Usuario   @relation(fields: [usuarioId], references: [id])
+  usuario    User   @relation(fields: [usuarioId], references: [id])
   usuarioId  String
 }
 

@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 import healthRouter from './routes/health.js';
-import transaccionesRouter from './routes/transacciones.js';
+import propiedadRoutes from './routes/propiedadRoutes.js';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -21,7 +21,7 @@ app.set('prisma', prisma);
 
 // Rutas
 app.use('/health', healthRouter);
-app.use('/api/transacciones', transaccionesRouter);
+app.use('/api/propiedades', propiedadRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {

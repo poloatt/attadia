@@ -73,14 +73,27 @@ export default function EntityForm({
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      // Validar campos requeridos
+      const requiredFields = fields.filter(f => f.required).map(f => f.name);
+      const missingFields = requiredFields.filter(field => !formData[field]);
+      
+      if (missingFields.length > 0) {
+        throw new Error(`Campos requeridos faltantes: ${missingFields.join(', ')}`);
+      }
+
       const submitData = {
         ...formData,
-        ...arrayFields
+        ...Object.fromEntries(
+          Object.entries(arrayFields).map(([key, value]) => [key, value || []])
+        )
       };
+
+      console.log('Datos a enviar:', submitData); // Para debugging
       await onSubmit(submitData);
       handleCancel();
     } catch (error) {
-      console.error('Error al guardar:', error);
+      console.error('Error en el formulario:', error);
+      // Aquí puedes mostrar un mensaje de error al usuario
     } finally {
       setIsSubmitting(false);
     }
