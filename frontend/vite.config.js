@@ -13,7 +13,8 @@ export default defineConfig({
       '/api': {
         target: 'http://backend:5000',  // Correcto, usa el nombre del servicio
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
+        secure: false,
+        ws: true
       },
       '/health': {
         target: 'http://backend:5000',  // También actualizamos el health check

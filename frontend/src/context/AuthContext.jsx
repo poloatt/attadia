@@ -31,27 +31,25 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      console.log('Intentando login con:', { email }); // Para debug
-
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
-        credentials: 'include'
+        credentials: 'include',
+        body: JSON.stringify({ email, password })
       });
 
       if (!response.ok) {
-        throw new Error('Error en la autenticación');
+        const error = await response.json();
+        throw new Error(error.message || 'Error en la autenticación');
       }
 
       const data = await response.json();
-      console.log('Respuesta del servidor:', data); // Para debug
       setUser(data.user);
       return data;
     } catch (error) {
-      console.error('Error detallado:', error);
+      console.error('Error en login:', error);
       throw error;
     }
   };

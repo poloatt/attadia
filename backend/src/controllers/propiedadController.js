@@ -7,7 +7,7 @@ export const propiedadController = {
     try {
       const propiedades = await prisma.propiedad.findMany({
         where: {
-          userId: req.userId
+          usuarioId: req.user.id
         }
       });
       
@@ -22,7 +22,6 @@ export const propiedadController = {
   create: async (req, res) => {
     try {
       const { direccion, barrio, provincia, pais } = req.body;
-      const userId = req.userId; // Obtenido del middleware de auth
       
       if (!direccion || !barrio || !provincia || !pais) {
         return res.status(400).json({
@@ -37,7 +36,7 @@ export const propiedadController = {
           provincia,
           pais,
           cuentas: req.body.cuentas || [],
-          userId // Asociar con el usuario autenticado
+          usuarioId: req.user.id
         }
       });
       
