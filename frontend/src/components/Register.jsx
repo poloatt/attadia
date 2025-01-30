@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -13,54 +13,28 @@ import {
   IconButton,
   InputAdornment
 } from '@mui/material';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 
-export default function Register() {
-  const { register } = useAuth();
+export function Register() {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: ''
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    // Validaciones
-    if (!formData.name.trim()) {
-      return setError('El nombre es requerido');
-    }
-
-    if (!formData.email.trim()) {
-      return setError('El email es requerido');
-    }
-
-    if (!formData.password) {
-      return setError('La contraseña es requerida');
-    }
-
-    if (formData.password.length < 6) {
-      return setError('La contraseña debe tener al menos 6 caracteres');
-    }
-
     if (formData.password !== formData.confirmPassword) {
-      return setError('Las contraseñas no coinciden');
+      setError('Las contraseñas no coinciden');
+      return;
     }
 
     setLoading(true);
@@ -68,19 +42,10 @@ export default function Register() {
       await register(formData.name, formData.email, formData.password);
       navigate('/');
     } catch (error) {
-      console.error('Error en registro:', error);
       setError(error.message || 'Error al registrar usuario');
     } finally {
       setLoading(false);
     }
-  };
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
-  const toggleConfirmPasswordVisibility = () => {
-    setShowConfirmPassword(!showConfirmPassword);
   };
 
   return (
@@ -91,9 +56,10 @@ export default function Register() {
           sx={{ 
             p: 2.5,
             width: '100%',
-            bgcolor: '#1a1a1a',
+            bgcolor: 'background.paper',
             borderRadius: 1,
-            border: '1px solid #333'
+            border: '1px solid',
+            borderColor: 'divider'
           }}
         >
           <Typography 
@@ -101,241 +67,101 @@ export default function Register() {
             component="h1" 
             gutterBottom 
             align="center"
-            sx={{ 
-              mb: 2, 
-              color: '#fff',
-              fontSize: '1.1rem',
-              fontWeight: 500
-            }}
+            sx={{ mb: 2 }}
           >
-            Crear Cuenta
+            Registro
           </Typography>
-          
+
           {error && (
-            <Alert 
-              severity="error" 
-              sx={{ 
-                mb: 2, 
-                borderRadius: 1,
-                bgcolor: '#2c1c1c',
-                color: '#ff8080',
-                '& .MuiAlert-icon': {
-                  color: '#ff8080'
-                }
-              }}
-              onClose={() => setError('')}
-            >
+            <Alert severity="error" sx={{ mb: 2 }}>
               {error}
             </Alert>
           )}
 
           <form onSubmit={handleSubmit}>
             <TextField
-              name="name"
-              label="Nombre"
               fullWidth
-              size="small"
-              margin="dense"
+              label="Nombre"
               value={formData.name}
-              onChange={handleChange}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              margin="normal"
               required
-              sx={{
-                mb: 1.5,
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
-                    borderColor: '#333',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: '#444',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#666',
-                  },
-                },
-                '& .MuiInputLabel-root': {
-                  color: '#888',
-                  fontSize: '0.85rem',
-                },
-                '& .MuiInputBase-input': {
-                  color: '#cccccc',
-                  fontSize: '0.9rem',
-                }
-              }}
+              size="small"
             />
-            
+
             <TextField
-              name="email"
+              fullWidth
               label="Email"
               type="email"
-              fullWidth
-              size="small"
-              margin="dense"
               value={formData.email}
-              onChange={handleChange}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              margin="normal"
               required
-              sx={{
-                mb: 1.5,
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
-                    borderColor: '#333',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: '#444',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#666',
-                  },
-                },
-                '& .MuiInputLabel-root': {
-                  color: '#888',
-                  fontSize: '0.85rem',
-                },
-                '& .MuiInputBase-input': {
-                  color: '#cccccc',
-                  fontSize: '0.9rem',
-                }
-              }}
+              size="small"
             />
-            
+
             <TextField
-              name="password"
+              fullWidth
               label="Contraseña"
               type={showPassword ? 'text' : 'password'}
-              fullWidth
-              size="small"
-              margin="dense"
               value={formData.password}
-              onChange={handleChange}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              margin="normal"
               required
+              size="small"
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton
-                      onClick={togglePasswordVisibility}
+                      onClick={() => setShowPassword(!showPassword)}
                       edge="end"
-                      size="small"
-                      sx={{ color: '#666' }}
                     >
-                      {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
                   </InputAdornment>
                 ),
-              }}
-              sx={{
-                mb: 1.5,
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
-                    borderColor: '#333',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: '#444',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#666',
-                  },
-                },
-                '& .MuiInputLabel-root': {
-                  color: '#888',
-                  fontSize: '0.85rem',
-                },
-                '& .MuiInputBase-input': {
-                  color: '#cccccc',
-                  fontSize: '0.9rem',
-                }
               }}
             />
-            
+
             <TextField
-              name="confirmPassword"
-              label="Confirmar Contraseña"
-              type={showConfirmPassword ? 'text' : 'password'}
               fullWidth
-              size="small"
-              margin="dense"
+              label="Confirmar Contraseña"
+              type={showPassword ? 'text' : 'password'}
               value={formData.confirmPassword}
-              onChange={handleChange}
+              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+              margin="normal"
               required
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={toggleConfirmPasswordVisibility}
-                      edge="end"
-                      size="small"
-                      sx={{ color: '#666' }}
-                    >
-                      {showConfirmPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                mb: 2,
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
-                    borderColor: '#333',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: '#444',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#666',
-                  },
-                },
-                '& .MuiInputLabel-root': {
-                  color: '#888',
-                  fontSize: '0.85rem',
-                },
-                '& .MuiInputBase-input': {
-                  color: '#cccccc',
-                  fontSize: '0.9rem',
-                }
-              }}
+              size="small"
             />
 
             <Button
               type="submit"
               fullWidth
               variant="contained"
-              size="small"
-              sx={{ 
-                mb: 2,
-                textTransform: 'none',
-                bgcolor: '#1f1f1f',
-                opacity: 0.9,
-                color: '#fff',
-                '&:hover': {
-                  bgcolor: '#2a2a2a',
-                  opacity: 1
-                },
-                '&:active': {
-                  bgcolor: '#151515'
-                }
-              }}
               disabled={loading}
+              sx={{ mt: 2 }}
             >
-              {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
+              {loading ? 'Registrando...' : 'Registrarse'}
             </Button>
-
-            <Box sx={{ textAlign: 'center' }}>
-              <Link 
-                component={RouterLink} 
-                to="/login"
-                sx={{ 
-                  color: '#999',
-                  textDecoration: 'none',
-                  '&:hover': {
-                    color: '#fff',
-                    textDecoration: 'underline'
-                  }
-                }}
-              >
-                ¿Ya tienes una cuenta? Inicia sesión
-              </Link>
-            </Box>
           </form>
+
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              ¿Ya tienes una cuenta?
+              <Button 
+                color="primary" 
+                onClick={() => navigate('/login')}
+                size="small"
+                sx={{ ml: 1 }}
+              >
+                Iniciar Sesión
+              </Button>
+            </Typography>
+          </Box>
         </Paper>
       </Box>
     </Container>
   );
-} 
+}
+
+export default Register; 

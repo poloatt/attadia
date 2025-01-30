@@ -1,22 +1,20 @@
-import { useState } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import {
-  Container,
+import { 
+  Container, 
+  Box, 
+  Typography, 
+  TextField, 
+  Button, 
   Paper,
-  TextField,
-  Button,
-  Typography,
-  Link,
-  Box,
-  Alert,
+  IconButton,
   InputAdornment,
-  IconButton
+  Alert
 } from '@mui/material';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 
-export default function Login() {
+export function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -34,7 +32,7 @@ export default function Login() {
       navigate('/');
     } catch (error) {
       console.error('Error en login:', error);
-      setError(error.message);
+      setError('Error en la autenticación');
     } finally {
       setLoading(false);
     }
@@ -48,9 +46,10 @@ export default function Login() {
           sx={{ 
             p: 2.5,
             width: '100%',
-            bgcolor: '#1a1a1a',
+            bgcolor: 'background.paper',
             borderRadius: 1,
-            border: '1px solid #333'
+            border: '1px solid',
+            borderColor: 'divider'
           }}
         >
           <Typography 
@@ -60,110 +59,51 @@ export default function Login() {
             align="center"
             sx={{ 
               mb: 2, 
-              color: '#fff',
               fontSize: '1.1rem',
               fontWeight: 500
             }}
           >
             Iniciar Sesión
           </Typography>
-          
+
           {error && (
-            <Alert 
-              severity="error" 
-              sx={{ 
-                mb: 2, 
-                borderRadius: 1,
-                bgcolor: '#2c1c1c',
-                color: '#ff8080',
-                '& .MuiAlert-icon': {
-                  color: '#ff8080'
-                }
-              }}
-              onClose={() => setError('')}
-            >
+            <Alert severity="error" sx={{ mb: 2 }}>
               {error}
             </Alert>
           )}
 
           <form onSubmit={handleSubmit}>
             <TextField
+              fullWidth
               label="Email"
               type="email"
-              fullWidth
-              size="small"
-              margin="dense"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
-              sx={{
-                mb: 1.5,
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
-                    borderColor: '#333',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: '#444',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#666',
-                  },
-                },
-                '& .MuiInputLabel-root': {
-                  color: '#888',
-                  fontSize: '0.85rem',
-                },
-                '& .MuiInputBase-input': {
-                  color: '#cccccc',
-                  fontSize: '0.9rem',
-                }
-              }}
+              margin="normal"
+              size="small"
             />
-            
+
             <TextField
+              fullWidth
               label="Contraseña"
               type={showPassword ? 'text' : 'password'}
-              fullWidth
-              size="small"
-              margin="dense"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
+              margin="normal"
+              size="small"
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton
                       onClick={() => setShowPassword(!showPassword)}
                       edge="end"
-                      size="small"
-                      sx={{ color: '#666' }}
                     >
-                      {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
                   </InputAdornment>
                 ),
-              }}
-              sx={{
-                mb: 2,
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
-                    borderColor: '#333',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: '#444',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#666',
-                  },
-                },
-                '& .MuiInputLabel-root': {
-                  color: '#888',
-                  fontSize: '0.85rem',
-                },
-                '& .MuiInputBase-input': {
-                  color: '#cccccc',
-                  fontSize: '0.9rem',
-                }
               }}
             />
 
@@ -171,46 +111,30 @@ export default function Login() {
               type="submit"
               fullWidth
               variant="contained"
-              size="small"
-              sx={{ 
-                mb: 2,
-                textTransform: 'none',
-                bgcolor: '#1f1f1f',
-                opacity: 0.9,
-                color: '#fff',
-                '&:hover': {
-                  bgcolor: '#2a2a2a',
-                  opacity: 1
-                },
-                '&:active': {
-                  bgcolor: '#151515'
-                }
-              }}
               disabled={loading}
+              sx={{ mt: 2 }}
             >
               {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
             </Button>
-
-            <Box sx={{ textAlign: 'center' }}>
-              <Link 
-                component={RouterLink} 
-                to="/register" 
-                variant="body2"
-                sx={{ 
-                  color: '#999',
-                  textDecoration: 'none',
-                  '&:hover': {
-                    color: '#fff',
-                    textDecoration: 'underline'
-                  }
-                }}
-              >
-                ¿No tienes una cuenta? Regístrate
-              </Link>
-            </Box>
           </form>
+
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              ¿No tienes una cuenta? 
+              <Button 
+                color="primary" 
+                onClick={() => navigate('/registro')}
+                size="small"
+                sx={{ ml: 1 }}
+              >
+                Regístrate
+              </Button>
+            </Typography>
+          </Box>
         </Paper>
       </Box>
     </Container>
   );
-} 
+}
+
+export default Login; 

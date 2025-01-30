@@ -1,6 +1,7 @@
 import { Box, Drawer, List, ListItem, ListItemIcon, ListItemText, ListItemButton } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
+import { useAuth } from '../context/AuthContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -21,10 +22,16 @@ const menuItems = [
   { text: 'Proyectos', icon: <AssignmentIcon />, path: '/proyectos' },
 ];
 
-export default function Layout({ children }) {
+export function Layout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { isOpen } = useSidebar();
+  const { user } = useAuth();
+
+  if (!user) {
+    navigate('/login');
+    return null;
+  }
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
@@ -100,7 +107,7 @@ export default function Layout({ children }) {
       >
         <Box sx={{ 
           p: 2,
-          height: 'calc(100vh - 80px)', // Ajustado para el footer (48px header + 32px footer)
+          height: 'calc(100vh - 80px)',
           overflow: 'auto',
           display: 'flex',
           flexDirection: 'column'
@@ -112,3 +119,5 @@ export default function Layout({ children }) {
     </Box>
   );
 }
+
+export default Layout;

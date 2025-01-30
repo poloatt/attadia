@@ -6,17 +6,28 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Verificar si hay un token guardado
-    const userData = localStorage.getItem('user');
-    
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-    setLoading(false);
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/me', {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data.user);
+        }
+      } catch (error) {
+        console.error('Error verificando autenticación:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
   }, []);
 
   const getToken = async () => {
@@ -92,13 +103,14 @@ export const AuthProvider = ({ children }) => {
     navigate('/login');
   };
 
-  if (loading) {
+  if (isLoading) {
     return <div>Cargando...</div>;
   }
 
   return (
     <AuthContext.Provider value={{ 
       user, 
+      isLoading, 
       login, 
       register, 
       logout, 

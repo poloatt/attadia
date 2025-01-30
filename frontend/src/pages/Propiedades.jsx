@@ -1,74 +1,31 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
+  Box, 
   Button, 
-  Grid, 
-  Card, 
-  CardContent, 
+  Typography, 
+  Container,
+  Grid,
+  Card,
+  CardContent,
   CardActions,
-  Typography,
-  Chip,
-  Box,
-  Divider,
-  List,
-  ListItem,
-  ListItemText
+  IconButton
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import HomeWorkIcon from '@mui/icons-material/HomeWork';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import BedroomParentIcon from '@mui/icons-material/BedroomParent';
-import EntityDetails from '../components/EntityDetails';
-import EntityForm from '../components/EntityForm';
-import { API_URL } from '../config';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import { useAuth } from '../context/AuthContext';
 
-export default function Propiedades() {
+// Cambiamos a exportación nombrada para coincidir con App.jsx
+export function Propiedades() {
   const [propiedades, setPropiedades] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { enqueueSnackbar } = useSnackbar();
-  const { getToken } = useAuth();
-
-  const fields = [
-    {
-      name: 'direccion',
-      label: 'Dirección',
-      type: 'text',
-      required: true
-    },
-    {
-      name: 'barrio',
-      label: 'Barrio',
-      type: 'text',
-      required: true
-    },
-    {
-      name: 'provincia',
-      label: 'Provincia',
-      type: 'text',
-      required: true
-    },
-    {
-      name: 'pais',
-      label: 'País',
-      type: 'text',
-      required: true
-    },
-    {
-      name: 'cuentas',
-      label: 'Cuenta',
-      type: 'array'
-    }
-  ];
+  const { user } = useAuth();
 
   const fetchPropiedades = async () => {
     try {
-      const token = await getToken();
       const response = await fetch('/api/propiedades', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        credentials: 'include'
       });
       
       if (!response.ok) throw new Error('Error al cargar propiedades');
@@ -87,71 +44,84 @@ export default function Propiedades() {
     fetchPropiedades();
   }, []);
 
-  const handleNewPropiedad = async (newPropiedad) => {
+  const handleDelete = async (id) => {
     try {
-      const token = await getToken();
-      const response = await fetch('/api/propiedades', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(newPropiedad)
+      const response = await fetch(`/api/propiedades/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
       });
 
-      if (!response.ok) throw new Error('Error al guardar propiedad');
-
-      // Recargar la lista después de guardar
-      await fetchPropiedades();
-      setIsFormOpen(false); // Cerrar el formulario
-      enqueueSnackbar('Propiedad creada exitosamente', { variant: 'success' });
+      if (!response.ok) throw new Error('Error al eliminar propiedad');
+      
+      setPropiedades(propiedades.filter(prop => prop.id !== id));
+      enqueueSnackbar('Propiedad eliminada con éxito', { variant: 'success' });
     } catch (error) {
       console.error('Error:', error);
-      enqueueSnackbar('Error al guardar propiedad', { variant: 'error' });
+      enqueueSnackbar('Error al eliminar propiedad', { variant: 'error' });
     }
   };
 
+  if (isLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+        <Typography>Cargando propiedades...</Typography>
+      </Box>
+    );
+  }
+
   return (
-    <EntityDetails 
-      title="Propiedades"
-      action={
-        <Button 
-          variant="contained" 
-          startIcon={<AddIcon />} 
-          size="small"
+    <Container maxWidth="lg">
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h5" component="h1">
+          Propiedades
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
           onClick={() => setIsFormOpen(true)}
         >
           Nueva Propiedad
         </Button>
-      }
-    >
-      <Box sx={{ width: '100%', height: '100%', overflow: 'auto' }}>
-        {isLoading ? (
-          <Typography>Cargando...</Typography>
-        ) : propiedades.length > 0 ? (
-          <List>
-            {propiedades.map((propiedad) => (
-              <ListItem key={propiedad._id}>
-                <ListItemText
-                  primary={propiedad.direccion}
-                  secondary={`${propiedad.barrio}, ${propiedad.provincia}`}
-                />
-              </ListItem>
-            ))}
-          </List>
-        ) : (
-          <Typography>No hay propiedades registradas</Typography>
-        )}
       </Box>
-      
-      {isFormOpen && (
-        <EntityForm
-          onSubmit={handleNewPropiedad}
-          onClose={() => setIsFormOpen(false)}
-          title="Nueva Propiedad"
-          fields={fields}
-        />
-      )}
-    </EntityDetails>
+
+      <Grid container spacing={3}>
+        {propiedades.map((propiedad) => (
+          <Grid item xs={12} sm={6} md={4} key={propiedad.id}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" component="h2">
+                  {propiedad.direccion}
+                </Typography>
+                <Typography color="textSecondary" gutterBottom>
+                  {propiedad.barrio}
+                </Typography>
+                <Typography variant="body2">
+                  {propiedad.provincia}, {propiedad.pais}
+                </Typography>
+              </CardContent>
+              <CardActions>
+                <IconButton 
+                  size="small" 
+                  onClick={() => handleEdit(propiedad.id)}
+                >
+                  <EditIcon />
+                </IconButton>
+                <IconButton 
+                  size="small" 
+                  onClick={() => handleDelete(propiedad.id)}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </CardActions>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+
+      {/* Aquí iría el modal o drawer para el formulario */}
+    </Container>
   );
 }
+
+// También mantenemos la exportación por defecto
+export default Propiedades;
