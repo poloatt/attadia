@@ -5,66 +5,81 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     // Verificar si hay un token guardado
-    const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
     
-    if (token && userData) {
+    if (userData) {
       setUser(JSON.parse(userData));
     }
     setLoading(false);
   }, []);
 
+  const getToken = async () => {
+    // Si el token existe y no está expirado, lo retornamos
+    if (token) {
+      return token;
+    }
+    // Si no hay token, redirigimos al login
+    navigate('/login');
+    return null;
+  };
+
   const login = async (email, password) => {
     try {
+      console.log('Intentando login con:', { email }); // Para debug
+
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
+        credentials: 'include'
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || 'Error al iniciar sesión');
+        throw new Error('Error en la autenticación');
       }
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      const data = await response.json();
+      console.log('Respuesta del servidor:', data); // Para debug
       setUser(data.user);
-      navigate('/dashboard');
+      return data;
     } catch (error) {
-      console.error('Error en login:', error);
+      console.error('Error detallado:', error);
       throw error;
     }
   };
 
-  const register = async (userData) => {
+  const register = async (name, email, password) => {
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(userData),
+        body: JSON.stringify({ name, email, password }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
+        const data = await response.json();
         throw new Error(data.error || 'Error en el registro');
       }
 
+      const data = await response.json();
+      
+      // Guardar token y datos del usuario
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
+      setToken(data.token);
       setUser(data.user);
-      navigate('/dashboard');
+      
+      return data;
     } catch (error) {
       console.error('Error en registro:', error);
       throw error;
@@ -75,6 +90,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    setToken(null);
     navigate('/login');
   };
 
@@ -83,7 +99,13 @@ export const AuthProvider = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      register, 
+      logout, 
+      getToken
+    }}>
       {children}
     </AuthContext.Provider>
   );

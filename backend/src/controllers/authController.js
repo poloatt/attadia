@@ -16,7 +16,7 @@ export const authController = {
 
       if (existingUser) {
         return res.status(400).json({
-          error: 'Usuario ya existe'
+          error: 'El email ya está registrado'
         });
       }
 

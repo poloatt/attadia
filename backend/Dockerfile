@@ -6,8 +6,9 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Instalar dependencias
+# Instalar dependencias incluyendo bcrypt y cookie-parser
 RUN npm install
+RUN npm install bcrypt cookie-parser
 
 # Generar Prisma Client
 RUN npx prisma generate

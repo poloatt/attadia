@@ -8,7 +8,10 @@ import {
   Typography,
   Chip,
   Box,
-  Divider
+  Divider,
+  List,
+  ListItem,
+  ListItemText
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import HomeWorkIcon from '@mui/icons-material/HomeWork';
@@ -18,12 +21,14 @@ import EntityDetails from '../components/EntityDetails';
 import EntityForm from '../components/EntityForm';
 import { API_URL } from '../config';
 import { useSnackbar } from 'notistack';
+import { useAuth } from '../context/AuthContext';
 
 export default function Propiedades() {
   const [propiedades, setPropiedades] = useState([]);
-  const [openForm, setOpenForm] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { enqueueSnackbar } = useSnackbar();
+  const { getToken } = useAuth();
 
   const fields = [
     {
@@ -57,16 +62,15 @@ export default function Propiedades() {
     }
   ];
 
-  // Datos de prueba mientras se implementa el backend
-  useEffect(() => {
-    // Cuando el backend esté listo, descomentar esto:
-    // fetchPropiedades();
-  }, []);
-
   const fetchPropiedades = async () => {
-    setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/propiedades`);
+      const token = await getToken();
+      const response = await fetch('/api/propiedades', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
       if (!response.ok) throw new Error('Error al cargar propiedades');
       
       const data = await response.json();
@@ -79,32 +83,31 @@ export default function Propiedades() {
     }
   };
 
-  const handleSubmit = async (data) => {
-    try {
-      console.log('Enviando datos:', data); // Para debugging
+  useEffect(() => {
+    fetchPropiedades();
+  }, []);
 
+  const handleNewPropiedad = async (newPropiedad) => {
+    try {
+      const token = await getToken();
       const response = await fetch('/api/propiedades', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(newPropiedad)
       });
 
-      const responseData = await response.json();
+      if (!response.ok) throw new Error('Error al guardar propiedad');
 
-      if (!response.ok) {
-        throw new Error(responseData.details || responseData.error || 'Error al crear la propiedad');
-      }
-
-      console.log('Propiedad creada:', responseData);
-      setPropiedades(prev => [...prev, responseData]);
+      // Recargar la lista después de guardar
+      await fetchPropiedades();
+      setIsFormOpen(false); // Cerrar el formulario
       enqueueSnackbar('Propiedad creada exitosamente', { variant: 'success' });
-      setOpenForm(false);
     } catch (error) {
-      console.error('Error completo:', error);
-      // Aquí puedes mostrar un mensaje de error al usuario
-      throw new Error(error.message);
+      console.error('Error:', error);
+      enqueueSnackbar('Error al guardar propiedad', { variant: 'error' });
     }
   };
 
@@ -116,91 +119,39 @@ export default function Propiedades() {
           variant="contained" 
           startIcon={<AddIcon />} 
           size="small"
-          onClick={() => setOpenForm(true)}
+          onClick={() => setIsFormOpen(true)}
         >
           Nueva Propiedad
         </Button>
       }
     >
       <Box sx={{ width: '100%', height: '100%', overflow: 'auto' }}>
-        <Grid container spacing={2} sx={{ p: 1 }}>
-          {propiedades.map((prop) => (
-            <Grid item xs={12} sm={6} md={4} key={prop.id}>
-              <Card 
-                elevation={0} 
-                sx={{ 
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  backgroundColor: 'background.paper',
-                  '&:hover': {
-                    backgroundColor: 'action.hover',
-                    cursor: 'pointer'
-                  }
-                }}
-              >
-                <CardContent sx={{ flexGrow: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <HomeWorkIcon sx={{ mr: 1 }} />
-                    <Typography variant="h6" component="div">
-                      {prop.direccion}
-                    </Typography>
-                  </Box>
-                  
-                  <Typography color="text.secondary" gutterBottom>
-                    {prop.barrio}, {prop.provincia}
-                  </Typography>
-                  <Typography color="text.secondary" gutterBottom>
-                    {prop.pais}
-                  </Typography>
-
-                  <Divider sx={{ my: 2 }} />
-
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                    <AccountBalanceIcon sx={{ fontSize: 20, mr: 1 }} />
-                    <Typography variant="body2" color="text.secondary">
-                      Cuentas:
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
-                    {prop.cuentas.map((cuenta, index) => (
-                      <Chip 
-                        key={index}
-                        label={cuenta}
-                        size="small"
-                        variant="outlined"
-                      />
-                    ))}
-                  </Box>
-
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <BedroomParentIcon sx={{ fontSize: 20, mr: 1 }} />
-                    <Typography variant="body2" color="text.secondary">
-                      Habitaciones: {prop.habitaciones?.length || 0}
-                    </Typography>
-                  </Box>
-                </CardContent>
-                <CardActions sx={{ p: 2, pt: 0 }}>
-                  <Button size="small" color="primary">
-                    Ver Detalles
-                  </Button>
-                  <Button size="small" color="primary">
-                    Editar
-                  </Button>
-                </CardActions>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+        {isLoading ? (
+          <Typography>Cargando...</Typography>
+        ) : propiedades.length > 0 ? (
+          <List>
+            {propiedades.map((propiedad) => (
+              <ListItem key={propiedad._id}>
+                <ListItemText
+                  primary={propiedad.direccion}
+                  secondary={`${propiedad.barrio}, ${propiedad.provincia}`}
+                />
+              </ListItem>
+            ))}
+          </List>
+        ) : (
+          <Typography>No hay propiedades registradas</Typography>
+        )}
       </Box>
       
-      <EntityForm
-        open={openForm}
-        onClose={() => setOpenForm(false)}
-        onSubmit={handleSubmit}
-        title="Nueva Propiedad"
-        fields={fields}
-      />
+      {isFormOpen && (
+        <EntityForm
+          onSubmit={handleNewPropiedad}
+          onClose={() => setIsFormOpen(false)}
+          title="Nueva Propiedad"
+          fields={fields}
+        />
+      )}
     </EntityDetails>
   );
 }

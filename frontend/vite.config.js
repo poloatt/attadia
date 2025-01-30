@@ -10,13 +10,15 @@ export default defineConfig({
       usePolling: true  // Importante para Docker en Windows/Mac
     },
     proxy: {
-      '/health': {
-        target: 'http://backend:5000',  // Actualizado al puerto 5000
-        changeOrigin: true
-      },
       '/api': {
-        target: 'http://backend:5000',  // Actualizado al puerto 5000
-        changeOrigin: true
+        target: 'http://backend:5000',  // Correcto, usa el nombre del servicio
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      },
+      '/health': {
+        target: 'http://backend:5000',  // También actualizamos el health check
+        changeOrigin: true,
+        secure: false // Permite conexiones no seguras en desarrollo
       }
     }
   },

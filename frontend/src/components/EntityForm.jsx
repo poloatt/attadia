@@ -18,17 +18,20 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-export default function EntityForm({ 
-  open, 
-  onClose, 
-  onSubmit, 
-  title, 
-  fields 
-}) {
-  const [formData, setFormData] = useState({});
+export default function EntityForm({ open, onClose, onSubmit, title, fields }) {
+  const [formData, setFormData] = useState({
+    direccion: '',
+    barrio: '',
+    provincia: '',
+    pais: ''
+  });
   const [arrayFields, setArrayFields] = useState({}); // Para campos tipo array
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user, getToken } = useAuth();
+  const navigate = useNavigate();
 
   const handleClose = (event, reason) => {
     if (reason === 'backdropClick' || reason === 'escapeKeyDown') {
@@ -37,7 +40,12 @@ export default function EntityForm({
   };
 
   const handleCancel = () => {
-    setFormData({});
+    setFormData({
+      direccion: '',
+      barrio: '',
+      provincia: '',
+      pais: ''
+    });
     setArrayFields({});
     setIsSubmitting(false);
     onClose();
@@ -69,33 +77,13 @@ export default function EntityForm({
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     try {
-      // Validar campos requeridos
-      const requiredFields = fields.filter(f => f.required).map(f => f.name);
-      const missingFields = requiredFields.filter(field => !formData[field]);
-      
-      if (missingFields.length > 0) {
-        throw new Error(`Campos requeridos faltantes: ${missingFields.join(', ')}`);
-      }
-
-      const submitData = {
-        ...formData,
-        ...Object.fromEntries(
-          Object.entries(arrayFields).map(([key, value]) => [key, value || []])
-        )
-      };
-
-      console.log('Datos a enviar:', submitData); // Para debugging
-      await onSubmit(submitData);
-      handleCancel();
+      await onSubmit(formData);
+      onClose(); // Cerrar el formulario después de guardar
     } catch (error) {
-      console.error('Error en el formulario:', error);
-      // Aquí puedes mostrar un mensaje de error al usuario
-    } finally {
-      setIsSubmitting(false);
+      console.error('Error:', error);
     }
   };
 
@@ -182,8 +170,8 @@ export default function EntityForm({
 
   return (
     <Dialog 
-      open={open} 
-      onClose={handleClose} 
+      open={open || false}
+      onClose={onClose}
       maxWidth="sm" 
       fullWidth
       disableEscapeKeyDown={isSubmitting}

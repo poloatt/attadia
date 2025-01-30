@@ -8,31 +8,38 @@ datasource db {
 }
 
 model User {
-  id        String      @id @default(uuid())
-  email     String      @unique
-  password  String
-  name      String?
-  role      String      @default("user")
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  propiedades Propiedad[]
+  id          String      @id @default(uuid())
+  email       String      @unique
+  name        String?
+  password    String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
-  @@map("users")
+  // Agregar las relaciones inversas
+  transacciones  Transaccion[]
+  inventarios    Inventario[]
+  rutinas        Rutina[]
+  labResults     LabResult[]
+  proyectos      Proyecto[]
+  propiedades    Propiedad[]    // Relación con propiedades
 }
 
 model Propiedad {
-  id        String   @id @default(uuid())
-  direccion String
-  barrio    String
-  provincia String
-  pais      String
-  cuentas   String[]
-  userId    String   // Campo para la relación
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String    @id @default(uuid())
+  direccion   String
+  barrio      String
+  provincia   String
+  pais        String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  usuario     User      @relation(fields: [usuarioId], references: [id])
+  usuarioId   String
+  cuentas     String[]
 
-  @@map("propiedades")
+  // Agregar las relaciones inversas
+  transacciones  Transaccion[]
+  habitaciones   Habitacion[]
+  inventarios    Inventario[]
 }
 
 model Transaccion {
