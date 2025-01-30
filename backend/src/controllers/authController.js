@@ -58,13 +58,24 @@ export const authController = {
   login: async (req, res) => {
     try {
       const { email, password } = req.body;
-      const user = await prisma.user.findUnique({ where: { email } });
+      
+      // Log para debugging
+      console.log('Intento de login:', { email });
+
+      const user = await prisma.user.findUnique({ 
+        where: { email } 
+      });
+
+      // Log para debugging
+      console.log('Usuario encontrado:', user ? 'sí' : 'no');
 
       if (!user || !await bcrypt.compare(password, user.password)) {
-        return res.status(401).json({ error: 'Credenciales inválidas' });
+        console.log('Credenciales inválidas');
+        return res.status(401).json({ 
+          error: 'Credenciales inválidas' 
+        });
       }
 
-      // Generar token
       const token = jwt.sign(
         { id: user.id, email: user.email },
         process.env.JWT_SECRET,
@@ -79,7 +90,9 @@ export const authController = {
         maxAge: 24 * 60 * 60 * 1000 // 24 horas
       });
 
-      // Enviar respuesta
+      // Log para debugging
+      console.log('Login exitoso para:', email);
+
       res.json({
         user: {
           id: user.id,
@@ -89,7 +102,10 @@ export const authController = {
       });
     } catch (error) {
       console.error('Error en login:', error);
-      res.status(500).json({ error: 'Error al iniciar sesión' });
+      res.status(500).json({ 
+        error: 'Error en el servidor',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
   },
 
