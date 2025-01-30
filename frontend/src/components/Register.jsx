@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Container,
-  Paper,
+  Box,
+  Typography,
   TextField,
   Button,
-  Typography,
-  Link,
-  Box,
-  Alert,
+  Paper,
   IconButton,
-  InputAdornment
+  InputAdornment,
+  Alert,
+  Divider
 } from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { Visibility, VisibilityOff, Google as GoogleIcon } from '@mui/icons-material';
 
 export function Register() {
   const navigate = useNavigate();
@@ -48,35 +48,82 @@ export function Register() {
     }
   };
 
+  const handleGoogleRegister = () => {
+    window.location.href = `${import.meta.env.VITE_API_URL}/api/auth/google`;
+  };
+
   return (
     <Container maxWidth="xs">
-      <Box sx={{ mt: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <Box 
+        sx={{ 
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          py: 4
+        }}
+      >
         <Paper 
-          elevation={3} 
+          elevation={0} 
           sx={{ 
-            p: 2.5,
+            p: 3,
             width: '100%',
             bgcolor: 'background.paper',
-            borderRadius: 1,
             border: '1px solid',
-            borderColor: 'divider'
+            borderColor: 'divider',
+            borderRadius: 2
           }}
         >
           <Typography 
-            variant="h6" 
+            variant="h5" 
             component="h1" 
-            gutterBottom 
             align="center"
-            sx={{ mb: 2 }}
+            sx={{ 
+              mb: 3,
+              fontWeight: 500,
+              color: 'text.primary'
+            }}
           >
-            Registro
+            Crear Cuenta
           </Typography>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert 
+              severity="error" 
+              sx={{ 
+                mb: 2,
+                bgcolor: 'error.light',
+                color: 'error.dark'
+              }}
+            >
               {error}
             </Alert>
           )}
+
+          <Button
+            fullWidth
+            variant="outlined"
+            startIcon={<GoogleIcon />}
+            onClick={handleGoogleRegister}
+            sx={{
+              mb: 3,
+              py: 1,
+              color: 'text.primary',
+              borderColor: 'divider',
+              '&:hover': {
+                borderColor: 'text.primary',
+                bgcolor: 'action.hover'
+              }
+            }}
+          >
+            Registrarse con Google
+          </Button>
+
+          <Divider sx={{ mb: 3 }}>
+            <Typography variant="body2" color="text.secondary">
+              o con email
+            </Typography>
+          </Divider>
 
           <form onSubmit={handleSubmit}>
             <TextField
@@ -87,6 +134,13 @@ export function Register() {
               margin="normal"
               required
               size="small"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: 'text.primary',
+                  }
+                }
+              }}
             />
 
             <TextField
@@ -98,6 +152,13 @@ export function Register() {
               margin="normal"
               required
               size="small"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: 'text.primary',
+                  }
+                }
+              }}
             />
 
             <TextField
@@ -109,12 +170,20 @@ export function Register() {
               margin="normal"
               required
               size="small"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: 'text.primary',
+                  }
+                }
+              }}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton
                       onClick={() => setShowPassword(!showPassword)}
                       edge="end"
+                      size="small"
                     >
                       {showPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
@@ -132,6 +201,13 @@ export function Register() {
               margin="normal"
               required
               size="small"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: 'text.primary',
+                  }
+                }
+              }}
             />
 
             <Button
@@ -139,20 +215,36 @@ export function Register() {
               fullWidth
               variant="contained"
               disabled={loading}
-              sx={{ mt: 2 }}
+              sx={{ 
+                mt: 2,
+                mb: 2,
+                py: 1,
+                bgcolor: 'text.primary',
+                color: 'background.paper',
+                '&:hover': {
+                  bgcolor: 'text.secondary'
+                }
+              }}
             >
-              {loading ? 'Registrando...' : 'Registrarse'}
+              {loading ? 'Registrando...' : 'Crear Cuenta'}
             </Button>
           </form>
 
-          <Box sx={{ mt: 2, textAlign: 'center' }}>
+          <Box sx={{ textAlign: 'center' }}>
             <Typography variant="body2" color="text.secondary">
               ¿Ya tienes una cuenta?
               <Button 
-                color="primary" 
+                color="inherit"
                 onClick={() => navigate('/login')}
                 size="small"
-                sx={{ ml: 1 }}
+                sx={{ 
+                  ml: 1,
+                  fontWeight: 500,
+                  '&:hover': {
+                    bgcolor: 'transparent',
+                    textDecoration: 'underline'
+                  }
+                }}
               >
                 Iniciar Sesión
               </Button>

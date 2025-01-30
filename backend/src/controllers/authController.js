@@ -91,5 +91,28 @@ export const authController = {
       console.error('Error en login:', error);
       res.status(500).json({ error: 'Error al iniciar sesión' });
     }
+  },
+
+  googleCallback: async (req, res) => {
+    try {
+      const token = jwt.sign(
+        { id: req.user.id, email: req.user.email },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000
+      });
+
+      // Redirigir al frontend
+      res.redirect(process.env.FRONTEND_URL);
+    } catch (error) {
+      console.error('Error en Google callback:', error);
+      res.redirect('/login?error=google_auth_failed');
+    }
   }
 }; 

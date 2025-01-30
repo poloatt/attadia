@@ -10,9 +10,10 @@ import {
   Paper,
   IconButton,
   InputAdornment,
-  Alert
+  Alert,
+  Divider
 } from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { Visibility, VisibilityOff, Google as GoogleIcon } from '@mui/icons-material';
 
 export function Login() {
   const { login } = useAuth();
@@ -32,45 +33,107 @@ export function Login() {
       navigate('/');
     } catch (error) {
       console.error('Error en login:', error);
-      setError('Error en la autenticación');
+      setError('Credenciales inválidas');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleGoogleLogin = () => {
+    window.location.href = `${import.meta.env.VITE_API_URL}/api/auth/google`;
+  };
+
   return (
     <Container maxWidth="xs">
-      <Box sx={{ mt: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <Box 
+        sx={{ 
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          py: 4,
+          bgcolor: '#1a1a1a'
+        }}
+      >
         <Paper 
-          elevation={3} 
+          elevation={0} 
           sx={{ 
-            p: 2.5,
+            p: 4,
             width: '100%',
-            bgcolor: 'background.paper',
-            borderRadius: 1,
+            bgcolor: '#242424',
             border: '1px solid',
-            borderColor: 'divider'
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderRadius: 2,
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
           }}
         >
           <Typography 
-            variant="h6" 
+            variant="h5" 
             component="h1" 
-            gutterBottom 
             align="center"
             sx={{ 
-              mb: 2, 
-              fontSize: '1.1rem',
-              fontWeight: 500
+              mb: 4,
+              fontWeight: 500,
+              color: '#ffffff',
+              letterSpacing: '0.5px'
             }}
           >
             Iniciar Sesión
           </Typography>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert 
+              severity="error" 
+              sx={{ 
+                mb: 3,
+                bgcolor: 'rgba(255, 82, 82, 0.1)',
+                color: '#ff5252',
+                border: '1px solid rgba(255, 82, 82, 0.2)'
+              }}
+            >
               {error}
             </Alert>
           )}
+
+          <Button
+            fullWidth
+            variant="outlined"
+            startIcon={<GoogleIcon />}
+            onClick={handleGoogleLogin}
+            sx={{
+              mb: 3,
+              py: 1.5,
+              color: '#ffffff',
+              borderColor: 'rgba(255, 255, 255, 0.2)',
+              '&:hover': {
+                borderColor: 'rgba(255, 255, 255, 0.5)',
+                bgcolor: 'rgba(255, 255, 255, 0.05)'
+              },
+              letterSpacing: '0.5px',
+              fontSize: '0.9rem'
+            }}
+          >
+            Continuar con Google
+          </Button>
+
+          <Divider 
+            sx={{ 
+              mb: 3,
+              '&::before, &::after': {
+                borderColor: 'rgba(255, 255, 255, 0.1)'
+              }
+            }}
+          >
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: 'rgba(255, 255, 255, 0.5)',
+                px: 2
+              }}
+            >
+              o con email
+            </Typography>
+          </Divider>
 
           <form onSubmit={handleSubmit}>
             <TextField
@@ -81,7 +144,28 @@ export function Login() {
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
               margin="normal"
-              size="small"
+              size="medium"
+              sx={{
+                mb: 2,
+                '& .MuiOutlinedInput-root': {
+                  color: '#ffffff',
+                  '& fieldset': {
+                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                  }
+                },
+                '& .MuiInputLabel-root': {
+                  color: 'rgba(255, 255, 255, 0.7)',
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: 'rgba(255, 255, 255, 0.9)',
+                }
+              }}
             />
 
             <TextField
@@ -92,13 +176,35 @@ export function Login() {
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
               margin="normal"
-              size="small"
+              size="medium"
+              sx={{
+                mb: 3,
+                '& .MuiOutlinedInput-root': {
+                  color: '#ffffff',
+                  '& fieldset': {
+                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                  }
+                },
+                '& .MuiInputLabel-root': {
+                  color: 'rgba(255, 255, 255, 0.7)',
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: 'rgba(255, 255, 255, 0.9)',
+                }
+              }}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton
                       onClick={() => setShowPassword(!showPassword)}
                       edge="end"
+                      sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
                     >
                       {showPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
@@ -112,20 +218,40 @@ export function Login() {
               fullWidth
               variant="contained"
               disabled={loading}
-              sx={{ mt: 2 }}
+              sx={{ 
+                py: 1.5,
+                bgcolor: '#ffffff',
+                color: '#1a1a1a',
+                '&:hover': {
+                  bgcolor: 'rgba(255, 255, 255, 0.9)'
+                },
+                letterSpacing: '0.5px',
+                fontSize: '0.9rem',
+                fontWeight: 500
+              }}
             >
               {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
             </Button>
           </form>
 
-          <Box sx={{ mt: 2, textAlign: 'center' }}>
-            <Typography variant="body2" color="text.secondary">
-              ¿No tienes una cuenta? 
+          <Box sx={{ mt: 3, textAlign: 'center' }}>
+            <Typography 
+              variant="body2" 
+              sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+            >
+              ¿No tienes una cuenta?
               <Button 
-                color="primary" 
                 onClick={() => navigate('/registro')}
                 size="small"
-                sx={{ ml: 1 }}
+                sx={{ 
+                  ml: 1,
+                  color: '#ffffff',
+                  fontWeight: 500,
+                  '&:hover': {
+                    bgcolor: 'transparent',
+                    textDecoration: 'underline'
+                  }
+                }}
               >
                 Regístrate
               </Button>
