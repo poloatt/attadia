@@ -1,45 +1,13 @@
 version: '3.8'
 
 services:
-  frontend:
-    build: ./frontend
-    container_name: present-frontend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    ports:
-      - "5173:5173"
-    environment:
-      - VITE_BACKEND_URL=http://backend:5000
-    depends_on:
-      - backend
-    networks:
-      - present-network
-
-  backend:
-    build: ./backend
-    container_name: present-backend
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
-    ports:
-      - "5000:5000"
-    environment:
-      - PORT=5000
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/present
-      - NODE_ENV=development
-    depends_on:
-      - db
-    networks:
-      - present-network
-
   db:
-    image: postgres:14
+    image: postgres:15
     container_name: present-db
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=present
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: present
     ports:
       - "5432:5432"
     volumes:
@@ -51,6 +19,34 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  backend:
+    build: ./backend
+    container_name: present-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/present
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - present-network
+
+  frontend:
+    build: ./frontend
+    container_name: present-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - present-network
 
 networks:
   present-network:

@@ -49,7 +49,7 @@ export function Register() {
   };
 
   const handleGoogleRegister = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL}/api/auth/google`;
+    window.location.href = '/api/auth/google';
   };
 
   return (
@@ -107,12 +107,30 @@ export function Register() {
             onClick={handleGoogleRegister}
             sx={{
               mb: 3,
-              py: 1,
-              color: 'text.primary',
-              borderColor: 'divider',
+              py: 1.5,
+              color: '#ffffff',
+              borderColor: 'rgba(255, 255, 255, 0.2)',
               '&:hover': {
-                borderColor: 'text.primary',
-                bgcolor: 'action.hover'
+                borderColor: 'rgba(255, 255, 255, 0.5)',
+                bgcolor: 'rgba(255, 255, 255, 0.05)'
+              },
+              letterSpacing: '0.5px',
+              fontSize: '0.9rem',
+              position: 'relative',
+              overflow: 'hidden',
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                background: 'linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0))',
+                opacity: 0,
+                transition: 'opacity 0.3s',
+              },
+              '&:hover::after': {
+                opacity: 1,
               }
             }}
           >

@@ -111,6 +111,8 @@ export const authController = {
 
   googleCallback: async (req, res) => {
     try {
+      console.log('Usuario autenticado:', req.user); // Para debugging
+      
       const token = jwt.sign(
         { id: req.user.id, email: req.user.email },
         process.env.JWT_SECRET,

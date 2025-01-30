@@ -5,40 +5,39 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/auth/me', {
-          credentials: 'include'
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.user);
-        }
-      } catch (error) {
-        console.error('Error verificando autenticación:', error);
-      } finally {
-        setIsLoading(false);
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/auth/me', {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
       }
-    };
+    } catch (error) {
+      console.error('Error verificando autenticación:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     checkAuth();
   }, []);
 
-  const getToken = async () => {
-    // Si el token existe y no está expirado, lo retornamos
+  // Verificar si hay un token en la URL (callback de Google)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
     if (token) {
-      return token;
+      window.history.replaceState({}, document.title, window.location.pathname);
+      checkAuth();
     }
-    // Si no hay token, redirigimos al login
-    navigate('/login');
-    return null;
-  };
+  }, []);
 
   const login = async (email, password) => {
     try {
@@ -73,6 +72,7 @@ export const AuthProvider = ({ children }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ name, email, password }),
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -81,13 +81,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       const data = await response.json();
-      
-      // Guardar token y datos del usuario
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      setToken(data.token);
       setUser(data.user);
-      
       return data;
     } catch (error) {
       console.error('Error en registro:', error);
@@ -95,12 +89,18 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    setToken(null);
-    navigate('/login');
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (error) {
+      console.error('Error en logout:', error);
+    } finally {
+      setUser(null);
+      navigate('/login');
+    }
   };
 
   if (isLoading) {
@@ -113,8 +113,7 @@ export const AuthProvider = ({ children }) => {
       isLoading, 
       login, 
       register, 
-      logout, 
-      getToken
+      logout
     }}>
       {children}
     </AuthContext.Provider>

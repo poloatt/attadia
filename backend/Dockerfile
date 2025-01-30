@@ -15,7 +15,6 @@ RUN npm config set fetch-retry-mintimeout 100000
 
 # Instalar todas las dependencias de una sola vez
 RUN npm install --no-audit --no-fund \
-    && npm install passport passport-google-oauth20 bcrypt cookie-parser \
     && npx prisma generate
 
 # Copiar el resto del código

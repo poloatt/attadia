@@ -64,13 +64,29 @@ router.get('/me', authMiddleware, async (req, res) => {
   }
 });
 
-// Rutas para Google OAuth
+// Ruta para iniciar autenticación con Google
 router.get('/google',
-  passport.authenticate('google', { scope: ['profile', 'email'] })
+  (req, res, next) => {
+    console.log('Iniciando autenticación Google'); // Para debugging
+    next();
+  },
+  passport.authenticate('google', { 
+    scope: ['profile', 'email'],
+    prompt: 'select_account',
+    accessType: 'offline'
+  })
 );
 
+// Callback URL para Google
 router.get('/google/callback',
-  passport.authenticate('google', { failureRedirect: '/login' }),
+  (req, res, next) => {
+    console.log('Callback de Google recibido'); // Para debugging
+    next();
+  },
+  passport.authenticate('google', { 
+    failureRedirect: '/login?error=google_auth_failed',
+    session: false 
+  }),
   authController.googleCallback
 );
 

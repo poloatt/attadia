@@ -5,6 +5,8 @@ import healthRouter from './routes/health.js';
 import propiedadRoutes from './routes/propiedadRoutes.js';
 import authRoutes from './routes/auth.routes.js';
 import cookieParser from 'cookie-parser';
+import passport from 'passport';
+import './config/passport.js';  // Importar configuración de passport
 
 const app = express();
 const prisma = new PrismaClient();
@@ -33,6 +35,9 @@ app.use((req, res, next) => {
   console.log('Cookies:', req.cookies);  // Agregar log de cookies
   next();
 });
+
+// Configurar passport después de cookie-parser
+app.use(passport.initialize());
 
 // Rutas
 app.use('/health', healthRouter);
