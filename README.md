@@ -8,6 +8,52 @@ Este proyecto es una aplicación web full-stack para la gestión personal de fin
 
 Present es una aplicación web moderna para gestión personal y profesional.
 
+## Cambios Recientes
+
+### Frontend
+- Implementado sistema de estado de conexión en tiempo real
+- Añadido indicador visual de estado de conexión con backend y base de datos
+- Mejorado el manejo de formularios con validación y campos select
+- Corregidos problemas con React DevTools y Fast Refresh
+- Implementada barra de estado de conexión persistente
+- Mejorado el sistema de navegación con sidebar colapsable
+- Añadido soporte para campos tipo array en formularios
+- Implementada validación de campos requeridos
+- Mejorado el manejo de errores en formularios
+
+### Backend
+- Añadido endpoint de health check para monitoreo
+- Implementado script de espera para base de datos
+- Mejorado el sistema de inicialización con docker-entrypoint
+- Implementadas migraciones automáticas al inicio
+- Configurado CORS para mejor seguridad
+
+### Características Nuevas
+- **Estado de Conexión**: Monitoreo en tiempo real del estado de conexión con el backend y la base de datos
+- **Formularios Mejorados**: 
+  - Soporte para campos tipo select con opciones
+  - Manejo de arrays con chips
+  - Validación mejorada
+- **Inicialización Robusta**: Sistema mejorado de inicio con verificación de base de datos
+- **UI/UX**: 
+  - Sidebar colapsable para mejor uso del espacio
+  - Indicadores visuales de estado de conexión
+  - Mejor manejo de errores y feedback al usuario
+
+### Correcciones
+- Solucionado problema con React DevTools
+- Corregidos errores en campos select de Material-UI
+- Mejorado el manejo de estados en formularios
+- Solucionados problemas de CORS
+- Implementada mejor gestión de errores en conexiones
+
+## Próximos Pasos
+- Implementar sistema de caché para mejor rendimiento offline
+- Añadir más validaciones en formularios
+- Mejorar el sistema de notificaciones
+- Implementar tests automatizados
+- Añadir documentación de API
+
 ## Tecnologías
 
 ### Frontend

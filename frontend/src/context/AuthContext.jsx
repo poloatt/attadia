@@ -89,7 +89,7 @@ export function AuthProvider({ children }) {
       login, 
       register, 
       logout,
-      checkAuth // Exportamos checkAuth para poder refrescar el estado
+      checkAuth
     }}>
       {children}
     </AuthContext.Provider>

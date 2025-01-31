@@ -16,10 +16,10 @@ app.use(cookieParser());
 
 // 2. CORS después
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://frontend:5173'],
+  origin: 'http://localhost:5173',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Accept']
 }));
 
 // 3. JSON parser
@@ -40,7 +40,7 @@ app.use((req, res, next) => {
 app.use(passport.initialize());
 
 // Rutas
-app.use('/health', healthRouter);
+app.use('/api/health', healthRouter);
 app.use('/api/propiedades', propiedadRoutes);
 app.use('/api/auth', authRoutes);
 

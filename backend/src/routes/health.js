@@ -10,20 +10,17 @@ router.get('/', async (req, res) => {
     // Verificar conexión a la base de datos
     await prisma.$queryRaw`SELECT 1`;
     
+    // Simplificamos la respuesta
     res.json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      database: 'connected',
-      backend: 'running'
+      status: 'healthy',
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Health check error:', error);
-    res.status(500).json({
+    res.status(503).json({
       status: 'error',
       message: error.message,
-      timestamp: new Date().toISOString(),
-      database: 'disconnected',
-      backend: 'running'
+      timestamp: new Date().toISOString()
     });
   }
 });

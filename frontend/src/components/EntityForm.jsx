@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState } from 'react';
 import {
   Dialog,
@@ -85,14 +86,9 @@ export default function EntityForm({
     }));
   };
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = (event) => {
     event.preventDefault();
-    try {
-      await onSubmit(formData);
-      onClose(); // Cerrar el formulario después de guardar
-    } catch (error) {
-      console.error('Error:', error);
-    }
+    onSubmit(entity);
   };
 
   const renderField = (field) => {
@@ -183,25 +179,39 @@ export default function EntityForm({
       maxWidth="sm"
       fullWidth
     >
+      <DialogTitle>{title}</DialogTitle>
       <form onSubmit={handleSubmit}>
-        <DialogTitle>{title}</DialogTitle>
         <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid container spacing={2}>
             {fields.map((field) => (
-              <Grid item xs={field.width || 12} key={field.name}>
+              <Grid item xs={12} key={field.name}>
                 <TextField
                   fullWidth
-                  {...field}
+                  id={field.name}
+                  name={field.name}
+                  label={field.label}
                   value={entity[field.name] || ''}
                   onChange={(e) => field.onChange(e.target.value)}
                   required={field.required}
-                />
+                  type={field.type || 'text'}
+                  multiline={field.multiline}
+                  rows={field.rows}
+                  select={field.select}
+                  error={field.error}
+                  helperText={field.helperText}
+                >
+                  {field.select && field.options?.map((option) => (
+                    <MenuItem key={option} value={option}>
+                      {option}
+                    </MenuItem>
+                  ))}
+                </TextField>
               </Grid>
             ))}
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCancel}>Cancelar</Button>
+          <Button onClick={onClose}>Cancelar</Button>
           <Button type="submit" variant="contained">
             {entity.id ? 'Actualizar' : 'Crear'}
           </Button>

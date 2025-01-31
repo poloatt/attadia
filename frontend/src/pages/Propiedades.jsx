@@ -113,8 +113,7 @@ export function Propiedades() {
     setIsFormOpen(true);
   };
 
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
+  const handleFormSubmit = async (formData) => {
     try {
       const method = selectedPropiedad ? 'PUT' : 'POST';
       const url = selectedPropiedad 
@@ -132,7 +131,18 @@ export function Propiedades() {
 
       if (!response.ok) throw new Error('Error al guardar propiedad');
 
-      await fetchPropiedades();
+      const data = await response.json();
+      
+      if (selectedPropiedad) {
+        setPropiedades(propiedades.map(p => 
+          p.id === selectedPropiedad.id ? data : p
+        ));
+        enqueueSnackbar('Propiedad actualizada con éxito', { variant: 'success' });
+      } else {
+        setPropiedades([...propiedades, data]);
+        enqueueSnackbar('Propiedad creada con éxito', { variant: 'success' });
+      }
+
       setIsFormOpen(false);
       setSelectedPropiedad(null);
       setFormData({
@@ -148,13 +158,6 @@ export function Propiedades() {
         metrosCuadrados: '',
         imagen: ''
       });
-      
-      enqueueSnackbar(
-        selectedPropiedad 
-          ? 'Propiedad actualizada con éxito'
-          : 'Propiedad creada con éxito',
-        { variant: 'success' }
-      );
     } catch (error) {
       console.error('Error:', error);
       enqueueSnackbar('Error al guardar propiedad', { variant: 'error' });
@@ -206,7 +209,7 @@ export function Propiedades() {
       label: 'Tipo',
       select: true,
       required: true,
-      options: ['CASA', 'DEPARTAMENTO', 'TERRENO'],
+      options: ['CASA', 'DEPARTAMENTO', 'TERRENO', 'LOCAL', 'OFICINA'],
       onChange: (value) => setFormData({...formData, tipo: value})
     },
     {

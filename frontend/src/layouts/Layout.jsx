@@ -11,7 +11,6 @@ import InventoryIcon from '@mui/icons-material/Inventory';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import ScienceIcon from '@mui/icons-material/Science';
 import AssignmentIcon from '@mui/icons-material/Assignment';
-import { ConnectionStatus } from '../components/ConnectionStatus';
 
 const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
@@ -112,12 +111,11 @@ export function Layout() {
           overflow: 'auto',
           display: 'flex',
           flexDirection: 'column',
-          paddingBottom: '40px' // Espacio para ConnectionStatus
+          paddingBottom: '40px'
         }}>
           <Outlet />
         </Box>
         <Footer />
-        <ConnectionStatus />
       </Box>
     </Box>
   );

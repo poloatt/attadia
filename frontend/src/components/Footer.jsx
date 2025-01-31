@@ -4,6 +4,7 @@ import CloudOffIcon from '@mui/icons-material/CloudOff';
 import SignalWifiStatusbar4BarIcon from '@mui/icons-material/SignalWifiStatusbar4Bar';
 import SignalWifiOffIcon from '@mui/icons-material/SignalWifiOff';
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 
 export default function Footer() {
   const [connectionStatus, setConnectionStatus] = useState({
@@ -15,14 +16,23 @@ export default function Footer() {
   useEffect(() => {
     const checkConnections = async () => {
       try {
-        const response = await fetch('/health');
-        const data = await response.json();
+        const response = await axios.get('http://localhost:5000/api/health', {
+          timeout: 3000,
+          withCredentials: true,
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+
+        // Simplificamos la lógica - solo verificamos si hay respuesta
         setConnectionStatus({
-          backend: true,
-          database: data.database === 'connected',
+          backend: true, // Si llegamos aquí, el backend está respondiendo
+          database: true, // Si el backend responde, la DB está conectada
           loading: false
         });
       } catch (error) {
+        console.error('Connection error:', error);
         setConnectionStatus({
           backend: false,
           database: false,
@@ -32,7 +42,7 @@ export default function Footer() {
     };
 
     checkConnections();
-    const interval = setInterval(checkConnections, 30000);
+    const interval = setInterval(checkConnections, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -51,7 +61,9 @@ export default function Footer() {
         justifyContent: 'center',
         gap: 2,
         borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-        zIndex: (theme) => theme.zIndex.drawer + 1
+        zIndex: 9999,
+        left: 0,
+        right: 0
       }}
     >
       <Chip
@@ -79,7 +91,7 @@ export default function Footer() {
             <CloudDoneIcon sx={{ color: '#4caf50', fontSize: 16 }} /> : 
             <CloudOffIcon sx={{ color: '#f44336', fontSize: 16 }} />
         }
-        label={connectionStatus.database ? 'Conectado a la base de datos' : 'Sin conexión a la base de datos'}
+        label={connectionStatus.database ? 'Base de datos conectada' : 'Sin conexión a la base de datos'}
         size="small"
         sx={{ 
           height: '24px',

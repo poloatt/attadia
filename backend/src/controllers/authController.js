@@ -65,6 +65,13 @@ export const authController = {
     try {
       const { email, password } = req.body;
       
+      // Validar que email existe
+      if (!email) {
+        return res.status(400).json({ 
+          error: 'El email es requerido' 
+        });
+      }
+
       const user = await prisma.user.findUnique({
         where: { email }
       });
@@ -100,7 +107,7 @@ export const authController = {
       });
     } catch (error) {
       console.error('Login error:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      res.status(500).json({ error: 'Error en el servidor' });
     }
   },
 

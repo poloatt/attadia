@@ -9,9 +9,17 @@ import { SidebarProvider } from './context/SidebarContext'
 import App from './App'
 import theme from './theme'
 
+// Configuración de React Router v7
+const router = {
+  future: {
+    v7_startTransition: true,
+    v7_relativeSplatPath: true
+  }
+};
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter {...router}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <SnackbarProvider>
