@@ -28,9 +28,10 @@ import BedIcon from '@mui/icons-material/Bed';
 import BathtubIcon from '@mui/icons-material/Bathtub';
 import SquareFootIcon from '@mui/icons-material/SquareFoot';
 import EntityForm from '../components/EntityForm';
-import EntityDetails from '../components/EntityDetails';
+import EntityCard from '../components/EntityCard';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import EntityToolbar from '../components/EntityToolbar';
 
 // Cambiamos a exportación nombrada para coincidir con App.jsx
 export function Propiedades() {
@@ -56,6 +57,8 @@ export function Propiedades() {
     imagen: ''
   });
   const navigate = useNavigate();
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [filteredPropiedades, setFilteredPropiedades] = useState([]);
 
   useEffect(() => {
     const fetchPropiedades = async () => {
@@ -180,6 +183,30 @@ export function Propiedades() {
     }
   };
 
+  const handleSearch = (searchTerm) => {
+    if (!searchTerm) {
+      setFilteredPropiedades(propiedades);
+      return;
+    }
+    
+    const filtered = propiedades.filter(prop => 
+      prop.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      prop.direccion.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      prop.ciudad.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredPropiedades(filtered);
+  };
+
+  const handleMultipleDelete = async (ids) => {
+    try {
+      await Promise.all(ids.map(id => handleDelete(id)));
+      enqueueSnackbar(`${ids.length} propiedades eliminadas`, { variant: 'success' });
+    } catch (error) {
+      console.error('Error al eliminar múltiples propiedades:', error);
+      enqueueSnackbar('Error al eliminar propiedades', { variant: 'error' });
+    }
+  };
+
   const formFields = [
     {
       name: 'titulo',
@@ -293,23 +320,32 @@ export function Propiedades() {
         )}
       </Box>
 
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setIsFormOpen(true)}
-        >
-          Nueva Propiedad
-        </Button>
-      </Box>
+      <EntityToolbar
+        onAdd={() => setIsFormOpen(true)}
+        onDelete={handleMultipleDelete}
+        onSearch={handleSearch}
+        onFilter={() => {/* Implementar filtros */}}
+        selectedItems={selectedItems}
+        setSelectedItems={setSelectedItems}
+        items={propiedades}
+        searchPlaceholder="Buscar propiedades..."
+      />
 
       <Grid container spacing={3}>
-        {propiedades.map((propiedad) => (
+        {(filteredPropiedades.length > 0 ? filteredPropiedades : propiedades).map((propiedad) => (
           <Grid item xs={12} sm={6} md={4} key={propiedad.id}>
-            <EntityDetails
-              entity={propiedad}
+            <EntityCard
+              property={propiedad}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              selected={selectedItems.includes(propiedad.id)}
+              onSelect={(selected) => {
+                if (selected) {
+                  setSelectedItems([...selectedItems, propiedad.id]);
+                } else {
+                  setSelectedItems(selectedItems.filter(id => id !== propiedad.id));
+                }
+              }}
             />
           </Grid>
         ))}
