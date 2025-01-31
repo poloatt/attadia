@@ -5,47 +5,81 @@ export const propiedadController = {
   // Obtener todas las propiedades
   getAll: async (req, res) => {
     try {
+      console.log('GET /api/propiedades - Request recibido');
+      console.log('Usuario:', req.user?.id);
+      
       const propiedades = await prisma.propiedad.findMany({
         where: {
           usuarioId: req.user.id
+        },
+        select: {
+          id: true,
+          titulo: true,
+          descripcion: true,
+          precio: true,
+          direccion: true,
+          ciudad: true,
+          estado: true,
+          tipo: true,
+          numHabitaciones: true,
+          banos: true,
+          metrosCuadrados: true,
+          imagen: true,
+          cuentas: true,
+          createdAt: true,
+          updatedAt: true
         }
       });
       
+      console.log('Propiedades encontradas:', propiedades.length);
       res.json(propiedades);
     } catch (error) {
-      console.error('Error al obtener propiedades:', error);
-      res.status(500).json({ error: 'Error al obtener las propiedades' });
+      console.error('Error en getAll propiedades:', error);
+      res.status(500).json({ error: 'Error al obtener propiedades' });
     }
   },
 
   // Crear una nueva propiedad
   create: async (req, res) => {
     try {
-      const { direccion, barrio, provincia, pais } = req.body;
-      
-      if (!direccion || !barrio || !provincia || !pais) {
-        return res.status(400).json({
-          error: 'Faltan campos requeridos'
-        });
-      }
+      const {
+        titulo,
+        descripcion,
+        precio,
+        direccion,
+        ciudad,
+        estado,
+        tipo,
+        numHabitaciones,
+        banos,
+        metrosCuadrados,
+        imagen
+      } = req.body;
 
       const propiedad = await prisma.propiedad.create({
         data: {
+          titulo,
+          descripcion,
+          precio: parseFloat(precio),
           direccion,
-          barrio,
-          provincia,
-          pais,
+          ciudad,
+          estado,
+          tipo,
+          numHabitaciones: parseInt(numHabitaciones),
+          banos: parseInt(banos),
+          metrosCuadrados: parseFloat(metrosCuadrados),
+          imagen,
           cuentas: req.body.cuentas || [],
-          usuarioId: req.user.id
+          usuario: {
+            connect: { id: req.user.id }
+          }
         }
       });
       
       res.status(201).json(propiedad);
     } catch (error) {
       console.error('Error al crear propiedad:', error);
-      res.status(500).json({
-        error: 'Error al crear la propiedad'
-      });
+      res.status(500).json({ error: 'Error al crear la propiedad' });
     }
   },
 

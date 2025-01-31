@@ -17,50 +17,43 @@ passport.deserializeUser(async (id, done) => {
   }
 });
 
-passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: `${process.env.BACKEND_URL}/api/auth/google/callback`,
-    scope: ['profile', 'email']
-  },
-  async (accessToken, refreshToken, profile, done) => {
-    try {
-      console.log('Google profile:', profile);
-      
-      // Verificar si el usuario existe
-      let user = await prisma.user.findUnique({
-        where: { 
-          email: profile.emails[0].value 
-        }
-      });
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: `${process.env.BACKEND_URL}/api/auth/google/callback`,
+      userProfileURL: 'https://www.googleapis.com/oauth2/v3/userinfo'
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        const existingUser = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { googleId: profile.id },
+              { email: profile.emails[0].value }
+            ]
+          }
+        });
 
-      if (!user) {
-        // Si no existe, créalo
-        user = await prisma.user.create({
+        if (existingUser) {
+          return done(null, existingUser);
+        }
+
+        const newUser = await prisma.user.create({
           data: {
             email: profile.emails[0].value,
             name: profile.displayName,
-            googleId: profile.id,
-            password: '' // Password vacío para usuarios de Google
+            googleId: profile.id
           }
         });
-      } else {
-        // Si existe, actualiza el googleId
-        user = await prisma.user.update({
-          where: { email: profile.emails[0].value },
-          data: {
-            googleId: profile.id,
-            name: profile.displayName
-          }
-        });
+
+        done(null, newUser);
+      } catch (error) {
+        done(error, null);
       }
-      
-      done(null, user);
-    } catch (error) {
-      console.error('Error en autenticación Google:', error);
-      done(error, null);
     }
-  }
-));
+  )
+);
 
 export default passport; 

@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { PrivateRoute } from './components/PrivateRoute';
 import { Login } from './pages/Login';
 import { Propiedades } from './pages/Propiedades';
@@ -11,10 +11,19 @@ import Rutinas from './pages/Rutinas';
 import Lab from './pages/Lab';
 import Proyectos from './pages/Proyectos';
 import Perfil from './pages/Perfil';
+import { ConnectionStatus } from './components/ConnectionStatus';
+
+// Configuración de React Router v7
+const router = {
+  future: {
+    v7_startTransition: true,
+    v7_relativeSplatPath: true
+  }
+};
 
 function App() {
   return (
-    <Routes>
+    <Routes {...router}>
       {/* Rutas públicas */}
       <Route path="/login" element={<Login />} />
       <Route path="/registro" element={<Register />} />

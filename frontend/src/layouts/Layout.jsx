@@ -1,5 +1,5 @@
 import { Box, Drawer, List, ListItem, ListItemIcon, ListItemText, ListItemButton } from '@mui/material';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/Header';
@@ -11,6 +11,7 @@ import InventoryIcon from '@mui/icons-material/Inventory';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import ScienceIcon from '@mui/icons-material/Science';
 import AssignmentIcon from '@mui/icons-material/Assignment';
+import { ConnectionStatus } from '../components/ConnectionStatus';
 
 const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
@@ -22,7 +23,7 @@ const menuItems = [
   { text: 'Proyectos', icon: <AssignmentIcon />, path: '/proyectos' },
 ];
 
-export function Layout({ children }) {
+export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isOpen } = useSidebar();
@@ -110,11 +111,13 @@ export function Layout({ children }) {
           height: 'calc(100vh - 80px)',
           overflow: 'auto',
           display: 'flex',
-          flexDirection: 'column'
+          flexDirection: 'column',
+          paddingBottom: '40px' // Espacio para ConnectionStatus
         }}>
-          {children}
+          <Outlet />
         </Box>
         <Footer />
+        <ConnectionStatus />
       </Box>
     </Box>
   );

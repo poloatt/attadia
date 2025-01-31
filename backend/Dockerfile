@@ -2,25 +2,26 @@ FROM node:18
 
 WORKDIR /app
 
-# Configurar npm para usar el registro de GitHub
-RUN npm config set registry https://registry.npmjs.org/
-
-# Copiar archivos de configuración primero
+# Instalar dependencias primero
 COPY package*.json ./
-COPY prisma ./prisma/
+RUN npm install --legacy-peer-deps
 
-# Configurar npm para mayor estabilidad
-RUN npm config set fetch-retry-maxtimeout 600000
-RUN npm config set fetch-retry-mintimeout 100000
-
-# Instalar todas las dependencias de una sola vez
-RUN npm install --no-audit --no-fund \
-    && npx prisma generate
-
-# Copiar el resto del código
+# Copiar el resto de archivos
 COPY . .
 
-EXPOSE 5000
+# Generar el cliente de Prisma
+RUN npx prisma generate
 
-# Esperar a que la base de datos esté lista y ejecutar migraciones antes de iniciar
-CMD ["sh", "-c", "npx prisma generate && npx prisma migrate deploy && npm run dev"] 
+# Instalar curl para el healthcheck
+RUN apt-get update && apt-get install -y curl
+
+# Script de inicio que ejecuta las migraciones y luego inicia la app
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Asegurarse de que el script tenga los permisos correctos y los finales de línea correctos
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh && \
+    chmod +x /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["npm", "run", "dev"]

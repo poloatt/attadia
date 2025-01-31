@@ -1,27 +1,29 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const AuthContext = createContext(null);
 
-export const AuthProvider = ({ children }) => {
+export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
 
   const checkAuth = async () => {
     try {
-      const response = await fetch('/api/auth/me', {
-        credentials: 'include'
+      const response = await axios.get('/api/auth/me', {
+        withCredentials: true,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
       });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.user);
-      }
+      setUser(response.data);
     } catch (error) {
-      console.error('Error verificando autenticación:', error);
+      if (error.response?.status !== 401) {
+        console.error('Error al verificar autenticación:', error);
+      }
+      setUser(null);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -39,50 +41,25 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (credentials) => {
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email, password })
+      const response = await axios.post('/api/auth/login', credentials, {
+        withCredentials: true
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Error en la autenticación');
-      }
-
-      const data = await response.json();
-      setUser(data.user);
-      return data;
+      setUser(response.data);
+      return response.data;
     } catch (error) {
-      console.error('Error en login:', error);
-      throw error;
+      throw error.response?.data || error;
     }
   };
 
   const register = async (name, email, password) => {
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, email, password }),
-        credentials: 'include'
+      const response = await axios.post('/api/auth/register', { name, email, password }, {
+        withCredentials: true
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Error en el registro');
-      }
-
-      const data = await response.json();
-      setUser(data.user);
-      return data;
+      setUser(response.data.user);
+      return response.data;
     } catch (error) {
       console.error('Error en registro:', error);
       throw error;
@@ -91,39 +68,38 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include'
+      await axios.post('/api/auth/logout', {}, {
+        withCredentials: true
       });
-    } catch (error) {
-      console.error('Error en logout:', error);
-    } finally {
       setUser(null);
-      navigate('/login');
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
     }
   };
 
-  if (isLoading) {
+  // Mostrar loading mientras se verifica la autenticación
+  if (loading) {
     return <div>Cargando...</div>;
   }
 
   return (
     <AuthContext.Provider value={{ 
       user, 
-      isLoading, 
+      loading, 
       login, 
       register, 
-      logout
+      logout,
+      checkAuth // Exportamos checkAuth para poder refrescar el estado
     }}>
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth debe usarse dentro de un AuthProvider');
   }
   return context;
-};
+}

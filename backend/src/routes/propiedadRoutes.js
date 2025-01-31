@@ -4,7 +4,7 @@ import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Proteger todas las rutas con autenticación
+// Aplicar middleware de autenticación a todas las rutas
 router.use(authMiddleware);
 
 // Rutas para propiedades

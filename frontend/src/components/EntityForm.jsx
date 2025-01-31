@@ -12,7 +12,8 @@ import {
   Box,
   MenuItem,
   FormControlLabel,
-  Checkbox
+  Checkbox,
+  Grid
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -21,7 +22,14 @@ import CloseIcon from '@mui/icons-material/Close';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-export default function EntityForm({ open, onClose, onSubmit, title, fields }) {
+export default function EntityForm({ 
+  open, 
+  onClose, 
+  onSubmit, 
+  entity, 
+  title,
+  fields 
+}) {
   const [formData, setFormData] = useState({
     direccion: '',
     barrio: '',
@@ -170,48 +178,32 @@ export default function EntityForm({ open, onClose, onSubmit, title, fields }) {
 
   return (
     <Dialog 
-      open={open || false}
+      open={open} 
       onClose={onClose}
-      maxWidth="sm" 
+      maxWidth="sm"
       fullWidth
-      disableEscapeKeyDown={isSubmitting}
     >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center' 
-      }}>
-        {title}
-        <IconButton 
-          onClick={handleCancel}
-          disabled={isSubmitting}
-          size="small"
-          sx={{ ml: 2 }}
-        >
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
       <form onSubmit={handleSubmit}>
+        <DialogTitle>{title}</DialogTitle>
         <DialogContent>
-          <Stack spacing={2}>
-            {fields.map(field => renderField(field))}
-          </Stack>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            {fields.map((field) => (
+              <Grid item xs={field.width || 12} key={field.name}>
+                <TextField
+                  fullWidth
+                  {...field}
+                  value={entity[field.name] || ''}
+                  onChange={(e) => field.onChange(e.target.value)}
+                  required={field.required}
+                />
+              </Grid>
+            ))}
+          </Grid>
         </DialogContent>
-        <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button 
-            onClick={handleCancel}
-            disabled={isSubmitting}
-            startIcon={<CloseIcon />}
-          >
-            Cancelar
-          </Button>
-          <Button 
-            type="submit" 
-            variant="contained"
-            disabled={isSubmitting}
-            startIcon={<SaveIcon />}
-          >
-            {isSubmitting ? 'Guardando...' : 'Guardar'}
+        <DialogActions>
+          <Button onClick={handleCancel}>Cancelar</Button>
+          <Button type="submit" variant="contained">
+            {entity.id ? 'Actualizar' : 'Crear'}
           </Button>
         </DialogActions>
       </form>

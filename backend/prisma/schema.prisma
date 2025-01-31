@@ -8,39 +8,49 @@ datasource db {
 }
 
 model User {
-  id          String      @id @default(uuid())
-  email       String      @unique
-  name        String?
-  password    String?   // Hacemos password opcional para usuarios de Google
-  googleId    String?   @unique  // Nuevo campo
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String?
+  name      String?
+  googleId  String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // Agregar las relaciones inversas
+  @@map("users")
+
+  // Relaciones
   transacciones  Transaccion[]
   inventarios    Inventario[]
   rutinas        Rutina[]
   labResults     LabResult[]
   proyectos      Proyecto[]
-  propiedades    Propiedad[]    // Relación con propiedades
+  propiedades    Propiedad[]
 }
 
 model Propiedad {
-  id          String    @id @default(uuid())
-  direccion   String
-  barrio      String
-  provincia   String
-  pais        String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  usuario     User      @relation(fields: [usuarioId], references: [id])
-  usuarioId   String
-  cuentas     String[]
+  id              String   @id @default(uuid())
+  titulo          String
+  descripcion     String
+  precio          Float
+  direccion       String
+  ciudad          String
+  estado          String
+  tipo            String
+  numHabitaciones Int
+  banos           Int
+  metrosCuadrados Float
+  imagen          String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  usuario         User     @relation(fields: [usuarioId], references: [id])
+  usuarioId       String
+  cuentas         String[]
 
-  // Agregar las relaciones inversas
-  transacciones  Transaccion[]
-  habitaciones   Habitacion[]
-  inventarios    Inventario[]
+  transacciones   Transaccion[]
+  habitaciones    Habitacion[]
+  inventarios     Inventario[]
+
+  @@map("propiedades")
 }
 
 model Transaccion {
@@ -55,10 +65,12 @@ model Transaccion {
   tipo        String
   categoria   String
   locacion    String
-  usuario     User   @relation(fields: [usuarioId], references: [id])
+  usuario     User      @relation(fields: [usuarioId], references: [id])
   usuarioId   String
   propiedad   Propiedad? @relation(fields: [propiedadId], references: [id])
   propiedadId String?
+
+  @@map("transacciones")
 }
 
 model Habitacion {
@@ -67,6 +79,8 @@ model Habitacion {
   descripcion String?
   propiedad   Propiedad @relation(fields: [propiedadId], references: [id])
   propiedadId String
+
+  @@map("habitaciones")
 }
 
 model Inventario {
@@ -79,8 +93,10 @@ model Inventario {
   consumible  Boolean    @default(false)
   propiedad   Propiedad? @relation(fields: [propiedadId], references: [id])
   propiedadId String?
-  usuario     User    @relation(fields: [usuarioId], references: [id])
+  usuario     User       @relation(fields: [usuarioId], references: [id])
   usuarioId   String
+
+  @@map("inventarios")
 }
 
 model Rutina {
@@ -90,85 +106,68 @@ model Rutina {
   meds         Boolean  @default(false)
   skincareDay  Boolean  @default(false)
   makeBed      Boolean  @default(false)
-  clean        Boolean  @default(false)
-  meditate     Boolean  @default(false)
-  stretch      Boolean  @default(false)
-  protein      Boolean  @default(false)
-  gym          Boolean  @default(false)
-  water        Boolean  @default(false)
-  cooking      Boolean  @default(false)
-  eating       Boolean  @default(false)
-  bath         Boolean  @default(false)
-  cream        Boolean  @default(false)
-  skincareNight Boolean @default(false)
-  completitud  Float
-  muscle       Float?
-  fat          Float?
-  fatPercent   Float?
-  weight       Float?
-  stress       Int?
-  sleep        Float?
-  usuario      User  @relation(fields: [usuarioId], references: [id])
+  usuario      User     @relation(fields: [usuarioId], references: [id])
   usuarioId    String
+
+  @@map("rutinas")
 }
 
 model LabResult {
   id        String   @id @default(uuid())
   fecha     DateTime
   tipo      String
-  valor     Float
-  unidad    String
-  notas     String?
-  usuario   User  @relation(fields: [usuarioId], references: [id])
+  resultado String
+  usuario   User     @relation(fields: [usuarioId], references: [id])
   usuarioId String
+
+  @@map("lab_results")
 }
 
 model Proyecto {
-  id        String    @id @default(uuid())
-  titulo    String
+  id          String   @id @default(uuid())
+  nombre      String
   descripcion String?
+  estado      String
   fechaInicio DateTime
-  fechaFin   DateTime?
-  estado     EstadoProyecto @default(EN_PROGRESO)
-  tareas     Tarea[]
-  tags       String[]
-  usuario    User   @relation(fields: [usuarioId], references: [id])
-  usuarioId  String
+  fechaFin    DateTime?
+  usuario     User     @relation(fields: [usuarioId], references: [id])
+  usuarioId   String
+  tareas      Tarea[]
+
+  @@map("proyectos")
 }
 
 model Tarea {
-  id          String    @id @default(uuid())
+  id          String     @id @default(uuid())
   titulo      String
   descripcion String?
-  completada  Boolean   @default(false)
-  proyecto    Proyecto  @relation(fields: [proyectoId], references: [id])
+  estado      String
+  proyecto    Proyecto   @relation(fields: [proyectoId], references: [id])
   proyectoId  String
   subtareas   Subtarea[]
+
+  @@map("tareas")
 }
 
 model Subtarea {
-  id          String    @id @default(uuid())
+  id          String  @id @default(uuid())
   titulo      String
-  completada  Boolean   @default(false)
-  tarea       Tarea     @relation(fields: [tareaId], references: [id])
+  completada  Boolean @default(false)
+  tarea       Tarea   @relation(fields: [tareaId], references: [id])
   tareaId     String
-}
 
-enum Moneda {
-  EUR
-  USD
-  ARS
+  @@map("subtareas")
 }
 
 enum Estado {
   PENDIENTE
-  PAGADO
+  COMPLETADO
+  EN_PROCESO
   CANCELADO
 }
 
-enum EstadoProyecto {
-  PENDIENTE
-  EN_PROGRESO
-  COMPLETADO
-  CANCELADO
+enum Moneda {
+  MXN
+  USD
+  EUR
 } 
