@@ -178,8 +178,9 @@ export default function EntityForm({
       onClose={onClose}
       maxWidth="sm"
       fullWidth
+      aria-labelledby="property-dialog-title"
     >
-      <DialogTitle>{title}</DialogTitle>
+      <DialogTitle id="property-dialog-title">{title}</DialogTitle>
       <form onSubmit={handleSubmit}>
         <DialogContent>
           <Grid container spacing={2}>
@@ -187,7 +188,7 @@ export default function EntityForm({
               <Grid item xs={12} key={field.name}>
                 <TextField
                   fullWidth
-                  id={field.name}
+                  id={`property-${field.name}`}
                   name={field.name}
                   label={field.label}
                   value={entity[field.name] || ''}
@@ -199,6 +200,7 @@ export default function EntityForm({
                   select={field.select}
                   error={field.error}
                   helperText={field.helperText}
+                  aria-label={field.label}
                 >
                   {field.select && field.options?.map((option) => (
                     <MenuItem key={option} value={option}>
@@ -211,7 +213,7 @@ export default function EntityForm({
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose}>Cancelar</Button>
+          <Button onClick={onClose} type="button">Cancelar</Button>
           <Button type="submit" variant="contained">
             {entity.id ? 'Actualizar' : 'Crear'}
           </Button>

@@ -115,6 +115,17 @@ export function Propiedades() {
 
   const handleFormSubmit = async (formData) => {
     try {
+      // Validar y convertir tipos de datos antes de enviar
+      const dataToSend = {
+        ...formData,
+        precio: parseFloat(formData.precio) || 0,
+        numHabitaciones: parseInt(formData.numHabitaciones) || 0,
+        banos: parseInt(formData.banos) || 0,
+        metrosCuadrados: parseFloat(formData.metrosCuadrados) || 0,
+      };
+
+      console.log('Enviando datos:', dataToSend);
+
       const method = selectedPropiedad ? 'PUT' : 'POST';
       const url = selectedPropiedad 
         ? `/api/propiedades/${selectedPropiedad.id}`
@@ -126,13 +137,18 @@ export function Propiedades() {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify(formData)
+        body: JSON.stringify(dataToSend)
       });
 
-      if (!response.ok) throw new Error('Error al guardar propiedad');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al guardar propiedad');
+      }
 
       const data = await response.json();
+      console.log('Respuesta del servidor:', data);
       
+      // Actualizar el estado con los datos convertidos
       if (selectedPropiedad) {
         setPropiedades(propiedades.map(p => 
           p.id === selectedPropiedad.id ? data : p
@@ -160,7 +176,7 @@ export function Propiedades() {
       });
     } catch (error) {
       console.error('Error:', error);
-      enqueueSnackbar('Error al guardar propiedad', { variant: 'error' });
+      enqueueSnackbar(error.message || 'Error al guardar propiedad', { variant: 'error' });
     }
   };
 

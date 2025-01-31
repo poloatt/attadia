@@ -48,7 +48,7 @@ export default function EntityDetails({
       <CardMedia
         component="img"
         height="200"
-        image={entity.imagen || 'https://via.placeholder.com/300x200'}
+        image={entity.imagen || 'https://placehold.co/300x200'}
         alt={entity.titulo || 'Propiedad'}
       />
       <CardContent sx={{ flexGrow: 1 }}>

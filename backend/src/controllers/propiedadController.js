@@ -109,20 +109,37 @@ export const propiedadController = {
   // Actualizar una propiedad
   update: async (req, res) => {
     const { id } = req.params;
-    const { direccion, barrio, provincia, pais, cuentas } = req.body;
+    const {
+      titulo,
+      descripcion,
+      precio,
+      direccion,
+      ciudad,
+      estado,
+      tipo,
+      numHabitaciones,
+      banos,
+      metrosCuadrados,
+      imagen,
+      cuentas
+    } = req.body;
 
     try {
       const propiedad = await prisma.propiedad.update({
         where: { id },
         data: {
+          titulo,
+          descripcion,
+          precio: parseFloat(precio),
           direccion,
-          barrio,
-          provincia,
-          pais,
-          cuentas
-        },
-        include: {
-          habitaciones: true
+          ciudad,
+          estado,
+          tipo,
+          numHabitaciones: parseInt(numHabitaciones),
+          banos: parseInt(banos),
+          metrosCuadrados: parseFloat(metrosCuadrados),
+          imagen,
+          cuentas: cuentas || []
         }
       });
 
