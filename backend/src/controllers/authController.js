@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import passport from 'passport';
+import passport from '../config/passport.js';
 
 const prisma = new PrismaClient();
 
@@ -64,35 +64,18 @@ export const authController = {
   login: async (req, res) => {
     try {
       const { email, password } = req.body;
-      
-      // Validar que email existe
-      if (!email) {
-        return res.status(400).json({ 
-          error: 'El email es requerido' 
-        });
+      const user = await prisma.user.findUnique({ where: { email } });
+
+      if (!user || !user.password) {
+        return res.status(401).json({ error: 'Credenciales inválidas' });
       }
 
-      const user = await prisma.user.findUnique({
-        where: { email }
-      });
-
-      if (!user) {
-        return res.status(401).json({ error: 'Invalid credentials' });
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ error: 'Credenciales inválidas' });
       }
 
-      const isValid = await bcrypt.compare(password, user.password);
-      if (!isValid) {
-        return res.status(401).json({ error: 'Invalid credentials' });
-      }
-
-      // Generar token
-      const token = jwt.sign(
-        { id: user.id, email: user.email },
-        process.env.JWT_SECRET,
-        { expiresIn: '24h' }
-      );
-
-      // Enviar token en cookie
+      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '24h' });
       res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -100,109 +83,64 @@ export const authController = {
         maxAge: 24 * 60 * 60 * 1000 // 24 horas
       });
 
-      res.json({
-        id: user.id,
-        email: user.email,
-        name: user.name
+      res.json({ user: { id: user.id, email: user.email, name: user.name } });
+    } catch (error) {
+      console.error('Error en login:', error);
+      res.status(500).json({ error: 'Error al iniciar sesión' });
+    }
+  },
+
+  googleAuth: (req, res, next) => {
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      return res.status(501).json({ 
+        error: 'Autenticación con Google no configurada' 
       });
-    } catch (error) {
-      console.error('Login error:', error);
-      res.status(500).json({ error: 'Error en el servidor' });
     }
+    passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
   },
 
-  googleCallback: async (req, res, next) => {
-    try {
-      passport.authenticate('google', { session: false }, async (err, user) => {
-        if (err) {
-          console.error('Error en callback de Google:', err);
-          return res.redirect(`${process.env.FRONTEND_URL}/login?error=google_auth_failed`);
-        }
-
-        if (!user) {
-          return res.redirect(`${process.env.FRONTEND_URL}/login?error=no_user`);
-        }
-
-        const token = jwt.sign(
-          { id: user.id, email: user.email },
-          process.env.JWT_SECRET,
-          { expiresIn: '24h' }
-        );
-
-        res.cookie('token', token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 24 * 60 * 60 * 1000
-        });
-
-        res.redirect(process.env.FRONTEND_URL);
-      })(req, res, next);
-    } catch (error) {
-      console.error('Error en Google callback:', error);
-      res.redirect(`${process.env.FRONTEND_URL}/login?error=google_auth_failed`);
+  googleCallback: (req, res, next) => {
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      return res.redirect(`${process.env.FRONTEND_URL}/login?error=google_not_configured`);
     }
-  },
-
-  getCurrentUser: async (req, res) => {
-    try {
-      console.log('getCurrentUser - Request recibido'); // Debug log
-      
-      if (!req.user) {
-        console.log('No hay usuario en el request'); // Debug log
-        return res.status(401).json({ error: 'No autenticado' });
+    
+    passport.authenticate('google', { session: false }, (err, user) => {
+      if (err) {
+        console.error('Error en callback de Google:', err);
+        return res.redirect(`${process.env.FRONTEND_URL}/login?error=auth`);
       }
 
-      // Eliminar la contraseña antes de enviar
-      const { password, ...userWithoutPassword } = req.user;
-      
-      console.log('Enviando usuario:', userWithoutPassword); // Debug log
-      res.json({ user: userWithoutPassword });
-    } catch (error) {
-      console.error('Error al obtener usuario actual:', error);
-      res.status(500).json({ 
-        error: 'Error al obtener usuario',
-        details: error.message 
-      });
-    }
-  },
+      if (!user) {
+        return res.redirect(`${process.env.FRONTEND_URL}/login?error=user_not_found`);
+      }
 
-  logout: async (req, res) => {
-    try {
-      // Limpiar la cookie del token
-      res.clearCookie('token', {
+      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '24h' });
+      res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax'
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000
       });
 
-      res.json({ message: 'Logout exitoso' });
-    } catch (error) {
-      console.error('Error en logout:', error);
-      res.status(500).json({ error: 'Error al cerrar sesión' });
-    }
+      res.redirect(process.env.FRONTEND_URL);
+    })(req, res, next);
   },
 
-  googleAuth: async (req, res, next) => {
-    try {
-      console.log('Iniciando autenticación Google');
-      passport.authenticate('google', {
-        scope: ['profile', 'email'],
-        prompt: 'select_account'
-      })(req, res, next);
-    } catch (error) {
-      console.error('Error en autenticación Google:', error);
-      res.status(500).json({ error: 'Error en autenticación con Google' });
-    }
+  logout: (req, res) => {
+    res.clearCookie('token');
+    res.json({ message: 'Sesión cerrada correctamente' });
   },
 
   me: async (req, res) => {
     try {
-      // El usuario ya está en req.user gracias al middleware
-      res.json(req.user);
+      const user = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: { id: true, email: true, name: true }
+      });
+      res.json(user);
     } catch (error) {
-      console.error('Error in me controller:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      console.error('Error al obtener usuario:', error);
+      res.status(500).json({ error: 'Error al obtener información del usuario' });
     }
   }
 }; 

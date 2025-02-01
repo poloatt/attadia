@@ -4,22 +4,10 @@ import { useSidebar } from '../context/SidebarContext';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import HomeIcon from '@mui/icons-material/Home';
-import InventoryIcon from '@mui/icons-material/Inventory';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import ScienceIcon from '@mui/icons-material/Science';
-import AssignmentIcon from '@mui/icons-material/Assignment';
+import { SettingsOutlined as SettingsIcon } from '@mui/icons-material';
 
 const menuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-  { text: 'Transacciones', icon: <AccountBalanceWalletIcon />, path: '/transacciones' },
-  { text: 'Propiedades', icon: <HomeIcon />, path: '/propiedades' },
-  { text: 'Inventario', icon: <InventoryIcon />, path: '/inventario' },
-  { text: 'Rutinas', icon: <FitnessCenterIcon />, path: '/rutinas' },
-  { text: 'Lab', icon: <ScienceIcon />, path: '/lab' },
-  { text: 'Proyectos', icon: <AssignmentIcon />, path: '/proyectos' },
+  { text: 'Configuración', icon: <SettingsIcon />, path: '/configuracion' }
 ];
 
 export function Layout() {
@@ -38,19 +26,21 @@ export function Layout() {
       <Header />
       <Drawer
         variant="permanent"
+        anchor="right"
         sx={{
           '& .MuiDrawer-paper': {
-            width: isOpen ? 240 : 56,
+            width: isOpen ? 240 : 0,
             transition: 'width 0.3s ease',
             overflowX: 'hidden',
             backgroundColor: 'background.paper',
-            borderRight: '1px solid',
+            borderLeft: '1px solid',
             borderColor: 'divider',
             position: 'fixed',
             height: '100vh',
             top: 0,
-            left: 0,
-            zIndex: (theme) => theme.zIndex.drawer
+            right: 0,
+            zIndex: (theme) => theme.zIndex.drawer,
+            visibility: isOpen ? 'visible' : 'hidden'
           },
         }}
       >
@@ -97,8 +87,8 @@ export function Layout() {
         sx={{
           flexGrow: 1,
           pt: '48px',
-          pl: isOpen ? '240px' : '56px',
-          transition: 'padding-left 0.3s ease',
+          pr: isOpen ? '240px' : 0,
+          transition: 'padding-right 0.3s ease',
           height: '100vh',
           overflow: 'hidden',
           display: 'flex',

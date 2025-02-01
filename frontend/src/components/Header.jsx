@@ -1,50 +1,28 @@
 import { 
   AppBar, 
   Toolbar, 
-  Typography, 
   IconButton, 
-  Avatar, 
-  Menu, 
-  MenuItem, 
-  Box, 
+  Typography, 
+  Box,
   Tooltip
 } from '@mui/material';
-import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import MenuIcon from '@mui/icons-material/Menu';
+import { 
+  HomeOutlined as HomeIcon,
+  SettingsOutlined as SettingsIcon,
+  SearchOutlined as SearchIcon,
+  PersonOutlineOutlined as UserIcon
+} from '@mui/icons-material';
 import { useSidebar } from '../context/SidebarContext';
-import LogoutIcon from '@mui/icons-material/Logout';
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function Header() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
   const { toggleSidebar } = useSidebar();
-  const [anchorEl, setAnchorEl] = useState(null);
-  
-  const path = location.pathname === '/' ? 'inicio' : location.pathname.slice(1);
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const handleAuthClick = () => {
-    navigate('/login');
-  };
-
-  const handleMenu = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleLogout = () => {
-    handleClose();
-    logout();
-  };
-
-  const handleHomeClick = () => {
-    navigate('/');
+  const getRouteTitle = () => {
+    const path = location.pathname.split('/')[1];
+    return path.charAt(0).toUpperCase() + path.slice(1) || 'inicio';
   };
 
   return (
@@ -52,133 +30,82 @@ export default function Header() {
       position="fixed" 
       sx={{ 
         zIndex: (theme) => theme.zIndex.drawer + 1,
-        backgroundColor: '#0A0A0A',
-        color: 'white',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.5)',
-        height: '48px'
+        backgroundColor: 'background.default',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        height: 48
       }}
     >
       <Toolbar 
+        variant="dense"
         sx={{ 
-          justifyContent: 'space-between', 
-          minHeight: '48px !important',
-          px: 2
+          minHeight: 48,
+          color: 'text.secondary'
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            onClick={toggleSidebar}
-            edge="start"
-            sx={{ mr: 2 }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Box 
-            sx={{ 
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.5,
-              cursor: 'pointer',
-              '&:hover': {
-                '& .MuiTypography-root': {
-                  color: 'rgba(255, 255, 255, 0.9)'
-                }
-              }
-            }}
-            onClick={handleHomeClick}
-          >
-            <Typography 
-              variant="subtitle1" 
-              noWrap 
-              component="div"
-              sx={{ 
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5,
-                color: 'rgba(255, 255, 255, 0.7)',
-                transition: 'color 0.2s'
-              }}
-            >
-              Present
-              <Box 
-                component="span" 
-                sx={{ 
-                  color: 'rgba(255, 255, 255, 0.5)',
-                  mx: 0.5 
-                }}
-              >
-                /
-              </Box>
-              {path}
-            </Typography>
-          </Box>
-        </Box>
+        <IconButton 
+          edge="start" 
+          onClick={() => navigate('/')}
+          sx={{ 
+            mr: 2,
+            color: 'inherit',
+            '&:hover': { color: 'text.primary' }
+          }}
+        >
+          <HomeIcon sx={{ fontSize: 20 }} />
+        </IconButton>
 
-        {/* Auth Button */}
-        {!user ? (
-          <Tooltip title="Iniciar Sesión / Registrarse">
+        <Typography 
+          variant="subtitle2" 
+          sx={{ 
+            color: 'inherit',
+            fontSize: '0.875rem'
+          }}
+        >
+          Present / {getRouteTitle()}
+        </Typography>
+
+        <Box sx={{ flexGrow: 1 }} />
+
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <Tooltip title="Buscar">
             <IconButton 
-              size="small" 
-              onClick={handleAuthClick}
+              size="small"
               sx={{ 
-                color: 'rgba(255, 255, 255, 0.7)',
-                '&:hover': {
-                  color: 'rgba(255, 255, 255, 0.9)'
-                }
+                color: 'inherit',
+                '&:hover': { color: 'text.primary' }
               }}
             >
-              <PersonOutlineIcon sx={{ fontSize: 20 }} />
+              <SearchIcon sx={{ fontSize: 20 }} />
             </IconButton>
           </Tooltip>
-        ) : (
-          <>
-            <Tooltip title={user.email}>
-              <IconButton
-                size="small"
-                onClick={handleMenu}
-                sx={{ ml: 1 }}
-              >
-                <Avatar 
-                  sx={{ 
-                    width: 28, 
-                    height: 28, 
-                    bgcolor: 'primary.main',
-                    fontSize: '0.875rem'
-                  }}
-                >
-                  {user.name ? user.name[0].toUpperCase() : 'U'}
-                </Avatar>
-              </IconButton>
-            </Tooltip>
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={handleClose}
+
+          <Tooltip title="Perfil">
+            <IconButton 
+              size="small"
+              onClick={() => navigate('/perfil')}
               sx={{ 
-                mt: 1,
-                '& .MuiPaper-root': {
-                  backgroundColor: '#0A0A0A',
-                  color: 'white',
-                  border: '1px solid rgba(255, 255, 255, 0.1)'
-                }
+                color: 'inherit',
+                '&:hover': { color: 'text.primary' }
               }}
             >
-              <MenuItem 
-                onClick={handleLogout}
-                sx={{ 
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.05)'
-                  }
-                }}
-              >
-                <LogoutIcon sx={{ mr: 1, fontSize: 20 }} />
-                <Typography variant="body2">Cerrar Sesión</Typography>
-              </MenuItem>
-            </Menu>
-          </>
-        )}
+              <UserIcon sx={{ fontSize: 20 }} />
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title="Configuración">
+            <IconButton 
+              size="small"
+              onClick={toggleSidebar}
+              sx={{ 
+                color: 'inherit',
+                '&:hover': { color: 'text.primary' }
+              }}
+            >
+              <SettingsIcon sx={{ fontSize: 20 }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Toolbar>
     </AppBar>
   );

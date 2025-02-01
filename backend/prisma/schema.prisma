@@ -8,15 +8,13 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
+  id        Int      @id @default(autoincrement())
   email     String   @unique
   password  String?
   name      String?
   googleId  String?  @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@map("users")
 
   // Relaciones
   transacciones  Transaccion[]
@@ -25,12 +23,15 @@ model User {
   labResults     LabResult[]
   proyectos      Proyecto[]
   propiedades    Propiedad[]
+  cuentas        Cuenta[]
+
+  @@map("users")
 }
 
 model Propiedad {
-  id              String   @id @default(uuid())
+  id              Int       @id @default(autoincrement())
   titulo          String
-  descripcion     String
+  descripcion     String?
   precio          Float
   direccion       String
   ciudad          String
@@ -40,123 +41,255 @@ model Propiedad {
   banos           Int
   metrosCuadrados Float
   imagen          String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  usuario         User     @relation(fields: [usuarioId], references: [id])
-  usuarioId       String
-  cuentas         String[]
+  monedaId        Int
+  moneda          Moneda    @relation(fields: [monedaId], references: [id])
+  cuentaId        Int
+  cuenta          Cuenta    @relation(fields: [cuentaId], references: [id])
+  usuarioId       Int
+  usuario         User      @relation(fields: [usuarioId], references: [id])
 
-  transacciones   Transaccion[]
-  habitaciones    Habitacion[]
-  inventarios     Inventario[]
+  // Nuevas relaciones
+  contratos    Contrato[]
+  inventarios  Inventario[]
+  habitaciones Habitacion[]
+  transacciones Transaccion[]
+  inquilinos   InquilinoPropiedad[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@map("propiedades")
 }
 
 model Transaccion {
-  id          String    @id @default(uuid())
-  fecha       DateTime
-  monto       Float
-  moneda      Moneda
+  id          Int      @id @default(autoincrement())
+  fecha       DateTime @default(now())
   descripcion String
-  cuenta      String
-  estado      Estado
-  recurrencia Boolean   @default(false)
-  tipo        String
-  categoria   String
-  locacion    String
-  usuario     User      @relation(fields: [usuarioId], references: [id])
-  usuarioId   String
+  monto       Float
+  estado      String   @default("PENDIENTE")
+  categoria   String?
+  locacion    String?
+  
+  // Relaciones
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  propiedadId Int?
   propiedad   Propiedad? @relation(fields: [propiedadId], references: [id])
-  propiedadId String?
+  monedaId    Int
+  moneda      Moneda   @relation(fields: [monedaId], references: [id])
+  cuentaId    Int
+  cuenta      Cuenta   @relation(fields: [cuentaId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@map("transacciones")
 }
 
 model Habitacion {
-  id          String    @id @default(uuid())
+  id              Int      @id @default(autoincrement())
   nombre      String
   descripcion String?
   propiedad   Propiedad @relation(fields: [propiedadId], references: [id])
-  propiedadId String
+  propiedadId Int
 
   @@map("habitaciones")
 }
 
 model Inventario {
-  id          String     @id @default(uuid())
+  id          Int        @id @default(autoincrement())
   locacion    String
   sublocacion String?
   categoria   String
   item        String
   cantidad    Int
   consumible  Boolean    @default(false)
+  userId      Int
+  user        User       @relation(fields: [userId], references: [id])
+  propiedadId Int?
   propiedad   Propiedad? @relation(fields: [propiedadId], references: [id])
-  propiedadId String?
-  usuario     User       @relation(fields: [usuarioId], references: [id])
-  usuarioId   String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   @@map("inventarios")
 }
 
 model Rutina {
-  id           String   @id @default(uuid())
-  fecha        DateTime
+  id           Int      @id @default(autoincrement())
+  fecha        DateTime @default(now())
   wakeup       Boolean  @default(false)
   meds         Boolean  @default(false)
   skincareDay  Boolean  @default(false)
   makeBed      Boolean  @default(false)
-  usuario      User     @relation(fields: [usuarioId], references: [id])
-  usuarioId    String
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@map("rutinas")
 }
 
 model LabResult {
-  id        String   @id @default(uuid())
-  fecha     DateTime
+  id        Int      @id @default(autoincrement())
+  fecha     DateTime @default(now())
   tipo      String
-  resultado String
-  usuario   User     @relation(fields: [usuarioId], references: [id])
-  usuarioId String
+  valor     Float
+  unidad    String
+  notas     String?
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("lab_results")
 }
 
 model Proyecto {
-  id          String   @id @default(uuid())
-  nombre      String
+  id          Int      @id @default(autoincrement())
+  titulo      String
   descripcion String?
-  estado      String
-  fechaInicio DateTime
+  estado      String   @default("PENDIENTE")
+  fechaInicio DateTime @default(now())
   fechaFin    DateTime?
-  usuario     User     @relation(fields: [usuarioId], references: [id])
-  usuarioId   String
+  tags        String[]
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   tareas      Tarea[]
 
   @@map("proyectos")
 }
 
 model Tarea {
-  id          String     @id @default(uuid())
+  id          Int        @id @default(autoincrement())
   titulo      String
   descripcion String?
-  estado      String
+  estado      String     @default("PENDIENTE")
+  fechaInicio DateTime   @default(now())
+  fechaFin    DateTime?
+  prioridad   String     @default("MEDIA")
   proyecto    Proyecto   @relation(fields: [proyectoId], references: [id])
-  proyectoId  String
+  proyectoId  Int
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
   subtareas   Subtarea[]
 
   @@map("tareas")
 }
 
 model Subtarea {
-  id          String  @id @default(uuid())
+  id          Int     @id @default(autoincrement())
   titulo      String
   completada  Boolean @default(false)
+  descripcion String?
+  fechaInicio DateTime @default(now())
+  fechaFin    DateTime?
   tarea       Tarea   @relation(fields: [tareaId], references: [id])
-  tareaId     String
+  tareaId     Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@map("subtareas")
+}
+
+model Contrato {
+  id            String    @id @default(uuid())
+  fechaInicio   DateTime
+  fechaFin      DateTime?
+  montoAlquiler Float
+  deposito      Float
+  estado        EstadoContrato
+  documentoUrl  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  propiedad     Propiedad @relation(fields: [propiedadId], references: [id])
+  propiedadId   Int
+  inquilino     Inquilino @relation(fields: [inquilinoId], references: [id])
+  inquilinoId   String
+  moneda        Moneda    @relation(fields: [monedaId], references: [id])
+  monedaId      Int
+
+  @@map("contratos")
+}
+
+model Inquilino {
+  id            String    @id @default(uuid())
+  nombre        String
+  apellido      String
+  dni           String    @unique
+  email         String?
+  telefono      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  contratos     Contrato[]
+  propiedades   InquilinoPropiedad[]
+
+  @@map("inquilinos")
+}
+
+model InquilinoPropiedad {
+  id          String    @id @default(uuid())
+  fechaInicio DateTime
+  fechaFin    DateTime?
+  
+  inquilino   Inquilino @relation(fields: [inquilinoId], references: [id])
+  inquilinoId String
+  propiedad   Propiedad @relation(fields: [propiedadId], references: [id])
+  propiedadId Int
+
+  @@map("inquilinos_propiedades")
+}
+
+model Moneda {
+  id              Int      @id @default(autoincrement())
+  codigo      String    @unique  // Ej: USD, EUR, ARS
+  nombre      String    // Ej: Dólar Estadounidense
+  simbolo     String    // Ej: $, €
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  propiedades  Propiedad[]
+  contratos    Contrato[]
+  transacciones Transaccion[]
+  cuentas      Cuenta[]
+
+  @@map("monedas")
+}
+
+model Cuenta {
+  id              Int      @id @default(autoincrement())
+  nombre      String
+  numero      String
+  tipo        TipoCuenta
+  saldo       Float     @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  usuario     User      @relation(fields: [usuarioId], references: [id])
+  usuarioId   Int
+  moneda      Moneda    @relation(fields: [monedaId], references: [id])
+  monedaId    Int
+  propiedades Propiedad[]
+  transacciones Transaccion[]
+
+  @@map("cuentas")
+}
+
+enum EstadoContrato {
+  ACTIVO
+  FINALIZADO
+  CANCELADO
+  PENDIENTE
+}
+
+enum TipoCuenta {
+  EFECTIVO
+  BANCO
+  MERCADO_PAGO
+  CRIPTO
+  OTRO
 }
 
 enum Estado {
@@ -164,10 +297,4 @@ enum Estado {
   COMPLETADO
   EN_PROCESO
   CANCELADO
-}
-
-enum Moneda {
-  MXN
-  USD
-  EUR
 } 

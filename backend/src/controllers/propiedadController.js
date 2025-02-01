@@ -12,22 +12,14 @@ export const propiedadController = {
         where: {
           usuarioId: req.user.id
         },
-        select: {
-          id: true,
-          titulo: true,
-          descripcion: true,
-          precio: true,
-          direccion: true,
-          ciudad: true,
-          estado: true,
-          tipo: true,
-          numHabitaciones: true,
-          banos: true,
-          metrosCuadrados: true,
-          imagen: true,
-          cuentas: true,
-          createdAt: true,
-          updatedAt: true
+        include: {
+          contratos: true,
+          inventarios: true,
+          habitaciones: true,
+          transacciones: true,
+          inquilinos: true,
+          moneda: true,
+          cuenta: true
         }
       });
       
@@ -42,37 +34,30 @@ export const propiedadController = {
   // Crear una nueva propiedad
   create: async (req, res) => {
     try {
-      const {
-        titulo,
-        descripcion,
-        precio,
-        direccion,
-        ciudad,
-        estado,
-        tipo,
-        numHabitaciones,
-        banos,
-        metrosCuadrados,
-        imagen
-      } = req.body;
+      const { moneda: monedaId, cuenta: cuentaId, ...datos } = req.body;
 
       const propiedad = await prisma.propiedad.create({
         data: {
-          titulo,
-          descripcion,
-          precio: parseFloat(precio),
-          direccion,
-          ciudad,
-          estado,
-          tipo,
-          numHabitaciones: parseInt(numHabitaciones),
-          banos: parseInt(banos),
-          metrosCuadrados: parseFloat(metrosCuadrados),
-          imagen,
-          cuentas: req.body.cuentas || [],
+          ...datos,
+          moneda: {
+            connect: { 
+              id: parseInt(monedaId)
+            }
+          },
+          cuenta: {
+            connect: { 
+              id: parseInt(cuentaId)
+            }
+          },
           usuario: {
-            connect: { id: req.user.id }
+            connect: { 
+              id: req.user.id 
+            }
           }
+        },
+        include: {
+          moneda: true,
+          cuenta: true
         }
       });
       

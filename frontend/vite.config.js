@@ -13,10 +13,5 @@ export default defineConfig({
         secure: false
       }
     }
-  },
-  build: {
-    rollupOptions: {
-      input: '/src/main.jsx'  // Especificar el entry point
-    }
   }
 }) 

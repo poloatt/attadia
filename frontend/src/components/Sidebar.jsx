@@ -1,13 +1,10 @@
 import { Drawer, Box, List, ListItem, ListItemIcon, ListItemText, ListItemButton } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import HomeWorkIcon from '@mui/icons-material/HomeWork';
-import InventoryIcon from '@mui/icons-material/Inventory';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import ScienceIcon from '@mui/icons-material/Science';
-import AssignmentIcon from '@mui/icons-material/Assignment';
+import { 
+  DashboardOutlined,
+  AssignmentOutlined
+} from '@mui/icons-material';
 
 export default function Sidebar() {
   const { isOpen } = useSidebar();
@@ -15,13 +12,16 @@ export default function Sidebar() {
   const location = useLocation();
 
   const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-    { text: 'Transacciones', icon: <AccountBalanceWalletIcon />, path: '/transacciones' },
-    { text: 'Propiedades', icon: <HomeWorkIcon />, path: '/propiedades' },
-    { text: 'Inventario', icon: <InventoryIcon />, path: '/inventario' },
-    { text: 'Rutinas', icon: <FitnessCenterIcon />, path: '/rutinas' },
-    { text: 'Lab', icon: <ScienceIcon />, path: '/lab' },
-    { text: 'Proyectos', icon: <AssignmentIcon />, path: '/proyectos' },
+    {
+      title: 'Dashboard',
+      path: '/',
+      icon: <DashboardOutlined />
+    },
+    {
+      title: 'Proyectos',
+      path: '/proyectos',
+      icon: <AssignmentOutlined />
+    }
   ];
 
   return (
@@ -46,10 +46,9 @@ export default function Sidebar() {
           }
         }}
       >
-        <Box sx={{ height: '48px' }} />
         <List sx={{ p: 1 }}>
           {menuItems.map((item) => (
-            <ListItem key={item.text} disablePadding>
+            <ListItem key={item.title} disablePadding>
               <ListItemButton
                 selected={location.pathname === item.path}
                 onClick={() => navigate(item.path)}
@@ -73,7 +72,7 @@ export default function Sidebar() {
                   {item.icon}
                 </ListItemIcon>
                 <ListItemText 
-                  primary={item.text} 
+                  primary={item.title} 
                   sx={{ 
                     opacity: isOpen ? 1 : 0,
                     transition: 'opacity 0.3s ease',

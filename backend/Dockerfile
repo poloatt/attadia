@@ -1,27 +1,45 @@
-FROM node:18
+# Etapa de construcción
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Instalar dependencias primero
+# Instalar dependencias necesarias para Prisma y OpenSSL
+RUN apk add --no-cache openssl libc6-compat python3 make g++
+
+# Copiar archivos de dependencias
 COPY package*.json ./
+COPY prisma ./prisma/
+
+# Instalar dependencias
 RUN npm install --legacy-peer-deps
-
-# Copiar el resto de archivos
-COPY . .
-
-# Generar el cliente de Prisma
 RUN npx prisma generate
 
-# Instalar curl para el healthcheck
-RUN apt-get update && apt-get install -y curl
+# Etapa de producción
+FROM node:18-alpine
 
-# Script de inicio que ejecuta las migraciones y luego inicia la app
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# Instalar dependencias necesarias
+RUN apk add --no-cache openssl curl postgresql-client
 
-# Asegurarse de que el script tenga los permisos correctos y los finales de línea correctos
-RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh && \
-    chmod +x /usr/local/bin/docker-entrypoint.sh
+WORKDIR /app
 
-ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["npm", "run", "dev"]
+# Copiar solo los archivos necesarios desde la etapa de construcción
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/prisma ./prisma
+COPY . .
+
+# Asegurarse que el archivo .env se copia
+COPY .env ./
+
+# Script para esperar a que la base de datos esté lista
+COPY scripts/wait-for-db.js ./scripts/
+
+# Exponer puerto
+EXPOSE 5000
+
+# Aumentar el tiempo de espera y los reintentos
+ENV MAX_RETRIES=10
+ENV RETRY_DELAY=5000
+
+# Comando para iniciar la aplicación
+CMD ["sh", "-c", "node scripts/wait-for-db.js && npm run dev"]

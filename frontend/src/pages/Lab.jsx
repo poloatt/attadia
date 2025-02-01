@@ -5,6 +5,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EntityDetails from '../components/EntityDetails';
+import axios from 'axios';
 
 export default function Lab() {
   const [resultados, setResultados] = useState([]);
@@ -15,8 +16,8 @@ export default function Lab() {
 
   const fetchResultados = async () => {
     try {
-      const response = await fetch('/api/lab-results');
-      const data = await response.json();
+      const response = await axios.get('/api/lab');
+      const data = await response.data;
       setResultados(data);
     } catch (error) {
       console.error('Error al cargar resultados:', error);

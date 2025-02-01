@@ -86,8 +86,8 @@ export default function EntityForm({
     }));
   };
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
+  const handleSubmit = (e) => {
+    e.preventDefault();
     onSubmit(entity);
   };
 
@@ -178,47 +178,42 @@ export default function EntityForm({
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      aria-labelledby="property-dialog-title"
     >
-      <DialogTitle id="property-dialog-title">{title}</DialogTitle>
-      <form onSubmit={handleSubmit}>
-        <DialogContent>
-          <Grid container spacing={2}>
-            {fields.map((field) => (
-              <Grid item xs={12} key={field.name}>
-                <TextField
-                  fullWidth
-                  id={`property-${field.name}`}
-                  name={field.name}
-                  label={field.label}
+      <DialogTitle>{title}</DialogTitle>
+      <DialogContent>
+        <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
+          {fields.map((field) => {
+            if (field.component) {
+              const Component = field.component;
+              return (
+                <Component
+                  key={field.name}
+                  {...field}
                   value={entity[field.name] || ''}
-                  onChange={(e) => field.onChange(e.target.value)}
-                  required={field.required}
-                  type={field.type || 'text'}
-                  multiline={field.multiline}
-                  rows={field.rows}
-                  select={field.select}
-                  error={field.error}
-                  helperText={field.helperText}
-                  aria-label={field.label}
-                >
-                  {field.select && field.options?.map((option) => (
-                    <MenuItem key={option} value={option}>
-                      {option}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-            ))}
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={onClose} type="button">Cancelar</Button>
-          <Button type="submit" variant="contained">
-            {entity.id ? 'Actualizar' : 'Crear'}
-          </Button>
-        </DialogActions>
-      </form>
+                  onChange={(value) => field.onChange?.(value)}
+                />
+              );
+            }
+            
+            return (
+              <TextField
+                key={field.name}
+                margin="normal"
+                fullWidth
+                {...field}
+                value={entity[field.name] || ''}
+                onChange={(e) => field.onChange?.(e.target.value)}
+              />
+            );
+          })}
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancelar</Button>
+        <Button type="submit" variant="contained" onClick={handleSubmit}>
+          {entity.id ? 'Actualizar' : 'Crear'}
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 } 

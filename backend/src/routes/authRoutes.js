@@ -4,11 +4,15 @@ import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.post('/login', authController.login);
+// Rutas públicas
 router.post('/register', authController.register);
-router.post('/logout', authController.logout);
-router.get('/me', authMiddleware, authController.getCurrentUser);
+router.post('/login', authController.login);
 router.get('/google', authController.googleAuth);
 router.get('/google/callback', authController.googleCallback);
 
-export { router as default }; 
+// Rutas protegidas
+router.use(authMiddleware);
+router.get('/me', authController.me);
+router.post('/logout', authController.logout);
+
+export default router; 

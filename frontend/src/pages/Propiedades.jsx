@@ -19,19 +19,18 @@ import {
   TextField,
   MenuItem
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, BedOutlined as BedIcon, PeopleOutlined as PeopleIcon, DescriptionOutlined as DescriptionIcon, AttachMoneyOutlined as AttachMoneyIcon, AccountBalanceWalletOutlined as AccountBalanceWalletIcon, Inventory2Outlined as InventoryIcon } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '@mui/material/styles';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
-import BedIcon from '@mui/icons-material/Bed';
-import BathtubIcon from '@mui/icons-material/Bathtub';
 import SquareFootIcon from '@mui/icons-material/SquareFoot';
 import EntityForm from '../components/EntityForm';
 import EntityCard from '../components/EntityCard';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import EntityToolbar from '../components/EntityToolbar';
+import CreatableSelect from '../components/CreatableSelect';
 
 // Cambiamos a exportación nombrada para coincidir con App.jsx
 export function Propiedades() {
@@ -54,11 +53,16 @@ export function Propiedades() {
     numHabitaciones: '',
     banos: '',
     metrosCuadrados: '',
-    imagen: ''
+    imagen: '',
+    monedaId: '',
+    cuentaId: ''
   });
   const navigate = useNavigate();
   const [selectedItems, setSelectedItems] = useState([]);
   const [filteredPropiedades, setFilteredPropiedades] = useState([]);
+  const [monedas, setMonedas] = useState([]);
+  const [cuentas, setCuentas] = useState([]);
+  const [loadingRelated, setLoadingRelated] = useState(true);
 
   useEffect(() => {
     const fetchPropiedades = async () => {
@@ -71,19 +75,14 @@ export function Propiedades() {
             'Content-Type': 'application/json'
           }
         });
-        console.log('Respuesta de propiedades:', response.data);
         setPropiedades(response.data);
+        setFilteredPropiedades(response.data);
       } catch (error) {
         console.error('Error completo:', error);
-        if (error.response) {
-          console.error('Status:', error.response.status);
-          console.error('Headers:', error.response.headers);
-          console.error('Data:', error.response.data);
-        } else if (error.request) {
-          console.error('Request:', error.request);
-        } else {
-          console.error('Error:', error.message);
-        }
+        console.log('Status:', error.response?.status);
+        console.log('Headers:', error.response?.headers);
+        console.log('Data:', error.response?.data);
+        setError('Error al cargar las propiedades');
       } finally {
         setLoading(false);
       }
@@ -91,6 +90,28 @@ export function Propiedades() {
 
     fetchPropiedades();
   }, []);
+
+  useEffect(() => {
+    const fetchRelatedData = async () => {
+      try {
+        setLoadingRelated(true);
+        const [monedasRes, cuentasRes] = await Promise.all([
+          axios.get('/api/monedas'),
+          axios.get('/api/cuentas')
+        ]);
+
+        setMonedas(monedasRes.data);
+        setCuentas(cuentasRes.data);
+      } catch (error) {
+        console.error('Error al cargar datos relacionados:', error);
+        enqueueSnackbar('Error al cargar datos relacionados', { variant: 'error' });
+      } finally {
+        setLoadingRelated(false);
+      }
+    };
+
+    fetchRelatedData();
+  }, [enqueueSnackbar]);
 
   const handleDelete = async (id) => {
     try {
@@ -118,68 +139,32 @@ export function Propiedades() {
 
   const handleFormSubmit = async (formData) => {
     try {
-      // Validar y convertir tipos de datos antes de enviar
-      const dataToSend = {
+      console.log('Enviando datos:', formData);
+      
+      // Asegurarse que los IDs sean números
+      const datosAEnviar = {
         ...formData,
-        precio: parseFloat(formData.precio) || 0,
-        numHabitaciones: parseInt(formData.numHabitaciones) || 0,
-        banos: parseInt(formData.banos) || 0,
-        metrosCuadrados: parseFloat(formData.metrosCuadrados) || 0,
+        monedaId: parseInt(formData.moneda),
+        cuentaId: parseInt(formData.cuenta),
+        precio: parseFloat(formData.precio),
+        numHabitaciones: parseInt(formData.numHabitaciones),
+        banos: parseInt(formData.banos),
+        metrosCuadrados: parseFloat(formData.metrosCuadrados)
       };
 
-      console.log('Enviando datos:', dataToSend);
-
-      const method = selectedPropiedad ? 'PUT' : 'POST';
-      const url = selectedPropiedad 
-        ? `/api/propiedades/${selectedPropiedad.id}`
-        : '/api/propiedades';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(dataToSend)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al guardar propiedad');
-      }
-
-      const data = await response.json();
-      console.log('Respuesta del servidor:', data);
+      const response = await axios.post('/api/propiedades', datosAEnviar);
       
-      // Actualizar el estado con los datos convertidos
-      if (selectedPropiedad) {
-        setPropiedades(propiedades.map(p => 
-          p.id === selectedPropiedad.id ? data : p
-        ));
-        enqueueSnackbar('Propiedad actualizada con éxito', { variant: 'success' });
-      } else {
-        setPropiedades([...propiedades, data]);
-        enqueueSnackbar('Propiedad creada con éxito', { variant: 'success' });
+      if (response.status === 201) {
+        enqueueSnackbar('Propiedad creada exitosamente', { 
+          variant: 'success' 
+        });
+        fetchPropiedades(); // Recargar la lista
       }
-
-      setIsFormOpen(false);
-      setSelectedPropiedad(null);
-      setFormData({
-        titulo: '',
-        descripcion: '',
-        precio: '',
-        direccion: '',
-        ciudad: '',
-        estado: '',
-        tipo: 'CASA',
-        numHabitaciones: '',
-        banos: '',
-        metrosCuadrados: '',
-        imagen: ''
-      });
     } catch (error) {
       console.error('Error:', error);
-      enqueueSnackbar(error.message || 'Error al guardar propiedad', { variant: 'error' });
+      enqueueSnackbar(error.response?.data?.error || 'Error al crear la propiedad', {
+        variant: 'error'
+      });
     }
   };
 
@@ -205,6 +190,21 @@ export function Propiedades() {
       console.error('Error al eliminar múltiples propiedades:', error);
       enqueueSnackbar('Error al eliminar propiedades', { variant: 'error' });
     }
+  };
+
+  const handleCreateMoneda = async (data) => {
+    const response = await axios.post('/api/monedas', data);
+    setMonedas([...monedas, response.data]);
+    return response.data;
+  };
+
+  const handleCreateCuenta = async (data) => {
+    const response = await axios.post('/api/cuentas', {
+      ...data,
+      usuarioId: user.id
+    });
+    setCuentas([...cuentas, response.data]);
+    return response.data;
   };
 
   const formFields = [
@@ -250,10 +250,13 @@ export function Propiedades() {
     {
       name: 'tipo',
       label: 'Tipo',
-      select: true,
+      type: 'select',
       required: true,
-      options: ['CASA', 'DEPARTAMENTO', 'TERRENO', 'LOCAL', 'OFICINA'],
-      onChange: (value) => setFormData({...formData, tipo: value})
+      value: formData.tipo || 'CASA',
+      options: ['CASA', 'DEPARTAMENTO', 'OFICINA', 'LOCAL', 'TERRENO'].map(t => ({
+        value: t,
+        label: t
+      }))
     },
     {
       name: 'numHabitaciones',
@@ -280,6 +283,64 @@ export function Propiedades() {
       name: 'imagen',
       label: 'Imagen',
       onChange: (value) => setFormData({...formData, imagen: value})
+    },
+    {
+      name: 'monedaId',
+      label: 'Moneda',
+      component: CreatableSelect,
+      required: true,
+      variant: 'buttons',
+      displaySymbol: true,
+      options: monedas.map(m => ({
+        value: m.id,
+        label: `${m.nombre} (${m.simbolo})`,
+        simbolo: m.simbolo
+      })),
+      onCreateNew: handleCreateMoneda,
+      createFields: [
+        { name: 'codigo', label: 'Código', required: true },
+        { name: 'nombre', label: 'Nombre', required: true },
+        { name: 'simbolo', label: 'Símbolo', required: true }
+      ],
+      createTitle: 'Nueva Moneda'
+    },
+    {
+      name: 'cuentaId',
+      label: 'Cuenta',
+      component: CreatableSelect,
+      required: true,
+      variant: 'select',
+      options: cuentas.map(c => ({
+        value: c.id,
+        label: `${c.nombre} - ${c.numero}`
+      })),
+      onCreateNew: handleCreateCuenta,
+      createFields: [
+        { name: 'nombre', label: 'Nombre', required: true },
+        { name: 'numero', label: 'Número', required: true },
+        { 
+          name: 'tipo', 
+          label: 'Tipo', 
+          type: 'select', 
+          required: true,
+          options: ['EFECTIVO', 'BANCO', 'MERCADO_PAGO', 'CRIPTO', 'OTRO'].map(t => ({
+            value: t,
+            label: t.replace('_', ' ')
+          }))
+        },
+        { 
+          name: 'monedaId', 
+          label: 'Moneda', 
+          isMonedaField: true,
+          required: true,
+          options: monedas.map(m => ({
+            value: m.id,
+            label: `${m.nombre} (${m.simbolo})`,
+            simbolo: m.simbolo
+          }))
+        }
+      ],
+      createTitle: 'Nueva Cuenta'
     }
   ];
 
@@ -309,26 +370,30 @@ export function Propiedades() {
 
   return (
     <Container maxWidth="lg">
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h5" component="h1">
-          Propiedades
-        </Typography>
-        {loading && <Typography color="textSecondary">Cargando propiedades...</Typography>}
-        {error && <Alert severity="error">{error}</Alert>}
-        {!loading && !error && propiedades.length === 0 && (
-          <Typography color="textSecondary">No hay propiedades para mostrar</Typography>
-        )}
-      </Box>
-
       <EntityToolbar
         onAdd={() => setIsFormOpen(true)}
-        onDelete={handleMultipleDelete}
-        onSearch={handleSearch}
-        onFilter={() => {/* Implementar filtros */}}
-        selectedItems={selectedItems}
-        setSelectedItems={setSelectedItems}
-        items={propiedades}
-        searchPlaceholder="Buscar propiedades..."
+        navigationItems={[
+          {
+            icon: <BedIcon sx={{ fontSize: 20 }} />,
+            label: 'Habitaciones',
+            to: '/habitaciones'
+          },
+          {
+            icon: <PeopleIcon sx={{ fontSize: 20 }} />,
+            label: 'Inquilinos',
+            to: '/inquilinos'
+          },
+          {
+            icon: <DescriptionIcon sx={{ fontSize: 20 }} />,
+            label: 'Contratos',
+            to: '/contratos'
+          },
+          {
+            icon: <InventoryIcon sx={{ fontSize: 20 }} />,
+            label: 'Inventario',
+            to: '/inventario'
+          }
+        ]}
       />
 
       <Grid container spacing={3}>
@@ -367,7 +432,9 @@ export function Propiedades() {
             numHabitaciones: '',
             banos: '',
             metrosCuadrados: '',
-            imagen: ''
+            imagen: '',
+            monedaId: '',
+            cuentaId: ''
           });
         }}
         onSubmit={handleFormSubmit}

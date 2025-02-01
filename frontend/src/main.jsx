@@ -8,6 +8,7 @@ import { AuthProvider } from './context/AuthContext'
 import { SidebarProvider } from './context/SidebarContext'
 import App from './App'
 import theme from './theme'
+import axios from 'axios'
 
 // Configuración de React Router v7
 const router = {
@@ -16,6 +17,10 @@ const router = {
     v7_relativeSplatPath: true
   }
 };
+
+// Configurar axios
+axios.defaults.baseURL = 'http://localhost:5000'
+axios.defaults.withCredentials = true
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
