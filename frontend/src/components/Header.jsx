@@ -7,7 +7,7 @@ import {
   Tooltip
 } from '@mui/material';
 import { 
-  HomeOutlined as HomeIcon,
+  PsychologyOutlined as BrainIcon,
   SettingsOutlined as SettingsIcon,
   SearchOutlined as SearchIcon,
   PersonOutlineOutlined as UserIcon
@@ -43,27 +43,30 @@ export default function Header() {
           color: 'text.secondary'
         }}
       >
-        <IconButton 
-          edge="start" 
-          onClick={() => navigate('/')}
-          sx={{ 
-            mr: 2,
-            color: 'inherit',
-            '&:hover': { color: 'text.primary' }
-          }}
-        >
-          <HomeIcon sx={{ fontSize: 20 }} />
-        </IconButton>
-
-        <Typography 
-          variant="subtitle2" 
-          sx={{ 
-            color: 'inherit',
-            fontSize: '0.875rem'
-          }}
-        >
-          Present / {getRouteTitle()}
-        </Typography>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center',
+          gap: 1
+        }}>
+          <IconButton 
+            onClick={() => navigate('/')}
+            sx={{ 
+              color: 'inherit',
+              '&:hover': { color: 'text.primary' }
+            }}
+          >
+            <BrainIcon sx={{ fontSize: 20 }} />
+          </IconButton>
+          <Typography 
+            variant="subtitle2" 
+            sx={{ 
+              color: 'inherit',
+              fontSize: '0.875rem'
+            }}
+          >
+            Present / {getRouteTitle()}
+          </Typography>
+        </Box>
 
         <Box sx={{ flexGrow: 1 }} />
 

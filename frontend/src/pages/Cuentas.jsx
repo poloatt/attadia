@@ -3,7 +3,7 @@ import { Container } from '@mui/material';
 import EntityToolbar from '../components/EntityToolbar';
 import { 
   CurrencyExchangeOutlined as CurrencyIcon,
-  MonetizationOnOutlined as MoneyIcon
+  AccountBalanceWalletOutlined as WalletIcon
 } from '@mui/icons-material';
 
 export function Cuentas() {
@@ -18,7 +18,7 @@ export function Cuentas() {
             to: '/monedas'
           },
           {
-            icon: <MoneyIcon sx={{ fontSize: 20 }} />,
+            icon: <WalletIcon sx={{ fontSize: 20 }} />,
             label: 'Transacciones',
             to: '/transacciones'
           }

@@ -16,6 +16,7 @@ import { Cuentas } from './pages/Cuentas';
 import { Inquilinos } from './pages/Inquilinos';
 import { Contratos } from './pages/Contratos';
 import { Inventario } from './pages/Inventario';
+import Dieta from './pages/Dieta';
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
           <Route path="/inquilinos" element={<Inquilinos />} />
           <Route path="/contratos" element={<Contratos />} />
           <Route path="/inventario" element={<Inventario />} />
+          <Route path="/dieta" element={<Dieta />} />
         </Route>
       </Route>
 

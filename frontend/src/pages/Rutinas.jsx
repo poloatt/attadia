@@ -2,7 +2,9 @@ import React from 'react';
 import { Container } from '@mui/material';
 import EntityToolbar from '../components/EntityToolbar';
 import { 
-  ScienceOutlined as LabIcon
+  ScienceOutlined as LabIcon,
+  RestaurantOutlined as DietaIcon,
+  TaskAltOutlined as RutinasIcon
 } from '@mui/icons-material';
 import { useState, useEffect } from 'react';
 import { 
@@ -52,6 +54,11 @@ export function Rutinas() {
             icon: <LabIcon sx={{ fontSize: 20 }} />,
             label: 'Lab',
             to: '/lab'
+          },
+          {
+            icon: <DietaIcon sx={{ fontSize: 20 }} />,
+            label: 'Dieta',
+            to: '/dieta'
           }
         ]}
       />

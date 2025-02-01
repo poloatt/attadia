@@ -3,12 +3,9 @@ import { Container } from '@mui/material';
 import EntityToolbar from '../components/EntityToolbar';
 import { 
   HomeOutlined as HomeIcon,
-  AccountBalanceWalletOutlined as AccountBalanceWalletIcon,
-  AttachMoneyOutlined as AttachMoneyIcon,
-  Inventory2Outlined as InventoryIcon,
-  ApartmentOutlined as BuildingIcon,
-  CreditCardOutlined as CreditCardIcon,
-  PaidOutlined as MoneyIcon
+  AccountBalanceOutlined as BankIcon,
+  AccountBalanceWalletOutlined as WalletIcon,
+  CurrencyExchangeOutlined as MoneyIcon
 } from '@mui/icons-material';
 import { useState, useEffect } from 'react';
 import { 
@@ -47,9 +44,14 @@ export function Transacciones() {
         onAdd={() => {}}
         navigationItems={[
           {
-            icon: <CreditCardIcon sx={{ fontSize: 20 }} />,
+            icon: <BankIcon sx={{ fontSize: 18 }} />,
             label: 'Cuentas',
             to: '/cuentas'
+          },
+          {
+            icon: <MoneyIcon sx={{ fontSize: 18 }} />,
+            label: 'Monedas',
+            to: '/monedas'
           }
         ]}
       />

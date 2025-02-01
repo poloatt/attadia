@@ -3,9 +3,10 @@ import { Container, Grid } from '@mui/material';
 import EntityToolbar from '../components/EntityToolbar';
 import { 
   ApartmentOutlined as BuildingIcon,
-  MonetizationOnOutlined as MoneyIcon,
+  AccountBalanceWalletOutlined as WalletIcon,
   CalendarTodayOutlined as DailyIcon,
-  AssignmentOutlined as ProjectIcon
+  AssignmentOutlined as ProjectIcon,
+  TaskAltOutlined as RutinasIcon
 } from '@mui/icons-material';
 import EntityDetails from '../components/EntityDetails';
 
@@ -18,7 +19,7 @@ export function Dashboard() {
         showDivider={false}
         navigationItems={[
           {
-            icon: <MoneyIcon sx={{ fontSize: 20 }} />,
+            icon: <WalletIcon sx={{ fontSize: 20 }} />,
             label: 'Transacciones',
             to: '/transacciones'
           },
@@ -28,7 +29,7 @@ export function Dashboard() {
             to: '/propiedades'
           },
           {
-            icon: <DailyIcon sx={{ fontSize: 20 }} />,
+            icon: <RutinasIcon sx={{ fontSize: 20 }} />,
             label: 'Rutinas',
             to: '/rutinas'
           },
@@ -40,19 +41,19 @@ export function Dashboard() {
         ]}
       />
 
-      {/* Assets Section */}
       <Grid container spacing={3}>
+        {/* Assets Section */}
         <Grid item xs={12}>
-          <EntityDetails title="Assets">
+          <EntityDetails showTitle title="Assets">
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
-                <EntityDetails title="Propiedades">
-                  {/* Resumen de propiedades */}
+                <EntityDetails>
+                  <div>Resumen de propiedades</div>
                 </EntityDetails>
               </Grid>
               <Grid item xs={12} md={6}>
-                <EntityDetails title="Transacciones">
-                  {/* Resumen de transacciones */}
+                <EntityDetails>
+                  <div>Resumen de transacciones</div>
                 </EntityDetails>
               </Grid>
             </Grid>
@@ -61,16 +62,16 @@ export function Dashboard() {
 
         {/* Daylist Section */}
         <Grid item xs={12}>
-          <EntityDetails title="Daylist">
+          <EntityDetails showTitle title="Daylist">
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
-                <EntityDetails title="Tareas Pendientes">
-                  {/* Lista de tareas del día */}
+                <EntityDetails>
+                  <div>Lista de tareas del día</div>
                 </EntityDetails>
               </Grid>
               <Grid item xs={12} md={6}>
-                <EntityDetails title="Rutinas">
-                  {/* Rutinas programadas */}
+                <EntityDetails>
+                  <div>Rutinas programadas</div>
                 </EntityDetails>
               </Grid>
             </Grid>
@@ -79,16 +80,16 @@ export function Dashboard() {
 
         {/* Projects Section */}
         <Grid item xs={12}>
-          <EntityDetails title="Projects">
+          <EntityDetails showTitle title="Projects">
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
-                <EntityDetails title="Proyectos Activos">
-                  {/* Lista de proyectos activos */}
+                <EntityDetails>
+                  <div>Lista de proyectos activos</div>
                 </EntityDetails>
               </Grid>
               <Grid item xs={12} md={6}>
-                <EntityDetails title="Lab">
-                  {/* Experimentos en curso */}
+                <EntityDetails>
+                  <div>Experimentos en curso</div>
                 </EntityDetails>
               </Grid>
             </Grid>

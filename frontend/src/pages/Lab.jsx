@@ -1,4 +1,10 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Container } from '@mui/material';
+import EntityToolbar from '../components/EntityToolbar';
+import { 
+  RestaurantOutlined as DietaIcon,
+  TaskAltOutlined as RutinasIcon
+} from '@mui/icons-material';
 import { 
   Button, Table, TableBody, TableCell, TableContainer, 
   TableHead, TableRow, Paper 
@@ -25,38 +31,55 @@ export default function Lab() {
   };
 
   return (
-    <EntityDetails 
-      title="Laboratorio"
-      action={
-        <Button variant="contained" startIcon={<AddIcon />} size="small">
-          Nuevo Resultado
-        </Button>
-      }
-    >
-      <TableContainer component={Paper} elevation={0}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Fecha</TableCell>
-              <TableCell>Tipo</TableCell>
-              <TableCell align="right">Valor</TableCell>
-              <TableCell>Unidad</TableCell>
-              <TableCell>Notas</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {resultados.map((result) => (
-              <TableRow key={result.id}>
-                <TableCell>{new Date(result.fecha).toLocaleDateString()}</TableCell>
-                <TableCell>{result.tipo}</TableCell>
-                <TableCell align="right">{result.valor.toFixed(2)}</TableCell>
-                <TableCell>{result.unidad}</TableCell>
-                <TableCell>{result.notas}</TableCell>
+    <Container maxWidth="lg">
+      <EntityToolbar
+        onAdd={() => {}}
+        navigationItems={[
+          {
+            icon: <DietaIcon sx={{ fontSize: 20 }} />,
+            label: 'Dieta',
+            to: '/dieta'
+          },
+          {
+            icon: <RutinasIcon sx={{ fontSize: 20 }} />,
+            label: 'Rutinas',
+            to: '/rutinas'
+          }
+        ]}
+      />
+      <EntityDetails 
+        title="Laboratorio"
+        action={
+          <Button variant="contained" startIcon={<AddIcon />} size="small">
+            Nuevo Resultado
+          </Button>
+        }
+      >
+        <TableContainer component={Paper} elevation={0}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Fecha</TableCell>
+                <TableCell>Tipo</TableCell>
+                <TableCell align="right">Valor</TableCell>
+                <TableCell>Unidad</TableCell>
+                <TableCell>Notas</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </EntityDetails>
+            </TableHead>
+            <TableBody>
+              {resultados.map((result) => (
+                <TableRow key={result.id}>
+                  <TableCell>{new Date(result.fecha).toLocaleDateString()}</TableCell>
+                  <TableCell>{result.tipo}</TableCell>
+                  <TableCell align="right">{result.valor.toFixed(2)}</TableCell>
+                  <TableCell>{result.unidad}</TableCell>
+                  <TableCell>{result.notas}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </EntityDetails>
+    </Container>
   );
 }

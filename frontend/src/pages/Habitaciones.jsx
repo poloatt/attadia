@@ -2,7 +2,7 @@ import React from 'react';
 import { Container } from '@mui/material';
 import EntityToolbar from '../components/EntityToolbar';
 import { 
-  HomeOutlined as HomeIcon,
+  ApartmentOutlined as BuildingIcon,
   PeopleOutlined as PeopleIcon,
   DescriptionOutlined as DescriptionIcon,
   AttachMoneyOutlined as AttachMoneyIcon,
@@ -18,7 +18,7 @@ export function Habitaciones() {
         searchPlaceholder="Buscar habitaciones..."
         navigationItems={[
           {
-            icon: <HomeIcon sx={{ fontSize: 20 }} />,
+            icon: <BuildingIcon sx={{ fontSize: 20 }} />,
             label: 'Propiedades',
             to: '/propiedades'
           },

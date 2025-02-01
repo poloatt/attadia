@@ -2,7 +2,7 @@ import React from 'react';
 import { Container } from '@mui/material';
 import EntityToolbar from '../components/EntityToolbar';
 import { 
-  HomeOutlined as HomeIcon,
+  ApartmentOutlined as BuildingIcon,
   BedOutlined as BedIcon,
   PeopleOutlined as PeopleIcon,
   DescriptionOutlined as DescriptionIcon
@@ -15,7 +15,7 @@ export function Inventario() {
         onAdd={() => {}}
         navigationItems={[
           {
-            icon: <HomeIcon sx={{ fontSize: 20 }} />,
+            icon: <BuildingIcon sx={{ fontSize: 20 }} />,
             label: 'Propiedades',
             to: '/propiedades'
           },
