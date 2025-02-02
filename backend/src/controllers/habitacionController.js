@@ -7,6 +7,9 @@ export const habitacionController = {
       const habitaciones = await prisma.habitacion.findMany({
         include: {
           propiedad: true
+        },
+        orderBy: {
+          nombre: 'asc'
         }
       });
       res.json(habitaciones);
@@ -18,21 +21,40 @@ export const habitacionController = {
 
   create: async (req, res) => {
     try {
-      const { nombre, descripcion, propiedadId } = req.body;
+      const { 
+        numero, 
+        tipo, 
+        estado, 
+        descripcion, 
+        propiedadId,
+        metrosCuadrados,
+        precio 
+      } = req.body;
+
       const habitacion = await prisma.habitacion.create({
         data: {
-          nombre,
+          numero,
+          tipo,
+          estado,
           descripcion,
-          propiedadId
+          metrosCuadrados: parseFloat(metrosCuadrados),
+          precio: parseFloat(precio),
+          propiedad: {
+            connect: { id: parseInt(propiedadId) }
+          }
         },
         include: {
           propiedad: true
         }
       });
+
       res.status(201).json(habitacion);
     } catch (error) {
       console.error('Error al crear habitación:', error);
-      res.status(500).json({ error: 'Error al crear habitación' });
+      res.status(500).json({ 
+        error: 'Error al crear habitación',
+        details: error.message 
+      });
     }
   },
 

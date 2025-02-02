@@ -16,10 +16,26 @@ app.use(cookieParser());
 
 // 2. CORS después
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://172.18.0.4:5173',
+      'http://localhost:3000',
+      'http://frontend:5173',
+      process.env.FRONTEND_URL
+    ].filter(Boolean);
+    
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log('Origin bloqueado por CORS:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Accept']
+  allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
+  exposedHeaders: ['Set-Cookie', 'Authorization']
 }));
 
 // 3. JSON parser
@@ -43,6 +59,11 @@ app.use(passport.initialize());
 app.use('/api/health', healthRouter);
 app.use('/api/propiedades', propiedadRoutes);
 app.use('/api/auth', authRoutes);
+
+// Agregar middleware de verificación de conexión
+app.use('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 // Error handler
 app.use((err, req, res, next) => {

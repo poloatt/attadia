@@ -5,7 +5,7 @@ import {
   ScienceOutlined as LabIcon,
   TaskAltOutlined as RutinasIcon
 } from '@mui/icons-material';
-import EntityDetails from '../components/EntityDetails';
+import EntityDetails from '../components/EntityViews/EntityDetails';
 
 export function Dieta() {
   return (

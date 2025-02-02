@@ -5,6 +5,7 @@ import { authMiddleware } from '../middleware/auth.js';
 const router = express.Router();
 
 router.use(authMiddleware);
+router.get('/activos', contratoController.getActivos);
 router.get('/', contratoController.getAll);
 router.post('/', contratoController.create);
 router.put('/:id', contratoController.update);

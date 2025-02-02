@@ -1,14 +1,12 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { ThemeProvider } from '@mui/material/styles'
-import CssBaseline from '@mui/material/CssBaseline'
 import { SnackbarProvider } from 'notistack'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { SidebarProvider } from './context/SidebarContext'
 import App from './App'
-import theme from './theme'
 import axios from 'axios'
+import './index.css'
 
 // Configuración de React Router v7
 const router = {
@@ -25,16 +23,13 @@ axios.defaults.withCredentials = true
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter {...router}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
+      <AuthProvider>
         <SnackbarProvider>
-          <AuthProvider>
-            <SidebarProvider>
-              <App />
-            </SidebarProvider>
-          </AuthProvider>
+          <SidebarProvider>
+            <App />
+          </SidebarProvider>
         </SnackbarProvider>
-      </ThemeProvider>
+      </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>,
 ) 

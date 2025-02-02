@@ -8,6 +8,7 @@ const router = express.Router();
 router.use(authMiddleware);
 
 // Rutas para propiedades
+router.get('/stats', propiedadController.getStats);
 router.get('/', propiedadController.getAll);
 router.post('/', propiedadController.create);
 router.get('/:id', propiedadController.getOne);

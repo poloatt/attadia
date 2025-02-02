@@ -8,15 +8,14 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String?
-  name      String?
-  googleId  String?  @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  password      String?
+  name          String?
+  googleId      String?   @unique
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  // Relaciones
   transacciones  Transaccion[]
   inventarios    Inventario[]
   rutinas        Rutina[]
@@ -24,6 +23,7 @@ model User {
   proyectos      Proyecto[]
   propiedades    Propiedad[]
   cuentas        Cuenta[]
+  inquilinos     Inquilino[]
 
   @@map("users")
 }
@@ -220,6 +220,9 @@ model Inquilino {
   dni           String    @unique
   email         String?
   telefono      String?
+  estado        EstadoInquilino @default(ACTIVO)
+  usuarioId     Int
+  usuario       User      @relation(fields: [usuarioId], references: [id])
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -297,4 +300,10 @@ enum Estado {
   COMPLETADO
   EN_PROCESO
   CANCELADO
+}
+
+enum EstadoInquilino {
+  ACTIVO
+  INACTIVO
+  PENDIENTE
 } 

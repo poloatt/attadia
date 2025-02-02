@@ -1,19 +1,39 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { CircularProgress } from '@mui/material';
+import { useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 
-export const PrivateRoute = () => {
-  const { user, isLoading } = useAuth();
+export function PrivateRoute() {
+  const { user, loading, error } = useAuth();
+  const location = useLocation();
 
-  // Mientras verifica la autenticación, muestra un loader
-  if (isLoading) {
-    return <div>Cargando...</div>;
+  useEffect(() => {
+    if (error && error.response?.status !== 401) {
+      toast.error('Error de conexión');
+    }
+  }, [error]);
+
+  if (loading) {
+    return <LoadingScreen />;
   }
 
-  // Si no hay usuario, redirige al login
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
+  return user ? (
+    <Outlet />
+  ) : (
+    <Navigate to="/login" state={{ from: location }} replace />
+  );
+}
 
-  // Si hay usuario, muestra el contenido protegido
-  return <Outlet />;
+const LoadingScreen = () => {
+  return (
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      height: '100vh' 
+    }}>
+      <CircularProgress />
+    </div>
+  );
 }; 

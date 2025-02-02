@@ -8,16 +8,16 @@ export const propiedadController = {
       console.log('GET /api/propiedades - Request recibido');
       console.log('Usuario:', req.user?.id);
       
+      // Verificar si hay usuario
+      if (!req.user?.id) {
+        return res.status(401).json({ error: 'Usuario no autenticado' });
+      }
+
       const propiedades = await prisma.propiedad.findMany({
         where: {
           usuarioId: req.user.id
         },
         include: {
-          contratos: true,
-          inventarios: true,
-          habitaciones: true,
-          transacciones: true,
-          inquilinos: true,
           moneda: true,
           cuenta: true
         }
@@ -34,25 +34,51 @@ export const propiedadController = {
   // Crear una nueva propiedad
   create: async (req, res) => {
     try {
-      const { moneda: monedaId, cuenta: cuentaId, ...datos } = req.body;
+      const { 
+        titulo, 
+        descripcion, 
+        precio, 
+        direccion, 
+        ciudad, 
+        estado, 
+        tipo,
+        numHabitaciones,
+        banos,
+        metrosCuadrados,
+        imagen,
+        monedaId, // Estos IDs los recibimos del frontend
+        cuentaId
+      } = req.body;
+
+      // Log para debugging
+      console.log('Datos recibidos:', req.body);
+
+      // Validaciones
+      if (!monedaId) return res.status(400).json({ error: 'La moneda es requerida' });
+      if (!cuentaId) return res.status(400).json({ error: 'La cuenta es requerida' });
 
       const propiedad = await prisma.propiedad.create({
         data: {
-          ...datos,
+          titulo,
+          descripcion,
+          precio: parseFloat(precio),
+          direccion,
+          ciudad,
+          estado,
+          tipo,
+          numHabitaciones: parseInt(numHabitaciones),
+          banos: parseInt(banos),
+          metrosCuadrados: parseFloat(metrosCuadrados),
+          imagen,
+          // Cambiamos la forma de conectar las relaciones
           moneda: {
-            connect: { 
-              id: parseInt(monedaId)
-            }
+            connect: { id: parseInt(monedaId) }
           },
           cuenta: {
-            connect: { 
-              id: parseInt(cuentaId)
-            }
+            connect: { id: parseInt(cuentaId) }
           },
           usuario: {
-            connect: { 
-              id: req.user.id 
-            }
+            connect: { id: req.user.id }
           }
         },
         include: {
@@ -60,11 +86,14 @@ export const propiedadController = {
           cuenta: true
         }
       });
-      
+
       res.status(201).json(propiedad);
     } catch (error) {
       console.error('Error al crear propiedad:', error);
-      res.status(500).json({ error: 'Error al crear la propiedad' });
+      res.status(500).json({ 
+        error: 'Error al crear propiedad',
+        details: error.message 
+      });
     }
   },
 
@@ -148,6 +177,33 @@ export const propiedadController = {
     } catch (error) {
       console.error('Error al eliminar propiedad:', error);
       res.status(500).json({ error: 'Error al eliminar la propiedad' });
+    }
+  },
+
+  getStats: async (req, res) => {
+    try {
+      // Asegurarnos de filtrar por usuario
+      const total = await prisma.propiedad.count({
+        where: {
+          usuarioId: req.user.id
+        }
+      });
+
+      const ocupadas = await prisma.propiedad.count({
+        where: {
+          usuarioId: req.user.id,
+          estado: 'OCUPADA'
+        }
+      });
+
+      res.json({
+        total,
+        ocupadas,
+        disponibles: total - ocupadas
+      });
+    } catch (error) {
+      console.error('Error en getStats propiedades:', error);
+      res.status(500).json({ message: error.message });
     }
   }
 }; 

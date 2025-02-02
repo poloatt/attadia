@@ -1,3 +1,12 @@
+# Present - Sistema de Gestión Personal
+
+## Descripción
+Sistema integral para la gestión de finanzas personales, propiedades, rutinas y proyectos.
+
+## Estructura del Proyecto
+
+### Backend
+
 # Sistema de Gestión Personal
 
 Este proyecto es una aplicación web full-stack para la gestión personal de finanzas, propiedades, inventario, rutinas diarias y proyectos.
@@ -62,12 +71,43 @@ Present es una aplicación web moderna para gestión personal y profesional.
 - React Router v6
 - Vite
 - Context API para gestión de estado
+- Notistack para notificaciones
+- Axios para peticiones HTTP
 
 ### Backend
-- Node.js
-- Express
-- MongoDB
-- Docker
+- Node.js + Express
+- PostgreSQL (no MongoDB como estaba listado anteriormente)
+- Prisma ORM
+- JWT para autenticación
+- Docker y Docker Compose
+
+## Desarrollo
+
+### Herramientas Requeridas
+
+1. React Developer Tools
+   - [Chrome Extension](https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi)
+   - [Firefox Add-on](https://addons.mozilla.org/en-US/firefox/addon/react-devtools/)
+
+2. Node.js >= 18
+3. npm >= 8
+
+### Configuración del Entorno de Desarrollo
+
+1. Instalar React DevTools:
+   ```bash
+   # Para Chrome/Edge
+   - Visitar Chrome Web Store y buscar "React Developer Tools"
+   - Hacer clic en "Añadir a Chrome"
+
+   # Para Firefox
+   - Visitar Firefox Add-ons y buscar "React Developer Tools"
+   - Hacer clic en "Añadir a Firefox"
+   ```
+
+2. Verificar la instalación:
+   - Abrir las herramientas de desarrollo del navegador (F12)
+   - Debería aparecer una nueva pestaña "Components" o "React"
 
 ```
 present/
@@ -143,17 +183,19 @@ present/
 
 ### 1. Transacciones
 - Gestión de transacciones económicas
-- Soporte para múltiples monedas (EUR, USD, ARS)
+- Soporte para múltiples monedas
 - Sistema de categorización
-- Control de estados de pago
-- Gestión de recurrencias
+- Integración con cuentas y monedas
+- Validación de campos y manejo de errores
+- Creación dinámica de monedas y cuentas
 
 ### 2. Propiedades
-- Registro de propiedades
-- Gestión de ubicaciones
-- Vinculación con cuentas
-- Control de inventario por propiedad
-- Gestión de habitaciones
+- Registro y gestión de propiedades
+- Integración con sistema de monedas y cuentas
+- Gestión de ubicaciones y características
+- Formularios con validación avanzada
+- Soporte para campos tipo array y select
+- Creación dinámica de entidades relacionadas
 
 ### 3. Inventario
 - Control de items
@@ -197,7 +239,7 @@ cd present
 ```bash
 # En backend/.env
 DATABASE_URL="postgresql://postgres:postgres@db:5432/gestion_personal"
-JWT_SECRET="desarrollo_secreto_2024"
+JWT_SECRET="tu_secreto_jwt"
 NODE_ENV=development
 ```
 
@@ -260,8 +302,9 @@ npm start
 ### Backend (.env)
 ```
 DATABASE_URL="postgresql://postgres:postgres@db:5432/gestion_personal"
-JWT_SECRET="desarrollo_secreto_2024"
+JWT_SECRET="tu_secreto_jwt"
 PORT=5000
+NODE_ENV=development
 ```
 
 ### Frontend (.env)
@@ -277,9 +320,12 @@ Este proyecto está bajo la Licencia MIT
 
 ## Estado de Conexiones
 
-La aplicación monitorea constantemente:
-- Conectividad con el backend (API)
-- Estado de la base de datos
+La aplicación incluye:
+- Monitoreo en tiempo real de conexión con backend
+- Indicadores visuales de estado de conexión
+- Sistema de notificaciones con Notistack
+- Manejo de errores centralizado
+- Health check endpoint en backend
 
 ## Contribución
 

@@ -1,4 +1,4 @@
-import { Box, Drawer, List, ListItem, ListItemIcon, ListItemText, ListItemButton } from '@mui/material';
+import { Box, Drawer, List, ListItem, ListItemIcon, ListItemText, ListItemButton, useTheme, useMediaQuery } from '@mui/material';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import { useAuth } from '../context/AuthContext';
@@ -11,9 +11,11 @@ const menuItems = [
 ];
 
 export function Layout() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
   const location = useLocation();
-  const { isOpen } = useSidebar();
+  const { isOpen, toggleSidebar } = useSidebar();
   const { user } = useAuth();
 
   if (!user) {
@@ -22,14 +24,24 @@ export function Layout() {
   }
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ 
+      display: 'flex', 
+      minHeight: '100vh',
+      maxWidth: '100vw',
+      overflow: 'hidden'
+    }}>
       <Header />
       <Drawer
-        variant="permanent"
+        variant={isMobile ? "temporary" : "permanent"}
         anchor="right"
+        open={isOpen}
+        onClose={() => isMobile && toggleSidebar()}
         sx={{
           '& .MuiDrawer-paper': {
-            width: isOpen ? 240 : 0,
+            width: {
+              xs: '100%',
+              sm: isOpen ? 240 : 0
+            },
             transition: 'width 0.3s ease',
             overflowX: 'hidden',
             backgroundColor: 'background.paper',
@@ -44,7 +56,7 @@ export function Layout() {
           },
         }}
       >
-        <Box sx={{ height: '48px' }} />
+        <Box sx={{ height: '40px' }} /> {/* Ajustado a 40px para coincidir con el header */}
         <List sx={{ p: 1 }}>
           {menuItems.map((item) => (
             <ListItem key={item.text} disablePadding>
@@ -86,22 +98,35 @@ export function Layout() {
         component="main"
         sx={{
           flexGrow: 1,
-          pt: '48px',
-          pr: isOpen ? '240px' : 0,
+          pt: '40px',
+          pb: '32px',
+          pr: {
+            xs: 0,
+            sm: isOpen ? '240px' : 0
+          },
           transition: 'padding-right 0.3s ease',
-          height: '100vh',
-          overflow: 'hidden',
+          minHeight: '100vh',
+          maxWidth: '100%',
           display: 'flex',
-          flexDirection: 'column'
+          flexDirection: 'column',
+          bgcolor: 'background.default',
+          overflow: 'auto'
         }}
       >
         <Box sx={{ 
-          p: 2,
-          height: 'calc(100vh - 80px)',
-          overflow: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          paddingBottom: '40px'
+          width: '100%',
+          maxWidth: {
+            xs: '100%',
+            sm: '100%',
+            md: '1200px'
+          },
+          mx: 'auto',
+          px: {
+            xs: 1,
+            sm: 2,
+            md: 3
+          },
+          flex: 1
         }}>
           <Outlet />
         </Box>

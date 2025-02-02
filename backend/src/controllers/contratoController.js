@@ -88,5 +88,31 @@ export const contratoController = {
       console.error('Error al eliminar contrato:', error);
       res.status(500).json({ error: 'Error al eliminar contrato' });
     }
+  },
+
+  getActivos: async (req, res) => {
+    try {
+      const contratos = await prisma.contrato.findMany({
+        where: {
+          AND: [
+            { estado: 'ACTIVO' },
+            {
+              propiedad: {
+                usuarioId: req.user.id
+              }
+            }
+          ]
+        },
+        include: {
+          inquilino: true,
+          propiedad: true,
+          moneda: true
+        }
+      });
+      res.json(contratos);
+    } catch (error) {
+      console.error('Error al obtener contratos activos:', error);
+      res.status(500).json({ error: 'Error al obtener contratos activos' });
+    }
   }
 }; 

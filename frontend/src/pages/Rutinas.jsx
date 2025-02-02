@@ -19,7 +19,7 @@ import {
   Chip
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import EntityDetails from '../components/EntityDetails';
+import EntityDetails from '../components/EntityViews/EntityDetails';
 
 export function Rutinas() {
   const [rutinas, setRutinas] = useState([]);

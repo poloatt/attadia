@@ -1,3 +1,7 @@
-export const getHealth = (req, res) => {
-  res.json({ status: 'ok', message: 'API funcionando correctamente' });
+export const getHealth = async () => {
+  // Retornar directamente el objeto de estado
+  return {
+    status: 'ok',
+    timestamp: new Date().toISOString()
+  };
 }; 

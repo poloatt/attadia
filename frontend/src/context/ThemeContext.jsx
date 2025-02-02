@@ -12,6 +12,7 @@ const theme = createTheme({
     background: {
       default: '#1a1b1e',
       paper: '#25262b',
+      toolbar: 'rgba(26, 27, 30, 0.8)'
     },
     text: {
       primary: '#e6e6e6',
@@ -63,8 +64,14 @@ const theme = createTheme({
     MuiToolbar: {
       styleOverrides: {
         root: {
-          minHeight: '48px !important',
-          padding: '0 16px !important',
+          minHeight: '40px !important',
+          padding: '0 !important',
+          '& .MuiIconButton-root': {
+            color: 'text.secondary',
+            '&:hover': {
+              color: 'text.primary'
+            }
+          }
         },
       },
     },
@@ -106,10 +113,18 @@ const theme = createTheme({
     MuiIconButton: {
       styleOverrides: {
         root: {
-          padding: 8,
+          padding: 6,
+          color: 'text.secondary',
+          '&:hover': {
+            color: 'text.primary',
+            backgroundColor: 'rgba(255, 255, 255, 0.05)'
+          }
         },
         sizeSmall: {
           padding: 4,
+          '& .MuiSvgIcon-root': {
+            fontSize: '1.125rem'
+          }
         },
       },
     },
@@ -134,6 +149,23 @@ const theme = createTheme({
         },
       },
     },
+    MuiContainer: {
+      styleOverrides: {
+        root: {
+          '@media (min-width:600px)': {
+            paddingLeft: '16px',
+            paddingRight: '16px',
+          }
+        }
+      }
+    },
+    MuiDivider: {
+      styleOverrides: {
+        root: {
+          borderColor: 'rgba(140, 140, 140, 0.15)'
+        }
+      }
+    }
   },
 });
 

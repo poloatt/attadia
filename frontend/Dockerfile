@@ -7,7 +7,7 @@ COPY package*.json ./
 
 # Instalar dependencias
 RUN npm install
-RUN npm install axios
+RUN npm install axios react-hot-toast
 
 # Copiar el resto de la aplicación
 COPY . .

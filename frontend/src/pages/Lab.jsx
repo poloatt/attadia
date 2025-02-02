@@ -10,7 +10,7 @@ import {
   TableHead, TableRow, Paper 
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import EntityDetails from '../components/EntityDetails';
+import EntityDetails from '../components/EntityViews/EntityDetails';
 import axios from 'axios';
 
 export default function Lab() {

@@ -1,16 +1,86 @@
-import React from 'react';
-import { Container } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { 
+  Container, 
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Chip
+} from '@mui/material';
 import EntityToolbar from '../components/EntityToolbar';
+import EntityDetails from '../components/EntityViews/EntityDetails';
+import EntityForm from '../components/EntityViews/EntityForm';
+import AddIcon from '@mui/icons-material/Add';
 import { 
   AccountBalanceOutlined as BankIcon,
   AccountBalanceWalletOutlined as WalletIcon
 } from '@mui/icons-material';
+import axios from 'axios';
+import { useSnackbar } from 'notistack';
+import EntityTable from '../components/EntityViews/EntityTable';
+import EntityCards from '../components/EntityViews/EntityCards';
 
 export function Monedas() {
+  const [monedas, setMonedas] = useState([]);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const { enqueueSnackbar } = useSnackbar();
+
+  useEffect(() => {
+    fetchMonedas();
+  }, []);
+
+  const fetchMonedas = async () => {
+    try {
+      const response = await axios.get('/api/monedas');
+      setMonedas(response.data);
+    } catch (error) {
+      console.error('Error al cargar monedas:', error);
+      enqueueSnackbar('Error al cargar monedas', { variant: 'error' });
+    }
+  };
+
+  const handleFormSubmit = async (formData) => {
+    try {
+      const response = await axios.post('/api/monedas', formData);
+      setMonedas(prev => [...prev, response.data]);
+      setIsFormOpen(false);
+      enqueueSnackbar('Moneda creada exitosamente', { variant: 'success' });
+      fetchMonedas(); // Recargar la lista
+    } catch (error) {
+      console.error('Error al crear moneda:', error);
+      enqueueSnackbar('Error al crear la moneda', { variant: 'error' });
+    }
+  };
+
+  const formFields = [
+    {
+      name: 'codigo',
+      label: 'Código',
+      type: 'text',
+      required: true
+    },
+    {
+      name: 'nombre',
+      label: 'Nombre',
+      type: 'text',
+      required: true
+    },
+    {
+      name: 'simbolo',
+      label: 'Símbolo',
+      type: 'text',
+      required: true
+    }
+  ];
+
   return (
     <Container maxWidth="lg">
       <EntityToolbar
-        onAdd={() => {}}
+        onAdd={() => setIsFormOpen(true)}
         entityName="moneda"
         navigationItems={[
           {
@@ -25,7 +95,58 @@ export function Monedas() {
           }
         ]}
       />
-      {/* Implementar contenido */}
+      
+      <EntityDetails 
+        title="Monedas"
+        action={
+          <Button 
+            variant="contained" 
+            startIcon={<AddIcon />} 
+            size="small"
+            onClick={() => setIsFormOpen(true)}
+          >
+            Nueva Moneda
+          </Button>
+        }
+      >
+        <TableContainer component={Paper} elevation={0}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Código</TableCell>
+                <TableCell>Nombre</TableCell>
+                <TableCell>Símbolo</TableCell>
+                <TableCell>Estado</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {monedas.map((moneda) => (
+                <TableRow key={moneda.id}>
+                  <TableCell>{moneda.codigo}</TableCell>
+                  <TableCell>{moneda.nombre}</TableCell>
+                  <TableCell>{moneda.simbolo}</TableCell>
+                  <TableCell>
+                    <Chip 
+                      label={moneda.activa ? 'Activa' : 'Inactiva'}
+                      size="small"
+                      color={moneda.activa ? 'success' : 'default'}
+                      variant="outlined"
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </EntityDetails>
+
+      <EntityForm
+        open={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onSubmit={handleFormSubmit}
+        title="Nueva Moneda"
+        fields={formFields}
+      />
     </Container>
   );
 }

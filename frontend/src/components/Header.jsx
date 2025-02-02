@@ -33,14 +33,19 @@ export default function Header() {
         backgroundColor: 'background.default',
         borderBottom: '1px solid',
         borderColor: 'divider',
-        height: 48
+        height: 40
       }}
     >
       <Toolbar 
         variant="dense"
         sx={{ 
-          minHeight: 48,
-          color: 'text.secondary'
+          minHeight: 40,
+          height: 40,
+          px: {
+            xs: 1,
+            sm: 2,
+            md: 3
+          }
         }}
       >
         <Box sx={{ 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container } from '@mui/material';
 import EntityToolbar from '../components/EntityToolbar';
-import EntityDetails from '../components/EntityDetails';
+import EntityDetails from '../components/EntityViews/EntityDetails';
 import axios from 'axios';
 
 export function Proyectos() {

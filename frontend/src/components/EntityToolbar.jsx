@@ -5,7 +5,9 @@ import {
   Tooltip,
   Divider,
   Avatar,
-  Container
+  Container,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import { 
   AddOutlined,
@@ -22,10 +24,12 @@ import {
   PeopleOutlined as PeopleIcon,
   DescriptionOutlined as ContratosIcon,
   AccountBalanceOutlined as CuentasIcon,
-  TaskAltOutlined
+  TaskAltOutlined,
+  Visibility as ShowValuesIcon,
+  VisibilityOff as HideValuesIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
-import EntityForm from './EntityForm';
+import EntityForm from './EntityViews/EntityForm';
 import axios from 'axios';
 
 const EntityToolbar = ({ 
@@ -34,11 +38,15 @@ const EntityToolbar = ({
   showBackButton = true,
   showDivider = true,
   navigationItems = [],
-  entityName = ''
+  entityName = '',
+  showValues,
+  onToggleValues,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [openForm, setOpenForm] = useState(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Lista de rutas que deben volver al inicio
   const homeReturnRoutes = [
@@ -158,34 +166,48 @@ const EntityToolbar = ({
   const entityConfig = getEntityConfig();
 
   return (
-    <Box sx={{ 
-      width: '100vw',
-      position: 'relative',
-      left: '50%',
-      right: '50%',
-      marginLeft: '-50vw',
-      marginRight: '-50vw',
-      borderBottom: '1px solid',
-      borderColor: 'divider',
-      mb: 2,
-      mt: -0.5,
-      bgcolor: 'background.default'
-    }}>
-      <Container maxWidth="lg" disableGutters>
+    <Box
+      sx={{
+        width: '100%',
+        height: 40,
+        borderBottom: showDivider ? '1px solid' : 'none',
+        borderColor: 'divider',
+        bgcolor: 'background.default'
+      }}
+    >
+      <Container 
+        maxWidth="lg" 
+        disableGutters
+        sx={{
+          px: {
+            xs: 1,
+            sm: 2,
+            md: 3
+          }
+        }}
+      >
         <Box sx={{ 
           display: 'flex',
           alignItems: 'center',
           height: 40,
-          px: 1,
-          position: 'relative'
+          position: 'relative',
+          gap: {
+            xs: 0.5,
+            sm: 1
+          }
         }}>
-          {/* Sección izquierda - siempre presente con ancho fijo */}
+          {/* Sección izquierda */}
           <Box sx={{ 
             display: 'flex',
             alignItems: 'center',
-            gap: 0.5,
-            width: 72,
-            justifyContent: 'flex-start'
+            gap: {
+              xs: 0.5,
+              sm: 1
+            },
+            width: {
+              xs: 48,
+              sm: 72
+            }
           }}>
             {showBackButton && location.pathname !== '/' && (
               <Tooltip title="Volver">
@@ -216,23 +238,17 @@ const EntityToolbar = ({
             )}
           </Box>
 
-          {/* Separador - siempre presente pero visible condicionalmente */}
-          <Divider 
-            orientation="vertical" 
-            flexItem 
-            sx={{ 
-              mx: 1,
-              visibility: navigationItems.length > 0 && location.pathname !== '/' ? 'visible' : 'hidden'
-            }} 
-          />
-
-          {/* Sección de navegación - centrada */}
+          {/* Sección central - Eliminado el Divider */}
           <Box sx={{ 
             display: 'flex',
             alignItems: 'center',
-            gap: 0.5,
+            gap: {
+              xs: 0.5,
+              sm: 1
+            },
             justifyContent: 'center',
-            flex: 1
+            flex: 1,
+            overflow: 'auto'
           }}>
             {navigationItems.map((item) => (
               <Tooltip key={item.to} title={item.label}>
@@ -252,13 +268,18 @@ const EntityToolbar = ({
             ))}
           </Box>
 
-          {/* Sección derecha - siempre presente con ancho fijo */}
+          {/* Sección derecha */}
           <Box sx={{ 
             display: 'flex',
             alignItems: 'center',
-            gap: 0.5,
-            width: 72,
-            justifyContent: 'flex-end'
+            gap: {
+              xs: 0.5,
+              sm: 1
+            },
+            width: {
+              xs: 48,
+              sm: 72
+            }
           }}>
             {showAddButton && (
               <Tooltip title={`Agregar ${entityName}`}>
@@ -274,6 +295,17 @@ const EntityToolbar = ({
                 </IconButton>
               </Tooltip>
             )}
+            {/* Botón mostrar/ocultar valores */}
+            <IconButton 
+              size="small" 
+              onClick={onToggleValues}
+              sx={{ 
+                color: 'text.secondary',
+                '&:hover': { color: 'text.primary' }
+              }}
+            >
+              {showValues ? <ShowValuesIcon /> : <HideValuesIcon />}
+            </IconButton>
           </Box>
         </Box>
       </Container>
@@ -284,7 +316,7 @@ const EntityToolbar = ({
           open={openForm}
           onClose={() => setOpenForm(false)}
           onSubmit={handleSubmit}
-          entityName={entityConfig.name}
+          title={`Nuevo ${entityConfig.name}`}
           fields={entityConfig.fields}
         />
       )}

@@ -17,37 +17,48 @@ import { Inquilinos } from './pages/Inquilinos';
 import { Contratos } from './pages/Contratos';
 import { Inventario } from './pages/Inventario';
 import Dieta from './pages/Dieta';
+import ErrorBoundary from './components/ErrorBoundary';
+import theme from './context/ThemeContext';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   return (
-    <Routes>
-      {/* Rutas públicas */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/registro" element={<Register />} />
-      
-      {/* Rutas protegidas */}
-      <Route element={<PrivateRoute />}>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/propiedades" element={<Propiedades />} />
-          <Route path="/perfil" element={<Perfil />} />
-          <Route path="/transacciones" element={<Transacciones />} />
-          <Route path="/rutinas" element={<Rutinas />} />
-          <Route path="/lab" element={<Lab />} />
-          <Route path="/proyectos" element={<Proyectos />} />
-          <Route path="/habitaciones" element={<Habitaciones />} />
-          <Route path="/monedas" element={<Monedas />} />
-          <Route path="/cuentas" element={<Cuentas />} />
-          <Route path="/inquilinos" element={<Inquilinos />} />
-          <Route path="/contratos" element={<Contratos />} />
-          <Route path="/inventario" element={<Inventario />} />
-          <Route path="/dieta" element={<Dieta />} />
-        </Route>
-      </Route>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Toaster position="top-right" />
+      <ErrorBoundary>
+        <Routes>
+          {/* Rutas públicas */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/registro" element={<Register />} />
+          
+          {/* Rutas protegidas */}
+          <Route element={<PrivateRoute />}>
+            <Route element={<Layout />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/propiedades" element={<Propiedades />} />
+              <Route path="/perfil" element={<Perfil />} />
+              <Route path="/transacciones" element={<Transacciones />} />
+              <Route path="/rutinas" element={<Rutinas />} />
+              <Route path="/lab" element={<Lab />} />
+              <Route path="/proyectos" element={<Proyectos />} />
+              <Route path="/habitaciones" element={<Habitaciones />} />
+              <Route path="/monedas" element={<Monedas />} />
+              <Route path="/cuentas" element={<Cuentas />} />
+              <Route path="/inquilinos" element={<Inquilinos />} />
+              <Route path="/contratos" element={<Contratos />} />
+              <Route path="/inventario" element={<Inventario />} />
+              <Route path="/dieta" element={<Dieta />} />
+            </Route>
+          </Route>
 
-      {/* Redirigir a login si no hay ruta */}
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
+          {/* Redirigir a login si no hay ruta */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </ErrorBoundary>
+    </ThemeProvider>
   );
 }
 

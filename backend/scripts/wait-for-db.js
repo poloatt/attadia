@@ -1,4 +1,7 @@
+#!/usr/bin/env node
+
 import { PrismaClient } from '@prisma/client';
+import { execSync } from 'child_process';
 
 const prisma = new PrismaClient();
 const MAX_RETRIES = parseInt(process.env.MAX_RETRIES || '10');
@@ -13,14 +16,7 @@ async function waitForDatabase() {
       console.log('Intentando conectar a la base de datos...');
       await prisma.$connect();
       console.log('✅ Conexión a la base de datos exitosa');
-      
-      console.log('Ejecutando migraciones...');
-      const { execSync } = await import('child_process');
-      execSync('npx prisma migrate deploy', { stdio: 'inherit' });
-      
-      console.log('Iniciando la aplicación...');
-      await prisma.$disconnect();
-      process.exit(0);
+      return true;
     } catch (error) {
       console.log(`❌ Conexión fallida. ${retries} intentos restantes...`);
       console.error('Error:', error);
@@ -34,6 +30,7 @@ async function waitForDatabase() {
       await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
     }
   }
+  return false;
 }
 
-waitForDatabase(); 
+waitForDatabase().catch(console.error); 
