@@ -17,7 +17,7 @@ const router = {
 };
 
 // Configurar axios
-axios.defaults.baseURL = 'http://localhost:5000'
+axios.defaults.baseURL = 'http://localhost:5000/api'
 axios.defaults.withCredentials = true
 
 ReactDOM.createRoot(document.getElementById('root')).render(

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import axios from '../config/axios';
+import clienteAxios from '../config/axios';
 
 const AuthContext = createContext();
 
@@ -20,49 +20,101 @@ function AuthProvider({ children }) {
 
   const checkAuth = useCallback(async () => {
     try {
-      setState(prev => ({ ...prev, loading: true }));
-      const response = await axios.get('/auth/check');
+      setState(prev => ({ ...prev, loading: true, error: null }));
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        setState({ user: null, loading: false, error: null });
+        return { error: 'No token found' };
+      }
+
+      // Asegurarse de que el token esté configurado en axios
+      clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      const response = await clienteAxios.get('/auth/check');
       setState({ user: response.data, loading: false, error: null });
+      return { user: response.data };
     } catch (error) {
+      console.error('Error en checkAuth:', error);
+      // Si hay un error de autenticación, limpiar el token
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        delete clienteAxios.defaults.headers.common['Authorization'];
+      }
       setState({ 
         user: null, 
         loading: false, 
-        error: error.response?.status === 401 ? null : error 
+        error: error.response?.data || error 
       });
+      return { error: error.response?.data || error };
     }
   }, []);
 
   useEffect(() => {
-    checkAuth();
+    const token = localStorage.getItem('token');
+    if (token) {
+      clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      checkAuth();
+    } else {
+      setState({ user: null, loading: false, error: null });
+    }
   }, [checkAuth]);
 
   const login = async (credentials) => {
     try {
-      setState(prev => ({ ...prev, loading: true }));
-      const response = await axios.post('/auth/login', credentials);
-      setState({ user: response.data.user, loading: false, error: null });
+      setState(prev => ({ ...prev, loading: true, error: null }));
+      const response = await clienteAxios.post('/auth/login', credentials);
+      const { token } = response.data;
+      
+      if (!token) {
+        throw new Error('No se recibió token del servidor');
+      }
+
+      localStorage.setItem('token', token);
+      clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      const authResult = await checkAuth();
+      if (authResult.error) {
+        throw authResult.error;
+      }
+      
       return response.data;
     } catch (error) {
       console.error('Error al iniciar sesión:', error);
-      setState({ ...state, loading: false, error: error.response?.data || { error: 'Error al iniciar sesión' } });
-      throw error.response?.data || { error: 'Error al iniciar sesión' };
+      setState({ ...state, loading: false, error: error.response?.data || error });
+      throw error.response?.data || error;
     }
   };
 
-  const loginWithGoogle = () => {
-    setState(prev => ({ ...prev, loading: true }));
-    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
+  const loginWithGoogle = async () => {
+    try {
+      setState(prev => ({ ...prev, loading: true, error: null }));
+      const response = await clienteAxios.get('/auth/google/url');
+      window.location.href = response.data.url;
+    } catch (error) {
+      console.error('Error al iniciar el proceso de autenticación con Google:', error);
+      setState({ 
+        ...state, 
+        loading: false, 
+        error: error.response?.data || error 
+      });
+      throw error;
+    }
   };
 
   const logout = async () => {
     try {
       setState(prev => ({ ...prev, loading: true }));
-      await axios.post('/auth/logout');
+      await clienteAxios.post('/auth/logout');
+      localStorage.removeItem('token');
+      delete clienteAxios.defaults.headers.common['Authorization'];
       setState({ user: null, loading: false, error: null });
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
-      setState({ ...state, loading: false, error: error });
-      throw error;
+      // Incluso si hay un error, limpiamos el estado local
+      localStorage.removeItem('token');
+      delete clienteAxios.defaults.headers.common['Authorization'];
+      setState({ user: null, loading: false, error: error });
     }
   };
 

@@ -34,7 +34,13 @@ services:
       - MONGODB_URI=mongodb://root:example@mongodb:27017/present?authSource=admin
       - CORS_ORIGIN=http://localhost:5173
       - FRONTEND_URL=http://localhost:5173
+      - BACKEND_URL=http://localhost:5000
       - PORT=5000
+      - JWT_SECRET=your_jwt_secret
+      - REFRESH_TOKEN_SECRET=your_refresh_token_secret_here
+      - GOOGLE_CLIENT_ID=21564026422-n684af8adp48dni8tuc2q2pqc8npb1r7.apps.googleusercontent.com
+      - GOOGLE_CLIENT_SECRET=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
+      - GOOGLE_CALLBACK_URL=http://localhost:5000/auth/google/callback
     volumes:
       - ./backend:/app
       - /app/node_modules
@@ -57,7 +63,7 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - VITE_API_URL=http://localhost:5000/api
+      - VITE_API_URL=http://localhost:5000
       - VITE_HOST=0.0.0.0
       - VITE_PORT=5173
       - HOST=0.0.0.0

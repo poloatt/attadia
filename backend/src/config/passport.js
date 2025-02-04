@@ -32,24 +32,56 @@ try {
 
 if (GoogleStrategy) {
   passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: '/api/auth/google/callback'
+    clientID: config.google.clientId,
+    clientSecret: config.google.clientSecret,
+    callbackURL: config.google.callbackUrl,
+    scope: ['profile', 'email']
   }, async (accessToken, refreshToken, profile, done) => {
     try {
-      let user = await Users.findOne({ googleId: profile.id });
+      console.log('Iniciando autenticación de Google');
+      console.log('Configuración:', {
+        clientId: config.google.clientId,
+        callbackUrl: config.google.callbackUrl
+      });
+      console.log('Perfil de Google recibido:', {
+        id: profile.id,
+        email: profile.emails?.[0]?.value,
+        name: profile.displayName,
+        provider: profile.provider
+      });
+      
+      if (!profile.emails?.[0]?.value) {
+        console.error('No se recibió email del perfil de Google');
+        return done(new Error('No email provided by Google'), null);
+      }
+
+      let user = await Users.findOne({ 
+        $or: [
+          { googleId: profile.id },
+          { email: profile.emails[0].value }
+        ]
+      });
+      
+      console.log('Usuario encontrado:', user ? 'Sí' : 'No');
       
       if (!user) {
+        console.log('Creando nuevo usuario');
         user = await Users.create({
           nombre: profile.displayName,
           email: profile.emails[0].value,
           googleId: profile.id,
           role: 'USER'
         });
+        console.log('Usuario creado:', user._id);
+      } else if (!user.googleId) {
+        console.log('Actualizando googleId para usuario existente');
+        user.googleId = profile.id;
+        await user.save();
       }
       
       return done(null, user);
     } catch (error) {
+      console.error('Error en autenticación de Google:', error);
       return done(error, null);
     }
   }));
@@ -60,7 +92,7 @@ passport.use(new LocalStrategy({
   passwordField: 'password'
 }, async (email, password, done) => {
   try {
-    const user = await Users.findOne({ email }).populate('role');
+    const user = await Users.findOne({ email });
     if (!user) {
       return done(null, false, { message: 'Usuario no encontrado' });
     }

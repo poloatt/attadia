@@ -13,7 +13,9 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true
+    required: function() {
+      return !this.googleId; // La contraseña es requerida solo si no hay googleId
+    }
   },
   telefono: String,
   googleId: String,
@@ -55,12 +57,15 @@ const userSchema = new mongoose.Schema({
 
 // Método para comparar contraseñas
 userSchema.methods.comparePassword = async function(candidatePassword) {
+  if (!this.password) {
+    return false; // Si no hay contraseña (usuario de Google), la comparación falla
+  }
   return bcrypt.compare(candidatePassword, this.password);
 };
 
 // Middleware para hashear la contraseña antes de guardar
 userSchema.pre('save', async function(next) {
-  if (this.isModified('password')) {
+  if (this.isModified('password') && this.password) {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
   }

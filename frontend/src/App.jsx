@@ -22,6 +22,7 @@ import theme from './context/ThemeContext';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Toaster } from 'react-hot-toast';
+import GoogleCallback from './components/GoogleCallback';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
           {/* Rutas públicas */}
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Register />} />
+          <Route path="/auth/google/callback" element={<GoogleCallback />} />
           
           {/* Rutas protegidas */}
           <Route element={<PrivateRoute />}>
