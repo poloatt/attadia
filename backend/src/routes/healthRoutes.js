@@ -1,32 +1,19 @@
 import express from 'express';
-import { getHealth } from '../controllers/healthController.js';
+import { healthController } from '../controllers/healthController.js';
+import { checkRole, ROLES } from '../middleware/checkRole.js';
+import { checkAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Cache para almacenar la última respuesta
-let healthCache = null;
-let lastCheck = 0;
-const CACHE_DURATION = 5000; // 5 segundos
+// Ruta pública para health check básico
+router.get('/', healthController.getBasicHealth);
 
-// Middleware de caché
-const cacheMiddleware = (req, res, next) => {
-  const now = Date.now();
-  if (healthCache && (now - lastCheck) < CACHE_DURATION) {
-    return res.json(healthCache);
-  }
-  next();
-};
+// Rutas protegidas para administradores
+router.use(checkAuth);
+router.use(checkRole([ROLES.ADMIN]));
 
-router.get('/', cacheMiddleware, async (req, res) => {
-  try {
-    const health = await getHealth();
-    healthCache = health;
-    lastCheck = Date.now();
-    res.json(health);
-  } catch (error) {
-    console.error('Error en health check:', error);
-    res.status(500).json({ error: 'Error checking health' });
-  }
-});
+router.get('/detailed', healthController.getDetailedHealth);
+router.get('/metrics', healthController.getMetrics);
+router.get('/logs', healthController.getLogs);
 
 export default router; 

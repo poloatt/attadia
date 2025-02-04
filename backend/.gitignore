@@ -1,3 +1,33 @@
-node_modules
-# Keep environment variables out of version control
+# Dependencies
+node_modules/
+
+# Build
+dist/
+build/
+
+# Environment
 .env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+
+# Temp files
+*.tmp
+*.temp

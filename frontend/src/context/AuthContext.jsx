@@ -21,7 +21,7 @@ function AuthProvider({ children }) {
   const checkAuth = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, loading: true }));
-      const response = await axios.get('/api/auth/check');
+      const response = await axios.get('/auth/check');
       setState({ user: response.data, loading: false, error: null });
     } catch (error) {
       setState({ 
@@ -39,7 +39,7 @@ function AuthProvider({ children }) {
   const login = async (credentials) => {
     try {
       setState(prev => ({ ...prev, loading: true }));
-      const response = await axios.post('/api/auth/login', credentials);
+      const response = await axios.post('/auth/login', credentials);
       setState({ user: response.data.user, loading: false, error: null });
       return response.data;
     } catch (error) {
@@ -51,13 +51,13 @@ function AuthProvider({ children }) {
 
   const loginWithGoogle = () => {
     setState(prev => ({ ...prev, loading: true }));
-    window.location.href = `${import.meta.env.VITE_API_URL}/api/auth/google`;
+    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
   };
 
   const logout = async () => {
     try {
       setState(prev => ({ ...prev, loading: true }));
-      await axios.post('/api/auth/logout');
+      await axios.post('/auth/logout');
       setState({ user: null, loading: false, error: null });
     } catch (error) {
       console.error('Error al cerrar sesión:', error);

@@ -1,43 +1,80 @@
 import passport from 'passport';
-import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-import { PrismaClient } from '@prisma/client';
+import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
+import { Strategy as LocalStrategy } from 'passport-local';
+import { Users } from '../models/index.js';
+import config from './config.js';
+import bcrypt from 'bcrypt';
 
-const prisma = new PrismaClient();
+const options = {
+  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+  secretOrKey: config.jwtSecret
+};
 
-// Solo configurar Google Strategy si tenemos las credenciales
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  passport.use(
-    new GoogleStrategy(
-      {
-        clientID: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: `${process.env.BACKEND_URL}/api/auth/google/callback`,
-        scope: ['profile', 'email']
-      },
-      async (accessToken, refreshToken, profile, done) => {
-        try {
-          let user = await prisma.user.findUnique({
-            where: { googleId: profile.id }
-          });
+passport.use(new JwtStrategy(options, async (jwt_payload, done) => {
+  try {
+    const user = await Users.findById(jwt_payload.user.id);
+    if (user) {
+      return done(null, user);
+    }
+    return done(null, false);
+  } catch (error) {
+    return done(error, false);
+  }
+}));
 
-          if (!user) {
-            user = await prisma.user.create({
-              data: {
-                googleId: profile.id,
-                email: profile.emails[0].value,
-                name: profile.displayName
-              }
-            });
-          }
-
-          return done(null, user);
-        } catch (error) {
-          return done(error, null);
-        }
-      }
-    )
-  );
+let GoogleStrategy;
+try {
+  const { Strategy } = await import('passport-google-oauth20');
+  GoogleStrategy = Strategy;
+} catch (error) {
+  console.log('Google OAuth no configurado');
 }
+
+if (GoogleStrategy) {
+  passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: '/api/auth/google/callback'
+  }, async (accessToken, refreshToken, profile, done) => {
+    try {
+      let user = await Users.findOne({ googleId: profile.id });
+      
+      if (!user) {
+        user = await Users.create({
+          nombre: profile.displayName,
+          email: profile.emails[0].value,
+          googleId: profile.id,
+          role: 'USER'
+        });
+      }
+      
+      return done(null, user);
+    } catch (error) {
+      return done(error, null);
+    }
+  }));
+}
+
+passport.use(new LocalStrategy({
+  usernameField: 'email',
+  passwordField: 'password'
+}, async (email, password, done) => {
+  try {
+    const user = await Users.findOne({ email }).populate('role');
+    if (!user) {
+      return done(null, false, { message: 'Usuario no encontrado' });
+    }
+    
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return done(null, false, { message: 'Contraseña incorrecta' });
+    }
+
+    return done(null, user);
+  } catch (error) {
+    return done(error);
+  }
+}));
 
 passport.serializeUser((user, done) => {
   done(null, user.id);
@@ -45,13 +82,11 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser(async (id, done) => {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id }
-    });
+    const user = await Users.findById(id);
     done(null, user);
   } catch (error) {
-    done(error, null);
+    done(error);
   }
 });
 
-export default passport; 
+export const passportConfig = passport; 

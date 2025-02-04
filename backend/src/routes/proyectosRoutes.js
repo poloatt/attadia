@@ -1,23 +1,23 @@
 import express from 'express';
-import { authMiddleware } from '../middleware/auth.js';
-import { PrismaClient } from '@prisma/client';
+import { proyectosController } from '../controllers/proyectosController.js';
+import { checkAuth } from '../middleware/auth.js';
+import { checkRole, ROLES } from '../middleware/checkRole.js';
+import { checkOwnership } from '../middleware/checkOwnership.js';
+import { Proyectos } from '../models/index.js';
 
-const prisma = new PrismaClient();
 const router = express.Router();
+router.use(checkAuth);
 
-router.get('/', authMiddleware, async (req, res) => {
-  try {
-    const proyectos = await prisma.proyecto.findMany({
-      where: { userId: req.user.id },
-      include: {
-        tareas: true
-      }
-    });
-    res.json(proyectos || []);
-  } catch (error) {
-    console.error('Error al obtener proyectos:', error);
-    res.status(500).json({ error: 'Error al obtener proyectos' });
-  }
-});
+router.get('/', proyectosController.getAll);
+router.post('/', proyectosController.create);
+
+// Rutas administrativas
+router.get('/admin/all', [checkRole([ROLES.ADMIN])], proyectosController.getAllAdmin);
+router.get('/admin/stats', [checkRole([ROLES.ADMIN])], proyectosController.getAdminStats);
+
+// Rutas que requieren ser dueño del recurso
+router.get('/:id', [checkOwnership(Proyectos)], proyectosController.getById);
+router.put('/:id', [checkOwnership(Proyectos)], proyectosController.update);
+router.delete('/:id', [checkOwnership(Proyectos)], proyectosController.delete);
 
 export default router; 

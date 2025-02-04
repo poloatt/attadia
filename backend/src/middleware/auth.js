@@ -1,46 +1,31 @@
-import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
+import { passportConfig } from '../config/passport.js';
 
-const prisma = new PrismaClient();
-
-export const authMiddleware = async (req, res, next) => {
-  try {
-    // Verificar token
-    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
-    
-    if (!token) {
-      return res.status(401).json({ error: 'No autorizado - Token no proporcionado' });
+export const checkAuth = (req, res, next) => {
+  passportConfig.authenticate('jwt', { session: false }, (err, user, info) => {
+    if (err) {
+      console.error('Error en autenticación:', err);
+      return res.status(500).json({ error: 'Error en autenticación' });
     }
-
-    if (!process.env.JWT_SECRET) {
-      console.error('JWT_SECRET no está configurado');
-      return res.status(500).json({ error: 'Error de configuración del servidor' });
-    }
-
-    // Imprimir para debug (quitar en producción)
-    console.log('JWT_SECRET:', process.env.JWT_SECRET);
-    
-    // Verificar y decodificar token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // Buscar usuario
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
-      select: {
-        id: true,
-        email: true,
-        name: true
-      }
-    });
 
     if (!user) {
-      return res.status(401).json({ error: 'No autorizado - Usuario no encontrado' });
+      return res.status(401).json({ error: 'Token no válido o expirado' });
     }
 
     req.user = user;
     next();
-  } catch (error) {
-    console.error('Error de autenticación:', error);
-    res.status(401).json({ error: 'No autorizado - Token inválido' });
-  }
+  })(req, res, next);
+};
+
+export const checkRole = (roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Usuario no autenticado' });
+    }
+
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'No tienes permisos para realizar esta acción' });
+    }
+
+    next();
+  };
 }; 

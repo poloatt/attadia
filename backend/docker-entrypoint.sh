@@ -2,13 +2,14 @@
 set -e
 
 # Esperar a que la base de datos esté lista
-echo "Esperando a que la base de datos esté lista..."
+echo "Esperando a la base de datos..."
 node scripts/wait-for-db.js
 
-# Ejecutar migraciones
-echo "Ejecutando migraciones..."
-node scripts/db-dev.js
+# Ejecutar migraciones y seed en desarrollo
+if [ "$NODE_ENV" = "development" ]; then
+  echo "Inicializando base de datos..."
+  node scripts/db-dev.js
+fi
 
-# Iniciar la aplicación
-echo "Iniciando la aplicación..."
+# Ejecutar el comando principal
 exec "$@" 

@@ -1,38 +1,42 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import passport from './config/passport.js';
-import authRoutes from './routes/authRoutes.js';
-import contratoRoutes from './routes/contratoRoutes.js';
-import cuentaRoutes from './routes/cuentaRoutes.js';
-import habitacionRoutes from './routes/habitacionRoutes.js';
-import healthRoutes from './routes/healthRoutes.js';
-import inquilinoRoutes from './routes/inquilinoRoutes.js';
-import inventarioRoutes from './routes/inventarioRoutes.js';
-import labRoutes from './routes/labRoutes.js';
-import monedaRoutes from './routes/monedaRoutes.js';
-import perfilRoutes from './routes/perfilRoutes.js';
-import propiedadRoutes from './routes/propiedadRoutes.js';
-import proyectosRoutes from './routes/proyectosRoutes.js';
-import rutinasRoutes from './routes/rutinasRoutes.js';
-import tareasRoutes from './routes/tareasRoutes.js';
-import subtareasRoutes from './routes/subtareasRoutes.js';
-import transaccionesRoutes from './routes/transaccionesRoutes.js';
+import { passportConfig } from './config/passport.js';
+import { routes } from './routes/index.js';
+import mongoose from 'mongoose';
+import morgan from 'morgan';
+import connectDB from './config/database/mongodb.js';
 
 const app = express();
 
-// Configuración de CORS
+// Middlewares
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://frontend:5173',
+      'http://127.0.0.1:5173',
+      process.env.FRONTEND_URL
+    ].filter(Boolean);
+    
+    console.log('Origin:', origin);
+    console.log('Allowed Origins:', allowedOrigins);
+    
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Accept', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Requested-With', 'Cookie']
 }));
-
-// Middlewares
 app.use(cookieParser());
 app.use(express.json());
-app.use(passport.initialize());
+app.use(express.urlencoded({ extended: true }));
+app.use(passportConfig.initialize());
+app.use(morgan('dev'));
 
 // Logging middleware
 app.use((req, res, next) => {
@@ -40,36 +44,51 @@ app.use((req, res, next) => {
   next();
 });
 
-// Rutas
-app.use('/api/auth', authRoutes);
-app.use('/api/contratos', contratoRoutes);
-app.use('/api/cuentas', cuentaRoutes);
-app.use('/api/habitaciones', habitacionRoutes);
-app.use('/api/health', healthRoutes);
-app.use('/api/inquilinos', inquilinoRoutes);
-app.use('/api/inventario', inventarioRoutes);
-app.use('/api/lab', labRoutes);
-app.use('/api/monedas', monedaRoutes);
-app.use('/api/perfil', perfilRoutes);
-app.use('/api/propiedades', propiedadRoutes);
-app.use('/api/proyectos', proyectosRoutes);
-app.use('/api/rutinas', rutinasRoutes);
-app.use('/api/tareas', tareasRoutes);
-app.use('/api/subtareas', subtareasRoutes);
-app.use('/api/transacciones', transaccionesRoutes);
+// Rutas centralizadas
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
+// Montamos todas las rutas bajo /api
+app.use('/api', routes);
 
 // Manejo de errores global
 app.use((err, req, res, next) => {
   console.error('Error:', err);
+  
+  // Si es un error de MongoDB
+  if (err.name === 'MongoError' || err.name === 'MongooseError') {
+    return res.status(503).json({
+      error: 'Error de base de datos',
+      message: process.env.NODE_ENV === 'development' ? err.message : 'Error interno'
+    });
+  }
+  
+  // Si es un error de validación
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({
+      error: 'Error de validación',
+      message: err.message
+    });
+  }
+  
   res.status(500).json({ 
     error: err.message || 'Error interno del servidor',
     stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
   });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor corriendo en http://0.0.0.0:${PORT}`);
-  console.log(`Frontend URL configurada: ${process.env.FRONTEND_URL}`);
-}); 
+// Conexión a MongoDB
+connectDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Servidor corriendo en el puerto ${PORT}`);
+      console.log(`Frontend URL configurada: ${process.env.FRONTEND_URL}`);
+    });
+  })
+  .catch(error => {
+    console.error('Error al conectar a la base de datos:', error);
+    process.exit(1);
+  }); 

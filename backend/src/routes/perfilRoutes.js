@@ -1,16 +1,17 @@
 import express from 'express';
-import { authMiddleware } from '../middleware/auth.js';
+import { perfilController } from '../controllers/perfilController.js';
+import { checkAuth } from '../middleware/auth.js';
+import { checkRole, ROLES } from '../middleware/checkRole.js';
 
 const router = express.Router();
 
-router.get('/', authMiddleware, async (req, res) => {
-  try {
-    const user = req.user;
-    res.json(user);
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
-  }
-});
+router.use(checkAuth);
+
+router.get('/', perfilController.getPerfil);
+router.put('/', perfilController.updatePerfil);
+router.put('/password', perfilController.updatePassword);
+router.delete('/', perfilController.deletePerfil);
+router.get('/preferences', perfilController.getPreferences);
+router.put('/preferences', perfilController.updatePreferences);
 
 export default router; 

@@ -1,21 +1,24 @@
 import express from 'express';
-import { authMiddleware } from '../middleware/auth.js';
-import { PrismaClient } from '@prisma/client';
+import { rutinasController } from '../controllers/rutinasController.js';
+import { checkAuth } from '../middleware/auth.js';
+import { checkRole, ROLES } from '../middleware/checkRole.js';
+import { checkOwnership } from '../middleware/checkOwnership.js';
+import { Rutinas } from '../models/index.js';
 
-const prisma = new PrismaClient();
 const router = express.Router();
 
-router.get('/', authMiddleware, async (req, res) => {
-  try {
-    const rutinas = await prisma.rutina.findMany({
-      where: { userId: req.user.id },
-      orderBy: { fecha: 'desc' }
-    });
-    res.json(rutinas || []);
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Error al obtener rutinas' });
-  }
-});
+router.use(checkAuth);
+
+router.get('/', rutinasController.getAll);
+router.post('/', rutinasController.create);
+
+// Rutas administrativas
+router.get('/admin/all', [checkRole([ROLES.ADMIN])], rutinasController.getAllAdmin);
+router.get('/admin/stats', [checkRole([ROLES.ADMIN])], rutinasController.getAdminStats);
+
+// Rutas que requieren ser dueño del recurso
+router.get('/:id', [checkOwnership(Rutinas)], rutinasController.getById);
+router.put('/:id', [checkOwnership(Rutinas)], rutinasController.update);
+router.delete('/:id', [checkOwnership(Rutinas)], rutinasController.delete);
 
 export default router; 

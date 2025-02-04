@@ -1,0 +1,127 @@
+[33mcommit 19a17c834950ae0d15cf7fd3a60c1ecf180ffe91[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mrama_recuperacion[m[33m)[m
+Author: poloatt <polo@poloatt.com>
+Date:   Sun Feb 2 11:17:09 2025 +0100
+
+    Pantalla de auth0 login sin errores. nuevo UX design en dashboard (pero con errores). Campos de inquilinos y contratos activos actualizados pero con errores
+
+[33mcommit 3e152675d186a55e968b1ffa90ee14fcee3c1758[m
+Author: poloatt <polo@poloatt.com>
+Date:   Sat Feb 1 16:13:16 2025 +0100
+
+    Navigation updated: new toolbar navigation complete
+
+[33mcommit 458e49050d51d00b340379d6301b0086a97b4fae[m
+Author: poloatt <polo@poloatt.com>
+Date:   Sat Feb 1 12:55:26 2025 +0100
+
+    layout y navegacion actualizados
+
+[33mcommit 5aa4fab2e3372988439eb48258c3e622f5332b9f[m
+Author: poloatt <polo@poloatt.com>
+Date:   Fri Jan 31 14:48:20 2025 +0100
+
+    look and feel y funcionalidad de propiedades completa
+
+[33mcommit ecaf71836c3fee5d0a270653c6bdb14f52cebab5[m
+Author: poloatt <polo@poloatt.com>
+Date:   Fri Jan 31 14:28:50 2025 +0100
+
+    tab propiedades sin errores
+
+[33mcommit fe66cfa5aad807de0617612dc5e6224ee68c82a1[m
+Author: poloatt <polo@poloatt.com>
+Date:   Fri Jan 31 14:13:26 2025 +0100
+
+    updates:
+    - footer updated, la conexièon muestra correctamente el estado ok a la bd y backend.
+    - propiedades: funciona el botèon para agregar y eliminar propiedades. No funciona la edición. Se agregó un directorio public para imágenes.
+
+[33mcommit 37e8cec370bcf4226a746481cc55151f8877f7b2[m
+Author: poloatt <polo@poloatt.com>
+Date:   Fri Jan 31 03:00:16 2025 +0100
+
+    pestaña propiedades funcionando correctamente y mostrando regisgtros
+
+[33mcommit fe302c55e9e7cf3d71d39e6f40559596721d9acc[m
+Author: poloatt <polo@poloatt.com>
+Date:   Thu Jan 30 14:05:40 2025 +0100
+
+    google log in button aòadido y contenedores reconstruidos
+
+[33mcommit 4a59a60f81a9550b9e8c7889226bc6079edfcf3b[m
+Author: poloatt <polo@poloatt.com>
+Date:   Thu Jan 30 12:42:02 2025 +0100
+
+    arreglado el problema de log out y log in
+
+[33mcommit 480bc1506821496149acf15843eecffbd8493114[m
+Author: poloatt <polo@poloatt.com>
+Date:   Thu Jan 30 12:35:08 2025 +0100
+
+    contendores rebuilt y funcionando ok
+
+[33mcommit 92bfc86edd3275d8b7c708e26b21d503ab4fa7e7[m
+Author: poloatt <polo@poloatt.com>
+Date:   Thu Jan 30 11:51:54 2025 +0100
+
+    Visibiilidad de la app mejorada solo para logged users
+
+[33mcommit d73933a5a41c91e2e35a4184e77aac203ab95d65[m
+Author: poloatt <polo@poloatt.com>
+Date:   Thu Jan 30 10:34:09 2025 +0100
+
+    loggin funcionando, proipiedades funcionando
+
+[33mcommit 39ea328fdcfad43da0049180d355899cf83e5501[m
+Author: poloatt <polo@poloatt.com>
+Date:   Thu Jan 30 09:20:25 2025 +0100
+
+    loggin funcionando
+
+[33mcommit 147ba25a9382e21c2f9cd57f8491a7b75cd690e8[m
+Author: poloatt <polo@poloatt.com>
+Date:   Wed Jan 29 02:06:49 2025 +0100
+
+    front cute, working on properties
+
+[33mcommit 31c6e24f5855b5c8c492279c4505482540ac1257[m
+Author: poloatt <polo@poloatt.com>
+Date:   Wed Jan 29 00:36:17 2025 +0100
+
+    front y backend fucionando y conectados - proximo paso: avanzar con los modelos
+
+[33mcommit 3cc3d2e4bb0e16efbc039ea192794961eee8611c[m
+Author: poloatt <polo@poloatt.com>
+Date:   Tue Jan 28 21:45:40 2025 +0100
+
+    ui basica completa dark mode. inicio el backend implementation
+
+[33mcommit cee087aae214fdb5f88bd5c221ed96d51ee6fba5[m
+Author: poloatt <polo@poloatt.com>
+Date:   Tue Jan 28 21:23:07 2025 +0100
+
+    ui basica completa dark mode
+
+[33mcommit 4a28edfce6534c0989f1d97d33f8638ef578eb47[m
+Author: poloatt <polo@poloatt.com>
+Date:   Tue Jan 28 19:44:59 2025 +0100
+
+    feat: Implementación inicial del frontend
+
+[33mcommit 173849d581fff0dcd42828c8442442dda8fb58b1[m
+Author: poloatt <polo@poloatt.com>
+Date:   Tue Jan 28 19:27:27 2025 +0100
+
+    contenedores ok, se ve todo blanco
+
+[33mcommit 8c0bf7e837d0b3a02749d7809d087ac7079a4a1d[m
+Author: poloatt <polo@poloatt.com>
+Date:   Tue Jan 28 19:20:22 2025 +0100
+
+    Initial commit: Sistema de Gestión Personal
+
+[33mcommit bd4abfc7512a826abea104b872d27d04f9f518f8[m
+Author: poloatt <polo@poloatt.com>
+Date:   Tue Jan 28 19:17:39 2025 +0100
+
+    present new version enero

@@ -1,46 +1,34 @@
-# Etapa de construcción
+# Usar una imagen base de Node.js
 FROM node:18-alpine
 
+# Establecer el directorio de trabajo
 WORKDIR /app
 
-# Instalar dependencias necesarias para Prisma y OpenSSL
-RUN apk add --no-cache openssl libc6-compat python3 make g++ postgresql-client curl
+# Instalar dependencias necesarias
+RUN apk add --no-cache curl wget
 
-# Copiar archivos de configuración primero
+# Copiar package.json y package-lock.json
 COPY package*.json ./
-COPY prisma ./prisma/
-COPY .env ./
 
-# Instalar dependencias con retry y timeout más largos
-RUN npm config set fetch-retry-maxtimeout 600000 \
-    && npm config set fetch-retry-mintimeout 100000 \
-    && npm config set fetch-retries 5 \
-    && npm install --verbose \
-    && npm install -D prisma@latest typescript ts-node @types/node --verbose \
-    && npm cache clean --force
+# Limpiar cache de npm e instalar dependencias
+RUN npm cache clean --force && \
+    rm -rf node_modules && \
+    npm install --verbose && \
+    npm install morgan@1.10.0
 
-# Generar el cliente Prisma (antes de copiar todo el código)
-RUN npx prisma generate
-
-# Copiar el resto de los archivos
+# Copiar el resto de la aplicación
 COPY . .
 
-# Dar permisos a los scripts después de copiarlos
-RUN mkdir -p scripts \
-    && touch scripts/wait-for-db.js scripts/db-dev.js \
-    && chmod +x scripts/wait-for-db.js \
-    && chmod +x scripts/db-dev.js
+# Variables de entorno
+ENV NODE_ENV=development
+ENV PORT=5000
 
-# Exponer puerto
+# Exponer el puerto
 EXPOSE 5000
 
-# Aumentar el tiempo de espera y los reintentos
-ENV MAX_RETRIES=10
-ENV RETRY_DELAY=5000
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=30s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:5000/api/health || wget -q --spider http://localhost:5000/api/health || exit 1
 
-# Crear script de entrada
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
-ENTRYPOINT ["docker-entrypoint.sh"]
+# Comando para iniciar la aplicación
 CMD ["npm", "run", "dev"]

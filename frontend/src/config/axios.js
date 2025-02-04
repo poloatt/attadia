@@ -1,32 +1,53 @@
 import axios from 'axios';
 
-const instance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
+const clienteAxios = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json'
   },
-  timeout: 5000,
+  timeout: 30000,
   maxRedirects: 5
 });
 
-instance.interceptors.response.use(
+let isRetrying = false;
+let retryCount = 0;
+const MAX_RETRIES = 3;
+
+clienteAxios.interceptors.response.use(
   response => response,
-  error => {
-    // No loguear errores 401 ya que son esperados cuando no hay sesión
-    if (error.response?.status !== 401) {
-      console.error('Error en la petición:', {
-        status: error.response?.status,
-        message: error.message,
-        url: error.config?.url
-      });
-    }
-    // Si es un error de autenticación y estamos en una ruta protegida
-    if (error.response?.status === 401 && !window.location.pathname.includes('/login')) {
+  async error => {
+    if (error.response?.status === 401) {
       window.location.href = '/login';
+      return Promise.reject(error);
     }
+
+    if ((error.message === 'Network Error' || error.code === 'ERR_NETWORK') && retryCount < MAX_RETRIES) {
+      isRetrying = true;
+      retryCount++;
+      console.log('Intentando reconectar...', retryCount);
+      
+      try {
+        const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 10000);
+        await new Promise(resolve => setTimeout(resolve, backoffDelay));
+        const response = await clienteAxios(error.config);
+        isRetrying = false;
+        return response;
+      } catch (retryError) {
+        isRetrying = false;
+        return Promise.reject(retryError);
+      }
+    }
+
+    if (retryCount >= MAX_RETRIES) {
+      console.error('Máximo número de intentos alcanzado');
+      retryCount = 0;
+      isRetrying = false;
+    }
+
     return Promise.reject(error);
   }
 );
 
-export default instance; 
+export default clienteAxios; 

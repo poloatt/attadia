@@ -1,32 +1,24 @@
 import express from 'express';
-import { authMiddleware } from '../middleware/auth.js';
-import { PrismaClient } from '@prisma/client';
+import { subtareasController } from '../controllers/subtareasController.js';
+import { checkAuth } from '../middleware/auth.js';
+import { checkRole, ROLES } from '../middleware/checkRole.js';
+import { checkOwnership } from '../middleware/checkOwnership.js';
+import { Subtareas } from '../models/index.js';
 
-const prisma = new PrismaClient();
 const router = express.Router();
 
-router.get('/:tareaId', authMiddleware, async (req, res) => {
-  try {
-    const subtareas = await prisma.subtarea.findMany({
-      where: { tareaId: parseInt(req.params.tareaId) }
-    });
-    res.json(subtareas);
-  } catch (error) {
-    console.error('Error al obtener subtareas:', error);
-    res.status(500).json({ error: 'Error al obtener subtareas' });
-  }
-});
+router.use(checkAuth);
 
-router.post('/', authMiddleware, async (req, res) => {
-  try {
-    const subtarea = await prisma.subtarea.create({
-      data: req.body
-    });
-    res.status(201).json(subtarea);
-  } catch (error) {
-    console.error('Error al crear subtarea:', error);
-    res.status(500).json({ error: 'Error al crear subtarea' });
-  }
-});
+// Rutas administrativas
+router.get('/admin/all', [checkRole([ROLES.ADMIN])], subtareasController.getAllAdmin);
+
+// Rutas específicas
+router.get('/tarea/:tareaId', subtareasController.getAllByTarea);
+router.post('/', subtareasController.create);
+
+// Rutas que requieren ser dueño del recurso
+router.get('/:id', [checkOwnership(Subtareas)], subtareasController.getById);
+router.put('/:id', [checkOwnership(Subtareas)], subtareasController.update);
+router.delete('/:id', [checkOwnership(Subtareas)], subtareasController.delete);
 
 export default router; 

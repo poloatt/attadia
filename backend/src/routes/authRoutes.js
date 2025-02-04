@@ -1,27 +1,27 @@
 import express from 'express';
 import { authController } from '../controllers/authController.js';
-import { authMiddleware } from '../middleware/auth.js';
+import { checkAuth } from '../middleware/auth.js';
+import { check } from 'express-validator';
+import { validateFields } from '../middleware/validateFields.js';
 
 const router = express.Router();
 
 // Rutas públicas
-router.post('/register', authController.register);
-router.post('/login', authController.login);
-router.get('/google', authController.googleAuth);
-router.get('/google/callback', authController.googleCallback);
+router.post('/register', [
+  check('nombre', 'El nombre es obligatorio').not().isEmpty(),
+  check('email', 'Incluye un email válido').isEmail(),
+  check('password', 'La contraseña debe tener al menos 6 caracteres').isLength({ min: 6 }),
+  validateFields
+], authController.register);
 
-// Rutas protegidas
-router.use(authMiddleware);
-router.get('/me', authController.me);
+router.post('/login', [
+  check('email', 'Incluye un email válido').isEmail(),
+  check('password', 'La contraseña es obligatoria').exists(),
+  validateFields
+], authController.login);
+
+// Rutas que requieren autenticación
+router.use(checkAuth);
 router.post('/logout', authController.logout);
-router.get('/check', async (req, res) => {
-  try {
-    // Verificar que esta ruta existe y está configurada correctamente
-    res.json(req.user);
-  } catch (error) {
-    console.error('Error en /check:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
-  }
-});
 
-export default router; 
+export default router;
