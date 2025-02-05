@@ -6,6 +6,7 @@ import { router } from './routes/index.js';
 import mongoose from 'mongoose';
 import morgan from 'morgan';
 import connectDB from './config/database/mongodb.js';
+import { initializeMonedas } from './config/initData.js';
 
 const app = express();
 
@@ -85,9 +86,12 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 
-// Conexión a MongoDB
+// Conexión a MongoDB e inicialización de datos
 connectDB()
-  .then(() => {
+  .then(async () => {
+    // Inicializar monedas predeterminadas
+    await initializeMonedas();
+    
     app.listen(PORT, () => {
       console.log(`Servidor corriendo en el puerto ${PORT}`);
       console.log(`Frontend URL configurada: ${process.env.FRONTEND_URL}`);

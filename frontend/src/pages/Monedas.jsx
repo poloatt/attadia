@@ -121,7 +121,7 @@ export function Monedas() {
             </TableHead>
             <TableBody>
               {monedas.map((moneda) => (
-                <TableRow key={moneda.id}>
+                <TableRow key={moneda._id}>
                   <TableCell>{moneda.codigo}</TableCell>
                   <TableCell>{moneda.nombre}</TableCell>
                   <TableCell>{moneda.simbolo}</TableCell>
