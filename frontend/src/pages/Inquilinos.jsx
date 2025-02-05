@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Container, 
   Button, 
@@ -10,8 +10,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  Chip
+  Paper
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
@@ -28,27 +27,76 @@ import {
 
 export function Inquilinos() {
   const [inquilinos, setInquilinos] = useState([]);
+  const [propiedades, setPropiedades] = useState([]);
+  const [contratos, setContratos] = useState([]);
+  const [monedas, setMonedas] = useState([]);
+  const [formData, setFormData] = useState({});
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
   const { enqueueSnackbar } = useSnackbar();
 
+  // Efecto para cargar datos iniciales
   useEffect(() => {
     fetchInquilinos();
+    fetchRelatedData();
   }, []);
 
-  const fetchInquilinos = async () => {
+  // Función para cargar inquilinos
+  const fetchInquilinos = useCallback(async () => {
     try {
       const response = await clienteAxios.get('/inquilinos');
       setInquilinos(response.data);
     } catch (error) {
       console.error('Error al cargar inquilinos:', error);
       enqueueSnackbar('Error al cargar inquilinos', { variant: 'error' });
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [enqueueSnackbar]);
 
-  const handleFormSubmit = async (formData) => {
+  // Función para cargar datos relacionados
+  const fetchRelatedData = useCallback(async () => {
+    try {
+      const [propiedadesRes, contratosRes, monedasRes] = await Promise.all([
+        clienteAxios.get('/propiedades'),
+        clienteAxios.get('/contratos'),
+        clienteAxios.get('/monedas')
+      ]);
+      setPropiedades(propiedadesRes.data);
+      setContratos(contratosRes.data);
+      setMonedas(monedasRes.data);
+    } catch (error) {
+      console.error('Error al cargar datos relacionados:', error);
+      enqueueSnackbar('Error al cargar datos relacionados', { variant: 'error' });
+    }
+  }, [enqueueSnackbar]);
+
+  // Función para crear una nueva propiedad
+  const handleCreatePropiedad = useCallback(async (formData) => {
+    try {
+      const response = await clienteAxios.post('/propiedades', formData);
+      setPropiedades(prev => [...prev, response.data]);
+      return response.data;
+    } catch (error) {
+      console.error('Error al crear propiedad:', error);
+      throw error;
+    }
+  }, []);
+
+  // Función para crear un nuevo contrato
+  const handleCreateContrato = useCallback(async (data) => {
+    try {
+      const response = await clienteAxios.post('/contratos', {
+        ...data,
+        propiedadId: formData.propiedadId
+      });
+      setContratos(prev => [...prev, response.data]);
+      return response.data;
+    } catch (error) {
+      console.error('Error al crear contrato:', error);
+      throw error;
+    }
+  }, [formData.propiedadId]);
+
+  // Función para manejar el envío del formulario
+  const handleFormSubmit = useCallback(async (formData) => {
     try {
       const response = await clienteAxios.post('/inquilinos', formData);
       if (response.status === 201) {
@@ -60,8 +108,9 @@ export function Inquilinos() {
       console.error('Error:', error);
       enqueueSnackbar(error.response?.data?.error || 'Error al crear inquilino', { variant: 'error' });
     }
-  };
+  }, [enqueueSnackbar, fetchInquilinos]);
 
+  // Configuración de campos del formulario
   const formFields = [
     {
       name: 'nombre',
@@ -98,6 +147,9 @@ export function Inquilinos() {
         value: p.id,
         label: p.titulo
       })),
+      onChange: async (value) => {
+        setFormData(prev => ({ ...prev, propiedadId: value }));
+      },
       onCreateNew: handleCreatePropiedad,
       createButtonText: 'Crear Nueva Propiedad',
       createTitle: 'Nueva Propiedad',
@@ -129,7 +181,7 @@ export function Inquilinos() {
         { 
           name: 'monedaId', 
           label: 'Moneda',
-          type: 'relational',
+          type: 'select',
           required: true,
           options: monedas.map(m => ({
             value: m.id,
@@ -233,4 +285,4 @@ export function Inquilinos() {
   );
 }
 
-export default Inquilinos; 
+export default Inquilinos;

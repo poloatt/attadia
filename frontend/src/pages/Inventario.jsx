@@ -33,6 +33,7 @@ export function Inventario() {
   const [habitaciones, setHabitaciones] = useState([]);
   const [propiedades, setPropiedades] = useState([]);
   const [habitacionesDisponibles, setHabitacionesDisponibles] = useState([]);
+  const [formData, setFormData] = useState({});
 
   useEffect(() => {
     fetchInventario();
@@ -110,6 +111,7 @@ export function Inventario() {
         // Cargar habitaciones de la propiedad seleccionada
         const response = await clienteAxios.get(`/habitaciones?propiedadId=${value}`);
         setHabitacionesDisponibles(response.data);
+        setFormData(prev => ({ ...prev, propiedadId: value }));
       }
     },
     {

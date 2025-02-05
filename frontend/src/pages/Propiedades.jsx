@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Box, 
   Button, 
@@ -64,14 +64,13 @@ export function Propiedades() {
   const [cuentas, setCuentas] = useState([]);
   const [loadingRelated, setLoadingRelated] = useState(true);
 
-  // Definir la función fetchPropiedades fuera del useEffect
-  const fetchPropiedades = async () => {
+  // Función para cargar propiedades
+  const fetchPropiedades = useCallback(async () => {
     try {
       setLoading(true);
       console.log('Solicitando propiedades...');
       
       const response = await clienteAxios.get('/propiedades');
-
       console.log('Respuesta recibida:', response.data);
       setPropiedades(response.data);
       setFilteredPropiedades(response.data);
@@ -83,33 +82,32 @@ export function Propiedades() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [enqueueSnackbar]);
 
+  // Función para cargar datos relacionados
+  const fetchRelatedData = useCallback(async () => {
+    try {
+      setLoadingRelated(true);
+      const [monedasRes, cuentasRes] = await Promise.all([
+        clienteAxios.get('/monedas'),
+        clienteAxios.get('/cuentas')
+      ]);
+
+      setMonedas(monedasRes.data);
+      setCuentas(cuentasRes.data);
+    } catch (error) {
+      console.error('Error al cargar datos relacionados:', error);
+      enqueueSnackbar('Error al cargar datos relacionados', { variant: 'error' });
+    } finally {
+      setLoadingRelated(false);
+    }
+  }, [enqueueSnackbar]);
+
+  // Efecto para cargar datos iniciales
   useEffect(() => {
     fetchPropiedades();
-  }, []);
-
-  useEffect(() => {
-    const fetchRelatedData = async () => {
-      try {
-        setLoadingRelated(true);
-        const [monedasRes, cuentasRes] = await Promise.all([
-          clienteAxios.get('/monedas'),
-          clienteAxios.get('/cuentas')
-        ]);
-
-        setMonedas(monedasRes.data);
-        setCuentas(cuentasRes.data);
-      } catch (error) {
-        console.error('Error al cargar datos relacionados:', error);
-        enqueueSnackbar('Error al cargar datos relacionados', { variant: 'error' });
-      } finally {
-        setLoadingRelated(false);
-      }
-    };
-
     fetchRelatedData();
-  }, [enqueueSnackbar]);
+  }, [fetchPropiedades, fetchRelatedData]);
 
   const handleDelete = async (id) => {
     try {
@@ -125,7 +123,6 @@ export function Propiedades() {
   const handleEdit = (id) => {
     const propiedad = propiedades.find(p => p.id === id);
     if (propiedad) {
-      // Asegurarse de que todos los campos numéricos sean strings para el formulario
       setFormData({
         ...propiedad,
         precio: propiedad.precio.toString(),
@@ -274,60 +271,22 @@ export function Propiedades() {
     {
       name: 'monedaId',
       label: 'Moneda',
-      component: 'creatable',
+      type: 'select',
       required: true,
-      variant: 'buttons',
-      displaySymbol: true,
       options: monedas.map(m => ({
         value: m.id,
-        label: `${m.nombre} (${m.simbolo})`,
-        simbolo: m.simbolo
-      })),
-      onCreateNew: handleCreateMoneda,
-      createFields: [
-        { name: 'codigo', label: 'Código', required: true },
-        { name: 'nombre', label: 'Nombre', required: true },
-        { name: 'simbolo', label: 'Símbolo', required: true }
-      ],
-      createTitle: 'Nueva Moneda'
+        label: `${m.nombre} (${m.simbolo})`
+      }))
     },
     {
       name: 'cuentaId',
       label: 'Cuenta',
-      component: 'creatable',
+      type: 'select',
       required: true,
-      variant: 'select',
       options: cuentas.map(c => ({
         value: c.id,
-        label: `${c.nombre} - ${c.numero}`
-      })),
-      onCreateNew: handleCreateCuenta,
-      createFields: [
-        { name: 'nombre', label: 'Nombre', required: true },
-        { name: 'numero', label: 'Número', required: true },
-        { 
-          name: 'tipo', 
-          label: 'Tipo', 
-          type: 'select', 
-          required: true,
-          options: ['EFECTIVO', 'BANCO', 'MERCADO_PAGO', 'CRIPTO', 'OTRO'].map(t => ({
-            value: t,
-            label: t.replace('_', ' ')
-          }))
-        },
-        { 
-          name: 'monedaId', 
-          label: 'Moneda', 
-          isMonedaField: true,
-          required: true,
-          options: monedas.map(m => ({
-            value: m.id,
-            label: `${m.nombre} (${m.simbolo})`,
-            simbolo: m.simbolo
-          }))
-        }
-      ],
-      createTitle: 'Nueva Cuenta'
+        label: c.nombre
+      }))
     }
   ];
 

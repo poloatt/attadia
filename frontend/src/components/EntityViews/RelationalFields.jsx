@@ -68,7 +68,7 @@ export const RelationalField = memo(({
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
-      const newItem = await onCreateNew(createFormData);
+      const newItem = await onCreateNew(createFormData, field.name);
       onChange({ target: { name: field.name, value: newItem.id } });
       setIsCreating(false);
       setCreateFormData({});

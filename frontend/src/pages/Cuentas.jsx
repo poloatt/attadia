@@ -67,6 +67,12 @@ export function Cuentas() {
     }
   }, [cuentas]);
 
+  useEffect(() => {
+    fetchMonedas();
+  }, [fetchMonedas]);
+
+  console.log(monedas);
+
   const handleCreateMoneda = async (data) => {
     try {
       const response = await clienteAxios.post('/monedas', data);
@@ -132,22 +138,20 @@ export function Cuentas() {
     {
       name: 'monedaId',
       label: 'Moneda',
-      type: 'creatable',
+      type: 'select',
       required: true,
-      variant: 'buttons',
-      displaySymbol: true,
       options: monedas.map(m => ({
         value: m.id,
-        label: `${m.nombre} (${m.simbolo})`,
-        simbolo: m.simbolo
+        label: `${m.nombre} (${m.simbolo})`
       })),
       onCreateNew: handleCreateMoneda,
+      createButtonText: 'Crear Nueva Moneda',
+      createTitle: 'Nueva Moneda',
       createFields: [
         { name: 'codigo', label: 'Código', required: true },
         { name: 'nombre', label: 'Nombre', required: true },
         { name: 'simbolo', label: 'Símbolo', required: true }
-      ],
-      createTitle: 'Nueva Moneda'
+      ]
     }
   ];
 

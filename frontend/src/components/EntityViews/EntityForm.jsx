@@ -1,64 +1,46 @@
-import React, { useState, useEffect, memo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
+  DialogActions as MuiDialogActions,
   Button,
-  TextField,
   Box,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
   Typography,
   IconButton
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import { RelationalField } from './RelationalFields';
+import { useFormFields } from './hooks/useFormFields';
+import { FormField } from './FormField';
+import { useRelationalData } from './hooks/useRelationalData';
 
-// Componente para el campo de texto base
-const FormTextField = memo(({ field, value, onChange }) => (
-  <TextField
-    name={field.name}
-    label={field.label}
-    value={value ?? ''}
-    onChange={onChange}
-    fullWidth
-    margin="normal"
-    required={field.required}
-    multiline={field.multiline}
-    rows={field.rows}
-    type={field.type}
-    size="small"
-    InputLabelProps={field.type === 'date' ? { shrink: true } : undefined}
-  />
+const DialogHeader = memo(({ title, onClose }) => (
+  <DialogTitle sx={{ px: 3, py: 2 }}>
+    <Box sx={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between'
+    }}>
+      <Typography variant="h6">{title}</Typography>
+      <IconButton
+        onClick={onClose}
+        size="small"
+        sx={{ color: 'text.secondary' }}
+      >
+        <CloseIcon />
+      </IconButton>
+    </Box>
+  </DialogTitle>
 ));
 
-// Componente para el campo select
-const FormSelectField = memo(({ field, value, onChange }) => (
-  <FormControl fullWidth margin="normal" size="small">
-    <InputLabel>{field.label}</InputLabel>
-    <Select
-      name={field.name}
-      value={value ?? ''}
-      onChange={onChange}
-      label={field.label}
-      required={field.required}
-    >
-      {field.options?.map((option, index) => (
-        <MenuItem 
-          key={`${field.name}-${option.value}-${index}`} 
-          value={option.value}
-        >
-          {option.label}
-        </MenuItem>
-      ))}
-    </Select>
-  </FormControl>
+const CustomDialogActions = memo(({ onClose }) => (
+  <MuiDialogActions sx={{ px: 3, py: 2 }}>
+    <Button onClick={onClose} type="button">
+      Cancelar
+    </Button>
+  </MuiDialogActions>
 ));
 
-// Componente principal del formulario
 const EntityForm = ({ 
   open, 
   onClose, 
@@ -69,74 +51,76 @@ const EntityForm = ({
   relatedFields = [],
   onFetchRelatedData = async () => ({})
 }) => {
-  const [formData, setFormData] = useState({});
-  const [relatedData, setRelatedData] = useState({});
+  // Custom hooks para manejar la lógica del formulario
+  const {
+    formData,
+    handleChange,
+    resetForm,
+    validateForm
+  } = useFormFields(initialData);
 
-  // Efecto para cargar datos relacionados
-  useEffect(() => {
-    let isMounted = true;
+  const {
+    relatedData,
+    isLoading,
+    error
+  } = useRelationalData({
+    open,
+    relatedFields,
+    onFetchRelatedData
+  });
 
-    const fetchData = async () => {
-      if (!open || !relatedFields.length) return;
-      
-      try {
-        const data = await onFetchRelatedData();
-        if (isMounted) {
-          setRelatedData(data);
-        }
-      } catch (error) {
-        console.error('Error al cargar datos relacionados:', error);
-      }
-    };
-
-    fetchData();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [open, relatedFields.length, onFetchRelatedData]);
-
-  // Efecto para inicializar el formulario
+  // Efecto para resetear el formulario cuando se abre/cierra
   useEffect(() => {
     if (open) {
-      setFormData(initialData || {});
+      resetForm(initialData);
     }
-  }, [open, initialData]);
+  }, [open, initialData, resetForm]);
 
-  const handleChange = useCallback((event) => {
-    const { name, value } = event.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value === '' ? null : value
-    }));
-  }, []);
-
-  const handleSubmit = useCallback((event) => {
+  // Manejador de envío optimizado
+  const handleSubmit = useCallback(async (event) => {
     event.preventDefault();
-    onSubmit(formData);
-  }, [formData, onSubmit]);
+    
+    const isValid = validateForm();
+    if (!isValid) return;
 
-  const renderField = useCallback((field) => {
-    if (field.type === 'relational' || field.type === 'creatable') {
-      return (
-        <RelationalField
-          field={field}
-          value={formData[field.name]}
-          onChange={handleChange}
-          onCreateNew={field.onCreateNew}
-          relatedData={relatedData}
-        />
-      );
+    try {
+      await onSubmit(formData);
+      onClose();
+    } catch (error) {
+      console.error('Error al guardar:', error);
     }
+  }, [formData, onSubmit, onClose, validateForm]);
 
-    return (
-      <FormTextField
+  const handleCreateNew = async (data, fieldName) => {
+    try {
+      const newItem = await onCreateNew(data);
+      // Actualiza los datos relacionados después de crear un nuevo registro
+      const updatedData = await onFetchRelatedData();
+      setRelatedData(prev => ({
+        ...prev,
+        [fieldName]: updatedData[fieldName]
+      }));
+      return newItem;
+    } catch (error) {
+      console.error('Error al crear nuevo registro:', error);
+      throw error;
+    }
+  };
+
+  // Campos del formulario memorizados
+  const formFields = useMemo(() => (
+    fields.map(field => (
+      <FormField
+        key={field.name}
         field={field}
         value={formData[field.name]}
         onChange={handleChange}
+        relatedData={relatedData}
+        error={error}
+        onCreateNew={handleCreateNew}
       />
-    );
-  }, [formData, handleChange, relatedData]);
+    ))
+  ), [fields, formData, handleChange, relatedData, error]);
 
   return (
     <Dialog
@@ -152,44 +136,31 @@ const EntityForm = ({
         }
       }}
     >
-      <DialogTitle sx={{ px: 3, py: 2 }}>
-        <Box sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <Typography variant="h6">
-            {title}
-          </Typography>
-          <IconButton
-            onClick={onClose}
-            size="small"
-            sx={{ color: 'text.secondary' }}
-          >
-            <CloseIcon />
-          </IconButton>
-        </Box>
-      </DialogTitle>
-
+      <DialogHeader title={title} onClose={onClose} />
+      
       <form onSubmit={handleSubmit}>
-        <DialogContent sx={{ px: 3, py: 2 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            {fields.map(field => (
-              <Box key={field.name}>
-                {renderField(field)}
-              </Box>
-            ))}
+        <DialogContent 
+          sx={{ 
+            px: 3, 
+            py: 2,
+            ...(isLoading && { 
+              opacity: 0.7,
+              pointerEvents: 'none' 
+            })
+          }}
+        >
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: 1 
+            }}
+          >
+            {formFields}
           </Box>
         </DialogContent>
 
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={onClose} type="button">
-            Cancelar
-          </Button>
-          <Button type="submit" variant="contained">
-            Guardar
-          </Button>
-        </DialogActions>
+        <CustomDialogActions onClose={onClose} />
       </form>
     </Dialog>
   );

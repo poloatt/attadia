@@ -38,8 +38,9 @@ export function Transacciones() {
       setMonedas(response.data);
     } catch (error) {
       console.error('Error al cargar monedas:', error);
+      enqueueSnackbar('Error al cargar monedas', { variant: 'error' });
     }
-  }, []);
+  }, [enqueueSnackbar]);
 
   const fetchCuentas = useCallback(async () => {
     try {
@@ -47,8 +48,9 @@ export function Transacciones() {
       setCuentas(response.data);
     } catch (error) {
       console.error('Error al cargar cuentas:', error);
+      enqueueSnackbar('Error al cargar cuentas', { variant: 'error' });
     }
-  }, []);
+  }, [enqueueSnackbar]);
 
   const fetchInitialData = useCallback(async () => {
     try {
@@ -185,14 +187,11 @@ export function Transacciones() {
     {
       name: 'monedaId',
       label: 'Moneda',
-      type: 'creatable',
+      type: 'select',
       required: true,
-      variant: 'buttons',
-      displaySymbol: true,
       options: monedas.map(m => ({
         value: m.id,
-        label: `${m.nombre} (${m.simbolo})`,
-        simbolo: m.simbolo
+        label: `${m.nombre} (${m.simbolo})`
       })),
       onCreateNew: handleCreateMoneda,
       createFields: [
@@ -205,9 +204,8 @@ export function Transacciones() {
     {
       name: 'cuentaId',
       label: 'Cuenta',
-      type: 'creatable',
+      type: 'select',
       required: true,
-      variant: 'select',
       options: cuentas.map(c => ({
         value: c.id,
         label: c.nombre
