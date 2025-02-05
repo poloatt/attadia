@@ -28,14 +28,14 @@ function AuthCallback() {
           const errorMessage = ERROR_MESSAGES[error] || ERROR_MESSAGES.default;
           console.error('Error de autenticación:', error);
           toast.error(errorMessage);
-          navigate('/login');
+          navigate('/auth/login');
           return;
         }
 
         if (!token) {
           console.error('No se recibió token');
           toast.error(ERROR_MESSAGES.token_missing);
-          navigate('/login');
+          navigate('/auth/login');
           return;
         }
 
@@ -49,13 +49,13 @@ function AuthCallback() {
         }
 
         toast.success('¡Bienvenido!');
-        navigate('/dashboard', { replace: true });
+        navigate('/', { replace: true });
       } catch (error) {
         console.error('Error en el callback:', error);
         toast.error('Error al procesar la autenticación');
         localStorage.removeItem('token');
         delete clienteAxios.defaults.headers.common['Authorization'];
-        navigate('/login');
+        navigate('/auth/login');
       }
     };
 

@@ -39,8 +39,7 @@ function App() {
           {/* Rutas protegidas */}
           <Route element={<PrivateRoute />}>
             <Route element={<Layout />}>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/" element={<Dashboard />} />
               <Route path="/propiedades" element={<Propiedades />} />
               <Route path="/perfil" element={<Perfil />} />
               <Route path="/transacciones" element={<Transacciones />} />
