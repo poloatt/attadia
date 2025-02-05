@@ -1,109 +1,80 @@
-import { Rutinas } from '../models/index.js';
+import { Rutinas } from '../models/Rutinas.js';
 
 export const rutinasController = {
   getAll: async (req, res) => {
     try {
       const rutinas = await Rutinas.find({ usuario: req.user.id })
-        .populate('propiedad')
-        .sort({ fechaInicio: 'desc' });
+        .sort({ fecha: -1 });
       res.json(rutinas);
     } catch (error) {
       console.error('Error al obtener rutinas:', error);
-      res.status(500).json({ error: 'Error al obtener rutinas' });
+      res.status(500).json({ msg: 'Hubo un error al obtener las rutinas' });
     }
   },
 
   create: async (req, res) => {
     try {
-      const {
-        nombre,
-        descripcion,
-        tipo,
-        frecuencia,
-        fechaInicio,
-        fechaFin,
-        propiedadId
-      } = req.body;
+      const { weight, muscle, fatPercent, stress, sleep, completitud } = req.body;
 
-      const rutina = await Rutinas.create({
-        nombre,
-        descripcion,
-        tipo,
-        frecuencia,
-        fechaInicio: new Date(fechaInicio),
-        fechaFin: fechaFin ? new Date(fechaFin) : null,
-        propiedad: propiedadId,
+      const nuevaRutina = new Rutinas({
+        weight,
+        muscle,
+        fatPercent,
+        stress,
+        sleep,
+        completitud,
         usuario: req.user.id
       });
 
-      const rutinaPopulada = await rutina.populate('propiedad');
-      res.status(201).json(rutinaPopulada);
+      await nuevaRutina.save();
+      res.json(nuevaRutina);
     } catch (error) {
       console.error('Error al crear rutina:', error);
-      res.status(500).json({ error: 'Error al crear rutina' });
+      res.status(500).json({ msg: 'Hubo un error al crear la rutina' });
     }
   },
 
   getById: async (req, res) => {
     try {
-      const { id } = req.params;
-      const rutina = await Rutinas.findOne({ 
-        _id: id, 
-        usuario: req.user.id 
-      }).populate('propiedad');
-      
+      const rutina = await Rutinas.findById(req.params.id);
       if (!rutina) {
-        return res.status(404).json({ error: 'Rutina no encontrada' });
+        return res.status(404).json({ msg: 'Rutina no encontrada' });
       }
-
       res.json(rutina);
     } catch (error) {
       console.error('Error al obtener rutina:', error);
-      res.status(500).json({ error: 'Error al obtener rutina' });
+      res.status(500).json({ msg: 'Hubo un error al obtener la rutina' });
     }
   },
 
   update: async (req, res) => {
     try {
-      const { id } = req.params;
-      const updateData = { ...req.body };
-
-      if (updateData.fechaInicio) updateData.fechaInicio = new Date(updateData.fechaInicio);
-      if (updateData.fechaFin) updateData.fechaFin = new Date(updateData.fechaFin);
-
-      const rutina = await Rutinas.findOneAndUpdate(
-        { _id: id, usuario: req.user.id },
-        updateData,
+      const { weight, muscle, fatPercent, stress, sleep, completitud } = req.body;
+      const rutina = await Rutinas.findByIdAndUpdate(
+        req.params.id,
+        { weight, muscle, fatPercent, stress, sleep, completitud },
         { new: true }
-      ).populate('propiedad');
-
+      );
       if (!rutina) {
-        return res.status(404).json({ error: 'Rutina no encontrada' });
+        return res.status(404).json({ msg: 'Rutina no encontrada' });
       }
-
       res.json(rutina);
     } catch (error) {
       console.error('Error al actualizar rutina:', error);
-      res.status(500).json({ error: 'Error al actualizar rutina' });
+      res.status(500).json({ msg: 'Hubo un error al actualizar la rutina' });
     }
   },
 
   delete: async (req, res) => {
     try {
-      const { id } = req.params;
-      const rutina = await Rutinas.findOneAndDelete({
-        _id: id,
-        usuario: req.user.id
-      });
-
+      const rutina = await Rutinas.findByIdAndDelete(req.params.id);
       if (!rutina) {
-        return res.status(404).json({ error: 'Rutina no encontrada' });
+        return res.status(404).json({ msg: 'Rutina no encontrada' });
       }
-
-      res.json({ message: 'Rutina eliminada correctamente' });
+      res.json({ msg: 'Rutina eliminada' });
     } catch (error) {
       console.error('Error al eliminar rutina:', error);
-      res.status(500).json({ error: 'Error al eliminar rutina' });
+      res.status(500).json({ msg: 'Hubo un error al eliminar la rutina' });
     }
   },
 

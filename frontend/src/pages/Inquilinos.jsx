@@ -88,6 +88,55 @@ export function Inquilinos() {
       name: 'telefono',
       label: 'Teléfono',
       required: true
+    },
+    {
+      name: 'propiedadId',
+      label: 'Propiedad',
+      type: 'relational',
+      required: true,
+      options: propiedades.map(p => ({
+        value: p.id,
+        label: p.titulo
+      })),
+      onCreateNew: handleCreatePropiedad,
+      createButtonText: 'Crear Nueva Propiedad',
+      createTitle: 'Nueva Propiedad',
+      createFields: [
+        { name: 'titulo', label: 'Título', required: true },
+        { name: 'descripcion', label: 'Descripción', multiline: true, rows: 3 },
+        { name: 'direccion', label: 'Dirección', required: true },
+        { name: 'ciudad', label: 'Ciudad', required: true },
+        { name: 'estado', label: 'Estado', required: true }
+      ]
+    },
+    {
+      name: 'contratoId',
+      label: 'Contrato',
+      type: 'relational',
+      required: true,
+      options: contratos.filter(c => c.propiedadId === formData.propiedadId).map(c => ({
+        value: c.id,
+        label: `Contrato ${c.fechaInicio} - ${c.fechaFin}`
+      })),
+      disabled: !formData.propiedadId,
+      onCreateNew: handleCreateContrato,
+      createButtonText: 'Crear Nuevo Contrato',
+      createTitle: 'Nuevo Contrato',
+      createFields: [
+        { name: 'fechaInicio', label: 'Fecha de Inicio', type: 'date', required: true },
+        { name: 'fechaFin', label: 'Fecha de Fin', type: 'date', required: true },
+        { name: 'montoAlquiler', label: 'Monto del Alquiler', type: 'number', required: true },
+        { 
+          name: 'monedaId', 
+          label: 'Moneda',
+          type: 'relational',
+          required: true,
+          options: monedas.map(m => ({
+            value: m.id,
+            label: `${m.nombre} (${m.simbolo})`
+          }))
+        }
+      ]
     }
   ];
 

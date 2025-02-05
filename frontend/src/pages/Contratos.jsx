@@ -33,6 +33,7 @@ export function Contratos() {
   const { enqueueSnackbar } = useSnackbar();
   const [inquilinos, setInquilinos] = useState([]);
   const [propiedades, setPropiedades] = useState([]);
+  const [monedas, setMonedas] = useState([]);
 
   useEffect(() => {
     fetchContratos();
@@ -53,12 +54,14 @@ export function Contratos() {
 
   const fetchRelatedData = async () => {
     try {
-      const [inquilinosRes, propiedadesRes] = await Promise.all([
+      const [inquilinosRes, propiedadesRes, monedasRes] = await Promise.all([
         clienteAxios.get('/inquilinos'),
-        clienteAxios.get('/propiedades')
+        clienteAxios.get('/propiedades'),
+        clienteAxios.get('/monedas')
       ]);
       setInquilinos(inquilinosRes.data);
       setPropiedades(propiedadesRes.data);
+      setMonedas(monedasRes.data);
     } catch (error) {
       console.error('Error al cargar datos relacionados:', error);
       enqueueSnackbar('Error al cargar datos relacionados', { variant: 'error' });
@@ -79,26 +82,102 @@ export function Contratos() {
     }
   };
 
+  const handleCreateInquilino = async (formData) => {
+    try {
+      const response = await clienteAxios.post('/inquilinos', formData);
+      await fetchRelatedData(); // Recargar los inquilinos
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const handleCreatePropiedad = async (formData) => {
+    try {
+      const response = await clienteAxios.post('/propiedades', formData);
+      await fetchRelatedData(); // Recargar las propiedades
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const formFields = [
     {
-      name: 'inquilinoId',
-      label: 'Inquilino',
-      type: 'select',
+      name: 'inquilinosIds',
+      label: 'Inquilinos',
+      type: 'relational',
+      multiple: true,
       required: true,
       options: inquilinos.map(i => ({
         value: i.id,
         label: `${i.nombre} ${i.apellido}`
-      }))
+      })),
+      onCreateNew: handleCreateInquilino,
+      createButtonText: 'Crear Nuevo Inquilino',
+      createTitle: 'Nuevo Inquilino',
+      createFields: [
+        { name: 'nombre', label: 'Nombre', required: true },
+        { name: 'apellido', label: 'Apellido', required: true },
+        { name: 'dni', label: 'DNI', required: true },
+        { name: 'email', label: 'Email', type: 'email', required: true },
+        { name: 'telefono', label: 'Teléfono', required: true }
+      ]
     },
     {
       name: 'propiedadId',
       label: 'Propiedad',
-      type: 'select',
+      type: 'relational',
       required: true,
       options: propiedades.map(p => ({
         value: p.id,
         label: p.titulo
-      }))
+      })),
+      onCreateNew: handleCreatePropiedad,
+      createButtonText: 'Crear Nueva Propiedad',
+      createTitle: 'Nueva Propiedad',
+      createFields: [
+        { name: 'titulo', label: 'Título', required: true },
+        { name: 'descripcion', label: 'Descripción', multiline: true, rows: 3 },
+        { name: 'direccion', label: 'Dirección', required: true },
+        { name: 'ciudad', label: 'Ciudad', required: true },
+        { name: 'estado', label: 'Estado', required: true }
+      ]
+    },
+    {
+      name: 'transaccionesRecurrentes',
+      label: 'Transacciones Recurrentes',
+      type: 'array',
+      required: true,
+      fields: [
+        {
+          name: 'concepto',
+          label: 'Concepto',
+          required: true
+        },
+        {
+          name: 'monto',
+          label: 'Monto',
+          type: 'number',
+          required: true
+        },
+        {
+          name: 'diaVencimiento',
+          label: 'Día de Vencimiento',
+          type: 'number',
+          required: true
+        },
+        {
+          name: 'monedaId',
+          label: 'Moneda',
+          type: 'relational',
+          required: true,
+          options: monedas.map(m => ({
+            value: m.id,
+            label: `${m.nombre} (${m.simbolo})`
+          }))
+        }
+      ]
     },
     {
       name: 'fechaInicio',

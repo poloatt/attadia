@@ -1,39 +1,32 @@
 import mongoose from 'mongoose';
 
 const labSchema = new mongoose.Schema({
-  usuario: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  nombre: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  descripcion: String,
   tipo: {
     type: String,
-    enum: ['EXPERIMENTO', 'PROTOTIPO', 'PRUEBA'],
     required: true
   },
-  estado: {
+  valor: {
+    type: Number,
+    required: true
+  },
+  unidad: {
     type: String,
-    enum: ['ACTIVO', 'PAUSADO', 'COMPLETADO', 'CANCELADO'],
-    default: 'ACTIVO'
+    required: true
   },
-  resultados: [{
-    fecha: Date,
-    datos: mongoose.Schema.Types.Mixed,
-    notas: String
-  }],
-  configuracion: {
-    type: mongoose.Schema.Types.Mixed,
-    default: {}
+  notas: {
+    type: String
   },
-  etiquetas: [String]
+  fecha: {
+    type: Date,
+    default: Date.now
+  },
+  usuario: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Usuario',
+    required: true
+  }
 }, {
   timestamps: true
 });
 
-export const Labs = mongoose.model('Lab', labSchema); 
+export const Labs = mongoose.model('Labs', labSchema);

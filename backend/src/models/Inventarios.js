@@ -12,7 +12,6 @@ const inventarioSchema = new mongoose.Schema({
     default: 0
   },
   categoria: String,
-  ubicacion: String,
   estado: {
     type: String,
     enum: ['DISPONIBLE', 'EN_USO', 'MANTENIMIENTO', 'BAJA'],
@@ -23,12 +22,39 @@ const inventarioSchema = new mongoose.Schema({
     ref: 'Users',
     required: true
   },
+  habitacion: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Habitaciones',
+    required: true
+  },
   propiedad: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Propiedades'
+    ref: 'Propiedades',
+    required: true
   }
 }, {
   timestamps: true
+});
+
+// Middleware para validar que la habitación pertenezca a la propiedad
+inventarioSchema.pre('save', async function(next) {
+  if (this.isNew || this.isModified('habitacion') || this.isModified('propiedad')) {
+    try {
+      const Habitaciones = mongoose.model('Habitaciones');
+      const habitacion = await Habitaciones.findById(this.habitacion);
+      
+      if (!habitacion) {
+        throw new Error('La habitación especificada no existe');
+      }
+      
+      if (habitacion.propiedad.toString() !== this.propiedad.toString()) {
+        throw new Error('La habitación debe pertenecer a la propiedad especificada');
+      }
+    } catch (error) {
+      next(error);
+    }
+  }
+  next();
 });
 
 export const Inventarios = mongoose.model('Inventarios', inventarioSchema); 

@@ -51,7 +51,8 @@ export const authController = {
       user = await Users.create({
         nombre,
         email,
-        password: hashedPassword
+        password: hashedPassword,
+        role: 'USER'
       });
 
       // Generar tokens

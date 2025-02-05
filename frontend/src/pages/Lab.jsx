@@ -7,7 +7,8 @@ import {
 } from '@mui/icons-material';
 import { 
   Button, Table, TableBody, TableCell, TableContainer, 
-  TableHead, TableRow, Paper 
+  TableHead, TableRow, Paper, Dialog, DialogTitle,
+  DialogContent, DialogActions, TextField, MenuItem
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EntityDetails from '../components/EntityViews/EntityDetails';
@@ -15,6 +16,13 @@ import clienteAxios from '../config/axios';
 
 export default function Lab() {
   const [resultados, setResultados] = useState([]);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [nuevoResultado, setNuevoResultado] = useState({
+    tipo: '',
+    valor: '',
+    unidad: '',
+    notas: ''
+  });
 
   useEffect(() => {
     fetchResultados();
@@ -22,17 +30,68 @@ export default function Lab() {
 
   const fetchResultados = async () => {
     try {
-      const response = await clienteAxios.get('/lab');
+      const response = await clienteAxios.get('/labs');
       setResultados(response.data);
     } catch (error) {
       console.error('Error al cargar resultados:', error);
     }
   };
 
+  const handleOpenDialog = () => {
+    setOpenDialog(true);
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setNuevoResultado({
+      tipo: '',
+      valor: '',
+      unidad: '',
+      notas: ''
+    });
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNuevoResultado(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async () => {
+    try {
+      await clienteAxios.post('/labs', nuevoResultado);
+      handleCloseDialog();
+      fetchResultados();
+    } catch (error) {
+      console.error('Error al crear resultado:', error);
+    }
+  };
+
+  const tiposLab = [
+    'Glucosa',
+    'Colesterol',
+    'Triglicéridos',
+    'HDL',
+    'LDL',
+    'Hemoglobina',
+    'Otro'
+  ];
+
+  const unidadesLab = [
+    'mg/dL',
+    'g/dL',
+    'mmol/L',
+    '%',
+    'U/L',
+    'Otro'
+  ];
+
   return (
     <Container maxWidth="lg">
       <EntityToolbar
-        onAdd={() => {}}
+        onAdd={handleOpenDialog}
         navigationItems={[
           {
             icon: <DietaIcon sx={{ fontSize: 20 }} />,
@@ -49,7 +108,12 @@ export default function Lab() {
       <EntityDetails 
         title="Laboratorio"
         action={
-          <Button variant="contained" startIcon={<AddIcon />} size="small">
+          <Button 
+            variant="contained" 
+            startIcon={<AddIcon />} 
+            size="small"
+            onClick={handleOpenDialog}
+          >
             Nuevo Resultado
           </Button>
         }
@@ -79,6 +143,67 @@ export default function Lab() {
           </Table>
         </TableContainer>
       </EntityDetails>
+
+      <Dialog open={openDialog} onClose={handleCloseDialog}>
+        <DialogTitle>Nuevo Resultado de Laboratorio</DialogTitle>
+        <DialogContent>
+          <TextField
+            select
+            fullWidth
+            margin="normal"
+            label="Tipo"
+            name="tipo"
+            value={nuevoResultado.tipo}
+            onChange={handleInputChange}
+          >
+            {tiposLab.map((tipo) => (
+              <MenuItem key={tipo} value={tipo}>
+                {tipo}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            fullWidth
+            margin="normal"
+            label="Valor"
+            name="valor"
+            type="number"
+            value={nuevoResultado.valor}
+            onChange={handleInputChange}
+          />
+          <TextField
+            select
+            fullWidth
+            margin="normal"
+            label="Unidad"
+            name="unidad"
+            value={nuevoResultado.unidad}
+            onChange={handleInputChange}
+          >
+            {unidadesLab.map((unidad) => (
+              <MenuItem key={unidad} value={unidad}>
+                {unidad}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            fullWidth
+            margin="normal"
+            label="Notas"
+            name="notas"
+            multiline
+            rows={3}
+            value={nuevoResultado.notas}
+            onChange={handleInputChange}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Cancelar</Button>
+          <Button onClick={handleSubmit} variant="contained">
+            Guardar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

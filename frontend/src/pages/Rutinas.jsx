@@ -16,7 +16,12 @@ import {
   TableHead, 
   TableRow,
   Paper,
-  Chip
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EntityDetails from '../components/EntityViews/EntityDetails';
@@ -24,9 +29,17 @@ import clienteAxios from '../config/axios';
 
 export function Rutinas() {
   const [rutinas, setRutinas] = useState([]);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [nuevaRutina, setNuevaRutina] = useState({
+    weight: '',
+    muscle: '',
+    fatPercent: '',
+    stress: '',
+    sleep: '',
+    completitud: 0
+  });
 
   useEffect(() => {
-    // TODO: Implementar llamada a la API
     fetchRutinas();
   }, []);
 
@@ -39,6 +52,40 @@ export function Rutinas() {
     }
   };
 
+  const handleOpenDialog = () => {
+    setOpenDialog(true);
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setNuevaRutina({
+      weight: '',
+      muscle: '',
+      fatPercent: '',
+      stress: '',
+      sleep: '',
+      completitud: 0
+    });
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNuevaRutina(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async () => {
+    try {
+      await clienteAxios.post('/rutinas', nuevaRutina);
+      handleCloseDialog();
+      fetchRutinas();
+    } catch (error) {
+      console.error('Error al crear rutina:', error);
+    }
+  };
+
   const getCompletitudColor = (completitud) => {
     if (completitud >= 0.8) return 'success';
     if (completitud >= 0.5) return 'warning';
@@ -48,7 +95,7 @@ export function Rutinas() {
   return (
     <Container maxWidth="lg">
       <EntityToolbar
-        onAdd={() => {}}
+        onAdd={handleOpenDialog}
         navigationItems={[
           {
             icon: <LabIcon sx={{ fontSize: 20 }} />,
@@ -69,6 +116,7 @@ export function Rutinas() {
             variant="contained"
             startIcon={<AddIcon />}
             size="small"
+            onClick={handleOpenDialog}
           >
             Nueva Rutina
           </Button>
@@ -111,6 +159,64 @@ export function Rutinas() {
           </Table>
         </TableContainer>
       </EntityDetails>
+
+      <Dialog open={openDialog} onClose={handleCloseDialog}>
+        <DialogTitle>Nueva Rutina</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            margin="normal"
+            label="Peso (kg)"
+            name="weight"
+            type="number"
+            value={nuevaRutina.weight}
+            onChange={handleInputChange}
+          />
+          <TextField
+            fullWidth
+            margin="normal"
+            label="Músculo (%)"
+            name="muscle"
+            type="number"
+            value={nuevaRutina.muscle}
+            onChange={handleInputChange}
+          />
+          <TextField
+            fullWidth
+            margin="normal"
+            label="Grasa (%)"
+            name="fatPercent"
+            type="number"
+            value={nuevaRutina.fatPercent}
+            onChange={handleInputChange}
+          />
+          <TextField
+            fullWidth
+            margin="normal"
+            label="Estrés (1-10)"
+            name="stress"
+            type="number"
+            inputProps={{ min: 1, max: 10 }}
+            value={nuevaRutina.stress}
+            onChange={handleInputChange}
+          />
+          <TextField
+            fullWidth
+            margin="normal"
+            label="Sueño (hrs)"
+            name="sleep"
+            type="number"
+            value={nuevaRutina.sleep}
+            onChange={handleInputChange}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Cancelar</Button>
+          <Button onClick={handleSubmit} variant="contained">
+            Guardar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

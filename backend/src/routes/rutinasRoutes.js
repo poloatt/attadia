@@ -9,8 +9,12 @@ const router = express.Router();
 
 router.use(checkAuth);
 
+// Rutas para usuarios autenticados
 router.get('/', rutinasController.getAll);
 router.post('/', rutinasController.create);
+router.get('/:id', rutinasController.getById);
+router.put('/:id', rutinasController.update);
+router.delete('/:id', rutinasController.delete);
 
 // Rutas administrativas
 router.get('/admin/all', [checkRole([ROLES.ADMIN])], rutinasController.getAllAdmin);

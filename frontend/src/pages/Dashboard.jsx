@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Container, Grid, Box, Typography, Skeleton, Paper, IconButton, Menu, MenuItem, Collapse } from '@mui/material';
 import { Link } from 'react-router-dom';
 import EntityToolbar from '../components/EntityToolbar';
@@ -57,66 +57,77 @@ export function Dashboard() {
   const [isDaylistOpen, setIsDaylistOpen] = useState(false);
   const [isProjectsOpen, setIsProjectsOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const [propiedadesStats, transaccionesStats] = await Promise.all([
-          clienteAxios.get('/propiedades/stats'),
-          clienteAxios.get('/transacciones/stats')
-        ]);
+  const fetchStats = useCallback(async () => {
+    try {
+      const [propiedadesStats, transaccionesStats] = await Promise.all([
+        clienteAxios.get('/propiedades/stats'),
+        clienteAxios.get('/transacciones/stats')
+      ]);
 
-        const propiedadesData = propiedadesStats.data;
-        const porcentajeOcupacion = propiedadesData.total > 0 
-          ? Math.round((propiedadesData.ocupadas / propiedadesData.total) * 100)
-          : 0;
+      const propiedadesData = propiedadesStats.data;
+      const porcentajeOcupacion = propiedadesData.total > 0 
+        ? Math.round((propiedadesData.ocupadas / propiedadesData.total) * 100)
+        : 0;
 
-        const transaccionesData = transaccionesStats.data;
-        
-        setStats({
-          propiedades: {
-            ...propiedadesData,
-            porcentajeOcupacion
-          },
-          finanzas: transaccionesData
-        });
-      } catch (error) {
-        console.error('Error al cargar estadísticas:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const fetchAccounts = async () => {
-      try {
-        const response = await clienteAxios.get('/cuentas');
-        setAccounts(response.data);
-      } catch (error) {
-        console.error('Error al cargar cuentas:', error);
-      }
-    };
-
-    const fetchInquilinosYContratos = async () => {
-      try {
-        const [inquilinosRes, contratosRes] = await Promise.all([
-          clienteAxios.get('/inquilinos/activos'),
-          clienteAxios.get('/contratos/activos')
-        ]);
-        setInquilinos(inquilinosRes.data);
-        setContratos(contratosRes.data);
-      } catch (error) {
-        console.error('Error al cargar inquilinos y contratos:', {
-          message: error.message,
-          response: error.response?.data,
-          status: error.response?.status
-        });
-        toast.error('Error al cargar los datos. Por favor, intente nuevamente.');
-      }
-    };
-
-    fetchStats();
-    fetchAccounts();
-    fetchInquilinosYContratos();
+      const transaccionesData = transaccionesStats.data;
+      
+      setStats({
+        propiedades: {
+          ...propiedadesData,
+          porcentajeOcupacion
+        },
+        finanzas: transaccionesData
+      });
+    } catch (error) {
+      console.error('Error al cargar estadísticas:', error);
+    }
   }, []);
+
+  const fetchAccounts = useCallback(async () => {
+    try {
+      const response = await clienteAxios.get('/cuentas');
+      setAccounts(response.data);
+    } catch (error) {
+      console.error('Error al cargar cuentas:', error);
+    }
+  }, []);
+
+  const fetchInquilinosYContratos = useCallback(async () => {
+    try {
+      const [inquilinosRes, contratosRes] = await Promise.all([
+        clienteAxios.get('/inquilinos/activos'),
+        clienteAxios.get('/contratos/activos')
+      ]);
+      setInquilinos(inquilinosRes.data);
+      setContratos(contratosRes.data);
+    } catch (error) {
+      console.error('Error al cargar inquilinos y contratos:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      toast.error('Error al cargar los datos. Por favor, intente nuevamente.');
+    }
+  }, []);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      await Promise.all([
+        fetchStats(),
+        fetchAccounts(),
+        fetchInquilinosYContratos()
+      ]);
+    } catch (error) {
+      console.error('Error al cargar datos:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchStats, fetchAccounts, fetchInquilinosYContratos]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handlePeriodClick = () => {
     const periods = [7, 30, 90];

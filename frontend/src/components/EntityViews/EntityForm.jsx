@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -12,383 +12,143 @@ import {
   InputLabel,
   Select,
   Typography,
-  Divider,
-  ToggleButton,
-  ToggleButtonGroup,
   IconButton
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
-import { useSnackbar } from 'notistack';
+import { RelationalField } from './RelationalFields';
 
-// Componente interno para el selector de moneda con botones
-const MonedaSelector = ({ 
-  options, 
-  value, 
-  onChange, 
-  label, 
-  required = false, 
-  displaySymbol = false 
-}) => (
-  <Box sx={{ mb: 2 }}>
-    <Typography 
-      variant="subtitle2" 
-      component="label"
-      sx={{ 
-        color: 'text.secondary',
-        fontSize: '0.875rem'
-      }}
+// Componente para el campo de texto base
+const FormTextField = memo(({ field, value, onChange }) => (
+  <TextField
+    name={field.name}
+    label={field.label}
+    value={value ?? ''}
+    onChange={onChange}
+    fullWidth
+    margin="normal"
+    required={field.required}
+    multiline={field.multiline}
+    rows={field.rows}
+    type={field.type}
+    size="small"
+    InputLabelProps={field.type === 'date' ? { shrink: true } : undefined}
+  />
+));
+
+// Componente para el campo select
+const FormSelectField = memo(({ field, value, onChange }) => (
+  <FormControl fullWidth margin="normal" size="small">
+    <InputLabel>{field.label}</InputLabel>
+    <Select
+      name={field.name}
+      value={value ?? ''}
+      onChange={onChange}
+      label={field.label}
+      required={field.required}
     >
-      {label} {required && '*'}
-    </Typography>
-    <ToggleButtonGroup
-      value={value || ''}
-      exclusive
-      onChange={(e, newValue) => onChange(newValue)}
-      aria-label={label}
-      sx={{ 
-        display: 'flex', 
-        flexWrap: 'wrap', 
-        gap: 0.5, 
-        mt: 1,
-        '& .MuiToggleButton-root': {
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: '4px !important',
-          px: 1.5,
-          py: 0.5,
-          fontSize: '0.875rem',
-          color: 'text.secondary',
-          '&.Mui-selected': {
-            backgroundColor: 'primary.main',
-            color: 'primary.contrastText',
-            '&:hover': {
-              backgroundColor: 'primary.dark'
-            }
-          }
-        }
-      }}
-    >
-      {options.map((option) => (
-        <ToggleButton 
-          key={option.value} 
+      {field.options?.map((option, index) => (
+        <MenuItem 
+          key={`${field.name}-${option.value}-${index}`} 
           value={option.value}
-          aria-label={option.label}
         >
-          {displaySymbol ? option.simbolo : option.label}
-        </ToggleButton>
+          {option.label}
+        </MenuItem>
       ))}
-    </ToggleButtonGroup>
-  </Box>
-);
+    </Select>
+  </FormControl>
+));
 
-// Definimos el componente CreatableSelect
-const CreatableSelect = ({
-  value,
-  onChange,
-  options = [],
-  onCreateNew,
-  createFields = [],
-  createTitle = 'Nuevo Item',
-  label,
-  required = false,
-  variant = 'select',
-  displaySymbol = false
-}) => {
-  const [open, setOpen] = React.useState(false);
-  const [formData, setFormData] = React.useState({});
-
-  const handleOpen = () => setOpen(true);
-  const handleClose = () => {
-    setOpen(false);
-    setFormData({});
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const newItem = await onCreateNew(formData);
-      onChange(newItem.id);
-      handleClose();
-    } catch (error) {
-      console.error('Error al crear:', error);
-    }
-  };
-
-  if (variant === 'buttons') {
-    return (
-      <Box sx={{ mb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {label && (
-            <Typography 
-              variant="subtitle2" 
-              component="label"
-              sx={{ color: 'text.secondary' }}
-            >
-              {label} {required && '*'}
-            </Typography>
-          )}
-        </Box>
-        <ToggleButtonGroup
-          value={value || ''}
-          exclusive
-          onChange={(e, newValue) => onChange(newValue)}
-          aria-label={label}
-          sx={{ 
-            display: 'flex', 
-            flexWrap: 'wrap', 
-            gap: 0.5,
-            mt: 1
-          }}
-        >
-          {options.map((option) => (
-            <ToggleButton 
-              key={option.value} 
-              value={option.value}
-              aria-label={option.label}
-            >
-              {displaySymbol ? option.simbolo : option.label}
-            </ToggleButton>
-          ))}
-        </ToggleButtonGroup>
-        <Button
-          startIcon={<AddIcon />}
-          onClick={handleOpen}
-          sx={{ mt: 1 }}
-          size="small"
-        >
-          Crear Nuevo
-        </Button>
-      </Box>
-    );
-  }
-
-  return (
-    <FormControl fullWidth>
-      <InputLabel>{label}</InputLabel>
-      <Select
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        label={label}
-        required={required}
-      >
-        {options.map((option) => (
-          <MenuItem key={option.value} value={option.value}>
-            {option.label}
-          </MenuItem>
-        ))}
-      </Select>
-      <Button
-        startIcon={<AddIcon />}
-        onClick={handleOpen}
-        sx={{ mt: 1 }}
-        size="small"
-      >
-        Crear Nuevo
-      </Button>
-
-      <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>{createTitle}</DialogTitle>
-        <form onSubmit={handleSubmit}>
-          <DialogContent>
-            {createFields.map((field) => (
-              <TextField
-                key={field.name}
-                label={field.label}
-                required={field.required}
-                fullWidth
-                margin="dense"
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  [field.name]: e.target.value
-                }))}
-              />
-            ))}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleClose}>Cancelar</Button>
-            <Button type="submit" variant="contained">
-              Crear
-            </Button>
-          </DialogActions>
-        </form>
-      </Dialog>
-    </FormControl>
-  );
-};
-
+// Componente principal del formulario
 const EntityForm = ({ 
   open, 
   onClose, 
   onSubmit,
   title,
   fields = [],
-  initialData = {}
+  initialData = {},
+  relatedFields = [],
+  onFetchRelatedData = async () => ({})
 }) => {
-  const [formData, setFormData] = useState(initialData);
-  const { enqueueSnackbar } = useSnackbar();
+  const [formData, setFormData] = useState({});
+  const [relatedData, setRelatedData] = useState({});
 
+  // Efecto para cargar datos relacionados
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchData = async () => {
+      if (!open || !relatedFields.length) return;
+      
+      try {
+        const data = await onFetchRelatedData();
+        if (isMounted) {
+          setRelatedData(data);
+        }
+      } catch (error) {
+        console.error('Error al cargar datos relacionados:', error);
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [open, relatedFields.length, onFetchRelatedData]);
+
+  // Efecto para inicializar el formulario
   useEffect(() => {
     if (open) {
-      setFormData(initialData);
+      setFormData(initialData || {});
     }
-  }, [open, JSON.stringify(initialData)]);
+  }, [open, initialData]);
 
-  const handleChange = (event) => {
+  const handleChange = useCallback((event) => {
     const { name, value } = event.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: value === '' ? null : value
     }));
-  };
+  }, []);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = useCallback((event) => {
     event.preventDefault();
     onSubmit(formData);
-    setFormData({});
-  };
+  }, [formData, onSubmit]);
 
-  const renderField = (field) => {
-    const { 
-      name, 
-      label, 
-      type, 
-      required, 
-      options, 
-      defaultValue, 
-      component,
-      onCreateNew,
-      createFields,
-      createTitle,
-      variant,
-      displaySymbol
-    } = field;
-
-    // Si es un campo creatable, usar CreatableSelect
-    if (component === 'creatable') {
+  const renderField = useCallback((field) => {
+    if (field.type === 'relational' || field.type === 'creatable') {
       return (
-        <CreatableSelect
-          key={name}
-          value={formData[name]}
-          onChange={(value) => handleChange({ target: { name, value } })}
-          options={options}
-          onCreateNew={onCreateNew}
-          createFields={createFields}
-          createTitle={createTitle}
-          label={label}
-          required={required}
-          variant={variant}
-          displaySymbol={displaySymbol}
+        <RelationalField
+          field={field}
+          value={formData[field.name]}
+          onChange={handleChange}
+          onCreateNew={field.onCreateNew}
+          relatedData={relatedData}
         />
       );
     }
 
-    // Para campos select normales
-    if (type === 'select') {
-      return (
-        <FormControl fullWidth>
-          <InputLabel 
-            sx={{ 
-              color: 'text.secondary',
-              '&.Mui-focused': {
-                color: 'primary.main'
-              }
-            }}
-          >
-            {label}
-          </InputLabel>
-          <Select
-            name={name}
-            label={label}
-            value={formData[name] || ''}
-            onChange={handleChange}
-            required={required}
-            sx={{
-              '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'divider'
-              },
-              '&:hover .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'text.secondary'
-              },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'primary.main'
-              }
-            }}
-          >
-            {options?.map(option => (
-              <MenuItem 
-                key={option.value} 
-                value={option.value}
-                sx={{
-                  fontSize: '0.875rem'
-                }}
-              >
-                {option.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      );
-    }
-
-    // Para campos de texto y otros tipos
     return (
-      <TextField
-        name={name}
-        label={label}
-        type={type}
-        fullWidth
-        required={required}
-        value={formData[name] || defaultValue || ''}
+      <FormTextField
+        field={field}
+        value={formData[field.name]}
         onChange={handleChange}
-        sx={{
-          '& .MuiOutlinedInput-root': {
-            fontSize: '0.875rem',
-            '& fieldset': {
-              borderColor: 'divider'
-            },
-            '&:hover fieldset': {
-              borderColor: 'text.secondary'
-            },
-            '&.Mui-focused fieldset': {
-              borderColor: 'primary.main'
-            }
-          },
-          '& .MuiInputLabel-root': {
-            color: 'text.secondary',
-            fontSize: '0.875rem',
-            '&.Mui-focused': {
-              color: 'primary.main'
-            }
-          },
-          '& .MuiInputBase-input': {
-            color: 'text.primary'
-          }
-        }}
       />
     );
-  };
+  }, [formData, handleChange, relatedData]);
 
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      aria-labelledby="form-dialog-title"
-      keepMounted={false}
-      disablePortal={false}
-      BackdropProps={{
-        'aria-hidden': 'false'
-      }}
+      maxWidth="sm"
+      fullWidth
       PaperProps={{
         sx: {
           bgcolor: 'background.default',
           backgroundImage: 'none',
-          borderRadius: 2,
-          width: {
-            xs: '100%',
-            sm: '450px'
-          },
-          maxWidth: '100%'
+          borderRadius: 2
         }
       }}
     >
@@ -398,45 +158,22 @@ const EntityForm = ({
           alignItems: 'center',
           justifyContent: 'space-between'
         }}>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              color: 'text.primary',
-              fontSize: '1.125rem',
-              fontWeight: 500
-            }}
-          >
+          <Typography variant="h6">
             {title}
           </Typography>
           <IconButton
             onClick={onClose}
             size="small"
-            sx={{
-              color: 'text.secondary',
-              '&:hover': { color: 'text.primary' }
-            }}
+            sx={{ color: 'text.secondary' }}
           >
-            <CloseIcon sx={{ fontSize: 20 }} />
+            <CloseIcon />
           </IconButton>
         </Box>
       </DialogTitle>
 
       <form onSubmit={handleSubmit}>
-        <DialogContent 
-          sx={{ 
-            px: 3,
-            py: 2,
-            bgcolor: 'background.paper',
-            borderTop: '1px solid',
-            borderBottom: '1px solid',
-            borderColor: 'divider'
-          }}
-        >
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: 'column',
-            gap: 2.5
-          }}>
+        <DialogContent sx={{ px: 3, py: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             {fields.map(field => (
               <Box key={field.name}>
                 {renderField(field)}
@@ -445,45 +182,11 @@ const EntityForm = ({
           </Box>
         </DialogContent>
 
-        <DialogActions
-          sx={{
-            px: 3,
-            py: 2,
-            gap: 1,
-            justifyContent: 'flex-end'
-          }}
-        >
-          <Button 
-            onClick={onClose}
-            size="small"
-            sx={{ 
-              color: 'text.secondary',
-              fontSize: '0.875rem',
-              fontWeight: 500,
-              '&:hover': { 
-                color: 'text.primary',
-                bgcolor: 'action.hover'
-              }
-            }}
-          >
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={onClose} type="button">
             Cancelar
           </Button>
-          <Button 
-            type="submit" 
-            variant="contained"
-            size="small"
-            sx={{ 
-              px: 2,
-              py: 0.75,
-              fontSize: '0.875rem',
-              fontWeight: 500,
-              bgcolor: 'primary.main',
-              color: 'primary.contrastText',
-              '&:hover': {
-                bgcolor: 'primary.dark'
-              }
-            }}
-          >
+          <Button type="submit" variant="contained">
             Guardar
           </Button>
         </DialogActions>
@@ -492,4 +195,4 @@ const EntityForm = ({
   );
 };
 
-export default EntityForm;
+export default memo(EntityForm);

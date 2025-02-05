@@ -11,6 +11,7 @@ router.use(checkAuth);
 
 // Rutas para usuarios autenticados
 router.get('/', contratosController.getAll);
+router.get('/activos', contratosController.getActivos);
 router.post('/', contratosController.create);
 
 // Rutas que requieren ser dueño del recurso o admin
@@ -23,4 +24,4 @@ router.get('/admin/all', [checkRole([ROLES.ADMIN])], contratosController.getAllA
 router.put('/admin/:id/status', [checkRole([ROLES.ADMIN])], contratosController.updateStatus);
 router.get('/admin/stats', [checkRole([ROLES.ADMIN])], contratosController.getAdminStats);
 
-export default router; 
+export default router;

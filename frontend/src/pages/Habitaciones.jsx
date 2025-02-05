@@ -82,6 +82,16 @@ export function Habitaciones() {
     }
   };
 
+  const handleCreatePropiedad = async (formData) => {
+    try {
+      const response = await clienteAxios.post('/propiedades', formData);
+      await fetchPropiedades(); // Recargar las propiedades
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const formFields = [
     {
       name: 'numero',
@@ -104,12 +114,34 @@ export function Habitaciones() {
     {
       name: 'propiedadId',
       label: 'Propiedad',
-      type: 'select',
+      type: 'relational',
       required: true,
       options: propiedades.map(prop => ({
         value: prop.id,
         label: `${prop.titulo} - ${prop.direccion}`
-      }))
+      })),
+      onCreateNew: handleCreatePropiedad,
+      createButtonText: 'Crear Nueva Propiedad',
+      createTitle: 'Nueva Propiedad',
+      createFields: [
+        { name: 'titulo', label: 'Título', required: true },
+        { name: 'descripcion', label: 'Descripción', multiline: true, rows: 3 },
+        { name: 'direccion', label: 'Dirección', required: true },
+        { name: 'ciudad', label: 'Ciudad', required: true },
+        { name: 'estado', label: 'Estado', required: true },
+        { 
+          name: 'tipo', 
+          label: 'Tipo', 
+          type: 'select',
+          required: true,
+          options: [
+            { value: 'CASA', label: 'Casa' },
+            { value: 'DEPARTAMENTO', label: 'Departamento' },
+            { value: 'OFICINA', label: 'Oficina' },
+            { value: 'LOCAL', label: 'Local' }
+          ]
+        }
+      ]
     },
     {
       name: 'estado',

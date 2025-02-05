@@ -1,39 +1,45 @@
 import mongoose from 'mongoose';
 
 const rutinaSchema = new mongoose.Schema({
+  weight: {
+    type: Number,
+    required: true
+  },
+  muscle: {
+    type: Number,
+    required: true
+  },
+  fatPercent: {
+    type: Number,
+    required: true
+  },
+  stress: {
+    type: Number,
+    required: true,
+    min: 1,
+    max: 10
+  },
+  sleep: {
+    type: Number,
+    required: true
+  },
+  completitud: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 1
+  },
+  fecha: {
+    type: Date,
+    default: Date.now
+  },
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'Usuario',
     required: true
-  },
-  nombre: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  descripcion: String,
-  tipo: {
-    type: String,
-    enum: ['DIARIA', 'SEMANAL', 'MENSUAL', 'PERSONALIZADA'],
-    required: true
-  },
-  frecuencia: {
-    dias: [Number], // 0-6 para días de la semana
-    hora: String,
-    intervalo: Number // Para rutinas personalizadas
-  },
-  activa: {
-    type: Boolean,
-    default: true
-  },
-  ultimaEjecucion: Date,
-  proximaEjecucion: Date,
-  acciones: [{
-    tipo: String,
-    parametros: mongoose.Schema.Types.Mixed
-  }]
+  }
 }, {
   timestamps: true
 });
 
-export const Rutinas = mongoose.model('Rutina', rutinaSchema); 
+export const Rutinas = mongoose.model('Rutinas', rutinaSchema); 

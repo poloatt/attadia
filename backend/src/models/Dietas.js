@@ -1,40 +1,40 @@
 import mongoose from 'mongoose';
 
 const dietaSchema = new mongoose.Schema({
-  usuario: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+  tipo: {
+    type: String,
     required: true
+  },
+  calorias: {
+    type: Number,
+    required: true
+  },
+  proteinas: {
+    type: Number,
+    required: true
+  },
+  carbohidratos: {
+    type: Number,
+    required: true
+  },
+  grasas: {
+    type: Number,
+    required: true
+  },
+  notas: {
+    type: String
   },
   fecha: {
     type: Date,
-    required: true,
     default: Date.now
   },
-  tipo: {
-    type: String,
-    enum: ['DESAYUNO', 'ALMUERZO', 'CENA', 'SNACK'],
+  usuario: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Usuario',
     required: true
-  },
-  nombre: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  descripcion: String,
-  calorias: {
-    type: Number,
-    required: true,
-    min: 0
-  },
-  ingredientes: [{
-    nombre: String,
-    cantidad: Number,
-    unidad: String
-  }],
-  notas: String
+  }
 }, {
   timestamps: true
 });
 
-export const Dietas = mongoose.model('Dieta', dietaSchema); 
+export const Dietas = mongoose.model('Dietas', dietaSchema); 

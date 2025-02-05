@@ -30,9 +30,14 @@ export function Inventario() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const { enqueueSnackbar } = useSnackbar();
+  const [habitaciones, setHabitaciones] = useState([]);
+  const [propiedades, setPropiedades] = useState([]);
+  const [habitacionesDisponibles, setHabitacionesDisponibles] = useState([]);
 
   useEffect(() => {
     fetchInventario();
+    fetchHabitaciones();
+    fetchPropiedades();
   }, []);
 
   const fetchInventario = async () => {
@@ -44,6 +49,36 @@ export function Inventario() {
       enqueueSnackbar('Error al cargar inventario', { variant: 'error' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchHabitaciones = async () => {
+    try {
+      const response = await clienteAxios.get('/habitaciones');
+      setHabitaciones(response.data);
+    } catch (error) {
+      console.error('Error al cargar habitaciones:', error);
+      enqueueSnackbar('Error al cargar habitaciones', { variant: 'error' });
+    }
+  };
+
+  const fetchPropiedades = async () => {
+    try {
+      const response = await clienteAxios.get('/propiedades');
+      setPropiedades(response.data);
+    } catch (error) {
+      console.error('Error al cargar propiedades:', error);
+      enqueueSnackbar('Error al cargar propiedades', { variant: 'error' });
+    }
+  };
+
+  const handleCreateHabitacion = async (formData) => {
+    try {
+      const response = await clienteAxios.post('/habitaciones', formData);
+      await fetchHabitaciones(); // Recargar las habitaciones
+      return response.data;
+    } catch (error) {
+      throw error;
     }
   };
 
@@ -63,8 +98,34 @@ export function Inventario() {
 
   const formFields = [
     {
+      name: 'propiedadId',
+      label: 'Propiedad',
+      type: 'relational',
+      required: true,
+      options: propiedades.map(p => ({
+        value: p.id,
+        label: p.titulo
+      })),
+      onChange: async (value) => {
+        // Cargar habitaciones de la propiedad seleccionada
+        const response = await clienteAxios.get(`/habitaciones?propiedadId=${value}`);
+        setHabitacionesDisponibles(response.data);
+      }
+    },
+    {
+      name: 'habitacionId',
+      label: 'Habitación',
+      type: 'relational',
+      required: true,
+      options: habitacionesDisponibles.map(h => ({
+        value: h.id,
+        label: `${h.numero} - ${h.tipo}`
+      })),
+      disabled: !formData.propiedadId
+    },
+    {
       name: 'nombre',
-      label: 'Nombre del Item',
+      label: 'Nombre del Elemento',
       required: true
     },
     {
@@ -74,21 +135,23 @@ export function Inventario() {
       rows: 3
     },
     {
-      name: 'cantidad',
-      label: 'Cantidad',
-      type: 'number',
-      required: true
-    },
-    {
       name: 'estado',
       label: 'Estado',
       type: 'select',
       required: true,
       options: [
         { value: 'NUEVO', label: 'Nuevo' },
-        { value: 'USADO', label: 'Usado' },
+        { value: 'BUEN_ESTADO', label: 'Buen Estado' },
+        { value: 'REGULAR', label: 'Regular' },
+        { value: 'MALO', label: 'Malo' },
         { value: 'REPARACION', label: 'En Reparación' }
       ]
+    },
+    {
+      name: 'cantidad',
+      label: 'Cantidad',
+      type: 'number',
+      required: true
     }
   ];
 

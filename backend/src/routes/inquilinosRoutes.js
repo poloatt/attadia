@@ -11,6 +11,7 @@ router.use(checkAuth);
 
 // Rutas para usuarios autenticados
 router.get('/', inquilinosController.getAll);
+router.get('/activos', inquilinosController.getActivos);
 router.post('/', inquilinosController.create);
 
 // Rutas que requieren ser dueño del recurso o admin

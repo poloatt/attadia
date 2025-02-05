@@ -12,6 +12,9 @@ router.use(checkAuth);
 // Rutas para usuarios autenticados
 router.get('/', dietasController.getAll);
 router.post('/', dietasController.create);
+router.get('/:id', dietasController.getById);
+router.put('/:id', dietasController.update);
+router.delete('/:id', dietasController.delete);
 
 // Rutas administrativas
 router.get('/admin/all', [checkRole([ROLES.ADMIN])], dietasController.getAllAdmin);

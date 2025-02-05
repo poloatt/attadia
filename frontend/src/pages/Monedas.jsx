@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Container, 
   Button,
@@ -29,11 +29,7 @@ export function Monedas() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
 
-  useEffect(() => {
-    fetchMonedas();
-  }, []);
-
-  const fetchMonedas = async () => {
+  const fetchMonedas = useCallback(async () => {
     try {
       const response = await clienteAxios.get('/monedas');
       setMonedas(response.data);
@@ -41,20 +37,24 @@ export function Monedas() {
       console.error('Error al cargar monedas:', error);
       enqueueSnackbar('Error al cargar monedas', { variant: 'error' });
     }
-  };
+  }, [enqueueSnackbar]);
 
-  const handleFormSubmit = async (formData) => {
+  useEffect(() => {
+    fetchMonedas();
+  }, [fetchMonedas]);
+
+  const handleFormSubmit = useCallback(async (formData) => {
     try {
       const response = await clienteAxios.post('/monedas', formData);
       setMonedas(prev => [...prev, response.data]);
       setIsFormOpen(false);
       enqueueSnackbar('Moneda creada exitosamente', { variant: 'success' });
-      fetchMonedas(); // Recargar la lista
+      await fetchMonedas();
     } catch (error) {
       console.error('Error al crear moneda:', error);
       enqueueSnackbar('Error al crear la moneda', { variant: 'error' });
     }
-  };
+  }, [enqueueSnackbar, fetchMonedas]);
 
   const formFields = [
     {

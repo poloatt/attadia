@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Container, 
   Box,
@@ -28,17 +28,7 @@ export function Cuentas() {
   const [showValues, setShowValues] = useState(true);
   const { enqueueSnackbar } = useSnackbar();
 
-  useEffect(() => {
-    fetchCuentas();
-    fetchMonedas();
-  }, []);
-
-  useEffect(() => {
-    const monedasIds = [...new Set(cuentas.map(cuenta => cuenta.moneda?.id))];
-    setExpandedMonedas(monedasIds);
-  }, [cuentas]);
-
-  const fetchCuentas = async () => {
+  const fetchCuentas = useCallback(async () => {
     try {
       const response = await clienteAxios.get('/cuentas');
       setCuentas(response.data);
@@ -46,16 +36,36 @@ export function Cuentas() {
       console.error('Error al cargar cuentas:', error);
       enqueueSnackbar('Error al cargar cuentas', { variant: 'error' });
     }
-  };
+  }, [enqueueSnackbar]);
 
-  const fetchMonedas = async () => {
+  const fetchMonedas = useCallback(async () => {
     try {
       const response = await clienteAxios.get('/monedas');
       setMonedas(response.data);
     } catch (error) {
       console.error('Error al cargar monedas:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      await Promise.all([
+        fetchCuentas(),
+        fetchMonedas()
+      ]);
+    };
+    fetchData();
+  }, [fetchCuentas, fetchMonedas]);
+
+  useEffect(() => {
+    if (cuentas.length > 0) {
+      const monedasIds = [...new Set(cuentas.map(cuenta => cuenta.moneda?.id))];
+      setExpandedMonedas(prev => {
+        const newIds = monedasIds.filter(id => !prev.includes(id));
+        return [...prev, ...newIds];
+      });
+    }
+  }, [cuentas]);
 
   const handleCreateMoneda = async (data) => {
     try {
@@ -122,7 +132,7 @@ export function Cuentas() {
     {
       name: 'monedaId',
       label: 'Moneda',
-      component: 'creatable',
+      type: 'creatable',
       required: true,
       variant: 'buttons',
       displaySymbol: true,
@@ -280,6 +290,15 @@ export function Cuentas() {
         onSubmit={handleFormSubmit}
         title="Nueva Cuenta"
         fields={formFields}
+        relatedFields={[
+          { name: 'monedaId', endpoint: '/monedas' }
+        ]}
+        onFetchRelatedData={async () => {
+          const monedasRes = await clienteAxios.get('/monedas');
+          return {
+            monedas: monedasRes.data
+          };
+        }}
       />
     </Container>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Container } from '@mui/material';
 import EntityToolbar from '../components/EntityToolbar';
 import { 
@@ -22,15 +22,7 @@ export function Transacciones() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
 
-  // Cargar datos iniciales
-  useEffect(() => {
-    fetchTransacciones();
-    fetchMonedas();
-    fetchCuentas();
-  }, []);
-
-  // Obtener transacciones
-  const fetchTransacciones = async () => {
+  const fetchTransacciones = useCallback(async () => {
     try {
       const response = await clienteAxios.get('/transacciones');
       setTransacciones(response.data);
@@ -38,29 +30,43 @@ export function Transacciones() {
       console.error('Error:', error);
       enqueueSnackbar('Error al cargar transacciones', { variant: 'error' });
     }
-  };
+  }, [enqueueSnackbar]);
 
-  // Obtener monedas y cuentas para el formulario
-  const fetchMonedas = async () => {
+  const fetchMonedas = useCallback(async () => {
     try {
       const response = await clienteAxios.get('/monedas');
       setMonedas(response.data);
     } catch (error) {
       console.error('Error al cargar monedas:', error);
     }
-  };
+  }, []);
 
-  const fetchCuentas = async () => {
+  const fetchCuentas = useCallback(async () => {
     try {
       const response = await clienteAxios.get('/cuentas');
       setCuentas(response.data);
     } catch (error) {
       console.error('Error al cargar cuentas:', error);
     }
-  };
+  }, []);
 
-  // Agregar estas funciones
-  const handleCreateMoneda = async (data) => {
+  const fetchInitialData = useCallback(async () => {
+    try {
+      await Promise.all([
+        fetchTransacciones(),
+        fetchMonedas(),
+        fetchCuentas()
+      ]);
+    } catch (error) {
+      console.error('Error al cargar datos iniciales:', error);
+    }
+  }, [fetchTransacciones, fetchMonedas, fetchCuentas]);
+
+  useEffect(() => {
+    fetchInitialData();
+  }, [fetchInitialData]);
+
+  const handleCreateMoneda = useCallback(async (data) => {
     try {
       const response = await clienteAxios.post('/monedas', data);
       const newMoneda = response.data;
@@ -72,9 +78,9 @@ export function Transacciones() {
       enqueueSnackbar('Error al crear moneda', { variant: 'error' });
       throw error;
     }
-  };
+  }, [enqueueSnackbar]);
 
-  const handleCreateCuenta = async (nombre) => {
+  const handleCreateCuenta = useCallback(async (nombre) => {
     try {
       const response = await clienteAxios.post('/cuentas', { 
         nombre,
@@ -97,19 +103,16 @@ export function Transacciones() {
       );
       throw error;
     }
-  };
+  }, [enqueueSnackbar]);
 
-  // Manejar el envío del formulario
-  const handleFormSubmit = async (formData) => {
+  const handleFormSubmit = useCallback(async (formData) => {
     try {
-      // Validar que todos los campos requeridos estén presentes
       if (!formData.descripcion || !formData.monto || !formData.categoria || 
           !formData.estado || !formData.monedaId || !formData.cuentaId) {
         enqueueSnackbar('Todos los campos son requeridos', { variant: 'error' });
         return;
       }
 
-      // Asegurarnos que los datos están en el formato correcto
       const datosAEnviar = {
         descripcion: formData.descripcion,
         monto: parseFloat(formData.monto),
@@ -120,21 +123,19 @@ export function Transacciones() {
         cuentaId: parseInt(formData.cuentaId)
       };
 
-      console.log('Datos a enviar:', datosAEnviar);
-
       const response = await clienteAxios.post('/transacciones', datosAEnviar);
       
       if (response.status === 201) {
         enqueueSnackbar('Transacción creada exitosamente', { variant: 'success' });
         setIsFormOpen(false);
-        fetchTransacciones();
+        await fetchTransacciones();
       }
     } catch (error) {
       console.error('Error completo:', error.response?.data || error);
       const mensajeError = error.response?.data?.error || 'Error al crear la transacción';
       enqueueSnackbar(mensajeError, { variant: 'error' });
     }
-  };
+  }, [enqueueSnackbar, fetchTransacciones]);
 
   // Campos del formulario
   const formFields = [
@@ -184,7 +185,7 @@ export function Transacciones() {
     {
       name: 'monedaId',
       label: 'Moneda',
-      component: 'creatable',
+      type: 'creatable',
       required: true,
       variant: 'buttons',
       displaySymbol: true,
@@ -204,7 +205,7 @@ export function Transacciones() {
     {
       name: 'cuentaId',
       label: 'Cuenta',
-      component: 'creatable',
+      type: 'creatable',
       required: true,
       variant: 'select',
       options: cuentas.map(c => ({
@@ -301,6 +302,20 @@ export function Transacciones() {
         onSubmit={handleFormSubmit}
         title="Nueva Transacción"
         fields={formFields}
+        relatedFields={[
+          { name: 'monedaId', endpoint: '/monedas' },
+          { name: 'cuentaId', endpoint: '/cuentas' }
+        ]}
+        onFetchRelatedData={async () => {
+          const [monedasRes, cuentasRes] = await Promise.all([
+            clienteAxios.get('/monedas'),
+            clienteAxios.get('/cuentas')
+          ]);
+          return {
+            monedas: monedasRes.data,
+            cuentas: cuentasRes.data
+          };
+        }}
       />
     </Container>
   );

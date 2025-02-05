@@ -81,7 +81,11 @@ export const inquilinosController = {
         estado: 'ACTIVO'
       }).populate({
         path: 'contratos',
-        populate: { path: 'propiedad' }
+        match: { estado: 'ACTIVO' },
+        populate: { 
+          path: 'propiedad habitacion moneda',
+          select: 'nombre numero simbolo'
+        }
       });
       
       res.json(inquilinos);

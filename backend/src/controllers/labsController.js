@@ -1,141 +1,82 @@
-import { Labs } from '../models/index.js';
+import { Labs } from '../models/Labs.js';
 
 export const labsController = {
   getAll: async (req, res) => {
     try {
-      const labs = await Labs.find({ usuario: req.user.id })
-        .sort({ fecha: 'desc' });
-      res.json(labs);
+      const resultados = await Labs.find({ usuario: req.user.id })
+        .sort({ fecha: -1 });
+      res.json(resultados);
     } catch (error) {
-      console.error('Error al obtener labs:', error);
-      res.status(500).json({ error: 'Error al obtener labs' });
+      console.error('Error al obtener resultados:', error);
+      res.status(500).json({ msg: 'Hubo un error al obtener los resultados' });
     }
   },
 
   create: async (req, res) => {
     try {
-      const {
-        nombre,
-        descripcion,
-        tipo,
-        resultado,
-        estado
-      } = req.body;
+      const { tipo, valor, unidad, notas } = req.body;
+      console.log('Datos recibidos:', req.body);
+      console.log('Usuario:', req.user);
 
-      const lab = await Labs.create({
-        nombre,
-        descripcion,
+      const nuevoResultado = new Labs({
         tipo,
-        resultado,
-        estado,
+        valor: Number(valor),
+        unidad,
+        notas,
         usuario: req.user.id
       });
 
-      res.status(201).json(lab);
+      console.log('Nuevo resultado a guardar:', nuevoResultado);
+
+      await nuevoResultado.save();
+      res.json(nuevoResultado);
     } catch (error) {
-      console.error('Error al crear lab:', error);
-      res.status(500).json({ error: 'Error al crear lab' });
+      console.error('Error al crear resultado:', error);
+      res.status(500).json({ msg: 'Hubo un error al crear el resultado', error: error.message });
     }
   },
 
   getById: async (req, res) => {
     try {
-      const { id } = req.params;
-      const lab = await Labs.findOne({ _id: id, usuario: req.user.id });
-      
-      if (!lab) {
-        return res.status(404).json({ error: 'Lab no encontrado' });
+      const resultado = await Labs.findById(req.params.id);
+      if (!resultado) {
+        return res.status(404).json({ msg: 'Resultado no encontrado' });
       }
-
-      res.json(lab);
+      res.json(resultado);
     } catch (error) {
-      console.error('Error al obtener lab:', error);
-      res.status(500).json({ error: 'Error al obtener lab' });
+      console.error('Error al obtener resultado:', error);
+      res.status(500).json({ msg: 'Hubo un error al obtener el resultado' });
     }
   },
 
   update: async (req, res) => {
     try {
-      const { id } = req.params;
-      const updateData = { ...req.body };
-
-      const lab = await Labs.findOneAndUpdate(
-        { _id: id, usuario: req.user.id },
-        updateData,
+      const { tipo, valor, unidad, notas } = req.body;
+      const resultado = await Labs.findByIdAndUpdate(
+        req.params.id,
+        { tipo, valor, unidad, notas },
         { new: true }
       );
-
-      if (!lab) {
-        return res.status(404).json({ error: 'Lab no encontrado' });
+      if (!resultado) {
+        return res.status(404).json({ msg: 'Resultado no encontrado' });
       }
-
-      res.json(lab);
+      res.json(resultado);
     } catch (error) {
-      console.error('Error al actualizar lab:', error);
-      res.status(500).json({ error: 'Error al actualizar lab' });
+      console.error('Error al actualizar resultado:', error);
+      res.status(500).json({ msg: 'Hubo un error al actualizar el resultado' });
     }
   },
 
   delete: async (req, res) => {
     try {
-      const { id } = req.params;
-      const lab = await Labs.findOneAndDelete({
-        _id: id,
-        usuario: req.user.id
-      });
-
-      if (!lab) {
-        return res.status(404).json({ error: 'Lab no encontrado' });
+      const resultado = await Labs.findByIdAndDelete(req.params.id);
+      if (!resultado) {
+        return res.status(404).json({ msg: 'Resultado no encontrado' });
       }
-
-      res.json({ message: 'Lab eliminado correctamente' });
+      res.json({ msg: 'Resultado eliminado' });
     } catch (error) {
-      console.error('Error al eliminar lab:', error);
-      res.status(500).json({ error: 'Error al eliminar lab' });
-    }
-  },
-
-  getAllAdmin: async (req, res) => {
-    try {
-      const labs = await Labs.find()
-        .populate('usuario', 'nombre email')
-        .sort({ createdAt: 'desc' });
-      res.json(labs);
-    } catch (error) {
-      console.error('Error al obtener todos los labs:', error);
-      res.status(500).json({ error: 'Error al obtener todos los labs' });
-    }
-  },
-
-  getAdminStats: async (req, res) => {
-    try {
-      const totalLabs = await Labs.countDocuments();
-      const labsPorEstado = await Labs.aggregate([
-        {
-          $group: {
-            _id: '$estado',
-            count: { $sum: 1 }
-          }
-        }
-      ]);
-
-      const labsPorTipo = await Labs.aggregate([
-        {
-          $group: {
-            _id: '$tipo',
-            count: { $sum: 1 }
-          }
-        }
-      ]);
-
-      res.json({
-        totalLabs,
-        labsPorEstado,
-        labsPorTipo
-      });
-    } catch (error) {
-      console.error('Error al obtener estadísticas:', error);
-      res.status(500).json({ error: 'Error al obtener estadísticas' });
+      console.error('Error al eliminar resultado:', error);
+      res.status(500).json({ msg: 'Hubo un error al eliminar el resultado' });
     }
   }
-}; 
+};
