@@ -48,71 +48,88 @@ router.post('/refresh-token', [
 
 // Rutas de autenticación con Google
 router.get('/google/url', (req, res) => {
+  console.log('Generando URL de autenticación de Google');
   console.log('Configuración de Google:', {
     clientId: config.google.clientId,
-    callbackUrl: config.google.callbackUrl
+    callbackUrl: config.google.callbackUrl,
+    frontendUrl: config.frontendUrl
   });
   
-  // Devolver la URL de autenticación de Google con el prefijo /api
+  const scopes = [
+    'https://www.googleapis.com/auth/userinfo.profile',
+    'https://www.googleapis.com/auth/userinfo.email'
+  ].join(' ');
+  
+  // Construir la URL de autenticación
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
     `client_id=${config.google.clientId}&` +
     `redirect_uri=${encodeURIComponent(config.google.callbackUrl)}&` +
     `response_type=code&` +
-    `scope=email profile&` +
+    `scope=${encodeURIComponent(scopes)}&` +
     `access_type=offline&` +
     `prompt=consent`;
   
-  console.log('URL de autenticación generada:', authUrl);
+  console.log('URL de autenticación completa:', authUrl);
+  console.log('Parámetros decodificados:', {
+    client_id: config.google.clientId,
+    redirect_uri: config.google.callbackUrl,
+    scope: scopes
+  });
+  
   res.json({ url: authUrl });
 });
 
 router.get('/google/callback',
   (req, res, next) => {
-    console.log('Recibiendo callback de Google - Query:', req.query);
+    console.log('Recibiendo callback de Google');
+    console.log('Query params:', req.query);
+    console.log('Headers:', req.headers);
     console.log('URL completa:', req.protocol + '://' + req.get('host') + req.originalUrl);
+    
     if (req.query.error) {
       console.error('Error recibido de Google:', req.query.error);
-      return res.redirect(`${config.frontendUrl}/auth/error?error=${req.query.error}`);
+      return res.redirect(`${config.frontendUrl}/login?error=${req.query.error}`);
     }
     next();
   },
   passport.authenticate('google', { 
     session: false,
-    failureRedirect: `${config.frontendUrl}/auth/error`,
+    failureRedirect: `${config.frontendUrl}/login`,
     failWithError: true
   }),
-  (err, req, res, next) => {
-    if (err) {
-      console.error('Error en autenticación de Google:', err);
-      const errorMessage = encodeURIComponent(err.message || 'auth_failed');
-      return res.redirect(`${config.frontendUrl}/auth/error?error=${errorMessage}`);
-    }
-    next();
-  },
   (req, res) => {
     try {
       if (!req.user) {
         console.error('No se recibió información del usuario');
-        return res.redirect(`${config.frontendUrl}/auth/error?error=no_user_info`);
+        return res.redirect(`${config.frontendUrl}/login?error=no_user_info`);
       }
 
       const token = jwt.sign(
         { 
           user: { 
             id: req.user._id,
-            email: req.user.email // Añadimos más información al token
+            email: req.user.email,
+            nombre: req.user.nombre
           } 
         },
         config.jwtSecret,
         { expiresIn: '24h' }
       );
 
-      // Log de éxito
-      console.log('Autenticación exitosa para:', req.user.email);
-      res.redirect(`${config.frontendUrl}/auth/callback?token=${token}`);
+      console.log('Autenticación exitosa');
+      console.log('Usuario:', {
+        id: req.user._id,
+        email: req.user.email,
+        nombre: req.user.nombre
+      });
+      
+      // Redirigir al frontend con el token
+      const redirectUrl = `${config.frontendUrl}/auth/callback?token=${token}`;
+      console.log('Redirigiendo a:', redirectUrl);
+      res.redirect(redirectUrl);
     } catch (error) {
       console.error('Error en el callback:', error);
-      res.redirect(`${config.frontendUrl}/auth/error?error=server_error`);
+      res.redirect(`${config.frontendUrl}/login?error=server_error`);
     }
   }
 );

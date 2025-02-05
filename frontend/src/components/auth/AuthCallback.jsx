@@ -20,42 +20,49 @@ function AuthCallback() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
+        console.log('Iniciando manejo de callback');
+        console.log('URL actual:', location.search);
+        
         const params = new URLSearchParams(location.search);
         const token = params.get('token');
         const error = params.get('error');
 
         if (error) {
+          console.error('Error en callback:', error);
           const errorMessage = ERROR_MESSAGES[error] || ERROR_MESSAGES.default;
-          console.error('Error de autenticación:', error);
           toast.error(errorMessage);
-          navigate('/auth/login');
+          navigate('/login', { replace: true });
           return;
         }
 
         if (!token) {
-          console.error('No se recibió token');
+          console.error('Token no encontrado en la URL');
           toast.error(ERROR_MESSAGES.token_missing);
-          navigate('/auth/login');
+          navigate('/login', { replace: true });
           return;
         }
 
+        console.log('Token recibido, configurando axios');
         localStorage.setItem('token', token);
         clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
+        console.log('Verificando autenticación');
         const authResult = await checkAuth();
         
         if (authResult.error) {
+          console.error('Error en checkAuth:', authResult.error);
           throw new Error(authResult.error);
         }
 
+        console.log('Autenticación exitosa, redirigiendo a dashboard');
         toast.success('¡Bienvenido!');
-        navigate('/', { replace: true });
+        navigate('/dashboard', { replace: true });
       } catch (error) {
         console.error('Error en el callback:', error);
         toast.error('Error al procesar la autenticación');
         localStorage.removeItem('token');
         delete clienteAxios.defaults.headers.common['Authorization'];
-        navigate('/auth/login');
+        navigate('/login', { replace: true });
       }
     };
 
