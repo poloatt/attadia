@@ -49,7 +49,7 @@ export function Register() {
   };
 
   const handleGoogleRegister = () => {
-    window.location.href = '/api/auth/google';
+    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
   };
 
   return (

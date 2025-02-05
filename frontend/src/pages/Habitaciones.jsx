@@ -9,7 +9,7 @@ import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import EntityForm from '../components/EntityViews/EntityForm';
 import { useSnackbar } from 'notistack';
-import axios from 'axios';
+import clienteAxios from '../config/axios';
 import { 
   ApartmentOutlined as BuildingIcon,
   PeopleOutlined as PeopleIcon,
@@ -32,7 +32,7 @@ export function Habitaciones() {
 
   const fetchHabitaciones = async () => {
     try {
-      const response = await axios.get('/api/habitaciones');
+      const response = await clienteAxios.get('/habitaciones');
       setHabitaciones(response.data);
     } catch (error) {
       console.error('Error al cargar habitaciones:', error);
@@ -44,7 +44,7 @@ export function Habitaciones() {
 
   const fetchPropiedades = async () => {
     try {
-      const response = await axios.get('/api/propiedades');
+      const response = await clienteAxios.get('/propiedades');
       setPropiedades(response.data);
     } catch (error) {
       console.error('Error al cargar propiedades:', error);
@@ -66,7 +66,7 @@ export function Habitaciones() {
 
       console.log('Enviando datos:', datosAEnviar);
 
-      const response = await axios.post('/api/habitaciones', datosAEnviar);
+      const response = await clienteAxios.post('/habitaciones', datosAEnviar);
       
       if (response.status === 201) {
         enqueueSnackbar('Habitación creada exitosamente', { variant: 'success' });

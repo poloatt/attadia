@@ -20,6 +20,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EntityDetails from '../components/EntityViews/EntityDetails';
+import clienteAxios from '../config/axios';
 
 export function Rutinas() {
   const [rutinas, setRutinas] = useState([]);
@@ -31,9 +32,8 @@ export function Rutinas() {
 
   const fetchRutinas = async () => {
     try {
-      const response = await fetch('/api/rutinas');
-      const data = await response.json();
-      setRutinas(data);
+      const response = await clienteAxios.get('/rutinas');
+      setRutinas(response.data);
     } catch (error) {
       console.error('Error al cargar rutinas:', error);
     }

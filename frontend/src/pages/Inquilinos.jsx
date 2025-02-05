@@ -18,7 +18,7 @@ import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import EntityForm from '../components/EntityViews/EntityForm';
 import { useSnackbar } from 'notistack';
-import axios from 'axios';
+import clienteAxios from '../config/axios';
 import { 
   ApartmentOutlined as BuildingIcon,
   BedOutlined as BedIcon,
@@ -38,7 +38,7 @@ export function Inquilinos() {
 
   const fetchInquilinos = async () => {
     try {
-      const response = await axios.get('/api/inquilinos');
+      const response = await clienteAxios.get('/inquilinos');
       setInquilinos(response.data);
     } catch (error) {
       console.error('Error al cargar inquilinos:', error);
@@ -50,7 +50,7 @@ export function Inquilinos() {
 
   const handleFormSubmit = async (formData) => {
     try {
-      const response = await axios.post('/api/inquilinos', formData);
+      const response = await clienteAxios.post('/inquilinos', formData);
       if (response.status === 201) {
         enqueueSnackbar('Inquilino creado exitosamente', { variant: 'success' });
         setIsFormOpen(false);

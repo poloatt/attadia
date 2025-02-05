@@ -4,7 +4,7 @@ import CloudOffIcon from '@mui/icons-material/CloudOff';
 import SignalWifiStatusbar4BarIcon from '@mui/icons-material/SignalWifiStatusbar4Bar';
 import SignalWifiOffIcon from '@mui/icons-material/SignalWifiOff';
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import clienteAxios from '../config/axios';
 
 export default function Footer() {
   const [connectionStatus, setConnectionStatus] = useState({
@@ -16,19 +16,10 @@ export default function Footer() {
   useEffect(() => {
     const checkConnections = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/health', {
-          timeout: 3000,
-          withCredentials: true,
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        });
-
-        // Simplificamos la lógica - solo verificamos si hay respuesta
+        const response = await clienteAxios.get('/health');
         setConnectionStatus({
-          backend: true, // Si llegamos aquí, el backend está respondiendo
-          database: true, // Si el backend responde, la DB está conectada
+          backend: true,
+          database: true,
           loading: false
         });
       } catch (error) {

@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EntityDetails from '../components/EntityViews/EntityDetails';
-import axios from 'axios';
+import clienteAxios from '../config/axios';
 
 export default function Lab() {
   const [resultados, setResultados] = useState([]);
@@ -22,9 +22,8 @@ export default function Lab() {
 
   const fetchResultados = async () => {
     try {
-      const response = await axios.get('/api/lab');
-      const data = await response.data;
-      setResultados(data);
+      const response = await clienteAxios.get('/lab');
+      setResultados(response.data);
     } catch (error) {
       console.error('Error al cargar resultados:', error);
     }

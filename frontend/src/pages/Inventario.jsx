@@ -17,7 +17,7 @@ import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import EntityForm from '../components/EntityViews/EntityForm';
 import { useSnackbar } from 'notistack';
-import axios from 'axios';
+import clienteAxios from '../config/axios';
 import { 
   ApartmentOutlined as BuildingIcon,
   BedOutlined as BedIcon,
@@ -37,7 +37,7 @@ export function Inventario() {
 
   const fetchInventario = async () => {
     try {
-      const response = await axios.get('/api/inventario');
+      const response = await clienteAxios.get('/inventarios');
       setItems(response.data);
     } catch (error) {
       console.error('Error al cargar inventario:', error);
@@ -49,7 +49,7 @@ export function Inventario() {
 
   const handleFormSubmit = async (formData) => {
     try {
-      const response = await axios.post('/api/inventario', formData);
+      const response = await clienteAxios.post('/inventarios', formData);
       if (response.status === 201) {
         enqueueSnackbar('Item agregado exitosamente', { variant: 'success' });
         setIsFormOpen(false);

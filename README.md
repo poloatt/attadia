@@ -1,172 +1,182 @@
-# Present - Sistema de Gestión Personal
+# Present - Sistema de Gestión
 
 ## Descripción
-Sistema integral para la gestión de finanzas personales, propiedades, rutinas y proyectos, con autenticación Google y arquitectura moderna.
+Present es un sistema de gestión integral que incluye módulos para administración de propiedades, finanzas, rutinas, laboratorio y más.
 
-## Stack Tecnológico
-
-### Frontend
-- **React 18** con Vite
-- **Material-UI (MUI) v5**: Componentes de interfaz
-- **React Router v6**: Navegación
-- **Context API**: Gestión de estado global
-- **Notistack**: Sistema de notificaciones
-- **Axios**: Cliente HTTP
-
-### Backend
-- **Node.js + Express**: Framework del servidor
-- **MongoDB**: Base de datos NoSQL
-- **JWT**: Autenticación de usuarios
-- **Google OAuth2**: Autenticación social
-- **Docker**: Contenerización
-
-## Configuración del Proyecto
-
-### Requisitos Previos
+## Requisitos Previos
 - Docker y Docker Compose
-- Node.js >= 18
-- npm >= 8
+- Node.js (v18 o superior)
+- MongoDB (se incluye en Docker)
 
-### Variables de Entorno
+## Configuración del Entorno
+
+### 1. Variables de Entorno
 
 #### Backend (.env)
 ```env
+# Entorno
 NODE_ENV=development
-MONGODB_URI=mongodb://root:example@mongodb:27017/present?authSource=admin
-CORS_ORIGIN=http://localhost:5173
+
+# Puerto
+PORT=5000
+
+# MongoDB
+MONGODB_URI=mongodb://mongodb:27017/present
+
+# Frontend
 FRONTEND_URL=http://localhost:5173
 BACKEND_URL=http://localhost:5000
-PORT=5000
-JWT_SECRET=your_jwt_secret
-REFRESH_TOKEN_SECRET=your_refresh_token_secret_here
+
+# CORS
+CORS_ORIGIN=http://localhost:5173
+
+# JWT
+JWT_SECRET=your_secure_jwt_secret_here
+JWT_EXPIRE=1h
+REFRESH_TOKEN_SECRET=your_secure_refresh_token_secret_here
+REFRESH_TOKEN_EXPIRE=7d
+
+# Cookie
+COOKIE_SECRET=your_secure_cookie_secret_here
+COOKIE_EXPIRE=7
+
+# Google OAuth
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
-GOOGLE_CALLBACK_URL=http://localhost:5000/auth/google/callback
+GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
 ```
 
 #### Frontend (.env)
 ```env
-VITE_API_URL=http://localhost:5000
-VITE_APP_NAME=Present
-VITE_APP_VERSION=1.0.0
-VITE_DEV_MODE=true
-VITE_HOST=0.0.0.0
-VITE_PORT=5173
-VITE_GOOGLE_CLIENT_ID=your_google_client_id
+VITE_API_URL=http://localhost:5000/api
 ```
 
-### Estructura del Proyecto
-```
-present/
-├── docker-compose.yml
-├── backend/
-│   ├── Dockerfile
-│   ├── src/
-│   │   ├── controllers/
-│   │   ├── routes/
-│   │   ├── middleware/
-│   │   ├── utils/
-│   │   └── index.js
-│   └── package.json
-└── frontend/
-    ├── Dockerfile
-    ├── src/
-    │   ├── components/
-    │   ├── context/
-    │   ├── hooks/
-    │   ├── layouts/
-    │   ├── pages/
-    │   ├── services/
-    │   ├── utils/
-    │   └── App.jsx
-    └── package.json
-```
+### 2. Configuración de Google OAuth
 
-## Instalación y Despliegue
+1. Ir a [Google Cloud Console](https://console.cloud.google.com)
+2. Crear un nuevo proyecto o seleccionar uno existente
+3. Habilitar la API de Google+ y OAuth
+4. Configurar las credenciales OAuth:
+   - Tipo: Aplicación Web
+   - Nombre: Present
+   - Orígenes autorizados:
+     - http://localhost:5173
+   - URIs de redirección autorizadas:
+     - http://localhost:5000/api/auth/google/callback
 
-### Con Docker (Recomendado)
+5. Copiar el Client ID y Client Secret a las variables de entorno correspondientes
+
+## Instalación
+
+1. Clonar el repositorio:
 ```bash
-# 1. Clonar el repositorio
-git clone <repo_url>
+git clone https://github.com/tu-usuario/present.git
 cd present
-
-# 2. Configurar variables de entorno
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
-
-# 3. Iniciar contenedores
-docker-compose up --build
 ```
 
-### Desarrollo Local
+2. Instalar dependencias:
 ```bash
 # Backend
 cd backend
 npm install
-npm run dev
 
 # Frontend
-cd frontend
+cd ../frontend
 npm install
-npm run dev
 ```
 
-## Puertos por Defecto
+3. Iniciar con Docker:
+```bash
+docker-compose up
+```
+
+## Estructura del Proyecto
+
+```
+present/
+├── backend/
+│   ├── src/
+│   │   ├── config/
+│   │   ├── controllers/
+│   │   ├── middleware/
+│   │   ├── models/
+│   │   ├── routes/
+│   │   └── index.js
+│   └── package.json
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── context/
+│   │   ├── layouts/
+│   │   ├── pages/
+│   │   └── App.jsx
+│   └── package.json
+└── docker-compose.yml
+```
+
+## Autenticación
+
+### Flujo de Autenticación con Google
+
+1. El usuario hace clic en "Login con Google"
+2. Se redirige a la página de autenticación de Google
+3. Después de la autenticación exitosa, Google redirige a:
+   `http://localhost:5000/api/auth/google/callback`
+4. El backend procesa el callback y redirige al frontend:
+   `http://localhost:5173/auth/callback`
+5. El frontend maneja el token y redirige al dashboard
+
+### Rutas de Autenticación
+
+- `/login` - Página de inicio de sesión
+- `/auth/callback` - Manejo de callback de Google
+- `/api/auth/google/url` - Obtener URL de autenticación
+- `/api/auth/google/callback` - Callback de Google
+- `/api/auth/check` - Verificar estado de autenticación
+
+## Desarrollo
+
+### Comandos Útiles
+
+```bash
+# Iniciar en modo desarrollo
+docker-compose up
+
+# Reconstruir contenedores
+docker-compose up --build
+
+# Detener contenedores
+docker-compose down
+
+# Logs
+docker-compose logs -f
+
+# Acceder a la shell de un contenedor
+docker-compose exec backend sh
+docker-compose exec frontend sh
+```
+
+### Puertos
+
 - Frontend: http://localhost:5173
 - Backend: http://localhost:5000
 - MongoDB: mongodb://localhost:27017
 
-## Módulos Principales
+## Seguridad
 
-### 1. Autenticación
-- Inicio de sesión con Google
-- JWT para manejo de sesiones
-- Refresh tokens
+- Todas las rutas de la API están protegidas con JWT
+- Las contraseñas se hashean con bcrypt
+- CORS configurado para permitir solo orígenes específicos
+- Rate limiting implementado para prevenir ataques de fuerza bruta
 
-### 2. Transacciones
-- Gestión de finanzas personales
-- Múltiples monedas
-- Categorización
+## Contribuir
 
-### 3. Propiedades
-- Registro y gestión de propiedades
-- Sistema de ubicaciones
-- Características detalladas
-
-### 4. Rutinas
-- Seguimiento de hábitos
-- Métricas personales
-- Control de actividades
-
-### 5. Laboratorio
-- Análisis médicos
-- Métricas de salud
-
-### 6. Proyectos
-- Gestión de tareas
-- Sistema de etiquetas
-- Control de tiempos
-
-## Monitoreo y Logs
-- Logs JSON con rotación
-- Límite de 10MB por archivo
-- Máximo 3 archivos de log
-
-## Redes y Seguridad
-- Red Docker bridge dedicada
-- CORS configurado
-- Secrets management
-- Autenticación OAuth2
-
-## Contribución
 1. Fork el repositorio
-2. Crea una rama (`git checkout -b feature/NuevaCaracteristica`)
-3. Commit (`git commit -m 'Añade nueva característica'`)
-4. Push (`git push origin feature/NuevaCaracteristica`)
-5. Crea un Pull Request
+2. Crear una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abrir un Pull Request
 
 ## Licencia
-MIT
 
-## Estado del Proyecto
-En desarrollo activo
+Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.

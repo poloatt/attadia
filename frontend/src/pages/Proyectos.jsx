@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container } from '@mui/material';
 import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
-import axios from 'axios';
+import clienteAxios from '../config/axios';
 
 export function Proyectos() {
   const [proyectos, setProyectos] = useState([]);
@@ -10,7 +10,7 @@ export function Proyectos() {
   useEffect(() => {
     const fetchProyectos = async () => {
       try {
-        const response = await axios.get('/api/proyectos');
+        const response = await clienteAxios.get('/proyectos');
         setProyectos(response.data || []);
       } catch (error) {
         console.error('Error:', error);

@@ -10,6 +10,7 @@ const router = express.Router();
 router.use(checkAuth);
 
 // Rutas para usuarios autenticados
+router.get('/', habitacionesController.getAll);
 router.get('/propiedad/:propiedadId', habitacionesController.getAllByPropiedad);
 router.post('/', habitacionesController.create);
 

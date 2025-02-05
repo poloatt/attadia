@@ -27,7 +27,7 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import SquareFootIcon from '@mui/icons-material/SquareFoot';
 import EntityForm from '../components/EntityViews/EntityForm';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import clienteAxios from '../config/axios';
 import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import EntityCards from '../components/EntityViews/EntityCards';
@@ -70,13 +70,7 @@ export function Propiedades() {
       setLoading(true);
       console.log('Solicitando propiedades...');
       
-      const response = await axios.get('/api/propiedades', {
-        withCredentials: true,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await clienteAxios.get('/propiedades');
 
       console.log('Respuesta recibida:', response.data);
       setPropiedades(response.data);
@@ -100,8 +94,8 @@ export function Propiedades() {
       try {
         setLoadingRelated(true);
         const [monedasRes, cuentasRes] = await Promise.all([
-          axios.get('/api/monedas'),
-          axios.get('/api/cuentas')
+          clienteAxios.get('/monedas'),
+          clienteAxios.get('/cuentas')
         ]);
 
         setMonedas(monedasRes.data);
@@ -119,18 +113,12 @@ export function Propiedades() {
 
   const handleDelete = async (id) => {
     try {
-      const response = await fetch(`/api/propiedades/${id}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      });
-
-      if (!response.ok) throw new Error('Error al eliminar propiedad');
-      
-      setPropiedades(propiedades.filter(prop => prop.id !== id));
-      enqueueSnackbar('Propiedad eliminada con éxito', { variant: 'success' });
+      await clienteAxios.delete(`/propiedades/${id}`);
+      enqueueSnackbar('Propiedad eliminada exitosamente', { variant: 'success' });
+      fetchPropiedades();
     } catch (error) {
-      console.error('Error:', error);
-      enqueueSnackbar('Error al eliminar propiedad', { variant: 'error' });
+      console.error('Error al eliminar propiedad:', error);
+      enqueueSnackbar('Error al eliminar la propiedad', { variant: 'error' });
     }
   };
 
@@ -156,43 +144,14 @@ export function Propiedades() {
     try {
       console.log('Enviando datos:', formData);
       
-      const datosAEnviar = {
-        titulo: formData.titulo,
-        descripcion: formData.descripcion,
-        precio: parseFloat(formData.precio),
-        direccion: formData.direccion,
-        ciudad: formData.ciudad,
-        estado: formData.estado,
-        tipo: formData.tipo,
-        numHabitaciones: parseInt(formData.numHabitaciones),
-        banos: parseInt(formData.banos),
-        metrosCuadrados: parseFloat(formData.metrosCuadrados),
-        imagen: formData.imagen || null,
-        monedaId: parseInt(formData.monedaId),
-        cuentaId: parseInt(formData.cuentaId)
-      };
-
-      console.log('Datos procesados:', datosAEnviar);
-
-      let response;
-      if (selectedPropiedad) {
-        // Si hay una propiedad seleccionada, es una edición
-        response = await axios.put(`/api/propiedades/${selectedPropiedad.id}`, datosAEnviar);
-        enqueueSnackbar('Propiedad actualizada exitosamente', { variant: 'success' });
-      } else {
-        // Si no hay propiedad seleccionada, es una creación
-        response = await axios.post('/api/propiedades', datosAEnviar);
-        enqueueSnackbar('Propiedad creada exitosamente', { variant: 'success' });
-      }
-      
+      const response = await clienteAxios.post('/propiedades', formData);
+      setPropiedades(prev => [...prev, response.data]);
       setIsFormOpen(false);
-      await fetchPropiedades();
+      enqueueSnackbar('Propiedad creada exitosamente', { variant: 'success' });
+      fetchPropiedades();
     } catch (error) {
-      console.error('Error:', error);
-      enqueueSnackbar(
-        error.response?.data?.error || 'Error al procesar la propiedad', 
-        { variant: 'error' }
-      );
+      console.error('Error al crear propiedad:', error);
+      enqueueSnackbar('Error al crear la propiedad', { variant: 'error' });
     }
   };
 
@@ -221,13 +180,13 @@ export function Propiedades() {
   };
 
   const handleCreateMoneda = async (data) => {
-    const response = await axios.post('/api/monedas', data);
+    const response = await clienteAxios.post('/monedas', data);
     setMonedas([...monedas, response.data]);
     return response.data;
   };
 
   const handleCreateCuenta = async (data) => {
-    const response = await axios.post('/api/cuentas', {
+    const response = await clienteAxios.post('/cuentas', {
       ...data,
       usuarioId: user.id
     });

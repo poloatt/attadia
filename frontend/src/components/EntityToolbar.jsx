@@ -30,7 +30,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import EntityForm from './EntityViews/EntityForm';
-import axios from 'axios';
+import clienteAxios from '../config/axios';
 
 const EntityToolbar = ({ 
   onAdd,
@@ -154,7 +154,7 @@ const EntityToolbar = ({
   const handleSubmit = async (formData) => {
     try {
       const path = location.pathname.slice(1);
-      await axios.post(`/api/${path}`, formData);
+      await clienteAxios.post(`/${path}`, formData);
       setOpenForm(false);
       // Aquí podrías disparar un evento para actualizar la lista
     } catch (error) {

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Container, Grid, Box, Typography, Skeleton, Paper, IconButton, Menu, MenuItem, Collapse } from '@mui/material';
 import { Link } from 'react-router-dom';
 import EntityToolbar from '../components/EntityToolbar';
-import axios from 'axios';
+import clienteAxios from '../config/axios';
 import { 
   ApartmentOutlined as BuildingIcon,
   AccountBalanceOutlined as BankIcon,
@@ -61,8 +61,8 @@ export function Dashboard() {
     const fetchStats = async () => {
       try {
         const [propiedadesStats, transaccionesStats] = await Promise.all([
-          axios.get('/api/propiedades/stats'),
-          axios.get('/api/transacciones/stats')
+          clienteAxios.get('/propiedades/stats'),
+          clienteAxios.get('/transacciones/stats')
         ]);
 
         const propiedadesData = propiedadesStats.data;
@@ -88,7 +88,7 @@ export function Dashboard() {
 
     const fetchAccounts = async () => {
       try {
-        const response = await axios.get('/api/cuentas');
+        const response = await clienteAxios.get('/cuentas');
         setAccounts(response.data);
       } catch (error) {
         console.error('Error al cargar cuentas:', error);
@@ -98,8 +98,8 @@ export function Dashboard() {
     const fetchInquilinosYContratos = async () => {
       try {
         const [inquilinosRes, contratosRes] = await Promise.all([
-          axios.get(`${import.meta.env.VITE_API_URL}/api/inquilinos/activos`),
-          axios.get(`${import.meta.env.VITE_API_URL}/api/contratos/activos`)
+          clienteAxios.get('/inquilinos/activos'),
+          clienteAxios.get('/contratos/activos')
         ]);
         setInquilinos(inquilinosRes.data);
         setContratos(contratosRes.data);

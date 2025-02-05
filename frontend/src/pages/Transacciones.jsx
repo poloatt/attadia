@@ -12,7 +12,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import EntityForm from '../components/EntityViews/EntityForm';
-import axios from 'axios';
+import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 
 export function Transacciones() {
@@ -32,7 +32,7 @@ export function Transacciones() {
   // Obtener transacciones
   const fetchTransacciones = async () => {
     try {
-      const response = await axios.get('/api/transacciones');
+      const response = await clienteAxios.get('/transacciones');
       setTransacciones(response.data);
     } catch (error) {
       console.error('Error:', error);
@@ -43,7 +43,7 @@ export function Transacciones() {
   // Obtener monedas y cuentas para el formulario
   const fetchMonedas = async () => {
     try {
-      const response = await axios.get('/api/monedas');
+      const response = await clienteAxios.get('/monedas');
       setMonedas(response.data);
     } catch (error) {
       console.error('Error al cargar monedas:', error);
@@ -52,7 +52,7 @@ export function Transacciones() {
 
   const fetchCuentas = async () => {
     try {
-      const response = await axios.get('/api/cuentas');
+      const response = await clienteAxios.get('/cuentas');
       setCuentas(response.data);
     } catch (error) {
       console.error('Error al cargar cuentas:', error);
@@ -62,7 +62,7 @@ export function Transacciones() {
   // Agregar estas funciones
   const handleCreateMoneda = async (data) => {
     try {
-      const response = await axios.post('/api/monedas', data);
+      const response = await clienteAxios.post('/monedas', data);
       const newMoneda = response.data;
       setMonedas(prev => [...prev, newMoneda]);
       enqueueSnackbar('Moneda creada exitosamente', { variant: 'success' });
@@ -76,7 +76,7 @@ export function Transacciones() {
 
   const handleCreateCuenta = async (nombre) => {
     try {
-      const response = await axios.post('/api/cuentas', { 
+      const response = await clienteAxios.post('/cuentas', { 
         nombre,
         numero: nombre,
         tipo: 'EFECTIVO',
@@ -122,7 +122,7 @@ export function Transacciones() {
 
       console.log('Datos a enviar:', datosAEnviar);
 
-      const response = await axios.post('/api/transacciones', datosAEnviar);
+      const response = await clienteAxios.post('/transacciones', datosAEnviar);
       
       if (response.status === 201) {
         enqueueSnackbar('Transacción creada exitosamente', { variant: 'success' });

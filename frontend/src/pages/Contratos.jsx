@@ -18,7 +18,7 @@ import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import EntityForm from '../components/EntityViews/EntityForm';
 import { useSnackbar } from 'notistack';
-import axios from 'axios';
+import clienteAxios from '../config/axios';
 import { 
   ApartmentOutlined as BuildingIcon,
   BedOutlined as BedIcon,
@@ -41,7 +41,7 @@ export function Contratos() {
 
   const fetchContratos = async () => {
     try {
-      const response = await axios.get('/api/contratos');
+      const response = await clienteAxios.get('/contratos');
       setContratos(response.data);
     } catch (error) {
       console.error('Error al cargar contratos:', error);
@@ -54,8 +54,8 @@ export function Contratos() {
   const fetchRelatedData = async () => {
     try {
       const [inquilinosRes, propiedadesRes] = await Promise.all([
-        axios.get('/api/inquilinos'),
-        axios.get('/api/propiedades')
+        clienteAxios.get('/inquilinos'),
+        clienteAxios.get('/propiedades')
       ]);
       setInquilinos(inquilinosRes.data);
       setPropiedades(propiedadesRes.data);
@@ -67,7 +67,7 @@ export function Contratos() {
 
   const handleFormSubmit = async (formData) => {
     try {
-      const response = await axios.post('/api/contratos', formData);
+      const response = await clienteAxios.post('/contratos', formData);
       if (response.status === 201) {
         enqueueSnackbar('Contrato creado exitosamente', { variant: 'success' });
         setIsFormOpen(false);

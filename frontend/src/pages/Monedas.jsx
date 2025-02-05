@@ -19,7 +19,7 @@ import {
   AccountBalanceOutlined as BankIcon,
   AccountBalanceWalletOutlined as WalletIcon
 } from '@mui/icons-material';
-import axios from 'axios';
+import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import EntityTable from '../components/EntityViews/EntityTable';
 import EntityCards from '../components/EntityViews/EntityCards';
@@ -35,7 +35,7 @@ export function Monedas() {
 
   const fetchMonedas = async () => {
     try {
-      const response = await axios.get('/api/monedas');
+      const response = await clienteAxios.get('/monedas');
       setMonedas(response.data);
     } catch (error) {
       console.error('Error al cargar monedas:', error);
@@ -45,7 +45,7 @@ export function Monedas() {
 
   const handleFormSubmit = async (formData) => {
     try {
-      const response = await axios.post('/api/monedas', formData);
+      const response = await clienteAxios.post('/monedas', formData);
       setMonedas(prev => [...prev, response.data]);
       setIsFormOpen(false);
       enqueueSnackbar('Moneda creada exitosamente', { variant: 'success' });

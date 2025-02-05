@@ -17,7 +17,7 @@ import {
   AttachMoneyOutlined as MoneyIcon,
   ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
-import axios from 'axios';
+import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 
 export function Cuentas() {
@@ -40,7 +40,7 @@ export function Cuentas() {
 
   const fetchCuentas = async () => {
     try {
-      const response = await axios.get('/api/cuentas');
+      const response = await clienteAxios.get('/cuentas');
       setCuentas(response.data);
     } catch (error) {
       console.error('Error al cargar cuentas:', error);
@@ -50,7 +50,7 @@ export function Cuentas() {
 
   const fetchMonedas = async () => {
     try {
-      const response = await axios.get('/api/monedas');
+      const response = await clienteAxios.get('/monedas');
       setMonedas(response.data);
     } catch (error) {
       console.error('Error al cargar monedas:', error);
@@ -59,7 +59,7 @@ export function Cuentas() {
 
   const handleCreateMoneda = async (data) => {
     try {
-      const response = await axios.post('/api/monedas', data);
+      const response = await clienteAxios.post('/monedas', data);
       const newMoneda = response.data;
       setMonedas(prev => [...prev, newMoneda]);
       enqueueSnackbar('Moneda creada exitosamente', { variant: 'success' });
@@ -73,7 +73,7 @@ export function Cuentas() {
 
   const handleFormSubmit = async (formData) => {
     try {
-      const response = await axios.post('/api/cuentas', formData);
+      const response = await clienteAxios.post('/cuentas', formData);
       setCuentas(prev => [...prev, response.data]);
       setExpandedMonedas(prev => [...new Set([...prev, response.data.moneda?.id])]);
       setIsFormOpen(false);
