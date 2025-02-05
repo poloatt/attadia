@@ -58,30 +58,43 @@ clienteAxios.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
     // Log para depuración
-    console.log('Request URL:', config.url);
+    console.log('Request:', {
+      method: config.method,
+      url: config.url,
+      baseURL: config.baseURL,
+      fullUrl: config.baseURL + config.url
+    });
     return config;
   },
   error => {
+    console.error('Error en la petición:', error);
     return Promise.reject(error);
   }
 );
 
 // Interceptor para manejar respuestas y errores
 clienteAxios.interceptors.response.use(
-  response => response,
+  response => {
+    console.log('Respuesta exitosa:', {
+      url: response.config.url,
+      status: response.status,
+      data: response.data
+    });
+    return response;
+  },
   async error => {
-    const originalRequest = error.config;
+    console.error('Error en la respuesta:', {
+      url: error.config?.url,
+      message: error.message,
+      response: error.response?.data
+    });
 
-    // Si es un error de red, intentar reintento con backoff exponencial
     if (error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
-      if (retryCount < MAX_RETRIES) {
-        originalRequest.retryCount = retryCount + 1;
-        const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 10000);
-        
-        await new Promise(resolve => setTimeout(resolve, backoffDelay));
-        return clienteAxios(originalRequest);
-      }
+      console.error('Error de red detectado');
+      throw new Error('Error de conexión con el servidor. Por favor, verifica tu conexión a internet.');
     }
+
+    const originalRequest = error.config;
 
     // Si el token expiró, intentar refresh
     if (error.response?.status === 401 && !originalRequest._retry) {

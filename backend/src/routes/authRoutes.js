@@ -53,7 +53,7 @@ router.get('/google/url', (req, res) => {
     callbackUrl: config.google.callbackUrl
   });
   
-  // Devolver la URL de autenticación de Google
+  // Devolver la URL de autenticación de Google con el prefijo /api
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
     `client_id=${config.google.clientId}&` +
     `redirect_uri=${encodeURIComponent(config.google.callbackUrl)}&` +
@@ -68,47 +68,51 @@ router.get('/google/url', (req, res) => {
 
 router.get('/google/callback',
   (req, res, next) => {
-    console.log('Recibiendo callback de Google:', {
-      query: req.query,
-      headers: req.headers,
-      cookies: req.cookies,
-      session: req.session
-    });
+    console.log('Recibiendo callback de Google - Query:', req.query);
+    console.log('URL completa:', req.protocol + '://' + req.get('host') + req.originalUrl);
+    if (req.query.error) {
+      console.error('Error recibido de Google:', req.query.error);
+      return res.redirect(`${config.frontendUrl}/auth/error?error=${req.query.error}`);
+    }
     next();
   },
   passport.authenticate('google', { 
     session: false,
-    scope: ['profile', 'email'],
     failureRedirect: `${config.frontendUrl}/auth/error`,
     failWithError: true
   }),
   (err, req, res, next) => {
     if (err) {
       console.error('Error en autenticación de Google:', err);
-      return res.redirect(`${config.frontendUrl}/auth/error?message=auth_failed`);
+      const errorMessage = encodeURIComponent(err.message || 'auth_failed');
+      return res.redirect(`${config.frontendUrl}/auth/error?error=${errorMessage}`);
     }
     next();
   },
   (req, res) => {
     try {
-      console.log('Usuario autenticado:', req.user);
-      
       if (!req.user) {
         console.error('No se recibió información del usuario');
-        return res.redirect(`${config.frontendUrl}/auth/error?message=no_user_info`);
+        return res.redirect(`${config.frontendUrl}/auth/error?error=no_user_info`);
       }
 
       const token = jwt.sign(
-        { user: { id: req.user._id } },
+        { 
+          user: { 
+            id: req.user._id,
+            email: req.user.email // Añadimos más información al token
+          } 
+        },
         config.jwtSecret,
         { expiresIn: '24h' }
       );
 
-      console.log('Token generado, redirigiendo a:', `${config.frontendUrl}/auth/callback?token=${token}`);
+      // Log de éxito
+      console.log('Autenticación exitosa para:', req.user.email);
       res.redirect(`${config.frontendUrl}/auth/callback?token=${token}`);
     } catch (error) {
       console.error('Error en el callback:', error);
-      res.redirect(`${config.frontendUrl}/auth/error?message=server_error`);
+      res.redirect(`${config.frontendUrl}/auth/error?error=server_error`);
     }
   }
 );

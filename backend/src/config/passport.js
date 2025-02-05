@@ -35,10 +35,12 @@ if (GoogleStrategy) {
     clientID: config.google.clientId,
     clientSecret: config.google.clientSecret,
     callbackURL: config.google.callbackUrl,
-    scope: ['profile', 'email']
-  }, async (accessToken, refreshToken, profile, done) => {
+    proxy: true,
+    passReqToCallback: true
+  }, async (req, accessToken, refreshToken, profile, done) => {
     try {
       console.log('Iniciando autenticación de Google');
+      console.log('URL de callback:', config.google.callbackUrl);
       console.log('Configuración:', {
         clientId: config.google.clientId,
         callbackUrl: config.google.callbackUrl

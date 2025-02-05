@@ -21,7 +21,7 @@ import perfilRoutes from './perfilRoutes.js';
 
 const router = express.Router();
 
-// Configurar las rutas
+// Todas las rutas, incluyendo auth, van bajo /api
 router.use('/auth', authRoutes);
 router.use('/users', usersRoutes);
 router.use('/propiedades', propiedadesRoutes);
@@ -42,4 +42,4 @@ router.use('/objetivos', objetivosRoutes);
 router.use('/monitoreo', monitoreoRoutes);
 router.use('/perfil', perfilRoutes);
 
-export const routes = router; 
+export { router }; 

@@ -89,16 +89,43 @@ function AuthProvider({ children }) {
   const loginWithGoogle = async () => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
+      console.log('Iniciando proceso de login con Google');
+      
+      // Primero verificar si el servidor está disponible
+      try {
+        await clienteAxios.get('/health');
+      } catch (error) {
+        throw new Error('El servidor no está disponible. Por favor, intenta más tarde.');
+      }
+
       const response = await clienteAxios.get('/auth/google/url');
+      console.log('URL recibida:', response.data);
+      
+      if (!response.data?.url) {
+        throw new Error('No se recibió la URL de autenticación');
+      }
+      
       window.location.href = response.data.url;
     } catch (error) {
       console.error('Error al iniciar el proceso de autenticación con Google:', error);
+      
+      let errorMessage = 'Error al conectar con el servidor';
+      
+      if (error.code === 'ERR_NETWORK') {
+        errorMessage = 'No se puede conectar con el servidor. Por favor, verifica que el servidor esté corriendo.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'La ruta de autenticación no está disponible';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       setState({ 
         ...state, 
         loading: false, 
-        error: error.response?.data || error 
+        error: errorMessage
       });
-      throw error;
+      
+      throw new Error(errorMessage);
     }
   };
 

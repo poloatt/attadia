@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { passportConfig } from './config/passport.js';
-import { routes } from './routes/index.js';
+import { router } from './routes/index.js';
 import mongoose from 'mongoose';
 import morgan from 'morgan';
 import connectDB from './config/database/mongodb.js';
@@ -48,7 +48,14 @@ app.get('/api/health', (req, res) => {
 });
 
 // Montamos todas las rutas bajo /api
-app.use('/api', routes);
+app.use('/api', router);
+
+// Redirigir cualquier intento de acceso a /auth hacia /api/auth
+app.use('/auth/*', (req, res, next) => {
+  const newUrl = `/api${req.originalUrl}`;
+  console.log('Redirigiendo de', req.originalUrl, 'a', newUrl);
+  res.redirect(307, newUrl);
+});
 
 // Manejo de errores global
 app.use((err, req, res, next) => {

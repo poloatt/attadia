@@ -40,7 +40,7 @@ services:
       - REFRESH_TOKEN_SECRET=your_refresh_token_secret_here
       - GOOGLE_CLIENT_ID=21564026422-n684af8adp48dni8tuc2q2pqc8npb1r7.apps.googleusercontent.com
       - GOOGLE_CLIENT_SECRET=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
-      - GOOGLE_CALLBACK_URL=http://localhost:5000/auth/google/callback
+      - GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
     volumes:
       - ./backend:/app
       - /app/node_modules
