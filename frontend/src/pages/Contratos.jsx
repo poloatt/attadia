@@ -25,6 +25,7 @@ import {
   PeopleOutlined as PeopleIcon,
   Inventory2Outlined as InventoryIcon
 } from '@mui/icons-material';
+import EmptyState from '../components/EmptyState';
 
 export function Contratos() {
   const [contratos, setContratos] = useState([]);
@@ -253,19 +254,7 @@ export function Contratos() {
         }
       >
         {contratos.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
-            <Typography variant="h6" gutterBottom>
-              No hay contratos registrados
-            </Typography>
-            <Button 
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setIsFormOpen(true)}
-              sx={{ mt: 2 }}
-            >
-              Agregar Contrato
-            </Button>
-          </Box>
+          <EmptyState onAdd={() => setIsFormOpen(true)} />
         ) : (
           <TableContainer component={Paper} elevation={0}>
             <Table size="small">

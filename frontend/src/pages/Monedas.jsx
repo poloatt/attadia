@@ -23,6 +23,7 @@ import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import EntityTable from '../components/EntityViews/EntityTable';
 import EntityCards from '../components/EntityViews/EntityCards';
+import EmptyState from '../components/EmptyState';
 
 export function Monedas() {
   const [monedas, setMonedas] = useState([]);
@@ -109,35 +110,39 @@ export function Monedas() {
           </Button>
         }
       >
-        <TableContainer component={Paper} elevation={0}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Código</TableCell>
-                <TableCell>Nombre</TableCell>
-                <TableCell>Símbolo</TableCell>
-                <TableCell>Estado</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {monedas.map((moneda) => (
-                <TableRow key={moneda._id}>
-                  <TableCell>{moneda.codigo}</TableCell>
-                  <TableCell>{moneda.nombre}</TableCell>
-                  <TableCell>{moneda.simbolo}</TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={moneda.activa ? 'Activa' : 'Inactiva'}
-                      size="small"
-                      color={moneda.activa ? 'success' : 'default'}
-                      variant="outlined"
-                    />
-                  </TableCell>
+        {monedas.length === 0 ? (
+          <EmptyState onAdd={() => setIsFormOpen(true)} />
+        ) : (
+          <TableContainer component={Paper} elevation={0}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Código</TableCell>
+                  <TableCell>Nombre</TableCell>
+                  <TableCell>Símbolo</TableCell>
+                  <TableCell>Estado</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {monedas.map((moneda) => (
+                  <TableRow key={moneda._id}>
+                    <TableCell>{moneda.codigo}</TableCell>
+                    <TableCell>{moneda.nombre}</TableCell>
+                    <TableCell>{moneda.simbolo}</TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={moneda.activa ? 'Activa' : 'Inactiva'}
+                        size="small"
+                        color={moneda.activa ? 'success' : 'default'}
+                        variant="outlined"
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </EntityDetails>
 
       <EntityForm

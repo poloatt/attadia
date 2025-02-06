@@ -1,8 +1,11 @@
 import React from 'react';
-import { Box, Typography, Button } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+import { Box, Typography } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import FolderIcon from '@mui/icons-material/Folder';
 
-export function EmptyState({ onAdd, buttonText = 'Crear' }) {
+export function EmptyState() {
+  const theme = useTheme();
+
   return (
     <Box 
       sx={{ 
@@ -10,23 +13,27 @@ export function EmptyState({ onAdd, buttonText = 'Crear' }) {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: '400px',
-        color: 'text.secondary',
-        bgcolor: 'background.default',
+        minHeight: '200px',
+        color: theme.palette.text.primary,
+        bgcolor: 'transparent',
         borderRadius: 1,
-        p: 3
+        p: 2,
+        textAlign: 'center',
+        boxShadow: 0,
+        margin: '16px 0'
       }}
     >
-      <Typography variant="body1" sx={{ mb: 2 }}>
-        No hay datos para mostrar
-      </Typography>
-      <Button
-        variant="contained"
-        startIcon={<AddIcon />}
-        onClick={onAdd}
+      <FolderIcon sx={{ fontSize: 40, color: theme.palette.grey[500], mb: 1 }} />
+      <Typography 
+        variant="body2"
+        sx={{ 
+          mb: 1,
+          fontSize: '0.75rem',
+          color: 'rgba(255, 255, 255, 0.9)'
+        }}
       >
-        {buttonText}
-      </Button>
+        ¡Parece que aún no tienes datos!
+      </Typography>
     </Box>
   );
 }

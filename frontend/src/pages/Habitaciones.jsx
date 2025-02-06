@@ -16,6 +16,7 @@ import {
   DescriptionOutlined as DescriptionIcon,
   Inventory2Outlined as InventoryIcon
 } from '@mui/icons-material';
+import EmptyState from '../components/EmptyState';
 
 export function Habitaciones() {
   const [habitaciones, setHabitaciones] = useState([]);
@@ -219,19 +220,7 @@ export function Habitaciones() {
         }
       >
         {habitaciones.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
-            <Typography variant="h6" gutterBottom>
-              No hay habitaciones registradas
-            </Typography>
-            <Button 
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setIsFormOpen(true)}
-              sx={{ mt: 2 }}
-            >
-              Agregar Habitación
-            </Button>
-          </Box>
+          <EmptyState onAdd={() => setIsFormOpen(true)} />
         ) : (
           <TableContainer component={Paper} elevation={0}>
             <Table size="small">

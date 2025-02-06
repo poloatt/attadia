@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Container } from '@mui/material';
+import { Container, Box } from '@mui/material';
 import EntityToolbar from '../components/EntityToolbar';
 import { 
   AccountBalanceOutlined as BankIcon,
@@ -14,6 +14,7 @@ import EntityDetails from '../components/EntityViews/EntityDetails';
 import EntityForm from '../components/EntityViews/EntityForm';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
+import EmptyState from '../components/EmptyState';
 
 export function Transacciones() {
   const [transacciones, setTransacciones] = useState([]);
@@ -248,50 +249,56 @@ export function Transacciones() {
           </Button>
         }
       >
-        <TableContainer component={Paper} elevation={0}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Fecha</TableCell>
-                <TableCell>Descripción</TableCell>
-                <TableCell align="right">Monto</TableCell>
-                <TableCell>Moneda</TableCell>
-                <TableCell>Cuenta</TableCell>
-                <TableCell>Estado</TableCell>
-                <TableCell>Categoría</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {transacciones.map((trans) => (
-                <TableRow key={trans.id}>
-                  <TableCell>{new Date(trans.fecha).toLocaleDateString()}</TableCell>
-                  <TableCell>{trans.descripcion}</TableCell>
-                  <TableCell align="right">
-                    {trans.moneda?.simbolo} {trans.monto.toFixed(2)}
-                  </TableCell>
-                  <TableCell>{trans.moneda?.nombre}</TableCell>
-                  <TableCell>{trans.cuenta?.nombre}</TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={trans.estado}
-                      color={trans.estado === 'PAGADO' ? 'success' : 'warning'}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={trans.categoria}
-                      size="small"
-                      color="primary"
-                      variant="outlined"
-                    />
-                  </TableCell>
+        {transacciones.length === 0 ? (
+          <Box sx={{ p: 2 }}>
+            <EmptyState />
+          </Box>
+        ) : (
+          <TableContainer component={Paper} elevation={0}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Fecha</TableCell>
+                  <TableCell>Descripción</TableCell>
+                  <TableCell align="right">Monto</TableCell>
+                  <TableCell>Moneda</TableCell>
+                  <TableCell>Cuenta</TableCell>
+                  <TableCell>Estado</TableCell>
+                  <TableCell>Categoría</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {transacciones.map((trans) => (
+                  <TableRow key={trans.id}>
+                    <TableCell>{new Date(trans.fecha).toLocaleDateString()}</TableCell>
+                    <TableCell>{trans.descripcion}</TableCell>
+                    <TableCell align="right">
+                      {trans.moneda?.simbolo} {trans.monto.toFixed(2)}
+                    </TableCell>
+                    <TableCell>{trans.moneda?.nombre}</TableCell>
+                    <TableCell>{trans.cuenta?.nombre}</TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={trans.estado}
+                        color={trans.estado === 'PAGADO' ? 'success' : 'warning'}
+                        size="small"
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={trans.categoria}
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </EntityDetails>
 
       <EntityForm

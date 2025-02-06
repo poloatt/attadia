@@ -168,11 +168,13 @@ const EntityToolbar = ({
   return (
     <Box
       sx={{
-        width: '100%',
-        height: 40,
-        borderBottom: showDivider ? '1px solid' : 'none',
-        borderColor: 'divider',
-        bgcolor: 'background.default'
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        bgcolor: theme.palette.background.default,
+        padding: '8px 16px',
+        borderBottom: 'none',
+        boxShadow: 'none',
       }}
     >
       <Container 

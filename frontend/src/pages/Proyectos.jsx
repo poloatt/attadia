@@ -9,6 +9,7 @@ import { Add as AddIcon } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import clienteAxios from '../config/axios';
+import EmptyState from '../components/EmptyState';
 
 export function Proyectos() {
   const [proyectos, setProyectos] = useState([]);
@@ -46,30 +47,15 @@ export function Proyectos() {
           </Button>
         }
       >
-        {proyectos.length === 0 && (
-          <Box 
-            sx={{ 
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minHeight: '400px',
-              color: 'text.secondary',
-              bgcolor: 'background.default',
-              borderRadius: 1,
-              p: 3
-            }}
-          >
-            <Typography variant="body1" sx={{ mb: 2 }}>
-              No hay datos para mostrar
-            </Typography>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => {}}
-            >
-              Crear Proyecto
-            </Button>
+        {proyectos.length === 0 ? (
+          <Box sx={{ p: 2 }}>
+            <EmptyState />
+          </Box>
+        ) : (
+          <Box>
+            {proyectos.map((proyecto) => (
+              <Typography key={proyecto.id}>{proyecto.nombre}</Typography>
+            ))}
           </Box>
         )}
       </EntityDetails>

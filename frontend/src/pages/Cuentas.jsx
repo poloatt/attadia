@@ -19,6 +19,7 @@ import {
 } from '@mui/icons-material';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
+import EmptyState from '../components/EmptyState';
 
 export function Cuentas() {
   const [cuentas, setCuentas] = useState([]);
@@ -200,93 +201,99 @@ export function Cuentas() {
         onToggleValues={() => setShowValues(!showValues)}
       />
       
-      <Box sx={{ mt: 3 }}>
-        {Object.values(getCuentasAgrupadasPorMoneda()).map((grupo) => (
-          <Paper 
-            key={grupo.moneda?.id} 
-            sx={{ mb: 2, overflow: 'hidden' }}
-          >
-            <Box sx={{ 
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              px: 2,
-              py: 1,
-              bgcolor: 'background.default',
-              borderBottom: 1,
-              borderColor: 'divider'
-            }}>
-              <Typography variant="subtitle2" color="text.secondary">
-                {grupo.moneda?.nombre} ({grupo.moneda?.simbolo})
-              </Typography>
-              <IconButton
-                size="small"
-                onClick={() => handleMonedaToggle(grupo.moneda?.id)}
-                sx={{
-                  transform: expandedMonedas.includes(grupo.moneda?.id) ? 
-                    'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s',
-                  p: 0.5
-                }}
-              >
-                <ExpandMoreIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-            </Box>
+      {cuentas.length === 0 ? (
+        <Box sx={{ p: 2, bgcolor: 'background.default', borderRadius: 1, boxShadow: 1 }}>
+          <EmptyState />
+        </Box>
+      ) : (
+        <Box sx={{ mt: 3 }}>
+          {Object.values(getCuentasAgrupadasPorMoneda()).map((grupo) => (
+            <Paper 
+              key={grupo.moneda?.id} 
+              sx={{ mb: 2, overflow: 'hidden' }}
+            >
+              <Box sx={{ 
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                px: 2,
+                py: 1,
+                bgcolor: 'background.default',
+                borderBottom: 1,
+                borderColor: 'divider'
+              }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  {grupo.moneda?.nombre} ({grupo.moneda?.simbolo})
+                </Typography>
+                <IconButton
+                  size="small"
+                  onClick={() => handleMonedaToggle(grupo.moneda?.id)}
+                  sx={{
+                    transform: expandedMonedas.includes(grupo.moneda?.id) ? 
+                      'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s',
+                    p: 0.5
+                  }}
+                >
+                  <ExpandMoreIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Box>
 
-            {expandedMonedas.includes(grupo.moneda?.id) && (
-              <Box>
-                {grupo.cuentas.map((cuenta) => (
-                  <Box
-                    key={cuenta.id}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      px: 2,
-                      py: 1,
-                      borderBottom: 1,
-                      borderColor: 'divider',
-                      '&:last-child': {
-                        borderBottom: 0
-                      }
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {getTipoIcon(cuenta.tipo)}
-                      <Typography variant="body2">
-                        {cuenta.nombre}
-                      </Typography>
-                      <Chip 
-                        label={cuenta.tipo.replace('_', ' ')}
-                        size="small"
-                        variant="outlined"
-                        sx={{ 
-                          height: 20,
-                          '& .MuiChip-label': {
-                            px: 1,
-                            fontSize: '0.75rem'
-                          }
-                        }}
-                      />
-                    </Box>
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        color: cuenta.saldo >= 0 ? 'success.main' : 'error.main'
+              {expandedMonedas.includes(grupo.moneda?.id) && (
+                <Box>
+                  {grupo.cuentas.map((cuenta) => (
+                    <Box
+                      key={cuenta.id}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        px: 2,
+                        py: 1,
+                        borderBottom: 1,
+                        borderColor: 'divider',
+                        '&:last-child': {
+                          borderBottom: 0
+                        }
                       }}
                     >
-                      {showValues 
-                        ? `${cuenta.moneda?.simbolo} ${cuenta.saldo?.toFixed(2) || '0.00'}`
-                        : '****'
-                      }
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-            )}
-          </Paper>
-        ))}
-      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {getTipoIcon(cuenta.tipo)}
+                        <Typography variant="body2">
+                          {cuenta.nombre}
+                        </Typography>
+                        <Chip 
+                          label={cuenta.tipo.replace('_', ' ')}
+                          size="small"
+                          variant="outlined"
+                          sx={{ 
+                            height: 20,
+                            '& .MuiChip-label': {
+                              px: 1,
+                              fontSize: '0.75rem'
+                            }
+                          }}
+                        />
+                      </Box>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: cuenta.saldo >= 0 ? 'success.main' : 'error.main'
+                        }}
+                      >
+                        {showValues 
+                          ? `${cuenta.moneda?.simbolo} ${cuenta.saldo?.toFixed(2) || '0.00'}`
+                          : '****'
+                        }
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              )}
+            </Paper>
+          ))}
+        </Box>
+      )}
 
       <EntityForm
         open={isFormOpen}

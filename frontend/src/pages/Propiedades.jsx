@@ -31,6 +31,7 @@ import clienteAxios from '../config/axios';
 import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import EntityCards from '../components/EntityViews/EntityCards';
+import EmptyState from '../components/EmptyState';
 
 // Cambiamos a exportación nombrada para coincidir con App.jsx
 export function Propiedades() {
@@ -372,25 +373,7 @@ export function Propiedades() {
         }
       >
         {propiedades.length === 0 ? (
-          <Box 
-            sx={{ 
-              textAlign: 'center', 
-              py: 4,
-              color: 'text.secondary'
-            }}
-          >
-            <Typography variant="h6" gutterBottom>
-              No hay propiedades registradas
-            </Typography>
-            <Button 
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setIsFormOpen(true)}
-              sx={{ mt: 2 }}
-            >
-              Agregar Propiedad
-            </Button>
-          </Box>
+          <EmptyState onAdd={() => setIsFormOpen(true)} />
         ) : (
           <EntityCards
             data={filteredPropiedades.length > 0 ? filteredPropiedades : propiedades}

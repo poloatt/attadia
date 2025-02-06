@@ -24,6 +24,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import clienteAxios from '../config/axios';
+import EmptyState from '../components/EmptyState';
 
 export function Dieta() {
   const [dietas, setDietas] = useState([]);
@@ -123,34 +124,38 @@ export function Dieta() {
           </Button>
         }
       >
-        <TableContainer component={Paper} elevation={0}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Fecha</TableCell>
-                <TableCell>Tipo</TableCell>
-                <TableCell align="right">Calorías</TableCell>
-                <TableCell align="right">Proteínas (g)</TableCell>
-                <TableCell align="right">Carbohidratos (g)</TableCell>
-                <TableCell align="right">Grasas (g)</TableCell>
-                <TableCell>Notas</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {dietas.map((dieta) => (
-                <TableRow key={dieta.id}>
-                  <TableCell>{new Date(dieta.fecha).toLocaleDateString()}</TableCell>
-                  <TableCell>{dieta.tipo}</TableCell>
-                  <TableCell align="right">{dieta.calorias}</TableCell>
-                  <TableCell align="right">{dieta.proteinas}</TableCell>
-                  <TableCell align="right">{dieta.carbohidratos}</TableCell>
-                  <TableCell align="right">{dieta.grasas}</TableCell>
-                  <TableCell>{dieta.notas}</TableCell>
+        {dietas.length === 0 ? (
+          <EmptyState onAdd={handleOpenDialog} />
+        ) : (
+          <TableContainer component={Paper} elevation={0}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Fecha</TableCell>
+                  <TableCell>Tipo</TableCell>
+                  <TableCell align="right">Calorías</TableCell>
+                  <TableCell align="right">Proteínas (g)</TableCell>
+                  <TableCell align="right">Carbohidratos (g)</TableCell>
+                  <TableCell align="right">Grasas (g)</TableCell>
+                  <TableCell>Notas</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {dietas.map((dieta) => (
+                  <TableRow key={dieta.id}>
+                    <TableCell>{new Date(dieta.fecha).toLocaleDateString()}</TableCell>
+                    <TableCell>{dieta.tipo}</TableCell>
+                    <TableCell align="right">{dieta.calorias}</TableCell>
+                    <TableCell align="right">{dieta.proteinas}</TableCell>
+                    <TableCell align="right">{dieta.carbohidratos}</TableCell>
+                    <TableCell align="right">{dieta.grasas}</TableCell>
+                    <TableCell>{dieta.notas}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </EntityDetails>
 
       <Dialog open={openDialog} onClose={handleCloseDialog}>

@@ -24,6 +24,7 @@ import {
   PeopleOutlined as PeopleIcon,
   DescriptionOutlined as DescriptionIcon
 } from '@mui/icons-material';
+import EmptyState from '../components/EmptyState';
 
 export function Inventario() {
   const [items, setItems] = useState([]);
@@ -200,19 +201,7 @@ export function Inventario() {
         }
       >
         {items.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
-            <Typography variant="h6" gutterBottom>
-              No hay items en el inventario
-            </Typography>
-            <Button 
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setIsFormOpen(true)}
-              sx={{ mt: 2 }}
-            >
-              Agregar Item
-            </Button>
-          </Box>
+          <EmptyState onAdd={() => setIsFormOpen(true)} />
         ) : (
           <TableContainer component={Paper} elevation={0}>
             <Table size="small">

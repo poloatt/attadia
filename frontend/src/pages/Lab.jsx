@@ -13,6 +13,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import clienteAxios from '../config/axios';
+import EmptyState from '../components/EmptyState';
 
 export default function Lab() {
   const [resultados, setResultados] = useState([]);
@@ -118,30 +119,34 @@ export default function Lab() {
           </Button>
         }
       >
-        <TableContainer component={Paper} elevation={0}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Fecha</TableCell>
-                <TableCell>Tipo</TableCell>
-                <TableCell align="right">Valor</TableCell>
-                <TableCell>Unidad</TableCell>
-                <TableCell>Notas</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {resultados.map((result) => (
-                <TableRow key={result.id}>
-                  <TableCell>{new Date(result.fecha).toLocaleDateString()}</TableCell>
-                  <TableCell>{result.tipo}</TableCell>
-                  <TableCell align="right">{result.valor.toFixed(2)}</TableCell>
-                  <TableCell>{result.unidad}</TableCell>
-                  <TableCell>{result.notas}</TableCell>
+        {resultados.length === 0 ? (
+          <EmptyState onAdd={handleOpenDialog} />
+        ) : (
+          <TableContainer component={Paper} elevation={0}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Fecha</TableCell>
+                  <TableCell>Tipo</TableCell>
+                  <TableCell align="right">Valor</TableCell>
+                  <TableCell>Unidad</TableCell>
+                  <TableCell>Notas</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {resultados.map((result) => (
+                  <TableRow key={result.id}>
+                    <TableCell>{new Date(result.fecha).toLocaleDateString()}</TableCell>
+                    <TableCell>{result.tipo}</TableCell>
+                    <TableCell align="right">{result.valor.toFixed(2)}</TableCell>
+                    <TableCell>{result.unidad}</TableCell>
+                    <TableCell>{result.notas}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </EntityDetails>
 
       <Dialog open={openDialog} onClose={handleCloseDialog}>
