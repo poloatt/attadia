@@ -5,6 +5,7 @@ import SignalWifiStatusbar4BarIcon from '@mui/icons-material/SignalWifiStatusbar
 import SignalWifiOffIcon from '@mui/icons-material/SignalWifiOff';
 import { useState, useEffect } from 'react';
 import clienteAxios from '../config/axios';
+import { useLocation } from 'react-router-dom';
 
 export default function Footer() {
   const [connectionStatus, setConnectionStatus] = useState({
@@ -12,6 +13,8 @@ export default function Footer() {
     database: false,
     loading: true
   });
+  const [visible, setVisible] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     const checkConnections = async () => {
@@ -37,6 +40,19 @@ export default function Footer() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    // Mostrar el footer solo en la ruta principal o dashboard
+    if (location.pathname === '/' || location.pathname === '/dashboard') {
+      setVisible(true);
+      const timer = setTimeout(() => {
+        setVisible(false);
+      }, 3000); // Ocultar después de 3 segundos
+      return () => clearTimeout(timer);
+    } else {
+      setVisible(false);
+    }
+  }, [location]);
+
   return (
     <Box
       component="footer"
@@ -45,8 +61,10 @@ export default function Footer() {
         bottom: 0,
         width: '100%',
         height: '32px',
-        backgroundColor: '#0A0A0A',
+        backgroundColor: 'rgba(26, 27, 30, 0.8)',
         color: 'rgba(255, 255, 255, 0.7)',
+        opacity: visible ? 1 : 0, // Cambiar opacidad
+        transform: visible ? 'translateY(0)' : 'translateY(10px)', // Desplazamiento
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -54,7 +72,8 @@ export default function Footer() {
         borderTop: '1px solid rgba(255, 255, 255, 0.1)',
         zIndex: 9999,
         left: 0,
-        right: 0
+        right: 0,
+        transition: 'opacity 0.5s ease, transform 0.5s ease', // Mejorar la transición
       }}
     >
       <Chip
@@ -67,7 +86,7 @@ export default function Footer() {
         size="small"
         sx={{ 
           height: '24px',
-          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
           color: 'rgba(255, 255, 255, 0.9)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
           '& .MuiChip-label': {
@@ -86,7 +105,7 @@ export default function Footer() {
         size="small"
         sx={{ 
           height: '24px',
-          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
           color: 'rgba(255, 255, 255, 0.9)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
           '& .MuiChip-label': {

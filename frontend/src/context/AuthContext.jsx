@@ -92,17 +92,18 @@ function AuthProvider({ children }) {
   const loginWithGoogle = async () => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
-      console.log('Iniciando proceso de login con Google');
       
-      // Primero verificar si el servidor está disponible
-      try {
-        await clienteAxios.get('/health');
-      } catch (error) {
-        throw new Error('El servidor no está disponible. Por favor, intenta más tarde.');
+      // Verificar el servidor solo una vez al inicio
+      if (!window._serverHealthChecked) {
+        try {
+          await clienteAxios.get('/health');
+          window._serverHealthChecked = true;
+        } catch (error) {
+          throw new Error('El servidor no está disponible. Por favor, intenta más tarde.');
+        }
       }
 
       const response = await clienteAxios.get('/auth/google/url');
-      console.log('URL recibida:', response.data);
       
       if (!response.data?.url) {
         throw new Error('No se recibió la URL de autenticación');

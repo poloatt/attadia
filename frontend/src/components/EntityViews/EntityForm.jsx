@@ -78,6 +78,12 @@ const EntityForm = ({
     const fetchData = async () => {
       if (!open) return;
       
+      // Solo cargar datos si hay campos relacionados
+      if (relatedFields.length === 0) {
+        setIsLoading(false);
+        return;
+      }
+      
       setIsLoading(true);
       try {
         const data = await onFetchRelatedData();
@@ -104,7 +110,7 @@ const EntityForm = ({
     return () => {
       isMounted = false;
     };
-  }, [open, onFetchRelatedData, enqueueSnackbar]);
+  }, [open, onFetchRelatedData, enqueueSnackbar, relatedFields]);
 
   useEffect(() => {
     if (open) {
@@ -114,12 +120,22 @@ const EntityForm = ({
   }, [open, initialData]);
 
   const handleChange = useCallback((event) => {
-    const { name, value, type, selectedOption } = event.target;
+    const { name, value, type, selectedOption, nestedData } = event.target;
     
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => {
+      const newData = { ...prev };
+      
+      if (type === 'nested') {
+        // Si es un campo anidado, mantener la estructura anidada
+        if (!newData._nested) newData._nested = {};
+        newData._nested[name] = nestedData;
+      } else {
+        // Caso normal
+        newData[name] = value;
+      }
+      
+      return newData;
+    });
     
     if (errors[name]) {
       setErrors(prev => ({
@@ -138,20 +154,34 @@ const EntityForm = ({
     const newErrors = {};
     let isValid = true;
 
-    fields.forEach(field => {
-      if (field.required && (formData[field.name] === null || formData[field.name] === undefined || formData[field.name] === '')) {
-        newErrors[field.name] = 'Este campo es requerido';
+    const validateField = (field, value, parentField = null) => {
+      const fieldPath = parentField ? `${parentField}.${field.name}` : field.name;
+      
+      // Validación de campos requeridos
+      if (field.required && !value) {
+        newErrors[fieldPath] = 'Este campo es requerido';
         isValid = false;
       }
 
+      // Validación personalizada
       if (field.validate) {
-        const fieldError = field.validate(formData[field.name], formData);
+        const fieldError = field.validate(value, formData);
         if (fieldError) {
-          newErrors[field.name] = fieldError;
+          newErrors[fieldPath] = fieldError;
           isValid = false;
         }
       }
-    });
+
+      // Validar campos anidados
+      if (field.nested && field.fields) {
+        const nestedData = formData._nested?.[field.name] || {};
+        field.fields.forEach(childField => {
+          validateField(childField, nestedData[childField.name], field.name);
+        });
+      }
+    };
+
+    fields.forEach(field => validateField(field, formData[field.name]));
 
     setErrors(newErrors);
     return isValid;
@@ -197,6 +227,7 @@ const EntityForm = ({
         relatedData={relatedData}
         error={errors[field.name]}
         isLoading={isLoading}
+        nestedData={formData._nested?.[field.name]}
       />
     ))
   ), [fields, formData, handleChange, relatedData, errors, isLoading]);
@@ -216,6 +247,14 @@ const EntityForm = ({
       }}
       aria-labelledby="form-dialog-title"
       keepMounted={false}
+      disableEnforceFocus
+      disableAutoFocus
+      TransitionProps={{
+        onExited: () => {
+          setFormData(initialData);
+          setErrors({});
+        }
+      }}
     >
       <DialogHeader 
         title={title} 
@@ -230,7 +269,6 @@ const EntityForm = ({
             py: 2,
             opacity: isLoading ? 0.7 : 1
           }}
-          inert={isLoading ? '' : undefined}
           tabIndex={-1}
         >
           <Box 
@@ -263,6 +301,7 @@ const EntityForm = ({
             onClick={onClose} 
             type="button"
             disabled={isLoading || isSaving}
+            tabIndex={0}
           >
             Cancelar
           </Button>
@@ -270,6 +309,7 @@ const EntityForm = ({
             type="submit" 
             variant="contained"
             disabled={isLoading || isSaving}
+            tabIndex={0}
           >
             {isSaving ? 'Guardando...' : 'Guardar'}
           </Button>

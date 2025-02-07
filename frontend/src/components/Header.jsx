@@ -28,7 +28,7 @@ export default function Header() {
       position="fixed" 
       sx={{ 
         zIndex: (theme) => theme.zIndex.drawer + 1,
-        backgroundColor: 'background.default',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
         borderBottom: '1px solid',
         borderColor: 'divider',
         height: 40

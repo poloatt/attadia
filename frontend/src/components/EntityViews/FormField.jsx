@@ -42,11 +42,10 @@ const BaseTextField = memo(({
   helperText 
 }) => {
   const handleChange = useCallback((e) => {
-    const newValue = e.target.value;
     onChange({
       target: {
         name: field.name,
-        value: newValue,
+        value: e.target.value,
         type: field.type
       }
     });
@@ -190,7 +189,8 @@ const SelectField = memo(({
   options = [],
   onCreateNew,
   isLoading,
-  helperText
+  helperText,
+  nestedData
 }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -207,11 +207,11 @@ const SelectField = memo(({
   );
 
   const selectedOption = useMemo(() => {
-    if (Array.isArray(value)) {
-      return value.map(v => normalizedOptions.find(opt => opt.value === v) || null).filter(Boolean);
+    if (field.multiple) {
+      return Array.isArray(value) ? value.map(v => normalizedOptions.find(opt => opt.value === v) || null).filter(Boolean) : [];
     }
     return normalizedOptions.find(opt => opt.value === value) || null;
-  }, [normalizedOptions, value]);
+  }, [normalizedOptions, value, field.multiple]);
 
   const displayedOptions = useMemo(() => {
     const filteredOptions = normalizedOptions.filter(option =>
@@ -225,13 +225,13 @@ const SelectField = memo(({
   }, [normalizedOptions, field.onCreateNew, field.disabled, inputValue, CREATE_NEW_OPTION]);
 
   const handleChange = useCallback((_, newValue) => {
-    if (Array.isArray(newValue)) {
+    if (field.multiple) {
       onChange({
         target: {
           name: field.name,
-          value: newValue.map(v => v.value),
+          value: (newValue || []).map(v => v.value),
           type: 'select',
-          selectedOptions: newValue
+          selectedOptions: newValue || []
         }
       });
       return;
@@ -248,23 +248,28 @@ const SelectField = memo(({
         name: field.name,
         value: normalizedValue?.value || null,
         type: 'select',
-        selectedOption: normalizedValue
+        selectedOption: normalizedValue,
+        nestedData: field.nested ? normalizedValue?.data : undefined
       }
     });
-  }, [field.name, onChange]);
+  }, [field.name, field.multiple, field.nested, onChange]);
 
   const handleInputChange = useCallback((_, newInputValue) => {
     setInputValue(newInputValue);
   }, []);
 
   const renderTags = useCallback((tagValue, getTagProps) => 
-    tagValue.map((option, index) => (
-      <Chip
-        label={option.displayValue || option.label}
-        {...getTagProps({ index })}
-        size="small"
-      />
-    )), []);
+    tagValue.map((option, index) => {
+      const { key, ...chipProps } = getTagProps({ index });
+      return (
+        <Chip
+          key={key}
+          {...chipProps}
+          label={option.displayValue || option.label}
+          size="small"
+        />
+      );
+    }), []);
 
   return (
     <Box>
@@ -280,7 +285,8 @@ const SelectField = memo(({
                   name: field.name,
                   value: normalizedItem.value,
                   type: 'select',
-                  selectedOption: normalizedItem
+                  selectedOption: normalizedItem,
+                  nestedData: field.nested ? newItem : undefined
                 }
               });
               setIsCreating(false);
@@ -294,7 +300,7 @@ const SelectField = memo(({
       ) : (
         <Autocomplete
           multiple={field.multiple}
-          value={selectedOption}
+          value={field.multiple ? selectedOption || [] : selectedOption}
           inputValue={inputValue}
           onInputChange={handleInputChange}
           onChange={handleChange}
@@ -309,9 +315,10 @@ const SelectField = memo(({
           disablePortal
           renderTags={field.multiple ? renderTags : undefined}
           renderOption={(props, option) => {
-            const key = option.id || `option-${option.value}-${option.label}`;
+            const { key, ...listItemProps } = props;
+            const optionKey = option.id || `option-${option.value}-${option.label}`;
             return (
-              <li {...props} key={key}>
+              <li key={optionKey} {...listItemProps}>
                 <Box
                   sx={{
                     width: '100%',
@@ -373,6 +380,32 @@ const SelectField = memo(({
               }}
             />
           )}
+          componentsProps={{
+            popper: {
+              modifiers: [
+                {
+                  name: 'flip',
+                  enabled: true,
+                  options: {
+                    altBoundary: true,
+                    rootBoundary: 'document',
+                    padding: 8,
+                  },
+                },
+                {
+                  name: 'preventOverflow',
+                  enabled: true,
+                  options: {
+                    altAxis: true,
+                    altBoundary: true,
+                    tether: true,
+                    rootBoundary: 'document',
+                    padding: 8,
+                  },
+                },
+              ],
+            }
+          }}
         />
       )}
     </Box>
@@ -387,7 +420,8 @@ export const FormField = memo(({
   error,
   onCreateNew,
   isLoading = false,
-  helperText
+  helperText,
+  nestedData
 }) => {
   const getFieldOptions = useCallback(() => {
     if (field.type === 'select') {
@@ -398,6 +432,40 @@ export const FormField = memo(({
     }
     return [];
   }, [field.type, field.name, field.options, relatedData]);
+
+  // Si es un campo anidado, renderizar sus campos hijos
+  if (field.nested) {
+    return (
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+          {field.label}
+        </Typography>
+        {field.fields?.map(childField => (
+          <FormField
+            key={childField.name}
+            field={childField}
+            value={nestedData?.[childField.name]}
+            onChange={(e) => {
+              const newNestedData = {
+                ...(nestedData || {}),
+                [childField.name]: e.target.value
+              };
+              onChange({
+                target: {
+                  name: field.name,
+                  value: null,
+                  type: 'nested',
+                  nestedData: newNestedData
+                }
+              });
+            }}
+            error={error?.[childField.name]}
+            isLoading={isLoading}
+          />
+        ))}
+      </Box>
+    );
+  }
 
   switch (field.type) {
     case 'select':
@@ -413,6 +481,7 @@ export const FormField = memo(({
           options={getFieldOptions()}
           onCreateNew={field.onCreateNew || onCreateNew}
           isLoading={isLoading}
+          nestedData={nestedData}
         />
       );
     default:

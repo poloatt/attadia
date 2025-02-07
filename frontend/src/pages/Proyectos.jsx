@@ -18,7 +18,7 @@ export function Proyectos() {
     const fetchProyectos = async () => {
       try {
         const response = await clienteAxios.get('/proyectos');
-        setProyectos(response.data || []);
+        setProyectos(response.data.docs || []);
       } catch (error) {
         console.error('Error:', error);
         setProyectos([]);

@@ -45,9 +45,10 @@ export function Dieta() {
   const fetchDietas = async () => {
     try {
       const response = await clienteAxios.get('/dietas');
-      setDietas(response.data);
+      setDietas(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar dietas:', error);
+      setDietas([]);
     }
   };
 

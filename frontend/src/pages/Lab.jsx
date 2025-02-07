@@ -32,9 +32,10 @@ export default function Lab() {
   const fetchResultados = async () => {
     try {
       const response = await clienteAxios.get('/labs');
-      setResultados(response.data);
+      setResultados(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar resultados:', error);
+      setResultados([]);
     }
   };
 

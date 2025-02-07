@@ -46,9 +46,10 @@ export function Rutinas() {
   const fetchRutinas = async () => {
     try {
       const response = await clienteAxios.get('/rutinas');
-      setRutinas(response.data);
+      setRutinas(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar rutinas:', error);
+      setRutinas([]);
     }
   };
 

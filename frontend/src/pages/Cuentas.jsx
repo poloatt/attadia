@@ -201,6 +201,16 @@ export function Cuentas() {
         onToggleValues={() => setShowValues(!showValues)}
       />
       
+      {isFormOpen && (
+        <EntityForm
+          open={isFormOpen}
+          onClose={() => setIsFormOpen(false)}
+          onSubmit={handleFormSubmit}
+          fields={formFields}
+          title="Nueva Cuenta"
+        />
+      )}
+      
       {cuentas.length === 0 ? (
         <Box sx={{ p: 2, bgcolor: 'background.default', borderRadius: 1, boxShadow: 1 }}>
           <EmptyState />
@@ -294,23 +304,6 @@ export function Cuentas() {
           ))}
         </Box>
       )}
-
-      <EntityForm
-        open={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        onSubmit={handleFormSubmit}
-        title="Nueva Cuenta"
-        fields={formFields}
-        relatedFields={[
-          { name: 'monedaId', endpoint: '/monedas' }
-        ]}
-        onFetchRelatedData={async () => {
-          const monedasRes = await clienteAxios.get('/monedas');
-          return {
-            monedas: monedasRes.data.docs || []
-          };
-        }}
-      />
     </Container>
   );
 }
