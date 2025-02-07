@@ -45,7 +45,7 @@ export function Inquilinos() {
   const fetchInquilinos = useCallback(async () => {
     try {
       const response = await clienteAxios.get('/inquilinos');
-      setInquilinos(response.data);
+      setInquilinos(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar inquilinos:', error);
       enqueueSnackbar('Error al cargar inquilinos', { variant: 'error' });
@@ -60,9 +60,9 @@ export function Inquilinos() {
         clienteAxios.get('/contratos'),
         clienteAxios.get('/monedas')
       ]);
-      setPropiedades(propiedadesRes.data);
-      setContratos(contratosRes.data);
-      setMonedas(monedasRes.data);
+      setPropiedades(propiedadesRes.data.docs || []);
+      setContratos(contratosRes.data.docs || []);
+      setMonedas(monedasRes.data.docs || []);
     } catch (error) {
       console.error('Error al cargar datos relacionados:', error);
       enqueueSnackbar('Error al cargar datos relacionados', { variant: 'error' });

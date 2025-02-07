@@ -34,7 +34,7 @@ export function Habitaciones() {
   const fetchHabitaciones = async () => {
     try {
       const response = await clienteAxios.get('/habitaciones');
-      setHabitaciones(response.data);
+      setHabitaciones(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar habitaciones:', error);
       enqueueSnackbar('Error al cargar habitaciones', { variant: 'error' });
@@ -46,7 +46,7 @@ export function Habitaciones() {
   const fetchPropiedades = async () => {
     try {
       const response = await clienteAxios.get('/propiedades');
-      setPropiedades(response.data);
+      setPropiedades(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar propiedades:', error);
       enqueueSnackbar('Error al cargar propiedades', { variant: 'error' });

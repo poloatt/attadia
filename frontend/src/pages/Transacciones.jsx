@@ -26,7 +26,7 @@ export function Transacciones() {
   const fetchTransacciones = useCallback(async () => {
     try {
       const response = await clienteAxios.get('/transacciones');
-      setTransacciones(response.data);
+      setTransacciones(response.data.docs || []);
     } catch (error) {
       console.error('Error:', error);
       enqueueSnackbar('Error al cargar transacciones', { variant: 'error' });
@@ -36,7 +36,7 @@ export function Transacciones() {
   const fetchMonedas = useCallback(async () => {
     try {
       const response = await clienteAxios.get('/monedas');
-      setMonedas(response.data);
+      setMonedas(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar monedas:', error);
       enqueueSnackbar('Error al cargar monedas', { variant: 'error' });
@@ -46,7 +46,7 @@ export function Transacciones() {
   const fetchCuentas = useCallback(async () => {
     try {
       const response = await clienteAxios.get('/cuentas');
-      setCuentas(response.data);
+      setCuentas(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar cuentas:', error);
       enqueueSnackbar('Error al cargar cuentas', { variant: 'error' });
@@ -317,8 +317,8 @@ export function Transacciones() {
             clienteAxios.get('/cuentas')
           ]);
           return {
-            monedas: monedasRes.data,
-            cuentas: cuentasRes.data
+            monedas: monedasRes.data.docs || [],
+            cuentas: cuentasRes.data.docs || []
           };
         }}
       />

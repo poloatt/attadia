@@ -86,7 +86,7 @@ export function Dashboard() {
   const fetchAccounts = useCallback(async () => {
     try {
       const response = await clienteAxios.get('/cuentas');
-      setAccounts(response.data);
+      setAccounts(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar cuentas:', error);
     }

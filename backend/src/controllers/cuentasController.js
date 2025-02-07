@@ -1,117 +1,42 @@
+import { BaseController } from './BaseController.js';
 import { Cuentas } from '../models/index.js';
 
-export const cuentasController = {
-  getAll: async (req, res) => {
-    try {
-      const cuentas = await Cuentas.find({ usuario: req.user.id })
-        .populate('moneda')
-        .sort({ nombre: 'asc' });
-      res.json(cuentas);
-    } catch (error) {
-      console.error('Error al obtener cuentas:', error);
-      res.status(500).json({ error: 'Error al obtener cuentas' });
-    }
-  },
+class CuentasController extends BaseController {
+  constructor() {
+    super(Cuentas, {
+      searchFields: ['nombre', 'numero']
+    });
 
-  create: async (req, res) => {
-    try {
-      const { nombre, numero, tipo, monedaId } = req.body;
-      const cuenta = await Cuentas.create({
-        nombre,
-        numero,
-        tipo,
-        usuario: req.user.id,
-        moneda: monedaId
-      });
+    // Bind de los métodos al contexto de la instancia
+    this.getAllAdmin = this.getAllAdmin.bind(this);
+    this.getAdminStats = this.getAdminStats.bind(this);
+  }
 
-      const cuentaPopulada = await cuenta.populate('moneda');
-      res.status(201).json(cuentaPopulada);
-    } catch (error) {
-      console.error('Error al crear cuenta:', error);
-      res.status(500).json({ error: 'Error al crear cuenta' });
-    }
-  },
-
-  update: async (req, res) => {
+  // GET /api/cuentas/admin/all
+  async getAllAdmin(req, res) {
     try {
-      const { id } = req.params;
-      const { nombre, numero, tipo, monedaId } = req.body;
-      
-      const cuenta = await Cuentas.findOneAndUpdate(
-        { _id: id, usuario: req.user.id },
+      const result = await this.Model.paginate(
+        {},
         {
-          nombre,
-          numero,
-          tipo,
-          moneda: monedaId
-        },
-        { new: true }
-      ).populate('moneda');
-
-      if (!cuenta) {
-        return res.status(404).json({ error: 'Cuenta no encontrada' });
-      }
-
-      res.json(cuenta);
-    } catch (error) {
-      console.error('Error al actualizar cuenta:', error);
-      res.status(500).json({ error: 'Error al actualizar cuenta' });
-    }
-  },
-
-  delete: async (req, res) => {
-    try {
-      const { id } = req.params;
-      const cuenta = await Cuentas.findOneAndDelete({
-        _id: id,
-        usuario: req.user.id
-      });
-
-      if (!cuenta) {
-        return res.status(404).json({ error: 'Cuenta no encontrada' });
-      }
-
-      res.json({ message: 'Cuenta eliminada correctamente' });
-    } catch (error) {
-      console.error('Error al eliminar cuenta:', error);
-      res.status(500).json({ error: 'Error al eliminar cuenta' });
-    }
-  },
-
-  getById: async (req, res) => {
-    try {
-      const { id } = req.params;
-      const cuenta = await Cuentas.findOne({ _id: id, usuario: req.user.id })
-        .populate('moneda');
-
-      if (!cuenta) {
-        return res.status(404).json({ error: 'Cuenta no encontrada' });
-      }
-
-      res.json(cuenta);
-    } catch (error) {
-      console.error('Error al obtener cuenta:', error);
-      res.status(500).json({ error: 'Error al obtener cuenta' });
-    }
-  },
-
-  getAllAdmin: async (req, res) => {
-    try {
-      const cuentas = await Cuentas.find()
-        .populate('moneda')
-        .populate('usuario', 'nombre email')
-        .sort({ createdAt: 'desc' });
-      res.json(cuentas);
+          populate: [
+            { path: 'moneda' },
+            { path: 'usuario', select: 'nombre email' }
+          ],
+          sort: { createdAt: 'desc' }
+        }
+      );
+      res.json(result);
     } catch (error) {
       console.error('Error al obtener todas las cuentas:', error);
       res.status(500).json({ error: 'Error al obtener todas las cuentas' });
     }
-  },
+  }
 
-  getAdminStats: async (req, res) => {
+  // GET /api/cuentas/admin/stats
+  async getAdminStats(req, res) {
     try {
-      const totalCuentas = await Cuentas.countDocuments();
-      const cuentasPorMoneda = await Cuentas.aggregate([
+      const totalCuentas = await this.Model.countDocuments();
+      const cuentasPorMoneda = await this.Model.aggregate([
         {
           $group: {
             _id: '$moneda',
@@ -140,4 +65,6 @@ export const cuentasController = {
       res.status(500).json({ error: 'Error al obtener estadísticas' });
     }
   }
-}; 
+}
+
+export const cuentasController = new CuentasController(); 

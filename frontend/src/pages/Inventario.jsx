@@ -45,7 +45,7 @@ export function Inventario() {
   const fetchInventario = async () => {
     try {
       const response = await clienteAxios.get('/inventarios');
-      setItems(response.data);
+      setItems(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar inventario:', error);
       enqueueSnackbar('Error al cargar inventario', { variant: 'error' });
@@ -57,7 +57,7 @@ export function Inventario() {
   const fetchHabitaciones = async () => {
     try {
       const response = await clienteAxios.get('/habitaciones');
-      setHabitaciones(response.data);
+      setHabitaciones(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar habitaciones:', error);
       enqueueSnackbar('Error al cargar habitaciones', { variant: 'error' });
@@ -67,7 +67,7 @@ export function Inventario() {
   const fetchPropiedades = async () => {
     try {
       const response = await clienteAxios.get('/propiedades');
-      setPropiedades(response.data);
+      setPropiedades(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar propiedades:', error);
       enqueueSnackbar('Error al cargar propiedades', { variant: 'error' });

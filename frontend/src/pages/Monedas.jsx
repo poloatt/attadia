@@ -33,7 +33,7 @@ export function Monedas() {
   const fetchMonedas = useCallback(async () => {
     try {
       const response = await clienteAxios.get('/monedas');
-      setMonedas(response.data);
+      setMonedas(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar monedas:', error);
       enqueueSnackbar('Error al cargar monedas', { variant: 'error' });
@@ -125,7 +125,7 @@ export function Monedas() {
               </TableHead>
               <TableBody>
                 {monedas.map((moneda) => (
-                  <TableRow key={moneda._id}>
+                  <TableRow key={moneda.id}>
                     <TableCell>{moneda.codigo}</TableCell>
                     <TableCell>{moneda.nombre}</TableCell>
                     <TableCell>{moneda.simbolo}</TableCell>

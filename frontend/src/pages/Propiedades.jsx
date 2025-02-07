@@ -73,8 +73,8 @@ export function Propiedades() {
       
       const response = await clienteAxios.get('/propiedades');
       console.log('Respuesta recibida:', response.data);
-      setPropiedades(response.data);
-      setFilteredPropiedades(response.data);
+      setPropiedades(response.data.docs || []);
+      setFilteredPropiedades(response.data.docs || []);
       
     } catch (error) {
       console.error('Error al cargar propiedades:', error);
@@ -94,8 +94,8 @@ export function Propiedades() {
         clienteAxios.get('/cuentas')
       ]);
 
-      setMonedas(monedasRes.data);
-      setCuentas(cuentasRes.data);
+      setMonedas(monedasRes.data.docs || []);
+      setCuentas(cuentasRes.data.docs || []);
     } catch (error) {
       console.error('Error al cargar datos relacionados:', error);
       enqueueSnackbar('Error al cargar datos relacionados', { variant: 'error' });

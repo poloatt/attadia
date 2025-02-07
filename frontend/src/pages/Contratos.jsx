@@ -25,7 +25,6 @@ import {
   PeopleOutlined as PeopleIcon,
   Inventory2Outlined as InventoryIcon
 } from '@mui/icons-material';
-import EmptyState from '../components/EmptyState';
 
 export function Contratos() {
   const [contratos, setContratos] = useState([]);
@@ -44,7 +43,7 @@ export function Contratos() {
   const fetchContratos = async () => {
     try {
       const response = await clienteAxios.get('/contratos');
-      setContratos(response.data);
+      setContratos(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar contratos:', error);
       enqueueSnackbar('Error al cargar contratos', { variant: 'error' });
@@ -60,9 +59,9 @@ export function Contratos() {
         clienteAxios.get('/propiedades'),
         clienteAxios.get('/monedas')
       ]);
-      setInquilinos(inquilinosRes.data);
-      setPropiedades(propiedadesRes.data);
-      setMonedas(monedasRes.data);
+      setInquilinos(inquilinosRes.data.docs || []);
+      setPropiedades(propiedadesRes.data.docs || []);
+      setMonedas(monedasRes.data.docs || []);
     } catch (error) {
       console.error('Error al cargar datos relacionados:', error);
       enqueueSnackbar('Error al cargar datos relacionados', { variant: 'error' });
@@ -254,7 +253,19 @@ export function Contratos() {
         }
       >
         {contratos.length === 0 ? (
-          <EmptyState onAdd={() => setIsFormOpen(true)} />
+          <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+            <Typography variant="h6" gutterBottom>
+              No hay contratos registrados
+            </Typography>
+            <Button 
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setIsFormOpen(true)}
+              sx={{ mt: 2 }}
+            >
+              Agregar Contrato
+            </Button>
+          </Box>
         ) : (
           <TableContainer component={Paper} elevation={0}>
             <Table size="small">

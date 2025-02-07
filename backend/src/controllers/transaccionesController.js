@@ -6,6 +6,65 @@ class TransaccionesController extends BaseController {
     super(Transacciones, {
       searchFields: ['descripcion', 'categoria']
     });
+
+    // Bind de los métodos al contexto de la instancia
+    this.getStats = this.getStats.bind(this);
+    this.getBalance = this.getBalance.bind(this);
+    this.getByCuenta = this.getByCuenta.bind(this);
+    this.create = this.create.bind(this);
+    this.updateEstado = this.updateEstado.bind(this);
+    this.getResumen = this.getResumen.bind(this);
+  }
+
+  // GET /api/transacciones/stats
+  async getStats(req, res) {
+    try {
+      const query = { 
+        usuario: req.user.id,
+        estado: 'COMPLETADA'
+      };
+
+      const [ingresos, egresos] = await Promise.all([
+        this.Model.aggregate([
+          { 
+            $match: { 
+              ...query,
+              tipo: 'INGRESO'
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: '$monto' }
+            }
+          }
+        ]),
+        this.Model.aggregate([
+          { 
+            $match: { 
+              ...query,
+              tipo: 'EGRESO'
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: '$monto' }
+            }
+          }
+        ])
+      ]);
+
+      res.json({
+        ingresosMensuales: ingresos[0]?.total || 0,
+        egresosMensuales: egresos[0]?.total || 0,
+        balanceTotal: (ingresos[0]?.total || 0) - (egresos[0]?.total || 0),
+        monedaPrincipal: 'USD'
+      });
+    } catch (error) {
+      console.error('Error al obtener estadísticas:', error);
+      res.status(500).json({ error: error.message });
+    }
   }
 
   // GET /api/transacciones/balance/:cuentaId

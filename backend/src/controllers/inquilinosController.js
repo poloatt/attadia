@@ -1,138 +1,71 @@
+import { BaseController } from './BaseController.js';
 import { Inquilinos } from '../models/index.js';
 
-export const inquilinosController = {
-  getAll: async (req, res) => {
+class InquilinosController extends BaseController {
+  constructor() {
+    super(Inquilinos, {
+      searchFields: ['nombre', 'apellido', 'dni', 'email', 'telefono']
+    });
+
+    // Bind de los métodos al contexto de la instancia
+    this.getActivos = this.getActivos.bind(this);
+    this.getAllAdmin = this.getAllAdmin.bind(this);
+    this.getAdminStats = this.getAdminStats.bind(this);
+    this.updateStatus = this.updateStatus.bind(this);
+  }
+
+  // GET /api/inquilinos/activos
+  async getActivos(req, res) {
     try {
-      const inquilinos = await Inquilinos.find({ usuario: req.user.id })
-        .populate('usuario')
-        .sort({ nombre: 'asc' });
-      res.json(inquilinos);
-    } catch (error) {
-      console.error('Error al obtener inquilinos:', error);
-      res.status(500).json({ error: 'Error al obtener inquilinos' });
-    }
-  },
-
-  create: async (req, res) => {
-    try {
-      const { nombre, apellido, dni, email, telefono } = req.body;
-      const inquilino = await Inquilinos.create({
-        nombre,
-        apellido,
-        dni,
-        email,
-        telefono,
-        estado: 'ACTIVO',
-        usuario: req.user.id
-      });
-
-      res.status(201).json(inquilino);
-    } catch (error) {
-      console.error('Error al crear inquilino:', error);
-      res.status(500).json({ error: 'Error al crear inquilino' });
-    }
-  },
-
-  update: async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { nombre, apellido, dni, email, telefono } = req.body;
-      
-      const inquilino = await Inquilinos.findOneAndUpdate(
-        { _id: id, usuario: req.user.id },
-        { nombre, apellido, dni, email, telefono },
-        { new: true }
-      );
-
-      if (!inquilino) {
-        return res.status(404).json({ error: 'Inquilino no encontrado' });
-      }
-
-      res.json(inquilino);
-    } catch (error) {
-      console.error('Error al actualizar inquilino:', error);
-      res.status(500).json({ error: 'Error al actualizar inquilino' });
-    }
-  },
-
-  delete: async (req, res) => {
-    try {
-      const { id } = req.params;
-      const inquilino = await Inquilinos.findOneAndDelete({
-        _id: id,
-        usuario: req.user.id
-      });
-
-      if (!inquilino) {
-        return res.status(404).json({ error: 'Inquilino no encontrado' });
-      }
-
-      res.json({ message: 'Inquilino eliminado correctamente' });
-    } catch (error) {
-      console.error('Error al eliminar inquilino:', error);
-      res.status(500).json({ error: 'Error al eliminar inquilino' });
-    }
-  },
-
-  getActivos: async (req, res) => {
-    try {
-      const inquilinos = await Inquilinos.find({
-        usuario: req.user.id,
-        estado: 'ACTIVO'
-      }).populate({
-        path: 'contratos',
-        match: { estado: 'ACTIVO' },
-        populate: { 
-          path: 'propiedad habitacion moneda',
-          select: 'nombre numero simbolo'
+      const inquilinos = await this.Model.paginate(
+        {
+          usuario: req.user.id,
+          estado: 'ACTIVO'
+        },
+        {
+          populate: {
+            path: 'contratos',
+            match: { estado: 'ACTIVO' },
+            populate: { 
+              path: 'propiedad habitacion moneda',
+              select: 'nombre numero simbolo'
+            }
+          }
         }
-      });
+      );
       
       res.json(inquilinos);
     } catch (error) {
       console.error('Error al obtener inquilinos activos:', error);
       res.status(500).json({ error: 'Error al obtener inquilinos activos' });
     }
-  },
+  }
 
-  getById: async (req, res) => {
+  // GET /api/inquilinos/admin/all
+  async getAllAdmin(req, res) {
     try {
-      const { id } = req.params;
-      const inquilino = await Inquilinos.findOne({ 
-        _id: id, 
-        usuario: req.user.id 
-      }).populate('usuario');
-      
-      if (!inquilino) {
-        return res.status(404).json({ error: 'Inquilino no encontrado' });
-      }
-      
-      res.json(inquilino);
-    } catch (error) {
-      console.error('Error al obtener inquilino:', error);
-      res.status(500).json({ error: 'Error al obtener inquilino' });
-    }
-  },
-
-  getAllAdmin: async (req, res) => {
-    try {
-      const inquilinos = await Inquilinos.find()
-        .populate('usuario')
-        .sort({ createdAt: 'desc' });
-      res.json(inquilinos);
+      const result = await this.Model.paginate(
+        {},
+        {
+          populate: 'usuario',
+          sort: { createdAt: 'desc' }
+        }
+      );
+      res.json(result);
     } catch (error) {
       console.error('Error al obtener todos los inquilinos:', error);
       res.status(500).json({ error: 'Error al obtener todos los inquilinos' });
     }
-  },
+  }
 
-  getAdminStats: async (req, res) => {
+  // GET /api/inquilinos/admin/stats
+  async getAdminStats(req, res) {
     try {
-      const totalInquilinos = await Inquilinos.countDocuments();
-      const inquilinosActivos = await Inquilinos.countDocuments({ estado: 'ACTIVO' });
-      const inquilinosInactivos = await Inquilinos.countDocuments({ estado: 'INACTIVO' });
+      const totalInquilinos = await this.Model.countDocuments();
+      const inquilinosActivos = await this.Model.countDocuments({ estado: 'ACTIVO' });
+      const inquilinosInactivos = await this.Model.countDocuments({ estado: 'INACTIVO' });
       
-      const inquilinosPorUsuario = await Inquilinos.aggregate([
+      const inquilinosPorUsuario = await this.Model.aggregate([
         {
           $group: {
             _id: '$usuario',
@@ -162,14 +95,15 @@ export const inquilinosController = {
       console.error('Error al obtener estadísticas:', error);
       res.status(500).json({ error: 'Error al obtener estadísticas' });
     }
-  },
+  }
 
-  updateStatus: async (req, res) => {
+  // PATCH /api/inquilinos/:id/status
+  async updateStatus(req, res) {
     try {
       const { id } = req.params;
       const { estado } = req.body;
 
-      const inquilino = await Inquilinos.findByIdAndUpdate(
+      const inquilino = await this.Model.findByIdAndUpdate(
         id,
         { estado },
         { new: true }
@@ -185,4 +119,6 @@ export const inquilinosController = {
       res.status(500).json({ error: 'Error al actualizar estado' });
     }
   }
-}; 
+}
+
+export const inquilinosController = new InquilinosController(); 
