@@ -19,10 +19,12 @@ class TransaccionesController extends BaseController {
   // GET /api/transacciones/stats
   async getStats(req, res) {
     try {
-      const query = { 
-        usuario: req.user.id,
-        estado: 'COMPLETADA'
-      };
+      const query = { estado: 'COMPLETADA' };
+      
+      // Solo agregar el filtro de usuario si existe
+      if (req.user?.id) {
+        query.usuario = req.user.id;
+      }
 
       const [ingresos, egresos] = await Promise.all([
         this.Model.aggregate([

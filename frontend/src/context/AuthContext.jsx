@@ -20,27 +20,27 @@ function AuthProvider({ children }) {
 
   const checkAuth = useCallback(async () => {
     try {
-      console.log('Iniciando checkAuth');
-      setState(prev => ({ ...prev, loading: true, error: null }));
       const token = localStorage.getItem('token');
       
       if (!token) {
-        console.log('No se encontró token en localStorage');
         setState({ user: null, loading: false, error: null });
         return { error: 'No token found' };
       }
 
-      console.log('Token encontrado, verificando con el backend');
+      // Si ya tenemos un usuario y el token es el mismo, no necesitamos verificar
+      if (state.user && clienteAxios.defaults.headers.common['Authorization'] === `Bearer ${token}`) {
+        return { user: state.user };
+      }
+
+      setState(prev => ({ ...prev, loading: true, error: null }));
       clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       const response = await clienteAxios.get('/auth/check');
-      console.log('Respuesta del backend:', response.data);
       setState({ user: response.data, loading: false, error: null });
       return { user: response.data };
     } catch (error) {
       console.error('Error en checkAuth:', error.response || error);
       if (error.response?.status === 401) {
-        console.log('Error de autenticación, limpiando token');
         localStorage.removeItem('token');
         delete clienteAxios.defaults.headers.common['Authorization'];
       }
@@ -51,7 +51,7 @@ function AuthProvider({ children }) {
       });
       return { error: error.response?.data || error };
     }
-  }, []);
+  }, [state.user]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
