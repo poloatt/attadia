@@ -1,20 +1,19 @@
 import express from 'express';
 import { rutinasController } from '../controllers/rutinasController.js';
 import { checkAuth } from '../middleware/auth.js';
-import { checkRole, ROLES } from '../middleware/checkRole.js';
+import { checkRole } from '../middleware/checkRole.js';
 import { checkOwnership } from '../middleware/checkOwnership.js';
 import { Rutinas } from '../models/index.js';
+import { ROLES } from '../config/constants.js';
 
 const router = express.Router();
 
+// Todas las rutas requieren autenticación
 router.use(checkAuth);
 
 // Rutas para usuarios autenticados
 router.get('/', rutinasController.getAll);
 router.post('/', rutinasController.create);
-router.get('/:id', rutinasController.getById);
-router.put('/:id', rutinasController.update);
-router.delete('/:id', rutinasController.delete);
 
 // Rutas administrativas
 router.get('/admin/all', [checkRole([ROLES.ADMIN])], rutinasController.getAllAdmin);

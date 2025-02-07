@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
+import { createSchema, commonFields } from './BaseSchema.js';
 
-const habitacionSchema = new mongoose.Schema({
+const habitacionSchema = createSchema({
   propiedad: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Propiedades',
@@ -22,9 +23,8 @@ const habitacionSchema = new mongoose.Schema({
   },
   descripcion: String,
   caracteristicas: [String],
-  imagenes: [String]
-}, {
-  timestamps: true
+  imagenes: [String],
+  ...commonFields
 });
 
 export const Habitaciones = mongoose.model('Habitaciones', habitacionSchema); 

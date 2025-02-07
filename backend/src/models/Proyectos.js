@@ -1,9 +1,10 @@
 import mongoose from 'mongoose';
+import { createSchema, commonFields } from './BaseSchema.js';
 
-const proyectoSchema = new mongoose.Schema({
+const proyectoSchema = createSchema({
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'Users',
     required: true
   },
   nombre: {
@@ -31,7 +32,7 @@ const proyectoSchema = new mongoose.Schema({
     monto: Number,
     moneda: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Moneda'
+      ref: 'Monedas'
     }
   },
   etiquetas: [String],
@@ -43,9 +44,8 @@ const proyectoSchema = new mongoose.Schema({
   propiedad: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Propiedades'
-  }
-}, {
-  timestamps: true
+  },
+  ...commonFields
 });
 
-export const Proyectos = mongoose.model('Proyecto', proyectoSchema); 
+export const Proyectos = mongoose.model('Proyectos', proyectoSchema); 

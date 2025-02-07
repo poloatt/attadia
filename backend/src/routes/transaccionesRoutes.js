@@ -1,28 +1,25 @@
 import express from 'express';
+import { checkAuth } from '../middleware/auth.js';
 import { transaccionesController } from '../controllers/transaccionesController.js';
-import { checkAuth, checkRole } from '../middleware/auth.js';
-import { checkOwnership } from '../middleware/checkOwnership.js';
-import { Transacciones } from '../models/index.js';
 
 const router = express.Router();
 
+// Todas las rutas requieren autenticación
 router.use(checkAuth);
 
-// Rutas para usuarios autenticados
-router.route('/')
-  .get(transaccionesController.getAll)
-  .post(transaccionesController.create);
+// Rutas base del controlador
+router.get('/', transaccionesController.getAll);
+router.get('/select-options', transaccionesController.getSelectOptions);
+router.get('/:id', transaccionesController.getById);
+router.post('/', transaccionesController.create);
+router.put('/:id', transaccionesController.update);
+router.delete('/:id', transaccionesController.delete);
+router.patch('/:id/toggle-active', transaccionesController.toggleActive);
 
-router.get('/stats', transaccionesController.getStats);
-
-// Rutas que requieren ser dueño del recurso o admin
-router.route('/:id')
-  .get([checkOwnership(Transacciones)], transaccionesController.getById)
-  .put([checkOwnership(Transacciones)], transaccionesController.update)
-  .delete([checkOwnership(Transacciones)], transaccionesController.delete);
-
-// Rutas administrativas
-router.get('/admin/all', checkRole(['ADMIN']), transaccionesController.getAllAdmin);
-router.get('/admin/stats', checkRole(['ADMIN']), transaccionesController.getAdminStats);
+// Rutas específicas
+router.get('/cuenta/:cuentaId', transaccionesController.getByCuenta);
+router.get('/balance/:cuentaId', transaccionesController.getBalance);
+router.get('/resumen', transaccionesController.getResumen);
+router.patch('/:id/estado', transaccionesController.updateEstado);
 
 export default router; 

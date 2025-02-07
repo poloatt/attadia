@@ -1,12 +1,14 @@
 import express from 'express';
 import { objetivosController } from '../controllers/objetivosController.js';
 import { checkAuth } from '../middleware/auth.js';
-import { checkRole, ROLES } from '../middleware/checkRole.js';
+import { checkRole } from '../middleware/checkRole.js';
 import { checkOwnership } from '../middleware/checkOwnership.js';
 import { Objetivos } from '../models/index.js';
+import { ROLES } from '../config/constants.js';
 
 const router = express.Router();
 
+// Todas las rutas requieren autenticación
 router.use(checkAuth);
 
 // Rutas para usuarios autenticados

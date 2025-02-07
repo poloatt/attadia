@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
+import { createSchema, commonFields } from './BaseSchema.js';
 
-const monedaSchema = new mongoose.Schema({
+const monedaSchema = createSchema({
   codigo: {
     type: String,
     required: true,
@@ -26,9 +27,8 @@ const monedaSchema = new mongoose.Schema({
   activa: {
     type: Boolean,
     default: true
-  }
-}, {
-  timestamps: true
+  },
+  ...commonFields
 });
 
 export const Monedas = mongoose.model('Moneda', monedaSchema); 

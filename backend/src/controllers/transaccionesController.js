@@ -1,235 +1,163 @@
-import { Transacciones } from '../models/index.js';
+import { BaseController } from './BaseController.js';
+import { Transacciones, Cuentas } from '../models/index.js';
 
-export const transaccionesController = {
-  getAll: async (req, res) => {
+class TransaccionesController extends BaseController {
+  constructor() {
+    super(Transacciones, {
+      searchFields: ['descripcion', 'categoria']
+    });
+  }
+
+  // GET /api/transacciones/balance/:cuentaId
+  getBalance = async (req, res) => {
     try {
-      const transacciones = await Transacciones.find({ usuario: req.user.id })
-        .populate('moneda')
-        .populate('cuenta')
-        .sort({ fecha: 'desc' });
-      res.json(transacciones);
+      const balance = await this.Model.getBalance(req.params.cuentaId);
+      res.json(balance);
     } catch (error) {
-      console.error('Error al obtener transacciones:', error);
-      res.status(500).json({ error: 'Error al obtener transacciones' });
+      res.status(500).json({ error: error.message });
     }
-  },
+  };
 
-  create: async (req, res) => {
+  // GET /api/transacciones/by-cuenta/:cuentaId
+  getByCuenta = async (req, res) => {
     try {
       const { 
-        descripcion, 
-        monto, 
-        fecha, 
-        categoria, 
-        estado, 
-        tipo,
-        monedaId, 
-        cuentaId 
-      } = req.body;
-
-      const transaccion = await Transacciones.create({
-        descripcion,
-        monto: parseFloat(monto),
-        fecha: new Date(fecha),
-        categoria,
+        page = 1, 
+        limit = 10, 
+        sort = '-fecha',
         estado,
         tipo,
-        usuario: req.user.id,
-        moneda: monedaId,
-        cuenta: cuentaId
-      });
+        categoria,
+        fechaInicio,
+        fechaFin
+      } = req.query;
 
-      const transaccionPopulada = await transaccion
-        .populate(['moneda', 'cuenta']);
+      const query = { cuenta: req.params.cuentaId };
 
-      res.status(201).json(transaccionPopulada);
-    } catch (error) {
-      console.error('Error al crear transacción:', error);
-      res.status(500).json({ 
-        error: 'Error al crear transacción',
-        details: error.message 
-      });
-    }
-  },
-
-  getById: async (req, res) => {
-    try {
-      const { id } = req.params;
-      const transaccion = await Transacciones.findOne({ 
-        _id: id, 
-        usuario: req.user.id 
-      }).populate(['moneda', 'cuenta']);
-      
-      if (!transaccion) {
-        return res.status(404).json({ error: 'Transacción no encontrada' });
+      if (estado) query.estado = estado;
+      if (tipo) query.tipo = tipo;
+      if (categoria) query.categoria = categoria;
+      if (fechaInicio || fechaFin) {
+        query.fecha = {};
+        if (fechaInicio) query.fecha.$gte = new Date(fechaInicio);
+        if (fechaFin) query.fecha.$lte = new Date(fechaFin);
       }
 
-      res.json(transaccion);
+      const options = {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        sort,
+        populate: ['moneda']
+      };
+
+      const result = await this.Model.paginate(query, options);
+      res.json(result);
     } catch (error) {
-      console.error('Error al obtener transacción:', error);
-      res.status(500).json({ error: 'Error al obtener transacción' });
+      res.status(500).json({ error: error.message });
     }
-  },
+  };
 
-  update: async (req, res) => {
+  // POST /api/transacciones
+  create = async (req, res) => {
     try {
-      const { id } = req.params;
-      const { 
-        descripcion, 
-        monto, 
-        fecha, 
-        categoria, 
-        estado, 
-        tipo,
-        monedaId, 
-        cuentaId 
-      } = req.body;
-
-      const transaccion = await Transacciones.findOneAndUpdate(
-        { _id: id, usuario: req.user.id },
-        {
-          descripcion,
-          monto: parseFloat(monto),
-          fecha: new Date(fecha),
-          categoria,
-          estado,
-          tipo,
-          moneda: monedaId,
-          cuenta: cuentaId
-        },
-        { new: true }
-      ).populate(['moneda', 'cuenta']);
-
-      if (!transaccion) {
-        return res.status(404).json({ error: 'Transacción no encontrada' });
-      }
-
-      res.json(transaccion);
-    } catch (error) {
-      console.error('Error al actualizar transacción:', error);
-      res.status(500).json({ error: 'Error al actualizar transacción' });
-    }
-  },
-
-  delete: async (req, res) => {
-    try {
-      const { id } = req.params;
-      const transaccion = await Transacciones.findOneAndDelete({
-        _id: id,
+      // Validar que la cuenta exista y pertenezca al usuario
+      const cuenta = await Cuentas.findOne({
+        _id: req.body.cuenta,
         usuario: req.user.id
       });
 
-      if (!transaccion) {
-        return res.status(404).json({ error: 'Transacción no encontrada' });
+      if (!cuenta) {
+        return res.status(404).json({ message: 'Cuenta no encontrada' });
       }
 
-      res.json({ message: 'Transacción eliminada correctamente' });
-    } catch (error) {
-      console.error('Error al eliminar transacción:', error);
-      res.status(500).json({ error: 'Error al eliminar transacción' });
-    }
-  },
-
-  getStats: async (req, res) => {
-    try {
-      const inicioMes = new Date();
-      inicioMes.setDate(1);
-      inicioMes.setHours(0, 0, 0, 0);
-
-      const transaccionesMes = await Transacciones.find({
-        usuario: req.user.id,
-        fecha: { $gte: inicioMes }
+      const transaccion = new this.Model({
+        ...req.body,
+        usuario: req.user.id
       });
 
-      const ingresosMensuales = transaccionesMes
-        .filter(t => t.tipo === 'INGRESO')
-        .reduce((sum, t) => sum + t.monto, 0);
-
-      const egresosMensuales = transaccionesMes
-        .filter(t => t.tipo === 'EGRESO')
-        .reduce((sum, t) => sum + t.monto, 0);
-
-      res.json({
-        ingresosMensuales,
-        egresosMensuales,
-        balance: ingresosMensuales - egresosMensuales
-      });
+      await transaccion.save();
+      res.status(201).json(transaccion);
     } catch (error) {
-      console.error('Error en getStats transacciones:', error);
-      res.status(500).json({ message: error.message });
+      res.status(400).json({ error: error.message });
     }
-  },
+  };
 
-  getAllAdmin: async (req, res) => {
+  // PATCH /api/transacciones/:id/estado
+  updateEstado = async (req, res) => {
     try {
-      const transacciones = await Transacciones.find()
-        .populate([
-          { path: 'moneda', select: 'nombre simbolo' },
-          { path: 'cuenta', select: 'nombre numero' },
-          { path: 'usuario', select: 'nombre email' }
-        ])
-        .sort({ createdAt: 'desc' });
-      res.json(transacciones);
-    } catch (error) {
-      console.error('Error al obtener todas las transacciones:', error);
-      res.status(500).json({ error: 'Error al obtener todas las transacciones' });
-    }
-  },
-
-  getAdminStats: async (req, res) => {
-    try {
-      const totalTransacciones = await Transacciones.countDocuments();
+      const { estado } = req.body;
       
-      const transaccionesPorTipo = await Transacciones.aggregate([
-        {
-          $group: {
-            _id: '$tipo',
-            count: { $sum: 1 },
-            montoTotal: { $sum: '$monto' }
-          }
-        }
-      ]);
+      if (!['PENDIENTE', 'COMPLETADA', 'CANCELADA'].includes(estado)) {
+        return res.status(400).json({ message: 'Estado no válido' });
+      }
 
-      const transaccionesPorCategoria = await Transacciones.aggregate([
-        {
-          $group: {
-            _id: '$categoria',
-            count: { $sum: 1 },
-            montoTotal: { $sum: '$monto' }
-          }
-        }
-      ]);
+      const transaccion = await this.Model.findOneAndUpdate(
+        { _id: req.params.id, usuario: req.user.id },
+        { estado },
+        { new: true, runValidators: true }
+      );
 
-      const transaccionesPorMoneda = await Transacciones.aggregate([
-        {
-          $group: {
-            _id: '$moneda',
-            count: { $sum: 1 },
-            montoTotal: { $sum: '$monto' }
-          }
-        },
-        {
-          $lookup: {
-            from: 'monedas',
-            localField: '_id',
-            foreignField: '_id',
-            as: 'moneda'
-          }
-        },
-        {
-          $unwind: '$moneda'
-        }
-      ]);
+      if (!transaccion) {
+        return res.status(404).json({ message: 'Transacción no encontrada' });
+      }
 
-      res.json({
-        totalTransacciones,
-        transaccionesPorTipo,
-        transaccionesPorCategoria,
-        transaccionesPorMoneda
-      });
+      res.json(transaccion);
     } catch (error) {
-      console.error('Error al obtener estadísticas:', error);
-      res.status(500).json({ error: 'Error al obtener estadísticas' });
+      res.status(400).json({ error: error.message });
     }
-  }
-}; 
+  };
+
+  // GET /api/transacciones/resumen
+  getResumen = async (req, res) => {
+    try {
+      const { fechaInicio, fechaFin } = req.query;
+      const query = { 
+        usuario: req.user.id,
+        estado: 'COMPLETADA'
+      };
+
+      if (fechaInicio || fechaFin) {
+        query.fecha = {};
+        if (fechaInicio) query.fecha.$gte = new Date(fechaInicio);
+        if (fechaFin) query.fecha.$lte = new Date(fechaFin);
+      }
+
+      const resumen = await this.Model.aggregate([
+        { $match: query },
+        { $group: {
+          _id: {
+            tipo: '$tipo',
+            categoria: '$categoria',
+            moneda: '$moneda'
+          },
+          total: { $sum: '$monto' },
+          cantidad: { $sum: 1 }
+        }},
+        { $group: {
+          _id: '$_id.moneda',
+          categorias: {
+            $push: {
+              tipo: '$_id.tipo',
+              categoria: '$_id.categoria',
+              total: '$total',
+              cantidad: '$cantidad'
+            }
+          }
+        }},
+        { $lookup: {
+          from: 'monedas',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'moneda'
+        }},
+        { $unwind: '$moneda' }
+      ]);
+
+      res.json(resumen);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  };
+}
+
+export const transaccionesController = new TransaccionesController(); 

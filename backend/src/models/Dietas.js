@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
+import { createSchema, commonFields } from './BaseSchema.js';
 
-const dietaSchema = new mongoose.Schema({
+const dietaSchema = createSchema({
   tipo: {
     type: String,
     required: true
@@ -30,11 +31,10 @@ const dietaSchema = new mongoose.Schema({
   },
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Usuario',
+    ref: 'Users',
     required: true
-  }
-}, {
-  timestamps: true
+  },
+  ...commonFields
 });
 
 export const Dietas = mongoose.model('Dietas', dietaSchema); 

@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
+import { createSchema, commonFields } from './BaseSchema.js';
 
-const tareaSchema = new mongoose.Schema({
+const tareaSchema = createSchema({
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -40,9 +41,8 @@ const tareaSchema = new mongoose.Schema({
   orden: {
     type: Number,
     default: 0
-  }
-}, {
-  timestamps: true
+  },
+  ...commonFields
 });
 
 export const Tareas = mongoose.model('Tarea', tareaSchema); 

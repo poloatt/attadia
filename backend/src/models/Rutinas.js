@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
+import { createSchema, commonFields } from './BaseSchema.js';
 
-const rutinaSchema = new mongoose.Schema({
+const rutinaSchema = createSchema({
   weight: {
     type: Number,
     required: true
@@ -35,11 +36,10 @@ const rutinaSchema = new mongoose.Schema({
   },
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Usuario',
+    ref: 'Users',
     required: true
-  }
-}, {
-  timestamps: true
+  },
+  ...commonFields
 });
 
 export const Rutinas = mongoose.model('Rutinas', rutinaSchema); 

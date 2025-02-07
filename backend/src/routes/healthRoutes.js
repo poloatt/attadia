@@ -1,7 +1,8 @@
 import express from 'express';
 import { healthController } from '../controllers/healthController.js';
-import { checkRole, ROLES } from '../middleware/checkRole.js';
+import { checkRole } from '../middleware/checkRole.js';
 import { checkAuth } from '../middleware/auth.js';
+import { ROLES } from '../config/constants.js';
 
 const router = express.Router();
 

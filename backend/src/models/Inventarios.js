@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
+import { createSchema, commonFields } from './BaseSchema.js';
 
-const inventarioSchema = new mongoose.Schema({
+const inventarioSchema = createSchema({
   nombre: {
     type: String,
     required: true
@@ -31,7 +32,8 @@ const inventarioSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Propiedades',
     required: true
-  }
+  },
+  ...commonFields
 }, {
   timestamps: true
 });

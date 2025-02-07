@@ -1,20 +1,19 @@
 import express from 'express';
 import { dietasController } from '../controllers/dietasController.js';
 import { checkAuth } from '../middleware/auth.js';
-import { checkRole, ROLES } from '../middleware/checkRole.js';
+import { checkRole } from '../middleware/checkRole.js';
 import { checkOwnership } from '../middleware/checkOwnership.js';
 import { Dietas } from '../models/index.js';
+import { ROLES } from '../config/constants.js';
 
 const router = express.Router();
 
+// Todas las rutas requieren autenticación
 router.use(checkAuth);
 
 // Rutas para usuarios autenticados
 router.get('/', dietasController.getAll);
 router.post('/', dietasController.create);
-router.get('/:id', dietasController.getById);
-router.put('/:id', dietasController.update);
-router.delete('/:id', dietasController.delete);
 
 // Rutas administrativas
 router.get('/admin/all', [checkRole([ROLES.ADMIN])], dietasController.getAllAdmin);

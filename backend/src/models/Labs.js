@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
+import { createSchema, commonFields } from './BaseSchema.js';
 
-const labSchema = new mongoose.Schema({
+const labSchema = createSchema({
   tipo: {
     type: String,
     required: true
@@ -22,9 +23,10 @@ const labSchema = new mongoose.Schema({
   },
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Usuario',
+    ref: 'Users',
     required: true
-  }
+  },
+  ...commonFields
 }, {
   timestamps: true
 });

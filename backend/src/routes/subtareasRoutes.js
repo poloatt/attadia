@@ -1,12 +1,14 @@
 import express from 'express';
 import { subtareasController } from '../controllers/subtareasController.js';
 import { checkAuth } from '../middleware/auth.js';
-import { checkRole, ROLES } from '../middleware/checkRole.js';
+import { checkRole } from '../middleware/checkRole.js';
 import { checkOwnership } from '../middleware/checkOwnership.js';
 import { Subtareas } from '../models/index.js';
+import { ROLES } from '../config/constants.js';
 
 const router = express.Router();
 
+// Todas las rutas requieren autenticación
 router.use(checkAuth);
 
 // Rutas administrativas

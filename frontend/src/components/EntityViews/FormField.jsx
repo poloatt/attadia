@@ -11,7 +11,8 @@ import {
   Typography,
   CircularProgress,
   Autocomplete,
-  InputAdornment
+  InputAdornment,
+  Chip
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
@@ -21,9 +22,10 @@ const normalizeOption = (option) => {
   
   return {
     id: String(option.id || option.value || ''),
-    value: option.value,
-    label: option.label || String(option.value),
-    ...option
+    value: option.value || option.id || '',
+    label: option.label || option.displayValue || String(option.value),
+    displayValue: option.displayValue || option.label || String(option.value),
+    data: option.data || option
   };
 };
 
@@ -36,7 +38,8 @@ const BaseTextField = memo(({
   value, 
   onChange, 
   error,
-  isLoading 
+  isLoading,
+  helperText 
 }) => {
   const handleChange = useCallback((e) => {
     const newValue = e.target.value;
@@ -63,7 +66,7 @@ const BaseTextField = memo(({
       type={field.type}
       size="small"
       error={!!error}
-      helperText={error}
+      helperText={error || helperText}
       disabled={field.disabled || isLoading}
       InputLabelProps={{
         shrink: field.type === 'date' ? true : undefined,
@@ -74,7 +77,8 @@ const BaseTextField = memo(({
           <InputAdornment position="end">
             <CircularProgress size={20} />
           </InputAdornment>
-        )
+        ),
+        ...field.InputProps
       }}
       sx={{
         '& .MuiOutlinedInput-root': {
@@ -95,6 +99,7 @@ const CreateForm = memo(({
   isLoading 
 }) => {
   const [formData, setFormData] = useState({});
+  const [errors, setErrors] = useState({});
 
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -102,12 +107,40 @@ const CreateForm = memo(({
       ...prev,
       [name]: value
     }));
+    setErrors(prev => ({
+      ...prev,
+      [name]: null
+    }));
   }, []);
+
+  const validateForm = useCallback(() => {
+    const newErrors = {};
+    let isValid = true;
+
+    field.createFields?.forEach(createField => {
+      if (createField.required && !formData[createField.name]) {
+        newErrors[createField.name] = 'Este campo es requerido';
+        isValid = false;
+      }
+      if (createField.validate) {
+        const error = createField.validate(formData[createField.name], formData);
+        if (error) {
+          newErrors[createField.name] = error;
+          isValid = false;
+        }
+      }
+    });
+
+    setErrors(newErrors);
+    return isValid;
+  }, [field.createFields, formData]);
 
   const handleSubmit = useCallback((e) => {
     e.preventDefault();
-    onSubmit(formData);
-  }, [formData, onSubmit]);
+    if (validateForm()) {
+      onSubmit(formData);
+    }
+  }, [formData, onSubmit, validateForm]);
 
   return (
     <Box sx={{ mt: 2, bgcolor: 'background.paper', p: 2 }}>
@@ -121,6 +154,7 @@ const CreateForm = memo(({
             field={createField}
             value={formData[createField.name]}
             onChange={handleChange}
+            error={errors[createField.name]}
             isLoading={isLoading}
           />
         ))}
@@ -155,38 +189,54 @@ const SelectField = memo(({
   error,
   options = [],
   onCreateNew,
-  isLoading
+  isLoading,
+  helperText
 }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [inputValue, setInputValue] = useState('');
 
-  const CREATE_NEW_OPTION = {
+  const CREATE_NEW_OPTION = useMemo(() => ({
     id: '__create_new__',
     value: '__create_new__',
     label: field.createButtonText || 'Crear Nuevo',
     isCreateNew: true
-  };
+  }), [field.createButtonText]);
 
   const normalizedOptions = useMemo(() => 
     normalizeOptions(options), [options]
   );
 
-  const selectedOption = useMemo(() => 
-    normalizedOptions.find(opt => opt.value === value) || null,
-    [normalizedOptions, value]
-  );
+  const selectedOption = useMemo(() => {
+    if (Array.isArray(value)) {
+      return value.map(v => normalizedOptions.find(opt => opt.value === v) || null).filter(Boolean);
+    }
+    return normalizedOptions.find(opt => opt.value === value) || null;
+  }, [normalizedOptions, value]);
 
   const displayedOptions = useMemo(() => {
     const filteredOptions = normalizedOptions.filter(option =>
-      option.label.toLowerCase().includes(inputValue.toLowerCase())
+      option.label.toLowerCase().includes(inputValue.toLowerCase()) ||
+      option.displayValue?.toLowerCase().includes(inputValue.toLowerCase())
     );
 
     return field.onCreateNew && !field.disabled
       ? [...filteredOptions, CREATE_NEW_OPTION]
       : filteredOptions;
-  }, [normalizedOptions, field.onCreateNew, field.disabled, inputValue]);
+  }, [normalizedOptions, field.onCreateNew, field.disabled, inputValue, CREATE_NEW_OPTION]);
 
   const handleChange = useCallback((_, newValue) => {
+    if (Array.isArray(newValue)) {
+      onChange({
+        target: {
+          name: field.name,
+          value: newValue.map(v => v.value),
+          type: 'select',
+          selectedOptions: newValue
+        }
+      });
+      return;
+    }
+
     if (newValue?.isCreateNew) {
       setIsCreating(true);
       return;
@@ -206,6 +256,15 @@ const SelectField = memo(({
   const handleInputChange = useCallback((_, newInputValue) => {
     setInputValue(newInputValue);
   }, []);
+
+  const renderTags = useCallback((tagValue, getTagProps) => 
+    tagValue.map((option, index) => (
+      <Chip
+        label={option.displayValue || option.label}
+        {...getTagProps({ index })}
+        size="small"
+      />
+    )), []);
 
   return (
     <Box>
@@ -234,19 +293,21 @@ const SelectField = memo(({
         />
       ) : (
         <Autocomplete
+          multiple={field.multiple}
           value={selectedOption}
           inputValue={inputValue}
           onInputChange={handleInputChange}
           onChange={handleChange}
           options={displayedOptions}
-          getOptionLabel={(option) => option?.label || ''}
+          getOptionLabel={(option) => option?.displayValue || option?.label || ''}
           isOptionEqualToValue={(option, value) => 
-            option?.id === value?.id
+            option?.id === value?.id || option?.value === value?.value
           }
           loading={isLoading}
           disabled={field.disabled || isLoading}
           freeSolo={false}
           disablePortal
+          renderTags={field.multiple ? renderTags : undefined}
           renderOption={(props, option) => {
             const key = option.id || `option-${option.value}-${option.label}`;
             return (
@@ -266,7 +327,16 @@ const SelectField = memo(({
                   }}
                 >
                   {option.isCreateNew && <AddIcon fontSize="small" />}
-                  {option.label}
+                  <Box>
+                    <Typography variant="body2">
+                      {option.displayValue || option.label}
+                    </Typography>
+                    {option.displayValue && option.label !== option.displayValue && (
+                      <Typography variant="caption" color="text.secondary">
+                        {option.label}
+                      </Typography>
+                    )}
+                  </Box>
                 </Box>
               </li>
             );
@@ -277,7 +347,7 @@ const SelectField = memo(({
               label={field.label}
               required={field.required}
               error={!!error}
-              helperText={error}
+              helperText={error || helperText}
               InputProps={{
                 ...params.InputProps,
                 startAdornment: (
@@ -316,7 +386,8 @@ export const FormField = memo(({
   relatedData,
   error,
   onCreateNew,
-  isLoading = false
+  isLoading = false,
+  helperText
 }) => {
   const getFieldOptions = useCallback(() => {
     if (field.type === 'select') {
@@ -338,6 +409,7 @@ export const FormField = memo(({
           value={value}
           onChange={onChange}
           error={error}
+          helperText={helperText}
           options={getFieldOptions()}
           onCreateNew={field.onCreateNew || onCreateNew}
           isLoading={isLoading}
@@ -350,6 +422,7 @@ export const FormField = memo(({
           value={value}
           onChange={onChange}
           error={error}
+          helperText={helperText}
           isLoading={isLoading}
         />
       );

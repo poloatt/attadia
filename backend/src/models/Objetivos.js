@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
+import { createSchema, commonFields } from './BaseSchema.js';
 
-const objetivoSchema = new mongoose.Schema({
+const objetivoSchema = createSchema({
   titulo: {
     type: String,
     required: true
@@ -38,9 +39,8 @@ const objetivoSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Users',
     required: true
-  }
-}, {
-  timestamps: true
+  },
+  ...commonFields
 });
 
 export const Objetivos = mongoose.model('Objetivos', objetivoSchema); 

@@ -8,9 +8,7 @@ import {
 } from '@mui/material';
 import { 
   PsychologyOutlined as BrainIcon,
-  SettingsOutlined as SettingsIcon,
-  SearchOutlined as SearchIcon,
-  PersonOutlineOutlined as UserIcon
+  SettingsOutlined as SettingsIcon
 } from '@mui/icons-material';
 import { useSidebar } from '../context/SidebarContext';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -76,31 +74,6 @@ export default function Header() {
         <Box sx={{ flexGrow: 1 }} />
 
         <Box sx={{ display: 'flex', gap: 0.5 }}>
-          <Tooltip title="Buscar">
-            <IconButton 
-              size="small"
-              sx={{ 
-                color: 'inherit',
-                '&:hover': { color: 'text.primary' }
-              }}
-            >
-              <SearchIcon sx={{ fontSize: 20 }} />
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title="Perfil">
-            <IconButton 
-              size="small"
-              onClick={() => navigate('/perfil')}
-              sx={{ 
-                color: 'inherit',
-                '&:hover': { color: 'text.primary' }
-              }}
-            >
-              <UserIcon sx={{ fontSize: 20 }} />
-            </IconButton>
-          </Tooltip>
-
           <Tooltip title="Configuración">
             <IconButton 
               size="small"

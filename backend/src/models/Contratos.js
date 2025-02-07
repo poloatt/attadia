@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
+import { createSchema, commonFields } from './BaseSchema.js';
 
-const transaccionRecurrenteSchema = new mongoose.Schema({
+const transaccionRecurrenteSchema = createSchema({
   concepto: {
     type: String,
     required: true
@@ -22,7 +23,7 @@ const transaccionRecurrenteSchema = new mongoose.Schema({
   }
 });
 
-const contratoSchema = new mongoose.Schema({
+const contratoSchema = createSchema({
   inquilinos: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Inquilinos',
@@ -60,7 +61,8 @@ const contratoSchema = new mongoose.Schema({
     ref: 'Monedas',
     required: true
   },
-  transaccionesRecurrentes: [transaccionRecurrenteSchema]
+  transaccionesRecurrentes: [transaccionRecurrenteSchema],
+  ...commonFields
 }, {
   timestamps: true
 });

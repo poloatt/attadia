@@ -7,22 +7,9 @@ import {
 } from '@mui/icons-material';
 
 export default function Sidebar() {
-  const { isOpen } = useSidebar();
+  const { isOpen, menuItems } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
-
-  const menuItems = [
-    {
-      title: 'Dashboard',
-      path: '/',
-      icon: <DashboardOutlined />
-    },
-    {
-      title: 'Proyectos',
-      path: '/proyectos',
-      icon: <AssignmentOutlined />
-    }
-  ];
 
   return (
     <Box sx={{ 

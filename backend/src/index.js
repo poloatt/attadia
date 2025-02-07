@@ -1,72 +1,121 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import session from 'express-session';
 import { passportConfig } from './config/passport.js';
 import { router } from './routes/index.js';
-import mongoose from 'mongoose';
 import morgan from 'morgan';
 import connectDB from './config/database/mongodb.js';
 import { initializeMonedas } from './config/initData.js';
+import config from './config/config.js';
 
 const app = express();
 
-// Middlewares
-const corsOptions = {
-  origin: function(origin, callback) {
-    const allowedOrigins = [
-      'http://localhost:5173',
-      'http://frontend:5173',
-      'http://127.0.0.1:5173',
-      undefined // Permitir solicitudes sin origin para desarrollo local
-    ];
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-};
-
-app.use(cors(corsOptions));
-app.use(cookieParser());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(passportConfig.initialize());
-app.use(morgan('dev'));
-
-// Logging middleware
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.url}`);
-  next();
+// Manejo de errores no capturados
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-// Rutas centralizadas
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+// Configuración de CORS más permisiva en desarrollo
+const corsOptions = config.isDev ? {
+  origin: true, // Permite cualquier origen en desarrollo
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range']
+} : {
+  origin: config.corsOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range']
+};
+
+// Middlewares
+app.use(cors(corsOptions));
+app.use(morgan('dev'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser(config.sessionSecret));
+
+// Configuración de sesión
+app.use(session({
+  secret: config.sessionSecret,
+  resave: false,
+  saveUninitialized: false,
+  name: 'sessionId',
+  cookie: {
+    secure: config.env === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 horas
+    sameSite: config.env === 'production' ? 'strict' : 'lax'
+  }
+}));
+
+// Inicialización de Passport
+app.use(passportConfig.initialize());
+app.use(passportConfig.session());
+
+// Logging middleware mejorado
+if (config.isDev) {
+  app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    console.log('Headers:', req.headers);
+    console.log('Query:', req.query);
+    console.log('Body:', req.body);
+    next();
+  });
+}
+
+// Health check con más información
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+  res.status(200).json({ 
+    status: 'ok',
+    timestamp: new Date(),
+    env: config.env,
+    cors: {
+      enabled: true,
+      origins: config.isDev ? 'all' : config.corsOrigins
+    },
+    auth: {
+      google: !!config.google.clientId,
+      session: !!config.sessionSecret
+    }
+  });
 });
 
 // Montamos todas las rutas bajo /api
 app.use('/api', router);
 
-// Redirigir cualquier intento de acceso a /auth hacia /api/auth
-app.use('/auth/*', (req, res, next) => {
-  const newUrl = `/api${req.originalUrl}`;
-  console.log('Redirigiendo de', req.originalUrl, 'a', newUrl);
-  res.redirect(307, newUrl);
-});
-
-// Manejo de errores global
+// Manejo de errores global mejorado
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
+  console.error('Error:', {
+    message: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    headers: req.headers
+  });
+  
+  // Si es un error de CORS
+  if (err.message.includes('Not allowed by CORS')) {
+    return res.status(403).json({
+      error: 'Origen no permitido',
+      message: 'El origen de la petición no está autorizado',
+      origin: req.headers.origin
+    });
+  }
   
   // Si es un error de MongoDB
   if (err.name === 'MongoError' || err.name === 'MongooseError') {
     return res.status(503).json({
       error: 'Error de base de datos',
-      message: process.env.NODE_ENV === 'development' ? err.message : 'Error interno'
+      message: config.isDev ? err.message : 'Error interno del servidor'
     });
   }
   
@@ -74,30 +123,51 @@ app.use((err, req, res, next) => {
   if (err.name === 'ValidationError') {
     return res.status(400).json({
       error: 'Error de validación',
+      message: err.message,
+      details: config.isDev ? err.errors : undefined
+    });
+  }
+  
+  // Si es un error de autenticación
+  if (err.name === 'AuthenticationError' || err.name === 'UnauthorizedError') {
+    return res.status(401).json({
+      error: 'Error de autenticación',
       message: err.message
     });
   }
   
   res.status(500).json({ 
-    error: err.message || 'Error interno del servidor',
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    error: 'Error interno del servidor',
+    message: config.isDev ? err.message : 'Error interno del servidor',
+    stack: config.isDev ? err.stack : undefined
   });
 });
 
-const PORT = process.env.PORT || 3000;
-
-// Conexión a MongoDB e inicialización de datos
-connectDB()
-  .then(async () => {
-    // Inicializar monedas predeterminadas
-    await initializeMonedas();
+// Conexión a MongoDB e inicialización del servidor
+const startServer = async () => {
+  try {
+    await connectDB();
+    console.log('MongoDB conectado exitosamente');
     
-    app.listen(PORT, () => {
-      console.log(`Servidor corriendo en el puerto ${PORT}`);
-      console.log(`Frontend URL configurada: ${process.env.FRONTEND_URL}`);
+    await initializeMonedas();
+    console.log('Datos iniciales cargados');
+    
+    app.listen(config.port, () => {
+      console.log(`
+=================================
+🚀 Servidor iniciado
+--------------------------------
+🌍 Puerto: ${config.port}
+🔧 Ambiente: ${config.env}
+🔗 Frontend URL: ${config.frontendUrl}
+🛡️ CORS: ${config.isDev ? 'Todos los orígenes (dev)' : config.corsOrigins.join(', ')}
+=================================
+      `);
     });
-  })
-  .catch(error => {
-    console.error('Error al conectar a la base de datos:', error);
+  } catch (error) {
+    console.error('Error fatal al iniciar el servidor:', error);
     process.exit(1);
-  }); 
+  }
+};
+
+startServer();

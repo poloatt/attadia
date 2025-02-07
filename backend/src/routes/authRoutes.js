@@ -48,19 +48,11 @@ router.post('/refresh-token', [
 
 // Rutas de autenticación con Google
 router.get('/google/url', (req, res) => {
-  console.log('Generando URL de autenticación de Google');
-  console.log('Configuración de Google:', {
-    clientId: config.google.clientId,
-    callbackUrl: config.google.callbackUrl,
-    frontendUrl: config.frontendUrl
-  });
-  
   const scopes = [
     'https://www.googleapis.com/auth/userinfo.profile',
     'https://www.googleapis.com/auth/userinfo.email'
   ].join(' ');
   
-  // Construir la URL de autenticación
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
     `client_id=${config.google.clientId}&` +
     `redirect_uri=${encodeURIComponent(config.google.callbackUrl)}&` +
@@ -69,25 +61,12 @@ router.get('/google/url', (req, res) => {
     `access_type=offline&` +
     `prompt=consent`;
   
-  console.log('URL de autenticación completa:', authUrl);
-  console.log('Parámetros decodificados:', {
-    client_id: config.google.clientId,
-    redirect_uri: config.google.callbackUrl,
-    scope: scopes
-  });
-  
   res.json({ url: authUrl });
 });
 
 router.get('/google/callback',
   (req, res, next) => {
-    console.log('Recibiendo callback de Google');
-    console.log('Query params:', req.query);
-    console.log('Headers:', req.headers);
-    console.log('URL completa:', req.protocol + '://' + req.get('host') + req.originalUrl);
-    
     if (req.query.error) {
-      console.error('Error recibido de Google:', req.query.error);
       return res.redirect(`${config.frontendUrl}/login?error=${req.query.error}`);
     }
     next();
@@ -100,7 +79,6 @@ router.get('/google/callback',
   (req, res) => {
     try {
       if (!req.user) {
-        console.error('No se recibió información del usuario');
         return res.redirect(`${config.frontendUrl}/login?error=no_user_info`);
       }
 
@@ -115,17 +93,8 @@ router.get('/google/callback',
         config.jwtSecret,
         { expiresIn: '24h' }
       );
-
-      console.log('Autenticación exitosa');
-      console.log('Usuario:', {
-        id: req.user._id,
-        email: req.user.email,
-        nombre: req.user.nombre
-      });
       
-      // Redirigir al frontend con el token
       const redirectUrl = `${config.frontendUrl}/auth/callback?token=${token}`;
-      console.log('Redirigiendo a:', redirectUrl);
       res.redirect(redirectUrl);
     } catch (error) {
       console.error('Error en el callback:', error);

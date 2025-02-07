@@ -1,10 +1,10 @@
 import express from 'express';
 import { perfilController } from '../controllers/perfilController.js';
 import { checkAuth } from '../middleware/auth.js';
-import { checkRole, ROLES } from '../middleware/checkRole.js';
 
 const router = express.Router();
 
+// Todas las rutas requieren autenticación
 router.use(checkAuth);
 
 router.get('/', perfilController.getPerfil);

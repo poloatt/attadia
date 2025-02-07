@@ -2,6 +2,17 @@ import React, { createContext, useContext, useState } from 'react';
 
 const SidebarContext = createContext();
 
+const menuItems = [
+  {
+    title: 'Configuración',
+    path: '/configuracion',
+  },
+  {
+    title: 'Perfil',
+    path: '/perfil',
+  }
+];
+
 export function SidebarProvider({ children }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -22,7 +33,8 @@ export function SidebarProvider({ children }) {
       isOpen, 
       toggleSidebar,
       closeSidebar,
-      openSidebar 
+      openSidebar,
+      menuItems
     }}>
       {children}
     </SidebarContext.Provider>

@@ -5,101 +5,44 @@ import { Users } from '../models/index.js';
 import config from './config.js';
 import bcrypt from 'bcrypt';
 
-const options = {
+// Configuración de la estrategia JWT
+const jwtOptions = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-  secretOrKey: config.jwtSecret
+  secretOrKey: config.jwtSecret,
+  passReqToCallback: true
 };
 
-passport.use(new JwtStrategy(options, async (jwt_payload, done) => {
+passport.use(new JwtStrategy(jwtOptions, async (req, jwt_payload, done) => {
   try {
     const user = await Users.findById(jwt_payload.user.id);
-    if (user) {
-      return done(null, user);
+    if (!user) {
+      return done(null, false, { message: 'Usuario no encontrado' });
     }
-    return done(null, false);
+    if (!user.activo) {
+      return done(null, false, { message: 'Usuario inactivo' });
+    }
+    return done(null, user);
   } catch (error) {
-    return done(error, false);
+    return done(error);
   }
 }));
 
-let GoogleStrategy;
-try {
-  const { Strategy } = await import('passport-google-oauth20');
-  GoogleStrategy = Strategy;
-} catch (error) {
-  console.log('Google OAuth no configurado');
-}
-
-if (GoogleStrategy) {
-  passport.use(new GoogleStrategy({
-    clientID: config.google.clientId,
-    clientSecret: config.google.clientSecret,
-    callbackURL: config.google.callbackUrl,
-    proxy: true,
-    passReqToCallback: true,
-    scope: ['profile', 'email']
-  }, async (req, accessToken, refreshToken, profile, done) => {
-    try {
-      console.log('Iniciando autenticación de Google');
-      console.log('URL de callback:', config.google.callbackUrl);
-      console.log('Configuración:', {
-        clientId: config.google.clientId,
-        callbackUrl: config.google.callbackUrl
-      });
-      console.log('Perfil de Google recibido:', {
-        id: profile.id,
-        email: profile.emails?.[0]?.value,
-        name: profile.displayName,
-        provider: profile.provider
-      });
-      
-      if (!profile.emails?.[0]?.value) {
-        console.error('No se recibió email del perfil de Google');
-        return done(new Error('No email provided by Google'), null);
-      }
-
-      let user = await Users.findOne({ 
-        $or: [
-          { googleId: profile.id },
-          { email: profile.emails[0].value }
-        ]
-      });
-      
-      console.log('Usuario encontrado:', user ? 'Sí' : 'No');
-      
-      if (!user) {
-        console.log('Creando nuevo usuario');
-        user = await Users.create({
-          nombre: profile.displayName,
-          email: profile.emails[0].value,
-          googleId: profile.id,
-          role: 'USER'
-        });
-        console.log('Usuario creado:', user._id);
-      } else if (!user.googleId) {
-        console.log('Actualizando googleId para usuario existente');
-        user.googleId = profile.id;
-        await user.save();
-      }
-      
-      return done(null, user);
-    } catch (error) {
-      console.error('Error en autenticación de Google:', error);
-      return done(error, null);
-    }
-  }));
-}
-
+// Configuración de la estrategia Local
 passport.use(new LocalStrategy({
   usernameField: 'email',
-  passwordField: 'password'
-}, async (email, password, done) => {
+  passwordField: 'password',
+  passReqToCallback: true
+}, async (req, email, password, done) => {
   try {
     const user = await Users.findOne({ email });
     if (!user) {
       return done(null, false, { message: 'Usuario no encontrado' });
     }
     
+    if (!user.activo) {
+      return done(null, false, { message: 'Usuario inactivo' });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return done(null, false, { message: 'Contraseña incorrecta' });
@@ -111,6 +54,61 @@ passport.use(new LocalStrategy({
   }
 }));
 
+// Configuración de la estrategia Google OAuth2
+let GoogleStrategy;
+try {
+  const { Strategy } = await import('passport-google-oauth20');
+  GoogleStrategy = Strategy;
+} catch (error) {
+  console.warn('Google OAuth no configurado:', error.message);
+}
+
+if (GoogleStrategy && config.google.clientId && config.google.clientSecret) {
+  passport.use(new GoogleStrategy({
+    clientID: config.google.clientId,
+    clientSecret: config.google.clientSecret,
+    callbackURL: config.google.callbackUrl,
+    proxy: true,
+    passReqToCallback: true
+  }, async (req, accessToken, refreshToken, profile, done) => {
+    try {
+      if (!profile.emails?.[0]?.value) {
+        return done(new Error('No se recibió email del perfil de Google'), null);
+      }
+
+      let user = await Users.findOne({ 
+        $or: [
+          { googleId: profile.id },
+          { email: profile.emails[0].value }
+        ]
+      });
+      
+      if (!user) {
+        user = await Users.create({
+          nombre: profile.displayName,
+          email: profile.emails[0].value,
+          googleId: profile.id,
+          role: 'USER',
+          activo: true
+        });
+      } else if (!user.googleId) {
+        user.googleId = profile.id;
+        await user.save();
+      }
+
+      if (!user.activo) {
+        return done(null, false, { message: 'Usuario inactivo' });
+      }
+      
+      return done(null, user);
+    } catch (error) {
+      return done(error);
+    }
+  }));
+} else {
+  console.warn('Google OAuth no está configurado completamente');
+}
+
 passport.serializeUser((user, done) => {
   done(null, user.id);
 });
@@ -118,6 +116,12 @@ passport.serializeUser((user, done) => {
 passport.deserializeUser(async (id, done) => {
   try {
     const user = await Users.findById(id);
+    if (!user) {
+      return done(null, false);
+    }
+    if (!user.activo) {
+      return done(null, false);
+    }
     done(null, user);
   } catch (error) {
     done(error);

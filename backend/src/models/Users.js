@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: function() {
-      return !this.googleId; // La contraseña es requerida solo si no hay googleId
+      return !this.googleId;
     }
   },
   telefono: String,
@@ -47,18 +47,26 @@ const userSchema = new mongoose.Schema({
     default: 'USER'
   },
   lastLogin: Date,
-  active: {
+  activo: {
     type: Boolean,
     default: true
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  toJSON: {
+    transform: function(doc, ret) {
+      ret.id = ret._id;
+      delete ret.password;
+      delete ret.__v;
+      return ret;
+    }
+  }
 });
 
 // Método para comparar contraseñas
 userSchema.methods.comparePassword = async function(candidatePassword) {
   if (!this.password) {
-    return false; // Si no hay contraseña (usuario de Google), la comparación falla
+    return false;
   }
   return bcrypt.compare(candidatePassword, this.password);
 };
@@ -72,4 +80,9 @@ userSchema.pre('save', async function(next) {
   next();
 });
 
-export const Users = mongoose.model('User', userSchema); 
+// Sobrescribir getLabel para usuarios
+userSchema.methods.getLabel = function() {
+  return this.nombre || this.email;
+};
+
+export const Users = mongoose.model('Users', userSchema); 

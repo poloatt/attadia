@@ -1,11 +1,14 @@
 import express from 'express';
 import { propiedadesController } from '../controllers/propiedadesController.js';
-import { checkAuth, checkRole } from '../middleware/auth.js';
+import { checkAuth } from '../middleware/auth.js';
+import { checkRole } from '../middleware/checkRole.js';
 import { checkOwnership } from '../middleware/checkOwnership.js';
 import { Propiedades } from '../models/index.js';
+import { ROLES } from '../config/constants.js';
 
 const router = express.Router();
 
+// Todas las rutas requieren autenticación
 router.use(checkAuth);
 
 router.route('/')
@@ -20,7 +23,7 @@ router.route('/:id')
   .delete([checkOwnership(Propiedades)], propiedadesController.delete);
 
 // Rutas admin
-router.get('/admin/all', checkRole(['ADMIN']), propiedadesController.getAllAdmin);
-router.put('/:id/status', checkRole(['ADMIN']), propiedadesController.updateStatus);
+router.get('/admin/all', [checkRole([ROLES.ADMIN])], propiedadesController.getAllAdmin);
+router.put('/:id/status', [checkRole([ROLES.ADMIN])], propiedadesController.updateStatus);
 
 export default router; 

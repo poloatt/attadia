@@ -1,11 +1,14 @@
 import express from 'express';
 import { proyectosController } from '../controllers/proyectosController.js';
 import { checkAuth } from '../middleware/auth.js';
-import { checkRole, ROLES } from '../middleware/checkRole.js';
+import { checkRole } from '../middleware/checkRole.js';
 import { checkOwnership } from '../middleware/checkOwnership.js';
 import { Proyectos } from '../models/index.js';
+import { ROLES } from '../config/constants.js';
 
 const router = express.Router();
+
+// Todas las rutas requieren autenticación
 router.use(checkAuth);
 
 router.get('/', proyectosController.getAll);

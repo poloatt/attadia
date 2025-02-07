@@ -1,11 +1,14 @@
 import express from 'express';
 import { cuentasController } from '../controllers/cuentasController.js';
-import { checkAuth, checkRole } from '../middleware/auth.js';
+import { checkAuth } from '../middleware/auth.js';
+import { checkRole } from '../middleware/checkRole.js';
 import { checkOwnership } from '../middleware/checkOwnership.js';
 import { Cuentas } from '../models/index.js';
+import { ROLES } from '../config/constants.js';
 
 const router = express.Router();
 
+// Todas las rutas requieren autenticación
 router.use(checkAuth);
 
 router.route('/')
@@ -18,7 +21,7 @@ router.route('/:id')
   .delete([checkOwnership(Cuentas)], cuentasController.delete);
 
 // Rutas admin
-router.get('/admin/all', checkRole(['ADMIN']), cuentasController.getAllAdmin);
-router.get('/admin/stats', checkRole(['ADMIN']), cuentasController.getAdminStats);
+router.get('/admin/all', [checkRole([ROLES.ADMIN])], cuentasController.getAllAdmin);
+router.get('/admin/stats', [checkRole([ROLES.ADMIN])], cuentasController.getAdminStats);
 
 export default router; 

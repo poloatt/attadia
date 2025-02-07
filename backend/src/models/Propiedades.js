@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
+import { createSchema, commonFields } from './BaseSchema.js';
 
-const propiedadSchema = new mongoose.Schema({
+const propiedadSchema = createSchema({
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
@@ -40,9 +41,8 @@ const propiedadSchema = new mongoose.Schema({
   },
   descripcion: String,
   caracteristicas: [String],
-  imagenes: [String]
-}, {
-  timestamps: true
+  imagenes: [String],
+  ...commonFields
 });
 
 export const Propiedades = mongoose.model('Propiedad', propiedadSchema); 

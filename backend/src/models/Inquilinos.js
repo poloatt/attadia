@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
+import { createSchema, commonFields } from './BaseSchema.js';
 
-const inquilinoSchema = new mongoose.Schema({
+const inquilinoSchema = createSchema({
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
@@ -45,7 +46,8 @@ const inquilinoSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Contratos',
     required: true
-  }
+  },
+  ...commonFields
 }, {
   timestamps: true,
   toJSON: { virtuals: true },

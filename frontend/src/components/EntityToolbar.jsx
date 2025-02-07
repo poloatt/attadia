@@ -27,6 +27,7 @@ import {
   TaskAltOutlined,
   Visibility as ShowValuesIcon,
   VisibilityOff as HideValuesIcon,
+  SearchOutlined as SearchIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import EntityForm from './EntityViews/EntityForm';
@@ -175,10 +176,12 @@ const EntityToolbar = ({
         padding: '8px 16px',
         borderBottom: 'none',
         boxShadow: 'none',
+        width: '100%',
+        position: 'relative',
       }}
     >
       <Container 
-        maxWidth="lg" 
+        maxWidth={false}
         disableGutters
         sx={{
           px: {
@@ -240,7 +243,7 @@ const EntityToolbar = ({
             )}
           </Box>
 
-          {/* Sección central - Eliminado el Divider */}
+          {/* Sección central */}
           <Box sx={{ 
             display: 'flex',
             alignItems: 'center',
@@ -308,6 +311,19 @@ const EntityToolbar = ({
             >
               {showValues ? <ShowValuesIcon /> : <HideValuesIcon />}
             </IconButton>
+
+            {/* Agregar el ícono de búsqueda aquí */}
+            <Tooltip title="Buscar">
+              <IconButton 
+                size="small"
+                sx={{ 
+                  color: 'text.secondary',
+                  '&:hover': { color: 'text.primary' }
+                }}
+              >
+                <SearchIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
           </Box>
         </Box>
       </Container>

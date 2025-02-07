@@ -5,9 +5,11 @@ import { useAuth } from '../context/AuthContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { SettingsOutlined as SettingsIcon } from '@mui/icons-material';
+import PersonIcon from '@mui/icons-material/Person';
 
 const menuItems = [
-  { text: 'Configuración', icon: <SettingsIcon />, path: '/configuracion' }
+  { text: 'Configuración', icon: <SettingsIcon />, path: '/configuracion' },
+  { text: 'Perfil', icon: <PersonIcon />, path: '/perfil' }
 ];
 
 export function Layout() {
@@ -32,16 +34,13 @@ export function Layout() {
     }}>
       <Header />
       <Drawer
-        variant={isMobile ? "temporary" : "permanent"}
+        variant="permanent"
         anchor="right"
         open={isOpen}
-        onClose={() => isMobile && toggleSidebar()}
+        onClose={() => toggleSidebar()}
         sx={{
           '& .MuiDrawer-paper': {
-            width: {
-              xs: '100%',
-              sm: isOpen ? 240 : 0
-            },
+            width: isOpen ? 240 : 0,
             transition: 'width 0.3s ease',
             overflowX: 'hidden',
             backgroundColor: 'background.paper',

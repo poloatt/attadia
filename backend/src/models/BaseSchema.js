@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import mongoosePaginate from 'mongoose-paginate-v2';
 
 const baseOptions = {
   timestamps: true,
@@ -8,6 +9,7 @@ const baseOptions = {
       ret.id = ret._id;
       ret.value = ret._id; // Para compatibilidad con los selectores del frontend
       ret.label = doc.getLabel?.() || ret.nombre || ret.titulo || ret._id; // Método flexible para etiquetas
+      ret.displayValue = doc.getDisplayValue?.() || ret.codigo || ret.nombre || ret.titulo; // Valor para mostrar
       delete ret._id;
       delete ret.__v;
       return ret;
@@ -22,19 +24,29 @@ export const createSchema = (definition, options = {}) => {
     ...options
   });
 
+  // Agregar el plugin de paginación
+  schema.plugin(mongoosePaginate);
+
   // Método para obtener la representación para selectores
   schema.methods.toSelectOption = function() {
+    const json = this.toJSON();
     return {
       id: this._id,
       value: this._id,
       label: this.getLabel(),
-      data: this.toJSON() // Datos adicionales que puedan ser útiles
+      displayValue: this.getDisplayValue(),
+      data: json // Datos adicionales que puedan ser útiles
     };
   };
 
   // Método que puede ser sobrescrito por modelos específicos
   schema.methods.getLabel = function() {
     return this.nombre || this.titulo || this.descripcion || this._id.toString();
+  };
+
+  // Método que puede ser sobrescrito para personalizar el valor mostrado
+  schema.methods.getDisplayValue = function() {
+    return this.codigo || this.nombre || this.titulo || this._id.toString();
   };
 
   return schema;
