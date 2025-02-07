@@ -186,10 +186,11 @@ export function Transacciones() {
       ]
     },
     {
-      name: 'monedaId',
+      name: 'moneda',
       label: 'Moneda',
-      type: 'select',
+      type: 'relational',
       required: true,
+      endpoint: '/monedas',
       options: monedas.map(m => ({
         value: m.id,
         label: `${m.nombre} (${m.simbolo})`
@@ -203,10 +204,11 @@ export function Transacciones() {
       createTitle: 'Nueva Moneda'
     },
     {
-      name: 'cuentaId',
+      name: 'cuenta',
       label: 'Cuenta',
-      type: 'select',
+      type: 'relational',
       required: true,
+      endpoint: '/cuentas',
       options: cuentas.map(c => ({
         value: c.id,
         label: c.nombre

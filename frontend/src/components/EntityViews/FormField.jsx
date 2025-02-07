@@ -42,20 +42,24 @@ const BaseTextField = memo(({
   helperText 
 }) => {
   const handleChange = useCallback((e) => {
+    const newValue = e.target.value;
     onChange({
       target: {
         name: field.name,
-        value: e.target.value,
-        type: field.type
+        value: newValue,
+        type: field.type,
+        rawEvent: e
       }
     });
   }, [field.name, field.type, onChange]);
+
+  const displayValue = value ?? '';
 
   return (
     <TextField
       name={field.name}
       label={field.label}
-      value={value ?? ''}
+      value={displayValue}
       onChange={handleChange}
       fullWidth
       margin="normal"
@@ -208,9 +212,9 @@ const SelectField = memo(({
 
   const selectedOption = useMemo(() => {
     if (field.multiple) {
-      return Array.isArray(value) ? value.map(v => normalizedOptions.find(opt => opt.value === v) || null).filter(Boolean) : [];
+      return Array.isArray(value) ? value.map(v => normalizedOptions.find(opt => String(opt.value) === String(v)) || null).filter(Boolean) : [];
     }
-    return normalizedOptions.find(opt => opt.value === value) || null;
+    return normalizedOptions.find(opt => String(opt.value) === String(value)) || null;
   }, [normalizedOptions, value, field.multiple]);
 
   const displayedOptions = useMemo(() => {
@@ -230,7 +234,7 @@ const SelectField = memo(({
         target: {
           name: field.name,
           value: (newValue || []).map(v => v.value),
-          type: 'select',
+          type: field.type,
           selectedOptions: newValue || []
         }
       });
@@ -242,17 +246,15 @@ const SelectField = memo(({
       return;
     }
 
-    const normalizedValue = normalizeOption(newValue);
     onChange({
       target: {
         name: field.name,
-        value: normalizedValue?.value || null,
-        type: 'select',
-        selectedOption: normalizedValue,
-        nestedData: field.nested ? normalizedValue?.data : undefined
+        value: newValue?.value || null,
+        type: field.type,
+        selectedOption: newValue
       }
     });
-  }, [field.name, field.multiple, field.nested, onChange]);
+  }, [field.name, field.type, field.multiple, onChange]);
 
   const handleInputChange = useCallback((_, newInputValue) => {
     setInputValue(newInputValue);
@@ -284,9 +286,8 @@ const SelectField = memo(({
                 target: {
                   name: field.name,
                   value: normalizedItem.value,
-                  type: 'select',
-                  selectedOption: normalizedItem,
-                  nestedData: field.nested ? newItem : undefined
+                  type: field.type,
+                  selectedOption: normalizedItem
                 }
               });
               setIsCreating(false);
@@ -302,15 +303,15 @@ const SelectField = memo(({
           multiple={field.multiple}
           value={field.multiple ? selectedOption || [] : selectedOption}
           inputValue={inputValue}
-          onInputChange={handleInputChange}
+          onInputChange={(_, newValue) => setInputValue(newValue)}
           onChange={handleChange}
           options={displayedOptions}
           getOptionLabel={(option) => option?.displayValue || option?.label || ''}
           isOptionEqualToValue={(option, value) => 
-            option?.id === value?.id || option?.value === value?.value
+            String(option?.value) === String(value?.value)
           }
           loading={isLoading}
-          disabled={field.disabled || isLoading}
+          disabled={field.disabled}
           freeSolo={false}
           disablePortal
           renderTags={field.multiple ? renderTags : undefined}
@@ -355,16 +356,9 @@ const SelectField = memo(({
               required={field.required}
               error={!!error}
               helperText={error || helperText}
+              size="small"
               InputProps={{
                 ...params.InputProps,
-                startAdornment: (
-                  <>
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                    {params.InputProps.startAdornment}
-                  </>
-                ),
                 endAdornment: (
                   <>
                     {isLoading ? <CircularProgress size={20} /> : null}
@@ -380,32 +374,6 @@ const SelectField = memo(({
               }}
             />
           )}
-          componentsProps={{
-            popper: {
-              modifiers: [
-                {
-                  name: 'flip',
-                  enabled: true,
-                  options: {
-                    altBoundary: true,
-                    rootBoundary: 'document',
-                    padding: 8,
-                  },
-                },
-                {
-                  name: 'preventOverflow',
-                  enabled: true,
-                  options: {
-                    altAxis: true,
-                    altBoundary: true,
-                    tether: true,
-                    rootBoundary: 'document',
-                    padding: 8,
-                  },
-                },
-              ],
-            }
-          }}
         />
       )}
     </Box>

@@ -1,40 +1,47 @@
-import { useState, useEffect } from 'react';
-import clienteAxios from '../../../config/axios';
+import { useState, useEffect, useRef } from 'react';
+import clienteAxios from '../config/axios';
 
 export const useRelationalData = ({
   open,
-  formType,
   relatedFields = []
 }) => {
   const [relatedData, setRelatedData] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const fieldsRef = useRef([]);
+
+  useEffect(() => {
+    fieldsRef.current = relatedFields;
+  }, [relatedFields]);
 
   useEffect(() => {
     let isMounted = true;
 
     const fetchData = async () => {
-      if (!open || !formType || !relatedFields.length) return;
+      if (!open || !fieldsRef.current.length) return;
       
       setIsLoading(true);
       setError(null);
 
       try {
-        // Obtenemos la configuración del formulario del FormController
-        const configResponse = await clienteAxios.get(`/forms/${formType}/config`);
-        const config = configResponse.data;
-
         // Cargamos los datos relacionados para cada campo
-        const relatedDataPromises = relatedFields.map(async field => {
-          const fieldConfig = config.fields.find(f => f.name === field.name);
-          if (!fieldConfig?.endpoint) return null;
-
-          const response = await clienteAxios.get(fieldConfig.endpoint);
-          return {
-            field: field.name,
-            data: response.data.docs || []
-          };
-        });
+        const relatedDataPromises = fieldsRef.current
+          .filter(field => field.type === 'relational' && field.endpoint)
+          .map(async field => {
+            try {
+              const response = await clienteAxios.get(field.endpoint);
+              return {
+                field: field.name,
+                data: response.data.docs || []
+              };
+            } catch (error) {
+              console.error(`Error al cargar datos para ${field.name}:`, error);
+              return {
+                field: field.name,
+                data: []
+              };
+            }
+          });
 
         const results = await Promise.all(relatedDataPromises);
         
@@ -65,28 +72,24 @@ export const useRelationalData = ({
     return () => {
       isMounted = false;
     };
-  }, [open, formType, relatedFields]);
+  }, [open]); // Solo dependemos de open
 
   const refreshField = async (fieldName) => {
-    if (!formType || !fieldName) return;
+    const field = fieldsRef.current.find(f => f.name === fieldName && f.type === 'relational');
+    if (!field?.endpoint) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const configResponse = await clienteAxios.get(`/forms/${formType}/config`);
-      const config = configResponse.data;
-      
-      const fieldConfig = config.fields.find(f => f.name === fieldName);
-      if (!fieldConfig?.endpoint) return;
-
-      const response = await clienteAxios.get(fieldConfig.endpoint);
+      const response = await clienteAxios.get(field.endpoint);
       
       setRelatedData(prev => ({
         ...prev,
         [fieldName]: response.data.docs || []
       }));
     } catch (error) {
+      console.error(`Error al actualizar ${fieldName}:`, error);
       setError(error.message || `Error al actualizar ${fieldName}`);
     } finally {
       setIsLoading(false);

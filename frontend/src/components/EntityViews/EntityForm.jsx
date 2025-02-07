@@ -14,6 +14,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import { FormField } from './FormField';
 import { useSnackbar } from 'notistack';
+import { useRelationalData } from '../../hooks/useRelationalData';
 
 const DialogHeader = memo(({ title, onClose, isLoading }) => (
   <Box sx={{ position: 'relative' }}>
@@ -61,56 +62,20 @@ const EntityForm = ({
   onSubmit,
   title,
   fields = [],
-  initialData = {},
-  relatedFields = [],
-  onFetchRelatedData = async () => ({})
+  initialData = {}
 }) => {
+  const { 
+    relatedData, 
+    isLoading: isLoadingRelated,
+    refreshField 
+  } = useRelationalData({
+    open,
+    relatedFields: fields.filter(f => f.type === 'relational')
+  });
   const [formData, setFormData] = useState(initialData);
-  const [relatedData, setRelatedData] = useState({});
   const [errors, setErrors] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchData = async () => {
-      if (!open) return;
-      
-      // Solo cargar datos si hay campos relacionados
-      if (relatedFields.length === 0) {
-        setIsLoading(false);
-        return;
-      }
-      
-      setIsLoading(true);
-      try {
-        const data = await onFetchRelatedData();
-        if (isMounted) {
-          setRelatedData(data);
-        }
-      } catch (error) {
-        console.error('Error al cargar datos relacionados:', error);
-        if (isMounted) {
-          enqueueSnackbar('Error al cargar datos relacionados', { 
-            variant: 'error',
-            anchorOrigin: { vertical: 'top', horizontal: 'center' }
-          });
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchData();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [open, onFetchRelatedData, enqueueSnackbar, relatedFields]);
 
   useEffect(() => {
     if (open) {
@@ -125,63 +90,40 @@ const EntityForm = ({
     setFormData(prev => {
       const newData = { ...prev };
       
+      // Si es un campo anidado
       if (type === 'nested') {
-        // Si es un campo anidado, mantener la estructura anidada
-        if (!newData._nested) newData._nested = {};
-        newData._nested[name] = nestedData;
+        newData._nested = {
+          ...(newData._nested || {}),
+          [name]: nestedData
+        };
       } else {
-        // Caso normal
+        // Para campos normales, actualizamos directamente
         newData[name] = value;
       }
       
       return newData;
     });
     
+    // Limpiamos el error si existe
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
         [name]: null
       }));
     }
+  }, [errors]);
 
-    const field = fields.find(f => f.name === name);
-    if (field?.onChange) {
-      field.onChange(value, type, selectedOption);
-    }
-  }, [errors, fields]);
-
+  // Validación del formulario
   const validateForm = useCallback(() => {
     const newErrors = {};
     let isValid = true;
 
-    const validateField = (field, value, parentField = null) => {
-      const fieldPath = parentField ? `${parentField}.${field.name}` : field.name;
-      
-      // Validación de campos requeridos
-      if (field.required && !value) {
-        newErrors[fieldPath] = 'Este campo es requerido';
+    fields.forEach(field => {
+      if (field.required && !formData[field.name]) {
+        newErrors[field.name] = 'Este campo es requerido';
         isValid = false;
       }
-
-      // Validación personalizada
-      if (field.validate) {
-        const fieldError = field.validate(value, formData);
-        if (fieldError) {
-          newErrors[fieldPath] = fieldError;
-          isValid = false;
-        }
-      }
-
-      // Validar campos anidados
-      if (field.nested && field.fields) {
-        const nestedData = formData._nested?.[field.name] || {};
-        field.fields.forEach(childField => {
-          validateField(childField, nestedData[childField.name], field.name);
-        });
-      }
-    };
-
-    fields.forEach(field => validateField(field, formData[field.name]));
+    });
 
     setErrors(newErrors);
     return isValid;
@@ -218,24 +160,31 @@ const EntityForm = ({
   }, [formData, onSubmit, onClose, validateForm, enqueueSnackbar]);
 
   const formFields = useMemo(() => (
-    fields.map(field => (
-      <FormField
-        key={field.name}
-        field={field}
-        value={formData[field.name]}
-        onChange={handleChange}
-        relatedData={relatedData}
-        error={errors[field.name]}
-        isLoading={isLoading}
-        nestedData={formData._nested?.[field.name]}
-      />
-    ))
-  ), [fields, formData, handleChange, relatedData, errors, isLoading]);
+    fields.map(field => {
+      const isRelationalField = field.type === 'relational';
+      const fieldData = isRelationalField ? relatedData[field.name] : field.options;
+      
+      return (
+        <FormField
+          key={field.name}
+          field={{
+            ...field,
+            options: fieldData || []
+          }}
+          value={formData[field.name]}
+          onChange={handleChange}
+          error={errors[field.name]}
+          isLoading={isRelationalField && isLoadingRelated}
+          nestedData={formData._nested?.[field.name]}
+        />
+      );
+    })
+  ), [fields, formData, handleChange, relatedData, errors, isLoadingRelated]);
 
   return (
     <Dialog
       open={open}
-      onClose={!isLoading && !isSaving ? onClose : undefined}
+      onClose={!isLoadingRelated && !isSaving ? onClose : undefined}
       maxWidth="sm"
       fullWidth
       PaperProps={{
@@ -249,17 +198,11 @@ const EntityForm = ({
       keepMounted={false}
       disableEnforceFocus
       disableAutoFocus
-      TransitionProps={{
-        onExited: () => {
-          setFormData(initialData);
-          setErrors({});
-        }
-      }}
     >
       <DialogHeader 
         title={title} 
         onClose={onClose}
-        isLoading={isLoading || isSaving}
+        isLoading={isLoadingRelated || isSaving}
       />
       
       <form onSubmit={handleSubmit}>
@@ -267,7 +210,7 @@ const EntityForm = ({
           sx={{ 
             px: 3, 
             py: 2,
-            opacity: isLoading ? 0.7 : 1
+            opacity: isLoadingRelated ? 0.7 : 1
           }}
           tabIndex={-1}
         >
@@ -300,7 +243,7 @@ const EntityForm = ({
           <Button 
             onClick={onClose} 
             type="button"
-            disabled={isLoading || isSaving}
+            disabled={isLoadingRelated || isSaving}
             tabIndex={0}
           >
             Cancelar
@@ -308,7 +251,7 @@ const EntityForm = ({
           <Button 
             type="submit" 
             variant="contained"
-            disabled={isLoading || isSaving}
+            disabled={isLoadingRelated || isSaving}
             tabIndex={0}
           >
             {isSaving ? 'Guardando...' : 'Guardar'}
