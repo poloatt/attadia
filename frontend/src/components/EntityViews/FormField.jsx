@@ -1,4 +1,4 @@
-import React, { memo, useState, useCallback, useMemo } from 'react';
+import React, { memo, useState, useCallback } from 'react';
 import {
   TextField,
   FormControl,
@@ -10,28 +10,9 @@ import {
   Button,
   Typography,
   CircularProgress,
-  Autocomplete,
   InputAdornment,
-  Chip
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import SearchIcon from '@mui/icons-material/Search';
-
-const normalizeOption = (option) => {
-  if (!option) return null;
-  
-  return {
-    id: String(option.id || option.value || ''),
-    value: option.value || option.id || '',
-    label: option.label || option.displayValue || String(option.value),
-    displayValue: option.displayValue || option.label || String(option.value),
-    data: option.data || option
-  };
-};
-
-const normalizeOptions = (options = []) => {
-  return options.map(normalizeOption).filter(Boolean);
-};
 
 const BaseTextField = memo(({ 
   field, 
@@ -42,24 +23,19 @@ const BaseTextField = memo(({
   helperText 
 }) => {
   const handleChange = useCallback((e) => {
-    const newValue = e.target.value;
     onChange({
       target: {
         name: field.name,
-        value: newValue,
-        type: field.type,
-        rawEvent: e
+        value: e.target.value
       }
     });
-  }, [field.name, field.type, onChange]);
-
-  const displayValue = value ?? '';
+  }, [field.name, onChange]);
 
   return (
     <TextField
       name={field.name}
       label={field.label}
-      value={displayValue}
+      value={value}
       onChange={handleChange}
       fullWidth
       margin="normal"
@@ -70,9 +46,9 @@ const BaseTextField = memo(({
       size="small"
       error={!!error}
       helperText={error || helperText}
-      disabled={field.disabled || isLoading}
+      disabled={isLoading}
       InputLabelProps={{
-        shrink: field.type === 'date' ? true : undefined,
+        shrink: true,
         required: field.required
       }}
       InputProps={{
@@ -80,18 +56,16 @@ const BaseTextField = memo(({
           <InputAdornment position="end">
             <CircularProgress size={20} />
           </InputAdornment>
-        ),
-        ...field.InputProps
-      }}
-      sx={{
-        '& .MuiOutlinedInput-root': {
-          borderRadius: 0
-        },
-        '& .MuiOutlinedInput-input': {
-          padding: '10px 14px'
-        }
+        )
       }}
     />
+  );
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.value === nextProps.value &&
+    prevProps.error === nextProps.error &&
+    prevProps.isLoading === nextProps.isLoading &&
+    prevProps.field.name === nextProps.field.name
   );
 });
 
@@ -102,7 +76,6 @@ const CreateForm = memo(({
   isLoading 
 }) => {
   const [formData, setFormData] = useState({});
-  const [errors, setErrors] = useState({});
 
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -110,272 +83,38 @@ const CreateForm = memo(({
       ...prev,
       [name]: value
     }));
-    setErrors(prev => ({
-      ...prev,
-      [name]: null
-    }));
   }, []);
 
-  const validateForm = useCallback(() => {
-    const newErrors = {};
-    let isValid = true;
-
-    field.createFields?.forEach(createField => {
-      if (createField.required && !formData[createField.name]) {
-        newErrors[createField.name] = 'Este campo es requerido';
-        isValid = false;
-      }
-      if (createField.validate) {
-        const error = createField.validate(formData[createField.name], formData);
-        if (error) {
-          newErrors[createField.name] = error;
-          isValid = false;
-        }
-      }
-    });
-
-    setErrors(newErrors);
-    return isValid;
-  }, [field.createFields, formData]);
-
-  const handleSubmit = useCallback((e) => {
-    e.preventDefault();
-    if (validateForm()) {
-      onSubmit(formData);
-    }
-  }, [formData, onSubmit, validateForm]);
+  const handleSubmit = useCallback(() => {
+    onSubmit(formData);
+  }, [formData, onSubmit]);
 
   return (
-    <Box sx={{ mt: 2, bgcolor: 'background.paper', p: 2 }}>
-      <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+    <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper' }}>
+      <Typography variant="subtitle2" gutterBottom>
         {field.createTitle || 'Crear Nuevo'}
       </Typography>
-      <form onSubmit={handleSubmit}>
-        {field.createFields?.map(createField => (
-          <BaseTextField
-            key={createField.name}
-            field={createField}
-            value={formData[createField.name]}
-            onChange={handleChange}
-            error={errors[createField.name]}
-            isLoading={isLoading}
-          />
-        ))}
-        <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-          <Button 
-            type="submit" 
-            variant="contained" 
-            size="small"
-            disabled={isLoading}
-            sx={{ borderRadius: 0 }}
-          >
-            {isLoading ? <CircularProgress size={20} /> : 'Crear'}
-          </Button>
-          <Button 
-            type="button" 
-            onClick={onCancel} 
-            size="small"
-            sx={{ borderRadius: 0 }}
-          >
-            Cancelar
-          </Button>
-        </Box>
-      </form>
-    </Box>
-  );
-});
-
-const SelectField = memo(({ 
-  field, 
-  value, 
-  onChange, 
-  error,
-  options = [],
-  onCreateNew,
-  isLoading,
-  helperText,
-  nestedData
-}) => {
-  const [isCreating, setIsCreating] = useState(false);
-  const [inputValue, setInputValue] = useState('');
-
-  const CREATE_NEW_OPTION = useMemo(() => ({
-    id: '__create_new__',
-    value: '__create_new__',
-    label: field.createButtonText || 'Crear Nuevo',
-    isCreateNew: true
-  }), [field.createButtonText]);
-
-  const normalizedOptions = useMemo(() => 
-    normalizeOptions(options), [options]
-  );
-
-  const selectedOption = useMemo(() => {
-    if (field.multiple) {
-      return Array.isArray(value) ? value.map(v => normalizedOptions.find(opt => String(opt.value) === String(v)) || null).filter(Boolean) : [];
-    }
-    return normalizedOptions.find(opt => String(opt.value) === String(value)) || null;
-  }, [normalizedOptions, value, field.multiple]);
-
-  const displayedOptions = useMemo(() => {
-    const filteredOptions = normalizedOptions.filter(option =>
-      option.label.toLowerCase().includes(inputValue.toLowerCase()) ||
-      option.displayValue?.toLowerCase().includes(inputValue.toLowerCase())
-    );
-
-    return field.onCreateNew && !field.disabled
-      ? [...filteredOptions, CREATE_NEW_OPTION]
-      : filteredOptions;
-  }, [normalizedOptions, field.onCreateNew, field.disabled, inputValue, CREATE_NEW_OPTION]);
-
-  const handleChange = useCallback((_, newValue) => {
-    if (field.multiple) {
-      onChange({
-        target: {
-          name: field.name,
-          value: (newValue || []).map(v => v.value),
-          type: field.type,
-          selectedOptions: newValue || []
-        }
-      });
-      return;
-    }
-
-    if (newValue?.isCreateNew) {
-      setIsCreating(true);
-      return;
-    }
-
-    onChange({
-      target: {
-        name: field.name,
-        value: newValue?.value || null,
-        type: field.type,
-        selectedOption: newValue
-      }
-    });
-  }, [field.name, field.type, field.multiple, onChange]);
-
-  const handleInputChange = useCallback((_, newInputValue) => {
-    setInputValue(newInputValue);
-  }, []);
-
-  const renderTags = useCallback((tagValue, getTagProps) => 
-    tagValue.map((option, index) => {
-      const { key, ...chipProps } = getTagProps({ index });
-      return (
-        <Chip
-          key={key}
-          {...chipProps}
-          label={option.displayValue || option.label}
-          size="small"
-        />
-      );
-    }), []);
-
-  return (
-    <Box>
-      {isCreating ? (
-        <CreateForm
-          field={field}
-          onSubmit={async (data) => {
-            try {
-              const newItem = await onCreateNew(data);
-              const normalizedItem = normalizeOption(newItem);
-              onChange({
-                target: {
-                  name: field.name,
-                  value: normalizedItem.value,
-                  type: field.type,
-                  selectedOption: normalizedItem
-                }
-              });
-              setIsCreating(false);
-            } catch (error) {
-              console.error('Error al crear:', error);
-            }
-          }}
-          onCancel={() => setIsCreating(false)}
+      {field.createFields?.map(createField => (
+        <BaseTextField
+          key={createField.name}
+          field={createField}
+          value={formData[createField.name]}
+          onChange={handleChange}
           isLoading={isLoading}
         />
-      ) : (
-        <Autocomplete
-          multiple={field.multiple}
-          value={field.multiple ? selectedOption || [] : selectedOption}
-          inputValue={inputValue}
-          onInputChange={(_, newValue) => setInputValue(newValue)}
-          onChange={handleChange}
-          options={displayedOptions}
-          getOptionLabel={(option) => option?.displayValue || option?.label || ''}
-          isOptionEqualToValue={(option, value) => 
-            String(option?.value) === String(value?.value)
-          }
-          loading={isLoading}
-          disabled={field.disabled}
-          freeSolo={false}
-          disablePortal
-          renderTags={field.multiple ? renderTags : undefined}
-          renderOption={(props, option) => {
-            const { key, ...listItemProps } = props;
-            const optionKey = option.id || `option-${option.value}-${option.label}`;
-            return (
-              <li key={optionKey} {...listItemProps}>
-                <Box
-                  sx={{
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
-                    ...(option.isCreateNew && {
-                      color: 'primary.main',
-                      fontWeight: 'medium',
-                      borderTop: '1px solid',
-                      borderColor: 'divider',
-                    })
-                  }}
-                >
-                  {option.isCreateNew && <AddIcon fontSize="small" />}
-                  <Box>
-                    <Typography variant="body2">
-                      {option.displayValue || option.label}
-                    </Typography>
-                    {option.displayValue && option.label !== option.displayValue && (
-                      <Typography variant="caption" color="text.secondary">
-                        {option.label}
-                      </Typography>
-                    )}
-                  </Box>
-                </Box>
-              </li>
-            );
-          }}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label={field.label}
-              required={field.required}
-              error={!!error}
-              helperText={error || helperText}
-              size="small"
-              InputProps={{
-                ...params.InputProps,
-                endAdornment: (
-                  <>
-                    {isLoading ? <CircularProgress size={20} /> : null}
-                    {params.InputProps.endAdornment}
-                  </>
-                )
-              }}
-              sx={{
-                mt: 2,
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 0,
-                }
-              }}
-            />
-          )}
-        />
-      )}
+      ))}
+      <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+        <Button 
+          variant="contained" 
+          onClick={handleSubmit}
+          disabled={isLoading}
+        >
+          Crear
+        </Button>
+        <Button onClick={onCancel}>
+          Cancelar
+        </Button>
+      </Box>
     </Box>
   );
 });
@@ -391,77 +130,131 @@ export const FormField = memo(({
   helperText,
   nestedData
 }) => {
-  const getFieldOptions = useCallback(() => {
-    if (field.type === 'select') {
-      return field.options || [];
-    }
-    if (field.type === 'relational' || field.type === 'creatable') {
-      return relatedData?.[field.name] || field.options || [];
-    }
-    return [];
-  }, [field.type, field.name, field.options, relatedData]);
+  const [isCreating, setIsCreating] = useState(false);
 
-  // Si es un campo anidado, renderizar sus campos hijos
-  if (field.nested) {
+  const handleChange = useCallback((e) => {
+    console.log('FormField change:', e.target.value);
+    const newValue = e.target.value;
+    if (newValue === '__create_new__') {
+      setIsCreating(true);
+      return;
+    }
+    onChange({
+      target: {
+        name: field.name,
+        value: newValue,
+        type: field.type
+      }
+    });
+  }, [field.name, field.type, onChange]);
+
+  if (isCreating) {
     return (
-      <Box sx={{ mt: 2 }}>
-        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-          {field.label}
-        </Typography>
-        {field.fields?.map(childField => (
-          <FormField
-            key={childField.name}
-            field={childField}
-            value={nestedData?.[childField.name]}
-            onChange={(e) => {
-              const newNestedData = {
-                ...(nestedData || {}),
-                [childField.name]: e.target.value
-              };
-              onChange({
-                target: {
-                  name: field.name,
-                  value: null,
-                  type: 'nested',
-                  nestedData: newNestedData
-                }
-              });
-            }}
-            error={error?.[childField.name]}
-            isLoading={isLoading}
-          />
-        ))}
-      </Box>
+      <CreateForm
+        field={field}
+        onSubmit={async (data) => {
+          try {
+            const newItem = await onCreateNew(data);
+            onChange({
+              target: {
+                name: field.name,
+                value: newItem.id,
+                type: field.type
+              }
+            });
+            setIsCreating(false);
+          } catch (error) {
+            console.error('Error al crear:', error);
+          }
+        }}
+        onCancel={() => setIsCreating(false)}
+        isLoading={isLoading}
+      />
     );
   }
 
-  switch (field.type) {
-    case 'select':
-    case 'relational':
-    case 'creatable':
-      return (
-        <SelectField
-          field={field}
-          value={value}
-          onChange={onChange}
-          error={error}
-          helperText={helperText}
-          options={getFieldOptions()}
-          onCreateNew={field.onCreateNew || onCreateNew}
-          isLoading={isLoading}
-          nestedData={nestedData}
-        />
-      );
-    default:
-      return (
-        <BaseTextField
-          field={field}
-          value={value}
-          onChange={onChange}
-          error={error}
-          helperText={helperText}
-          isLoading={isLoading}
-        />
-      );
+  if (field.type === 'select' || field.type === 'relational') {
+    const options = field.type === 'relational' 
+      ? (field.options || [])
+      : (field.options || []);
+
+    console.log(`Rendering ${field.name} select with options:`, options);
+
+    return (
+      <FormControl 
+        fullWidth 
+        margin="normal" 
+        error={!!error}
+        size="small"
+        sx={{
+          '& .MuiInputBase-root': {
+            pointerEvents: 'auto'
+          }
+        }}
+      >
+        <InputLabel required={field.required}>{field.label}</InputLabel>
+        <Select
+          name={field.name}
+          value={value ?? ''}
+          onChange={handleChange}
+          label={field.label}
+          disabled={isLoading}
+          MenuProps={{
+            anchorOrigin: {
+              vertical: 'bottom',
+              horizontal: 'left'
+            },
+            transformOrigin: {
+              vertical: 'top',
+              horizontal: 'left'
+            },
+            PaperProps: {
+              sx: {
+                pointerEvents: 'auto'
+              }
+            }
+          }}
+          sx={{
+            '& .MuiSelect-select': {
+              cursor: 'pointer',
+              pointerEvents: 'auto'
+            }
+          }}
+        >
+          {options.map(option => (
+            <MenuItem 
+              key={option.value} 
+              value={option.value}
+              sx={{ pointerEvents: 'auto' }}
+            >
+              {option.label}
+            </MenuItem>
+          ))}
+          {field.onCreateNew && (
+            <MenuItem 
+              value="__create_new__"
+              sx={{ pointerEvents: 'auto' }}
+            >
+              <AddIcon sx={{ mr: 1 }} />
+              {field.createButtonText || 'Crear Nuevo'}
+            </MenuItem>
+          )}
+        </Select>
+        {(error || helperText) && (
+          <FormHelperText>{error || helperText}</FormHelperText>
+        )}
+      </FormControl>
+    );
   }
+
+  return (
+    <BaseTextField
+      field={field}
+      value={value}
+      onChange={onChange}
+      error={error}
+      helperText={helperText}
+      isLoading={isLoading}
+    />
+  );
 }); 

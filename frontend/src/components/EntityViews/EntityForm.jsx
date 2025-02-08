@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -72,39 +72,33 @@ const EntityForm = ({
     open,
     relatedFields: fields.filter(f => f.type === 'relational')
   });
+
   const [formData, setFormData] = useState(initialData);
   const [errors, setErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
 
+  const initialDataRef = useRef(initialData);
+
   useEffect(() => {
     if (open) {
+      console.log('Resetting form data:', initialData);
       setFormData(initialData);
+      initialDataRef.current = initialData;
       setErrors({});
     }
-  }, [open, initialData]);
+  }, [open]);
 
   const handleChange = useCallback((event) => {
-    const { name, value, type, selectedOption, nestedData } = event.target;
-    
+    const { name, value } = event.target;
     setFormData(prev => {
-      const newData = { ...prev };
-      
-      // Si es un campo anidado
-      if (type === 'nested') {
-        newData._nested = {
-          ...(newData._nested || {}),
-          [name]: nestedData
-        };
-      } else {
-        // Para campos normales, actualizamos directamente
-        newData[name] = value;
-      }
-      
+      const newData = {
+        ...prev,
+        [name]: value
+      };
       return newData;
     });
     
-    // Limpiamos el error si existe
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -113,7 +107,6 @@ const EntityForm = ({
     }
   }, [errors]);
 
-  // Validación del formulario
   const validateForm = useCallback(() => {
     const newErrors = {};
     let isValid = true;
@@ -159,32 +152,30 @@ const EntityForm = ({
     }
   }, [formData, onSubmit, onClose, validateForm, enqueueSnackbar]);
 
-  const formFields = useMemo(() => (
-    fields.map(field => {
-      const isRelationalField = field.type === 'relational';
-      const fieldData = isRelationalField ? relatedData[field.name] : field.options;
+  const formFields = useMemo(() => {
+    return fields.map(field => {
+      const fieldKey = field.name;
+      const fieldValue = formData[field.name];
       
       return (
         <FormField
-          key={field.name}
-          field={{
-            ...field,
-            options: fieldData || []
-          }}
-          value={formData[field.name]}
+          key={fieldKey}
+          field={field}
+          value={fieldValue}
           onChange={handleChange}
           error={errors[field.name]}
-          isLoading={isRelationalField && isLoadingRelated}
-          nestedData={formData._nested?.[field.name]}
+          isLoading={field.type === 'relational' && isLoadingRelated}
+          relatedData={field.type === 'relational' ? relatedData : undefined}
+          onCreateNew={field.onCreateNew}
         />
       );
-    })
-  ), [fields, formData, handleChange, relatedData, errors, isLoadingRelated]);
+    });
+  }, [fields, formData, handleChange, errors, isLoadingRelated, relatedData]);
 
   return (
     <Dialog
       open={open}
-      onClose={!isLoadingRelated && !isSaving ? onClose : undefined}
+      onClose={!isSaving ? onClose : undefined}
       maxWidth="sm"
       fullWidth
       PaperProps={{
@@ -195,9 +186,9 @@ const EntityForm = ({
         }
       }}
       aria-labelledby="form-dialog-title"
+      disableEscapeKeyDown={false}
+      disablePortal={false}
       keepMounted={false}
-      disableEnforceFocus
-      disableAutoFocus
     >
       <DialogHeader 
         title={title} 
@@ -205,20 +196,31 @@ const EntityForm = ({
         isLoading={isLoadingRelated || isSaving}
       />
       
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <DialogContent 
           sx={{ 
             px: 3, 
             py: 2,
-            opacity: isLoadingRelated ? 0.7 : 1
+            opacity: isSaving ? 0.7 : 1,
+            '& .MuiFormControl-root': {
+              pointerEvents: 'auto'
+            },
+            '& .MuiInputBase-root': {
+              pointerEvents: 'auto'
+            },
+            '& .MuiSelect-select': {
+              pointerEvents: 'auto'
+            }
           }}
-          tabIndex={-1}
         >
           <Box 
             sx={{ 
               display: 'flex', 
               flexDirection: 'column', 
-              gap: 1 
+              gap: 1,
+              '& > *': {
+                pointerEvents: 'auto'
+              }
             }}
             role="group"
             aria-label="Campos del formulario"
@@ -244,7 +246,6 @@ const EntityForm = ({
             onClick={onClose} 
             type="button"
             disabled={isLoadingRelated || isSaving}
-            tabIndex={0}
           >
             Cancelar
           </Button>
@@ -252,7 +253,6 @@ const EntityForm = ({
             type="submit" 
             variant="contained"
             disabled={isLoadingRelated || isSaving}
-            tabIndex={0}
           >
             {isSaving ? 'Guardando...' : 'Guardar'}
           </Button>

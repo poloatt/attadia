@@ -21,6 +21,7 @@ export function Transacciones() {
   const [monedas, setMonedas] = useState([]);
   const [cuentas, setCuentas] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formKey, setFormKey] = useState(0);
   const { enqueueSnackbar } = useSnackbar();
 
   const fetchTransacciones = useCallback(async () => {
@@ -35,31 +36,43 @@ export function Transacciones() {
 
   const fetchMonedas = useCallback(async () => {
     try {
+      console.log('Cargando monedas...');
       const response = await clienteAxios.get('/monedas');
-      setMonedas(response.data.docs || []);
+      console.log('Monedas recibidas:', response.data);
+      const monedasData = response.data.docs || [];
+      setMonedas(monedasData);
+      return monedasData;
     } catch (error) {
       console.error('Error al cargar monedas:', error);
       enqueueSnackbar('Error al cargar monedas', { variant: 'error' });
+      return [];
     }
   }, [enqueueSnackbar]);
 
   const fetchCuentas = useCallback(async () => {
     try {
+      console.log('Cargando cuentas...');
       const response = await clienteAxios.get('/cuentas');
-      setCuentas(response.data.docs || []);
+      console.log('Cuentas recibidas:', response.data);
+      const cuentasData = response.data.docs || [];
+      setCuentas(cuentasData);
+      return cuentasData;
     } catch (error) {
       console.error('Error al cargar cuentas:', error);
       enqueueSnackbar('Error al cargar cuentas', { variant: 'error' });
+      return [];
     }
   }, [enqueueSnackbar]);
 
   const fetchInitialData = useCallback(async () => {
     try {
-      await Promise.all([
-        fetchTransacciones(),
+      console.log('Iniciando carga de datos...');
+      const [monedasData, cuentasData] = await Promise.all([
         fetchMonedas(),
         fetchCuentas()
       ]);
+      console.log('Datos cargados:', { monedas: monedasData, cuentas: cuentasData });
+      await fetchTransacciones();
     } catch (error) {
       console.error('Error al cargar datos iniciales:', error);
     }
@@ -83,14 +96,11 @@ export function Transacciones() {
     }
   }, [enqueueSnackbar]);
 
-  const handleCreateCuenta = useCallback(async (nombre) => {
+  const handleCreateCuenta = useCallback(async (data) => {
     try {
       const response = await clienteAxios.post('/cuentas', { 
-        nombre,
-        numero: nombre,
-        tipo: 'EFECTIVO',
-        monedaId: 1,
-        usuarioId: null
+        ...data,
+        tipo: 'EFECTIVO'
       });
       
       const newCuenta = response.data;
@@ -110,20 +120,15 @@ export function Transacciones() {
 
   const handleFormSubmit = useCallback(async (formData) => {
     try {
-      if (!formData.descripcion || !formData.monto || !formData.categoria || 
-          !formData.estado || !formData.monedaId || !formData.cuentaId) {
-        enqueueSnackbar('Todos los campos son requeridos', { variant: 'error' });
-        return;
-      }
-
       const datosAEnviar = {
         descripcion: formData.descripcion,
         monto: parseFloat(formData.monto),
         fecha: formData.fecha || new Date().toISOString().split('T')[0],
         categoria: formData.categoria,
         estado: formData.estado,
-        monedaId: parseInt(formData.monedaId),
-        cuentaId: parseInt(formData.cuentaId)
+        monedaId: formData.monedaId,
+        cuentaId: formData.cuentaId,
+        tipo: 'INGRESO' // Por defecto, podríamos hacer esto configurable
       };
 
       const response = await clienteAxios.post('/transacciones', datosAEnviar);
@@ -131,6 +136,7 @@ export function Transacciones() {
       if (response.status === 201) {
         enqueueSnackbar('Transacción creada exitosamente', { variant: 'success' });
         setIsFormOpen(false);
+        setFormKey(prev => prev + 1);
         await fetchTransacciones();
       }
     } catch (error) {
@@ -140,8 +146,35 @@ export function Transacciones() {
     }
   }, [enqueueSnackbar, fetchTransacciones]);
 
+  const handleOpenForm = useCallback(async () => {
+    try {
+      console.log('Abriendo formulario...');
+      await Promise.all([fetchMonedas(), fetchCuentas()]);
+      setFormKey(prev => prev + 1);
+      setIsFormOpen(true);
+    } catch (error) {
+      console.error('Error al abrir formulario:', error);
+      enqueueSnackbar('Error al cargar datos del formulario', { variant: 'error' });
+    }
+  }, [fetchMonedas, fetchCuentas, enqueueSnackbar]);
+
+  const handleCloseForm = useCallback(() => {
+    setIsFormOpen(false);
+    setFormKey(prev => prev + 1);
+  }, []);
+
   // Campos del formulario
   const formFields = [
+    {
+      name: 'tipo',
+      label: 'Tipo',
+      type: 'select',
+      required: true,
+      options: [
+        { value: 'INGRESO', label: 'Ingreso' },
+        { value: 'EGRESO', label: 'Egreso' }
+      ]
+    },
     {
       name: 'descripcion',
       label: 'Descripción',
@@ -186,13 +219,12 @@ export function Transacciones() {
       ]
     },
     {
-      name: 'moneda',
+      name: 'monedaId',
       label: 'Moneda',
       type: 'relational',
       required: true,
-      endpoint: '/monedas',
       options: monedas.map(m => ({
-        value: m.id,
+        value: m.id || m._id,
         label: `${m.nombre} (${m.simbolo})`
       })),
       onCreateNew: handleCreateMoneda,
@@ -204,13 +236,12 @@ export function Transacciones() {
       createTitle: 'Nueva Moneda'
     },
     {
-      name: 'cuenta',
+      name: 'cuentaId',
       label: 'Cuenta',
       type: 'relational',
       required: true,
-      endpoint: '/cuentas',
       options: cuentas.map(c => ({
-        value: c.id,
+        value: c.id || c._id,
         label: c.nombre
       })),
       onCreateNew: handleCreateCuenta,
@@ -224,7 +255,7 @@ export function Transacciones() {
   return (
     <Container maxWidth="lg">
       <EntityToolbar
-        onAdd={() => setIsFormOpen(true)}
+        onAdd={handleOpenForm}
         navigationItems={[
           {
             icon: <BankIcon sx={{ fontSize: 18 }} />,
@@ -245,7 +276,7 @@ export function Transacciones() {
             variant="contained" 
             startIcon={<AddIcon />} 
             size="small"
-            onClick={() => setIsFormOpen(true)}
+            onClick={handleOpenForm}
           >
             Nueva Transacción
           </Button>
@@ -253,7 +284,7 @@ export function Transacciones() {
       >
         {transacciones.length === 0 ? (
           <Box sx={{ p: 2 }}>
-            <EmptyState />
+            <EmptyState onAdd={handleOpenForm} />
           </Box>
         ) : (
           <TableContainer component={Paper} elevation={0}>
@@ -262,37 +293,34 @@ export function Transacciones() {
                 <TableRow>
                   <TableCell>Fecha</TableCell>
                   <TableCell>Descripción</TableCell>
-                  <TableCell align="right">Monto</TableCell>
-                  <TableCell>Moneda</TableCell>
-                  <TableCell>Cuenta</TableCell>
+                  <TableCell>Tipo</TableCell>
+                  <TableCell>Monto</TableCell>
                   <TableCell>Estado</TableCell>
-                  <TableCell>Categoría</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {transacciones.map((trans) => (
-                  <TableRow key={trans.id}>
-                    <TableCell>{new Date(trans.fecha).toLocaleDateString()}</TableCell>
-                    <TableCell>{trans.descripcion}</TableCell>
-                    <TableCell align="right">
-                      {trans.moneda?.simbolo} {trans.monto.toFixed(2)}
-                    </TableCell>
-                    <TableCell>{trans.moneda?.nombre}</TableCell>
-                    <TableCell>{trans.cuenta?.nombre}</TableCell>
+                {transacciones.map((transaccion) => (
+                  <TableRow key={transaccion.id}>
+                    <TableCell>{new Date(transaccion.fecha).toLocaleDateString()}</TableCell>
+                    <TableCell>{transaccion.descripcion}</TableCell>
                     <TableCell>
                       <Chip 
-                        label={trans.estado}
-                        color={trans.estado === 'PAGADO' ? 'success' : 'warning'}
+                        label={transaccion.tipo} 
+                        color={transaccion.tipo === 'INGRESO' ? 'success' : 'error'}
                         size="small"
-                        variant="outlined"
                       />
                     </TableCell>
                     <TableCell>
+                      {transaccion.monto} {monedas.find(m => m.id === transaccion.monedaId)?.simbolo}
+                    </TableCell>
+                    <TableCell>
                       <Chip 
-                        label={trans.categoria}
+                        label={transaccion.estado}
+                        color={
+                          transaccion.estado === 'PAGADO' ? 'success' :
+                          transaccion.estado === 'PENDIENTE' ? 'warning' : 'error'
+                        }
                         size="small"
-                        color="primary"
-                        variant="outlined"
                       />
                     </TableCell>
                   </TableRow>
@@ -303,27 +331,16 @@ export function Transacciones() {
         )}
       </EntityDetails>
 
-      <EntityForm
-        open={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        onSubmit={handleFormSubmit}
-        title="Nueva Transacción"
-        fields={formFields}
-        relatedFields={[
-          { name: 'monedaId', endpoint: '/monedas' },
-          { name: 'cuentaId', endpoint: '/cuentas' }
-        ]}
-        onFetchRelatedData={async () => {
-          const [monedasRes, cuentasRes] = await Promise.all([
-            clienteAxios.get('/monedas'),
-            clienteAxios.get('/cuentas')
-          ]);
-          return {
-            monedas: monedasRes.data.docs || [],
-            cuentas: cuentasRes.data.docs || []
-          };
-        }}
-      />
+      {isFormOpen && (
+        <EntityForm
+          key={formKey}
+          open={isFormOpen}
+          onClose={handleCloseForm}
+          onSubmit={handleFormSubmit}
+          title="Nueva Transacción"
+          fields={formFields}
+        />
+      )}
     </Container>
   );
 }

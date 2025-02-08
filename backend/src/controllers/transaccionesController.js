@@ -19,53 +19,81 @@ class TransaccionesController extends BaseController {
   // GET /api/transacciones/stats
   async getStats(req, res) {
     try {
-      const query = { estado: 'COMPLETADA' };
+      console.log('Usuario actual:', req.user);
       
-      // Solo agregar el filtro de usuario si existe
-      if (req.user?.id) {
-        query.usuario = req.user.id;
+      if (!req.user?.id) {
+        return res.status(401).json({ error: 'Usuario no autenticado' });
       }
 
-      const [ingresos, egresos] = await Promise.all([
-        this.Model.aggregate([
-          { 
-            $match: { 
-              ...query,
-              tipo: 'INGRESO'
-            }
-          },
-          {
-            $group: {
-              _id: null,
-              total: { $sum: '$monto' }
-            }
-          }
-        ]),
-        this.Model.aggregate([
-          { 
-            $match: { 
-              ...query,
-              tipo: 'EGRESO'
-            }
-          },
-          {
-            $group: {
-              _id: null,
-              total: { $sum: '$monto' }
-            }
-          }
-        ])
-      ]);
+      const query = { 
+        estado: 'COMPLETADA'
+      };
 
-      res.json({
-        ingresosMensuales: ingresos[0]?.total || 0,
-        egresosMensuales: egresos[0]?.total || 0,
-        balanceTotal: (ingresos[0]?.total || 0) - (egresos[0]?.total || 0),
+      // Convertir el ID a ObjectId si existe
+      if (req.user.id) {
+        const mongoose = await import('mongoose');
+        query.usuario = new mongoose.Types.ObjectId(req.user.id);
+      }
+
+      console.log('Query a ejecutar:', JSON.stringify(query, null, 2));
+
+      const pipeline = [
+        { 
+          $match: query
+        },
+        {
+          $group: {
+            _id: '$tipo',
+            total: { $sum: { $ifNull: ['$monto', 0] } }
+          }
+        }
+      ];
+
+      console.log('Pipeline a ejecutar:', JSON.stringify(pipeline, null, 2));
+
+      const resultados = await this.Model.aggregate(pipeline);
+      console.log('Resultados de agregación:', resultados);
+
+      const ingresos = resultados.find(r => r._id === 'INGRESO')?.total || 0;
+      const egresos = resultados.find(r => r._id === 'EGRESO')?.total || 0;
+
+      const response = {
+        ingresosMensuales: ingresos,
+        egresosMensuales: egresos,
+        balanceTotal: ingresos - egresos,
         monedaPrincipal: 'USD'
-      });
+      };
+
+      console.log('Respuesta a enviar:', response);
+      res.json(response);
     } catch (error) {
-      console.error('Error al obtener estadísticas:', error);
-      res.status(500).json({ error: error.message });
+      console.error('Error detallado en getStats:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        code: error.code
+      });
+
+      // Si es un error de MongoDB
+      if (error.name === 'MongoError' || error.name === 'MongoServerError') {
+        return res.status(500).json({ 
+          error: 'Error en la base de datos',
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+      }
+
+      // Si es un error de validación
+      if (error.name === 'ValidationError') {
+        return res.status(400).json({ 
+          error: 'Error de validación',
+          details: error.message
+        });
+      }
+
+      res.status(500).json({ 
+        error: 'Error interno del servidor',
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     }
   }
 

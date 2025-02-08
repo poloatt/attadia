@@ -31,13 +31,9 @@ export function Contratos() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const { enqueueSnackbar } = useSnackbar();
-  const [inquilinos, setInquilinos] = useState([]);
-  const [propiedades, setPropiedades] = useState([]);
-  const [monedas, setMonedas] = useState([]);
 
   useEffect(() => {
     fetchContratos();
-    fetchRelatedData();
   }, []);
 
   const fetchContratos = async () => {
@@ -52,19 +48,27 @@ export function Contratos() {
     }
   };
 
-  const fetchRelatedData = async () => {
+  const handleCreateInquilino = async (formData) => {
     try {
-      const [inquilinosRes, propiedadesRes, monedasRes] = await Promise.all([
-        clienteAxios.get('/inquilinos'),
-        clienteAxios.get('/propiedades'),
-        clienteAxios.get('/monedas')
-      ]);
-      setInquilinos(inquilinosRes.data.docs || []);
-      setPropiedades(propiedadesRes.data.docs || []);
-      setMonedas(monedasRes.data.docs || []);
+      const response = await clienteAxios.post('/inquilinos', formData);
+      enqueueSnackbar('Inquilino creado exitosamente', { variant: 'success' });
+      return response.data;
     } catch (error) {
-      console.error('Error al cargar datos relacionados:', error);
-      enqueueSnackbar('Error al cargar datos relacionados', { variant: 'error' });
+      console.error('Error al crear inquilino:', error);
+      enqueueSnackbar('Error al crear inquilino', { variant: 'error' });
+      throw error;
+    }
+  };
+
+  const handleCreatePropiedad = async (formData) => {
+    try {
+      const response = await clienteAxios.post('/propiedades', formData);
+      enqueueSnackbar('Propiedad creada exitosamente', { variant: 'success' });
+      return response.data;
+    } catch (error) {
+      console.error('Error al crear propiedad:', error);
+      enqueueSnackbar('Error al crear propiedad', { variant: 'error' });
+      throw error;
     }
   };
 
@@ -82,26 +86,6 @@ export function Contratos() {
     }
   };
 
-  const handleCreateInquilino = async (formData) => {
-    try {
-      const response = await clienteAxios.post('/inquilinos', formData);
-      await fetchRelatedData(); // Recargar los inquilinos
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const handleCreatePropiedad = async (formData) => {
-    try {
-      const response = await clienteAxios.post('/propiedades', formData);
-      await fetchRelatedData(); // Recargar las propiedades
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  };
-
   const formFields = [
     {
       name: 'inquilinosIds',
@@ -109,10 +93,7 @@ export function Contratos() {
       type: 'relational',
       multiple: true,
       required: true,
-      options: inquilinos.map(i => ({
-        value: i.id,
-        label: `${i.nombre} ${i.apellido}`
-      })),
+      endpoint: '/inquilinos',
       onCreateNew: handleCreateInquilino,
       createButtonText: 'Crear Nuevo Inquilino',
       createTitle: 'Nuevo Inquilino',
@@ -129,10 +110,7 @@ export function Contratos() {
       label: 'Propiedad',
       type: 'relational',
       required: true,
-      options: propiedades.map(p => ({
-        value: p.id,
-        label: p.titulo
-      })),
+      endpoint: '/propiedades',
       onCreateNew: handleCreatePropiedad,
       createButtonText: 'Crear Nueva Propiedad',
       createTitle: 'Nueva Propiedad',
@@ -172,10 +150,7 @@ export function Contratos() {
           label: 'Moneda',
           type: 'relational',
           required: true,
-          options: monedas.map(m => ({
-            value: m.id,
-            label: `${m.nombre} (${m.simbolo})`
-          }))
+          endpoint: '/monedas'
         }
       ]
     },
@@ -307,13 +282,15 @@ export function Contratos() {
         )}
       </EntityDetails>
 
-      <EntityForm
-        open={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        onSubmit={handleFormSubmit}
-        title="Nuevo Contrato"
-        fields={formFields}
-      />
+      {isFormOpen && (
+        <EntityForm
+          open={isFormOpen}
+          onClose={() => setIsFormOpen(false)}
+          onSubmit={handleFormSubmit}
+          title="Nuevo Contrato"
+          fields={formFields}
+        />
+      )}
     </Container>
   );
 }
