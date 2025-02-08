@@ -28,10 +28,13 @@ export function Transacciones() {
 
   const fetchTransacciones = useCallback(async () => {
     try {
+      console.log('Solicitando transacciones...');
       const response = await clienteAxios.get('/transacciones');
+      console.log('Transacciones recibidas:', response.data);
       setTransacciones(response.data.docs || []);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error al cargar transacciones:', error);
+      console.error('Detalles del error:', error.response?.data);
       enqueueSnackbar('Error al cargar transacciones', { variant: 'error' });
     }
   }, [enqueueSnackbar]);
@@ -40,12 +43,28 @@ export function Transacciones() {
     try {
       console.log('Cargando monedas...');
       const response = await clienteAxios.get('/monedas');
+      console.log('Respuesta completa de monedas:', response);
       console.log('Monedas recibidas:', response.data);
-      const monedasData = response.data.docs || [];
+      
+      if (!response.data || !Array.isArray(response.data.docs)) {
+        console.error('Formato de respuesta inválido para monedas:', response.data);
+        enqueueSnackbar('Error en el formato de datos de monedas', { variant: 'error' });
+        return [];
+      }
+
+      const monedasData = response.data.docs.map(moneda => ({
+        ...moneda,
+        _id: moneda._id || moneda.id, // Aseguramos tener _id
+        nombre: moneda.nombre || 'Sin nombre', // Valor por defecto
+        simbolo: moneda.simbolo || '$' // Valor por defecto
+      }));
+
+      console.log('Monedas procesadas:', monedasData);
       setMonedas(monedasData);
       return monedasData;
     } catch (error) {
       console.error('Error al cargar monedas:', error);
+      console.error('Detalles del error:', error.response?.data);
       enqueueSnackbar('Error al cargar monedas', { variant: 'error' });
       return [];
     }
@@ -55,12 +74,27 @@ export function Transacciones() {
     try {
       console.log('Cargando cuentas...');
       const response = await clienteAxios.get('/cuentas');
+      console.log('Respuesta completa de cuentas:', response);
       console.log('Cuentas recibidas:', response.data);
-      const cuentasData = response.data.docs || [];
+      
+      if (!response.data || !Array.isArray(response.data.docs)) {
+        console.error('Formato de respuesta inválido para cuentas:', response.data);
+        enqueueSnackbar('Error en el formato de datos de cuentas', { variant: 'error' });
+        return [];
+      }
+
+      const cuentasData = response.data.docs.map(cuenta => ({
+        ...cuenta,
+        _id: cuenta._id || cuenta.id, // Aseguramos tener _id
+        nombre: cuenta.nombre || 'Sin nombre' // Valor por defecto
+      }));
+
+      console.log('Cuentas procesadas:', cuentasData);
       setCuentas(cuentasData);
       return cuentasData;
     } catch (error) {
       console.error('Error al cargar cuentas:', error);
+      console.error('Detalles del error:', error.response?.data);
       enqueueSnackbar('Error al cargar cuentas', { variant: 'error' });
       return [];
     }
@@ -134,26 +168,55 @@ export function Transacciones() {
 
   const handleFormSubmit = useCallback(async (formData) => {
     try {
-      console.log('Datos originales:', formData);
+      console.log('Datos del formulario recibidos:', formData);
       
+      // Verificar autenticación
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No hay sesión activa. Por favor, inicia sesión nuevamente.');
+      }
+
+      // Validar que la cuenta exista
+      const cuentaSeleccionada = cuentas.find(c => c._id === formData.cuentaId);
+      if (!cuentaSeleccionada) {
+        console.log('Cuentas disponibles:', cuentas);
+        console.log('ID de cuenta buscado:', formData.cuentaId);
+        throw new Error('La cuenta seleccionada no existe');
+      }
+
+      // Validar que la moneda exista
+      const monedaSeleccionada = monedas.find(m => m._id === formData.monedaId);
+      if (!monedaSeleccionada) {
+        console.log('Monedas disponibles:', monedas);
+        console.log('ID de moneda buscado:', formData.monedaId);
+        throw new Error('La moneda seleccionada no existe');
+      }
+
       const datosAEnviar = {
         descripcion: formData.descripcion,
         monto: parseFloat(formData.monto),
         fecha: formData.fecha || new Date().toISOString().split('T')[0],
         categoria: formData.categoria,
-        estado: formData.estado,
-        moneda: formData.monedaId,
-        cuenta: formData.cuentaId,
+        estado: formData.estado || 'PENDIENTE',
+        moneda: monedaSeleccionada._id,
+        cuenta: cuentaSeleccionada._id,
         tipo: formData.tipo || 'INGRESO'
       };
 
       console.log('Datos procesados a enviar:', datosAEnviar);
+      console.log('URL de la API:', clienteAxios.defaults.baseURL);
+      console.log('Headers de la petición:', {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      });
 
       let response;
       if (editingTransaccion) {
-        response = await clienteAxios.put(`/transacciones/${editingTransaccion.id}`, datosAEnviar);
+        console.log('Actualizando transacción:', editingTransaccion._id);
+        response = await clienteAxios.put(`/transacciones/${editingTransaccion._id}`, datosAEnviar);
         enqueueSnackbar('Transacción actualizada exitosamente', { variant: 'success' });
       } else {
+        console.log('Creando nueva transacción');
         response = await clienteAxios.post('/transacciones', datosAEnviar);
         enqueueSnackbar('Transacción creada exitosamente', { variant: 'success' });
       }
@@ -165,11 +228,24 @@ export function Transacciones() {
       setFormKey(prev => prev + 1);
       await fetchTransacciones();
     } catch (error) {
-      console.error('Error completo:', error.response?.data || error);
-      const mensajeError = error.response?.data?.error || 'Error al guardar la transacción';
+      console.error('Error completo:', error);
+      console.error('Detalles del error:', error.response?.data);
+      
+      // Manejar error de autenticación
+      if (error.response?.status === 401) {
+        enqueueSnackbar('Sesión expirada. Por favor, inicia sesión nuevamente.', { 
+          variant: 'error',
+          autoHideDuration: 5000
+        });
+        // Redirigir al login
+        window.location.href = '/login';
+        return;
+      }
+      
+      const mensajeError = error.response?.data?.message || error.message || 'Error al guardar la transacción';
       enqueueSnackbar(mensajeError, { variant: 'error' });
     }
-  }, [enqueueSnackbar, fetchTransacciones, editingTransaccion]);
+  }, [enqueueSnackbar, fetchTransacciones, editingTransaccion, cuentas, monedas]);
 
   const handleEdit = useCallback(async (transaccion) => {
     try {
@@ -268,10 +344,13 @@ export function Transacciones() {
       label: 'Moneda',
       type: 'relational',
       required: true,
-      options: monedas.map(m => ({
-        value: m.id || m._id,
-        label: `${m.nombre} (${m.simbolo})`
-      })),
+      options: monedas.map(m => {
+        console.log('Procesando moneda para opciones:', m);
+        return {
+          value: m._id,
+          label: `${m.nombre || 'Sin nombre'} (${m.simbolo || '$'})`
+        };
+      }),
       onCreateNew: handleCreateMoneda,
       createFields: [
         { name: 'codigo', label: 'Código', required: true },
@@ -285,10 +364,13 @@ export function Transacciones() {
       label: 'Cuenta',
       type: 'relational',
       required: true,
-      options: cuentas.map(c => ({
-        value: c.id || c._id,
-        label: c.nombre
-      })),
+      options: cuentas.map(c => {
+        console.log('Procesando cuenta para opciones:', c);
+        return {
+          value: c._id,
+          label: c.nombre || 'Sin nombre'
+        };
+      }),
       onCreateNew: handleCreateCuenta,
       createFields: [
         { name: 'nombre', label: 'Nombre', required: true },
@@ -298,16 +380,9 @@ export function Transacciones() {
           type: 'relational',
           required: true,
           options: monedas.map(m => ({
-            value: m.id || m._id,
-            label: `${m.nombre} (${m.simbolo})`
-          })),
-          onCreateNew: handleCreateMoneda,
-          createFields: [
-            { name: 'codigo', label: 'Código', required: true },
-            { name: 'nombre', label: 'Nombre', required: true },
-            { name: 'simbolo', label: 'Símbolo', required: true }
-          ],
-          createTitle: 'Nueva Moneda'
+            value: m._id,
+            label: `${m.nombre || 'Sin nombre'} (${m.simbolo || '$'})`
+          }))
         },
         { 
           name: 'tipo', 
@@ -432,3 +507,4 @@ export function Transacciones() {
 }
 
 export default Transacciones;
+
