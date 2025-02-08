@@ -1,47 +1,38 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Container, 
-  Button, 
-  Box, 
-  Typography,
+  Button,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper
+  Paper,
+  Chip,
+  Avatar
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
-import EntityToolbar from '../components/EntityToolbar';
-import EntityDetails from '../components/EntityViews/EntityDetails';
-import EntityForm from '../components/EntityViews/EntityForm';
-import { useSnackbar } from 'notistack';
-import clienteAxios from '../config/axios';
 import { 
   ApartmentOutlined as BuildingIcon,
   BedOutlined as BedIcon,
   DescriptionOutlined as DescriptionIcon,
   Inventory2Outlined as InventoryIcon
 } from '@mui/icons-material';
+import EntityToolbar from '../components/EntityToolbar';
+import EntityDetails from '../components/EntityViews/EntityDetails';
+import EntityForm from '../components/EntityViews/EntityForm';
+import { useSnackbar } from 'notistack';
+import clienteAxios from '../config/axios';
 import EmptyState from '../components/EmptyState';
+import { EntityActions } from '../components/EntityViews/EntityActions';
 
 export function Inquilinos() {
   const [inquilinos, setInquilinos] = useState([]);
-  const [propiedades, setPropiedades] = useState([]);
-  const [contratos, setContratos] = useState([]);
-  const [monedas, setMonedas] = useState([]);
-  const [formData, setFormData] = useState({});
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingInquilino, setEditingInquilino] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
 
-  // Efecto para cargar datos iniciales
-  useEffect(() => {
-    fetchInquilinos();
-    fetchRelatedData();
-  }, []);
-
-  // Función para cargar inquilinos
   const fetchInquilinos = useCallback(async () => {
     try {
       const response = await clienteAxios.get('/inquilinos');
@@ -52,66 +43,48 @@ export function Inquilinos() {
     }
   }, [enqueueSnackbar]);
 
-  // Función para cargar datos relacionados
-  const fetchRelatedData = useCallback(async () => {
-    try {
-      const [propiedadesRes, contratosRes, monedasRes] = await Promise.all([
-        clienteAxios.get('/propiedades'),
-        clienteAxios.get('/contratos'),
-        clienteAxios.get('/monedas')
-      ]);
-      setPropiedades(propiedadesRes.data.docs || []);
-      setContratos(contratosRes.data.docs || []);
-      setMonedas(monedasRes.data.docs || []);
-    } catch (error) {
-      console.error('Error al cargar datos relacionados:', error);
-      enqueueSnackbar('Error al cargar datos relacionados', { variant: 'error' });
-    }
-  }, [enqueueSnackbar]);
+  useEffect(() => {
+    fetchInquilinos();
+  }, [fetchInquilinos]);
 
-  // Función para crear una nueva propiedad
-  const handleCreatePropiedad = useCallback(async (formData) => {
+  const handleFormSubmit = async (formData) => {
     try {
-      const response = await clienteAxios.post('/propiedades', formData);
-      setPropiedades(prev => [...prev, response.data]);
-      return response.data;
-    } catch (error) {
-      console.error('Error al crear propiedad:', error);
-      throw error;
-    }
-  }, []);
-
-  // Función para crear un nuevo contrato
-  const handleCreateContrato = useCallback(async (data) => {
-    try {
-      const response = await clienteAxios.post('/contratos', {
-        ...data,
-        propiedadId: formData.propiedadId
-      });
-      setContratos(prev => [...prev, response.data]);
-      return response.data;
-    } catch (error) {
-      console.error('Error al crear contrato:', error);
-      throw error;
-    }
-  }, [formData.propiedadId]);
-
-  // Función para manejar el envío del formulario
-  const handleFormSubmit = useCallback(async (formData) => {
-    try {
-      const response = await clienteAxios.post('/inquilinos', formData);
-      if (response.status === 201) {
+      let response;
+      if (editingInquilino) {
+        response = await clienteAxios.put(`/inquilinos/${editingInquilino.id}`, formData);
+        enqueueSnackbar('Inquilino actualizado exitosamente', { variant: 'success' });
+      } else {
+        response = await clienteAxios.post('/inquilinos', formData);
         enqueueSnackbar('Inquilino creado exitosamente', { variant: 'success' });
-        setIsFormOpen(false);
-        fetchInquilinos();
       }
+      setIsFormOpen(false);
+      setEditingInquilino(null);
+      await fetchInquilinos();
     } catch (error) {
       console.error('Error:', error);
-      enqueueSnackbar(error.response?.data?.error || 'Error al crear inquilino', { variant: 'error' });
+      enqueueSnackbar(
+        error.response?.data?.error || 'Error al guardar el inquilino', 
+        { variant: 'error' }
+      );
+    }
+  };
+
+  const handleEdit = useCallback((inquilino) => {
+    setEditingInquilino(inquilino);
+    setIsFormOpen(true);
+  }, []);
+
+  const handleDelete = useCallback(async (id) => {
+    try {
+      await clienteAxios.delete(`/inquilinos/${id}`);
+      enqueueSnackbar('Inquilino eliminado exitosamente', { variant: 'success' });
+      await fetchInquilinos();
+    } catch (error) {
+      console.error('Error al eliminar inquilino:', error);
+      enqueueSnackbar('Error al eliminar el inquilino', { variant: 'error' });
     }
   }, [enqueueSnackbar, fetchInquilinos]);
 
-  // Configuración de campos del formulario
   const formFields = [
     {
       name: 'nombre',
@@ -121,11 +94,6 @@ export function Inquilinos() {
     {
       name: 'apellido',
       label: 'Apellido',
-      required: true
-    },
-    {
-      name: 'dni',
-      label: 'DNI',
       required: true
     },
     {
@@ -140,55 +108,28 @@ export function Inquilinos() {
       required: true
     },
     {
-      name: 'propiedadId',
-      label: 'Propiedad',
-      type: 'relational',
-      required: true,
-      options: propiedades.map(p => ({
-        value: p.id,
-        label: p.titulo
-      })),
-      onChange: async (value) => {
-        setFormData(prev => ({ ...prev, propiedadId: value }));
-      },
-      onCreateNew: handleCreatePropiedad,
-      createButtonText: 'Crear Nueva Propiedad',
-      createTitle: 'Nueva Propiedad',
-      createFields: [
-        { name: 'titulo', label: 'Título', required: true },
-        { name: 'descripcion', label: 'Descripción', multiline: true, rows: 3 },
-        { name: 'direccion', label: 'Dirección', required: true },
-        { name: 'ciudad', label: 'Ciudad', required: true },
-        { name: 'estado', label: 'Estado', required: true }
-      ]
+      name: 'dni',
+      label: 'DNI/Pasaporte',
+      required: true
     },
     {
-      name: 'contratoId',
-      label: 'Contrato',
-      type: 'relational',
+      name: 'nacionalidad',
+      label: 'Nacionalidad',
+      required: true
+    },
+    {
+      name: 'ocupacion',
+      label: 'Ocupación'
+    },
+    {
+      name: 'estado',
+      label: 'Estado',
+      type: 'select',
       required: true,
-      options: contratos.filter(c => c.propiedadId === formData.propiedadId).map(c => ({
-        value: c.id,
-        label: `Contrato ${c.fechaInicio} - ${c.fechaFin}`
-      })),
-      disabled: !formData.propiedadId,
-      onCreateNew: handleCreateContrato,
-      createButtonText: 'Crear Nuevo Contrato',
-      createTitle: 'Nuevo Contrato',
-      createFields: [
-        { name: 'fechaInicio', label: 'Fecha de Inicio', type: 'date', required: true },
-        { name: 'fechaFin', label: 'Fecha de Fin', type: 'date', required: true },
-        { name: 'montoAlquiler', label: 'Monto del Alquiler', type: 'number', required: true },
-        { 
-          name: 'monedaId', 
-          label: 'Moneda',
-          type: 'select',
-          required: true,
-          options: monedas.map(m => ({
-            value: m.id,
-            label: `${m.nombre} (${m.simbolo})`
-          }))
-        }
+      options: [
+        { value: 'ACTIVO', label: 'Activo' },
+        { value: 'INACTIVO', label: 'Inactivo' },
+        { value: 'PENDIENTE', label: 'Pendiente' }
       ]
     }
   ];
@@ -196,7 +137,10 @@ export function Inquilinos() {
   return (
     <Container maxWidth="lg">
       <EntityToolbar
-        onAdd={() => setIsFormOpen(true)}
+        onAdd={() => {
+          setEditingInquilino(null);
+          setIsFormOpen(true);
+        }}
         searchPlaceholder="Buscar inquilinos..."
         navigationItems={[
           {
@@ -229,7 +173,10 @@ export function Inquilinos() {
             variant="contained" 
             startIcon={<AddIcon />} 
             size="small"
-            onClick={() => setIsFormOpen(true)}
+            onClick={() => {
+              setEditingInquilino(null);
+              setIsFormOpen(true);
+            }}
           >
             Nuevo Inquilino
           </Button>
@@ -242,19 +189,46 @@ export function Inquilinos() {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Nombre</TableCell>
-                  <TableCell>DNI</TableCell>
+                  <TableCell>Inquilino</TableCell>
                   <TableCell>Email</TableCell>
                   <TableCell>Teléfono</TableCell>
+                  <TableCell>DNI/Pasaporte</TableCell>
+                  <TableCell>Estado</TableCell>
+                  <TableCell align="right">Acciones</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {inquilinos.map((inquilino) => (
                   <TableRow key={inquilino.id}>
-                    <TableCell>{`${inquilino.nombre} ${inquilino.apellido}`}</TableCell>
-                    <TableCell>{inquilino.dni}</TableCell>
+                    <TableCell>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Avatar>
+                          {inquilino.nombre?.charAt(0) || ''}
+                          {inquilino.apellido?.charAt(0) || ''}
+                        </Avatar>
+                        {inquilino.nombre} {inquilino.apellido}
+                      </div>
+                    </TableCell>
                     <TableCell>{inquilino.email}</TableCell>
                     <TableCell>{inquilino.telefono}</TableCell>
+                    <TableCell>{inquilino.dni}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={inquilino.estado}
+                        color={
+                          inquilino.estado === 'ACTIVO' ? 'success' :
+                          inquilino.estado === 'INACTIVO' ? 'error' : 'warning'
+                        }
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <EntityActions
+                        onEdit={() => handleEdit(inquilino)}
+                        onDelete={() => handleDelete(inquilino.id)}
+                        itemName={`el inquilino ${inquilino.nombre} ${inquilino.apellido}`}
+                      />
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -265,10 +239,15 @@ export function Inquilinos() {
 
       <EntityForm
         open={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
+        onClose={() => {
+          setIsFormOpen(false);
+          setEditingInquilino(null);
+        }}
         onSubmit={handleFormSubmit}
-        title="Nuevo Inquilino"
+        title={editingInquilino ? 'Editar Inquilino' : 'Nuevo Inquilino'}
         fields={formFields}
+        initialData={editingInquilino || {}}
+        isEditing={!!editingInquilino}
       />
     </Container>
   );

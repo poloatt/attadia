@@ -32,6 +32,7 @@ import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import EntityCards from '../components/EntityViews/EntityCards';
 import EmptyState from '../components/EmptyState';
+import { EntityActions } from '../components/EntityViews/EntityActions';
 
 // Cambiamos a exportación nombrada para coincidir con App.jsx
 export function Propiedades() {
@@ -64,6 +65,7 @@ export function Propiedades() {
   const [monedas, setMonedas] = useState([]);
   const [cuentas, setCuentas] = useState([]);
   const [loadingRelated, setLoadingRelated] = useState(true);
+  const [editingPropiedad, setEditingPropiedad] = useState(null);
 
   // Función para cargar propiedades
   const fetchPropiedades = useCallback(async () => {
@@ -110,7 +112,7 @@ export function Propiedades() {
     fetchRelatedData();
   }, [fetchPropiedades, fetchRelatedData]);
 
-  const handleDelete = async (id) => {
+  const handleDelete = useCallback(async (id) => {
     try {
       await clienteAxios.delete(`/propiedades/${id}`);
       enqueueSnackbar('Propiedad eliminada exitosamente', { variant: 'success' });
@@ -119,37 +121,42 @@ export function Propiedades() {
       console.error('Error al eliminar propiedad:', error);
       enqueueSnackbar('Error al eliminar la propiedad', { variant: 'error' });
     }
-  };
+  }, [enqueueSnackbar, fetchPropiedades]);
 
-  const handleEdit = (id) => {
-    const propiedad = propiedades.find(p => p.id === id);
-    if (propiedad) {
-      setFormData({
-        ...propiedad,
-        precio: propiedad.precio.toString(),
-        numHabitaciones: propiedad.numHabitaciones.toString(),
-        banos: propiedad.banos.toString(),
-        metrosCuadrados: propiedad.metrosCuadrados.toString(),
-        monedaId: propiedad.monedaId.toString(),
-        cuentaId: propiedad.cuentaId.toString()
-      });
-      setSelectedPropiedad(propiedad);
-      setIsFormOpen(true);
-    }
-  };
+  const handleEdit = useCallback((propiedad) => {
+    setFormData({
+      ...propiedad,
+      precio: propiedad.precio.toString(),
+      numHabitaciones: propiedad.numHabitaciones.toString(),
+      banos: propiedad.banos.toString(),
+      metrosCuadrados: propiedad.metrosCuadrados.toString(),
+      monedaId: propiedad.monedaId.toString(),
+      cuentaId: propiedad.cuentaId.toString()
+    });
+    setEditingPropiedad(propiedad);
+    setIsFormOpen(true);
+  }, []);
 
   const handleFormSubmit = async (formData) => {
     try {
       console.log('Enviando datos:', formData);
       
-      const response = await clienteAxios.post('/propiedades', formData);
-      setPropiedades(prev => [...prev, response.data]);
+      let response;
+      if (editingPropiedad) {
+        response = await clienteAxios.put(`/propiedades/${editingPropiedad.id}`, formData);
+        setPropiedades(prev => prev.map(p => p.id === editingPropiedad.id ? response.data : p));
+        enqueueSnackbar('Propiedad actualizada exitosamente', { variant: 'success' });
+      } else {
+        response = await clienteAxios.post('/propiedades', formData);
+        setPropiedades(prev => [...prev, response.data]);
+        enqueueSnackbar('Propiedad creada exitosamente', { variant: 'success' });
+      }
       setIsFormOpen(false);
-      enqueueSnackbar('Propiedad creada exitosamente', { variant: 'success' });
+      setEditingPropiedad(null);
       fetchPropiedades();
     } catch (error) {
       console.error('Error al crear propiedad:', error);
-      enqueueSnackbar('Error al crear la propiedad', { variant: 'error' });
+      enqueueSnackbar('Error al guardar la propiedad', { variant: 'error' });
     }
   };
 
@@ -333,7 +340,25 @@ export function Propiedades() {
   return (
     <Container maxWidth="lg">
       <EntityToolbar
-        onAdd={() => setIsFormOpen(true)}
+        onAdd={() => {
+          setEditingPropiedad(null);
+          setFormData({
+            titulo: '',
+            descripcion: '',
+            precio: '',
+            direccion: '',
+            ciudad: '',
+            estado: '',
+            tipo: 'CASA',
+            numHabitaciones: '',
+            banos: '',
+            metrosCuadrados: '',
+            imagen: '',
+            monedaId: '',
+            cuentaId: ''
+          });
+          setIsFormOpen(true);
+        }}
         searchPlaceholder="Buscar propiedades..."
         navigationItems={[
           {
@@ -366,7 +391,25 @@ export function Propiedades() {
             variant="contained" 
             startIcon={<AddIcon />} 
             size="small"
-            onClick={() => setIsFormOpen(true)}
+            onClick={() => {
+              setEditingPropiedad(null);
+              setFormData({
+                titulo: '',
+                descripcion: '',
+                precio: '',
+                direccion: '',
+                ciudad: '',
+                estado: '',
+                tipo: 'CASA',
+                numHabitaciones: '',
+                banos: '',
+                metrosCuadrados: '',
+                imagen: '',
+                monedaId: '',
+                cuentaId: ''
+              });
+              setIsFormOpen(true);
+            }}
           >
             Nueva Propiedad
           </Button>
@@ -380,6 +423,13 @@ export function Propiedades() {
             cardConfig={cardConfig}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            actions={(item) => (
+              <EntityActions
+                onEdit={() => handleEdit(item)}
+                onDelete={() => handleDelete(item.id)}
+                itemName={`la propiedad ${item.titulo}`}
+              />
+            )}
           />
         )}
       </EntityDetails>
@@ -388,7 +438,7 @@ export function Propiedades() {
         open={isFormOpen}
         onClose={() => {
           setIsFormOpen(false);
-          setSelectedPropiedad(null);
+          setEditingPropiedad(null);
           setFormData({
             titulo: '',
             descripcion: '',
@@ -407,9 +457,10 @@ export function Propiedades() {
         }}
         onSubmit={handleFormSubmit}
         entity={formData}
-        title={selectedPropiedad ? 'Editar Propiedad' : 'Nueva Propiedad'}
+        title={editingPropiedad ? 'Editar Propiedad' : 'Nueva Propiedad'}
         fields={formFields}
-        initialData={formData}
+        initialData={editingPropiedad || {}}
+        isEditing={!!editingPropiedad}
       />
     </Container>
   );

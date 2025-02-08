@@ -1,147 +1,220 @@
-import React, { useState, useEffect } from 'react';
-import { Container } from '@mui/material';
-import EntityToolbar from '../components/EntityToolbar';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
+  Container, 
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Chip
+} from '@mui/material';
+import EntityToolbar from '../components/EntityToolbar';
+import EntityDetails from '../components/EntityViews/EntityDetails';
+import EntityForm from '../components/EntityViews/EntityForm';
+import AddIcon from '@mui/icons-material/Add';
+import { 
+  ScienceOutlined as LabIcon,
   RestaurantOutlined as DietaIcon,
   TaskAltOutlined as RutinasIcon
 } from '@mui/icons-material';
-import { 
-  Button, Table, TableBody, TableCell, TableContainer, 
-  TableHead, TableRow, Paper, Dialog, DialogTitle,
-  DialogContent, DialogActions, TextField, MenuItem
-} from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import EntityDetails from '../components/EntityViews/EntityDetails';
 import clienteAxios from '../config/axios';
+import { useSnackbar } from 'notistack';
 import EmptyState from '../components/EmptyState';
+import { EntityActions } from '../components/EntityViews/EntityActions';
 
-export default function Lab() {
-  const [resultados, setResultados] = useState([]);
-  const [openDialog, setOpenDialog] = useState(false);
-  const [nuevoResultado, setNuevoResultado] = useState({
-    tipo: '',
-    valor: '',
-    unidad: '',
-    notas: ''
-  });
+export function Lab() {
+  const [mediciones, setMediciones] = useState([]);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingMedicion, setEditingMedicion] = useState(null);
+  const { enqueueSnackbar } = useSnackbar();
+
+  const fetchMediciones = useCallback(async () => {
+    try {
+      const response = await clienteAxios.get('/mediciones');
+      setMediciones(response.data.docs || []);
+    } catch (error) {
+      console.error('Error al cargar mediciones:', error);
+      enqueueSnackbar('Error al cargar mediciones', { variant: 'error' });
+    }
+  }, [enqueueSnackbar]);
 
   useEffect(() => {
-    fetchResultados();
+    fetchMediciones();
+  }, [fetchMediciones]);
+
+  const handleFormSubmit = async (formData) => {
+    try {
+      let response;
+      if (editingMedicion) {
+        response = await clienteAxios.put(`/mediciones/${editingMedicion.id}`, formData);
+        enqueueSnackbar('Medición actualizada exitosamente', { variant: 'success' });
+      } else {
+        response = await clienteAxios.post('/mediciones', formData);
+        enqueueSnackbar('Medición creada exitosamente', { variant: 'success' });
+      }
+      setIsFormOpen(false);
+      setEditingMedicion(null);
+      await fetchMediciones();
+    } catch (error) {
+      console.error('Error:', error);
+      enqueueSnackbar(
+        error.response?.data?.error || 'Error al guardar la medición', 
+        { variant: 'error' }
+      );
+    }
+  };
+
+  const handleEdit = useCallback((medicion) => {
+    setEditingMedicion(medicion);
+    setIsFormOpen(true);
   }, []);
 
-  const fetchResultados = async () => {
+  const handleDelete = useCallback(async (id) => {
     try {
-      const response = await clienteAxios.get('/labs');
-      setResultados(response.data.docs || []);
+      await clienteAxios.delete(`/mediciones/${id}`);
+      enqueueSnackbar('Medición eliminada exitosamente', { variant: 'success' });
+      await fetchMediciones();
     } catch (error) {
-      console.error('Error al cargar resultados:', error);
-      setResultados([]);
+      console.error('Error al eliminar medición:', error);
+      enqueueSnackbar('Error al eliminar la medición', { variant: 'error' });
     }
-  };
+  }, [enqueueSnackbar, fetchMediciones]);
 
-  const handleOpenDialog = () => {
-    setOpenDialog(true);
-  };
-
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-    setNuevoResultado({
-      tipo: '',
-      valor: '',
-      unidad: '',
-      notas: ''
-    });
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNuevoResultado(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = async () => {
-    try {
-      await clienteAxios.post('/labs', nuevoResultado);
-      handleCloseDialog();
-      fetchResultados();
-    } catch (error) {
-      console.error('Error al crear resultado:', error);
+  const formFields = [
+    {
+      name: 'peso',
+      label: 'Peso (kg)',
+      type: 'number',
+      required: true
+    },
+    {
+      name: 'musculo',
+      label: 'Músculo (%)',
+      type: 'number',
+      required: true
+    },
+    {
+      name: 'grasa',
+      label: 'Grasa (%)',
+      type: 'number',
+      required: true
+    },
+    {
+      name: 'agua',
+      label: 'Agua (%)',
+      type: 'number',
+      required: true
+    },
+    {
+      name: 'hueso',
+      label: 'Hueso (%)',
+      type: 'number',
+      required: true
+    },
+    {
+      name: 'metabolismo',
+      label: 'Metabolismo (kcal)',
+      type: 'number',
+      required: true
+    },
+    {
+      name: 'proteina',
+      label: 'Proteína (%)',
+      type: 'number',
+      required: true
+    },
+    {
+      name: 'obesidad',
+      label: 'Obesidad (%)',
+      type: 'number',
+      required: true
     }
-  };
-
-  const tiposLab = [
-    'Glucosa',
-    'Colesterol',
-    'Triglicéridos',
-    'HDL',
-    'LDL',
-    'Hemoglobina',
-    'Otro'
-  ];
-
-  const unidadesLab = [
-    'mg/dL',
-    'g/dL',
-    'mmol/L',
-    '%',
-    'U/L',
-    'Otro'
   ];
 
   return (
     <Container maxWidth="lg">
       <EntityToolbar
-        onAdd={handleOpenDialog}
+        onAdd={() => {
+          setEditingMedicion(null);
+          setIsFormOpen(true);
+        }}
         navigationItems={[
-          {
-            icon: <DietaIcon sx={{ fontSize: 20 }} />,
-            label: 'Dieta',
-            to: '/dieta'
-          },
           {
             icon: <RutinasIcon sx={{ fontSize: 20 }} />,
             label: 'Rutinas',
             to: '/rutinas'
+          },
+          {
+            icon: <DietaIcon sx={{ fontSize: 20 }} />,
+            label: 'Dieta',
+            to: '/dieta'
           }
         ]}
       />
-      <EntityDetails 
-        title="Laboratorio"
+
+      <EntityDetails
+        title="Mediciones"
         action={
           <Button 
             variant="contained" 
             startIcon={<AddIcon />} 
             size="small"
-            onClick={handleOpenDialog}
+            onClick={() => {
+              setEditingMedicion(null);
+              setIsFormOpen(true);
+            }}
           >
-            Nuevo Resultado
+            Nueva Medición
           </Button>
         }
       >
-        {resultados.length === 0 ? (
-          <EmptyState onAdd={handleOpenDialog} />
+        {mediciones.length === 0 ? (
+          <EmptyState onAdd={() => setIsFormOpen(true)} />
         ) : (
           <TableContainer component={Paper} elevation={0}>
             <Table size="small">
               <TableHead>
                 <TableRow>
                   <TableCell>Fecha</TableCell>
-                  <TableCell>Tipo</TableCell>
-                  <TableCell align="right">Valor</TableCell>
-                  <TableCell>Unidad</TableCell>
-                  <TableCell>Notas</TableCell>
+                  <TableCell align="right">Peso</TableCell>
+                  <TableCell align="right">Músculo</TableCell>
+                  <TableCell align="right">Grasa</TableCell>
+                  <TableCell align="right">Agua</TableCell>
+                  <TableCell align="right">IMC</TableCell>
+                  <TableCell align="right">Acciones</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {resultados.map((result) => (
-                  <TableRow key={result.id}>
-                    <TableCell>{new Date(result.fecha).toLocaleDateString()}</TableCell>
-                    <TableCell>{result.tipo}</TableCell>
-                    <TableCell align="right">{result.valor.toFixed(2)}</TableCell>
-                    <TableCell>{result.unidad}</TableCell>
-                    <TableCell>{result.notas}</TableCell>
+                {mediciones.map((medicion) => (
+                  <TableRow key={medicion.id}>
+                    <TableCell>
+                      {new Date(medicion.fecha).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell align="right">{medicion.peso?.toFixed(1)} kg</TableCell>
+                    <TableCell align="right">{medicion.musculo?.toFixed(1)}%</TableCell>
+                    <TableCell align="right">{medicion.grasa?.toFixed(1)}%</TableCell>
+                    <TableCell align="right">{medicion.agua?.toFixed(1)}%</TableCell>
+                    <TableCell align="right">
+                      <Chip 
+                        label={medicion.imc?.toFixed(1)}
+                        color={
+                          medicion.imc < 18.5 ? 'warning' :
+                          medicion.imc < 25 ? 'success' :
+                          medicion.imc < 30 ? 'warning' : 'error'
+                        }
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <EntityActions
+                        onEdit={() => handleEdit(medicion)}
+                        onDelete={() => handleDelete(medicion.id)}
+                        itemName={`la medición del ${new Date(medicion.fecha).toLocaleDateString()}`}
+                      />
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -150,66 +223,20 @@ export default function Lab() {
         )}
       </EntityDetails>
 
-      <Dialog open={openDialog} onClose={handleCloseDialog}>
-        <DialogTitle>Nuevo Resultado de Laboratorio</DialogTitle>
-        <DialogContent>
-          <TextField
-            select
-            fullWidth
-            margin="normal"
-            label="Tipo"
-            name="tipo"
-            value={nuevoResultado.tipo}
-            onChange={handleInputChange}
-          >
-            {tiposLab.map((tipo) => (
-              <MenuItem key={tipo} value={tipo}>
-                {tipo}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Valor"
-            name="valor"
-            type="number"
-            value={nuevoResultado.valor}
-            onChange={handleInputChange}
-          />
-          <TextField
-            select
-            fullWidth
-            margin="normal"
-            label="Unidad"
-            name="unidad"
-            value={nuevoResultado.unidad}
-            onChange={handleInputChange}
-          >
-            {unidadesLab.map((unidad) => (
-              <MenuItem key={unidad} value={unidad}>
-                {unidad}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Notas"
-            name="notas"
-            multiline
-            rows={3}
-            value={nuevoResultado.notas}
-            onChange={handleInputChange}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancelar</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            Guardar
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <EntityForm
+        open={isFormOpen}
+        onClose={() => {
+          setIsFormOpen(false);
+          setEditingMedicion(null);
+        }}
+        onSubmit={handleFormSubmit}
+        title={editingMedicion ? 'Editar Medición' : 'Nueva Medición'}
+        fields={formFields}
+        initialData={editingMedicion || {}}
+        isEditing={!!editingMedicion}
+      />
     </Container>
   );
 }
+
+export default Lab;

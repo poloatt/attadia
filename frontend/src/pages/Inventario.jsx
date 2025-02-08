@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Container, 
   Button, 
@@ -25,6 +25,7 @@ import {
   DescriptionOutlined as DescriptionIcon
 } from '@mui/icons-material';
 import EmptyState from '../components/EmptyState';
+import { EntityActions } from '../components/EntityViews/EntityActions';
 
 export function Inventario() {
   const [items, setItems] = useState([]);
@@ -35,6 +36,7 @@ export function Inventario() {
   const [propiedades, setPropiedades] = useState([]);
   const [habitacionesDisponibles, setHabitacionesDisponibles] = useState([]);
   const [formData, setFormData] = useState({});
+  const [editingItem, setEditingItem] = useState(null);
 
   useEffect(() => {
     fetchInventario();
@@ -86,17 +88,38 @@ export function Inventario() {
 
   const handleFormSubmit = async (formData) => {
     try {
-      const response = await clienteAxios.post('/inventarios', formData);
-      if (response.status === 201) {
+      let response;
+      if (editingItem) {
+        response = await clienteAxios.put(`/inventarios/${editingItem.id}`, formData);
+        enqueueSnackbar('Item actualizado exitosamente', { variant: 'success' });
+      } else {
+        response = await clienteAxios.post('/inventarios', formData);
         enqueueSnackbar('Item agregado exitosamente', { variant: 'success' });
-        setIsFormOpen(false);
-        fetchInventario();
       }
+      setIsFormOpen(false);
+      setEditingItem(null);
+      fetchInventario();
     } catch (error) {
       console.error('Error:', error);
-      enqueueSnackbar(error.response?.data?.error || 'Error al crear item', { variant: 'error' });
+      enqueueSnackbar(error.response?.data?.error || 'Error al guardar item', { variant: 'error' });
     }
   };
+
+  const handleEdit = useCallback((item) => {
+    setEditingItem(item);
+    setIsFormOpen(true);
+  }, []);
+
+  const handleDelete = useCallback(async (id) => {
+    try {
+      await clienteAxios.delete(`/inventarios/${id}`);
+      enqueueSnackbar('Item eliminado exitosamente', { variant: 'success' });
+      await fetchInventario();
+    } catch (error) {
+      console.error('Error al eliminar item:', error);
+      enqueueSnackbar('Error al eliminar el item', { variant: 'error' });
+    }
+  }, [enqueueSnackbar, fetchInventario]);
 
   const formFields = [
     {
@@ -161,7 +184,10 @@ export function Inventario() {
   return (
     <Container maxWidth="lg">
       <EntityToolbar
-        onAdd={() => setIsFormOpen(true)}
+        onAdd={() => {
+          setEditingItem(null);
+          setIsFormOpen(true);
+        }}
         searchPlaceholder="Buscar items..."
         navigationItems={[
           {
@@ -194,7 +220,10 @@ export function Inventario() {
             variant="contained" 
             startIcon={<AddIcon />} 
             size="small"
-            onClick={() => setIsFormOpen(true)}
+            onClick={() => {
+              setEditingItem(null);
+              setIsFormOpen(true);
+            }}
           >
             Nuevo Item
           </Button>
@@ -211,6 +240,7 @@ export function Inventario() {
                   <TableCell>Descripción</TableCell>
                   <TableCell align="right">Cantidad</TableCell>
                   <TableCell>Estado</TableCell>
+                  <TableCell align="right">Acciones</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -220,6 +250,13 @@ export function Inventario() {
                     <TableCell>{item.descripcion}</TableCell>
                     <TableCell align="right">{item.cantidad}</TableCell>
                     <TableCell>{item.estado}</TableCell>
+                    <TableCell align="right">
+                      <EntityActions
+                        onEdit={() => handleEdit(item)}
+                        onDelete={() => handleDelete(item.id)}
+                        itemName={`el item ${item.nombre}`}
+                      />
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -230,10 +267,15 @@ export function Inventario() {
 
       <EntityForm
         open={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
+        onClose={() => {
+          setIsFormOpen(false);
+          setEditingItem(null);
+        }}
         onSubmit={handleFormSubmit}
-        title="Nuevo Item"
+        title={editingItem ? 'Editar Item' : 'Nuevo Item'}
         fields={formFields}
+        initialData={editingItem || {}}
+        isEditing={!!editingItem}
       />
     </Container>
   );

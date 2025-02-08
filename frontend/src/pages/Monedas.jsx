@@ -24,10 +24,12 @@ import { useSnackbar } from 'notistack';
 import EntityTable from '../components/EntityViews/EntityTable';
 import EntityCards from '../components/EntityViews/EntityCards';
 import EmptyState from '../components/EmptyState';
+import { EntityActions } from '../components/EntityViews/EntityActions';
 
 export function Monedas() {
   const [monedas, setMonedas] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingMoneda, setEditingMoneda] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
 
   const fetchMonedas = useCallback(async () => {
@@ -46,16 +48,43 @@ export function Monedas() {
 
   const handleFormSubmit = useCallback(async (formData) => {
     try {
-      const response = await clienteAxios.post('/monedas', formData);
-      setMonedas(prev => [...prev, response.data]);
+      let response;
+      if (editingMoneda) {
+        response = await clienteAxios.put(`/monedas/${editingMoneda.id}`, formData);
+        setMonedas(prev => prev.map(m => m.id === editingMoneda.id ? response.data : m));
+        enqueueSnackbar('Moneda actualizada exitosamente', { variant: 'success' });
+      } else {
+        response = await clienteAxios.post('/monedas', formData);
+        setMonedas(prev => [...prev, response.data]);
+        enqueueSnackbar('Moneda creada exitosamente', { variant: 'success' });
+      }
       setIsFormOpen(false);
-      enqueueSnackbar('Moneda creada exitosamente', { variant: 'success' });
+      setEditingMoneda(null);
       await fetchMonedas();
     } catch (error) {
-      console.error('Error al crear moneda:', error);
-      enqueueSnackbar('Error al crear la moneda', { variant: 'error' });
+      console.error('Error:', error);
+      enqueueSnackbar(
+        error.response?.data?.error || 'Error al guardar la moneda', 
+        { variant: 'error' }
+      );
     }
-  }, [enqueueSnackbar, fetchMonedas]);
+  }, [enqueueSnackbar, editingMoneda, fetchMonedas]);
+
+  const handleEdit = useCallback((moneda) => {
+    setEditingMoneda(moneda);
+    setIsFormOpen(true);
+  }, []);
+
+  const handleDelete = useCallback(async (id) => {
+    try {
+      await clienteAxios.delete(`/monedas/${id}`);
+      setMonedas(prev => prev.filter(m => m.id !== id));
+      enqueueSnackbar('Moneda eliminada exitosamente', { variant: 'success' });
+    } catch (error) {
+      console.error('Error al eliminar moneda:', error);
+      enqueueSnackbar('Error al eliminar la moneda', { variant: 'error' });
+    }
+  }, [enqueueSnackbar]);
 
   const formFields = [
     {
@@ -81,7 +110,10 @@ export function Monedas() {
   return (
     <Container maxWidth="lg">
       <EntityToolbar
-        onAdd={() => setIsFormOpen(true)}
+        onAdd={() => {
+          setEditingMoneda(null);
+          setIsFormOpen(true);
+        }}
         entityName="moneda"
         navigationItems={[
           {
@@ -104,7 +136,10 @@ export function Monedas() {
             variant="contained" 
             startIcon={<AddIcon />} 
             size="small"
-            onClick={() => setIsFormOpen(true)}
+            onClick={() => {
+              setEditingMoneda(null);
+              setIsFormOpen(true);
+            }}
           >
             Nueva Moneda
           </Button>
@@ -121,6 +156,7 @@ export function Monedas() {
                   <TableCell>Nombre</TableCell>
                   <TableCell>Símbolo</TableCell>
                   <TableCell>Estado</TableCell>
+                  <TableCell align="right">Acciones</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -137,6 +173,13 @@ export function Monedas() {
                         variant="outlined"
                       />
                     </TableCell>
+                    <TableCell align="right">
+                      <EntityActions
+                        onEdit={() => handleEdit(moneda)}
+                        onDelete={() => handleDelete(moneda.id)}
+                        itemName={`la moneda ${moneda.nombre}`}
+                      />
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -147,10 +190,15 @@ export function Monedas() {
 
       <EntityForm
         open={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
+        onClose={() => {
+          setIsFormOpen(false);
+          setEditingMoneda(null);
+        }}
         onSubmit={handleFormSubmit}
-        title="Nueva Moneda"
+        title={editingMoneda ? 'Editar Moneda' : 'Nueva Moneda'}
         fields={formFields}
+        initialData={editingMoneda || {}}
+        isEditing={!!editingMoneda}
       />
     </Container>
   );

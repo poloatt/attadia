@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Container, Button, Table, TableBody, TableCell, 
   TableContainer, TableHead, TableRow, Paper, Chip,
   Box, Typography
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
+import { Add as AddIcon } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import EntityForm from '../components/EntityViews/EntityForm';
@@ -17,33 +17,26 @@ import {
   Inventory2Outlined as InventoryIcon
 } from '@mui/icons-material';
 import EmptyState from '../components/EmptyState';
+import { EntityActions } from '../components/EntityViews/EntityActions';
 
 export function Habitaciones() {
   const [habitaciones, setHabitaciones] = useState([]);
   const [propiedades, setPropiedades] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [editingHabitacion, setEditingHabitacion] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
 
-  // Cargar datos iniciales
-  useEffect(() => {
-    fetchHabitaciones();
-    fetchPropiedades();
-  }, []);
-
-  const fetchHabitaciones = async () => {
+  const fetchHabitaciones = useCallback(async () => {
     try {
       const response = await clienteAxios.get('/habitaciones');
       setHabitaciones(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar habitaciones:', error);
       enqueueSnackbar('Error al cargar habitaciones', { variant: 'error' });
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [enqueueSnackbar]);
 
-  const fetchPropiedades = async () => {
+  const fetchPropiedades = useCallback(async () => {
     try {
       const response = await clienteAxios.get('/propiedades');
       setPropiedades(response.data.docs || []);
@@ -51,53 +44,86 @@ export function Habitaciones() {
       console.error('Error al cargar propiedades:', error);
       enqueueSnackbar('Error al cargar propiedades', { variant: 'error' });
     }
+  }, [enqueueSnackbar]);
+
+  useEffect(() => {
+    fetchHabitaciones();
+    fetchPropiedades();
+  }, [fetchHabitaciones, fetchPropiedades]);
+
+  const handleCreatePropiedad = async (data) => {
+    try {
+      const response = await clienteAxios.post('/propiedades', data);
+      setPropiedades(prev => [...prev, response.data]);
+      enqueueSnackbar('Propiedad creada exitosamente', { variant: 'success' });
+      return response.data;
+    } catch (error) {
+      console.error('Error al crear propiedad:', error);
+      enqueueSnackbar('Error al crear la propiedad', { variant: 'error' });
+      throw error;
+    }
   };
 
   const handleFormSubmit = async (formData) => {
     try {
-      const datosAEnviar = {
-        numero: formData.numero,
-        tipo: formData.tipo,
-        estado: formData.estado,
-        descripcion: formData.descripcion,
-        propiedadId: parseInt(formData.propiedadId),
-        metrosCuadrados: parseFloat(formData.metrosCuadrados),
-        precio: parseFloat(formData.precio)
-      };
-
-      console.log('Enviando datos:', datosAEnviar);
-
-      const response = await clienteAxios.post('/habitaciones', datosAEnviar);
-      
-      if (response.status === 201) {
+      let response;
+      if (editingHabitacion) {
+        response = await clienteAxios.put(`/habitaciones/${editingHabitacion.id}`, formData);
+        enqueueSnackbar('Habitación actualizada exitosamente', { variant: 'success' });
+      } else {
+        response = await clienteAxios.post('/habitaciones', formData);
         enqueueSnackbar('Habitación creada exitosamente', { variant: 'success' });
-        setIsFormOpen(false);
-        fetchHabitaciones();
       }
+      setIsFormOpen(false);
+      setEditingHabitacion(null);
+      await fetchHabitaciones();
     } catch (error) {
       console.error('Error:', error);
       enqueueSnackbar(
-        error.response?.data?.error || 'Error al crear la habitación', 
+        error.response?.data?.error || 'Error al guardar la habitación', 
         { variant: 'error' }
       );
     }
   };
 
-  const handleCreatePropiedad = async (formData) => {
+  const handleEdit = useCallback((habitacion) => {
+    setEditingHabitacion(habitacion);
+    setIsFormOpen(true);
+  }, []);
+
+  const handleDelete = useCallback(async (id) => {
     try {
-      const response = await clienteAxios.post('/propiedades', formData);
-      await fetchPropiedades(); // Recargar las propiedades
-      return response.data;
+      await clienteAxios.delete(`/habitaciones/${id}`);
+      enqueueSnackbar('Habitación eliminada exitosamente', { variant: 'success' });
+      await fetchHabitaciones();
     } catch (error) {
-      throw error;
+      console.error('Error al eliminar habitación:', error);
+      enqueueSnackbar('Error al eliminar la habitación', { variant: 'error' });
     }
-  };
+  }, [enqueueSnackbar, fetchHabitaciones]);
 
   const formFields = [
     {
+      name: 'propiedadId',
+      label: 'Propiedad',
+      type: 'relational',
+      required: true,
+      options: propiedades.map(p => ({
+        value: p.id,
+        label: p.titulo
+      })),
+      onCreateNew: handleCreatePropiedad,
+      createFields: [
+        { name: 'titulo', label: 'Título', required: true },
+        { name: 'direccion', label: 'Dirección', required: true },
+        { name: 'ciudad', label: 'Ciudad', required: true },
+        { name: 'estado', label: 'Estado', required: true }
+      ],
+      createTitle: 'Nueva Propiedad'
+    },
+    {
       name: 'numero',
-      label: 'Número de Habitación',
-      type: 'text',
+      label: 'Número',
       required: true
     },
     {
@@ -109,39 +135,7 @@ export function Habitaciones() {
         { value: 'INDIVIDUAL', label: 'Individual' },
         { value: 'DOBLE', label: 'Doble' },
         { value: 'SUITE', label: 'Suite' },
-        { value: 'COMPARTIDA', label: 'Compartida' }
-      ]
-    },
-    {
-      name: 'propiedadId',
-      label: 'Propiedad',
-      type: 'relational',
-      required: true,
-      options: propiedades.map(prop => ({
-        value: prop.id,
-        label: `${prop.titulo} - ${prop.direccion}`
-      })),
-      onCreateNew: handleCreatePropiedad,
-      createButtonText: 'Crear Nueva Propiedad',
-      createTitle: 'Nueva Propiedad',
-      createFields: [
-        { name: 'titulo', label: 'Título', required: true },
-        { name: 'descripcion', label: 'Descripción', multiline: true, rows: 3 },
-        { name: 'direccion', label: 'Dirección', required: true },
-        { name: 'ciudad', label: 'Ciudad', required: true },
-        { name: 'estado', label: 'Estado', required: true },
-        { 
-          name: 'tipo', 
-          label: 'Tipo', 
-          type: 'select',
-          required: true,
-          options: [
-            { value: 'CASA', label: 'Casa' },
-            { value: 'DEPARTAMENTO', label: 'Departamento' },
-            { value: 'OFICINA', label: 'Oficina' },
-            { value: 'LOCAL', label: 'Local' }
-          ]
-        }
+        { value: 'ESTUDIO', label: 'Estudio' }
       ]
     },
     {
@@ -152,26 +146,19 @@ export function Habitaciones() {
       options: [
         { value: 'DISPONIBLE', label: 'Disponible' },
         { value: 'OCUPADA', label: 'Ocupada' },
-        { value: 'MANTENIMIENTO', label: 'En Mantenimiento' },
+        { value: 'MANTENIMIENTO', label: 'Mantenimiento' },
         { value: 'RESERVADA', label: 'Reservada' }
       ]
     },
     {
-      name: 'metrosCuadrados',
-      label: 'Metros Cuadrados',
-      type: 'number',
-      required: true
-    },
-    {
-      name: 'precio',
-      label: 'Precio',
+      name: 'capacidad',
+      label: 'Capacidad',
       type: 'number',
       required: true
     },
     {
       name: 'descripcion',
       label: 'Descripción',
-      type: 'text',
       multiline: true,
       rows: 3
     }
@@ -180,7 +167,10 @@ export function Habitaciones() {
   return (
     <Container maxWidth="lg">
       <EntityToolbar
-        onAdd={() => setIsFormOpen(true)}
+        onAdd={() => {
+          setEditingHabitacion(null);
+          setIsFormOpen(true);
+        }}
         searchPlaceholder="Buscar habitaciones..."
         navigationItems={[
           {
@@ -213,7 +203,10 @@ export function Habitaciones() {
             variant="contained" 
             startIcon={<AddIcon />} 
             size="small"
-            onClick={() => setIsFormOpen(true)}
+            onClick={() => {
+              setEditingHabitacion(null);
+              setIsFormOpen(true);
+            }}
           >
             Nueva Habitación
           </Button>
@@ -226,37 +219,47 @@ export function Habitaciones() {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Número</TableCell>
                   <TableCell>Propiedad</TableCell>
+                  <TableCell>Número</TableCell>
                   <TableCell>Tipo</TableCell>
+                  <TableCell>Capacidad</TableCell>
                   <TableCell>Estado</TableCell>
-                  <TableCell align="right">Metros²</TableCell>
-                  <TableCell align="right">Precio</TableCell>
-                  <TableCell>Descripción</TableCell>
+                  <TableCell align="right">Acciones</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {habitaciones.map((hab) => (
-                  <TableRow key={hab.id}>
-                    <TableCell>{hab.numero}</TableCell>
-                    <TableCell>{hab.propiedad?.titulo}</TableCell>
-                    <TableCell>{hab.tipo}</TableCell>
+                {habitaciones.map((habitacion) => (
+                  <TableRow key={habitacion.id}>
+                    <TableCell>
+                      {propiedades.find(p => p.id === habitacion.propiedadId)?.titulo || 'N/A'}
+                    </TableCell>
+                    <TableCell>{habitacion.numero}</TableCell>
                     <TableCell>
                       <Chip 
-                        label={hab.estado}
-                        color={
-                          hab.estado === 'DISPONIBLE' ? 'success' : 
-                          hab.estado === 'OCUPADA' ? 'error' : 
-                          hab.estado === 'MANTENIMIENTO' ? 'warning' : 
-                          'default'
-                        }
+                        label={habitacion.tipo}
                         size="small"
                         variant="outlined"
                       />
                     </TableCell>
-                    <TableCell align="right">{hab.metrosCuadrados}</TableCell>
-                    <TableCell align="right">{hab.precio}</TableCell>
-                    <TableCell>{hab.descripcion}</TableCell>
+                    <TableCell>{habitacion.capacidad} personas</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={habitacion.estado}
+                        color={
+                          habitacion.estado === 'DISPONIBLE' ? 'success' :
+                          habitacion.estado === 'OCUPADA' ? 'error' :
+                          habitacion.estado === 'MANTENIMIENTO' ? 'warning' : 'info'
+                        }
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <EntityActions
+                        onEdit={() => handleEdit(habitacion)}
+                        onDelete={() => handleDelete(habitacion.id)}
+                        itemName={`la habitación ${habitacion.numero}`}
+                      />
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -267,10 +270,15 @@ export function Habitaciones() {
 
       <EntityForm
         open={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
+        onClose={() => {
+          setIsFormOpen(false);
+          setEditingHabitacion(null);
+        }}
         onSubmit={handleFormSubmit}
-        title="Nueva Habitación"
+        title={editingHabitacion ? 'Editar Habitación' : 'Nueva Habitación'}
         fields={formFields}
+        initialData={editingHabitacion || {}}
+        isEditing={!!editingHabitacion}
       />
     </Container>
   );

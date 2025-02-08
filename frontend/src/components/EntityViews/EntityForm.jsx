@@ -62,7 +62,8 @@ const EntityForm = ({
   onSubmit,
   title,
   fields = [],
-  initialData = {}
+  initialData = {},
+  isEditing = false
 }) => {
   const { 
     relatedData, 
@@ -87,7 +88,7 @@ const EntityForm = ({
       initialDataRef.current = initialData;
       setErrors({});
     }
-  }, [open]);
+  }, [open, initialData]);
 
   const handleChange = useCallback((event) => {
     const { name, value } = event.target;
@@ -136,10 +137,13 @@ const EntityForm = ({
     setIsSaving(true);
     try {
       await onSubmit(formData);
-      enqueueSnackbar('Datos guardados exitosamente', { 
-        variant: 'success',
-        anchorOrigin: { vertical: 'top', horizontal: 'center' }
-      });
+      enqueueSnackbar(
+        isEditing ? 'Datos actualizados exitosamente' : 'Datos guardados exitosamente', 
+        { 
+          variant: 'success',
+          anchorOrigin: { vertical: 'top', horizontal: 'center' }
+        }
+      );
       onClose();
     } catch (error) {
       console.error('Error al guardar:', error);
@@ -150,7 +154,7 @@ const EntityForm = ({
     } finally {
       setIsSaving(false);
     }
-  }, [formData, onSubmit, onClose, validateForm, enqueueSnackbar]);
+  }, [formData, onSubmit, onClose, validateForm, enqueueSnackbar, isEditing]);
 
   const formFields = useMemo(() => {
     return fields.map(field => {
@@ -191,7 +195,7 @@ const EntityForm = ({
       keepMounted={false}
     >
       <DialogHeader 
-        title={title} 
+        title={isEditing ? `Editar ${title}` : title} 
         onClose={onClose}
         isLoading={isLoadingRelated || isSaving}
       />
@@ -254,7 +258,7 @@ const EntityForm = ({
             variant="contained"
             disabled={isLoadingRelated || isSaving}
           >
-            {isSaving ? 'Guardando...' : 'Guardar'}
+            {isSaving ? 'Guardando...' : isEditing ? 'Actualizar' : 'Guardar'}
           </Button>
         </DialogActions>
       </form>

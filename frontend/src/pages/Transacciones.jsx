@@ -15,6 +15,7 @@ import EntityForm from '../components/EntityViews/EntityForm';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import EmptyState from '../components/EmptyState';
+import { EntityActions } from '../components/EntityViews/EntityActions';
 
 export function Transacciones() {
   const [transacciones, setTransacciones] = useState([]);
@@ -23,6 +24,7 @@ export function Transacciones() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const { enqueueSnackbar } = useSnackbar();
+  const [editingTransaccion, setEditingTransaccion] = useState(null);
 
   const fetchTransacciones = useCallback(async () => {
     try {
@@ -147,20 +149,49 @@ export function Transacciones() {
 
       console.log('Datos procesados a enviar:', datosAEnviar);
 
-      const response = await clienteAxios.post('/transacciones', datosAEnviar);
+      let response;
+      if (editingTransaccion) {
+        response = await clienteAxios.put(`/transacciones/${editingTransaccion.id}`, datosAEnviar);
+        enqueueSnackbar('Transacción actualizada exitosamente', { variant: 'success' });
+      } else {
+        response = await clienteAxios.post('/transacciones', datosAEnviar);
+        enqueueSnackbar('Transacción creada exitosamente', { variant: 'success' });
+      }
       
       console.log('Respuesta del servidor:', response.data);
       
-      if (response.status === 201) {
-        enqueueSnackbar('Transacción creada exitosamente', { variant: 'success' });
-        setIsFormOpen(false);
-        setFormKey(prev => prev + 1);
-        await fetchTransacciones();
-      }
+      setIsFormOpen(false);
+      setEditingTransaccion(null);
+      setFormKey(prev => prev + 1);
+      await fetchTransacciones();
     } catch (error) {
       console.error('Error completo:', error.response?.data || error);
-      const mensajeError = error.response?.data?.error || 'Error al crear la transacción';
+      const mensajeError = error.response?.data?.error || 'Error al guardar la transacción';
       enqueueSnackbar(mensajeError, { variant: 'error' });
+    }
+  }, [enqueueSnackbar, fetchTransacciones, editingTransaccion]);
+
+  const handleEdit = useCallback(async (transaccion) => {
+    try {
+      console.log('Editando transacción:', transaccion);
+      await Promise.all([fetchMonedas(), fetchCuentas()]);
+      setEditingTransaccion(transaccion);
+      setFormKey(prev => prev + 1);
+      setIsFormOpen(true);
+    } catch (error) {
+      console.error('Error al preparar edición:', error);
+      enqueueSnackbar('Error al cargar datos para edición', { variant: 'error' });
+    }
+  }, [fetchMonedas, fetchCuentas, enqueueSnackbar]);
+
+  const handleDelete = useCallback(async (id) => {
+    try {
+      await clienteAxios.delete(`/transacciones/${id}`);
+      enqueueSnackbar('Transacción eliminada exitosamente', { variant: 'success' });
+      fetchTransacciones();
+    } catch (error) {
+      console.error('Error al eliminar transacción:', error);
+      enqueueSnackbar('Error al eliminar la transacción', { variant: 'error' });
     }
   }, [enqueueSnackbar, fetchTransacciones]);
 
@@ -168,6 +199,7 @@ export function Transacciones() {
     try {
       console.log('Abriendo formulario...');
       await Promise.all([fetchMonedas(), fetchCuentas()]);
+      setEditingTransaccion(null);
       setFormKey(prev => prev + 1);
       setIsFormOpen(true);
     } catch (error) {
@@ -175,11 +207,6 @@ export function Transacciones() {
       enqueueSnackbar('Error al cargar datos del formulario', { variant: 'error' });
     }
   }, [fetchMonedas, fetchCuentas, enqueueSnackbar]);
-
-  const handleCloseForm = useCallback(() => {
-    setIsFormOpen(false);
-    setFormKey(prev => prev + 1);
-  }, []);
 
   // Campos del formulario
   const formFields = [
@@ -342,6 +369,7 @@ export function Transacciones() {
                   <TableCell>Tipo</TableCell>
                   <TableCell>Monto</TableCell>
                   <TableCell>Estado</TableCell>
+                  <TableCell align="right">Acciones</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -369,6 +397,13 @@ export function Transacciones() {
                         size="small"
                       />
                     </TableCell>
+                    <TableCell align="right">
+                      <EntityActions
+                        onEdit={() => handleEdit(transaccion)}
+                        onDelete={() => handleDelete(transaccion.id)}
+                        itemName={`la transacción ${transaccion.descripcion}`}
+                      />
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -381,10 +416,15 @@ export function Transacciones() {
         <EntityForm
           key={formKey}
           open={isFormOpen}
-          onClose={handleCloseForm}
+          onClose={() => {
+            setIsFormOpen(false);
+            setEditingTransaccion(null);
+          }}
           onSubmit={handleFormSubmit}
-          title="Nueva Transacción"
+          title={editingTransaccion ? 'Editar Transacción' : 'Nueva Transacción'}
           fields={formFields}
+          initialData={editingTransaccion || {}}
+          isEditing={!!editingTransaccion}
         />
       )}
     </Container>

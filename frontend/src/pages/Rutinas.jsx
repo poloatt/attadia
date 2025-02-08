@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container } from '@mui/material';
 import EntityToolbar from '../components/EntityToolbar';
 import { 
@@ -6,7 +6,6 @@ import {
   RestaurantOutlined as DietaIcon,
   TaskAltOutlined as RutinasIcon
 } from '@mui/icons-material';
-import { useState, useEffect } from 'react';
 import { 
   Button, 
   Table, 
@@ -26,10 +25,14 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import clienteAxios from '../config/axios';
+import { useSnackbar } from 'notistack';
+import { EntityActions } from '../components/EntityViews/EntityActions';
 
 export function Rutinas() {
   const [rutinas, setRutinas] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
+  const [editingRutina, setEditingRutina] = useState(null);
+  const { enqueueSnackbar } = useSnackbar();
   const [nuevaRutina, setNuevaRutina] = useState({
     weight: '',
     muscle: '',
@@ -49,16 +52,39 @@ export function Rutinas() {
       setRutinas(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar rutinas:', error);
+      enqueueSnackbar('Error al cargar rutinas', { variant: 'error' });
       setRutinas([]);
     }
   };
 
-  const handleOpenDialog = () => {
+  const handleOpenDialog = (rutina = null) => {
+    if (rutina) {
+      setEditingRutina(rutina);
+      setNuevaRutina({
+        weight: rutina.weight || '',
+        muscle: rutina.muscle || '',
+        fatPercent: rutina.fatPercent || '',
+        stress: rutina.stress || '',
+        sleep: rutina.sleep || '',
+        completitud: rutina.completitud || 0
+      });
+    } else {
+      setEditingRutina(null);
+      setNuevaRutina({
+        weight: '',
+        muscle: '',
+        fatPercent: '',
+        stress: '',
+        sleep: '',
+        completitud: 0
+      });
+    }
     setOpenDialog(true);
   };
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
+    setEditingRutina(null);
     setNuevaRutina({
       weight: '',
       muscle: '',
@@ -79,11 +105,29 @@ export function Rutinas() {
 
   const handleSubmit = async () => {
     try {
-      await clienteAxios.post('/rutinas', nuevaRutina);
+      if (editingRutina) {
+        await clienteAxios.put(`/rutinas/${editingRutina.id}`, nuevaRutina);
+        enqueueSnackbar('Rutina actualizada exitosamente', { variant: 'success' });
+      } else {
+        await clienteAxios.post('/rutinas', nuevaRutina);
+        enqueueSnackbar('Rutina creada exitosamente', { variant: 'success' });
+      }
       handleCloseDialog();
       fetchRutinas();
     } catch (error) {
-      console.error('Error al crear rutina:', error);
+      console.error('Error al guardar rutina:', error);
+      enqueueSnackbar('Error al guardar la rutina', { variant: 'error' });
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await clienteAxios.delete(`/rutinas/${id}`);
+      enqueueSnackbar('Rutina eliminada exitosamente', { variant: 'success' });
+      fetchRutinas();
+    } catch (error) {
+      console.error('Error al eliminar rutina:', error);
+      enqueueSnackbar('Error al eliminar la rutina', { variant: 'error' });
     }
   };
 
@@ -96,7 +140,7 @@ export function Rutinas() {
   return (
     <Container maxWidth="lg">
       <EntityToolbar
-        onAdd={handleOpenDialog}
+        onAdd={() => handleOpenDialog()}
         navigationItems={[
           {
             icon: <LabIcon sx={{ fontSize: 20 }} />,
@@ -117,7 +161,7 @@ export function Rutinas() {
             variant="contained"
             startIcon={<AddIcon />}
             size="small"
-            onClick={handleOpenDialog}
+            onClick={() => handleOpenDialog()}
           >
             Nueva Rutina
           </Button>
@@ -134,6 +178,7 @@ export function Rutinas() {
                 <TableCell align="right">Grasa (%)</TableCell>
                 <TableCell align="right">Estrés (1-10)</TableCell>
                 <TableCell align="right">Sueño (hrs)</TableCell>
+                <TableCell align="right">Acciones</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -154,6 +199,13 @@ export function Rutinas() {
                   <TableCell align="right">{rutina.fatPercent?.toFixed(1)}</TableCell>
                   <TableCell align="right">{rutina.stress}</TableCell>
                   <TableCell align="right">{rutina.sleep?.toFixed(1)}</TableCell>
+                  <TableCell align="right">
+                    <EntityActions
+                      onEdit={() => handleOpenDialog(rutina)}
+                      onDelete={() => handleDelete(rutina.id)}
+                      itemName="la rutina"
+                    />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -162,7 +214,7 @@ export function Rutinas() {
       </EntityDetails>
 
       <Dialog open={openDialog} onClose={handleCloseDialog}>
-        <DialogTitle>Nueva Rutina</DialogTitle>
+        <DialogTitle>{editingRutina ? 'Editar Rutina' : 'Nueva Rutina'}</DialogTitle>
         <DialogContent>
           <TextField
             fullWidth
@@ -214,7 +266,7 @@ export function Rutinas() {
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancelar</Button>
           <Button onClick={handleSubmit} variant="contained">
-            Guardar
+            {editingRutina ? 'Actualizar' : 'Guardar'}
           </Button>
         </DialogActions>
       </Dialog>

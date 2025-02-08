@@ -20,6 +20,7 @@ import {
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import EmptyState from '../components/EmptyState';
+import { EntityActions } from '../components/EntityViews/EntityActions';
 
 export function Cuentas() {
   const [cuentas, setCuentas] = useState([]);
@@ -28,6 +29,7 @@ export function Cuentas() {
   const [expandedMonedas, setExpandedMonedas] = useState([]);
   const [showValues, setShowValues] = useState(true);
   const { enqueueSnackbar } = useSnackbar();
+  const [editingCuenta, setEditingCuenta] = useState(null);
 
   const fetchCuentas = useCallback(async () => {
     try {
@@ -95,6 +97,22 @@ export function Cuentas() {
     }
   };
 
+  const handleEdit = useCallback((cuenta) => {
+    setEditingCuenta(cuenta);
+    setIsFormOpen(true);
+  }, []);
+
+  const handleDelete = useCallback(async (cuentaId) => {
+    try {
+      await clienteAxios.delete(`/cuentas/${cuentaId}`);
+      setCuentas(prev => prev.filter(c => c.id !== cuentaId));
+      enqueueSnackbar('Cuenta eliminada exitosamente', { variant: 'success' });
+    } catch (error) {
+      console.error('Error al eliminar cuenta:', error);
+      enqueueSnackbar('Error al eliminar la cuenta', { variant: 'error' });
+    }
+  }, [enqueueSnackbar]);
+
   const handleFormSubmit = async (formData) => {
     try {
       console.log('Datos del formulario recibidos:', formData);
@@ -108,31 +126,40 @@ export function Cuentas() {
 
       console.log('Datos a enviar al servidor:', datosAEnviar);
       
-      const response = await clienteAxios.post('/cuentas', datosAEnviar);
+      let response;
+      if (editingCuenta) {
+        response = await clienteAxios.put(`/cuentas/${editingCuenta.id}`, datosAEnviar);
+        setCuentas(prev => prev.map(c => 
+          c.id === editingCuenta.id ? response.data : c
+        ));
+      } else {
+        response = await clienteAxios.post('/cuentas', datosAEnviar);
+        setCuentas(prev => [...prev, response.data]);
+      }
+
       console.log('Respuesta del servidor:', response.data);
       
-      // Actualizar el estado local con la respuesta del servidor
-      const nuevaCuenta = response.data;
-      console.log('Nueva cuenta a agregar:', nuevaCuenta);
-      
-      setCuentas(prev => {
-        const nuevasCuentas = [...prev, nuevaCuenta];
-        console.log('Estado actualizado de cuentas:', nuevasCuentas);
-        return nuevasCuentas;
-      });
-      
-      setExpandedMonedas(prev => [...new Set([...prev, nuevaCuenta.moneda])]);
+      setExpandedMonedas(prev => [...new Set([...prev, response.data.moneda])]);
       setIsFormOpen(false);
-      enqueueSnackbar('Cuenta creada exitosamente', { variant: 'success' });
+      setEditingCuenta(null);
+      enqueueSnackbar(
+        editingCuenta ? 'Cuenta actualizada exitosamente' : 'Cuenta creada exitosamente', 
+        { variant: 'success' }
+      );
       
-      // Recargar las cuentas para asegurar datos actualizados
       await fetchCuentas();
     } catch (error) {
       console.error('Error completo:', error.response?.data || error);
-      const mensajeError = error.response?.data?.error || 'Error al crear la cuenta';
+      const mensajeError = error.response?.data?.error || 
+        (editingCuenta ? 'Error al actualizar la cuenta' : 'Error al crear la cuenta');
       enqueueSnackbar(mensajeError, { variant: 'error' });
     }
   };
+
+  const handleCloseForm = useCallback(() => {
+    setIsFormOpen(false);
+    setEditingCuenta(null);
+  }, []);
 
   const handleMonedaToggle = (monedaId) => {
     setExpandedMonedas(prev => {
@@ -261,10 +288,12 @@ export function Cuentas() {
       {isFormOpen && (
         <EntityForm
           open={isFormOpen}
-          onClose={() => setIsFormOpen(false)}
+          onClose={handleCloseForm}
           onSubmit={handleFormSubmit}
           fields={formFields}
-          title="Nueva Cuenta"
+          title="Cuenta"
+          initialData={editingCuenta || {}}
+          isEditing={!!editingCuenta}
         />
       )}
       
@@ -325,10 +354,18 @@ export function Cuentas() {
                             borderColor: 'divider',
                             '&:last-child': {
                               borderBottom: 0
+                            },
+                            '&:hover': {
+                              bgcolor: 'action.hover'
                             }
                           }}
                         >
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: 1,
+                            flex: 1
+                          }}>
                             {getTipoIcon(cuenta.tipo)}
                             <Typography variant="body2">
                               {cuenta.nombre}
@@ -347,17 +384,30 @@ export function Cuentas() {
                               }}
                             />
                           </Box>
-                          <Typography 
-                            variant="body2" 
-                            sx={{ 
-                              color: (cuenta.saldo || 0) >= 0 ? 'success.main' : 'error.main'
-                            }}
-                          >
-                            {showValues 
-                              ? `${grupo.moneda.simbolo} ${(cuenta.saldo || 0).toFixed(2)}`
-                              : '****'
-                            }
-                          </Typography>
+                          
+                          <Box sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center',
+                            gap: 2
+                          }}>
+                            <Typography 
+                              variant="body2" 
+                              sx={{ 
+                                color: (cuenta.saldo || 0) >= 0 ? 'success.main' : 'error.main'
+                              }}
+                            >
+                              {showValues 
+                                ? `${grupo.moneda.simbolo} ${(cuenta.saldo || 0).toFixed(2)}`
+                                : '****'
+                              }
+                            </Typography>
+
+                            <EntityActions
+                              onEdit={() => handleEdit(cuenta)}
+                              onDelete={() => handleDelete(cuenta.id || cuenta._id)}
+                              itemName={`la cuenta ${cuenta.nombre}`}
+                            />
+                          </Box>
                         </Box>
                       );
                     })}

@@ -1,104 +1,152 @@
-import React, { useState, useEffect } from 'react';
-import { Container } from '@mui/material';
-import EntityToolbar from '../components/EntityToolbar';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  ScienceOutlined as LabIcon,
-  TaskAltOutlined as RutinasIcon
-} from '@mui/icons-material';
-import { 
+  Container, 
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  MenuItem,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper
+  Paper,
+  Chip
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
+import { Add as AddIcon } from '@mui/icons-material';
+import { 
+  ScienceOutlined as LabIcon,
+  TaskAltOutlined as RutinasIcon
+} from '@mui/icons-material';
+import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
+import EntityForm from '../components/EntityViews/EntityForm';
+import { useSnackbar } from 'notistack';
 import clienteAxios from '../config/axios';
 import EmptyState from '../components/EmptyState';
+import { EntityActions } from '../components/EntityViews/EntityActions';
 
 export function Dieta() {
-  const [dietas, setDietas] = useState([]);
-  const [openDialog, setOpenDialog] = useState(false);
-  const [nuevaDieta, setNuevaDieta] = useState({
-    tipo: '',
-    calorias: '',
-    proteinas: '',
-    carbohidratos: '',
-    grasas: '',
-    notas: ''
-  });
+  const [comidas, setComidas] = useState([]);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingComida, setEditingComida] = useState(null);
+  const { enqueueSnackbar } = useSnackbar();
 
-  useEffect(() => {
-    fetchDietas();
-  }, []);
-
-  const fetchDietas = async () => {
+  const fetchComidas = useCallback(async () => {
     try {
       const response = await clienteAxios.get('/dietas');
-      setDietas(response.data.docs || []);
+      setComidas(response.data.docs || []);
     } catch (error) {
-      console.error('Error al cargar dietas:', error);
-      setDietas([]);
+      console.error('Error al cargar comidas:', error);
+      enqueueSnackbar('Error al cargar comidas', { variant: 'error' });
     }
-  };
+  }, [enqueueSnackbar]);
 
-  const handleOpenDialog = () => {
-    setOpenDialog(true);
-  };
+  useEffect(() => {
+    fetchComidas();
+  }, [fetchComidas]);
 
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-    setNuevaDieta({
-      tipo: '',
-      calorias: '',
-      proteinas: '',
-      carbohidratos: '',
-      grasas: '',
-      notas: ''
-    });
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNuevaDieta(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = async () => {
+  const handleFormSubmit = async (formData) => {
     try {
-      await clienteAxios.post('/dietas', nuevaDieta);
-      handleCloseDialog();
-      fetchDietas();
+      let response;
+      if (editingComida) {
+        response = await clienteAxios.put(`/dietas/${editingComida.id}`, formData);
+        enqueueSnackbar('Comida actualizada exitosamente', { variant: 'success' });
+      } else {
+        response = await clienteAxios.post('/dietas', formData);
+        enqueueSnackbar('Comida agregada exitosamente', { variant: 'success' });
+      }
+      setIsFormOpen(false);
+      setEditingComida(null);
+      await fetchComidas();
     } catch (error) {
-      console.error('Error al crear dieta:', error);
+      console.error('Error:', error);
+      enqueueSnackbar(
+        error.response?.data?.error || 'Error al guardar la comida', 
+        { variant: 'error' }
+      );
     }
   };
 
-  const tiposDieta = [
-    'Desayuno',
-    'Almuerzo',
-    'Cena',
-    'Snack',
-    'Pre-entreno',
-    'Post-entreno'
+  const handleEdit = useCallback((comida) => {
+    setEditingComida(comida);
+    setIsFormOpen(true);
+  }, []);
+
+  const handleDelete = useCallback(async (id) => {
+    try {
+      await clienteAxios.delete(`/dietas/${id}`);
+      enqueueSnackbar('Comida eliminada exitosamente', { variant: 'success' });
+      await fetchComidas();
+    } catch (error) {
+      console.error('Error al eliminar comida:', error);
+      enqueueSnackbar('Error al eliminar la comida', { variant: 'error' });
+    }
+  }, [enqueueSnackbar, fetchComidas]);
+
+  const formFields = [
+    {
+      name: 'nombre',
+      label: 'Nombre',
+      required: true
+    },
+    {
+      name: 'tipo',
+      label: 'Tipo',
+      type: 'select',
+      required: true,
+      options: [
+        { value: 'DESAYUNO', label: 'Desayuno' },
+        { value: 'ALMUERZO', label: 'Almuerzo' },
+        { value: 'MERIENDA', label: 'Merienda' },
+        { value: 'CENA', label: 'Cena' },
+        { value: 'SNACK', label: 'Snack' }
+      ]
+    },
+    {
+      name: 'calorias',
+      label: 'Calorías',
+      type: 'number',
+      required: true
+    },
+    {
+      name: 'proteinas',
+      label: 'Proteínas (g)',
+      type: 'number',
+      required: true
+    },
+    {
+      name: 'carbohidratos',
+      label: 'Carbohidratos (g)',
+      type: 'number',
+      required: true
+    },
+    {
+      name: 'grasas',
+      label: 'Grasas (g)',
+      type: 'number',
+      required: true
+    },
+    {
+      name: 'ingredientes',
+      label: 'Ingredientes',
+      multiline: true,
+      rows: 3,
+      required: true
+    },
+    {
+      name: 'preparacion',
+      label: 'Preparación',
+      multiline: true,
+      rows: 3
+    }
   ];
 
   return (
     <Container maxWidth="lg">
       <EntityToolbar
-        onAdd={handleOpenDialog}
+        onAdd={() => {
+          setEditingComida(null);
+          setIsFormOpen(true);
+        }}
         navigationItems={[
           {
             icon: <LabIcon sx={{ fontSize: 20 }} />,
@@ -112,45 +160,66 @@ export function Dieta() {
           }
         ]}
       />
-      <EntityDetails 
-        title="Dietas"
+
+      <EntityDetails
+        title="Dieta"
         action={
           <Button 
             variant="contained" 
             startIcon={<AddIcon />} 
             size="small"
-            onClick={handleOpenDialog}
+            onClick={() => {
+              setEditingComida(null);
+              setIsFormOpen(true);
+            }}
           >
-            Nueva Dieta
+            Nueva Comida
           </Button>
         }
       >
-        {dietas.length === 0 ? (
-          <EmptyState onAdd={handleOpenDialog} />
+        {comidas.length === 0 ? (
+          <EmptyState onAdd={() => setIsFormOpen(true)} />
         ) : (
           <TableContainer component={Paper} elevation={0}>
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Fecha</TableCell>
+                  <TableCell>Nombre</TableCell>
                   <TableCell>Tipo</TableCell>
                   <TableCell align="right">Calorías</TableCell>
-                  <TableCell align="right">Proteínas (g)</TableCell>
-                  <TableCell align="right">Carbohidratos (g)</TableCell>
-                  <TableCell align="right">Grasas (g)</TableCell>
-                  <TableCell>Notas</TableCell>
+                  <TableCell align="right">Proteínas</TableCell>
+                  <TableCell align="right">Carbohidratos</TableCell>
+                  <TableCell align="right">Grasas</TableCell>
+                  <TableCell align="right">Acciones</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {dietas.map((dieta) => (
-                  <TableRow key={dieta.id}>
-                    <TableCell>{new Date(dieta.fecha).toLocaleDateString()}</TableCell>
-                    <TableCell>{dieta.tipo}</TableCell>
-                    <TableCell align="right">{dieta.calorias}</TableCell>
-                    <TableCell align="right">{dieta.proteinas}</TableCell>
-                    <TableCell align="right">{dieta.carbohidratos}</TableCell>
-                    <TableCell align="right">{dieta.grasas}</TableCell>
-                    <TableCell>{dieta.notas}</TableCell>
+                {comidas.map((comida) => (
+                  <TableRow key={comida.id}>
+                    <TableCell>{comida.nombre}</TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={comida.tipo}
+                        size="small"
+                        color={
+                          comida.tipo === 'DESAYUNO' ? 'primary' :
+                          comida.tipo === 'ALMUERZO' ? 'success' :
+                          comida.tipo === 'MERIENDA' ? 'info' :
+                          comida.tipo === 'CENA' ? 'warning' : 'default'
+                        }
+                      />
+                    </TableCell>
+                    <TableCell align="right">{comida.calorias} kcal</TableCell>
+                    <TableCell align="right">{comida.proteinas}g</TableCell>
+                    <TableCell align="right">{comida.carbohidratos}g</TableCell>
+                    <TableCell align="right">{comida.grasas}g</TableCell>
+                    <TableCell align="right">
+                      <EntityActions
+                        onEdit={() => handleEdit(comida)}
+                        onDelete={() => handleDelete(comida.id)}
+                        itemName={`la comida ${comida.nombre}`}
+                      />
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -159,78 +228,18 @@ export function Dieta() {
         )}
       </EntityDetails>
 
-      <Dialog open={openDialog} onClose={handleCloseDialog}>
-        <DialogTitle>Nueva Dieta</DialogTitle>
-        <DialogContent>
-          <TextField
-            select
-            fullWidth
-            margin="normal"
-            label="Tipo"
-            name="tipo"
-            value={nuevaDieta.tipo}
-            onChange={handleInputChange}
-          >
-            {tiposDieta.map((tipo) => (
-              <MenuItem key={tipo} value={tipo}>
-                {tipo}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Calorías"
-            name="calorias"
-            type="number"
-            value={nuevaDieta.calorias}
-            onChange={handleInputChange}
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Proteínas (g)"
-            name="proteinas"
-            type="number"
-            value={nuevaDieta.proteinas}
-            onChange={handleInputChange}
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Carbohidratos (g)"
-            name="carbohidratos"
-            type="number"
-            value={nuevaDieta.carbohidratos}
-            onChange={handleInputChange}
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Grasas (g)"
-            name="grasas"
-            type="number"
-            value={nuevaDieta.grasas}
-            onChange={handleInputChange}
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Notas"
-            name="notas"
-            multiline
-            rows={3}
-            value={nuevaDieta.notas}
-            onChange={handleInputChange}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancelar</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            Guardar
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <EntityForm
+        open={isFormOpen}
+        onClose={() => {
+          setIsFormOpen(false);
+          setEditingComida(null);
+        }}
+        onSubmit={handleFormSubmit}
+        title={editingComida ? 'Editar Comida' : 'Nueva Comida'}
+        fields={formFields}
+        initialData={editingComida || {}}
+        isEditing={!!editingComida}
+      />
     </Container>
   );
 }
