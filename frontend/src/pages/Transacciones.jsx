@@ -98,17 +98,29 @@ export function Transacciones() {
 
   const handleCreateCuenta = useCallback(async (data) => {
     try {
+      console.log('Creando cuenta con datos:', data);
       const response = await clienteAxios.post('/cuentas', { 
-        ...data,
-        tipo: 'EFECTIVO'
+        nombre: data.nombre,
+        moneda: data.monedaId,
+        tipo: data.tipo
       });
       
       const newCuenta = response.data;
-      setCuentas(prev => [...prev, newCuenta]);
+      console.log('Cuenta creada:', newCuenta);
+      
+      await setCuentas(prev => {
+        const updated = [...prev, newCuenta];
+        console.log('Estado de cuentas actualizado:', updated);
+        return updated;
+      });
+
+      await fetchCuentas();
+      
       enqueueSnackbar('Cuenta creada exitosamente', { variant: 'success' });
       return newCuenta;
     } catch (error) {
       console.error('Error al crear cuenta:', error);
+      console.error('Detalles del error:', error.response?.data);
       enqueueSnackbar(
         'Error al crear la cuenta: ' + 
         (error.response?.data?.error || error.message), 
@@ -116,7 +128,7 @@ export function Transacciones() {
       );
       throw error;
     }
-  }, [enqueueSnackbar]);
+  }, [enqueueSnackbar, fetchCuentas]);
 
   const handleFormSubmit = useCallback(async (formData) => {
     try {
@@ -246,7 +258,35 @@ export function Transacciones() {
       })),
       onCreateNew: handleCreateCuenta,
       createFields: [
-        { name: 'nombre', label: 'Nombre', required: true }
+        { name: 'nombre', label: 'Nombre', required: true },
+        { 
+          name: 'monedaId',
+          label: 'Moneda', 
+          type: 'relational',
+          required: true,
+          options: monedas.map(m => ({
+            value: m.id || m._id,
+            label: `${m.nombre} (${m.simbolo})`
+          })),
+          onCreateNew: handleCreateMoneda,
+          createFields: [
+            { name: 'codigo', label: 'Código', required: true },
+            { name: 'nombre', label: 'Nombre', required: true },
+            { name: 'simbolo', label: 'Símbolo', required: true }
+          ],
+          createTitle: 'Nueva Moneda'
+        },
+        { 
+          name: 'tipo', 
+          label: 'Tipo', 
+          type: 'select',
+          required: true,
+          options: [
+            { value: 'EFECTIVO', label: 'Efectivo' },
+            { value: 'BANCO', label: 'Banco' },
+            { value: 'CASA', label: 'Casa' }
+          ]
+        }
       ],
       createTitle: 'Nueva Cuenta'
     }

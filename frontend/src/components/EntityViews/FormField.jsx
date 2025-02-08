@@ -94,15 +94,28 @@ const CreateForm = memo(({
       <Typography variant="subtitle2" gutterBottom>
         {field.createTitle || 'Crear Nuevo'}
       </Typography>
-      {field.createFields?.map(createField => (
-        <BaseTextField
-          key={createField.name}
-          field={createField}
-          value={formData[createField.name]}
-          onChange={handleChange}
-          isLoading={isLoading}
-        />
-      ))}
+      {field.createFields?.map(createField => {
+        if (createField.type === 'relational' || createField.type === 'select') {
+          return (
+            <FormField
+              key={createField.name}
+              field={createField}
+              value={formData[createField.name]}
+              onChange={handleChange}
+              isLoading={isLoading}
+            />
+          );
+        }
+        return (
+          <BaseTextField
+            key={createField.name}
+            field={createField}
+            value={formData[createField.name]}
+            onChange={handleChange}
+            isLoading={isLoading}
+          />
+        );
+      })}
       <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
         <Button 
           variant="contained" 
