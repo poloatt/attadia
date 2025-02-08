@@ -97,24 +97,36 @@ export function Cuentas() {
 
   const handleFormSubmit = async (formData) => {
     try {
-      console.log('Datos a enviar:', formData);
+      console.log('Datos del formulario recibidos:', formData);
       
       const datosAEnviar = {
         nombre: formData.nombre,
         numero: formData.numero,
         tipo: formData.tipo,
-        moneda: formData.monedaId // Cambiado de monedaId a moneda para coincidir con el backend
+        moneda: formData.monedaId
       };
 
-      console.log('Datos procesados:', datosAEnviar);
+      console.log('Datos a enviar al servidor:', datosAEnviar);
       
       const response = await clienteAxios.post('/cuentas', datosAEnviar);
       console.log('Respuesta del servidor:', response.data);
       
-      setCuentas(prev => [...prev, response.data]);
-      setExpandedMonedas(prev => [...new Set([...prev, response.data.moneda?.id])]);
+      // Actualizar el estado local con la respuesta del servidor
+      const nuevaCuenta = response.data;
+      console.log('Nueva cuenta a agregar:', nuevaCuenta);
+      
+      setCuentas(prev => {
+        const nuevasCuentas = [...prev, nuevaCuenta];
+        console.log('Estado actualizado de cuentas:', nuevasCuentas);
+        return nuevasCuentas;
+      });
+      
+      setExpandedMonedas(prev => [...new Set([...prev, nuevaCuenta.moneda])]);
       setIsFormOpen(false);
       enqueueSnackbar('Cuenta creada exitosamente', { variant: 'success' });
+      
+      // Recargar las cuentas para asegurar datos actualizados
+      await fetchCuentas();
     } catch (error) {
       console.error('Error completo:', error.response?.data || error);
       const mensajeError = error.response?.data?.error || 'Error al crear la cuenta';
@@ -207,11 +219,18 @@ export function Cuentas() {
           cuentas: []
         };
       }
-      grupos[monedaId].cuentas.push({
+
+      // Asegurarse de que todos los campos necesarios estén presentes
+      const cuentaProcesada = {
         ...cuenta,
         id: cuenta._id || cuenta.id,
-        saldo: cuenta.saldo || 0
-      });
+        saldo: cuenta.saldo || 0,
+        tipo: cuenta.tipo || 'OTRO', // Valor por defecto si no hay tipo
+        nombre: cuenta.nombre || 'Sin nombre'
+      };
+
+      console.log('Cuenta procesada:', cuentaProcesada);
+      grupos[monedaId].cuentas.push(cuentaProcesada);
       return grupos;
     }, {});
 
@@ -315,9 +334,10 @@ export function Cuentas() {
                               {cuenta.nombre}
                             </Typography>
                             <Chip 
-                              label={cuenta.tipo ? cuenta.tipo.replace('_', ' ') : 'N/A'}
+                              label={cuenta.tipo ? cuenta.tipo.replace('_', ' ') : 'OTRO'}
                               size="small"
                               variant="outlined"
+                              color={cuenta.tipo ? 'default' : 'warning'}
                               sx={{ 
                                 height: 20,
                                 '& .MuiChip-label': {
