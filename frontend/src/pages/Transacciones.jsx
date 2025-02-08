@@ -132,18 +132,24 @@ export function Transacciones() {
 
   const handleFormSubmit = useCallback(async (formData) => {
     try {
+      console.log('Datos originales:', formData);
+      
       const datosAEnviar = {
         descripcion: formData.descripcion,
         monto: parseFloat(formData.monto),
         fecha: formData.fecha || new Date().toISOString().split('T')[0],
         categoria: formData.categoria,
         estado: formData.estado,
-        monedaId: formData.monedaId,
-        cuentaId: formData.cuentaId,
-        tipo: 'INGRESO' // Por defecto, podríamos hacer esto configurable
+        moneda: formData.monedaId,
+        cuenta: formData.cuentaId,
+        tipo: formData.tipo || 'INGRESO'
       };
 
+      console.log('Datos procesados a enviar:', datosAEnviar);
+
       const response = await clienteAxios.post('/transacciones', datosAEnviar);
+      
+      console.log('Respuesta del servidor:', response.data);
       
       if (response.status === 201) {
         enqueueSnackbar('Transacción creada exitosamente', { variant: 'success' });

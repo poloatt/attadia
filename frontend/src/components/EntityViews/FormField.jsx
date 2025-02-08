@@ -35,7 +35,7 @@ const BaseTextField = memo(({
     <TextField
       name={field.name}
       label={field.label}
-      value={value}
+      value={value || ''}
       onChange={handleChange}
       fullWidth
       margin="normal"
@@ -146,7 +146,6 @@ export const FormField = memo(({
   const [isCreating, setIsCreating] = useState(false);
 
   const handleChange = useCallback((e) => {
-    console.log('FormField change:', e.target.value);
     const newValue = e.target.value;
     if (newValue === '__create_new__') {
       setIsCreating(true);
@@ -191,63 +190,31 @@ export const FormField = memo(({
       ? (field.options || [])
       : (field.options || []);
 
-    console.log(`Rendering ${field.name} select with options:`, options);
-
     return (
       <FormControl 
         fullWidth 
         margin="normal" 
         error={!!error}
         size="small"
-        sx={{
-          '& .MuiInputBase-root': {
-            pointerEvents: 'auto'
-          }
-        }}
       >
         <InputLabel required={field.required}>{field.label}</InputLabel>
         <Select
           name={field.name}
-          value={value ?? ''}
+          value={value || ''}
           onChange={handleChange}
           label={field.label}
           disabled={isLoading}
-          MenuProps={{
-            anchorOrigin: {
-              vertical: 'bottom',
-              horizontal: 'left'
-            },
-            transformOrigin: {
-              vertical: 'top',
-              horizontal: 'left'
-            },
-            PaperProps: {
-              sx: {
-                pointerEvents: 'auto'
-              }
-            }
-          }}
-          sx={{
-            '& .MuiSelect-select': {
-              cursor: 'pointer',
-              pointerEvents: 'auto'
-            }
-          }}
         >
           {options.map(option => (
             <MenuItem 
               key={option.value} 
               value={option.value}
-              sx={{ pointerEvents: 'auto' }}
             >
               {option.label}
             </MenuItem>
           ))}
           {field.onCreateNew && (
-            <MenuItem 
-              value="__create_new__"
-              sx={{ pointerEvents: 'auto' }}
-            >
+            <MenuItem value="__create_new__">
               <AddIcon sx={{ mr: 1 }} />
               {field.createButtonText || 'Crear Nuevo'}
             </MenuItem>

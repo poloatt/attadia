@@ -225,22 +225,9 @@ const EntityToolbar = ({
                 </IconButton>
               </Tooltip>
             )}
-            {getCurrentPageIcon() && location.pathname !== '/' && (
-              <IconButton
-                size="small"
-                sx={{
-                  color: 'text.secondary'
-                }}
-                disabled
-              >
-                {React.cloneElement(getCurrentPageIcon(), { 
-                  sx: { fontSize: 18 } 
-                })}
-              </IconButton>
-            )}
           </Box>
 
-          {/* Sección central - Eliminado el Divider */}
+          {/* Sección central - Mover el ícono de la página actual al centro */}
           <Box sx={{ 
             display: 'flex',
             alignItems: 'center',
@@ -252,22 +239,61 @@ const EntityToolbar = ({
             flex: 1,
             overflow: 'auto'
           }}>
-            {navigationItems.map((item) => (
-              <Tooltip key={item.to} title={item.label}>
-                <IconButton
-                  onClick={() => navigate(item.to)}
-                  size="small"
-                  sx={{
-                    color: 'text.secondary',
-                    '&:hover': { color: 'text.primary' }
-                  }}
-                >
-                  {React.cloneElement(item.icon, { 
-                    sx: { fontSize: 18 } 
-                  })}
-                </IconButton>
-              </Tooltip>
-            ))}
+            {/* Calcular la cantidad de íconos de navegación */}
+            {navigationItems.length > 0 && (
+              <>
+                {/* Íconos de navegación a la izquierda */}
+                {navigationItems.slice(0, Math.floor(navigationItems.length / 2)).map((item) => (
+                  <Tooltip key={item.to} title={item.label}>
+                    <IconButton
+                      onClick={() => navigate(item.to)}
+                      size="small"
+                      sx={{
+                        color: 'text.secondary',
+                        '&:hover': { color: 'text.primary' }
+                      }}
+                    >
+                      {React.cloneElement(item.icon, { 
+                        sx: { fontSize: 18 } 
+                      })}
+                    </IconButton>
+                  </Tooltip>
+                ))}
+                
+                {/* Ícono de la página actual */}
+                {getCurrentPageIcon() && (
+                  <IconButton
+                    size="small"
+                    sx={{
+                      color: 'text.secondary'
+                    }}
+                    disabled
+                  >
+                    {React.cloneElement(getCurrentPageIcon(), { 
+                      sx: { fontSize: 18 } 
+                    })}
+                  </IconButton>
+                )}
+
+                {/* Íconos de navegación a la derecha */}
+                {navigationItems.slice(Math.floor(navigationItems.length / 2)).map((item) => (
+                  <Tooltip key={item.to} title={item.label}>
+                    <IconButton
+                      onClick={() => navigate(item.to)}
+                      size="small"
+                      sx={{
+                        color: 'text.secondary',
+                        '&:hover': { color: 'text.primary' }
+                      }}
+                    >
+                      {React.cloneElement(item.icon, { 
+                        sx: { fontSize: 18 } 
+                      })}
+                    </IconButton>
+                  </Tooltip>
+                ))}
+              </>
+            )}
           </Box>
 
           {/* Sección derecha */}

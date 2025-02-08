@@ -32,7 +32,10 @@ export function Cuentas() {
   const fetchCuentas = useCallback(async () => {
     try {
       const response = await clienteAxios.get('/cuentas');
-      setCuentas(response.data.docs || []);
+      console.log('Respuesta de cuentas:', response.data);
+      const cuentasData = response.data.docs || [];
+      console.log('Cuentas procesadas:', cuentasData);
+      setCuentas(cuentasData);
     } catch (error) {
       console.error('Error al cargar cuentas:', error);
       enqueueSnackbar('Error al cargar cuentas', { variant: 'error' });
@@ -42,11 +45,15 @@ export function Cuentas() {
   const fetchMonedas = useCallback(async () => {
     try {
       const response = await clienteAxios.get('/monedas');
-      setMonedas(response.data.docs || []);
+      console.log('Respuesta de monedas:', response.data);
+      const monedasData = response.data.docs || [];
+      console.log('Monedas procesadas:', monedasData);
+      setMonedas(monedasData);
     } catch (error) {
       console.error('Error al cargar monedas:', error);
+      enqueueSnackbar('Error al cargar monedas', { variant: 'error' });
     }
-  }, []);
+  }, [enqueueSnackbar]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -90,14 +97,28 @@ export function Cuentas() {
 
   const handleFormSubmit = async (formData) => {
     try {
-      const response = await clienteAxios.post('/cuentas', formData);
+      console.log('Datos a enviar:', formData);
+      
+      const datosAEnviar = {
+        nombre: formData.nombre,
+        numero: formData.numero,
+        tipo: formData.tipo,
+        moneda: formData.monedaId // Cambiado de monedaId a moneda para coincidir con el backend
+      };
+
+      console.log('Datos procesados:', datosAEnviar);
+      
+      const response = await clienteAxios.post('/cuentas', datosAEnviar);
+      console.log('Respuesta del servidor:', response.data);
+      
       setCuentas(prev => [...prev, response.data]);
       setExpandedMonedas(prev => [...new Set([...prev, response.data.moneda?.id])]);
       setIsFormOpen(false);
       enqueueSnackbar('Cuenta creada exitosamente', { variant: 'success' });
     } catch (error) {
-      console.error('Error al crear cuenta:', error);
-      enqueueSnackbar('Error al crear la cuenta', { variant: 'error' });
+      console.error('Error completo:', error.response?.data || error);
+      const mensajeError = error.response?.data?.error || 'Error al crear la cuenta';
+      enqueueSnackbar(mensajeError, { variant: 'error' });
     }
   };
 
@@ -168,17 +189,34 @@ export function Cuentas() {
   };
 
   const getCuentasAgrupadasPorMoneda = () => {
-    return cuentas.reduce((grupos, cuenta) => {
-      const monedaId = cuenta.moneda?.id;
+    console.log('Cuentas actuales:', cuentas);
+    console.log('Monedas actuales:', monedas);
+
+    const grupos = cuentas.reduce((grupos, cuenta) => {
+      const monedaId = cuenta.moneda;
+      const moneda = monedas.find(m => m._id === monedaId || m.id === monedaId);
+      
+      if (!moneda) {
+        console.log('Moneda no encontrada para cuenta:', cuenta);
+        return grupos;
+      }
+
       if (!grupos[monedaId]) {
         grupos[monedaId] = {
-          moneda: cuenta.moneda,
+          moneda: moneda,
           cuentas: []
         };
       }
-      grupos[monedaId].cuentas.push(cuenta);
+      grupos[monedaId].cuentas.push({
+        ...cuenta,
+        id: cuenta._id || cuenta.id,
+        saldo: cuenta.saldo || 0
+      });
       return grupos;
     }, {});
+
+    console.log('Grupos procesados:', grupos);
+    return grupos;
   };
 
   return (
@@ -213,95 +251,101 @@ export function Cuentas() {
       
       {cuentas.length === 0 ? (
         <Box sx={{ p: 2, bgcolor: 'background.default', borderRadius: 1, boxShadow: 1 }}>
-          <EmptyState />
+          <EmptyState onAdd={() => setIsFormOpen(true)} />
         </Box>
       ) : (
         <Box sx={{ mt: 3 }}>
-          {Object.values(getCuentasAgrupadasPorMoneda()).map((grupo) => (
-            <Paper 
-              key={grupo.moneda?.id} 
-              sx={{ mb: 2, overflow: 'hidden' }}
-            >
-              <Box sx={{ 
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                px: 2,
-                py: 1,
-                bgcolor: 'background.default',
-                borderBottom: 1,
-                borderColor: 'divider'
-              }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  {grupo.moneda?.nombre} ({grupo.moneda?.simbolo})
-                </Typography>
-                <IconButton
-                  size="small"
-                  onClick={() => handleMonedaToggle(grupo.moneda?.id)}
-                  sx={{
-                    transform: expandedMonedas.includes(grupo.moneda?.id) ? 
-                      'rotate(180deg)' : 'rotate(0deg)',
-                    transition: 'transform 0.2s',
-                    p: 0.5
-                  }}
-                >
-                  <ExpandMoreIcon sx={{ fontSize: 18 }} />
-                </IconButton>
-              </Box>
+          {Object.values(getCuentasAgrupadasPorMoneda()).map((grupo) => {
+            console.log('Renderizando grupo:', grupo);
+            return (
+              <Paper 
+                key={grupo.moneda._id || grupo.moneda.id} 
+                sx={{ mb: 2, overflow: 'hidden' }}
+              >
+                <Box sx={{ 
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  px: 2,
+                  py: 1,
+                  bgcolor: 'background.default',
+                  borderBottom: 1,
+                  borderColor: 'divider'
+                }}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    {grupo.moneda.nombre} ({grupo.moneda.simbolo})
+                  </Typography>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleMonedaToggle(grupo.moneda._id || grupo.moneda.id)}
+                    sx={{
+                      transform: expandedMonedas.includes(grupo.moneda._id || grupo.moneda.id) ? 
+                        'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s',
+                      p: 0.5
+                    }}
+                  >
+                    <ExpandMoreIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </Box>
 
-              {expandedMonedas.includes(grupo.moneda?.id) && (
-                <Box>
-                  {grupo.cuentas.map((cuenta) => (
-                    <Box
-                      key={cuenta.id}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        px: 2,
-                        py: 1,
-                        borderBottom: 1,
-                        borderColor: 'divider',
-                        '&:last-child': {
-                          borderBottom: 0
-                        }
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {getTipoIcon(cuenta.tipo)}
-                        <Typography variant="body2">
-                          {cuenta.nombre}
-                        </Typography>
-                        <Chip 
-                          label={cuenta.tipo.replace('_', ' ')}
-                          size="small"
-                          variant="outlined"
-                          sx={{ 
-                            height: 20,
-                            '& .MuiChip-label': {
-                              px: 1,
-                              fontSize: '0.75rem'
+                {expandedMonedas.includes(grupo.moneda._id || grupo.moneda.id) && (
+                  <Box>
+                    {grupo.cuentas.map((cuenta) => {
+                      console.log('Renderizando cuenta:', cuenta);
+                      return (
+                        <Box
+                          key={cuenta._id || cuenta.id}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            px: 2,
+                            py: 1,
+                            borderBottom: 1,
+                            borderColor: 'divider',
+                            '&:last-child': {
+                              borderBottom: 0
                             }
                           }}
-                        />
-                      </Box>
-                      <Typography 
-                        variant="body2" 
-                        sx={{ 
-                          color: cuenta.saldo >= 0 ? 'success.main' : 'error.main'
-                        }}
-                      >
-                        {showValues 
-                          ? `${cuenta.moneda?.simbolo} ${cuenta.saldo?.toFixed(2) || '0.00'}`
-                          : '****'
-                        }
-                      </Typography>
-                    </Box>
-                  ))}
-                </Box>
-              )}
-            </Paper>
-          ))}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            {getTipoIcon(cuenta.tipo)}
+                            <Typography variant="body2">
+                              {cuenta.nombre}
+                            </Typography>
+                            <Chip 
+                              label={cuenta.tipo ? cuenta.tipo.replace('_', ' ') : 'N/A'}
+                              size="small"
+                              variant="outlined"
+                              sx={{ 
+                                height: 20,
+                                '& .MuiChip-label': {
+                                  px: 1,
+                                  fontSize: '0.75rem'
+                                }
+                              }}
+                            />
+                          </Box>
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              color: (cuenta.saldo || 0) >= 0 ? 'success.main' : 'error.main'
+                            }}
+                          >
+                            {showValues 
+                              ? `${grupo.moneda.simbolo} ${(cuenta.saldo || 0).toFixed(2)}`
+                              : '****'
+                            }
+                          </Typography>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                )}
+              </Paper>
+            );
+          })}
         </Box>
       )}
     </Container>
