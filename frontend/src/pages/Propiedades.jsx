@@ -141,13 +141,22 @@ export function Propiedades() {
     try {
       console.log('Enviando datos:', formData);
       
+      // Convertir campos numéricos
+      const dataToSend = {
+        ...formData,
+        precio: Number(formData.precio),
+        numHabitaciones: Number(formData.numHabitaciones),
+        banos: Number(formData.banos),
+        metrosCuadrados: Number(formData.metrosCuadrados)
+      };
+      
       let response;
       if (editingPropiedad) {
-        response = await clienteAxios.put(`/propiedades/${editingPropiedad.id}`, formData);
+        response = await clienteAxios.put(`/propiedades/${editingPropiedad.id}`, dataToSend);
         setPropiedades(prev => prev.map(p => p.id === editingPropiedad.id ? response.data : p));
         enqueueSnackbar('Propiedad actualizada exitosamente', { variant: 'success' });
       } else {
-        response = await clienteAxios.post('/propiedades', formData);
+        response = await clienteAxios.post('/propiedades', dataToSend);
         setPropiedades(prev => [...prev, response.data]);
         enqueueSnackbar('Propiedad creada exitosamente', { variant: 'success' });
       }
@@ -156,7 +165,7 @@ export function Propiedades() {
       fetchPropiedades();
     } catch (error) {
       console.error('Error al crear propiedad:', error);
-      enqueueSnackbar('Error al guardar la propiedad', { variant: 'error' });
+      enqueueSnackbar(error.response?.data?.error || 'Error al guardar la propiedad', { variant: 'error' });
     }
   };
 

@@ -11,6 +11,31 @@ class PropiedadesController extends BaseController {
     this.getStats = this.getStats.bind(this);
     this.getAllAdmin = this.getAllAdmin.bind(this);
     this.updateStatus = this.updateStatus.bind(this);
+    this.create = this.create.bind(this);
+  }
+
+  // Sobreescribimos el método create para asignar el usuario
+  async create(req, res) {
+    try {
+      const data = {
+        ...req.body,
+        usuario: req.user.id,
+        moneda: req.body.monedaId,
+        cuenta: req.body.cuentaId
+      };
+
+      const propiedad = await this.Model.create(data);
+      const populatedPropiedad = await this.Model.findById(propiedad._id)
+        .populate(['moneda', 'cuenta']);
+
+      res.status(201).json(populatedPropiedad);
+    } catch (error) {
+      console.error('Error al crear propiedad:', error);
+      res.status(400).json({ 
+        error: 'Error al crear propiedad',
+        details: error.message 
+      });
+    }
   }
 
   // GET /api/propiedades/stats

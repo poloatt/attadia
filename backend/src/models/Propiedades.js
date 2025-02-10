@@ -4,26 +4,46 @@ import { createSchema, commonFields } from './BaseSchema.js';
 const propiedadSchema = createSchema({
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    ref: 'User',
+    required: true
   },
-  nombre: {
+  titulo: {
     type: String,
     required: true,
     trim: true
+  },
+  descripcion: {
+    type: String,
+    required: true
   },
   direccion: {
     type: String,
     required: true
   },
-  tipo: {
+  ciudad: {
     type: String,
-    enum: ['CASA', 'DEPARTAMENTO', 'LOCAL', 'OFICINA', 'OTRO'],
     required: true
   },
   estado: {
     type: String,
-    enum: ['DISPONIBLE', 'OCUPADA', 'EN_MANTENIMIENTO'],
-    default: 'DISPONIBLE'
+    required: true
+  },
+  tipo: {
+    type: String,
+    enum: ['CASA', 'DEPARTAMENTO', 'OFICINA', 'LOCAL', 'TERRENO'],
+    required: true
+  },
+  numHabitaciones: {
+    type: Number,
+    required: true
+  },
+  banos: {
+    type: Number,
+    required: true
+  },
+  metrosCuadrados: {
+    type: Number,
+    required: true
   },
   precio: {
     type: Number,
@@ -39,9 +59,7 @@ const propiedadSchema = createSchema({
     ref: 'Cuentas',
     required: true
   },
-  descripcion: String,
-  caracteristicas: [String],
-  imagenes: [String],
+  imagen: String,
   ...commonFields
 });
 
