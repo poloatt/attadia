@@ -198,8 +198,8 @@ export function Transacciones() {
         fecha: formData.fecha || new Date().toISOString().split('T')[0],
         categoria: formData.categoria,
         estado: formData.estado || 'PENDIENTE',
-        moneda: monedaSeleccionada._id,
-        cuenta: cuentaSeleccionada._id,
+        moneda: formData.monedaId,
+        cuenta: formData.cuentaId,
         tipo: formData.tipo || 'INGRESO'
       };
 

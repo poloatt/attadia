@@ -1,17 +1,55 @@
 import mongoose from 'mongoose';
 import { createSchema, commonFields } from './BaseSchema.js';
+import './Monedas.js'; // Aseguramos que el modelo Monedas se registre primero
 
 const cuentaSchema = createSchema({
+  nombre: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  numero: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  tipo: {
+    type: String,
+    required: true,
+    enum: ['EFECTIVO', 'BANCO', 'MERCADO_PAGO', 'CRIPTO', 'OTRO'],
+    default: 'OTRO'
+  },
+  saldo: {
+    type: Number,
+    default: 0
+  },
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Users'
+    ref: 'Users',
+    required: true
   },
   moneda: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Monedas',
     required: true
   },
+  activo: {
+    type: Boolean,
+    default: true
+  },
+  metadata: {
+    type: Map,
+    of: mongoose.Schema.Types.Mixed,
+    default: () => ({})
+  },
   ...commonFields
 });
 
-export const Cuentas = mongoose.model('Cuentas', cuentaSchema); 
+// Middleware para poblar referencias
+cuentaSchema.pre(['find', 'findOne', 'findById'], function() {
+  this.populate('moneda');
+});
+
+const Cuentas = mongoose.model('Cuentas', cuentaSchema);
+
+export { Cuentas }; 

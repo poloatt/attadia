@@ -149,6 +149,9 @@ class TransaccionesController extends BaseController {
   // POST /api/transacciones
   create = async (req, res) => {
     try {
+      console.log('Creando transacción con datos:', req.body);
+      console.log('Usuario actual:', req.user);
+
       // Validar que la cuenta exista y pertenezca al usuario
       const cuenta = await Cuentas.findOne({
         _id: req.body.cuenta,
@@ -156,18 +159,32 @@ class TransaccionesController extends BaseController {
       });
 
       if (!cuenta) {
+        console.log('Cuenta no encontrada o no pertenece al usuario');
         return res.status(404).json({ message: 'Cuenta no encontrada' });
       }
+
+      console.log('Cuenta encontrada:', cuenta);
 
       const transaccion = new this.Model({
         ...req.body,
         usuario: req.user.id
       });
 
+      console.log('Transacción a guardar:', transaccion);
+
       await transaccion.save();
+      console.log('Transacción guardada exitosamente');
+      
       res.status(201).json(transaccion);
     } catch (error) {
-      res.status(400).json({ error: error.message });
+      console.error('Error al crear transacción:', error);
+      if (error.name === 'ValidationError') {
+        return res.status(400).json({ 
+          message: 'Error de validación', 
+          errors: Object.values(error.errors).map(e => e.message)
+        });
+      }
+      res.status(500).json({ message: error.message });
     }
   };
 

@@ -7,7 +7,8 @@ import {
   Avatar,
   Container,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Button
 } from '@mui/material';
 import { 
   AddOutlined,
@@ -41,6 +42,7 @@ const EntityToolbar = ({
   entityName = '',
   showValues,
   onToggleValues,
+  additionalActions = []
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -227,7 +229,7 @@ const EntityToolbar = ({
             )}
           </Box>
 
-          {/* Sección central - Mover el ícono de la página actual al centro */}
+          {/* Sección central */}
           <Box sx={{ 
             display: 'flex',
             alignItems: 'center',
@@ -239,11 +241,10 @@ const EntityToolbar = ({
             flex: 1,
             overflow: 'auto'
           }}>
-            {/* Calcular la cantidad de íconos de navegación */}
+            {/* Íconos de navegación a la izquierda */}
             {navigationItems.length > 0 && (
-              <>
-                {/* Íconos de navegación a la izquierda */}
-                {navigationItems.slice(0, Math.floor(navigationItems.length / 2)).map((item) => (
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                {navigationItems.slice(0, Math.ceil(navigationItems.length / 2)).map((item) => (
                   <Tooltip key={item.to} title={item.label}>
                     <IconButton
                       onClick={() => navigate(item.to)}
@@ -253,30 +254,29 @@ const EntityToolbar = ({
                         '&:hover': { color: 'text.primary' }
                       }}
                     >
-                      {React.cloneElement(item.icon, { 
-                        sx: { fontSize: 18 } 
-                      })}
+                      {React.cloneElement(item.icon, { fontSize: 'small' })}
                     </IconButton>
                   </Tooltip>
                 ))}
-                
-                {/* Ícono de la página actual */}
-                {getCurrentPageIcon() && (
-                  <IconButton
-                    size="small"
-                    sx={{
-                      color: 'text.secondary'
-                    }}
-                    disabled
-                  >
-                    {React.cloneElement(getCurrentPageIcon(), { 
-                      sx: { fontSize: 18 } 
-                    })}
-                  </IconButton>
-                )}
+              </Box>
+            )}
 
-                {/* Íconos de navegación a la derecha */}
-                {navigationItems.slice(Math.floor(navigationItems.length / 2)).map((item) => (
+            {/* Ícono de la página actual */}
+            {getCurrentPageIcon() && (
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center',
+                color: 'text.primary',
+                mx: 1 // Margen horizontal para separación
+              }}>
+                {React.cloneElement(getCurrentPageIcon(), { fontSize: 'small' })}
+              </Box>
+            )}
+
+            {/* Íconos de navegación a la derecha */}
+            {navigationItems.length > 0 && (
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                {navigationItems.slice(Math.ceil(navigationItems.length / 2)).map((item) => (
                   <Tooltip key={item.to} title={item.label}>
                     <IconButton
                       onClick={() => navigate(item.to)}
@@ -286,13 +286,11 @@ const EntityToolbar = ({
                         '&:hover': { color: 'text.primary' }
                       }}
                     >
-                      {React.cloneElement(item.icon, { 
-                        sx: { fontSize: 18 } 
-                      })}
+                      {React.cloneElement(item.icon, { fontSize: 'small' })}
                     </IconButton>
                   </Tooltip>
                 ))}
-              </>
+              </Box>
             )}
           </Box>
 
@@ -304,14 +302,53 @@ const EntityToolbar = ({
               xs: 0.5,
               sm: 1
             },
-            width: {
+            justifyContent: 'flex-end',
+            minWidth: {
               xs: 48,
               sm: 72
             }
           }}>
+            {/* Botones adicionales */}
+            {additionalActions?.map((action, index) => (
+              <Tooltip key={index} title={action.tooltip || action.label}>
+                <Button
+                  onClick={action.onClick}
+                  size="small"
+                  variant="outlined"
+                  color={action.color || 'primary'}
+                  sx={{
+                    minWidth: 'auto',
+                    px: 1,
+                    py: 0.5,
+                    fontSize: '0.75rem',
+                    borderRadius: 1
+                  }}
+                >
+                  {action.label}
+                </Button>
+              </Tooltip>
+            ))}
+
+            {/* Botón de mostrar/ocultar valores si está habilitado */}
+            {typeof onToggleValues === 'function' && (
+              <Tooltip title={showValues ? 'Ocultar valores' : 'Mostrar valores'}>
+                <IconButton
+                  onClick={onToggleValues}
+                  size="small"
+                  sx={{
+                    color: 'text.secondary',
+                    '&:hover': { color: 'text.primary' }
+                  }}
+                >
+                  {showValues ? <HideValuesIcon sx={{ fontSize: 18 }} /> : <ShowValuesIcon sx={{ fontSize: 18 }} />}
+                </IconButton>
+              </Tooltip>
+            )}
+
+            {/* Botón de agregar si está habilitado */}
             {showAddButton && (
-              <Tooltip title={`Agregar ${entityName}`}>
-                <IconButton 
+              <Tooltip title={`Agregar ${entityConfig.name || ''}`}>
+                <IconButton
                   onClick={handleAdd}
                   size="small"
                   sx={{
@@ -323,31 +360,17 @@ const EntityToolbar = ({
                 </IconButton>
               </Tooltip>
             )}
-            {/* Botón mostrar/ocultar valores */}
-            <IconButton 
-              size="small" 
-              onClick={onToggleValues}
-              sx={{ 
-                color: 'text.secondary',
-                '&:hover': { color: 'text.primary' }
-              }}
-            >
-              {showValues ? <ShowValuesIcon /> : <HideValuesIcon />}
-            </IconButton>
           </Box>
         </Box>
       </Container>
 
-      {/* Form Modal */}
-      {openForm && (
-        <EntityForm
-          open={openForm}
-          onClose={() => setOpenForm(false)}
-          onSubmit={handleSubmit}
-          title={`Nuevo ${entityConfig.name}`}
-          fields={entityConfig.fields}
-        />
-      )}
+      <EntityForm
+        open={openForm}
+        onClose={() => setOpenForm(false)}
+        onSubmit={handleSubmit}
+        title={`Nuevo ${entityConfig.name}`}
+        fields={entityConfig.fields}
+      />
     </Box>
   );
 };

@@ -5,9 +5,8 @@ const monedaSchema = createSchema({
   codigo: {
     type: String,
     required: true,
-    unique: true,
-    uppercase: true,
-    trim: true
+    trim: true,
+    unique: true
   },
   nombre: {
     type: String,
@@ -19,16 +18,18 @@ const monedaSchema = createSchema({
     required: true,
     trim: true
   },
-  tasaCambio: {
-    type: Number,
-    required: true,
-    default: 1
-  },
   activa: {
     type: Boolean,
     default: true
   },
+  metadata: {
+    type: Map,
+    of: mongoose.Schema.Types.Mixed,
+    default: () => ({})
+  },
   ...commonFields
 });
 
-export const Monedas = mongoose.model('Moneda', monedaSchema); 
+const Monedas = mongoose.model('Monedas', monedaSchema);
+
+export { Monedas }; 

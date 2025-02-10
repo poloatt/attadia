@@ -9,17 +9,16 @@ router.use(checkAuth);
 
 // Rutas base del controlador
 router.get('/', transaccionesController.getAll);
-router.get('/select-options', transaccionesController.getSelectOptions);
-router.get('/:id', transaccionesController.getById);
 router.post('/', transaccionesController.create);
+router.get('/:id', transaccionesController.getById);
 router.put('/:id', transaccionesController.update);
 router.delete('/:id', transaccionesController.delete);
-router.patch('/:id/toggle-active', transaccionesController.toggleActive);
 
-// Rutas específicas
-router.get('/cuenta/:cuentaId', transaccionesController.getByCuenta);
+// Rutas adicionales
+router.get('/stats', transaccionesController.getStats);
 router.get('/balance/:cuentaId', transaccionesController.getBalance);
-router.get('/resumen', transaccionesController.getResumen);
+router.get('/by-cuenta/:cuentaId', transaccionesController.getByCuenta);
 router.patch('/:id/estado', transaccionesController.updateEstado);
+router.get('/resumen', transaccionesController.getResumen);
 
 export default router; 

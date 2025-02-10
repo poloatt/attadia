@@ -35,11 +35,26 @@ export function Cuentas() {
     try {
       console.log('Solicitando cuentas...');
       const response = await clienteAxios.get('/cuentas');
-      console.log('Respuesta completa de cuentas:', response);
+      console.log('Respuesta de cuentas:', response.data);
 
       // Asegurarnos de que tenemos datos válidos
-      const cuentasData = response.data?.docs || response.data || [];
-      const cuentasProcesadas = Array.isArray(cuentasData) ? cuentasData : [];
+      let cuentasData = response.data?.docs || response.data || [];
+      
+      // Si no es un array, intentar extraer los datos de otra propiedad
+      if (!Array.isArray(cuentasData)) {
+        console.log('Datos de cuentas no es un array, intentando extraer de:', cuentasData);
+        cuentasData = cuentasData.data || cuentasData.items || [];
+      }
+
+      const cuentasProcesadas = cuentasData.map(cuenta => ({
+        ...cuenta,
+        id: cuenta._id || cuenta.id,
+        nombre: cuenta.nombre || 'Sin nombre',
+        numero: cuenta.numero || '',
+        tipo: cuenta.tipo || 'OTRO',
+        saldo: cuenta.saldo || 0,
+        moneda: cuenta.moneda?._id || cuenta.moneda?.id || cuenta.moneda
+      }));
 
       console.log('Cuentas procesadas:', cuentasProcesadas);
       setCuentas(cuentasProcesadas);
@@ -86,14 +101,22 @@ export function Cuentas() {
   }, [enqueueSnackbar]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      await Promise.all([
-        fetchCuentas(),
-        fetchMonedas()
-      ]);
+    const initData = async () => {
+      try {
+        await fetchMonedas();
+        const cuentasData = await fetchCuentas();
+        
+        // Establecer los IDs de las monedas como expandidos
+        const monedasIds = [...new Set(cuentasData.map(cuenta => cuenta.moneda?.id))];
+        console.log('Monedas expandidas:', monedasIds);
+        setExpandedMonedas(monedasIds);
+      } catch (error) {
+        console.error('Error en la carga inicial:', error);
+      }
     };
-    fetchData();
-  }, [fetchCuentas, fetchMonedas]);
+
+    initData();
+  }, [fetchMonedas, fetchCuentas]);
 
   useEffect(() => {
     if (cuentas.length > 0) {
@@ -104,10 +127,6 @@ export function Cuentas() {
       });
     }
   }, [cuentas]);
-
-  useEffect(() => {
-    fetchMonedas();
-  }, [fetchMonedas]);
 
   console.log(monedas);
 
@@ -126,63 +145,91 @@ export function Cuentas() {
   };
 
   const handleEdit = useCallback((cuenta) => {
-    setEditingCuenta(cuenta);
+    const monedaId = cuenta.moneda?._id || cuenta.moneda?.id || cuenta.moneda;
+    setEditingCuenta({
+      ...cuenta,
+      monedaId: monedaId
+    });
     setIsFormOpen(true);
   }, []);
 
-  const handleDelete = useCallback(async (cuentaId) => {
+  const handleDelete = useCallback(async (id) => {
     try {
-      await clienteAxios.delete(`/cuentas/${cuentaId}`);
-      setCuentas(prev => prev.filter(c => c.id !== cuentaId));
-      enqueueSnackbar('Cuenta eliminada exitosamente', { variant: 'success' });
+      console.log('Intentando eliminar cuenta con ID:', id);
+      
+      if (!id) {
+        console.error('ID de cuenta no válido:', id);
+        enqueueSnackbar('Error: ID de cuenta no válido', { variant: 'error' });
+        return;
+      }
+
+      const response = await clienteAxios.delete(`/cuentas/${id}`);
+      console.log('Respuesta de eliminación:', response);
+
+      if (response.status === 200) {
+        setCuentas(prev => prev.filter(c => (c._id !== id && c.id !== id)));
+        enqueueSnackbar('Cuenta eliminada exitosamente', { variant: 'success' });
+      } else {
+        throw new Error('Error al eliminar la cuenta');
+      }
     } catch (error) {
       console.error('Error al eliminar cuenta:', error);
-      enqueueSnackbar('Error al eliminar la cuenta', { variant: 'error' });
+      console.error('Detalles del error:', error.response?.data);
+      enqueueSnackbar(
+        error.response?.data?.error || 'Error al eliminar la cuenta', 
+        { variant: 'error' }
+      );
     }
   }, [enqueueSnackbar]);
 
-  const handleFormSubmit = async (formData) => {
+  const handleFormSubmit = useCallback(async (formData) => {
     try {
-      console.log('Datos del formulario recibidos:', formData);
+      console.log('Enviando datos del formulario:', formData);
       
+      // Asegurarnos de que tenemos un ID de moneda válido
+      const monedaId = formData.monedaId;
+      if (!monedaId) {
+        enqueueSnackbar('Error: Debe seleccionar una moneda', { variant: 'error' });
+        return;
+      }
+
       const datosAEnviar = {
-        nombre: formData.nombre,
-        numero: formData.numero,
+        nombre: formData.nombre?.trim(),
+        numero: formData.numero?.trim(),
         tipo: formData.tipo,
-        moneda: formData.monedaId
+        moneda: monedaId, // Asegurarnos de enviar el ID de la moneda
+        activo: true,
+        ...(editingCuenta ? { _id: editingCuenta?._id || editingCuenta?.id } : {})
       };
 
-      console.log('Datos a enviar al servidor:', datosAEnviar);
-      
+      console.log('Datos procesados para enviar:', datosAEnviar);
+
       let response;
       if (editingCuenta) {
-        response = await clienteAxios.put(`/cuentas/${editingCuenta.id}`, datosAEnviar);
-        setCuentas(prev => prev.map(c => 
-          c.id === editingCuenta.id ? response.data : c
-        ));
+        response = await clienteAxios.put(`/cuentas/${editingCuenta._id || editingCuenta.id}`, datosAEnviar);
       } else {
         response = await clienteAxios.post('/cuentas', datosAEnviar);
-        setCuentas(prev => [...prev, response.data]);
       }
 
       console.log('Respuesta del servidor:', response.data);
       
-      setExpandedMonedas(prev => [...new Set([...prev, response.data.moneda])]);
       setIsFormOpen(false);
       setEditingCuenta(null);
       enqueueSnackbar(
-        editingCuenta ? 'Cuenta actualizada exitosamente' : 'Cuenta creada exitosamente', 
+        editingCuenta ? 'Cuenta actualizada exitosamente' : 'Cuenta creada exitosamente',
         { variant: 'success' }
       );
-      
+
+      // Recargar datos
       await fetchCuentas();
+      await fetchMonedas();
     } catch (error) {
-      console.error('Error completo:', error.response?.data || error);
-      const mensajeError = error.response?.data?.error || 
-        (editingCuenta ? 'Error al actualizar la cuenta' : 'Error al crear la cuenta');
-      enqueueSnackbar(mensajeError, { variant: 'error' });
+      console.error('Error al guardar cuenta:', error);
+      const errorMessage = error.response?.data?.error || 'Error al guardar la cuenta';
+      console.error('Mensaje de error:', errorMessage);
+      enqueueSnackbar(errorMessage, { variant: 'error' });
     }
-  };
+  }, [editingCuenta, enqueueSnackbar, fetchCuentas, fetchMonedas]);
 
   const handleCloseForm = useCallback(() => {
     setIsFormOpen(false);
@@ -230,7 +277,7 @@ export function Cuentas() {
       type: 'select',
       required: true,
       options: monedas.map(m => ({
-        value: m.id,
+        value: m._id || m.id,
         label: `${m.nombre} (${m.simbolo})`
       })),
       onCreateNew: handleCreateMoneda,
@@ -259,35 +306,15 @@ export function Cuentas() {
     console.log('Cuentas actuales:', cuentas);
     console.log('Monedas actuales:', monedas);
 
-    // Si no hay monedas cargadas, crear un grupo "Sin moneda"
-    if (monedas.length === 0) {
-      return {
-        'sin-moneda': {
-          moneda: {
-            nombre: 'Sin moneda asignada',
-            simbolo: '$',
-            _id: 'sin-moneda'
-          },
-          cuentas: cuentas.map(cuenta => ({
-            ...cuenta,
-            id: cuenta._id || cuenta.id,
-            saldo: cuenta.saldo || 0,
-            tipo: cuenta.tipo || 'OTRO',
-            nombre: cuenta.nombre || 'Sin nombre'
-          }))
-        }
-      };
-    }
-
-    const grupos = cuentas.reduce((grupos, cuenta) => {
+    return cuentas.reduce((grupos, cuenta) => {
       // Usar let en lugar de const para poder reasignar
-      let grupoId = cuenta.moneda;
-      let moneda = monedas.find(m => m._id === cuenta.moneda || m.id === cuenta.moneda);
+      let monedaId = cuenta.moneda?._id || cuenta.moneda;
+      let moneda = monedas.find(m => m._id === monedaId || m.id === monedaId);
       
       // Si no se encuentra la moneda, asignar a grupo "sin moneda"
       if (!moneda) {
         console.log('Moneda no encontrada para cuenta:', cuenta);
-        grupoId = 'sin-moneda';
+        monedaId = 'sin-moneda';
         moneda = {
           nombre: 'Sin moneda asignada',
           simbolo: '$',
@@ -295,8 +322,8 @@ export function Cuentas() {
         };
       }
 
-      if (!grupos[grupoId]) {
-        grupos[grupoId] = {
+      if (!grupos[monedaId]) {
+        grupos[monedaId] = {
           moneda: moneda,
           cuentas: []
         };
@@ -307,16 +334,14 @@ export function Cuentas() {
         id: cuenta._id || cuenta.id,
         saldo: cuenta.saldo || 0,
         tipo: cuenta.tipo || 'OTRO',
-        nombre: cuenta.nombre || 'Sin nombre'
+        nombre: cuenta.nombre || 'Sin nombre',
+        moneda: monedaId
       };
 
       console.log('Cuenta procesada:', cuentaProcesada);
-      grupos[grupoId].cuentas.push(cuentaProcesada);
+      grupos[monedaId].cuentas.push(cuentaProcesada);
       return grupos;
     }, {});
-
-    console.log('Grupos procesados:', grupos);
-    return grupos;
   };
 
   return (
@@ -339,17 +364,18 @@ export function Cuentas() {
         onToggleValues={() => setShowValues(!showValues)}
       />
       
-      {isFormOpen && (
-        <EntityForm
-          open={isFormOpen}
-          onClose={handleCloseForm}
-          onSubmit={handleFormSubmit}
-          fields={formFields}
-          title="Cuenta"
-          initialData={editingCuenta || {}}
-          isEditing={!!editingCuenta}
-        />
-      )}
+      <EntityForm
+        open={isFormOpen}
+        onClose={() => {
+          setIsFormOpen(false);
+          setEditingCuenta(null);
+        }}
+        onSubmit={handleFormSubmit}
+        title={editingCuenta ? 'Editar Cuenta' : 'Nueva Cuenta'}
+        fields={formFields}
+        initialData={editingCuenta || {}}
+        isEditing={!!editingCuenta}
+      />
       
       <Box sx={{ mt: 3 }}>
         {cuentas.length === 0 ? (
