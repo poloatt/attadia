@@ -12,29 +12,75 @@ class InquilinosController extends BaseController {
     this.getAllAdmin = this.getAllAdmin.bind(this);
     this.getAdminStats = this.getAdminStats.bind(this);
     this.updateStatus = this.updateStatus.bind(this);
+    this.create = this.create.bind(this);
+    this.getAll = this.getAll.bind(this);
+  }
+
+  // Método auxiliar para formatear la respuesta
+  formatResponse(doc) {
+    if (!doc) return null;
+    const formatted = doc.toObject ? doc.toObject() : doc;
+    return {
+      ...formatted,
+      id: formatted._id,
+      propiedadId: formatted.propiedad?._id || formatted.propiedad,
+      contratoId: formatted.contrato?._id || formatted.contrato
+    };
+  }
+
+  // GET /api/inquilinos
+  async getAll(req, res) {
+    try {
+      console.log('Obteniendo inquilinos...');
+      const result = await this.Model.paginate(
+        {},
+        {
+          populate: ['propiedad', 'contrato'],
+          sort: { createdAt: 'desc' }
+        }
+      );
+
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      console.log('Inquilinos encontrados:', docs.length);
+      res.json({ ...result, docs });
+    } catch (error) {
+      console.error('Error al obtener inquilinos:', error);
+      res.status(500).json({ error: 'Error al obtener inquilinos' });
+    }
+  }
+
+  // Sobreescribimos el método create
+  async create(req, res) {
+    try {
+      console.log('Creando inquilino:', req.body);
+      const inquilino = await this.Model.create(req.body);
+      const populatedInquilino = await this.Model.findById(inquilino._id)
+        .populate(['propiedad', 'contrato']);
+
+      console.log('Inquilino creado:', populatedInquilino);
+      res.status(201).json(this.formatResponse(populatedInquilino));
+    } catch (error) {
+      console.error('Error al crear inquilino:', error);
+      res.status(400).json({ 
+        error: 'Error al crear inquilino',
+        details: error.message 
+      });
+    }
   }
 
   // GET /api/inquilinos/activos
   async getActivos(req, res) {
     try {
       const inquilinos = await this.Model.paginate(
+        { estado: 'ACTIVO' },
         {
-          usuario: req.user.id,
-          estado: 'ACTIVO'
-        },
-        {
-          populate: {
-            path: 'contratos',
-            match: { estado: 'ACTIVO' },
-            populate: { 
-              path: 'propiedad habitacion moneda',
-              select: 'nombre numero simbolo'
-            }
-          }
+          populate: ['propiedad', 'contrato'],
+          sort: { createdAt: 'desc' }
         }
       );
       
-      res.json(inquilinos);
+      const docs = inquilinos.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...inquilinos, docs });
     } catch (error) {
       console.error('Error al obtener inquilinos activos:', error);
       res.status(500).json({ error: 'Error al obtener inquilinos activos' });
@@ -47,11 +93,12 @@ class InquilinosController extends BaseController {
       const result = await this.Model.paginate(
         {},
         {
-          populate: 'usuario',
+          populate: ['usuario', 'propiedad', 'contrato'],
           sort: { createdAt: 'desc' }
         }
       );
-      res.json(result);
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...result, docs });
     } catch (error) {
       console.error('Error al obtener todos los inquilinos:', error);
       res.status(500).json({ error: 'Error al obtener todos los inquilinos' });
@@ -64,32 +111,13 @@ class InquilinosController extends BaseController {
       const totalInquilinos = await this.Model.countDocuments();
       const inquilinosActivos = await this.Model.countDocuments({ estado: 'ACTIVO' });
       const inquilinosInactivos = await this.Model.countDocuments({ estado: 'INACTIVO' });
+      const inquilinosPendientes = await this.Model.countDocuments({ estado: 'PENDIENTE' });
       
-      const inquilinosPorUsuario = await this.Model.aggregate([
-        {
-          $group: {
-            _id: '$usuario',
-            count: { $sum: 1 }
-          }
-        },
-        {
-          $lookup: {
-            from: 'users',
-            localField: '_id',
-            foreignField: '_id',
-            as: 'usuario'
-          }
-        },
-        {
-          $unwind: '$usuario'
-        }
-      ]);
-
       res.json({
-        totalInquilinos,
-        inquilinosActivos,
-        inquilinosInactivos,
-        inquilinosPorUsuario
+        total: totalInquilinos,
+        activos: inquilinosActivos,
+        inactivos: inquilinosInactivos,
+        pendientes: inquilinosPendientes
       });
     } catch (error) {
       console.error('Error al obtener estadísticas:', error);
@@ -107,13 +135,13 @@ class InquilinosController extends BaseController {
         id,
         { estado },
         { new: true }
-      ).populate('usuario');
+      ).populate(['propiedad', 'contrato']);
 
       if (!inquilino) {
         return res.status(404).json({ error: 'Inquilino no encontrado' });
       }
 
-      res.json(inquilino);
+      res.json(this.formatResponse(inquilino));
     } catch (error) {
       console.error('Error al actualizar estado:', error);
       res.status(500).json({ error: 'Error al actualizar estado' });

@@ -4,7 +4,7 @@ import { createSchema, commonFields } from './BaseSchema.js';
 const inquilinoSchema = createSchema({
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    ref: 'Users'
   },
   nombre: {
     type: String,
@@ -27,6 +27,15 @@ const inquilinoSchema = createSchema({
     type: String,
     required: true
   },
+  dni: {
+    type: String,
+    required: true
+  },
+  nacionalidad: {
+    type: String,
+    required: true
+  },
+  ocupacion: String,
   documentos: [{
     tipo: String,
     numero: String,
@@ -34,18 +43,16 @@ const inquilinoSchema = createSchema({
   }],
   estado: {
     type: String,
-    enum: ['ACTIVO', 'INACTIVO'],
+    enum: ['ACTIVO', 'INACTIVO', 'PENDIENTE'],
     default: 'ACTIVO'
   },
   propiedad: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Propiedades',
-    required: true
+    ref: 'Propiedades'
   },
   contrato: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Contratos',
-    required: true
+    ref: 'Contratos'
   },
   ...commonFields
 }, {
@@ -56,7 +63,7 @@ const inquilinoSchema = createSchema({
 
 // Middleware para validar que la propiedad coincida con la del contrato
 inquilinoSchema.pre('save', async function(next) {
-  if (this.isNew || this.isModified('contrato') || this.isModified('propiedad')) {
+  if ((this.isNew || this.isModified('contrato') || this.isModified('propiedad')) && this.contrato && this.propiedad) {
     try {
       const Contratos = mongoose.model('Contratos');
       const contrato = await Contratos.findById(this.contrato);
@@ -82,4 +89,4 @@ inquilinoSchema.virtual('contratos', {
   foreignField: 'inquilino'
 });
 
-export const Inquilinos = mongoose.model('Inquilino', inquilinoSchema);
+export const Inquilinos = mongoose.model('Inquilinos', inquilinoSchema);

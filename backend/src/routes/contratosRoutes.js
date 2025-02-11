@@ -2,8 +2,6 @@ import express from 'express';
 import { contratosController } from '../controllers/contratosController.js';
 import { checkAuth } from '../middleware/auth.js';
 import { checkRole } from '../middleware/checkRole.js';
-import { checkOwnership } from '../middleware/checkOwnership.js';
-import { Contratos } from '../models/index.js';
 import { ROLES } from '../config/constants.js';
 
 const router = express.Router();
@@ -11,19 +9,18 @@ const router = express.Router();
 // Todas las rutas requieren autenticación
 router.use(checkAuth);
 
-// Rutas para usuarios autenticados
+// Rutas básicas que solo requieren autenticación
 router.get('/', contratosController.getAll);
 router.get('/activos', contratosController.getActivos);
 router.post('/', contratosController.create);
-
-// Rutas que requieren ser dueño del recurso o admin
-router.get('/:id', [checkOwnership(Contratos)], contratosController.getById);
-router.put('/:id', [checkOwnership(Contratos)], contratosController.update);
-router.delete('/:id', [checkOwnership(Contratos)], contratosController.delete);
+router.get('/:id', contratosController.getById);
+router.put('/:id', contratosController.update);
+router.delete('/:id', contratosController.delete);
+router.get('/propiedad/:propiedadId', contratosController.getAllByPropiedad);
 
 // Rutas administrativas
 router.get('/admin/all', [checkRole([ROLES.ADMIN])], contratosController.getAllAdmin);
-router.put('/admin/:id/status', [checkRole([ROLES.ADMIN])], contratosController.updateStatus);
 router.get('/admin/stats', [checkRole([ROLES.ADMIN])], contratosController.getAdminStats);
+router.put('/admin/:id/status', [checkRole([ROLES.ADMIN])], contratosController.updateStatus);
 
 export default router;

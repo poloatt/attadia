@@ -4,35 +4,49 @@ import { createSchema, commonFields } from './BaseSchema.js';
 const inventarioSchema = createSchema({
   nombre: {
     type: String,
-    required: true
+    required: true,
+    trim: true
   },
-  descripcion: String,
+  descripcion: {
+    type: String,
+    trim: true
+  },
   cantidad: {
     type: Number,
     required: true,
-    default: 0
+    min: 0,
+    default: 1
   },
-  categoria: String,
+  categoria: {
+    type: String,
+    trim: true
+  },
   estado: {
     type: String,
-    enum: ['DISPONIBLE', 'EN_USO', 'MANTENIMIENTO', 'BAJA'],
-    default: 'DISPONIBLE'
+    enum: ['NUEVO', 'BUEN_ESTADO', 'REGULAR', 'MALO', 'REPARACION'],
+    default: 'NUEVO'
   },
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Users',
-    required: true
+    ref: 'Users'
   },
   habitacion: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Habitaciones',
-    required: true
+    ref: 'Habitaciones'
   },
   propiedad: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Propiedades',
-    required: true
+    ref: 'Propiedades'
   },
+  valorEstimado: {
+    type: Number,
+    min: 0
+  },
+  fechaAdquisicion: {
+    type: Date,
+    default: Date.now
+  },
+  notas: String,
   ...commonFields
 }, {
   timestamps: true
@@ -40,7 +54,7 @@ const inventarioSchema = createSchema({
 
 // Middleware para validar que la habitación pertenezca a la propiedad
 inventarioSchema.pre('save', async function(next) {
-  if (this.isNew || this.isModified('habitacion') || this.isModified('propiedad')) {
+  if ((this.isNew || this.isModified('habitacion') || this.isModified('propiedad')) && this.habitacion && this.propiedad) {
     try {
       const Habitaciones = mongoose.model('Habitaciones');
       const habitacion = await Habitaciones.findById(this.habitacion);

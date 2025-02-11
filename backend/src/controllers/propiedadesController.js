@@ -12,6 +12,52 @@ class PropiedadesController extends BaseController {
     this.getAllAdmin = this.getAllAdmin.bind(this);
     this.updateStatus = this.updateStatus.bind(this);
     this.create = this.create.bind(this);
+    this.getAll = this.getAll.bind(this);
+  }
+
+  // Método auxiliar para formatear la respuesta
+  formatResponse(doc) {
+    if (!doc) return null;
+    const formatted = doc.toObject ? doc.toObject() : doc;
+    return {
+      ...formatted,
+      id: formatted._id,
+      monedaId: formatted.moneda?._id || formatted.moneda,
+      cuentaId: formatted.cuenta?._id || formatted.cuenta
+    };
+  }
+
+  // GET /api/propiedades
+  async getAll(req, res) {
+    try {
+      console.log('Usuario actual:', req.user);
+      
+      // Asegurarnos de que tenemos un usuario válido
+      if (!req.user || !req.user.id) {
+        return res.status(401).json({ error: 'Usuario no autenticado' });
+      }
+
+      const query = { usuario: req.user.id };
+      console.log('Query de búsqueda:', query);
+
+      const result = await this.Model.paginate(
+        query,
+        {
+          populate: ['moneda', 'cuenta'],
+          sort: { createdAt: 'desc' }
+        }
+      );
+
+      console.log('Resultado de la búsqueda:', result);
+
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      console.log('Documentos formateados:', docs);
+
+      res.json({ ...result, docs });
+    } catch (error) {
+      console.error('Error al obtener propiedades:', error);
+      res.status(500).json({ error: 'Error al obtener propiedades' });
+    }
   }
 
   // Sobreescribimos el método create para asignar el usuario
@@ -28,7 +74,7 @@ class PropiedadesController extends BaseController {
       const populatedPropiedad = await this.Model.findById(propiedad._id)
         .populate(['moneda', 'cuenta']);
 
-      res.status(201).json(populatedPropiedad);
+      res.status(201).json(this.formatResponse(populatedPropiedad));
     } catch (error) {
       console.error('Error al crear propiedad:', error);
       res.status(400).json({ 
@@ -68,7 +114,9 @@ class PropiedadesController extends BaseController {
           sort: { createdAt: 'desc' }
         }
       );
-      res.json(result);
+
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...result, docs });
     } catch (error) {
       console.error('Error al obtener propiedades:', error);
       res.status(500).json({ error: 'Error al obtener propiedades' });
@@ -89,7 +137,7 @@ class PropiedadesController extends BaseController {
         return res.status(404).json({ error: 'Propiedad no encontrada' });
       }
 
-      res.json(propiedad);
+      res.json(this.formatResponse(propiedad));
     } catch (error) {
       console.error('Error al actualizar estado:', error);
       res.status(500).json({ error: 'Error al actualizar estado' });

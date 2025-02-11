@@ -4,7 +4,7 @@ import { createSchema, commonFields } from './BaseSchema.js';
 const propiedadSchema = createSchema({
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'Users',
     required: true
   },
   titulo: {

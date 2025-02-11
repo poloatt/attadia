@@ -1,23 +1,21 @@
 import express from 'express';
 import { inquilinosController } from '../controllers/inquilinosController.js';
 import { checkAuth } from '../middleware/auth.js';
-import { checkRole, ROLES } from '../middleware/checkRole.js';
-import { checkOwnership } from '../middleware/checkOwnership.js';
-import { Inquilinos } from '../models/index.js';
+import { checkRole } from '../middleware/checkRole.js';
+import { ROLES } from '../config/constants.js';
 
 const router = express.Router();
 
+// Todas las rutas requieren autenticación
 router.use(checkAuth);
 
-// Rutas para usuarios autenticados
+// Rutas básicas que solo requieren autenticación
 router.get('/', inquilinosController.getAll);
 router.get('/activos', inquilinosController.getActivos);
 router.post('/', inquilinosController.create);
-
-// Rutas que requieren ser dueño del recurso o admin
-router.get('/:id', [checkOwnership(Inquilinos)], inquilinosController.getById);
-router.put('/:id', [checkOwnership(Inquilinos)], inquilinosController.update);
-router.delete('/:id', [checkOwnership(Inquilinos)], inquilinosController.delete);
+router.get('/:id', inquilinosController.getById);
+router.put('/:id', inquilinosController.update);
+router.delete('/:id', inquilinosController.delete);
 
 // Rutas administrativas
 router.get('/admin/all', [checkRole([ROLES.ADMIN])], inquilinosController.getAllAdmin);
