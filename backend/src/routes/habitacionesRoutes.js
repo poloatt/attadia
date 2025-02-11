@@ -2,7 +2,6 @@ import express from 'express';
 import { habitacionesController } from '../controllers/habitacionesController.js';
 import { checkAuth } from '../middleware/auth.js';
 import { checkRole } from '../middleware/checkRole.js';
-import { checkOwnership } from '../middleware/checkOwnership.js';
 import { Habitaciones } from '../models/index.js';
 import { ROLES } from '../config/constants.js';
 
@@ -16,10 +15,10 @@ router.get('/', habitacionesController.getAll);
 router.get('/propiedad/:propiedadId', habitacionesController.getAllByPropiedad);
 router.post('/', habitacionesController.create);
 
-// Rutas que requieren ser dueño del recurso o admin
-router.get('/:id', [checkOwnership(Habitaciones)], habitacionesController.getById);
-router.put('/:id', [checkOwnership(Habitaciones)], habitacionesController.update);
-router.delete('/:id', [checkOwnership(Habitaciones)], habitacionesController.delete);
+// Rutas básicas que solo requieren autenticación
+router.get('/:id', habitacionesController.getById);
+router.put('/:id', habitacionesController.update);
+router.delete('/:id', habitacionesController.delete);
 
 // Rutas administrativas
 router.get('/admin/all', [checkRole([ROLES.ADMIN])], habitacionesController.getAllAdmin);

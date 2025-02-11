@@ -11,6 +11,61 @@ class HabitacionesController extends BaseController {
     this.getAllByPropiedad = this.getAllByPropiedad.bind(this);
     this.getAllAdmin = this.getAllAdmin.bind(this);
     this.updateStatus = this.updateStatus.bind(this);
+    this.create = this.create.bind(this);
+    this.delete = this.delete.bind(this);
+  }
+
+  // Método auxiliar para formatear la respuesta
+  formatResponse(doc) {
+    if (!doc) return null;
+    const formatted = doc.toObject ? doc.toObject() : doc;
+    return {
+      ...formatted,
+      id: formatted._id,
+      propiedadId: formatted.propiedad?._id || formatted.propiedad
+    };
+  }
+
+  // GET /api/habitaciones
+  async getAll(req, res) {
+    try {
+      const result = await this.Model.paginate(
+        {},
+        {
+          populate: 'propiedad',
+          sort: { numero: 'asc' }
+        }
+      );
+
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...result, docs });
+    } catch (error) {
+      console.error('Error al obtener habitaciones:', error);
+      res.status(500).json({ error: 'Error al obtener habitaciones' });
+    }
+  }
+
+  // Sobreescribimos el método create para manejar propiedadId
+  async create(req, res) {
+    try {
+      const data = {
+        ...req.body,
+        propiedad: req.body.propiedadId,
+        capacidad: Number(req.body.capacidad)
+      };
+
+      const habitacion = await this.Model.create(data);
+      const populatedHabitacion = await this.Model.findById(habitacion._id)
+        .populate('propiedad');
+
+      res.status(201).json(this.formatResponse(populatedHabitacion));
+    } catch (error) {
+      console.error('Error al crear habitación:', error);
+      res.status(400).json({ 
+        error: 'Error al crear habitación',
+        details: error.message 
+      });
+    }
   }
 
   // GET /api/habitaciones/propiedad/:propiedadId
@@ -24,7 +79,9 @@ class HabitacionesController extends BaseController {
           sort: { numero: 'asc' }
         }
       );
-      res.json(result);
+
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...result, docs });
     } catch (error) {
       console.error('Error al obtener habitaciones:', error);
       res.status(500).json({ error: 'Error al obtener habitaciones' });
@@ -59,16 +116,33 @@ class HabitacionesController extends BaseController {
         req.params.id,
         { estado },
         { new: true }
-      ).populate('propiedad', 'nombre direccion');
+      ).populate('propiedad');
 
       if (!habitacion) {
         return res.status(404).json({ error: 'Habitación no encontrada' });
       }
 
-      res.json(habitacion);
+      res.json(this.formatResponse(habitacion));
     } catch (error) {
       console.error('Error al actualizar estado:', error);
       res.status(500).json({ error: 'Error al actualizar estado' });
+    }
+  }
+
+  // Sobreescribimos el método delete para manejar la eliminación sin validación de usuario
+  async delete(req, res) {
+    try {
+      const { id } = req.params;
+      const habitacion = await this.Model.findByIdAndDelete(id);
+      
+      if (!habitacion) {
+        return res.status(404).json({ error: 'Habitación no encontrada' });
+      }
+
+      res.json({ message: 'Habitación eliminada correctamente' });
+    } catch (error) {
+      console.error('Error al eliminar habitación:', error);
+      res.status(500).json({ error: 'Error al eliminar habitación' });
     }
   }
 }

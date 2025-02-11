@@ -13,13 +13,17 @@ const habitacionSchema = createSchema({
   },
   tipo: {
     type: String,
-    enum: ['DORMITORIO', 'BAÑO', 'COCINA', 'SALA', 'OTRO'],
+    enum: ['INDIVIDUAL', 'DOBLE', 'SUITE', 'ESTUDIO'],
     required: true
   },
   estado: {
     type: String,
-    enum: ['DISPONIBLE', 'OCUPADA', 'MANTENIMIENTO'],
+    enum: ['DISPONIBLE', 'OCUPADA', 'MANTENIMIENTO', 'RESERVADA'],
     default: 'DISPONIBLE'
+  },
+  capacidad: {
+    type: Number,
+    required: true
   },
   descripcion: String,
   caracteristicas: [String],

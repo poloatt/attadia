@@ -63,4 +63,4 @@ const propiedadSchema = createSchema({
   ...commonFields
 });
 
-export const Propiedades = mongoose.model('Propiedad', propiedadSchema); 
+export const Propiedades = mongoose.model('Propiedades', propiedadSchema); 

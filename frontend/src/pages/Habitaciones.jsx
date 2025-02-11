@@ -69,14 +69,16 @@ export function Habitaciones() {
       let response;
       if (editingHabitacion) {
         response = await clienteAxios.put(`/habitaciones/${editingHabitacion.id}`, formData);
+        setHabitaciones(prev => prev.map(h => h.id === editingHabitacion.id ? response.data : h));
         enqueueSnackbar('Habitación actualizada exitosamente', { variant: 'success' });
       } else {
         response = await clienteAxios.post('/habitaciones', formData);
+        setHabitaciones(prev => [...prev, response.data]);
         enqueueSnackbar('Habitación creada exitosamente', { variant: 'success' });
       }
       setIsFormOpen(false);
       setEditingHabitacion(null);
-      await fetchHabitaciones();
+      fetchHabitaciones();
     } catch (error) {
       console.error('Error:', error);
       enqueueSnackbar(
@@ -87,20 +89,23 @@ export function Habitaciones() {
   };
 
   const handleEdit = useCallback((habitacion) => {
-    setEditingHabitacion(habitacion);
+    setEditingHabitacion({
+      ...habitacion,
+      propiedadId: habitacion.propiedadId || habitacion.propiedad?._id
+    });
     setIsFormOpen(true);
   }, []);
 
   const handleDelete = useCallback(async (id) => {
     try {
       await clienteAxios.delete(`/habitaciones/${id}`);
+      setHabitaciones(prev => prev.filter(h => h.id !== id));
       enqueueSnackbar('Habitación eliminada exitosamente', { variant: 'success' });
-      await fetchHabitaciones();
     } catch (error) {
       console.error('Error al eliminar habitación:', error);
       enqueueSnackbar('Error al eliminar la habitación', { variant: 'error' });
     }
-  }, [enqueueSnackbar, fetchHabitaciones]);
+  }, [enqueueSnackbar]);
 
   const formFields = [
     {
