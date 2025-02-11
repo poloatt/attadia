@@ -13,6 +13,7 @@ class HabitacionesController extends BaseController {
     this.updateStatus = this.updateStatus.bind(this);
     this.create = this.create.bind(this);
     this.delete = this.delete.bind(this);
+    this.update = this.update.bind(this);
   }
 
   // Método auxiliar para formatear la respuesta
@@ -143,6 +144,36 @@ class HabitacionesController extends BaseController {
     } catch (error) {
       console.error('Error al eliminar habitación:', error);
       res.status(500).json({ error: 'Error al eliminar habitación' });
+    }
+  }
+
+  // Sobreescribimos el método update para manejar propiedadId
+  async update(req, res) {
+    try {
+      const { id } = req.params;
+      const data = {
+        ...req.body,
+        propiedad: req.body.propiedadId,
+        capacidad: Number(req.body.capacidad)
+      };
+
+      const habitacion = await this.Model.findByIdAndUpdate(
+        id,
+        data,
+        { new: true }
+      ).populate('propiedad');
+
+      if (!habitacion) {
+        return res.status(404).json({ error: 'Habitación no encontrada' });
+      }
+
+      res.json(this.formatResponse(habitacion));
+    } catch (error) {
+      console.error('Error al actualizar habitación:', error);
+      res.status(400).json({ 
+        error: 'Error al actualizar habitación',
+        details: error.message 
+      });
     }
   }
 }

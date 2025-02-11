@@ -112,8 +112,24 @@ export function Propiedades() {
     fetchRelatedData();
   }, [fetchPropiedades, fetchRelatedData]);
 
+  const handleEdit = useCallback((propiedad) => {
+    console.log('Editando propiedad:', propiedad);
+    setFormData({
+      ...propiedad,
+      precio: propiedad.precio.toString(),
+      numHabitaciones: propiedad.numHabitaciones.toString(),
+      banos: propiedad.banos.toString(),
+      metrosCuadrados: propiedad.metrosCuadrados.toString(),
+      monedaId: propiedad.monedaId || propiedad.moneda?._id,
+      cuentaId: propiedad.cuentaId || propiedad.cuenta?._id
+    });
+    setEditingPropiedad(propiedad);
+    setIsFormOpen(true);
+  }, []);
+
   const handleDelete = useCallback(async (id) => {
     try {
+      console.log('Eliminando propiedad:', id);
       await clienteAxios.delete(`/propiedades/${id}`);
       enqueueSnackbar('Propiedad eliminada exitosamente', { variant: 'success' });
       fetchPropiedades();
@@ -122,20 +138,6 @@ export function Propiedades() {
       enqueueSnackbar('Error al eliminar la propiedad', { variant: 'error' });
     }
   }, [enqueueSnackbar, fetchPropiedades]);
-
-  const handleEdit = useCallback((propiedad) => {
-    setFormData({
-      ...propiedad,
-      precio: propiedad.precio.toString(),
-      numHabitaciones: propiedad.numHabitaciones.toString(),
-      banos: propiedad.banos.toString(),
-      metrosCuadrados: propiedad.metrosCuadrados.toString(),
-      monedaId: propiedad.monedaId.toString(),
-      cuentaId: propiedad.cuentaId.toString()
-    });
-    setEditingPropiedad(propiedad);
-    setIsFormOpen(true);
-  }, []);
 
   const handleFormSubmit = async (formData) => {
     try {
@@ -316,10 +318,16 @@ export function Propiedades() {
     getSubtitle: (item) => item.direccion,
     getExtra: (item) => `${item.ciudad}, ${item.estado}`,
     getStatus: (item) => item.estado || 'ACTIVO',
-    // Campos específicos para propiedades
     getMetrosCuadrados: (item) => item.metrosCuadrados,
     getHabitaciones: (item) => item.numHabitaciones,
-    getBanos: (item) => item.banos
+    getBanos: (item) => item.banos,
+    getActions: (item) => (
+      <EntityActions
+        onEdit={() => handleEdit(item)}
+        onDelete={() => handleDelete(item.id)}
+        itemName={`la propiedad ${item.titulo}`}
+      />
+    )
   };
 
   if (loading) {
@@ -430,15 +438,6 @@ export function Propiedades() {
           <EntityCards
             data={filteredPropiedades.length > 0 ? filteredPropiedades : propiedades}
             cardConfig={cardConfig}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            actions={(item) => (
-              <EntityActions
-                onEdit={() => handleEdit(item)}
-                onDelete={() => handleDelete(item.id)}
-                itemName={`la propiedad ${item.titulo}`}
-              />
-            )}
           />
         )}
       </EntityDetails>

@@ -66,19 +66,19 @@ export function Habitaciones() {
 
   const handleFormSubmit = async (formData) => {
     try {
+      console.log('Enviando datos:', formData);
       let response;
       if (editingHabitacion) {
         response = await clienteAxios.put(`/habitaciones/${editingHabitacion.id}`, formData);
         setHabitaciones(prev => prev.map(h => h.id === editingHabitacion.id ? response.data : h));
-        enqueueSnackbar('Habitación actualizada exitosamente', { variant: 'success' });
       } else {
         response = await clienteAxios.post('/habitaciones', formData);
         setHabitaciones(prev => [...prev, response.data]);
-        enqueueSnackbar('Habitación creada exitosamente', { variant: 'success' });
       }
       setIsFormOpen(false);
       setEditingHabitacion(null);
-      fetchHabitaciones();
+      enqueueSnackbar('Habitación guardada exitosamente', { variant: 'success' });
+      await fetchHabitaciones();
     } catch (error) {
       console.error('Error:', error);
       enqueueSnackbar(
@@ -236,7 +236,7 @@ export function Habitaciones() {
                 {habitaciones.map((habitacion) => (
                   <TableRow key={habitacion.id}>
                     <TableCell>
-                      {propiedades.find(p => p.id === habitacion.propiedadId)?.titulo || 'N/A'}
+                      {habitacion.propiedad?.titulo || propiedades.find(p => p.id === habitacion.propiedadId)?.titulo || 'N/A'}
                     </TableCell>
                     <TableCell>{habitacion.numero}</TableCell>
                     <TableCell>

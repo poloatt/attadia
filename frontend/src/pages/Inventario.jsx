@@ -56,10 +56,19 @@ export function Inventario() {
     }
   };
 
-  const fetchHabitaciones = async () => {
+  const fetchHabitaciones = async (propiedadId = null) => {
     try {
-      const response = await clienteAxios.get('/habitaciones');
-      setHabitaciones(response.data.docs || []);
+      let url = '/habitaciones';
+      if (propiedadId) {
+        url = `/habitaciones/propiedad/${propiedadId}`;
+      }
+      const response = await clienteAxios.get(url);
+      if (propiedadId) {
+        setHabitacionesDisponibles(response.data.docs || []);
+      } else {
+        setHabitaciones(response.data.docs || []);
+        setHabitacionesDisponibles(response.data.docs || []);
+      }
     } catch (error) {
       console.error('Error al cargar habitaciones:', error);
       enqueueSnackbar('Error al cargar habitaciones', { variant: 'error' });
@@ -132,10 +141,12 @@ export function Inventario() {
         label: p.titulo
       })),
       onChange: async (value) => {
-        // Cargar habitaciones de la propiedad seleccionada
-        const response = await clienteAxios.get(`/habitaciones?propiedadId=${value}`);
-        setHabitacionesDisponibles(response.data);
-        setFormData(prev => ({ ...prev, propiedadId: value }));
+        if (value) {
+          await fetchHabitaciones(value);
+        } else {
+          setHabitacionesDisponibles(habitaciones);
+        }
+        setFormData(prev => ({ ...prev, propiedadId: value, habitacionId: null }));
       }
     },
     {
@@ -147,7 +158,21 @@ export function Inventario() {
         value: h.id,
         label: `${h.numero} - ${h.tipo}`
       })),
-      disabled: !formData.propiedadId
+      disabled: !formData.propiedadId,
+      onCreateNew: handleCreateHabitacion,
+      createFields: [
+        { name: 'numero', label: 'Número', required: true },
+        { name: 'tipo', label: 'Tipo', type: 'select', required: true, 
+          options: [
+            { value: 'INDIVIDUAL', label: 'Individual' },
+            { value: 'DOBLE', label: 'Doble' },
+            { value: 'SUITE', label: 'Suite' },
+            { value: 'ESTUDIO', label: 'Estudio' }
+          ]
+        },
+        { name: 'capacidad', label: 'Capacidad', type: 'number', required: true }
+      ],
+      createTitle: 'Nueva Habitación'
     },
     {
       name: 'nombre',

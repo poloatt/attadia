@@ -6,18 +6,17 @@ import {
   CardMedia,
   Typography,
   CardActions,
-  IconButton,
   Box,
   Chip,
   Stack
 } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import BedOutlinedIcon from '@mui/icons-material/BedOutlined';
 import BathtubOutlinedIcon from '@mui/icons-material/BathtubOutlined';
 import SquareFootIcon from '@mui/icons-material/SquareFoot';
+import { EntityActions } from './EntityActions';
 
-const EntityCards = ({ data, cardConfig, onEdit, onDelete }) => {
+const EntityCards = ({ data, cardConfig }) => {
   return (
     <Grid container spacing={4}>
       {data.map((item) => (
@@ -87,26 +86,13 @@ const EntityCards = ({ data, cardConfig, onEdit, onDelete }) => {
             </CardContent>
 
             <CardActions>
-              <IconButton 
-                size="small" 
-                onClick={() => onEdit(item.id)}
-                aria-label="editar"
-              >
-                <EditIcon />
-              </IconButton>
-              <IconButton 
-                size="small" 
-                onClick={() => onDelete(item.id)}
-                aria-label="eliminar"
-              >
-                <DeleteIcon />
-              </IconButton>
+              {cardConfig.getActions(item)}
             </CardActions>
           </Card>
         </Grid>
       ))}
     </Grid>
   );
-};
+}
 
 export default EntityCards; 

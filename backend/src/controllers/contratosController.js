@@ -58,13 +58,15 @@ class ContratosController extends BaseController {
         ...req.body,
         fechaInicio: new Date(req.body.fechaInicio),
         fechaFin: req.body.fechaFin ? new Date(req.body.fechaFin) : null,
-        montoMensual: parseFloat(req.body.montoAlquiler),
+        montoMensual: parseFloat(req.body.montoAlquiler || req.body.montoMensual),
         deposito: req.body.deposito ? parseFloat(req.body.deposito) : null,
         propiedad: req.body.propiedadId,
         inquilino: req.body.inquilinoId,
         habitacion: req.body.habitacionId,
         moneda: req.body.monedaId
       };
+
+      console.log('Datos procesados:', data);
 
       const contrato = await this.Model.create(data);
       const populatedContrato = await this.Model.findById(contrato._id)
@@ -180,6 +182,42 @@ class ContratosController extends BaseController {
     } catch (error) {
       console.error('Error al actualizar estado:', error);
       res.status(500).json({ error: 'Error al actualizar estado' });
+    }
+  }
+
+  // Sobreescribimos el método update para manejar los campos correctamente
+  async update(req, res) {
+    try {
+      const { id } = req.params;
+      const data = {
+        ...req.body,
+        fechaInicio: new Date(req.body.fechaInicio),
+        fechaFin: req.body.fechaFin ? new Date(req.body.fechaFin) : null,
+        montoMensual: parseFloat(req.body.montoAlquiler || req.body.montoMensual),
+        deposito: req.body.deposito ? parseFloat(req.body.deposito) : null,
+        propiedad: req.body.propiedadId,
+        inquilino: req.body.inquilinoId,
+        habitacion: req.body.habitacionId,
+        moneda: req.body.monedaId
+      };
+
+      const contrato = await this.Model.findByIdAndUpdate(
+        id,
+        data,
+        { new: true }
+      ).populate(['propiedad', 'inquilino', 'habitacion', 'moneda']);
+
+      if (!contrato) {
+        return res.status(404).json({ error: 'Contrato no encontrado' });
+      }
+
+      res.json(this.formatResponse(contrato));
+    } catch (error) {
+      console.error('Error al actualizar contrato:', error);
+      res.status(400).json({ 
+        error: 'Error al actualizar contrato',
+        details: error.message 
+      });
     }
   }
 }
