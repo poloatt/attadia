@@ -5,17 +5,14 @@ import {
   AccountBalanceOutlined as BankIcon,
   CurrencyExchangeOutlined as MoneyIcon
 } from '@mui/icons-material';
-import { 
-  Button, Table, TableBody, TableCell, TableContainer, 
-  TableHead, TableRow, Paper, Chip 
-} from '@mui/material';
+import { Button } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import EmptyState from '../components/EmptyState';
-import { EntityActions } from '../components/EntityViews/EntityActions';
 import TransaccionForm from '../components/transacciones/TransaccionForm';
+import TransaccionTable from '../components/transacciones/TransaccionTable';
 
 export function Transacciones() {
   const [transacciones, setTransacciones] = useState([]);
@@ -425,55 +422,11 @@ export function Transacciones() {
             <EmptyState onAdd={handleOpenForm} />
           </Box>
         ) : (
-          <TableContainer component={Paper} elevation={0}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Fecha</TableCell>
-                  <TableCell>Descripción</TableCell>
-                  <TableCell>Tipo</TableCell>
-                  <TableCell>Monto</TableCell>
-                  <TableCell>Estado</TableCell>
-                  <TableCell align="right">Acciones</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {transacciones.map((transaccion) => (
-                  <TableRow key={transaccion.id}>
-                    <TableCell>{new Date(transaccion.fecha).toLocaleDateString()}</TableCell>
-                    <TableCell>{transaccion.descripcion}</TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={transaccion.tipo} 
-                        color={transaccion.tipo === 'INGRESO' ? 'success' : 'error'}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {transaccion.monto} {monedas.find(m => m.id === transaccion.monedaId)?.simbolo}
-                    </TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={transaccion.estado}
-                        color={
-                          transaccion.estado === 'PAGADO' ? 'success' :
-                          transaccion.estado === 'PENDIENTE' ? 'warning' : 'error'
-                        }
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <EntityActions
-                        onEdit={() => handleEdit(transaccion)}
-                        onDelete={() => handleDelete(transaccion.id)}
-                        itemName={`la transacción ${transaccion.descripcion}`}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <TransaccionTable
+            transacciones={transacciones}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
         )}
       </EntityDetails>
 

@@ -380,7 +380,7 @@ const TransaccionForm = ({
               <ToggleButton value="PAGADO">
                 <CheckCircleIcon sx={{ fontSize: 18 }} />
                 <Typography variant="caption" sx={{ ml: 1, whiteSpace: 'nowrap' }}>
-                  Pagado
+                  Pago
                 </Typography>
               </ToggleButton>
               <ToggleButton value="PENDIENTE">
