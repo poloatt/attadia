@@ -11,11 +11,11 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EntityDetails from '../components/EntityViews/EntityDetails';
-import EntityForm from '../components/EntityViews/EntityForm';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import EmptyState from '../components/EmptyState';
 import { EntityActions } from '../components/EntityViews/EntityActions';
+import TransaccionForm from '../components/transacciones/TransaccionForm';
 
 export function Transacciones() {
   const [transacciones, setTransacciones] = useState([]);
@@ -177,19 +177,15 @@ export function Transacciones() {
       }
 
       // Validar que la cuenta exista
-      const cuentaSeleccionada = cuentas.find(c => c._id === formData.cuentaId);
+      const cuentaSeleccionada = cuentas.find(c => 
+        c._id === formData.cuenta || 
+        c.id === formData.cuenta
+      );
+
       if (!cuentaSeleccionada) {
         console.log('Cuentas disponibles:', cuentas);
-        console.log('ID de cuenta buscado:', formData.cuentaId);
+        console.log('ID de cuenta buscado:', formData.cuenta);
         throw new Error('La cuenta seleccionada no existe');
-      }
-
-      // Validar que la moneda exista
-      const monedaSeleccionada = monedas.find(m => m._id === formData.monedaId);
-      if (!monedaSeleccionada) {
-        console.log('Monedas disponibles:', monedas);
-        console.log('ID de moneda buscado:', formData.monedaId);
-        throw new Error('La moneda seleccionada no existe');
       }
 
       const datosAEnviar = {
@@ -198,18 +194,12 @@ export function Transacciones() {
         fecha: formData.fecha || new Date().toISOString().split('T')[0],
         categoria: formData.categoria,
         estado: formData.estado || 'PENDIENTE',
-        moneda: formData.monedaId,
-        cuenta: formData.cuentaId,
+        cuenta: cuentaSeleccionada._id || cuentaSeleccionada.id,
         tipo: formData.tipo || 'INGRESO'
       };
 
       console.log('Datos procesados a enviar:', datosAEnviar);
-      console.log('URL de la API:', clienteAxios.defaults.baseURL);
-      console.log('Headers de la petición:', {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      });
-
+      
       let response;
       if (editingTransaccion) {
         console.log('Actualizando transacción:', editingTransaccion._id);
@@ -245,7 +235,7 @@ export function Transacciones() {
       const mensajeError = error.response?.data?.message || error.message || 'Error al guardar la transacción';
       enqueueSnackbar(mensajeError, { variant: 'error' });
     }
-  }, [enqueueSnackbar, fetchTransacciones, editingTransaccion, cuentas, monedas]);
+  }, [enqueueSnackbar, fetchTransacciones, editingTransaccion, cuentas]);
 
   const handleEdit = useCallback(async (transaccion) => {
     try {
@@ -488,16 +478,13 @@ export function Transacciones() {
       </EntityDetails>
 
       {isFormOpen && (
-        <EntityForm
-          key={formKey}
+        <TransaccionForm
           open={isFormOpen}
           onClose={() => {
             setIsFormOpen(false);
             setEditingTransaccion(null);
           }}
           onSubmit={handleFormSubmit}
-          title={editingTransaccion ? 'Editar Transacción' : 'Nueva Transacción'}
-          fields={formFields}
           initialData={editingTransaccion || {}}
           isEditing={!!editingTransaccion}
         />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -67,8 +67,7 @@ const EntityForm = ({
 }) => {
   const { 
     relatedData, 
-    isLoading: isLoadingRelated,
-    refreshField 
+    isLoading: isLoadingRelated
   } = useRelationalData({
     open,
     relatedFields: fields.filter(f => f.type === 'relational')
@@ -79,26 +78,19 @@ const EntityForm = ({
   const [isSaving, setIsSaving] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
 
-  const initialDataRef = useRef(initialData);
-
   useEffect(() => {
     if (open) {
-      console.log('Resetting form data:', initialData);
       setFormData(initialData);
-      initialDataRef.current = initialData;
       setErrors({});
     }
   }, [open, initialData]);
 
   const handleChange = useCallback((event) => {
     const { name, value } = event.target;
-    setFormData(prev => {
-      const newData = {
-        ...prev,
-        [name]: value
-      };
-      return newData;
-    });
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
     
     if (errors[name]) {
       setErrors(prev => ({
@@ -157,23 +149,18 @@ const EntityForm = ({
   }, [formData, onSubmit, onClose, validateForm, enqueueSnackbar, isEditing]);
 
   const formFields = useMemo(() => {
-    return fields.map(field => {
-      const fieldKey = field.name;
-      const fieldValue = formData[field.name];
-      
-      return (
-        <FormField
-          key={fieldKey}
-          field={field}
-          value={fieldValue}
-          onChange={handleChange}
-          error={errors[field.name]}
-          isLoading={field.type === 'relational' && isLoadingRelated}
-          relatedData={field.type === 'relational' ? relatedData : undefined}
-          onCreateNew={field.onCreateNew}
-        />
-      );
-    });
+    return fields.map(field => (
+      <FormField
+        key={field.name}
+        field={field}
+        value={formData[field.name]}
+        onChange={handleChange}
+        error={errors[field.name]}
+        isLoading={field.type === 'relational' && isLoadingRelated}
+        relatedData={field.type === 'relational' ? relatedData : undefined}
+        onCreateNew={field.onCreateNew}
+      />
+    ));
   }, [fields, formData, handleChange, errors, isLoadingRelated, relatedData]);
 
   return (
@@ -189,79 +176,44 @@ const EntityForm = ({
           borderRadius: 0
         }
       }}
-      aria-labelledby="form-dialog-title"
-      disableEscapeKeyDown={false}
-      disablePortal={false}
-      keepMounted={false}
     >
       <DialogHeader 
-        title={isEditing ? `Editar ${title}` : title} 
+        title={title} 
         onClose={onClose}
         isLoading={isLoadingRelated || isSaving}
       />
       
-      <form onSubmit={handleSubmit} noValidate>
-        <DialogContent 
+      <DialogContent sx={{ px: 3, py: 2 }}>
+        <Box 
+          component="form" 
+          onSubmit={handleSubmit}
           sx={{ 
-            px: 3, 
-            py: 2,
-            opacity: isSaving ? 0.7 : 1,
-            '& .MuiFormControl-root': {
-              pointerEvents: 'auto'
-            },
-            '& .MuiInputBase-root': {
-              pointerEvents: 'auto'
-            },
-            '& .MuiSelect-select': {
-              pointerEvents: 'auto'
-            }
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: 2 
           }}
         >
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: 1,
-              '& > *': {
-                pointerEvents: 'auto'
-              }
-            }}
-            role="group"
-            aria-label="Campos del formulario"
-          >
-            {formFields}
-          </Box>
-        </DialogContent>
+          {formFields}
+        </Box>
+      </DialogContent>
 
-        <DialogActions 
-          sx={{ 
-            px: 3, 
-            py: 2,
-            '& > button': {
-              borderRadius: 0,
-              '&:focus-visible': {
-                outline: '2px solid',
-                outlineOffset: 2
-              }
-            }
-          }}
+      <DialogActions sx={{ px: 3, py: 2 }}>
+        <Button 
+          onClick={onClose} 
+          disabled={isSaving}
+          sx={{ borderRadius: 0 }}
         >
-          <Button 
-            onClick={onClose} 
-            type="button"
-            disabled={isLoadingRelated || isSaving}
-          >
-            Cancelar
-          </Button>
-          <Button 
-            type="submit" 
-            variant="contained"
-            disabled={isLoadingRelated || isSaving}
-          >
-            {isSaving ? 'Guardando...' : isEditing ? 'Actualizar' : 'Guardar'}
-          </Button>
-        </DialogActions>
-      </form>
+          Cancelar
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          disabled={isSaving}
+          sx={{ borderRadius: 0 }}
+        >
+          {isSaving ? 'Guardando...' : isEditing ? 'Actualizar' : 'Guardar'}
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 };

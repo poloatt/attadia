@@ -1,5 +1,6 @@
 import { BaseController } from './BaseController.js';
 import { Transacciones, Cuentas } from '../models/index.js';
+import mongoose from 'mongoose';
 
 class TransaccionesController extends BaseController {
   constructor() {
@@ -150,31 +151,43 @@ class TransaccionesController extends BaseController {
   create = async (req, res) => {
     try {
       console.log('Creando transacción con datos:', req.body);
-      console.log('Usuario actual:', req.user);
+      
+      // Validar que el ID de la cuenta sea válido
+      if (!mongoose.Types.ObjectId.isValid(req.body.cuenta)) {
+        return res.status(400).json({ message: 'ID de cuenta inválido' });
+      }
 
       // Validar que la cuenta exista y pertenezca al usuario
       const cuenta = await Cuentas.findOne({
         _id: req.body.cuenta,
         usuario: req.user.id
-      });
+      }).populate('moneda');
 
       if (!cuenta) {
-        console.log('Cuenta no encontrada o no pertenece al usuario');
-        return res.status(404).json({ message: 'Cuenta no encontrada' });
+        console.error('Cuenta no encontrada:', {
+          cuentaId: req.body.cuenta,
+          userId: req.user.id
+        });
+        return res.status(404).json({ message: 'La cuenta seleccionada no existe o no pertenece al usuario' });
       }
 
-      console.log('Cuenta encontrada:', cuenta);
+      if (!cuenta.moneda) {
+        console.error('Cuenta sin moneda asociada:', cuenta);
+        return res.status(400).json({ message: 'La cuenta seleccionada no tiene una moneda asociada' });
+      }
 
+      // Crear la transacción usando los _id
       const transaccion = new this.Model({
         ...req.body,
-        usuario: req.user.id
+        usuario: req.user.id,
+        cuenta: cuenta._id,
+        moneda: cuenta.moneda._id
       });
 
-      console.log('Transacción a guardar:', transaccion);
-
       await transaccion.save();
-      console.log('Transacción guardada exitosamente');
+      await transaccion.populate(['moneda', 'cuenta']);
       
+      // La transformación a JSON ya está manejada por el BaseSchema
       res.status(201).json(transaccion);
     } catch (error) {
       console.error('Error al crear transacción:', error);
@@ -261,6 +274,66 @@ class TransaccionesController extends BaseController {
 
       res.json(resumen);
     } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  };
+
+  // Sobrescribimos el método getAll del BaseController
+  getAll = async (req, res) => {
+    try {
+      const { 
+        page = 1, 
+        limit = 10, 
+        sort = '-fecha',
+        estado,
+        tipo,
+        categoria,
+        fechaInicio,
+        fechaFin
+      } = req.query;
+
+      const query = { usuario: req.user.id };
+
+      if (estado) query.estado = estado;
+      if (tipo) query.tipo = tipo;
+      if (categoria) query.categoria = categoria;
+      if (fechaInicio || fechaFin) {
+        query.fecha = {};
+        if (fechaInicio) query.fecha.$gte = new Date(fechaInicio);
+        if (fechaFin) query.fecha.$lte = new Date(fechaFin);
+      }
+
+      const options = {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        sort,
+        populate: ['moneda', 'cuenta'],
+        lean: true, // Para mejor rendimiento
+        leanWithId: true, // Agrega 'id' además de '_id'
+      };
+
+      const result = await this.Model.paginate(query, options);
+      
+      // Transformar los IDs en la respuesta
+      const transformedDocs = result.docs.map(doc => ({
+        ...doc,
+        id: doc._id.toString(),
+        moneda: doc.moneda ? {
+          ...doc.moneda,
+          id: doc.moneda._id.toString()
+        } : null,
+        cuenta: doc.cuenta ? {
+          ...doc.cuenta,
+          id: doc.cuenta._id.toString()
+        } : null
+      }));
+
+      res.json({
+        ...result,
+        docs: transformedDocs
+      });
+    } catch (error) {
+      console.error('Error en getAll:', error);
       res.status(500).json({ error: error.message });
     }
   };

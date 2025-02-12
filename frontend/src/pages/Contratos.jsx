@@ -197,8 +197,8 @@ export function Contratos() {
       required: true
     },
     {
-      name: 'montoAlquiler',
-      label: 'Monto del Alquiler',
+      name: 'montoMensual',
+      label: 'Monto Mensual',
       type: 'number',
       required: true
     },
@@ -312,7 +312,7 @@ export function Contratos() {
                     <TableCell align="right">
                       {(() => {
                         const moneda = monedas.find(m => m.id === contrato.monedaId);
-                        return `${moneda?.simbolo || ''} ${contrato.montoAlquiler}`;
+                        return `${moneda?.simbolo || ''} ${contrato.montoMensual?.toLocaleString() || 0}`;
                       })()}
                     </TableCell>
                     <TableCell>

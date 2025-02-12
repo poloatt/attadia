@@ -24,15 +24,24 @@ export const useRelationalData = ({
       setError(null);
 
       try {
-        // Cargamos los datos relacionados para cada campo
         const relatedDataPromises = fieldsRef.current
           .filter(field => field.type === 'relational' && field.endpoint)
           .map(async field => {
             try {
               const response = await clienteAxios.get(field.endpoint);
+              const data = response.data.docs || response.data || [];
+              
+              // Transformar los datos para asegurar consistencia
+              const transformedData = data.map(item => ({
+                id: item._id || item.id,
+                ...item,
+                label: item[field.labelField] || item.nombre || 'Sin nombre',
+                value: item._id || item.id
+              }));
+
               return {
                 field: field.name,
-                data: response.data.docs || []
+                data: transformedData
               };
             } catch (error) {
               console.error(`Error al cargar datos para ${field.name}:`, error);
@@ -72,7 +81,7 @@ export const useRelationalData = ({
     return () => {
       isMounted = false;
     };
-  }, [open]); // Solo dependemos de open
+  }, [open]);
 
   const refreshField = async (fieldName) => {
     const field = fieldsRef.current.find(f => f.name === fieldName && f.type === 'relational');
@@ -83,10 +92,19 @@ export const useRelationalData = ({
 
     try {
       const response = await clienteAxios.get(field.endpoint);
+      const data = response.data.docs || response.data || [];
       
+      // Transformar los datos para asegurar consistencia
+      const transformedData = data.map(item => ({
+        id: item._id || item.id,
+        ...item,
+        label: item[field.labelField] || item.nombre || 'Sin nombre',
+        value: item._id || item.id
+      }));
+
       setRelatedData(prev => ({
         ...prev,
-        [fieldName]: response.data.docs || []
+        [fieldName]: transformedData
       }));
     } catch (error) {
       console.error(`Error al actualizar ${fieldName}:`, error);
