@@ -106,12 +106,18 @@ const CategoryChip = styled(Chip)(({ theme }) => ({
   height: 40,
   width: '100%',
   transition: 'all 0.2s ease',
+  backgroundColor: 'transparent',
+  border: 'none',
   '& .MuiChip-icon': {
     margin: 0,
-    fontSize: 18
+    fontSize: 18,
+    transition: 'color 0.2s ease'
   },
   '& .MuiChip-label': {
     display: 'none'
+  },
+  '&:hover': {
+    backgroundColor: 'transparent'
   }
 }));
 
@@ -119,10 +125,19 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
   '& .MuiOutlinedInput-root': {
     borderRadius: 0,
     height: 40,
-    backgroundColor: theme.palette.background.paper,
+    backgroundColor: theme.palette.background.default,
     '& fieldset': {
       borderColor: theme.palette.divider
     }
+  },
+  '& .MuiInputLabel-root': {
+    transform: 'translate(14px, -9px) scale(0.75)',
+    '&.Mui-focused, &.MuiFormLabel-filled': {
+      transform: 'translate(14px, -9px) scale(0.75)'
+    }
+  },
+  '& .MuiInputLabel-shrink': {
+    transform: 'translate(14px, -9px) scale(0.75)'
   }
 }));
 
@@ -386,6 +401,9 @@ const TransaccionForm = ({
             error={!!errors.descripcion}
             helperText={errors.descripcion}
             sx={{ mb: 2 }}
+            InputLabelProps={{
+              shrink: true
+            }}
           />
 
           {/* Cuenta */}
@@ -404,6 +422,10 @@ const TransaccionForm = ({
                 error={!!errors.cuenta}
                 helperText={errors.cuenta}
                 sx={{ mb: 2 }}
+                InputLabelProps={{
+                  ...params.InputLabelProps,
+                  shrink: true
+                }}
               />
             )}
             isOptionEqualToValue={(option, value) => 
@@ -448,45 +470,34 @@ const TransaccionForm = ({
                 </Typography>
               )}
             </Box>
-            <Paper 
-              sx={{ 
-                p: 2, 
-                bgcolor: 'background.paper',
-                border: t => `1px solid ${t.palette.divider}`,
-                borderRadius: 0
-              }}
-            >
-              <Box sx={{ 
-                display: 'grid',
-                gridTemplateColumns: {
-                  xs: 'repeat(4, 1fr)',
-                  sm: 'repeat(8, 1fr)'
-                },
-                gap: 1
-              }}>
-                {CATEGORIAS.map((categoria) => (
-                  <CategoryChip
-                    key={categoria.valor}
-                    icon={categoria.icon}
-                    onClick={() => handleChange('categoria', categoria.valor)}
-                    color={formData.categoria === categoria.valor ? 'primary' : 'default'}
-                    variant={formData.categoria === categoria.valor ? 'filled' : 'outlined'}
-                    sx={{ 
-                      '&.MuiChip-filled': {
-                        backgroundColor: categoria.color,
-                        color: '#fff'
-                      },
-                      '&:hover': {
-                        backgroundColor: `${categoria.color}22`,
-                        '& .MuiSvgIcon-root': {
-                          color: categoria.color
-                        }
+            <Box sx={{ 
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: 'repeat(4, 1fr)',
+                sm: 'repeat(8, 1fr)'
+              },
+              gap: 1
+            }}>
+              {CATEGORIAS.map((categoria) => (
+                <CategoryChip
+                  key={categoria.valor}
+                  icon={categoria.icon}
+                  onClick={() => handleChange('categoria', categoria.valor)}
+                  sx={{ 
+                    '& .MuiChip-icon': {
+                      color: formData.categoria === categoria.valor ? 
+                        categoria.color : 
+                        theme => theme.palette.text.secondary
+                    },
+                    '&:hover': {
+                      '& .MuiChip-icon': {
+                        color: categoria.color
                       }
-                    }}
-                  />
-                ))}
-              </Box>
-            </Paper>
+                    }
+                  }}
+                />
+              ))}
+            </Box>
           </Box>
         </Box>
       </DialogContent>
