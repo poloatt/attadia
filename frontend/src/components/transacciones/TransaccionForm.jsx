@@ -434,23 +434,31 @@ const TransaccionForm = ({
               (option?.id === value?._id) ||
               (option?._id === value?.id)
             }
-            renderOption={(props, option) => (
-              <Box component="li" {...props} sx={{ 
-                py: 1,
-                px: 2,
-                borderBottom: t => `1px solid ${t.palette.divider}`,
-                '&:last-child': {
-                  borderBottom: 'none'
-                }
-              }}>
-                <Box>
-                  <Typography variant="subtitle2">{option.nombre}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {option.moneda?.simbolo} - {option.tipo}
-                  </Typography>
+            renderOption={(props, option) => {
+              const { key, ...otherProps } = props;
+              return (
+                <Box 
+                  key={key} 
+                  component="li" 
+                  {...otherProps}
+                  sx={{ 
+                    py: 1,
+                    px: 2,
+                    borderBottom: t => `1px solid ${t.palette.divider}`,
+                    '&:last-child': {
+                      borderBottom: 'none'
+                    }
+                  }}
+                >
+                  <Box>
+                    <Typography variant="subtitle2">{option.nombre}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {option.moneda?.simbolo} - {option.tipo}
+                    </Typography>
+                  </Box>
                 </Box>
-              </Box>
-            )}
+              );
+            }}
           />
 
           {/* Categorías */}
