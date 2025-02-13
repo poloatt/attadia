@@ -29,7 +29,7 @@ const TransaccionTable = ({ transacciones, onEdit, onDelete }) => {
 
   const getMontoStyle = (tipo) => ({
     fontWeight: 500,
-    color: tipo === 'INGRESO' ? '#2e7d32' : '#d32f2f',
+    color: tipo === 'INGRESO' ? '#5a9b5f' : '#b15757',
     fontSize: '0.95rem'
   });
 
@@ -57,6 +57,12 @@ const TransaccionTable = ({ transacciones, onEdit, onDelete }) => {
             sm: '300px',
             md: '500px'
           }
+        },
+        '& .MuiTableRow-root': {
+          borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
+        },
+        '& .MuiTableRow-root:last-of-type': {
+          borderBottom: 'none'
         }
       }}
     >

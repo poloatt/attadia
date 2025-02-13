@@ -163,6 +163,27 @@ export function Transacciones() {
     }
   }, [enqueueSnackbar, fetchCuentas]);
 
+  const handleEdit = useCallback(async (transaccion) => {
+    try {
+      console.log('Editando transacción:', transaccion);
+      await Promise.all([fetchMonedas(), fetchCuentas()]);
+      
+      // Asegurarse de que la cuenta esté en el formato correcto
+      const transaccionFormateada = {
+        ...transaccion,
+        cuenta: transaccion.cuenta?._id || transaccion.cuenta?.id || transaccion.cuenta,
+        moneda: transaccion.moneda?._id || transaccion.moneda?.id || transaccion.moneda
+      };
+      
+      setEditingTransaccion(transaccionFormateada);
+      setFormKey(prev => prev + 1);
+      setIsFormOpen(true);
+    } catch (error) {
+      console.error('Error al preparar edición:', error);
+      enqueueSnackbar('Error al cargar datos para edición', { variant: 'error' });
+    }
+  }, [fetchMonedas, fetchCuentas, enqueueSnackbar]);
+
   const handleFormSubmit = useCallback(async (formData) => {
     try {
       console.log('Datos del formulario recibidos:', formData);
@@ -188,11 +209,12 @@ export function Transacciones() {
       const datosAEnviar = {
         descripcion: formData.descripcion,
         monto: parseFloat(formData.monto),
-        fecha: formData.fecha || new Date().toISOString().split('T')[0],
+        fecha: formData.fecha || new Date().toISOString(),
         categoria: formData.categoria,
         estado: formData.estado || 'PENDIENTE',
         cuenta: cuentaSeleccionada._id || cuentaSeleccionada.id,
-        tipo: formData.tipo || 'INGRESO'
+        tipo: formData.tipo || 'INGRESO',
+        moneda: formData.moneda
       };
 
       console.log('Datos procesados a enviar:', datosAEnviar);
@@ -233,19 +255,6 @@ export function Transacciones() {
       enqueueSnackbar(mensajeError, { variant: 'error' });
     }
   }, [enqueueSnackbar, fetchTransacciones, editingTransaccion, cuentas]);
-
-  const handleEdit = useCallback(async (transaccion) => {
-    try {
-      console.log('Editando transacción:', transaccion);
-      await Promise.all([fetchMonedas(), fetchCuentas()]);
-      setEditingTransaccion(transaccion);
-      setFormKey(prev => prev + 1);
-      setIsFormOpen(true);
-    } catch (error) {
-      console.error('Error al preparar edición:', error);
-      enqueueSnackbar('Error al cargar datos para edición', { variant: 'error' });
-    }
-  }, [fetchMonedas, fetchCuentas, enqueueSnackbar]);
 
   const handleDelete = useCallback(async (id) => {
     try {

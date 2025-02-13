@@ -149,9 +149,14 @@ const TransaccionForm = ({
   isEditing = false 
 }) => {
   const [formData, setFormData] = useState({
-    tipo: 'EGRESO',
-    estado: 'PENDIENTE',
-    ...initialData
+    tipo: initialData.tipo || 'INGRESO',
+    estado: initialData.estado || 'PENDIENTE',
+    monto: initialData.monto || '',
+    descripcion: initialData.descripcion || '',
+    categoria: initialData.categoria || '',
+    fecha: initialData.fecha ? new Date(initialData.fecha).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    cuenta: initialData.cuenta || '',
+    moneda: initialData.moneda || ''
   });
   const [errors, setErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
@@ -173,22 +178,34 @@ const TransaccionForm = ({
     relatedFields
   });
 
-  const selectedCuenta = useMemo(() => {
-    if (!formData.cuenta || !relatedData?.cuenta) return null;
-    
-    const cuenta = relatedData.cuenta.find(c => 
-      c._id === formData.cuenta || 
-      c.id === formData.cuenta
-    );
-    
-    console.log('Buscando cuenta:', {
-      cuentaId: formData.cuenta,
-      cuentasDisponibles: relatedData.cuenta,
-      cuentaEncontrada: cuenta
-    });
-    
-    return cuenta;
-  }, [formData.cuenta, relatedData?.cuenta]);
+  const [cuentasDisponibles, setCuentasDisponibles] = useState([]);
+  const [selectedCuenta, setSelectedCuenta] = useState(null);
+
+  useEffect(() => {
+    const buscarCuenta = async () => {
+      console.log('Buscando cuenta:', {
+        cuentaId: initialData.cuenta,
+        cuentasDisponibles,
+        cuentaEncontrada: cuentasDisponibles.find(c => 
+          c._id === initialData.cuenta || 
+          c.id === initialData.cuenta
+        )
+      });
+
+      const cuentaEncontrada = cuentasDisponibles.find(c => 
+        c._id === initialData.cuenta || 
+        c.id === initialData.cuenta
+      );
+
+      if (cuentaEncontrada) {
+        setSelectedCuenta(cuentaEncontrada);
+      }
+    };
+
+    if (initialData.cuenta && cuentasDisponibles.length > 0) {
+      buscarCuenta();
+    }
+  }, [initialData.cuenta, cuentasDisponibles]);
 
   useEffect(() => {
     if (open) {
@@ -236,7 +253,8 @@ const TransaccionForm = ({
         ...formData,
         monto: parseFloat(formData.monto),
         fecha: formData.fecha || new Date().toISOString(),
-        estado: formData.estado || 'PENDIENTE'
+        estado: formData.estado || 'PENDIENTE',
+        cuenta: selectedCuenta?.id || selectedCuenta?._id || formData.cuenta
       };
 
       console.log('Cuenta seleccionada:', selectedCuenta);
@@ -409,8 +427,12 @@ const TransaccionForm = ({
           {/* Cuenta */}
           <Autocomplete
             value={selectedCuenta}
-            onChange={(_, newValue) => {
-              handleChange('cuenta', newValue?.id || newValue?._id);
+            onChange={(event, newValue) => {
+              setSelectedCuenta(newValue);
+              setFormData(prev => ({
+                ...prev,
+                cuenta: newValue?.id || newValue?._id || ''
+              }));
             }}
             options={relatedData?.cuenta || []}
             getOptionLabel={(option) => `${option?.nombre || ''} - ${option?.tipo || ''}`}
