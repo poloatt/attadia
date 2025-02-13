@@ -3,120 +3,80 @@ import { Container } from '@mui/material';
 import EntityToolbar from '../components/EntityToolbar';
 import { 
   ScienceOutlined as LabIcon,
-  RestaurantOutlined as DietaIcon,
-  TaskAltOutlined as RutinasIcon
+  RestaurantOutlined as DietaIcon
 } from '@mui/icons-material';
-import { 
-  Button, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow,
-  Paper,
-  Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField
-} from '@mui/material';
+import { Button } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
-import { EntityActions } from '../components/EntityViews/EntityActions';
+import { RutinaTable } from '../components/rutinas/RutinaTable';
+import { RutinaForm } from '../components/rutinas/RutinaForm';
 
 export function Rutinas() {
-  const [rutinas, setRutinas] = useState([]);
+  const [rutina, setRutina] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRutina, setEditingRutina] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
-  const [nuevaRutina, setNuevaRutina] = useState({
-    weight: '',
-    muscle: '',
-    fatPercent: '',
-    stress: '',
-    sleep: '',
-    completitud: 0
-  });
 
   useEffect(() => {
-    fetchRutinas();
+    fetchRutina();
   }, []);
 
-  const fetchRutinas = async () => {
+  const fetchRutina = async () => {
     try {
-      const response = await clienteAxios.get('/rutinas');
-      setRutinas(response.data.docs || []);
+      const response = await clienteAxios.get('/rutinas', {
+        params: {
+          sort: '-fecha',
+          limit: 1
+        }
+      });
+      const docs = response.data?.docs || [];
+      console.log('Rutina recibida:', docs[0]);
+      setRutina(docs[0] || null);
     } catch (error) {
-      console.error('Error al cargar rutinas:', error);
-      enqueueSnackbar('Error al cargar rutinas', { variant: 'error' });
-      setRutinas([]);
+      console.error('Error al cargar rutina:', error);
+      enqueueSnackbar('Error al cargar rutina', { variant: 'error' });
+      setRutina(null);
     }
   };
 
-  const handleOpenDialog = (rutina = null) => {
-    if (rutina) {
-      setEditingRutina(rutina);
-      setNuevaRutina({
-        weight: rutina.weight || '',
-        muscle: rutina.muscle || '',
-        fatPercent: rutina.fatPercent || '',
-        stress: rutina.stress || '',
-        sleep: rutina.sleep || '',
-        completitud: rutina.completitud || 0
-      });
-    } else {
-      setEditingRutina(null);
-      setNuevaRutina({
-        weight: '',
-        muscle: '',
-        fatPercent: '',
-        stress: '',
-        sleep: '',
-        completitud: 0
-      });
-    }
+  const handleOpenDialog = (rutinaToEdit = null) => {
+    setEditingRutina(rutinaToEdit);
     setOpenDialog(true);
   };
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingRutina(null);
-    setNuevaRutina({
-      weight: '',
-      muscle: '',
-      fatPercent: '',
-      stress: '',
-      sleep: '',
-      completitud: 0
-    });
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNuevaRutina(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = async () => {
+  const handleSubmit = async (formData) => {
     try {
-      if (editingRutina) {
-        await clienteAxios.put(`/rutinas/${editingRutina.id}`, nuevaRutina);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const dataToSend = {
+        ...formData,
+        fecha: today.toISOString()
+      };
+
+      if (editingRutina?._id) {
+        await clienteAxios.put(`/rutinas/${editingRutina._id}`, dataToSend);
         enqueueSnackbar('Rutina actualizada exitosamente', { variant: 'success' });
       } else {
-        await clienteAxios.post('/rutinas', nuevaRutina);
+        await clienteAxios.post('/rutinas', dataToSend);
         enqueueSnackbar('Rutina creada exitosamente', { variant: 'success' });
       }
       handleCloseDialog();
-      fetchRutinas();
+      fetchRutina();
     } catch (error) {
       console.error('Error al guardar rutina:', error);
-      enqueueSnackbar('Error al guardar la rutina', { variant: 'error' });
+      if (error.response?.status === 409) {
+        enqueueSnackbar('Ya existe una rutina para el día de hoy', { variant: 'error' });
+      } else {
+        enqueueSnackbar('Error al guardar la rutina', { variant: 'error' });
+      }
     }
   };
 
@@ -124,17 +84,22 @@ export function Rutinas() {
     try {
       await clienteAxios.delete(`/rutinas/${id}`);
       enqueueSnackbar('Rutina eliminada exitosamente', { variant: 'success' });
-      fetchRutinas();
+      fetchRutina();
     } catch (error) {
       console.error('Error al eliminar rutina:', error);
       enqueueSnackbar('Error al eliminar la rutina', { variant: 'error' });
     }
   };
 
-  const getCompletitudColor = (completitud) => {
-    if (completitud >= 0.8) return 'success';
-    if (completitud >= 0.5) return 'warning';
-    return 'error';
+  const handleCheckChange = async (updatedRutina) => {
+    try {
+      const { data } = await clienteAxios.put(`/rutinas/${updatedRutina._id}`, updatedRutina);
+      setRutina(data);
+    } catch (error) {
+      console.error('Error al actualizar rutina:', error);
+      enqueueSnackbar('Error al actualizar la rutina', { variant: 'error' });
+      fetchRutina();
+    }
   };
 
   return (
@@ -154,6 +119,7 @@ export function Rutinas() {
           }
         ]}
       />
+      
       <EntityDetails 
         title="Rutinas"
         action={
@@ -162,114 +128,26 @@ export function Rutinas() {
             startIcon={<AddIcon />}
             size="small"
             onClick={() => handleOpenDialog()}
+            sx={{ borderRadius: 0 }}
           >
             Nueva Rutina
           </Button>
         }
       >
-        <TableContainer component={Paper} elevation={0}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Fecha</TableCell>
-                <TableCell align="center">Completitud</TableCell>
-                <TableCell align="right">Peso (kg)</TableCell>
-                <TableCell align="right">Músculo (%)</TableCell>
-                <TableCell align="right">Grasa (%)</TableCell>
-                <TableCell align="right">Estrés (1-10)</TableCell>
-                <TableCell align="right">Sueño (hrs)</TableCell>
-                <TableCell align="right">Acciones</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rutinas.map((rutina) => (
-                <TableRow key={rutina.id}>
-                  <TableCell>
-                    {new Date(rutina.fecha).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip 
-                      label={`${(rutina.completitud * 100).toFixed(0)}%`}
-                      color={getCompletitudColor(rutina.completitud)}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell align="right">{rutina.weight?.toFixed(1)}</TableCell>
-                  <TableCell align="right">{rutina.muscle?.toFixed(1)}</TableCell>
-                  <TableCell align="right">{rutina.fatPercent?.toFixed(1)}</TableCell>
-                  <TableCell align="right">{rutina.stress}</TableCell>
-                  <TableCell align="right">{rutina.sleep?.toFixed(1)}</TableCell>
-                  <TableCell align="right">
-                    <EntityActions
-                      onEdit={() => handleOpenDialog(rutina)}
-                      onDelete={() => handleDelete(rutina.id)}
-                      itemName="la rutina"
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <RutinaTable
+          rutina={rutina}
+          onEdit={() => handleOpenDialog(rutina)}
+          onDelete={() => handleDelete(rutina?._id)}
+          onCheckChange={handleCheckChange}
+        />
       </EntityDetails>
 
-      <Dialog open={openDialog} onClose={handleCloseDialog}>
-        <DialogTitle>{editingRutina ? 'Editar Rutina' : 'Nueva Rutina'}</DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Peso (kg)"
-            name="weight"
-            type="number"
-            value={nuevaRutina.weight}
-            onChange={handleInputChange}
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Músculo (%)"
-            name="muscle"
-            type="number"
-            value={nuevaRutina.muscle}
-            onChange={handleInputChange}
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Grasa (%)"
-            name="fatPercent"
-            type="number"
-            value={nuevaRutina.fatPercent}
-            onChange={handleInputChange}
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Estrés (1-10)"
-            name="stress"
-            type="number"
-            inputProps={{ min: 1, max: 10 }}
-            value={nuevaRutina.stress}
-            onChange={handleInputChange}
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Sueño (hrs)"
-            name="sleep"
-            type="number"
-            value={nuevaRutina.sleep}
-            onChange={handleInputChange}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancelar</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            {editingRutina ? 'Actualizar' : 'Guardar'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <RutinaForm
+        open={openDialog}
+        onClose={handleCloseDialog}
+        onSubmit={handleSubmit}
+        initialData={editingRutina || undefined}
+      />
     </Container>
   );
 }
