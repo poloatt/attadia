@@ -72,10 +72,28 @@ const StyledToggleButton = styled(ToggleButton)(({ theme }) => ({
     fontSize: 18
   },
   '&.Mui-selected': {
-    backgroundColor: props => props.value === 'INGRESO' ? '#7bba7f' : '#ef5350',
-    color: '#fff',
+    backgroundColor: props => {
+      if (props.value === 'INGRESO') return 'rgba(90, 155, 95, 0.15)';
+      if (props.value === 'EGRESO') return 'rgba(177, 87, 87, 0.15)';
+      if (props.value === 'PAGADO') return 'rgba(90, 155, 95, 0.15)';
+      if (props.value === 'PENDIENTE') return 'rgba(255, 183, 77, 0.15)';
+      return 'inherit';
+    },
+    color: props => {
+      if (props.value === 'INGRESO') return '#5a9b5f';
+      if (props.value === 'EGRESO') return '#b15757';
+      if (props.value === 'PAGADO') return '#5a9b5f';
+      if (props.value === 'PENDIENTE') return '#ffb74d';
+      return 'inherit';
+    },
     '&:hover': {
-      backgroundColor: props => props.value === 'INGRESO' ? '#66a169' : '#d84848',
+      backgroundColor: props => {
+        if (props.value === 'INGRESO') return 'rgba(90, 155, 95, 0.25)';
+        if (props.value === 'EGRESO') return 'rgba(177, 87, 87, 0.25)';
+        if (props.value === 'PAGADO') return 'rgba(90, 155, 95, 0.25)';
+        if (props.value === 'PENDIENTE') return 'rgba(255, 183, 77, 0.25)';
+        return 'inherit';
+      }
     }
   },
   '&:hover': {

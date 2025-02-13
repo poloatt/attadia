@@ -15,7 +15,19 @@ import {
 } from '@mui/material';
 import { 
   EditOutlined as EditIcon, 
-  DeleteOutlined as DeleteIcon
+  DeleteOutlined as DeleteIcon,
+  AccountBalanceOutlined as AccountIcon,
+  CheckCircleOutline as CheckIcon,
+  PendingOutlined as PendingIcon,
+  CancelOutlined as CancelIcon,
+  Receipt,
+  Fastfood,
+  HealthAndSafety,
+  Checkroom as Shirt,
+  LocalBar as Cocktail,
+  DirectionsBus,
+  Devices,
+  MoreHoriz
 } from '@mui/icons-material';
 
 const TransaccionTable = ({ transacciones, onEdit, onDelete }) => {
@@ -30,8 +42,60 @@ const TransaccionTable = ({ transacciones, onEdit, onDelete }) => {
   const getMontoStyle = (tipo) => ({
     fontWeight: 500,
     color: tipo === 'INGRESO' ? '#5a9b5f' : '#b15757',
-    fontSize: '0.95rem'
+    fontSize: '0.875rem'
   });
+
+  const formatMonto = (monto) => {
+    return new Intl.NumberFormat('es-ES', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(monto);
+  };
+
+  const getEstadoIcon = (estado) => {
+    switch (estado) {
+      case 'PAGADO':
+        return <CheckIcon sx={{ fontSize: 16, color: '#5a9b5f' }} />;
+      case 'PENDIENTE':
+        return <PendingIcon sx={{ fontSize: 16, color: '#ffb74d' }} />;
+      case 'CANCELADO':
+        return <CancelIcon sx={{ fontSize: 16, color: '#b15757' }} />;
+      default:
+        return null;
+    }
+  };
+
+  const getCategoriaIcon = (categoria) => {
+    const iconProps = { sx: { fontSize: 18, color: 'text.secondary' } };
+    switch (categoria) {
+      case 'Contabilidad y Facturas':
+        return <Receipt {...iconProps} />;
+      case 'Comida y Mercado':
+        return <Fastfood {...iconProps} />;
+      case 'Salud y Belleza':
+        return <HealthAndSafety {...iconProps} />;
+      case 'Ropa':
+        return <Shirt {...iconProps} />;
+      case 'Fiesta':
+        return <Cocktail {...iconProps} />;
+      case 'Transporte':
+        return <DirectionsBus {...iconProps} />;
+      case 'Tecnología':
+        return <Devices {...iconProps} />;
+      default:
+        return <MoreHoriz {...iconProps} />;
+    }
+  };
+
+  const formatEstado = (estado) => {
+    return estado.charAt(0).toUpperCase() + estado.slice(1).toLowerCase();
+  };
+
+  const formatFecha = (fecha) => {
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const date = new Date(fecha);
+    return `${date.getDate()}${meses[date.getMonth()]}`;
+  };
 
   return (
     <TableContainer 
@@ -83,13 +147,20 @@ const TransaccionTable = ({ transacciones, onEdit, onDelete }) => {
                   }
                 }}
               >
-                <TableCell align="right" sx={{ width: isMobile ? '35%' : '140px' }}>
-                  <Typography sx={getMontoStyle(transaccion.tipo)}>
-                    {transaccion.moneda?.simbolo} {transaccion.monto}
+                <TableCell sx={{ 
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1
+                }}>
+                  {getCategoriaIcon(transaccion.categoria)}
+                  <Typography className="descripcion">
+                    {transaccion.descripcion}
                   </Typography>
                 </TableCell>
-                <TableCell className="descripcion">
-                  {transaccion.descripcion}
+                <TableCell align="right" sx={{ width: isMobile ? '35%' : '140px' }}>
+                  <Typography sx={getMontoStyle(transaccion.tipo)}>
+                    {transaccion.moneda?.simbolo} {formatMonto(transaccion.monto)}
+                  </Typography>
                 </TableCell>
               </TableRow>
               <TableRow 
@@ -108,65 +179,83 @@ const TransaccionTable = ({ transacciones, onEdit, onDelete }) => {
                       my: 0.5
                     }}>
                       <Box sx={{ 
-                        display: 'grid', 
-                        gridTemplateColumns: {
-                          xs: '1fr',
-                          sm: 'repeat(2, 1fr)',
-                          md: 'repeat(auto-fit, minmax(150px, 1fr))'
-                        },
-                        gap: 2
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 1
                       }}>
-                        <Box>
+                        <Box sx={{ 
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between'
+                        }}>
                           <Typography variant="caption" sx={{ 
                             color: 'text.secondary', 
                             fontSize: '0.75rem',
-                            display: 'block',
-                            mb: 0.5
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5
                           }}>
-                            Tipo
+                            Fecha
                           </Typography>
                           <Typography variant="body2" sx={{ 
                             fontSize: '0.875rem',
-                            fontWeight: 500
+                            color: 'text.secondary'
                           }}>
-                            {transaccion.tipo}
+                            {formatFecha(transaccion.fecha)}
                           </Typography>
                         </Box>
-                        <Box>
-                          <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
+
+                        <Box sx={{ 
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between'
+                        }}>
+                          <Typography variant="caption" sx={{ 
+                            color: 'text.secondary', 
+                            fontSize: '0.75rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5
+                          }}>
                             Estado
                           </Typography>
-                          <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                            {transaccion.estado}
-                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            {getEstadoIcon(transaccion.estado)}
+                            <Typography variant="body2" sx={{ 
+                              fontSize: '0.875rem',
+                              color: 'text.secondary'
+                            }}>
+                              {formatEstado(transaccion.estado)}
+                            </Typography>
+                          </Box>
                         </Box>
-                        <Box>
-                          <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
-                            Fecha
-                          </Typography>
-                          <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                            {new Date(transaccion.fecha).toLocaleDateString()}
-                          </Typography>
-                        </Box>
-                        <Box>
-                          <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
-                            Categoría
-                          </Typography>
-                          <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                            {transaccion.categoria}
-                          </Typography>
-                        </Box>
+
                         {transaccion.cuenta && (
-                          <Box>
-                            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
+                          <Box sx={{ 
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between'
+                          }}>
+                            <Typography variant="caption" sx={{ 
+                              color: 'text.secondary', 
+                              fontSize: '0.75rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 0.5
+                            }}>
+                              <AccountIcon sx={{ fontSize: 16 }} />
                               Cuenta
                             </Typography>
-                            <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                            <Typography variant="body2" sx={{ 
+                              fontSize: '0.875rem',
+                              color: 'text.secondary'
+                            }}>
                               {transaccion.cuenta.nombre}
                             </Typography>
                           </Box>
                         )}
                       </Box>
+
                       <Box sx={{ 
                         display: 'flex', 
                         justifyContent: 'flex-end',
