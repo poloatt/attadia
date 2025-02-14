@@ -29,22 +29,17 @@ const rutinaSchema = createSchema({
     default: Date.now,
     unique: true
   },
-  morning: {
-    wakeUp: { type: Boolean, default: false },
-    bed: { type: Boolean, default: false },
-    meds: { type: Boolean, default: false }
-  },
   bodyCare: {
-    teeth: { type: Boolean, default: false },
     bath: { type: Boolean, default: false },
     skinCareDay: { type: Boolean, default: false },
-    skinCareNight: { type: Boolean, default: false }
+    skinCareNight: { type: Boolean, default: false },
+    bodyCream: { type: Boolean, default: false }
   },
   nutricion: {
     cocinar: { type: Boolean, default: false },
-    food: { type: Boolean, default: false },
     agua: { type: Boolean, default: false },
-    protein: { type: Boolean, default: false }
+    protein: { type: Boolean, default: false },
+    meds: { type: Boolean, default: false }
   },
   ejercicio: {
     meditate: { type: Boolean, default: false },
@@ -53,6 +48,7 @@ const rutinaSchema = createSchema({
     cardio: { type: Boolean, default: false }
   },
   cleaning: {
+    bed: { type: Boolean, default: false },
     platos: { type: Boolean, default: false },
     piso: { type: Boolean, default: false },
     ropa: { type: Boolean, default: false }
@@ -75,7 +71,7 @@ rutinaSchema.pre('save', function(next) {
   let totalTasks = 0;
   let completedTasks = 0;
 
-  ['morning', 'bodyCare', 'nutricion', 'ejercicio', 'cleaning'].forEach(section => {
+  ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'].forEach(section => {
     const sectionFields = Object.keys(this[section].toObject());
     totalTasks += sectionFields.length;
     

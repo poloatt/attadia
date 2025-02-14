@@ -18,26 +18,58 @@ export function Rutinas() {
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRutina, setEditingRutina] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    fetchRutina();
-  }, []);
+    fetchRutina(currentPage);
+  }, [currentPage]);
 
-  const fetchRutina = async () => {
+  const fetchRutina = async (page) => {
     try {
+      console.log('Fetching rutina para página:', page);
       const response = await clienteAxios.get('/rutinas', {
         params: {
           sort: '-fecha',
+          page,
           limit: 1
         }
       });
       const docs = response.data?.docs || [];
-      console.log('Rutina recibida:', docs[0]);
+      const totalDocs = response.data?.totalDocs || 0;
+      const totalPages = response.data?.totalPages || 1;
+      
+      console.log('Respuesta del servidor:', {
+        totalDocs,
+        totalPages,
+        currentPage: page,
+        docs: docs.map(d => ({
+          id: d._id,
+          fecha: new Date(d.fecha).toLocaleDateString(),
+          completitud: d.completitud
+        }))
+      });
+      
+      setTotalPages(totalPages);
       setRutina(docs[0] || null);
     } catch (error) {
       console.error('Error al cargar rutina:', error);
       enqueueSnackbar('Error al cargar rutina', { variant: 'error' });
       setRutina(null);
+    }
+  };
+
+  const handlePrevious = () => {
+    console.log('Navegando a registro más reciente');
+    if (currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
+
+  const handleNext = () => {
+    console.log('Navegando a registro más antiguo');
+    if (currentPage < totalPages) {
+      setCurrentPage(prev => prev + 1);
     }
   };
 
@@ -69,7 +101,8 @@ export function Rutinas() {
         enqueueSnackbar('Rutina creada exitosamente', { variant: 'success' });
       }
       handleCloseDialog();
-      fetchRutina();
+      fetchRutina(1); // Volver a la primera página después de crear/editar
+      setCurrentPage(1);
     } catch (error) {
       console.error('Error al guardar rutina:', error);
       if (error.response?.status === 409) {
@@ -84,7 +117,7 @@ export function Rutinas() {
     try {
       await clienteAxios.delete(`/rutinas/${id}`);
       enqueueSnackbar('Rutina eliminada exitosamente', { variant: 'success' });
-      fetchRutina();
+      fetchRutina(currentPage);
     } catch (error) {
       console.error('Error al eliminar rutina:', error);
       enqueueSnackbar('Error al eliminar la rutina', { variant: 'error' });
@@ -95,10 +128,11 @@ export function Rutinas() {
     try {
       const { data } = await clienteAxios.put(`/rutinas/${updatedRutina._id}`, updatedRutina);
       setRutina(data);
+      fetchRutina(currentPage);
     } catch (error) {
       console.error('Error al actualizar rutina:', error);
       enqueueSnackbar('Error al actualizar la rutina', { variant: 'error' });
-      fetchRutina();
+      fetchRutina(currentPage);
     }
   };
 
@@ -139,6 +173,10 @@ export function Rutinas() {
           onEdit={() => handleOpenDialog(rutina)}
           onDelete={() => handleDelete(rutina?._id)}
           onCheckChange={handleCheckChange}
+          onPrevious={handlePrevious}
+          onNext={handleNext}
+          hasPrevious={currentPage > 1}
+          hasNext={currentPage < totalPages}
         />
       </EntityDetails>
 

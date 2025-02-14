@@ -13,13 +13,14 @@ import {
   Chip,
   Stack,
   Tooltip,
-  styled
+  styled,
+  TextField
 } from '@mui/material';
 import { EntityActions } from '../EntityViews/EntityActions';
 import AccessAlarmOutlinedIcon from '@mui/icons-material/AccessAlarmOutlined';
 import AccessAlarmIcon from '@mui/icons-material/AccessAlarm';
-import ToothbrushOutlinedIcon from '@mui/icons-material/BrushOutlined';
-import ToothbrushIcon from '@mui/icons-material/Brush';
+import BrushOutlinedIcon from '@mui/icons-material/BrushOutlined';
+import BrushIcon from '@mui/icons-material/Brush';
 import MedicationOutlinedIcon from '@mui/icons-material/MedicationOutlined';
 import MedicationIcon from '@mui/icons-material/Medication';
 import FaceRetouchingNaturalOutlinedIcon from '@mui/icons-material/FaceRetouchingNaturalOutlined';
@@ -54,6 +55,20 @@ import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import ScienceIcon from '@mui/icons-material/Science';
 import RestaurantMenuOutlinedIcon from '@mui/icons-material/RestaurantMenuOutlined';
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
+import LocalPharmacyOutlinedIcon from '@mui/icons-material/LocalPharmacyOutlined';
+import LocalPharmacyIcon from '@mui/icons-material/LocalPharmacy';
+import NightlightOutlinedIcon from '@mui/icons-material/NightlightOutlined';
+import NightlightIcon from '@mui/icons-material/Nightlight';
+import Face3OutlinedIcon from '@mui/icons-material/Face3Outlined';
+import Face3Icon from '@mui/icons-material/Face3';
+import DirectionsBikeOutlinedIcon from '@mui/icons-material/DirectionsBikeOutlined';
+import DirectionsBikeIcon from '@mui/icons-material/DirectionsBike';
+import Face4OutlinedIcon from '@mui/icons-material/Face4Outlined';
+import Face4Icon from '@mui/icons-material/Face4';
+import SanitizerOutlinedIcon from '@mui/icons-material/SanitizerOutlined';
+import SanitizerIcon from '@mui/icons-material/Sanitizer';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 const CustomTooltip = styled(({ className, ...props }) => (
   <Tooltip {...props} classes={{ popper: className }} />
@@ -68,31 +83,34 @@ const CustomTooltip = styled(({ className, ...props }) => (
   },
 }));
 
+const formatDate = (date) => {
+  const dias = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+  const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const d = new Date(date);
+  return `${dias[d.getDay()]} ${d.getDate()} ${meses[d.getMonth()]} ${d.getFullYear()}`;
+};
+
 const iconConfig = {
-  morning: {
-    wakeUp: { outlined: AccessAlarmOutlinedIcon, filled: AccessAlarmIcon, tooltip: 'Despertar' },
-    bed: { outlined: BedOutlinedIcon, filled: BedIcon, tooltip: 'Hacer la Cama' },
-    meds: { outlined: MedicationOutlinedIcon, filled: MedicationIcon, tooltip: 'Medicamentos' }
-  },
   bodyCare: {
-    teeth: { outlined: ToothbrushOutlinedIcon, filled: ToothbrushIcon, tooltip: 'Lavarse los Dientes' },
     bath: { outlined: BathtubOutlinedIcon, filled: BathtubIcon, tooltip: 'Baño' },
-    skinCareDay: { outlined: FaceRetouchingNaturalOutlinedIcon, filled: FaceRetouchingNaturalIcon, tooltip: 'Skin Care Día' },
-    skinCareNight: { outlined: ScienceOutlinedIcon, filled: ScienceIcon, tooltip: 'Skin Care Noche' }
+    skinCareDay: { outlined: Face4OutlinedIcon, filled: Face4Icon, tooltip: 'Skin Care Día' },
+    skinCareNight: { outlined: NightlightOutlinedIcon, filled: NightlightIcon, tooltip: 'Skin Care Noche' },
+    bodyCream: { outlined: SanitizerOutlinedIcon, filled: SanitizerIcon, tooltip: 'Crema Corporal' }
   },
   nutricion: {
     cocinar: { outlined: RestaurantMenuOutlinedIcon, filled: RestaurantMenuIcon, tooltip: 'Cocinar' },
-    food: { outlined: RestaurantOutlinedIcon, filled: RestaurantIcon, tooltip: 'Comer' },
     agua: { outlined: WaterDropOutlinedIcon, filled: WaterDropIcon, tooltip: 'Agua' },
-    protein: { outlined: BlenderOutlinedIcon, filled: BlenderIcon, tooltip: 'Proteína' }
+    protein: { outlined: BlenderOutlinedIcon, filled: BlenderIcon, tooltip: 'Proteína' },
+    meds: { outlined: MedicationOutlinedIcon, filled: MedicationIcon, tooltip: 'Medicamentos' }
   },
   ejercicio: {
-    meditate: { outlined: SpaOutlinedIcon, filled: SpaIcon, tooltip: 'Meditar' },
-    stretching: { outlined: SelfImprovementOutlinedIcon, filled: SelfImprovementIcon, tooltip: 'Stretching' },
+    meditate: { outlined: SelfImprovementOutlinedIcon, filled: SelfImprovementIcon, tooltip: 'Meditar' },
+    stretching: { outlined: DirectionsRunOutlinedIcon, filled: DirectionsRunIcon, tooltip: 'Stretching' },
     gym: { outlined: FitnessCenterOutlinedIcon, filled: FitnessCenterIcon, tooltip: 'Gym' },
-    cardio: { outlined: DirectionsRunOutlinedIcon, filled: DirectionsRunIcon, tooltip: 'Cardio' }
+    cardio: { outlined: DirectionsBikeOutlinedIcon, filled: DirectionsBikeIcon, tooltip: 'Cardio' }
   },
   cleaning: {
+    bed: { outlined: BedOutlinedIcon, filled: BedIcon, tooltip: 'Hacer la Cama' },
     platos: { outlined: LocalDiningOutlinedIcon, filled: LocalDiningIcon, tooltip: 'Lavar los Platos' },
     piso: { outlined: CleaningServicesOutlinedIcon, filled: CleaningServicesIcon, tooltip: 'Limpiar el Piso' },
     ropa: { outlined: LocalLaundryServiceOutlinedIcon, filled: LocalLaundryServiceIcon, tooltip: 'Lavar la Ropa' }
@@ -100,25 +118,24 @@ const iconConfig = {
 };
 
 const ChecklistSection = ({ title, items = {}, onChange, section }) => {
-  const handleClick = (key, value) => {
-    console.log('Click en botón:', section, key, value);
-    onChange?.(section, key, value);
-  };
-
-  // Si los items son undefined, mostrar una sección vacía
-  if (!items) {
-    return null;
-  }
+  // Filtrar solo los items que tienen iconos configurados
+  const validItems = Object.entries(items).filter(([key]) => 
+    iconConfig[section] && iconConfig[section][key]
+  );
 
   return (
-    <TableRow sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+    <TableRow sx={{ 
+      '&:last-child td, &:last-child th': { border: 0 },
+      backgroundColor: 'transparent'
+    }}>
       <TableCell 
         colSpan={2}
         sx={{ 
           position: 'relative',
           pt: 3,
           pb: 1,
-          px: 2
+          px: 2,
+          backgroundColor: 'transparent'
         }}
       >
         <Typography 
@@ -149,13 +166,7 @@ const ChecklistSection = ({ title, items = {}, onChange, section }) => {
             }
           }}
         >
-          {Object.entries(items).map(([key, value]) => {
-            // Verificar que el icono exista para esta sección y key
-            if (!iconConfig[section] || !iconConfig[section][key]) {
-              console.warn(`No se encontró configuración de icono para ${section}.${key}`);
-              return null;
-            }
-
+          {validItems.map(([key, value]) => {
             const IconOutlined = iconConfig[section][key].outlined;
             const IconFilled = iconConfig[section][key].filled;
             const tooltip = iconConfig[section][key].tooltip;
@@ -168,7 +179,7 @@ const ChecklistSection = ({ title, items = {}, onChange, section }) => {
                 arrow
               >
                 <IconButton
-                  onClick={() => handleClick(key, !value)}
+                  onClick={() => onChange(section, key, !value)}
                   color={value ? 'primary' : 'default'}
                   size="small"
                   sx={{ 
@@ -194,13 +205,30 @@ const ChecklistSection = ({ title, items = {}, onChange, section }) => {
   );
 };
 
-export const RutinaTable = ({ rutina, onEdit, onDelete, onCheckChange }) => {
+export const RutinaTable = ({ 
+  rutina, 
+  onEdit, 
+  onDelete, 
+  onCheckChange, 
+  onPrevious, 
+  onNext,
+  hasPrevious,
+  hasNext 
+}) => {
   if (!rutina) return null;
+
+  const handleDateChange = (event) => {
+    const newDate = new Date(event.target.value);
+    const updatedRutina = {
+      ...rutina,
+      fecha: newDate.toISOString()
+    };
+    onCheckChange(updatedRutina);
+  };
 
   // Asegurarnos de que todas las secciones existan
   const rutinaConSecciones = {
     ...rutina,
-    morning: rutina.morning || {},
     bodyCare: rutina.bodyCare || {},
     nutricion: rutina.nutricion || {},
     ejercicio: rutina.ejercicio || {},
@@ -223,6 +251,21 @@ export const RutinaTable = ({ rutina, onEdit, onDelete, onCheckChange }) => {
       }
     };
 
+    // Calcular nueva completitud
+    let totalTasks = 0;
+    let completedTasks = 0;
+
+    ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'].forEach(sect => {
+      const sectionFields = Object.keys(updatedRutina[sect] || {});
+      totalTasks += sectionFields.length;
+      
+      Object.values(updatedRutina[sect] || {}).forEach(val => {
+        if (val === true) completedTasks++;
+      });
+    });
+
+    updatedRutina.completitud = totalTasks > 0 ? completedTasks / totalTasks : 0;
+
     console.log('Enviando rutina actualizada:', updatedRutina);
     onCheckChange(updatedRutina);
   };
@@ -233,7 +276,14 @@ export const RutinaTable = ({ rutina, onEdit, onDelete, onCheckChange }) => {
       elevation={0}
       sx={{ 
         borderRadius: 0,
-        overflow: 'visible'
+        overflow: 'visible',
+        backgroundColor: 'transparent',
+        '& .MuiTable-root': {
+          backgroundColor: 'transparent'
+        },
+        '& .MuiTableCell-root': {
+          border: 'none'
+        }
       }}
     >
       <Table>
@@ -243,7 +293,8 @@ export const RutinaTable = ({ rutina, onEdit, onDelete, onCheckChange }) => {
               colSpan={2}
               sx={{ 
                 py: 1,
-                px: 2
+                px: 2,
+                backgroundColor: 'transparent'
               }}
             >
               <Box sx={{ 
@@ -252,15 +303,28 @@ export const RutinaTable = ({ rutina, onEdit, onDelete, onCheckChange }) => {
                 justifyContent: 'space-between'
               }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography 
-                    variant="subtitle1" 
-                    sx={{ 
-                      fontSize: '0.875rem',
-                      fontWeight: 500
+                  <TextField
+                    type="date"
+                    value={new Date(rutina.fecha).toISOString().split('T')[0]}
+                    onChange={handleDateChange}
+                    variant="standard"
+                    sx={{
+                      width: '130px',
+                      '& .MuiInput-input': {
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        p: 0,
+                        color: 'text.secondary',
+                        cursor: 'pointer',
+                        '&:hover': {
+                          color: 'primary.main'
+                        }
+                      }
                     }}
-                  >
-                    {new Date(rutina.fecha).toLocaleDateString()}
-                  </Typography>
+                    InputProps={{
+                      disableUnderline: true
+                    }}
+                  />
                   <Chip 
                     label={`${(rutina.completitud * 100).toFixed(0)}%`}
                     color={rutina.completitud >= 0.8 ? 'success' : rutina.completitud >= 0.5 ? 'warning' : 'error'}
@@ -274,23 +338,67 @@ export const RutinaTable = ({ rutina, onEdit, onDelete, onCheckChange }) => {
                     }}
                   />
                 </Box>
-                <EntityActions
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                  itemName="la rutina"
-                  size="small"
-                />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CustomTooltip 
+                    title="Registro anterior"
+                    placement="top"
+                    arrow
+                  >
+                    <span>
+                      <IconButton
+                        onClick={onPrevious}
+                        size="small"
+                        disabled={!hasPrevious}
+                        sx={{ 
+                          color: 'text.secondary',
+                          '&:hover': {
+                            color: 'text.primary'
+                          },
+                          '&.Mui-disabled': {
+                            color: 'action.disabled'
+                          }
+                        }}
+                      >
+                        <ChevronLeftIcon />
+                      </IconButton>
+                    </span>
+                  </CustomTooltip>
+                  <CustomTooltip 
+                    title="Registro siguiente"
+                    placement="top"
+                    arrow
+                  >
+                    <span>
+                      <IconButton
+                        onClick={onNext}
+                        size="small"
+                        disabled={!hasNext}
+                        sx={{ 
+                          color: 'text.secondary',
+                          '&:hover': {
+                            color: 'text.primary'
+                          },
+                          '&.Mui-disabled': {
+                            color: 'action.disabled'
+                          }
+                        }}
+                      >
+                        <ChevronRightIcon />
+                      </IconButton>
+                    </span>
+                  </CustomTooltip>
+                  <EntityActions
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    itemName="la rutina"
+                    size="small"
+                  />
+                </Box>
               </Box>
             </TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          <ChecklistSection 
-            title="Morning" 
-            items={rutinaConSecciones.morning} 
-            section="morning"
-            onChange={handleSectionChange} 
-          />
           <ChecklistSection 
             title="Body Care" 
             items={rutinaConSecciones.bodyCare} 

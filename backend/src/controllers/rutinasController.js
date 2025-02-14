@@ -23,11 +23,35 @@ class RutinasController extends BaseController {
         ...this.paginateOptions,
         sort: { fecha: -1 },
         limit: req.query.limit || 10,
+        page: parseInt(req.query.page) || 1,
         lean: true
       };
 
+      console.log('Query params:', {
+        page: req.query.page,
+        limit: req.query.limit,
+        sort: req.query.sort
+      });
+
       const result = await this.Model.paginate(query, options);
       
+      console.log('Resultados de paginación:', {
+        totalDocs: result.totalDocs,
+        limit: result.limit,
+        totalPages: result.totalPages,
+        page: result.page,
+        pagingCounter: result.pagingCounter,
+        hasPrevPage: result.hasPrevPage,
+        hasNextPage: result.hasNextPage,
+        prevPage: result.prevPage,
+        nextPage: result.nextPage,
+        docs: result.docs.map(doc => ({
+          _id: doc._id,
+          fecha: doc.fecha,
+          completitud: doc.completitud
+        }))
+      });
+
       // Asegurarnos de que cada documento tenga su _id y sea un objeto plano
       result.docs = result.docs.map(doc => {
         // Si doc._id es un ObjectId, convertirlo a string
@@ -38,11 +62,10 @@ class RutinasController extends BaseController {
           _id,
           ...doc,
           // Asegurarnos de que los subdocumentos también sean objetos planos
-          morning: { ...doc.morning },
-          cleaning: { ...doc.cleaning },
+          bodyCare: { ...doc.bodyCare },
+          nutricion: { ...doc.nutricion },
           ejercicio: { ...doc.ejercicio },
-          cooking: { ...doc.cooking },
-          night: { ...doc.night }
+          cleaning: { ...doc.cleaning }
         };
       });
 
@@ -178,25 +201,21 @@ class RutinasController extends BaseController {
       const updateData = {
         ...currentRutina.toObject(),
         ...req.body,
-        morning: {
-          ...currentRutina.morning,
-          ...(req.body.morning || {})
+        bodyCare: {
+          ...currentRutina.bodyCare,
+          ...(req.body.bodyCare || {})
         },
-        cleaning: {
-          ...currentRutina.cleaning,
-          ...(req.body.cleaning || {})
+        nutricion: {
+          ...currentRutina.nutricion,
+          ...(req.body.nutricion || {})
         },
         ejercicio: {
           ...currentRutina.ejercicio,
           ...(req.body.ejercicio || {})
         },
-        cooking: {
-          ...currentRutina.cooking,
-          ...(req.body.cooking || {})
-        },
-        night: {
-          ...currentRutina.night,
-          ...(req.body.night || {})
+        cleaning: {
+          ...currentRutina.cleaning,
+          ...(req.body.cleaning || {})
         }
       };
 
@@ -213,7 +232,7 @@ class RutinasController extends BaseController {
         { 
           new: true,
           runValidators: true,
-          lean: true // Obtener un objeto plano
+          lean: true
         }
       );
 
@@ -225,11 +244,10 @@ class RutinasController extends BaseController {
       const formattedDoc = {
         _id: updatedDoc._id.toString(),
         ...updatedDoc,
-        morning: { ...updatedDoc.morning },
-        cleaning: { ...updatedDoc.cleaning },
+        bodyCare: { ...updatedDoc.bodyCare },
+        nutricion: { ...updatedDoc.nutricion },
         ejercicio: { ...updatedDoc.ejercicio },
-        cooking: { ...updatedDoc.cooking },
-        night: { ...updatedDoc.night }
+        cleaning: { ...updatedDoc.cleaning }
       };
 
       res.json(formattedDoc);
