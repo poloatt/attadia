@@ -175,6 +175,7 @@ export function Transacciones() {
         moneda: transaccion.moneda?._id || transaccion.moneda?.id || transaccion.moneda
       };
       
+      console.log('Transacción formateada para edición:', transaccionFormateada);
       setEditingTransaccion(transaccionFormateada);
       setFormKey(prev => prev + 1);
       setIsFormOpen(true);
@@ -197,7 +198,9 @@ export function Transacciones() {
       // Validar que la cuenta exista
       const cuentaSeleccionada = cuentas.find(c => 
         c._id === formData.cuenta || 
-        c.id === formData.cuenta
+        c.id === formData.cuenta ||
+        c._id === formData.cuenta?._id ||
+        c.id === formData.cuenta?._id
       );
 
       if (!cuentaSeleccionada) {
@@ -223,14 +226,13 @@ export function Transacciones() {
       if (editingTransaccion) {
         console.log('Actualizando transacción:', editingTransaccion._id);
         response = await clienteAxios.put(`/transacciones/${editingTransaccion._id}`, datosAEnviar);
+        console.log('Respuesta del servidor:', response.data);
         enqueueSnackbar('Transacción actualizada exitosamente', { variant: 'success' });
       } else {
         console.log('Creando nueva transacción');
         response = await clienteAxios.post('/transacciones', datosAEnviar);
         enqueueSnackbar('Transacción creada exitosamente', { variant: 'success' });
       }
-      
-      console.log('Respuesta del servidor:', response.data);
       
       setIsFormOpen(false);
       setEditingTransaccion(null);
@@ -246,7 +248,6 @@ export function Transacciones() {
           variant: 'error',
           autoHideDuration: 5000
         });
-        // Redirigir al login
         window.location.href = '/login';
         return;
       }

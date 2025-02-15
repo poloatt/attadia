@@ -30,6 +30,34 @@ export function Cuentas() {
   const [showValues, setShowValues] = useState(true);
   const { enqueueSnackbar } = useSnackbar();
   const [editingCuenta, setEditingCuenta] = useState(null);
+  const [balances, setBalances] = useState({});
+  const [balancesPorMoneda, setBalancesPorMoneda] = useState({});
+
+  const fetchBalanceCuenta = useCallback(async (cuentaId) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const response = await clienteAxios.get(`/transacciones/by-cuenta/${cuentaId}`, {
+        params: {
+          fechaFin: today,
+          estado: 'PAGADO'
+        }
+      });
+      
+      const transacciones = response.data.docs || [];
+      const balance = transacciones.reduce((acc, trans) => {
+        if (trans.tipo === 'INGRESO') {
+          return acc + trans.monto;
+        } else {
+          return acc - trans.monto;
+        }
+      }, 0);
+      
+      return balance;
+    } catch (error) {
+      console.error('Error al obtener balance de cuenta:', error);
+      return 0;
+    }
+  }, []);
 
   const fetchCuentas = useCallback(async () => {
     try {
@@ -37,10 +65,8 @@ export function Cuentas() {
       const response = await clienteAxios.get('/cuentas');
       console.log('Respuesta de cuentas:', response.data);
 
-      // Asegurarnos de que tenemos datos válidos
       let cuentasData = response.data?.docs || response.data || [];
       
-      // Si no es un array, intentar extraer los datos de otra propiedad
       if (!Array.isArray(cuentasData)) {
         console.log('Datos de cuentas no es un array, intentando extraer de:', cuentasData);
         cuentasData = cuentasData.data || cuentasData.items || [];
@@ -52,12 +78,30 @@ export function Cuentas() {
         nombre: cuenta.nombre || 'Sin nombre',
         numero: cuenta.numero || '',
         tipo: cuenta.tipo || 'OTRO',
-        saldo: cuenta.saldo || 0,
         moneda: cuenta.moneda?._id || cuenta.moneda?.id || cuenta.moneda
       }));
 
       console.log('Cuentas procesadas:', cuentasProcesadas);
       setCuentas(cuentasProcesadas);
+
+      // Obtener balances para cada cuenta
+      const balancesTemp = {};
+      for (const cuenta of cuentasProcesadas) {
+        balancesTemp[cuenta.id] = await fetchBalanceCuenta(cuenta.id);
+      }
+      setBalances(balancesTemp);
+
+      // Calcular balances por moneda
+      const balancesPorMonedaTemp = {};
+      cuentasProcesadas.forEach(cuenta => {
+        const monedaId = cuenta.moneda?._id || cuenta.moneda?.id || cuenta.moneda;
+        if (!balancesPorMonedaTemp[monedaId]) {
+          balancesPorMonedaTemp[monedaId] = 0;
+        }
+        balancesPorMonedaTemp[monedaId] += balancesTemp[cuenta.id] || 0;
+      });
+      setBalancesPorMoneda(balancesPorMonedaTemp);
+
       return cuentasProcesadas;
     } catch (error) {
       console.error('Error al cargar cuentas:', error);
@@ -65,7 +109,7 @@ export function Cuentas() {
       enqueueSnackbar('Error al cargar cuentas', { variant: 'error' });
       return [];
     }
-  }, [enqueueSnackbar]);
+  }, [enqueueSnackbar, fetchBalanceCuenta]);
 
   const fetchMonedas = useCallback(async () => {
     try {
@@ -307,11 +351,9 @@ export function Cuentas() {
     console.log('Monedas actuales:', monedas);
 
     return cuentas.reduce((grupos, cuenta) => {
-      // Usar let en lugar de const para poder reasignar
       let monedaId = cuenta.moneda?._id || cuenta.moneda;
       let moneda = monedas.find(m => m._id === monedaId || m.id === monedaId);
       
-      // Si no se encuentra la moneda, asignar a grupo "sin moneda"
       if (!moneda) {
         console.log('Moneda no encontrada para cuenta:', cuenta);
         monedaId = 'sin-moneda';
@@ -325,14 +367,15 @@ export function Cuentas() {
       if (!grupos[monedaId]) {
         grupos[monedaId] = {
           moneda: moneda,
-          cuentas: []
+          cuentas: [],
+          balance: balancesPorMoneda[monedaId] || 0
         };
       }
 
       const cuentaProcesada = {
         ...cuenta,
         id: cuenta._id || cuenta.id,
-        saldo: cuenta.saldo || 0,
+        saldo: balances[cuenta.id] || 0,
         tipo: cuenta.tipo || 'OTRO',
         nombre: cuenta.nombre || 'Sin nombre',
         moneda: monedaId
@@ -410,100 +453,97 @@ export function Cuentas() {
                     borderBottom: 1,
                     borderColor: 'divider'
                   }}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      {grupo.moneda.nombre} ({grupo.moneda.simbolo})
-                    </Typography>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleMonedaToggle(monedaId)}
-                      sx={{
-                        transform: expandedMonedas.includes(monedaId) ? 
-                          'rotate(180deg)' : 'rotate(0deg)',
-                        transition: 'transform 0.2s',
-                        p: 0.5
-                      }}
-                    >
-                      <ExpandMoreIcon sx={{ fontSize: 18 }} />
-                    </IconButton>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        {grupo.moneda.nombre} ({grupo.moneda.simbolo})
+                      </Typography>
+                      <Typography 
+                        variant="subtitle2" 
+                        sx={{ 
+                          color: grupo.balance >= 0 ? 'success.main' : 'error.main',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        {showValues ? `${grupo.moneda.simbolo} ${grupo.balance.toFixed(2)}` : '****'}
+                      </Typography>
+                    </Box>
                   </Box>
 
-                  {expandedMonedas.includes(monedaId) && (
-                    <Box>
-                      {grupo.cuentas.map((cuenta) => {
-                        console.log('Renderizando cuenta:', cuenta);
-                        return (
-                          <Box
-                            key={cuenta._id || cuenta.id}
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              px: 2,
-                              py: 1,
-                              borderBottom: 1,
-                              borderColor: 'divider',
-                              bgcolor: 'background.paper',
-                              '&:last-child': {
-                                borderBottom: 0
-                              },
-                              '&:hover': {
-                                bgcolor: 'action.hover'
-                              }
-                            }}
-                          >
-                            <Box sx={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: 1,
-                              flex: 1
-                            }}>
-                              {getTipoIcon(cuenta.tipo)}
-                              <Typography variant="body2">
-                                {cuenta.nombre || 'Sin nombre'}
-                              </Typography>
-                              <Chip 
-                                label={cuenta.tipo ? cuenta.tipo.replace('_', ' ') : 'OTRO'}
-                                size="small"
-                                variant="outlined"
-                                color={cuenta.tipo ? 'default' : 'warning'}
-                                sx={{ 
-                                  height: 20,
-                                  '& .MuiChip-label': {
-                                    px: 1,
-                                    fontSize: '0.75rem'
-                                  }
-                                }}
-                              />
-                            </Box>
-                            
-                            <Box sx={{ 
-                              display: 'flex', 
-                              alignItems: 'center',
-                              gap: 2
-                            }}>
-                              <Typography 
-                                variant="body2" 
-                                sx={{ 
-                                  color: (cuenta.saldo || 0) >= 0 ? 'success.main' : 'error.main'
-                                }}
-                              >
-                                {showValues 
-                                  ? `${grupo.moneda.simbolo} ${(cuenta.saldo || 0).toFixed(2)}`
-                                  : '****'
+                  <Box>
+                    {grupo.cuentas.map((cuenta) => {
+                      console.log('Renderizando cuenta:', cuenta);
+                      return (
+                        <Box
+                          key={cuenta._id || cuenta.id}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            px: 2,
+                            py: 1,
+                            borderBottom: 1,
+                            borderColor: 'divider',
+                            bgcolor: 'background.paper',
+                            '&:last-child': {
+                              borderBottom: 0
+                            },
+                            '&:hover': {
+                              bgcolor: 'action.hover'
+                            }
+                          }}
+                        >
+                          <Box sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: 1,
+                            flex: 1
+                          }}>
+                            {getTipoIcon(cuenta.tipo)}
+                            <Typography variant="body2">
+                              {cuenta.nombre || 'Sin nombre'}
+                            </Typography>
+                            <Chip 
+                              label={cuenta.tipo ? cuenta.tipo.replace('_', ' ') : 'OTRO'}
+                              size="small"
+                              variant="outlined"
+                              color={cuenta.tipo ? 'default' : 'warning'}
+                              sx={{ 
+                                height: 20,
+                                '& .MuiChip-label': {
+                                  px: 1,
+                                  fontSize: '0.75rem'
                                 }
-                              </Typography>
-
-                              <EntityActions
-                                onEdit={() => handleEdit(cuenta)}
-                                onDelete={() => handleDelete(cuenta._id || cuenta.id)}
-                                itemName={`la cuenta ${cuenta.nombre}`}
-                              />
-                            </Box>
+                              }}
+                            />
                           </Box>
-                        );
-                      })}
-                    </Box>
-                  )}
+                          
+                          <Box sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center',
+                            gap: 2
+                          }}>
+                            <Typography 
+                              variant="body2" 
+                              sx={{ 
+                                color: cuenta.saldo >= 0 ? 'success.main' : 'error.main'
+                              }}
+                            >
+                              {showValues 
+                                ? `${grupo.moneda.simbolo} ${cuenta.saldo.toFixed(2)}`
+                                : '****'
+                              }
+                            </Typography>
+
+                            <EntityActions
+                              onEdit={() => handleEdit(cuenta)}
+                              onDelete={() => handleDelete(cuenta._id || cuenta.id)}
+                              itemName={`la cuenta ${cuenta.nombre}`}
+                            />
+                          </Box>
+                        </Box>
+                      );
+                    })}
+                  </Box>
                 </Paper>
               );
             })}

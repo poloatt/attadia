@@ -173,8 +173,8 @@ const TransaccionForm = ({
     descripcion: initialData.descripcion || '',
     categoria: initialData.categoria || '',
     fecha: initialData.fecha ? new Date(initialData.fecha).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-    cuenta: initialData.cuenta || '',
-    moneda: initialData.moneda || ''
+    cuenta: '',
+    moneda: ''
   });
   const [errors, setErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
@@ -196,51 +196,69 @@ const TransaccionForm = ({
     relatedFields
   });
 
-  const [cuentasDisponibles, setCuentasDisponibles] = useState([]);
   const [selectedCuenta, setSelectedCuenta] = useState(null);
 
+  // Efecto para reiniciar el formulario cuando se abre
   useEffect(() => {
-    const buscarCuenta = async () => {
-      console.log('Buscando cuenta:', {
-        cuentaId: initialData.cuenta,
-        cuentasDisponibles,
-        cuentaEncontrada: cuentasDisponibles.find(c => 
-          c._id === initialData.cuenta || 
-          c.id === initialData.cuenta
-        )
+    if (open) {
+      console.log('Reiniciando formulario con datos:', initialData);
+      setFormData({
+        tipo: initialData.tipo || 'INGRESO',
+        estado: initialData.estado || 'PENDIENTE',
+        monto: initialData.monto || '',
+        descripcion: initialData.descripcion || '',
+        categoria: initialData.categoria || '',
+        fecha: initialData.fecha ? new Date(initialData.fecha).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        cuenta: '',
+        moneda: ''
+      });
+      setSelectedCuenta(null);
+      setErrors({});
+    }
+  }, [open]);
+
+  // Efecto para manejar la cuenta cuando los datos relacionales están disponibles
+  useEffect(() => {
+    const inicializarCuenta = () => {
+      if (!relatedData?.cuenta?.length || !initialData.cuenta) return;
+
+      console.log('Inicializando cuenta con:', {
+        initialData,
+        cuentaInicial: initialData.cuenta,
+        cuentasDisponibles: relatedData.cuenta
       });
 
-      const cuentaEncontrada = cuentasDisponibles.find(c => 
-        c._id === initialData.cuenta || 
-        c.id === initialData.cuenta
+      let cuentaId;
+      if (typeof initialData.cuenta === 'string') {
+        cuentaId = initialData.cuenta;
+      } else if (initialData.cuenta?._id) {
+        cuentaId = initialData.cuenta._id;
+      } else if (initialData.cuenta?.id) {
+        cuentaId = initialData.cuenta.id;
+      }
+
+      console.log('Buscando cuenta con ID:', cuentaId);
+
+      const cuentaEncontrada = relatedData.cuenta.find(c => 
+        c._id === cuentaId || c.id === cuentaId
       );
+
+      console.log('Cuenta encontrada:', cuentaEncontrada);
 
       if (cuentaEncontrada) {
         setSelectedCuenta(cuentaEncontrada);
+        setFormData(prev => ({
+          ...prev,
+          cuenta: cuentaEncontrada._id || cuentaEncontrada.id,
+          moneda: cuentaEncontrada.moneda?._id || cuentaEncontrada.moneda?.id || cuentaEncontrada.moneda
+        }));
       }
     };
 
-    if (initialData.cuenta && cuentasDisponibles.length > 0) {
-      buscarCuenta();
+    if (open && !isLoadingRelated) {
+      inicializarCuenta();
     }
-  }, [initialData.cuenta, cuentasDisponibles]);
-
-  useEffect(() => {
-    if (open) {
-      setFormData(initialData);
-      setErrors({});
-    }
-  }, [open, initialData]);
-
-  // Efecto para actualizar la moneda cuando cambia la cuenta
-  useEffect(() => {
-    if (selectedCuenta?.moneda) {
-      setFormData(prev => ({
-        ...prev,
-        moneda: selectedCuenta.moneda.id
-      }));
-    }
-  }, [selectedCuenta]);
+  }, [relatedData?.cuenta, initialData.cuenta, open, isLoadingRelated]);
 
   const handleChange = useCallback((name, value) => {
     setFormData(prev => ({
@@ -444,13 +462,24 @@ const TransaccionForm = ({
 
           {/* Cuenta */}
           <Autocomplete
+            key={`cuenta-${open}-${selectedCuenta?.id || 'new'}`}
             value={selectedCuenta}
             onChange={(event, newValue) => {
+              console.log('Cuenta seleccionada:', newValue);
               setSelectedCuenta(newValue);
-              setFormData(prev => ({
-                ...prev,
-                cuenta: newValue?.id || newValue?._id || ''
-              }));
+              if (newValue) {
+                setFormData(prev => ({
+                  ...prev,
+                  cuenta: newValue._id || newValue.id,
+                  moneda: newValue.moneda?._id || newValue.moneda?.id || newValue.moneda
+                }));
+              } else {
+                setFormData(prev => ({
+                  ...prev,
+                  cuenta: '',
+                  moneda: ''
+                }));
+              }
             }}
             options={relatedData?.cuenta || []}
             getOptionLabel={(option) => `${option?.nombre || ''} - ${option?.tipo || ''}`}
@@ -461,7 +490,6 @@ const TransaccionForm = ({
                 label="Cuenta"
                 error={!!errors.cuenta}
                 helperText={errors.cuenta}
-                sx={{ mb: 2 }}
                 InputLabelProps={{
                   ...params.InputLabelProps,
                   shrink: true
@@ -469,10 +497,8 @@ const TransaccionForm = ({
               />
             )}
             isOptionEqualToValue={(option, value) => 
-              (option?.id === value?.id) || 
-              (option?._id === value?._id) ||
-              (option?.id === value?._id) ||
-              (option?._id === value?.id)
+              option?._id === value?._id || 
+              option?.id === value?.id
             }
             renderOption={(props, option) => {
               const { key, ...otherProps } = props;
