@@ -8,19 +8,26 @@ import { ROLES } from '../config/constants.js';
 
 const router = express.Router();
 
-// Todas las rutas requieren autenticación
+// Middleware de autenticación para todas las rutas
 router.use(checkAuth);
 
-router.get('/', proyectosController.getAll);
-router.post('/', proyectosController.create);
-
-// Rutas administrativas
+// Rutas administrativas (solo admin)
 router.get('/admin/all', [checkRole([ROLES.ADMIN])], proyectosController.getAllAdmin);
 router.get('/admin/stats', [checkRole([ROLES.ADMIN])], proyectosController.getAdminStats);
 
-// Rutas que requieren ser dueño del recurso
-router.get('/:id', [checkOwnership(Proyectos)], proyectosController.getById);
-router.put('/:id', [checkOwnership(Proyectos)], proyectosController.update);
-router.delete('/:id', [checkOwnership(Proyectos)], proyectosController.delete);
+// Rutas base CRUD con validación de propiedad
+router.route('/')
+  .get(proyectosController.getAll)
+  .post(proyectosController.create);
+
+router.route('/:id')
+  .get([checkOwnership(Proyectos)], proyectosController.getById)
+  .put([checkOwnership(Proyectos)], proyectosController.update)
+  .delete([checkOwnership(Proyectos)], proyectosController.delete);
+
+// Rutas para tareas dentro de proyectos (requieren ser dueño del proyecto)
+router.route('/:id/tareas')
+  .get([checkOwnership(Proyectos)], proyectosController.getTareasByProyecto)
+  .post([checkOwnership(Proyectos)], proyectosController.addTareaToProyecto);
 
 export default router; 

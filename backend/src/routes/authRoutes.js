@@ -7,6 +7,7 @@ import passport from 'passport';
 import config from '../config/config.js';
 import rateLimit from 'express-rate-limit';
 import jwt from 'jsonwebtoken';
+import { passportConfig } from '../config/passport.js';
 
 const router = express.Router();
 
@@ -26,6 +27,19 @@ const generalLimiter = rateLimit({
 router.use(generalLimiter);
 
 // Rutas públicas
+router.get('/check', (req, res, next) => {
+  passportConfig.authenticate('jwt', { session: false }, (err, user) => {
+    if (err) {
+      return res.status(500).json({ error: 'Error en la autenticación' });
+    }
+    if (!user) {
+      return res.status(200).json({ authenticated: false });
+    }
+    req.user = user;
+    next();
+  })(req, res, next);
+}, authController.check);
+
 router.post('/register', [
   check('nombre', 'El nombre es obligatorio').not().isEmpty(),
   check('email', 'Incluye un email válido').isEmail(),
@@ -105,7 +119,6 @@ router.get('/google/callback',
 
 // Rutas que requieren autenticación
 router.use(checkAuth);
-router.get('/check', authController.check);
 router.post('/logout', authController.logout);
 
 export default router;

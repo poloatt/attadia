@@ -2,22 +2,24 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Container, 
   Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
+  Box,
+  Grid,
   Paper,
   Chip,
-  Avatar
+  Avatar,
+  Typography,
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import { 
   ApartmentOutlined as BuildingIcon,
   BedOutlined as BedIcon,
   DescriptionOutlined as DescriptionIcon,
-  Inventory2Outlined as InventoryIcon
+  Inventory2Outlined as InventoryIcon,
+  EmailOutlined as EmailIcon,
+  PhoneOutlined as PhoneIcon,
+  BadgeOutlined as BadgeIcon
 } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
@@ -26,6 +28,7 @@ import { useSnackbar } from 'notistack';
 import clienteAxios from '../config/axios';
 import EmptyState from '../components/EmptyState';
 import { EntityActions } from '../components/EntityViews/EntityActions';
+import EntityCards from '../components/EntityViews/EntityCards';
 
 export function Inquilinos() {
   const [inquilinos, setInquilinos] = useState([]);
@@ -134,6 +137,37 @@ export function Inquilinos() {
     }
   ];
 
+  const cardConfig = {
+    getAvatarText: (inquilino) => 
+      `${inquilino.nombre?.charAt(0) || ''}${inquilino.apellido?.charAt(0) || ''}`,
+    getTitle: (inquilino) => `${inquilino.nombre} ${inquilino.apellido}`,
+    getDetails: (inquilino) => [
+      {
+        icon: <EmailIcon />,
+        text: inquilino.email,
+        noWrap: true
+      },
+      {
+        icon: <PhoneIcon />,
+        text: inquilino.telefono
+      },
+      {
+        icon: <BadgeIcon />,
+        text: inquilino.dni
+      }
+    ],
+    getStatus: (inquilino) => ({
+      label: inquilino.estado,
+      color: inquilino.estado === 'ACTIVO' ? 'success' :
+             inquilino.estado === 'INACTIVO' ? 'error' : 'warning'
+    }),
+    getActions: (inquilino) => ({
+      onEdit: () => handleEdit(inquilino),
+      onDelete: () => handleDelete(inquilino.id),
+      itemName: `el inquilino ${inquilino.nombre} ${inquilino.apellido}`
+    })
+  };
+
   return (
     <Container maxWidth="lg">
       <EntityToolbar
@@ -177,6 +211,7 @@ export function Inquilinos() {
               setEditingInquilino(null);
               setIsFormOpen(true);
             }}
+            sx={{ borderRadius: 0 }}
           >
             Nuevo Inquilino
           </Button>
@@ -185,55 +220,10 @@ export function Inquilinos() {
         {inquilinos.length === 0 ? (
           <EmptyState onAdd={() => setIsFormOpen(true)} />
         ) : (
-          <TableContainer component={Paper} elevation={0}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Inquilino</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Teléfono</TableCell>
-                  <TableCell>DNI/Pasaporte</TableCell>
-                  <TableCell>Estado</TableCell>
-                  <TableCell align="right">Acciones</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {inquilinos.map((inquilino) => (
-                  <TableRow key={inquilino.id}>
-                    <TableCell>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Avatar>
-                          {inquilino.nombre?.charAt(0) || ''}
-                          {inquilino.apellido?.charAt(0) || ''}
-                        </Avatar>
-                        {inquilino.nombre} {inquilino.apellido}
-                      </div>
-                    </TableCell>
-                    <TableCell>{inquilino.email}</TableCell>
-                    <TableCell>{inquilino.telefono}</TableCell>
-                    <TableCell>{inquilino.dni}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={inquilino.estado}
-                        color={
-                          inquilino.estado === 'ACTIVO' ? 'success' :
-                          inquilino.estado === 'INACTIVO' ? 'error' : 'warning'
-                        }
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <EntityActions
-                        onEdit={() => handleEdit(inquilino)}
-                        onDelete={() => handleDelete(inquilino.id)}
-                        itemName={`el inquilino ${inquilino.nombre} ${inquilino.apellido}`}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <EntityCards 
+            data={inquilinos}
+            config={cardConfig}
+          />
         )}
       </EntityDetails>
 

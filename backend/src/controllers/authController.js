@@ -146,11 +146,24 @@ export const authController = {
 
   check: async (req, res) => {
     try {
+      if (!req.user) {
+        return res.json({ authenticated: false });
+      }
+
       const user = await Users.findById(req.user.id).select('-password');
       if (!user) {
-        return res.status(404).json({ error: 'Usuario no encontrado' });
+        return res.json({ authenticated: false });
       }
-      res.json(user);
+
+      res.json({
+        authenticated: true,
+        user: {
+          id: user._id,
+          nombre: user.nombre,
+          email: user.email,
+          role: user.role
+        }
+      });
     } catch (error) {
       console.error('Error en check:', error);
       res.status(500).json({ error: 'Error al verificar la autenticación' });

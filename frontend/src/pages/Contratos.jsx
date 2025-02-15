@@ -2,21 +2,23 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Container, 
   Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
+  Box,
+  Grid,
   Paper,
-  Chip
+  Chip,
+  Typography
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import { 
   ApartmentOutlined as BuildingIcon,
   BedOutlined as BedIcon,
   PeopleOutlined as PeopleIcon,
-  Inventory2Outlined as InventoryIcon
+  Inventory2Outlined as InventoryIcon,
+  DescriptionOutlined as DescriptionIcon,
+  CalendarTodayOutlined as CalendarIcon,
+  AttachMoneyOutlined as MoneyIcon,
+  HomeWorkOutlined as HomeIcon,
+  PersonOutlineOutlined as PersonIcon
 } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
@@ -25,6 +27,7 @@ import { useSnackbar } from 'notistack';
 import clienteAxios from '../config/axios';
 import EmptyState from '../components/EmptyState';
 import { EntityActions } from '../components/EntityViews/EntityActions';
+import EntityCards from '../components/EntityViews/EntityCards';
 
 export function Contratos() {
   const [contratos, setContratos] = useState([]);
@@ -231,6 +234,47 @@ export function Contratos() {
     }
   ];
 
+  const cardConfig = {
+    renderIcon: () => <DescriptionIcon />,
+    getTitle: (contrato) => {
+      const propiedad = propiedades.find(p => p.id === contrato.propiedadId);
+      return propiedad?.titulo || 'N/A';
+    },
+    getDetails: (contrato) => [
+      {
+        icon: <PersonIcon />,
+        text: (() => {
+          const inquilino = inquilinos.find(i => i.id === contrato.inquilinoId);
+          return inquilino ? `${inquilino.nombre} ${inquilino.apellido}` : 'N/A';
+        })(),
+        noWrap: true
+      },
+      {
+        icon: <CalendarIcon />,
+        text: `${new Date(contrato.fechaInicio).toLocaleDateString()} - ${new Date(contrato.fechaFin).toLocaleDateString()}`
+      },
+      {
+        icon: <MoneyIcon />,
+        text: (() => {
+          const moneda = monedas.find(m => m.id === contrato.monedaId);
+          return `${moneda?.simbolo || ''} ${contrato.montoMensual?.toLocaleString() || 0} /mes`;
+        })()
+      }
+    ],
+    getStatus: (contrato) => ({
+      label: contrato.estado,
+      color: contrato.estado === 'ACTIVO' ? 'success' :
+             contrato.estado === 'FINALIZADO' ? 'info' : 'error'
+    }),
+    getActions: (contrato) => ({
+      onEdit: () => handleEdit(contrato),
+      onDelete: () => handleDelete(contrato.id),
+      itemName: `el contrato de ${
+        inquilinos.find(i => i.id === contrato.inquilinoId)?.nombre || 'N/A'
+      }`
+    })
+  };
+
   return (
     <Container maxWidth="lg">
       <EntityToolbar
@@ -274,6 +318,7 @@ export function Contratos() {
               setEditingContrato(null);
               setIsFormOpen(true);
             }}
+            sx={{ borderRadius: 0 }}
           >
             Nuevo Contrato
           </Button>
@@ -282,63 +327,16 @@ export function Contratos() {
         {contratos.length === 0 ? (
           <EmptyState onAdd={() => setIsFormOpen(true)} />
         ) : (
-          <TableContainer component={Paper} elevation={0}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Propiedad</TableCell>
-                  <TableCell>Inquilino</TableCell>
-                  <TableCell>Fecha Inicio</TableCell>
-                  <TableCell>Fecha Fin</TableCell>
-                  <TableCell align="right">Monto</TableCell>
-                  <TableCell>Estado</TableCell>
-                  <TableCell align="right">Acciones</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {contratos.map((contrato) => (
-                  <TableRow key={contrato.id}>
-                    <TableCell>
-                      {propiedades.find(p => p.id === contrato.propiedadId)?.titulo || 'N/A'}
-                    </TableCell>
-                    <TableCell>
-                      {(() => {
-                        const inquilino = inquilinos.find(i => i.id === contrato.inquilinoId);
-                        return inquilino ? `${inquilino.nombre} ${inquilino.apellido}` : 'N/A';
-                      })()}
-                    </TableCell>
-                    <TableCell>{new Date(contrato.fechaInicio).toLocaleDateString()}</TableCell>
-                    <TableCell>{new Date(contrato.fechaFin).toLocaleDateString()}</TableCell>
-                    <TableCell align="right">
-                      {(() => {
-                        const moneda = monedas.find(m => m.id === contrato.monedaId);
-                        return `${moneda?.simbolo || ''} ${contrato.montoMensual?.toLocaleString() || 0}`;
-                      })()}
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={contrato.estado}
-                        color={
-                          contrato.estado === 'ACTIVO' ? 'success' :
-                          contrato.estado === 'FINALIZADO' ? 'info' : 'error'
-                        }
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <EntityActions
-                        onEdit={() => handleEdit(contrato)}
-                        onDelete={() => handleDelete(contrato.id)}
-                        itemName={`el contrato de ${
-                          inquilinos.find(i => i.id === contrato.inquilinoId)?.nombre || 'N/A'
-                        }`}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <EntityCards 
+            data={contratos}
+            config={cardConfig}
+            gridProps={{
+              xs: 12,
+              sm: 6,
+              md: 4,
+              lg: 3
+            }}
+          />
         )}
       </EntityDetails>
 

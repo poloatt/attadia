@@ -8,22 +8,35 @@ import { ROLES } from '../config/constants.js';
 
 const router = express.Router();
 
-// Todas las rutas requieren autenticación
+// Middleware de autenticación para todas las rutas
 router.use(checkAuth);
 
-router.get('/', tareasController.getAll);
-router.post('/', tareasController.create);
-
-// Rutas administrativas
+// Rutas administrativas (solo admin)
 router.get('/admin/all', [checkRole([ROLES.ADMIN])], tareasController.getAllAdmin);
 router.get('/admin/stats', [checkRole([ROLES.ADMIN])], tareasController.getAdminStats);
 
-// Rutas específicas
+// Rutas específicas por proyecto
 router.get('/proyecto/:proyectoId', tareasController.getAllByProyecto);
 
+// Rutas base CRUD con validación de propiedad
+router.route('/')
+  .get(tareasController.getAll)
+  .post(tareasController.create);
+
 // Rutas que requieren ser dueño del recurso
-router.get('/:id', [checkOwnership(Tareas)], tareasController.getById);
-router.put('/:id', [checkOwnership(Tareas)], tareasController.update);
-router.delete('/:id', [checkOwnership(Tareas)], tareasController.delete);
+router.route('/:id')
+  .get([checkOwnership(Tareas)], tareasController.getById)
+  .put([checkOwnership(Tareas)], tareasController.update)
+  .delete([checkOwnership(Tareas)], tareasController.delete);
+
+// Rutas para subtareas (requieren ser dueño de la tarea)
+router.route('/:id/subtareas')
+  .post([checkOwnership(Tareas)], tareasController.addSubtarea)
+  .patch([checkOwnership(Tareas)], tareasController.updateSubtareas);
+
+router.delete('/:id/subtareas/:subtareaId', 
+  [checkOwnership(Tareas)], 
+  tareasController.removeSubtarea
+);
 
 export default router; 

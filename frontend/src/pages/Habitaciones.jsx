@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Container, Button, Table, TableBody, TableCell, 
   TableContainer, TableHead, TableRow, Paper, Chip,
-  Box, Typography
+  Box, Typography, Grid, IconButton
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
@@ -14,10 +14,15 @@ import {
   ApartmentOutlined as BuildingIcon,
   PeopleOutlined as PeopleIcon,
   DescriptionOutlined as DescriptionIcon,
-  Inventory2Outlined as InventoryIcon
+  Inventory2Outlined as InventoryIcon,
+  BedOutlined as BedIcon,
+  PersonOutlined as PersonIcon,
+  HomeOutlined as HomeIcon,
+  NumbersOutlined as NumberIcon
 } from '@mui/icons-material';
 import EmptyState from '../components/EmptyState';
 import { EntityActions } from '../components/EntityViews/EntityActions';
+import EntityCards from '../components/EntityViews/EntityCards';
 
 export function Habitaciones() {
   const [habitaciones, setHabitaciones] = useState([]);
@@ -169,6 +174,37 @@ export function Habitaciones() {
     }
   ];
 
+  const cardConfig = {
+    renderIcon: () => <NumberIcon />,
+    getTitle: (habitacion) => `Habitación ${habitacion.numero}`,
+    getDetails: (habitacion) => [
+      {
+        icon: <HomeIcon />,
+        text: habitacion.propiedad?.titulo || propiedades.find(p => p.id === habitacion.propiedadId)?.titulo || 'N/A',
+        noWrap: true
+      },
+      {
+        icon: <BedIcon />,
+        text: habitacion.tipo
+      },
+      {
+        icon: <PersonIcon />,
+        text: `${habitacion.capacidad} personas`
+      }
+    ],
+    getStatus: (habitacion) => ({
+      label: habitacion.estado,
+      color: habitacion.estado === 'DISPONIBLE' ? 'success' :
+             habitacion.estado === 'OCUPADA' ? 'error' :
+             habitacion.estado === 'MANTENIMIENTO' ? 'warning' : 'info'
+    }),
+    getActions: (habitacion) => ({
+      onEdit: () => handleEdit(habitacion),
+      onDelete: () => handleDelete(habitacion.id),
+      itemName: `la habitación ${habitacion.numero}`
+    })
+  };
+
   return (
     <Container maxWidth="lg">
       <EntityToolbar
@@ -212,6 +248,7 @@ export function Habitaciones() {
               setEditingHabitacion(null);
               setIsFormOpen(true);
             }}
+            sx={{ borderRadius: 0 }}
           >
             Nueva Habitación
           </Button>
@@ -220,56 +257,10 @@ export function Habitaciones() {
         {habitaciones.length === 0 ? (
           <EmptyState onAdd={() => setIsFormOpen(true)} />
         ) : (
-          <TableContainer component={Paper} elevation={0}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Propiedad</TableCell>
-                  <TableCell>Número</TableCell>
-                  <TableCell>Tipo</TableCell>
-                  <TableCell>Capacidad</TableCell>
-                  <TableCell>Estado</TableCell>
-                  <TableCell align="right">Acciones</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {habitaciones.map((habitacion) => (
-                  <TableRow key={habitacion.id}>
-                    <TableCell>
-                      {habitacion.propiedad?.titulo || propiedades.find(p => p.id === habitacion.propiedadId)?.titulo || 'N/A'}
-                    </TableCell>
-                    <TableCell>{habitacion.numero}</TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={habitacion.tipo}
-                        size="small"
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>{habitacion.capacidad} personas</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={habitacion.estado}
-                        color={
-                          habitacion.estado === 'DISPONIBLE' ? 'success' :
-                          habitacion.estado === 'OCUPADA' ? 'error' :
-                          habitacion.estado === 'MANTENIMIENTO' ? 'warning' : 'info'
-                        }
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <EntityActions
-                        onEdit={() => handleEdit(habitacion)}
-                        onDelete={() => handleDelete(habitacion.id)}
-                        itemName={`la habitación ${habitacion.numero}`}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <EntityCards 
+            data={habitaciones}
+            config={cardConfig}
+          />
         )}
       </EntityDetails>
 

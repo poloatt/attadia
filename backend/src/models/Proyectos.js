@@ -45,7 +45,39 @@ const proyectoSchema = createSchema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Propiedades'
   },
+  tareas: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Tareas'
+  }],
   ...commonFields
+});
+
+// Middleware para poblar referencias cuando se consulte un proyecto
+proyectoSchema.pre(['find', 'findOne'], function() {
+  this.populate([
+    {
+      path: 'tareas',
+      populate: {
+        path: 'subtareas',
+        model: 'Subtareas'
+      }
+    },
+    {
+      path: 'presupuesto.moneda'
+    },
+    {
+      path: 'propiedad',
+      select: 'nombre direccion'
+    }
+  ]);
+});
+
+// Middleware para validar fechas
+proyectoSchema.pre('save', function(next) {
+  if (this.fechaFin && this.fechaInicio > this.fechaFin) {
+    next(new Error('La fecha de fin debe ser posterior a la fecha de inicio'));
+  }
+  next();
 });
 
 export const Proyectos = mongoose.model('Proyectos', proyectoSchema); 

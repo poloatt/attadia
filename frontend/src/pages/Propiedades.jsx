@@ -25,6 +25,8 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '@mui/material/styles';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import SquareFootIcon from '@mui/icons-material/SquareFoot';
+import BathtubOutlinedIcon from '@mui/icons-material/BathtubOutlined';
+import HomeIcon from '@mui/icons-material/Home';
 import EntityForm from '../components/EntityViews/EntityForm';
 import { useNavigate } from 'react-router-dom';
 import clienteAxios from '../config/axios';
@@ -310,24 +312,40 @@ export function Propiedades() {
   ];
 
   const cardConfig = {
-    getTitle: (item) => item.titulo,
-    getDescription: (item) => item.descripcion,
-    getType: (item) => item.tipo,
-    getImage: (item) => item.imagen,
-    getAmount: (item) => item.precio,
-    getSubtitle: (item) => item.direccion,
-    getExtra: (item) => `${item.ciudad}, ${item.estado}`,
-    getStatus: (item) => item.estado || 'ACTIVO',
-    getMetrosCuadrados: (item) => item.metrosCuadrados,
-    getHabitaciones: (item) => item.numHabitaciones,
-    getBanos: (item) => item.banos,
-    getActions: (item) => (
-      <EntityActions
-        onEdit={() => handleEdit(item)}
-        onDelete={() => handleDelete(item.id)}
-        itemName={`la propiedad ${item.titulo}`}
-      />
-    )
+    renderIcon: (propiedad) => <HomeIcon />,
+    getTitle: (propiedad) => propiedad.titulo,
+    getDetails: (propiedad) => [
+      {
+        icon: <LocationOnIcon />,
+        text: `${propiedad.direccion}, ${propiedad.ciudad}`,
+        noWrap: true
+      },
+      {
+        icon: <SquareFootIcon />,
+        text: `${propiedad.metrosCuadrados} m²`
+      },
+      {
+        icon: <BedIcon />,
+        text: `${propiedad.numHabitaciones} habitaciones`
+      },
+      {
+        icon: <BathtubOutlinedIcon />,
+        text: `${propiedad.banos} baños`
+      },
+      {
+        icon: <AttachMoneyIcon />,
+        text: `${propiedad.precio?.toLocaleString()} ${monedas.find(m => m.id === propiedad.monedaId)?.simbolo || ''}`
+      }
+    ],
+    getStatus: (propiedad) => ({
+      label: propiedad.tipo,
+      color: 'primary'
+    }),
+    getActions: (propiedad) => ({
+      onEdit: () => handleEdit(propiedad),
+      onDelete: () => handleDelete(propiedad.id),
+      itemName: `la propiedad ${propiedad.titulo}`
+    })
   };
 
   if (loading) {
@@ -427,6 +445,7 @@ export function Propiedades() {
               });
               setIsFormOpen(true);
             }}
+            sx={{ borderRadius: 0 }}
           >
             Nueva Propiedad
           </Button>
@@ -437,7 +456,13 @@ export function Propiedades() {
         ) : (
           <EntityCards
             data={filteredPropiedades.length > 0 ? filteredPropiedades : propiedades}
-            cardConfig={cardConfig}
+            config={cardConfig}
+            gridProps={{
+              xs: 12,
+              sm: 6,
+              md: 4,
+              lg: 3
+            }}
           />
         )}
       </EntityDetails>
