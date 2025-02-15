@@ -30,7 +30,7 @@ import {
   MoreHoriz
 } from '@mui/icons-material';
 
-const TransaccionTable = ({ transacciones, onEdit, onDelete }) => {
+const TransaccionTable = ({ transacciones, onEdit, onDelete, showValues = true }) => {
   const [expandedRow, setExpandedRow] = useState(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -48,6 +48,7 @@ const TransaccionTable = ({ transacciones, onEdit, onDelete }) => {
   });
 
   const formatMonto = (monto) => {
+    if (!showValues) return '****';
     return new Intl.NumberFormat('es-ES', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0

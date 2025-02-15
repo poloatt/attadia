@@ -45,7 +45,7 @@ const COLORES_MONEDA = {
   VIOLETA_OSCURO: { value: '#4B0082', label: 'Violeta Oscuro' }
 };
 
-const MonedaCard = ({ moneda, onEdit, onDelete, onToggleActive, onColorChange }) => {
+const MonedaCard = ({ moneda, onEdit, onDelete, onToggleActive, onColorChange, showValues }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [isEditingColor, setIsEditingColor] = useState(false);
   const [balance, setBalance] = useState(null);
@@ -225,10 +225,10 @@ const MonedaCard = ({ moneda, onEdit, onDelete, onToggleActive, onColorChange })
               }}
             >
               {moneda.simbolo} {loadingBalance ? '...' : 
-                balance.toLocaleString('es-AR', {
+                showValues ? balance.toLocaleString('es-AR', {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2
-                })
+                }) : '****'
               }
             </Typography>
           </Box>
@@ -271,6 +271,7 @@ export function Monedas() {
   const [editingMoneda, setEditingMoneda] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const { enqueueSnackbar } = useSnackbar();
+  const [showValues, setShowValues] = useState(true);
 
   const fetchMonedas = useCallback(async () => {
     try {
@@ -412,6 +413,8 @@ export function Monedas() {
             to: '/transacciones'
           }
         ]}
+        showValues={showValues}
+        onToggleValues={() => setShowValues(!showValues)}
       />
       
       <EntityDetails 
@@ -461,6 +464,7 @@ export function Monedas() {
                   onDelete={handleDelete}
                   onToggleActive={handleToggleActive}
                   onColorChange={handleColorChange}
+                  showValues={showValues}
                 />
               </Grid>
             ))}

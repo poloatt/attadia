@@ -22,6 +22,7 @@ export function Transacciones() {
   const [formKey, setFormKey] = useState(0);
   const { enqueueSnackbar } = useSnackbar();
   const [editingTransaccion, setEditingTransaccion] = useState(null);
+  const [showValues, setShowValues] = useState(true);
 
   const fetchTransacciones = useCallback(async () => {
     try {
@@ -413,6 +414,8 @@ export function Transacciones() {
             to: '/monedas'
           }
         ]}
+        showValues={showValues}
+        onToggleValues={() => setShowValues(!showValues)}
       />
       <EntityDetails 
         title="Transacciones"
@@ -444,6 +447,7 @@ export function Transacciones() {
             transacciones={transacciones}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            showValues={showValues}
           />
         )}
       </EntityDetails>
