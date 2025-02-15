@@ -130,7 +130,8 @@ export function Cuentas() {
         ...moneda,
         id: moneda._id || moneda.id,
         nombre: moneda.nombre || 'Sin nombre',
-        simbolo: moneda.simbolo || '$'
+        simbolo: moneda.simbolo || '$',
+        color: moneda.color || '#75AADB' // Color por defecto
       }));
 
       console.log('Monedas procesadas:', monedasProcesadas);
@@ -460,7 +461,7 @@ export function Cuentas() {
                       <Typography 
                         variant="subtitle2" 
                         sx={{ 
-                          color: grupo.balance >= 0 ? 'success.main' : 'error.main',
+                          color: grupo.balance >= 0 ? grupo.moneda.color || '#75AADB' : 'error.main',
                           fontWeight: 'bold'
                         }}
                       >
@@ -525,7 +526,8 @@ export function Cuentas() {
                             <Typography 
                               variant="body2" 
                               sx={{ 
-                                color: cuenta.saldo >= 0 ? 'success.main' : 'error.main'
+                                color: cuenta.saldo >= 0 ? grupo.moneda.color || '#75AADB' : 'error.main',
+                                fontWeight: 500
                               }}
                             >
                               {showValues 

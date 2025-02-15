@@ -38,7 +38,8 @@ export function Dashboard() {
       ingresosMensuales: 0,
       egresosMensuales: 0,
       balanceTotal: 0,
-      monedaPrincipal: 'USD'
+      monedaPrincipal: 'USD',
+      monedaColor: '#75AADB' // Color por defecto
     },
     tareas: {
       pendientes: 0,
@@ -76,7 +77,10 @@ export function Dashboard() {
           ...propiedadesData,
           porcentajeOcupacion
         },
-        finanzas: transaccionesData
+        finanzas: {
+          ...transaccionesData,
+          monedaColor: transaccionesData.monedaColor || '#75AADB' // Color por defecto
+        }
       });
     } catch (error) {
       console.error('Error al cargar estadísticas:', error);
@@ -114,17 +118,18 @@ export function Dashboard() {
           console.log(`Balance calculado para ${cuenta.nombre}:`, balance);
 
           // Asegurarnos de que la moneda tenga la información correcta
-          const monedaInfo = {
-            ...cuenta.moneda,
-            simbolo: cuenta.moneda?.simbolo || '$',
-            nombre: cuenta.moneda?.nombre || 'USD'
-          };
-
+          const monedaInfo = cuenta.moneda || {};
+          
           return {
             ...cuenta,
             saldo: balance,
-            moneda: monedaInfo,
-            tipo: cuenta.tipo || 'OTRO'  // Asegurarnos de que siempre haya un tipo
+            moneda: {
+              ...monedaInfo,
+              simbolo: monedaInfo.simbolo || '$',
+              nombre: monedaInfo.nombre || 'USD',
+              color: monedaInfo.color || '#75AADB' // Celeste Argentina por defecto
+            },
+            tipo: cuenta.tipo || 'OTRO'
           };
         } catch (error) {
           console.error(`Error al obtener balance de cuenta ${cuenta._id}:`, error);
@@ -135,7 +140,8 @@ export function Dashboard() {
             moneda: {
               ...cuenta.moneda,
               simbolo: cuenta.moneda?.simbolo || '$',
-              nombre: cuenta.moneda?.nombre || 'USD'
+              nombre: cuenta.moneda?.nombre || 'USD',
+              color: cuenta.moneda?.color || '#75AADB'
             },
             tipo: cuenta.tipo || 'OTRO'
           };
@@ -213,8 +219,8 @@ export function Dashboard() {
 
           {/* Ingresos */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <IngresosIcon sx={{ fontSize: 18, color: 'success.main' }} />
-            <Typography variant="body2" sx={{ color: 'success.main' }}>
+            <IngresosIcon sx={{ fontSize: 18, color: stats.finanzas.monedaColor || '#75AADB' }} />
+            <Typography variant="body2" sx={{ color: stats.finanzas.monedaColor || '#75AADB' }}>
               {showValues ? `${stats.finanzas.monedaPrincipal} ${stats.finanzas.ingresosMensuales}` : '****'}
             </Typography>
           </Box>
@@ -261,7 +267,6 @@ export function Dashboard() {
           borderColor: 'divider'
         }}>
           {accounts.map((account) => {
-            // Asegurarnos de que tenemos la información de la moneda
             const monedaSymbol = account.moneda?.simbolo || '$';
             const saldo = parseFloat(account.saldo) || 0;
             
@@ -292,7 +297,10 @@ export function Dashboard() {
                 </Box>
                 <Typography 
                   variant="body2" 
-                  sx={{ color: saldo >= 0 ? 'success.main' : 'error.main' }}
+                  sx={{ 
+                    color: saldo >= 0 ? account.moneda?.color || '#75AADB' : 'error.main',
+                    fontWeight: 500
+                  }}
                 >
                   {showValues ? 
                     `${monedaSymbol} ${saldo.toLocaleString('es-AR', {

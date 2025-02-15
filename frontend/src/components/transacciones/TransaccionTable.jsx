@@ -39,9 +39,11 @@ const TransaccionTable = ({ transacciones, onEdit, onDelete }) => {
     setExpandedRow(expandedRow === id ? null : id);
   };
 
-  const getMontoStyle = (tipo) => ({
+  const getMontoStyle = (transaccion) => ({
     fontWeight: 500,
-    color: tipo === 'INGRESO' ? '#5a9b5f' : '#b15757',
+    color: transaccion.tipo === 'INGRESO' ? 
+      (transaccion.cuenta?.moneda?.color || '#75AADB') : // Color de la moneda o celeste por defecto
+      '#b15757', // Rojo para gastos
     fontSize: '0.875rem'
   });
 
@@ -158,8 +160,8 @@ const TransaccionTable = ({ transacciones, onEdit, onDelete }) => {
                   </Typography>
                 </TableCell>
                 <TableCell align="right" sx={{ width: isMobile ? '35%' : '140px' }}>
-                  <Typography sx={getMontoStyle(transaccion.tipo)}>
-                    {transaccion.moneda?.simbolo} {formatMonto(transaccion.monto)}
+                  <Typography sx={getMontoStyle(transaccion)}>
+                    {transaccion.cuenta?.moneda?.simbolo} {formatMonto(transaccion.monto)}
                   </Typography>
                 </TableCell>
               </TableRow>
