@@ -85,10 +85,68 @@ export function Dashboard() {
 
   const fetchAccounts = useCallback(async () => {
     try {
+      console.log('Obteniendo cuentas...');
       const response = await clienteAxios.get('/cuentas');
-      setAccounts(response.data.docs || []);
+      const cuentas = response.data.docs || [];
+      console.log('Cuentas obtenidas:', cuentas);
+      
+      // Obtener los balances de cada cuenta
+      const cuentasConBalance = await Promise.all(cuentas.map(async (cuenta) => {
+        try {
+          const today = new Date().toISOString().split('T')[0];
+          console.log(`Obteniendo transacciones para cuenta ${cuenta.nombre} (${cuenta._id})`);
+          
+          const transaccionesResponse = await clienteAxios.get(`/transacciones/by-cuenta/${cuenta._id || cuenta.id}`, {
+            params: {
+              fechaFin: today,
+              estado: 'PAGADO'
+            }
+          });
+          
+          const transacciones = transaccionesResponse.data.docs || [];
+          console.log(`Transacciones obtenidas para ${cuenta.nombre}:`, transacciones);
+
+          const balance = transacciones.reduce((acc, trans) => {
+            const monto = parseFloat(trans.monto) || 0;
+            return trans.tipo === 'INGRESO' ? acc + monto : acc - monto;
+          }, 0);
+
+          console.log(`Balance calculado para ${cuenta.nombre}:`, balance);
+
+          // Asegurarnos de que la moneda tenga la información correcta
+          const monedaInfo = {
+            ...cuenta.moneda,
+            simbolo: cuenta.moneda?.simbolo || '$',
+            nombre: cuenta.moneda?.nombre || 'USD'
+          };
+
+          return {
+            ...cuenta,
+            saldo: balance,
+            moneda: monedaInfo,
+            tipo: cuenta.tipo || 'OTRO'  // Asegurarnos de que siempre haya un tipo
+          };
+        } catch (error) {
+          console.error(`Error al obtener balance de cuenta ${cuenta._id}:`, error);
+          console.error('Detalles del error:', error.response?.data);
+          return {
+            ...cuenta,
+            saldo: 0,
+            moneda: {
+              ...cuenta.moneda,
+              simbolo: cuenta.moneda?.simbolo || '$',
+              nombre: cuenta.moneda?.nombre || 'USD'
+            },
+            tipo: cuenta.tipo || 'OTRO'
+          };
+        }
+      }));
+
+      console.log('Cuentas procesadas con balance:', cuentasConBalance);
+      setAccounts(cuentasConBalance);
     } catch (error) {
       console.error('Error al cargar cuentas:', error);
+      console.error('Detalles del error:', error.response?.data);
     }
   }, []);
 
@@ -202,36 +260,51 @@ export function Dashboard() {
           borderTop: 1,
           borderColor: 'divider'
         }}>
-          {accounts.map((account) => (
-            <Box 
-              key={account.id}
-              sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                py: 0.5
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                {account.nombre === 'Efectivo' && <MoneyIcon sx={{ fontSize: 18 }} />}
-                {account.nombre === 'ICBC' && <BankIcon sx={{ fontSize: 18 }} />}
-                {account.nombre === 'Wise' && <CardIcon sx={{ fontSize: 18 }} />}
-                <Typography variant="body2">{account.nombre}</Typography>
-              </Box>
-              <Typography 
-                variant="body2" 
-                sx={{ color: Number(account.saldo) >= 0 ? 'success.main' : 'error.main' }}
+          {accounts.map((account) => {
+            // Asegurarnos de que tenemos la información de la moneda
+            const monedaSymbol = account.moneda?.simbolo || '$';
+            const saldo = parseFloat(account.saldo) || 0;
+            
+            const getTipoIcon = (tipo) => {
+              switch (tipo) {
+                case 'BANCO':
+                  return <BankIcon sx={{ fontSize: 18 }} />;
+                case 'EFECTIVO':
+                  return <MoneyIcon sx={{ fontSize: 18 }} />;
+                default:
+                  return <CardIcon sx={{ fontSize: 18 }} />;
+              }
+            };
+            
+            return (
+              <Box 
+                key={account._id || account.id}
+                sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  py: 0.5
+                }}
               >
-                {showValues ? 
-                  `${account.moneda} ${parseFloat(account.saldo).toLocaleString('es-AR', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                  })}` : 
-                  '****'
-                }
-              </Typography>
-            </Box>
-          ))}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  {getTipoIcon(account.tipo)}
+                  <Typography variant="body2">{account.nombre}</Typography>
+                </Box>
+                <Typography 
+                  variant="body2" 
+                  sx={{ color: saldo >= 0 ? 'success.main' : 'error.main' }}
+                >
+                  {showValues ? 
+                    `${monedaSymbol} ${saldo.toLocaleString('es-AR', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    })}` : 
+                    '****'
+                  }
+                </Typography>
+              </Box>
+            );
+          })}
         </Box>
       </Collapse>
     </Box>
