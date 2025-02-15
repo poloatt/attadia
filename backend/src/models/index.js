@@ -1,6 +1,6 @@
 // Importar modelos en orden de dependencia
 export { Users } from './Users.js';
-export { Monedas } from './Monedas.js';
+export { Monedas, COLORES_MONEDA } from './Monedas.js';
 export { Cuentas } from './Cuentas.js';
 export { Transacciones } from './Transacciones.js';
 export { Propiedades } from './Propiedades.js';

@@ -1,5 +1,5 @@
 import { BaseController } from './BaseController.js';
-import { Monedas } from '../models/index.js';
+import { Monedas, COLORES_MONEDA, Transacciones } from '../models/index.js';
 
 class MonedasController extends BaseController {
   constructor() {
@@ -17,6 +17,8 @@ class MonedasController extends BaseController {
     this.delete = this.delete.bind(this);
     this.toggleActive = this.toggleActive.bind(this);
     this.getSelectOptions = this.getSelectOptions.bind(this);
+    this.getColores = this.getColores.bind(this);
+    this.getBalance = this.getBalance.bind(this);
 
     // Log para verificar la estructura del controlador
     console.log('MonedasController methods:', {
@@ -28,7 +30,9 @@ class MonedasController extends BaseController {
       update: typeof this.update,
       delete: typeof this.delete,
       toggleActive: typeof this.toggleActive,
-      getSelectOptions: typeof this.getSelectOptions
+      getSelectOptions: typeof this.getSelectOptions,
+      getColores: typeof this.getColores,
+      getBalance: typeof this.getBalance
     });
   }
 
@@ -63,11 +67,23 @@ class MonedasController extends BaseController {
       });
   }
 
+  // GET /api/monedas/colores
+  getColores(req, res) {
+    res.json(Object.values(COLORES_MONEDA));
+  }
+
   // Sobrescribir create para manejar validaciones específicas
   create(req, res) {
     console.log('MonedasController.create called');
-    const { codigo } = req.body;
+    const { codigo, color } = req.body;
     
+    // Validar que el color sea válido si se proporciona
+    if (color && !Object.values(COLORES_MONEDA).includes(color)) {
+      return res.status(400).json({ 
+        message: 'El color proporcionado no es válido' 
+      });
+    }
+
     return this.Model.findOne({ codigo: codigo.toUpperCase() })
       .then(existingMoneda => {
         if (existingMoneda) {
@@ -97,8 +113,15 @@ class MonedasController extends BaseController {
   // Sobrescribir update para manejar validaciones específicas
   update(req, res) {
     console.log('MonedasController.update called');
-    const { codigo } = req.body;
+    const { codigo, color } = req.body;
     
+    // Validar que el color sea válido si se proporciona
+    if (color && !Object.values(COLORES_MONEDA).includes(color)) {
+      return res.status(400).json({ 
+        message: 'El color proporcionado no es válido' 
+      });
+    }
+
     if (codigo) {
       return this.Model.findOne({
         codigo: codigo.toUpperCase(),
@@ -145,6 +168,54 @@ class MonedasController extends BaseController {
         console.error('Error en update:', error);
         res.status(400).json({ error: error.message });
       });
+  }
+
+  // GET /api/monedas/:id/balance
+  async getBalance(req, res) {
+    try {
+      const { id } = req.params;
+      const { fechaFin, estado } = req.query;
+
+      console.log('Obteniendo balance para moneda:', id, { fechaFin, estado });
+
+      // Verificar que la moneda existe
+      const moneda = await this.Model.findById(id);
+      if (!moneda) {
+        console.log('Moneda no encontrada:', id);
+        return res.status(404).json({ message: 'Moneda no encontrada' });
+      }
+
+      // Obtener todas las transacciones de la moneda
+      const query = {
+        moneda: id
+      };
+
+      if (fechaFin) {
+        query.fecha = { $lte: new Date(fechaFin) };
+      }
+
+      if (estado) {
+        query.estado = estado;
+      }
+
+      console.log('Query de transacciones:', query);
+
+      const transacciones = await Transacciones.find(query);
+      console.log(`Encontradas ${transacciones.length} transacciones`);
+
+      // Calcular el balance
+      const balance = transacciones.reduce((acc, trans) => {
+        const monto = parseFloat(trans.monto) || 0;
+        return trans.tipo === 'INGRESO' ? acc + monto : acc - monto;
+      }, 0);
+
+      console.log('Balance calculado:', balance);
+
+      res.json({ balance });
+    } catch (error) {
+      console.error('Error al obtener balance:', error);
+      res.status(500).json({ error: error.message });
+    }
   }
 }
 

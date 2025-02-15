@@ -13,6 +13,7 @@ router.use(checkAuth);
 router.get('/active', monedasController.getActive);
 router.get('/by-code/:codigo', monedasController.getByCode);
 router.get('/select-options', monedasController.getSelectOptions);
+router.get('/colores', monedasController.getColores);
 
 // Rutas base del controlador
 router.get('/', monedasController.getAll);
@@ -20,6 +21,7 @@ router.post('/', [checkRole([ROLES.ADMIN])], monedasController.create);
 
 // Rutas con parámetros (deben ir al final)
 router.get('/:id', monedasController.getById);
+router.get('/:id/balance', monedasController.getBalance);
 router.put('/:id', [checkRole([ROLES.ADMIN])], monedasController.update);
 router.delete('/:id', [checkRole([ROLES.ADMIN])], monedasController.delete);
 router.patch('/:id/toggle-active', monedasController.toggleActive);
