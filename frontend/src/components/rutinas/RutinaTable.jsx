@@ -69,6 +69,8 @@ import SanitizerOutlinedIcon from '@mui/icons-material/SanitizerOutlined';
 import SanitizerIcon from '@mui/icons-material/Sanitizer';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import DeleteIcon from '@mui/icons-material/Delete';
+import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
 
 const CustomTooltip = styled(({ className, ...props }) => (
   <Tooltip {...props} classes={{ popper: className }} />
@@ -84,10 +86,12 @@ const CustomTooltip = styled(({ className, ...props }) => (
 }));
 
 const formatDate = (date) => {
-  const dias = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
-  const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   const d = new Date(date);
-  return `${dias[d.getDay()]} ${d.getDate()} ${meses[d.getMonth()]} ${d.getFullYear()}`;
+  const dia = d.getDate().toString().padStart(2, '0');
+  const mes = meses[d.getMonth()];
+  const año = d.getFullYear();
+  return `${dia} ${mes} ${año}`;
 };
 
 const iconConfig = {
@@ -117,7 +121,7 @@ const iconConfig = {
   }
 };
 
-const ChecklistSection = ({ title, items = {}, onChange, section }) => {
+const ChecklistSection = ({ title, items = {}, onChange, section, completitud }) => {
   // Filtrar solo los items que tienen iconos configurados
   const validItems = Object.entries(items).filter(([key]) => 
     iconConfig[section] && iconConfig[section][key]
@@ -132,26 +136,42 @@ const ChecklistSection = ({ title, items = {}, onChange, section }) => {
         colSpan={2}
         sx={{ 
           position: 'relative',
-          pt: 3,
-          pb: 1,
+          pt: 1.5,
+          pb: 0.5,
           px: 2,
           backgroundColor: 'transparent'
         }}
       >
-        <Typography 
-          variant="subtitle2" 
-          color="text.secondary"
-          sx={{
-            position: 'absolute',
-            top: 8,
-            left: 16,
-            fontSize: '0.75rem',
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase'
-          }}
-        >
-          {title}
-        </Typography>
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          mb: 0.5
+        }}>
+          <Typography 
+            variant="subtitle2" 
+            color="text.secondary"
+            sx={{
+              fontSize: '0.75rem',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase'
+            }}
+          >
+            {title}
+          </Typography>
+          <Typography 
+            variant="subtitle2"
+            sx={{
+              fontSize: '0.75rem',
+              color: completitud >= 0.8 ? 'success.main' : 
+                     completitud >= 0.5 ? 'warning.main' : 
+                     'error.main',
+              fontWeight: 500
+            }}
+          >
+            {`${(completitud * 100).toFixed(0)}%`}
+          </Typography>
+        </Box>
         <Stack 
           direction="row" 
           spacing={0.5}
@@ -161,8 +181,8 @@ const ChecklistSection = ({ title, items = {}, onChange, section }) => {
           sx={{ 
             gap: 0.5,
             '& > *': { 
-              minWidth: 32,
-              height: 32
+              minWidth: 28,
+              height: 28
             }
           }}
         >
@@ -251,10 +271,25 @@ export const RutinaTable = ({
       }
     };
 
-    // Calcular nueva completitud
+    // Calcular nueva completitud por sección
+    ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'].forEach(sect => {
+      const sectionFields = Object.keys(updatedRutina[sect] || {});
+      const sectionTotal = sectionFields.length;
+      let sectionCompleted = 0;
+      
+      Object.values(updatedRutina[sect] || {}).forEach(val => {
+        if (val === true) sectionCompleted++;
+      });
+
+      if (!updatedRutina.completitudPorSeccion) {
+        updatedRutina.completitudPorSeccion = {};
+      }
+      updatedRutina.completitudPorSeccion[sect] = sectionTotal > 0 ? sectionCompleted / sectionTotal : 0;
+    });
+
+    // Calcular completitud general
     let totalTasks = 0;
     let completedTasks = 0;
-
     ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'].forEach(sect => {
       const sectionFields = Object.keys(updatedRutina[sect] || {});
       totalTasks += sectionFields.length;
@@ -300,45 +335,118 @@ export const RutinaTable = ({
               <Box sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                justifyContent: 'space-between'
+                justifyContent: 'space-between',
+                mb: 1
               }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <TextField
-                    type="date"
-                    value={new Date(rutina.fecha).toISOString().split('T')[0]}
-                    onChange={handleDateChange}
-                    variant="standard"
-                    sx={{
-                      width: '130px',
-                      '& .MuiInput-input': {
-                        fontSize: '0.875rem',
-                        fontWeight: 500,
-                        p: 0,
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 2,
+                  flex: 1,
+                  '& > *': {
+                    transition: 'all 0.2s ease-in-out'
+                  }
+                }}>
+                  <Box sx={{ position: 'relative', width: '130px' }}>
+                    <IconButton
+                      size="small"
+                      sx={{
+                        position: 'absolute',
+                        left: 0,
+                        top: -2,
+                        p: 0.5,
                         color: 'text.secondary',
-                        cursor: 'pointer',
                         '&:hover': {
-                          color: 'primary.main'
+                          color: 'primary.main',
+                          backgroundColor: 'transparent'
                         }
-                      }
+                      }}
+                    >
+                      <CalendarTodayOutlinedIcon sx={{ fontSize: '1rem' }} />
+                    </IconButton>
+                    <TextField
+                      type="date"
+                      value={new Date(rutina.fecha).toISOString().split('T')[0]}
+                      onChange={handleDateChange}
+                      variant="standard"
+                      sx={{
+                        width: '100%',
+                        '& .MuiInput-input': {
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          p: 0,
+                          color: 'text.secondary',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease-in-out',
+                          '&:hover': {
+                            color: 'primary.main'
+                          },
+                          height: 20,
+                          lineHeight: '20px',
+                          textAlign: 'left',
+                          paddingLeft: '28px',
+                          opacity: 0,
+                          position: 'absolute',
+                          width: '100%'
+                        },
+                        '& input[type="date"]::-webkit-calendar-picker-indicator': {
+                          opacity: 0,
+                          position: 'absolute',
+                          left: 0,
+                          top: 0,
+                          width: '100%',
+                          height: '100%',
+                          cursor: 'pointer'
+                        }
+                      }}
+                      InputProps={{
+                        disableUnderline: true,
+                        startAdornment: (
+                          <Typography
+                            sx={{
+                              fontSize: '0.75rem',
+                              fontWeight: 500,
+                              color: 'text.secondary',
+                              position: 'absolute',
+                              left: '28px',
+                              pointerEvents: 'none'
+                            }}
+                          >
+                            {formatDate(rutina.fecha)}
+                          </Typography>
+                        ),
+                        sx: {
+                          fontSize: '0.75rem',
+                          height: 20,
+                          p: 0,
+                          position: 'relative',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }
+                      }}
+                    />
+                  </Box>
+                  <Typography 
+                    variant="subtitle2"
+                    sx={{
+                      fontSize: '0.75rem',
+                      color: rutina.completitud >= 0.8 ? 'success.main' : 
+                             rutina.completitud >= 0.5 ? 'warning.main' : 
+                             'error.main',
+                      fontWeight: 500
                     }}
-                    InputProps={{
-                      disableUnderline: true
-                    }}
-                  />
-                  <Chip 
-                    label={`${(rutina.completitud * 100).toFixed(0)}%`}
-                    color={rutina.completitud >= 0.8 ? 'success' : rutina.completitud >= 0.5 ? 'warning' : 'error'}
-                    size="small"
-                    sx={{ 
-                      height: 20,
-                      '& .MuiChip-label': {
-                        px: 1,
-                        fontSize: '0.75rem'
-                      }
-                    }}
-                  />
+                  >
+                    {`${(rutina.completitud * 100).toFixed(0)}%`}
+                  </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 0.5,
+                  '& > *': {
+                    transition: 'all 0.2s ease-in-out'
+                  }
+                }}>
                   <CustomTooltip 
                     title="Registro anterior"
                     placement="top"
@@ -351,11 +459,16 @@ export const RutinaTable = ({
                         disabled={!hasPrevious}
                         sx={{ 
                           color: 'text.secondary',
+                          p: 0.5,
                           '&:hover': {
-                            color: 'text.primary'
+                            color: 'text.primary',
+                            backgroundColor: 'transparent'
                           },
                           '&.Mui-disabled': {
                             color: 'action.disabled'
+                          },
+                          '& .MuiSvgIcon-root': {
+                            fontSize: '1.25rem'
                           }
                         }}
                       >
@@ -375,11 +488,16 @@ export const RutinaTable = ({
                         disabled={!hasNext}
                         sx={{ 
                           color: 'text.secondary',
+                          p: 0.5,
                           '&:hover': {
-                            color: 'text.primary'
+                            color: 'text.primary',
+                            backgroundColor: 'transparent'
                           },
                           '&.Mui-disabled': {
                             color: 'action.disabled'
+                          },
+                          '& .MuiSvgIcon-root': {
+                            fontSize: '1.25rem'
                           }
                         }}
                       >
@@ -387,12 +505,29 @@ export const RutinaTable = ({
                       </IconButton>
                     </span>
                   </CustomTooltip>
-                  <EntityActions
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                    itemName="la rutina"
-                    size="small"
-                  />
+                  <CustomTooltip 
+                    title="Eliminar rutina"
+                    placement="top"
+                    arrow
+                  >
+                    <IconButton
+                      onClick={onDelete}
+                      size="small"
+                      sx={{ 
+                        color: 'text.secondary',
+                        p: 0.5,
+                        '&:hover': {
+                          color: 'error.main',
+                          backgroundColor: 'transparent'
+                        },
+                        '& .MuiSvgIcon-root': {
+                          fontSize: '1.25rem'
+                        }
+                      }}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </CustomTooltip>
                 </Box>
               </Box>
             </TableCell>
@@ -403,25 +538,29 @@ export const RutinaTable = ({
             title="Body Care" 
             items={rutinaConSecciones.bodyCare} 
             section="bodyCare"
-            onChange={handleSectionChange} 
+            onChange={handleSectionChange}
+            completitud={rutina.completitudPorSeccion?.bodyCare || 0}
           />
           <ChecklistSection 
             title="Nutrición" 
             items={rutinaConSecciones.nutricion} 
             section="nutricion"
-            onChange={handleSectionChange} 
+            onChange={handleSectionChange}
+            completitud={rutina.completitudPorSeccion?.nutricion || 0}
           />
           <ChecklistSection 
             title="Ejercicio" 
             items={rutinaConSecciones.ejercicio} 
             section="ejercicio"
-            onChange={handleSectionChange} 
+            onChange={handleSectionChange}
+            completitud={rutina.completitudPorSeccion?.ejercicio || 0}
           />
           <ChecklistSection 
             title="Cleaning" 
             items={rutinaConSecciones.cleaning} 
             section="cleaning"
-            onChange={handleSectionChange} 
+            onChange={handleSectionChange}
+            completitud={rutina.completitudPorSeccion?.cleaning || 0}
           />
         </TableBody>
       </Table>

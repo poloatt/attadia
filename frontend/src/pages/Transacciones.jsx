@@ -418,9 +418,17 @@ export function Transacciones() {
         action={
           <Button 
             variant="contained" 
-            startIcon={<AddIcon />} 
+            startIcon={<AddIcon sx={{ fontSize: '1.25rem' }} />}
             size="small"
             onClick={handleOpenForm}
+            sx={{ 
+              borderRadius: 0,
+              fontSize: '0.75rem',
+              height: 24,
+              textTransform: 'none',
+              px: 1,
+              py: 0
+            }}
           >
             Nueva Transacción
           </Button>

@@ -77,11 +77,7 @@ const iconConfig = {
 };
 
 const defaultFormData = {
-  weight: '',
-  muscle: '',
-  fatPercent: '',
-  stress: '',
-  sleep: '',
+  fecha: new Date().toISOString().split('T')[0],
   bodyCare: {
     bath: false,
     skinCareDay: false,
@@ -189,6 +185,7 @@ export const RutinaForm = ({
     return {
       ...defaultFormData,
       ...initialData,
+      fecha: initialData.fecha ? new Date(initialData.fecha).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       bodyCare: { ...defaultFormData.bodyCare, ...(initialData.bodyCare || {}) },
       nutricion: { ...defaultFormData.nutricion, ...(initialData.nutricion || {}) },
       ejercicio: { ...defaultFormData.ejercicio, ...(initialData.ejercicio || {}) },
@@ -204,6 +201,7 @@ export const RutinaForm = ({
         setFormData({
           ...defaultFormData,
           ...initialData,
+          fecha: initialData.fecha ? new Date(initialData.fecha).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           bodyCare: { ...defaultFormData.bodyCare, ...(initialData.bodyCare || {}) },
           nutricion: { ...defaultFormData.nutricion, ...(initialData.nutricion || {}) },
           ejercicio: { ...defaultFormData.ejercicio, ...(initialData.ejercicio || {}) },
@@ -223,9 +221,17 @@ export const RutinaForm = ({
     }));
   };
 
+  const handleDateChange = (event) => {
+    setFormData(prev => ({
+      ...prev,
+      fecha: event.target.value
+    }));
+  };
+
   const handleSubmit = () => {
     const dataToSubmit = {
-      ...formData
+      ...formData,
+      fecha: new Date(formData.fecha)
     };
 
     if (initialData?._id) {
@@ -254,113 +260,41 @@ export const RutinaForm = ({
       
       <DialogContent>
         <Box sx={{ mt: 2 }}>
-          <Stack spacing={2} sx={{ mb: 3 }}>
-            <TextField
-              label="Fecha"
-              type="date"
-              value={formData.fecha ? new Date(formData.fecha).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
-              onChange={(e) => setFormData(prev => ({ ...prev, fecha: new Date(e.target.value) }))}
-              required
-              fullWidth
-              variant="standard"
-              sx={{
-                '& .MuiInput-input': {
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  color: 'text.secondary',
-                  cursor: 'pointer',
-                  '&:hover': {
-                    color: 'primary.main'
-                  }
-                }
-              }}
-              InputProps={{
-                disableUnderline: true
-              }}
-              InputLabelProps={{
-                shrink: true,
-                sx: {
-                  color: 'text.secondary',
-                  fontSize: '0.875rem'
-                }
-              }}
-            />
-            <TextField
-              label="Peso (kg)"
-              type="number"
-              value={formData.weight}
-              onChange={(e) => setFormData(prev => ({ ...prev, weight: Number(e.target.value) }))}
-              required
-              fullWidth
-              inputProps={{ step: "0.1" }}
-            />
-            <TextField
-              label="Músculo (%)"
-              type="number"
-              value={formData.muscle}
-              onChange={(e) => setFormData(prev => ({ ...prev, muscle: Number(e.target.value) }))}
-              required
-              fullWidth
-              inputProps={{ step: "0.1" }}
-            />
-            <TextField
-              label="Grasa (%)"
-              type="number"
-              value={formData.fatPercent}
-              onChange={(e) => setFormData(prev => ({ ...prev, fatPercent: Number(e.target.value) }))}
-              required
-              fullWidth
-              inputProps={{ step: "0.1" }}
-            />
-            <TextField
-              label="Estrés (1-10)"
-              type="number"
-              value={formData.stress}
-              onChange={(e) => setFormData(prev => ({ ...prev, stress: Number(e.target.value) }))}
-              required
-              fullWidth
-              inputProps={{ min: "1", max: "10", step: "1" }}
-            />
-            <TextField
-              label="Horas de sueño"
-              type="number"
-              value={formData.sleep}
-              onChange={(e) => setFormData(prev => ({ ...prev, sleep: Number(e.target.value) }))}
-              required
-              fullWidth
-              inputProps={{ step: "0.5" }}
-            />
-          </Stack>
-          
-          <ChecklistSection
-            title="Body Care"
-            items={formData.bodyCare}
+          <TextField
+            type="date"
+            label="Fecha"
+            value={formData.fecha}
+            onChange={handleDateChange}
+            fullWidth
+            variant="outlined"
+            sx={{ mb: 3 }}
+            InputLabelProps={{
+              shrink: true
+            }}
+          />
+          <ChecklistSection 
+            title="Body Care" 
+            items={formData.bodyCare} 
             section="bodyCare"
-            onChange={handleSectionChange}
+            onChange={handleSectionChange} 
           />
-          <Divider />
-          
-          <ChecklistSection
-            title="Nutrición"
-            items={formData.nutricion}
+          <ChecklistSection 
+            title="Nutrición" 
+            items={formData.nutricion} 
             section="nutricion"
-            onChange={handleSectionChange}
+            onChange={handleSectionChange} 
           />
-          <Divider />
-          
-          <ChecklistSection
-            title="Ejercicio"
-            items={formData.ejercicio}
+          <ChecklistSection 
+            title="Ejercicio" 
+            items={formData.ejercicio} 
             section="ejercicio"
-            onChange={handleSectionChange}
+            onChange={handleSectionChange} 
           />
-          <Divider />
-          
-          <ChecklistSection
-            title="Cleaning"
-            items={formData.cleaning}
+          <ChecklistSection 
+            title="Cleaning" 
+            items={formData.cleaning} 
             section="cleaning"
-            onChange={handleSectionChange}
+            onChange={handleSectionChange} 
           />
         </Box>
       </DialogContent>

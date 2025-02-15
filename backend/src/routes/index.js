@@ -19,6 +19,7 @@ import objetivosRoutes from './objetivosRoutes.js';
 import monitoreoRoutes from './monitoreoRoutes.js';
 import perfilRoutes from './perfilRoutes.js';
 import healthRoutes from './healthRoutes.js';
+import dataCorporalRoutes from './dataCorporalRoutes.js';
 
 const router = express.Router();
 
@@ -51,6 +52,7 @@ router.use('/subtareas', subtareasRoutes);
 router.use('/rutinas', rutinasRoutes);
 router.use('/labs', labsRoutes);
 router.use('/dietas', dietasRoutes);
+router.use('/datacorporal', dataCorporalRoutes);
 router.use('/objetivos', objetivosRoutes);
 
 // Rutas de monitoreo

@@ -14,7 +14,8 @@ import {
 import { Add as AddIcon } from '@mui/icons-material';
 import { 
   ScienceOutlined as LabIcon,
-  TaskAltOutlined as RutinasIcon
+  TaskAltOutlined as RutinasIcon,
+  MonitorWeightOutlined as WeightIcon
 } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
@@ -157,6 +158,11 @@ export function Dieta() {
             icon: <RutinasIcon sx={{ fontSize: 20 }} />,
             label: 'Rutinas',
             to: '/rutinas'
+          },
+          {
+            icon: <WeightIcon sx={{ fontSize: 20 }} />,
+            label: 'Composición Corporal',
+            to: '/datacorporal'
           }
         ]}
       />

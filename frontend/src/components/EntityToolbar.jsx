@@ -28,6 +28,7 @@ import {
   TaskAltOutlined,
   Visibility as ShowValuesIcon,
   VisibilityOff as HideValuesIcon,
+  MonitorWeightOutlined as WeightIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import EntityForm from './EntityViews/EntityForm';
@@ -78,8 +79,22 @@ const EntityToolbar = ({
     cuentas: CuentasIcon,
     monedas: MoneyIcon,
     dieta: DietaIcon,
-    proyectos: ProjectIcon
+    proyectos: ProjectIcon,
+    datacorporal: WeightIcon
   };
+
+  // Determinar si estamos en la página de Rutinas
+  const isRutinasPage = location.pathname === '/rutinas';
+
+  // Si estamos en la página de Rutinas, agregar el botón de DataCorporal
+  const finalNavigationItems = isRutinasPage ? [
+    ...navigationItems,
+    {
+      icon: <WeightIcon sx={{ fontSize: 20 }} />,
+      label: 'Composición Corporal',
+      to: '/datacorporal'
+    }
+  ] : navigationItems;
 
   const handleBack = () => {
     const currentPath = location.pathname.slice(1);
@@ -242,9 +257,9 @@ const EntityToolbar = ({
             overflow: 'auto'
           }}>
             {/* Íconos de navegación a la izquierda */}
-            {navigationItems.length > 0 && (
+            {finalNavigationItems.length > 0 && (
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                {navigationItems.slice(0, Math.ceil(navigationItems.length / 2)).map((item) => (
+                {finalNavigationItems.slice(0, Math.ceil(finalNavigationItems.length / 2)).map((item) => (
                   <Tooltip key={item.to} title={item.label}>
                     <IconButton
                       onClick={() => navigate(item.to)}
@@ -274,9 +289,9 @@ const EntityToolbar = ({
             )}
 
             {/* Íconos de navegación a la derecha */}
-            {navigationItems.length > 0 && (
+            {finalNavigationItems.length > 0 && (
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                {navigationItems.slice(Math.ceil(navigationItems.length / 2)).map((item) => (
+                {finalNavigationItems.slice(Math.ceil(finalNavigationItems.length / 2)).map((item) => (
                   <Tooltip key={item.to} title={item.label}>
                     <IconButton
                       onClick={() => navigate(item.to)}

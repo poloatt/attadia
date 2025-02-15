@@ -86,12 +86,17 @@ export const EntityActions = memo(({
             size={size}
             sx={{ 
               color: 'text.secondary',
+              p: 0.5,
               '&:hover': {
-                color: 'primary.main'
+                color: 'primary.main',
+                backgroundColor: 'transparent'
+              },
+              '& .MuiSvgIcon-root': {
+                fontSize: '1.25rem'
               }
             }}
           >
-            <EditIcon sx={{ fontSize: size === 'small' ? 18 : 24 }} />
+            <EditIcon />
           </IconButton>
         </Tooltip>
 
@@ -102,12 +107,17 @@ export const EntityActions = memo(({
               size={size}
               sx={{ 
                 color: 'text.secondary',
+                p: 0.5,
                 '&:hover': {
-                  color: 'error.main'
+                  color: 'error.main',
+                  backgroundColor: 'transparent'
+                },
+                '& .MuiSvgIcon-root': {
+                  fontSize: '1.25rem'
                 }
               }}
             >
-              <DeleteIcon sx={{ fontSize: size === 'small' ? 18 : 24 }} />
+              <DeleteIcon />
             </IconButton>
           </Tooltip>
         )}

@@ -18,7 +18,8 @@ import AddIcon from '@mui/icons-material/Add';
 import { 
   ScienceOutlined as LabIcon,
   RestaurantOutlined as DietaIcon,
-  TaskAltOutlined as RutinasIcon
+  TaskAltOutlined as RutinasIcon,
+  MonitorWeightOutlined as WeightIcon
 } from '@mui/icons-material';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
@@ -151,6 +152,11 @@ export function Lab() {
             icon: <DietaIcon sx={{ fontSize: 20 }} />,
             label: 'Dieta',
             to: '/dieta'
+          },
+          {
+            icon: <WeightIcon sx={{ fontSize: 20 }} />,
+            label: 'Composición Corporal',
+            to: '/datacorporal'
           }
         ]}
       />

@@ -85,12 +85,9 @@ export function Rutinas() {
 
   const handleSubmit = async (formData) => {
     try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
       const dataToSend = {
         ...formData,
-        fecha: today.toISOString()
+        fecha: new Date(formData.fecha).toISOString()
       };
 
       if (editingRutina?._id) {
@@ -159,10 +156,17 @@ export function Rutinas() {
         action={
           <Button
             variant="contained"
-            startIcon={<AddIcon />}
+            startIcon={<AddIcon sx={{ fontSize: '1.25rem' }} />}
             size="small"
             onClick={() => handleOpenDialog()}
-            sx={{ borderRadius: 0 }}
+            sx={{ 
+              borderRadius: 0,
+              fontSize: '0.75rem',
+              height: 24,
+              textTransform: 'none',
+              px: 1,
+              py: 0
+            }}
           >
             Nueva Rutina
           </Button>

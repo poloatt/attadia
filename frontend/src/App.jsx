@@ -17,6 +17,7 @@ import { Inquilinos } from './pages/Inquilinos';
 import { Contratos } from './pages/Contratos';
 import { Inventario } from './pages/Inventario';
 import Dieta from './pages/Dieta';
+import DataCorporal from './pages/DataCorporal';
 import ErrorBoundary from './components/ErrorBoundary';
 import theme from './context/ThemeContext';
 import { ThemeProvider } from '@mui/material/styles';
@@ -54,6 +55,7 @@ function App() {
               <Route path="/contratos" element={<Contratos />} />
               <Route path="/inventario" element={<Inventario />} />
               <Route path="/dieta" element={<Dieta />} />
+              <Route path="/datacorporal" element={<DataCorporal />} />
             </Route>
           </Route>
 

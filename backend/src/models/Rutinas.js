@@ -2,28 +2,6 @@ import mongoose from 'mongoose';
 import { createSchema, commonFields } from './BaseSchema.js';
 
 const rutinaSchema = createSchema({
-  weight: {
-    type: Number,
-    required: true
-  },
-  muscle: {
-    type: Number,
-    required: true
-  },
-  fatPercent: {
-    type: Number,
-    required: true
-  },
-  stress: {
-    type: Number,
-    required: true,
-    min: 1,
-    max: 10
-  },
-  sleep: {
-    type: Number,
-    required: true
-  },
   fecha: {
     type: Date,
     default: Date.now,
@@ -59,6 +37,12 @@ const rutinaSchema = createSchema({
     min: 0,
     max: 1
   },
+  completitudPorSeccion: {
+    bodyCare: { type: Number, default: 0, min: 0, max: 1 },
+    nutricion: { type: Number, default: 0, min: 0, max: 1 },
+    ejercicio: { type: Number, default: 0, min: 0, max: 1 },
+    cleaning: { type: Number, default: 0, min: 0, max: 1 }
+  },
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Users',
@@ -71,15 +55,25 @@ rutinaSchema.pre('save', function(next) {
   let totalTasks = 0;
   let completedTasks = 0;
 
+  // Calcular completitud por sección
   ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'].forEach(section => {
     const sectionFields = Object.keys(this[section].toObject());
-    totalTasks += sectionFields.length;
+    const sectionTotal = sectionFields.length;
+    let sectionCompleted = 0;
     
     Object.values(this[section].toObject()).forEach(value => {
-      if (value === true) completedTasks++;
+      if (value === true) sectionCompleted++;
     });
+
+    // Actualizar completitud de la sección
+    this.completitudPorSeccion[section] = sectionTotal > 0 ? sectionCompleted / sectionTotal : 0;
+    
+    // Acumular para completitud general
+    totalTasks += sectionTotal;
+    completedTasks += sectionCompleted;
   });
 
+  // Actualizar completitud general
   this.completitud = totalTasks > 0 ? completedTasks / totalTasks : 0;
   next();
 });
