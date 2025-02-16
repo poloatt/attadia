@@ -165,6 +165,7 @@ export function Tareas() {
           initialData={editingTarea}
           isEditing={!!editingTarea}
           proyectos={proyectos}
+          onProyectosUpdate={fetchProyectos}
         />
       )}
     </Container>

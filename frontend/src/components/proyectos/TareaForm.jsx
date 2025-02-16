@@ -45,7 +45,8 @@ const TareaForm = ({
   initialData = null, 
   isEditing,
   proyectoId,
-  proyectos
+  proyectos,
+  onProyectosUpdate
 }) => {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
@@ -264,6 +265,11 @@ const TareaForm = ({
       
       // Cerrar el formulario de proyecto
       setIsProyectoFormOpen(false);
+      
+      // Actualizar la lista de proyectos
+      if (onProyectosUpdate) {
+        await onProyectosUpdate();
+      }
       
       enqueueSnackbar('Proyecto creado exitosamente', { variant: 'success' });
     } catch (error) {
@@ -508,40 +514,59 @@ const TareaForm = ({
 
           {/* Campo de Proyecto - solo se muestra si no hay proyectoId */}
           {!proyectoId && (
-            <TextField
-              select
-              fullWidth
-              size="small"
-              label="Proyecto"
-              value={formData.proyecto || ''}
-              onChange={handleChange('proyecto')}
-              error={!!errors.proyecto}
-              helperText={errors.proyecto}
-              required
-              sx={commonInputStyles}
-              SelectProps={{
-                sx: commonSelectStyles
-              }}
-              InputProps={{
-                startAdornment: (
-                  <Box sx={commonIconContainerStyles}>
-                    <ProjectIcon sx={commonIconStyles} />
-                  </Box>
-                )
-              }}
-            >
-              <MenuItem key="empty" value="">
-                <em>Seleccionar proyecto</em>
-              </MenuItem>
-              {(proyectos || []).map((proyecto) => (
-                <MenuItem 
-                  key={proyecto._id || `proyecto-${proyecto.id}`} 
-                  value={proyecto._id || proyecto.id}
-                >
-                  {proyecto.titulo || proyecto.nombre}
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                label="Proyecto"
+                value={formData.proyecto || ''}
+                onChange={handleChange('proyecto')}
+                error={!!errors.proyecto}
+                helperText={errors.proyecto}
+                required
+                sx={commonInputStyles}
+                SelectProps={{
+                  sx: commonSelectStyles
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <Box sx={commonIconContainerStyles}>
+                      <ProjectIcon sx={commonIconStyles} />
+                    </Box>
+                  )
+                }}
+              >
+                <MenuItem key="empty" value="">
+                  <em>Seleccionar proyecto</em>
                 </MenuItem>
-              ))}
-            </TextField>
+                {(proyectos || []).map((proyecto) => (
+                  <MenuItem 
+                    key={proyecto._id || `proyecto-${proyecto.id}`} 
+                    value={proyecto._id || proyecto.id}
+                  >
+                    {proyecto.titulo || proyecto.nombre}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <Button
+                variant="text"
+                startIcon={<AddIcon />}
+                onClick={() => setIsProyectoFormOpen(true)}
+                sx={{ 
+                  color: 'text.secondary',
+                  minWidth: 'auto',
+                  height: 40,
+                  '&:hover': {
+                    color: 'primary.main',
+                    backgroundColor: 'transparent'
+                  }
+                }}
+                size="small"
+              >
+                Nuevo
+              </Button>
+            </Box>
           )}
 
           {/* Subtareas */}
