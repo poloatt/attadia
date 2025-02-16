@@ -103,6 +103,10 @@ export function Proyectos() {
       <EntityToolbar 
         title="Proyectos"
         icon={<ProjectIcon />}
+        onAdd={() => {
+          setEditingProyecto(null);
+          setIsFormOpen(true);
+        }}
         actions={
           <Button
             variant="contained"

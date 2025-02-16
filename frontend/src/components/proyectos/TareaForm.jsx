@@ -26,12 +26,13 @@ import {
   Label as LabelIcon,
   PriorityHigh as PriorityIcon,
   CheckCircleOutline as CompletedIcon,
-  Project as ProjectIcon,
+  AccountTree as ProjectIcon,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { es } from 'date-fns/locale';
+import ProyectoForm from './ProyectoForm';
 
 const TareaForm = ({ 
   open, 
@@ -44,6 +45,7 @@ const TareaForm = ({
 }) => {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const [isProyectoFormOpen, setIsProyectoFormOpen] = useState(false);
   
   const [formData, setFormData] = useState(() => ({
     titulo: initialData?.titulo || '',
@@ -162,8 +164,17 @@ const TareaForm = ({
   const handleSubmit = () => {
     if (validateForm()) {
       try {
-        console.log('Validando formulario...');
-        console.log('Estado actual del formulario:', formData);
+        console.log('Preparando datos para enviar...');
+        
+        // Si no hay proyectoId, significa que estamos en la vista de tareas
+        // y necesitamos un proyecto seleccionado
+        if (!proyectoId && !formData.proyecto) {
+          setErrors(prev => ({
+            ...prev,
+            proyecto: 'El proyecto es requerido'
+          }));
+          return;
+        }
 
         const formDataToSubmit = {
           ...formData,
@@ -174,11 +185,6 @@ const TareaForm = ({
         };
 
         console.log('Datos preparados para enviar:', formDataToSubmit);
-
-        if (!formDataToSubmit.proyecto) {
-          throw new Error('El proyecto es requerido');
-        }
-
         onSubmit(formDataToSubmit);
         onClose();
       } catch (error) {
@@ -188,13 +194,10 @@ const TareaForm = ({
           submit: error.message || 'Error al preparar los datos del formulario'
         }));
       }
-    } else {
-      console.log('Formulario inválido. Errores:', errors);
     }
   };
 
   const validateForm = () => {
-    console.log('Validando formulario con datos:', formData);
     const newErrors = {};
     
     if (!formData.titulo) {
@@ -209,13 +212,38 @@ const TareaForm = ({
     if (formData.fechaFin && formData.fechaInicio > formData.fechaFin) {
       newErrors.fechaFin = 'La fecha de fin debe ser posterior a la fecha de inicio';
     }
+    
+    // Solo validamos el proyecto si no tenemos proyectoId
     if (!proyectoId && !formData.proyecto) {
       newErrors.proyecto = 'El proyecto es requerido';
     }
     
-    console.log('Errores de validación:', newErrors);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleProyectoSubmit = async (proyectoData) => {
+    try {
+      const response = await clienteAxios.post('/proyectos', proyectoData);
+      const nuevoProyecto = response.data;
+      
+      // Actualizar el campo de proyecto en el formulario
+      setFormData(prev => ({
+        ...prev,
+        proyecto: nuevoProyecto._id || nuevoProyecto.id
+      }));
+      
+      // Cerrar el formulario de proyecto
+      setIsProyectoFormOpen(false);
+      
+      enqueueSnackbar('Proyecto creado exitosamente', { variant: 'success' });
+    } catch (error) {
+      console.error('Error al crear proyecto:', error);
+      enqueueSnackbar(
+        error.response?.data?.error || 'Error al crear el proyecto', 
+        { variant: 'error' }
+      );
+    }
   };
 
   return (
@@ -242,30 +270,42 @@ const TareaForm = ({
       
       <DialogContent>
         <Stack spacing={3} sx={{ mt: 2 }}>
-          {/* Campo de Proyecto */}
+          {/* Campo de Proyecto - solo se muestra si no hay proyectoId */}
           {!proyectoId && (
-            <TextField
-              select
-              label="Proyecto"
-              fullWidth
-              value={formData.proyecto}
-              onChange={handleChange('proyecto')}
-              error={!!errors.proyecto}
-              helperText={errors.proyecto}
-              required
-              InputProps={{
-                startAdornment: <ProjectIcon sx={{ mr: 1, color: 'text.secondary' }} />
-              }}
-            >
-              {proyectos?.map((proyecto) => (
-                <MenuItem 
-                  key={proyecto._id || proyecto.id} 
-                  value={proyecto._id || proyecto.id}
+            <Box>
+              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                <TextField
+                  select
+                  label="Proyecto"
+                  fullWidth
+                  value={formData.proyecto || ''}
+                  onChange={handleChange('proyecto')}
+                  error={!!errors.proyecto}
+                  helperText={errors.proyecto}
+                  required
+                  InputProps={{
+                    startAdornment: <ProjectIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                  }}
                 >
-                  {proyecto.titulo || proyecto.nombre}
-                </MenuItem>
-              ))}
-            </TextField>
+                  {proyectos?.map((proyecto) => (
+                    <MenuItem 
+                      key={proyecto._id || proyecto.id} 
+                      value={proyecto._id || proyecto.id}
+                    >
+                      {proyecto.titulo || proyecto.nombre}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={() => setIsProyectoFormOpen(true)}
+                  sx={{ borderRadius: 0, whiteSpace: 'nowrap' }}
+                >
+                  Nuevo Proyecto
+                </Button>
+              </Box>
+            </Box>
           )}
 
           <TextField
@@ -556,6 +596,14 @@ const TareaForm = ({
           {isEditing ? 'Guardar Cambios' : 'Crear Tarea'}
         </Button>
       </DialogActions>
+
+      {/* Formulario de Proyecto */}
+      <ProyectoForm
+        open={isProyectoFormOpen}
+        onClose={() => setIsProyectoFormOpen(false)}
+        onSubmit={handleProyectoSubmit}
+        isEditing={false}
+      />
     </Dialog>
   );
 };
