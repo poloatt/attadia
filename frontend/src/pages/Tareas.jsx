@@ -3,8 +3,6 @@ import {
   Container,
   Box,
   Button,
-  Tab,
-  Tabs,
   useTheme,
   useMediaQuery,
   IconButton,
@@ -27,7 +25,6 @@ export function Tareas() {
   const [proyectos, setProyectos] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTarea, setEditingTarea] = useState(null);
-  const [filterStatus, setFilterStatus] = useState('todos');
   const { enqueueSnackbar } = useSnackbar();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -108,11 +105,6 @@ export function Tareas() {
     }
   };
 
-  const filteredTareas = tareas.filter(tarea => {
-    if (filterStatus === 'todos') return true;
-    return tarea.estado === filterStatus;
-  });
-
   return (
     <Container maxWidth="xl">
       <EntityToolbar 
@@ -153,24 +145,9 @@ export function Tareas() {
         </Box>
       </EntityToolbar>
 
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs
-          value={filterStatus}
-          onChange={(_, newValue) => setFilterStatus(newValue)}
-          variant={isMobile ? "scrollable" : "standard"}
-          scrollButtons={isMobile ? "auto" : false}
-        >
-          <Tab label="Todos" value="todos" />
-          <Tab label="Pendientes" value="PENDIENTE" />
-          <Tab label="En Progreso" value="EN_PROGRESO" />
-          <Tab label="Completadas" value="COMPLETADA" />
-          <Tab label="Canceladas" value="CANCELADA" />
-        </Tabs>
-      </Box>
-
       <Box sx={{ py: 2 }}>
         <TareasTable
-          tareas={filteredTareas}
+          tareas={tareas}
           onEdit={handleEdit}
           onDelete={handleDelete}
           onUpdateEstado={handleUpdateEstado}

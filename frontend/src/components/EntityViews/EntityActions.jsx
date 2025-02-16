@@ -106,10 +106,10 @@ export const EntityActions = memo(({
               onClick={handleDelete}
               size={size}
               sx={{ 
-                color: 'text.secondary',
+                color: '#CC0000',
                 p: 0.5,
                 '&:hover': {
-                  color: 'error.main',
+                  color: '#8B0000',
                   backgroundColor: 'transparent'
                 },
                 '& .MuiSvgIcon-root': {

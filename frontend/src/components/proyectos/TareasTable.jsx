@@ -82,7 +82,6 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
         if (onUpdateEstado) {
           onUpdateEstado(tareaActualizada);
         }
-        enqueueSnackbar('Subtarea actualizada exitosamente', { variant: 'success' });
       }
     } catch (error) {
       console.error('Error al actualizar subtarea:', error);
@@ -98,26 +97,26 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
   const getEstadoColor = (estado) => {
     switch (estado) {
       case 'COMPLETADA':
-        return '#66BB6A';
+        return '#2D5C2E';
       case 'EN_PROGRESO':
-        return '#42A5F5';
+        return '#1B4A75';
       case 'PENDIENTE':
-        return '#FFA726';
+        return '#8C4E0B';
       default:
-        return '#FFA726';
+        return '#8C4E0B';
     }
   };
 
   const getEstadoIcon = (estado) => {
     switch (estado) {
       case 'COMPLETADA':
-        return <CompletedIcon sx={{ color: '#66BB6A' }} />;
+        return <CompletedIcon sx={{ color: '#2D5C2E' }} />;
       case 'EN_PROGRESO':
-        return <InProgressIcon sx={{ color: '#42A5F5' }} />;
+        return <InProgressIcon sx={{ color: '#1B4A75' }} />;
       case 'PENDIENTE':
-        return <PendingIcon sx={{ color: '#FFA726' }} />;
+        return <PendingIcon sx={{ color: '#8C4E0B' }} />;
       default:
-        return <PendingIcon sx={{ color: '#FFA726' }} />;
+        return <PendingIcon sx={{ color: '#8C4E0B' }} />;
     }
   };
 
@@ -135,9 +134,9 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
   };
 
   const getSubtareasProgress = () => {
-    if (!tarea.subtareas?.length) return 0;
-    const completadas = tarea.subtareas.filter(st => st.completada).length;
-    return (completadas / tarea.subtareas.length) * 100;
+    if (!subtareasLocal?.length) return 0;
+    const completadas = subtareasLocal.filter(st => st.completada).length;
+    return (completadas / subtareasLocal.length) * 100;
   };
 
   return (
@@ -150,6 +149,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
             backgroundColor: 'action.hover'
           },
           position: 'relative',
+          height: '38px',
           '&::before': {
             content: '""',
             position: 'absolute',
@@ -162,13 +162,13 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
         }}
         onClick={() => setOpen(!open)}
       >
-        <TableCell>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <TableCell sx={{ py: 0.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <IconButton
               onClick={(e) => handleEstadoClick(e)}
               size="small"
               sx={{
-                p: 0.5,
+                p: 0.25,
                 color: getEstadoColor(estadoLocal),
                 '&:hover': {
                   backgroundColor: 'action.hover'
@@ -182,18 +182,29 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
                 color="error" 
                 sx={{ 
                   fontWeight: 'bold',
-                  fontSize: '1.2rem',
+                  fontSize: '1rem',
                   lineHeight: 1
                 }}
               >
                 !
               </Typography>
             )}
-            <Typography>{tarea.titulo}</Typography>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                flex: 1,
+                minWidth: 0,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {tarea.titulo}
+            </Typography>
           </Box>
         </TableCell>
-        <TableCell align="right" sx={{ width: 120 }}>
-          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+        <TableCell align="right" sx={{ width: 120, py: 0.5 }}>
+          <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
             <Tooltip title="Editar">
               <IconButton
                 size="small"
@@ -201,7 +212,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
                   e.stopPropagation();
                   onEdit(tarea);
                 }}
-                sx={{ color: 'text.secondary' }}
+                sx={{ color: 'text.secondary', p: 0.25 }}
               >
                 <EditIcon fontSize="small" />
               </IconButton>
@@ -213,7 +224,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
                   e.stopPropagation();
                   onDelete(tarea._id || tarea.id);
                 }}
-                sx={{ color: 'error.main' }}
+                sx={{ color: 'error.main', p: 0.25 }}
               >
                 <DeleteIcon fontSize="small" />
               </IconButton>
@@ -224,8 +235,8 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
       <TableRow>
         <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
           <Collapse in={open} timeout="auto" unmountOnExit>
-            <Box sx={{ py: 2, px: 1 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <Box sx={{ py: 0.5, px: 1 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                 Inicio: {format(new Date(tarea.fechaInicio), 'dd MMM yyyy', { locale: es })}
                 {tarea.fechaVencimiento && (
                   <> · Fin: {format(new Date(tarea.fechaVencimiento), 'dd MMM yyyy', { locale: es })}</>
@@ -236,45 +247,45 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
                 <Typography 
                   variant="body2" 
                   color="text.secondary"
-                  sx={{ mb: 2, whiteSpace: 'pre-wrap' }}
+                  sx={{ mb: 0.5, whiteSpace: 'pre-wrap' }}
                 >
                   {tarea.descripcion}
                 </Typography>
               )}
 
               {tarea.subtareas?.length > 0 && (
-                <Box sx={{ mb: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                <Box sx={{ mb: 0.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.25 }}>
                     <Typography variant="subtitle2">
                       Subtareas
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {tarea.subtareas.filter(st => st.completada).length}/{tarea.subtareas.length} completadas
+                      {subtareasLocal.filter(st => st.completada).length}/{subtareasLocal.length} completadas
                     </Typography>
                   </Box>
                   <LinearProgress 
                     variant="determinate" 
                     value={getSubtareasProgress()} 
                     sx={{ 
-                      height: 8,
-                      borderRadius: 4,
-                      mb: 2,
+                      height: 2,
+                      borderRadius: 1,
+                      mb: 0.5,
                       backgroundColor: theme.palette.grey[800],
                       '& .MuiLinearProgress-bar': {
-                        backgroundColor: theme.palette.success.main,
-                        borderRadius: 4
+                        backgroundColor: '#2D5C2E',
+                        borderRadius: 1
                       }
                     }}
                   />
-                  <Box sx={{ pl: 2 }}>
+                  <Box sx={{ pl: 0 }}>
                     {subtareasLocal.map((subtarea, index) => (
                       <Box 
                         key={subtarea._id || index}
                         sx={{ 
                           display: 'flex', 
                           alignItems: 'center', 
-                          gap: 1,
-                          mb: 0.5,
+                          gap: 0.5,
+                          mb: 0.25,
                           '&:hover': {
                             backgroundColor: 'action.hover',
                             borderRadius: 1
@@ -287,11 +298,20 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
                           disabled={isUpdating}
                           size="small"
                           sx={{
+                            padding: 0.25,
                             color: 'text.secondary',
                             '&.Mui-checked': {
-                              color: theme.palette.success.main
+                              color: '#2D5C2E'
+                            },
+                            '& .MuiSvgIcon-root': {
+                              borderRadius: '50%'
+                            },
+                            '&:hover': {
+                              backgroundColor: 'transparent'
                             }
                           }}
+                          icon={<PendingIcon sx={{ fontSize: '1.2rem' }} />}
+                          checkedIcon={<CompletedIcon sx={{ fontSize: '1.2rem' }} />}
                         />
                         <Typography
                           variant="body2"
