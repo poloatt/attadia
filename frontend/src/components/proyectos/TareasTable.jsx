@@ -237,9 +237,9 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ py: 0.5, px: 1 }}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                Inicio: {format(new Date(tarea.fechaInicio), 'dd MMM yyyy', { locale: es })}
+                {format(new Date(tarea.fechaInicio), 'dd MMM yyyy', { locale: es })}
                 {tarea.fechaVencimiento && (
-                  <> · Fin: {format(new Date(tarea.fechaVencimiento), 'dd MMM yyyy', { locale: es })}</>
+                  <> → {format(new Date(tarea.fechaVencimiento), 'dd MMM yyyy', { locale: es })}</>
                 )}
               </Typography>
 

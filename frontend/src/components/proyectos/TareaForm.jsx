@@ -617,16 +617,40 @@ const TareaForm = ({
                   >
                     <CompletedIcon />
                   </IconButton>
-                  <Typography
+                  <TextField
+                    value={subtarea.titulo}
+                    onChange={(e) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        subtareas: prev.subtareas.map((st, i) => 
+                          i === index ? { ...st, titulo: e.target.value } : st
+                        )
+                      }));
+                    }}
+                    size="small"
                     sx={{
                       flex: 1,
-                      textDecoration: subtarea.completada ? 'line-through' : 'none',
-                      color: subtarea.completada ? 'text.secondary' : 'text.primary',
-                      ml: 1
+                      '& .MuiInputBase-root': {
+                        height: 32,
+                        fontSize: '0.875rem',
+                        backgroundColor: 'transparent',
+                        '& fieldset': {
+                          borderColor: 'transparent'
+                        },
+                        '&:hover fieldset': {
+                          borderColor: 'grey.700'
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: 'primary.main'
+                        }
+                      },
+                      '& .MuiInputBase-input': {
+                        p: 1,
+                        textDecoration: subtarea.completada ? 'line-through' : 'none',
+                        color: subtarea.completada ? 'text.secondary' : 'text.primary'
+                      }
                     }}
-                  >
-                    {subtarea.titulo}
-                  </Typography>
+                  />
                   <IconButton
                     size="small"
                     onClick={() => handleDeleteSubtarea(index)}
