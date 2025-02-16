@@ -4,7 +4,7 @@ import { Proyectos, Tareas } from '../models/index.js';
 class ProyectosController extends BaseController {
   constructor() {
     super(Proyectos, {
-      searchFields: ['nombre', 'descripcion', 'etiquetas'],
+      searchFields: ['nombre', 'descripcion'],
       defaultPopulate: [
         {
           path: 'tareas',

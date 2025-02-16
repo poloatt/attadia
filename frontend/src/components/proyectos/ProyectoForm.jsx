@@ -15,6 +15,7 @@ import {
   Chip,
   useTheme,
   useMediaQuery,
+  InputAdornment
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -23,7 +24,6 @@ import {
   Flag as FlagIcon,
   Schedule as ScheduleIcon,
   Description as DescriptionIcon,
-  Label as LabelIcon,
   Home as HomeIcon,
   AttachMoney as MoneyIcon,
 } from '@mui/icons-material';
@@ -45,14 +45,12 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
     fechaInicio: initialData?.fechaInicio ? new Date(initialData.fechaInicio) : new Date(),
     fechaFin: initialData?.fechaFin ? new Date(initialData.fechaFin) : null,
     prioridad: initialData?.prioridad || 'MEDIA',
-    etiquetas: initialData?.etiquetas || [],
     presupuesto: initialData?.presupuesto || { monto: '', moneda: null },
     archivos: initialData?.archivos || [],
     propiedad: initialData?.propiedad || null,
     tareas: initialData?.tareas || []
   });
 
-  const [newTag, setNewTag] = useState('');
   const [errors, setErrors] = useState({});
   const [isTareaFormOpen, setIsTareaFormOpen] = useState(false);
 
@@ -73,23 +71,6 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
     }));
   };
 
-  const handleAddTag = () => {
-    if (newTag.trim() && !formData.etiquetas.includes(newTag.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        etiquetas: [...prev.etiquetas, newTag.trim()]
-      }));
-      setNewTag('');
-    }
-  };
-
-  const handleDeleteTag = (tagToDelete) => {
-    setFormData(prev => ({
-      ...prev,
-      etiquetas: prev.etiquetas.filter(tag => tag !== tagToDelete)
-    }));
-  };
-
   const handleFileChange = (event) => {
     const files = Array.from(event.target.files);
     const newFiles = files.map(file => ({
@@ -104,11 +85,12 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
     }));
   };
 
-  const handleTareasChange = (nuevasTareas) => {
+  const handleTareaSubmit = (tareaData) => {
     setFormData(prev => ({
       ...prev,
-      tareas: nuevasTareas
+      tareas: [...prev.tareas, tareaData]
     }));
+    setIsTareaFormOpen(false);
   };
 
   const validateForm = () => {
@@ -148,12 +130,30 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
     return colors[prioridad] || theme.palette.grey[500];
   };
 
-  const handleTareaSubmit = (tareaData) => {
-    setFormData(prev => ({
-      ...prev,
-      tareas: [...prev.tareas, tareaData]
-    }));
-    setIsTareaFormOpen(false);
+  // Estilos comunes para los campos
+  const commonInputStyles = {
+    '& .MuiInputBase-root': {
+      borderRadius: 1
+    }
+  };
+
+  const commonIconContainerStyles = {
+    display: 'flex',
+    alignItems: 'center',
+    mr: 1
+  };
+
+  const commonIconStyles = {
+    color: 'text.secondary',
+    fontSize: '1.25rem'
+  };
+
+  const commonSelectStyles = {
+    '& .MuiSelect-select': {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 1
+    }
   };
 
   return (
@@ -165,21 +165,55 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
       fullScreen={fullScreen}
       PaperProps={{
         sx: {
-          borderRadius: 0
+          borderRadius: 1,
+          bgcolor: 'grey.900'
         }
       }}
     >
-      <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h6">
+      <DialogTitle sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        bgcolor: 'grey.900'
+      }}>
+        <Typography component="div">
           {isEditing ? 'Editar Proyecto' : 'Nuevo Proyecto'}
         </Typography>
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
-        </IconButton>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="text"
+            component="label"
+            startIcon={<AttachFileIcon />}
+            size="small"
+            sx={{ 
+              color: 'text.secondary',
+              '&:hover': {
+                color: 'primary.main',
+                backgroundColor: 'transparent'
+              }
+            }}
+          >
+            Adjuntar
+            <input
+              type="file"
+              hidden
+              multiple
+              onChange={handleFileChange}
+            />
+          </Button>
+          <IconButton
+            aria-label="close"
+            onClick={onClose}
+            sx={{ color: 'text.secondary' }}
+            size="small"
+          >
+            <CloseIcon />
+          </IconButton>
+        </Box>
       </DialogTitle>
       
-      <DialogContent>
-        <Stack spacing={3} sx={{ mt: 2 }}>
+      <DialogContent sx={{ bgcolor: 'grey.900' }}>
+        <Stack spacing={2}>
           <TextField
             size="small"
             label="Nombre del Proyecto"
@@ -191,12 +225,11 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
             required
             InputProps={{
               startAdornment: (
-                <Box sx={{ display: 'flex', alignItems: 'center', width: 40, justifyContent: 'center' }}>
-                  <FlagIcon sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
-                </Box>
+                <InputAdornment position="start">
+                  <FlagIcon />
+                </InputAdornment>
               )
             }}
-            sx={{ mt: 1 }}
           />
 
           <TextField
@@ -209,14 +242,14 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
             onChange={handleChange('descripcion')}
             InputProps={{
               startAdornment: (
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', width: 40, justifyContent: 'center', pt: 1 }}>
-                  <DescriptionIcon sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
-                </Box>
+                <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1 }}>
+                  <DescriptionIcon />
+                </InputAdornment>
               )
             }}
           />
 
-          <Grid container spacing={2}>
+          <Grid container spacing={2} sx={{ px: 2 }}>
             <Grid item xs={12} sm={6}>
               <TextField
                 select
@@ -228,13 +261,15 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
                 error={!!errors.estado}
                 helperText={errors.estado}
                 required
-                SelectProps={{
-                  sx: {
-                    '& .MuiSelect-select': {
-                      display: 'flex',
-                      alignItems: 'center'
-                    }
+                sx={{
+                  ...commonInputStyles,
+                  '& .MuiInputBase-root': {
+                    p: 0,
+                    mx: -2
                   }
+                }}
+                SelectProps={{
+                  sx: commonSelectStyles
                 }}
               >
                 {[
@@ -266,13 +301,15 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
                 fullWidth
                 value={formData.prioridad}
                 onChange={handleChange('prioridad')}
-                SelectProps={{
-                  sx: {
-                    '& .MuiSelect-select': {
-                      display: 'flex',
-                      alignItems: 'center'
-                    }
+                sx={{
+                  ...commonInputStyles,
+                  '& .MuiInputBase-root': {
+                    p: 0,
+                    mx: -2
                   }
+                }}
+                SelectProps={{
+                  sx: commonSelectStyles
                 }}
               >
                 {[
@@ -297,7 +334,7 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
             </Grid>
           </Grid>
 
-          <Grid container spacing={2}>
+          <Grid container spacing={2} sx={{ px: 2 }}>
             <Grid item xs={12} sm={6}>
               <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
                 <DatePicker
@@ -312,11 +349,17 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
                       required
                       error={!!errors.fechaInicio}
                       helperText={errors.fechaInicio}
+                      sx={{
+                        ...commonInputStyles,
+                        '& .MuiInputBase-root': {
+                          mx: -2
+                        }
+                      }}
                       InputProps={{
                         ...params.InputProps,
                         startAdornment: (
-                          <Box sx={{ display: 'flex', alignItems: 'center', width: 40, justifyContent: 'center' }}>
-                            <ScheduleIcon sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
+                          <Box sx={commonIconContainerStyles}>
+                            <ScheduleIcon sx={commonIconStyles} />
                           </Box>
                         )
                       }}
@@ -339,11 +382,17 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
                       fullWidth
                       error={!!errors.fechaFin}
                       helperText={errors.fechaFin}
+                      sx={{
+                        ...commonInputStyles,
+                        '& .MuiInputBase-root': {
+                          mx: -2
+                        }
+                      }}
                       InputProps={{
                         ...params.InputProps,
                         startAdornment: (
-                          <Box sx={{ display: 'flex', alignItems: 'center', width: 40, justifyContent: 'center' }}>
-                            <ScheduleIcon sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
+                          <Box sx={commonIconContainerStyles}>
+                            <ScheduleIcon sx={commonIconStyles} />
                           </Box>
                         )
                       }}
@@ -354,94 +403,26 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
             </Grid>
           </Grid>
 
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Etiquetas
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
-              <TextField
-                size="small"
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                placeholder="Agregar etiqueta"
-                onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
-                InputProps={{
-                  startAdornment: <LabelIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                }}
-              />
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={handleAddTag}
-                startIcon={<AddIcon />}
-                sx={{ borderRadius: 0 }}
-              >
-                Agregar
-              </Button>
-            </Box>
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-              {formData.etiquetas.map((tag, index) => (
-                <Chip
-                  key={index}
-                  label={tag}
-                  onDelete={() => handleDeleteTag(tag)}
-                  size="small"
-                  sx={{ borderRadius: 1 }}
-                />
-              ))}
-            </Stack>
-          </Box>
-
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Archivos Adjuntos
-            </Typography>
-            <Button
-              variant="outlined"
-              component="label"
-              startIcon={<AttachFileIcon />}
-              size="small"
-              sx={{ borderRadius: 0 }}
-            >
-              Adjuntar Archivos
-              <input
-                type="file"
-                hidden
-                multiple
-                onChange={handleFileChange}
-              />
-            </Button>
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
-              {formData.archivos.map((archivo, index) => (
-                <Chip
-                  key={index}
-                  label={archivo.nombre}
-                  onDelete={() => {
-                    setFormData(prev => ({
-                      ...prev,
-                      archivos: prev.archivos.filter((_, i) => i !== index)
-                    }));
-                  }}
-                  size="small"
-                  sx={{ borderRadius: 1 }}
-                />
-              ))}
-            </Stack>
-          </Box>
-
+          {/* Tareas */}
           <Box>
             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
               Tareas
             </Typography>
             <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
               <Button
-                variant="outlined"
+                variant="text"
                 size="small"
                 onClick={() => setIsTareaFormOpen(true)}
                 startIcon={<AddIcon />}
-                sx={{ borderRadius: 0 }}
+                sx={{ 
+                  color: 'text.secondary',
+                  '&:hover': {
+                    color: 'primary.main',
+                    backgroundColor: 'transparent'
+                  }
+                }}
               >
-                Agregar Tarea
+                Nueva Tarea
               </Button>
             </Box>
             <Stack spacing={1}>
@@ -491,23 +472,51 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
               ))}
             </Stack>
           </Box>
+
+          {/* Archivos adjuntos */}
+          {formData.archivos.length > 0 && (
+            <Box>
+              <Typography 
+                variant="subtitle2" 
+                color="text.secondary" 
+                sx={{ mb: 1 }}
+              >
+                Archivos Adjuntos
+              </Typography>
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                {formData.archivos.map((archivo, index) => (
+                  <Chip
+                    key={index}
+                    label={archivo.nombre}
+                    onDelete={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        archivos: prev.archivos.filter((_, i) => i !== index)
+                      }));
+                    }}
+                    size="small"
+                    sx={{ borderRadius: 1 }}
+                  />
+                ))}
+              </Stack>
+            </Box>
+          )}
         </Stack>
       </DialogContent>
 
-      <DialogActions sx={{ p: 2, gap: 1 }}>
+      <DialogActions sx={{ p: 2, bgcolor: 'grey.900' }}>
         <Button 
-          onClick={onClose} 
-          color="inherit"
-          sx={{ borderRadius: 0 }}
+          onClick={onClose}
+          sx={{ color: 'grey.500' }}
         >
           Cancelar
         </Button>
-        <Button
-          onClick={handleSubmit}
+        <Button 
+          onClick={handleSubmit} 
           variant="contained"
           sx={{ borderRadius: 0 }}
         >
-          {isEditing ? 'Guardar Cambios' : 'Crear Proyecto'}
+          {isEditing ? 'Actualizar' : 'Guardar'}
         </Button>
       </DialogActions>
 

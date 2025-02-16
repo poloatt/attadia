@@ -294,11 +294,16 @@ const TareaForm = ({
       PaperProps={{
         sx: {
           borderRadius: 1,
-          bgcolor: '#1a1a1a'
+          bgcolor: 'grey.900'
         }
       }}
     >
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <DialogTitle sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        bgcolor: 'grey.900'
+      }}>
         <Typography component="div">
           {isEditing ? 'Editar Tarea' : 'Nueva Tarea'}
         </Typography>
@@ -335,7 +340,7 @@ const TareaForm = ({
         </Box>
       </DialogTitle>
       
-      <DialogContent>
+      <DialogContent sx={{ bgcolor: 'grey.900' }}>
         <Stack spacing={2}>
           <TextField
             size="small"

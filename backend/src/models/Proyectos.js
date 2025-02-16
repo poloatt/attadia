@@ -35,7 +35,6 @@ const proyectoSchema = createSchema({
       ref: 'Monedas'
     }
   },
-  etiquetas: [String],
   archivos: [{
     nombre: String,
     url: String,
