@@ -35,6 +35,8 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { es } from 'date-fns/locale';
 import ProyectoForm from './ProyectoForm';
+import { useSnackbar } from 'notistack';
+import clienteAxios from '../../config/axios';
 
 const TareaForm = ({ 
   open, 
@@ -48,6 +50,7 @@ const TareaForm = ({
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const [isProyectoFormOpen, setIsProyectoFormOpen] = useState(false);
+  const { enqueueSnackbar } = useSnackbar();
   
   const initialFormState = {
     titulo: '',
@@ -56,7 +59,7 @@ const TareaForm = ({
     fechaInicio: new Date(),
     fechaFin: null,
     fechaVencimiento: null,
-    prioridad: 'MEDIA',
+    prioridad: 'BAJA',
     archivos: [],
     proyecto: null,
     completada: false,
@@ -69,21 +72,26 @@ const TareaForm = ({
     fechaInicio: initialData?.fechaInicio ? new Date(initialData.fechaInicio) : new Date(),
     fechaFin: initialData?.fechaFin ? new Date(initialData.fechaFin) : null,
     fechaVencimiento: initialData?.fechaVencimiento ? new Date(initialData.fechaVencimiento) : null,
-    proyecto: proyectoId || initialData?.proyecto || null
+    proyecto: proyectoId || (initialData?.proyecto?._id || initialData?.proyecto) || null,
+    estado: initialData?.estado || 'PENDIENTE'
   }));
 
   const [errors, setErrors] = useState({});
   const [newSubtarea, setNewSubtarea] = useState('');
 
   useEffect(() => {
-    setFormData({
-      ...initialFormState,
-      ...initialData,
-      fechaInicio: initialData?.fechaInicio ? new Date(initialData.fechaInicio) : new Date(),
-      fechaFin: initialData?.fechaFin ? new Date(initialData.fechaFin) : null,
-      fechaVencimiento: initialData?.fechaVencimiento ? new Date(initialData.fechaVencimiento) : null,
-      proyecto: proyectoId || initialData?.proyecto || null
-    });
+    if (open) {
+      setFormData({
+        ...initialFormState,
+        ...initialData,
+        fechaInicio: initialData?.fechaInicio ? new Date(initialData.fechaInicio) : new Date(),
+        fechaFin: initialData?.fechaFin ? new Date(initialData.fechaFin) : null,
+        fechaVencimiento: initialData?.fechaVencimiento ? new Date(initialData.fechaVencimiento) : null,
+        proyecto: proyectoId || (initialData?.proyecto?._id || initialData?.proyecto) || null,
+        estado: initialData?.estado || 'PENDIENTE',
+        subtareas: initialData?.subtareas || []
+      });
+    }
   }, [initialData, open, proyectoId]);
 
   const handleChange = (field) => (event) => {
@@ -124,13 +132,48 @@ const TareaForm = ({
     }));
   };
 
-  const handleToggleSubtarea = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      subtareas: prev.subtareas.map((subtarea, i) => 
-        i === index ? { ...subtarea, completada: !subtarea.completada } : subtarea
-      )
-    }));
+  const handleToggleSubtarea = async (index) => {
+    try {
+      const subtarea = formData.subtareas[index];
+      if (!subtarea._id) {
+        // Si la subtarea es nueva (no tiene _id), solo actualizamos el estado local
+        setFormData(prev => ({
+          ...prev,
+          subtareas: prev.subtareas.map((st, i) => 
+            i === index ? { ...st, completada: !st.completada } : st
+          )
+        }));
+        return;
+      }
+
+      console.log('Actualizando subtarea:', {
+        tareaId: formData._id,
+        subtareaId: subtarea._id,
+        completada: !subtarea.completada
+      });
+
+      // Si la subtarea ya existe, llamamos al endpoint
+      const response = await clienteAxios.patch(`/tareas/${formData._id}/subtareas`, {
+        subtareaId: subtarea._id,
+        completada: !subtarea.completada
+      });
+      
+      console.log('Respuesta del servidor:', response.data);
+
+      // Actualizamos el estado local con los datos del servidor
+      if (response.data) {
+        setFormData(prev => ({
+          ...prev,
+          subtareas: response.data.subtareas || prev.subtareas.map(st => 
+            st._id === subtarea._id ? { ...st, completada: !st.completada } : st
+          )
+        }));
+        enqueueSnackbar('Subtarea actualizada exitosamente', { variant: 'success' });
+      }
+    } catch (error) {
+      console.error('Error al actualizar subtarea:', error);
+      enqueueSnackbar('Error al actualizar subtarea', { variant: 'error' });
+    }
   };
 
   const handleFileChange = (event) => {
@@ -307,7 +350,22 @@ const TareaForm = ({
         <Typography component="div">
           {isEditing ? 'Editar Tarea' : 'Nueva Tarea'}
         </Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Button
+            variant="text"
+            onClick={() => handleChange('prioridad')({ target: { value: formData.prioridad === 'ALTA' ? 'BAJA' : 'ALTA' }})}
+            startIcon={<PriorityIcon />}
+            size="small"
+            sx={{ 
+              color: formData.prioridad === 'ALTA' ? 'error.main' : 'text.secondary',
+              '&:hover': {
+                color: formData.prioridad === 'ALTA' ? 'error.dark' : 'primary.main',
+                backgroundColor: 'transparent'
+              }
+            }}
+          >
+            {formData.prioridad === 'ALTA' ? 'Alta' : 'Baja'}
+          </Button>
           <Button
             variant="text"
             component="label"
@@ -365,7 +423,8 @@ const TareaForm = ({
             label="Descripción"
             fullWidth
             multiline
-            rows={3}
+            minRows={1}
+            maxRows={5}
             value={formData.descripcion}
             onChange={handleChange('descripcion')}
             InputProps={{
@@ -377,214 +436,112 @@ const TareaForm = ({
             }}
           />
 
-          <Grid container spacing={2} sx={{ px: 2 }}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                size="small"
-                label="Estado"
-                fullWidth
-                value={formData.estado}
-                onChange={handleChange('estado')}
-                error={!!errors.estado}
-                helperText={errors.estado}
-                required
-                sx={{
-                  ...commonInputStyles,
-                  '& .MuiInputBase-root': {
-                    p: 0,
-                    mx: -2
-                  }
-                }}
-                SelectProps={{
-                  sx: commonSelectStyles
-                }}
-              >
-                {[
-                  { value: 'PENDIENTE', label: 'Pendiente', color: '#FFA726' },
-                  { value: 'EN_PROGRESO', label: 'En Progreso', color: '#42A5F5' },
-                  { value: 'COMPLETADA', label: 'Completada', color: '#66BB6A' }
-                ].map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    <Box
-                      sx={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        backgroundColor: option.color,
-                        mr: 1
-                      }}
-                    />
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
+          <TextField
+            select
+            fullWidth
+            size="small"
+            label="Estado"
+            value={formData.estado}
+            onChange={handleChange('estado')}
+            error={!!errors.estado}
+            helperText={errors.estado}
+            required
+            sx={commonInputStyles}
+            SelectProps={{
+              sx: commonSelectStyles
+            }}
+            InputProps={{
+              startAdornment: (
+                <Box sx={commonIconContainerStyles}>
+                  <LabelIcon sx={commonIconStyles} />
+                </Box>
+              )
+            }}
+          >
+            <MenuItem value="PENDIENTE">Pendiente</MenuItem>
+            <MenuItem value="EN_PROGRESO">En Progreso</MenuItem>
+            <MenuItem value="COMPLETADA">Completada</MenuItem>
+          </TextField>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                size="small"
-                label="Prioridad"
-                fullWidth
-                value={formData.prioridad}
-                onChange={handleChange('prioridad')}
-                sx={{
-                  ...commonInputStyles,
-                  '& .MuiInputBase-root': {
-                    p: 0,
-                    mx: -2
-                  }
-                }}
-                SelectProps={{
-                  sx: commonSelectStyles
-                }}
-              >
-                {[
-                  { value: 'BAJA', label: 'Baja', color: '#66BB6A' },
-                  { value: 'MEDIA', label: 'Media', color: '#FFA726' },
-                  { value: 'ALTA', label: 'Alta', color: '#EF5350' }
-                ].map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    <Box
-                      sx={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        backgroundColor: option.color,
-                        mr: 1
-                      }}
-                    />
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-          </Grid>
+          <Box sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr 1fr' },
+            gap: 2
+          }}>
+            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+              <DatePicker
+                label="Fecha de Inicio"
+                value={formData.fechaInicio}
+                onChange={handleDateChange('fechaInicio')}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    size="small"
+                    fullWidth
+                    required
+                    error={!!errors.fechaInicio}
+                    helperText={errors.fechaInicio}
+                    sx={commonInputStyles}
+                  />
+                )}
+              />
+            </LocalizationProvider>
 
-          <Grid container spacing={2} sx={{ px: 2 }}>
-            <Grid item xs={12} sm={6}>
-              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-                <DatePicker
-                  label="Fecha de Inicio"
-                  value={formData.fechaInicio}
-                  onChange={handleDateChange('fechaInicio')}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      size="small"
-                      fullWidth
-                      required
-                      error={!!errors.fechaInicio}
-                      helperText={errors.fechaInicio}
-                      sx={{
-                        ...commonInputStyles,
-                        '& .MuiInputBase-root': {
-                          mx: -2
-                        }
-                      }}
-                      InputProps={{
-                        ...params.InputProps,
-                        startAdornment: (
-                          <Box sx={commonIconContainerStyles}>
-                            <ScheduleIcon sx={commonIconStyles} />
-                          </Box>
-                        )
-                      }}
-                    />
-                  )}
-                />
-              </LocalizationProvider>
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-                <DatePicker
-                  label="Fecha de Vencimiento"
-                  value={formData.fechaVencimiento}
-                  onChange={handleDateChange('fechaVencimiento')}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      size="small"
-                      fullWidth
-                      error={!!errors.fechaVencimiento}
-                      helperText={errors.fechaVencimiento}
-                      sx={{
-                        ...commonInputStyles,
-                        '& .MuiInputBase-root': {
-                          mx: -2
-                        }
-                      }}
-                      InputProps={{
-                        ...params.InputProps,
-                        startAdornment: (
-                          <Box sx={commonIconContainerStyles}>
-                            <ScheduleIcon sx={commonIconStyles} />
-                          </Box>
-                        )
-                      }}
-                    />
-                  )}
-                />
-              </LocalizationProvider>
-            </Grid>
-          </Grid>
+            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+              <DatePicker
+                label="Fecha de Vencimiento"
+                value={formData.fechaVencimiento}
+                onChange={handleDateChange('fechaVencimiento')}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    size="small"
+                    fullWidth
+                    error={!!errors.fechaVencimiento}
+                    helperText={errors.fechaVencimiento}
+                    sx={commonInputStyles}
+                  />
+                )}
+              />
+            </LocalizationProvider>
+          </Box>
 
           {/* Campo de Proyecto - solo se muestra si no hay proyectoId */}
           {!proyectoId && (
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                label="Proyecto"
-                value={formData.proyecto || ''}
-                onChange={handleChange('proyecto')}
-                error={!!errors.proyecto}
-                helperText={errors.proyecto}
-                required
-                sx={commonInputStyles}
-                SelectProps={{
-                  sx: commonSelectStyles
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <Box sx={commonIconContainerStyles}>
-                      <ProjectIcon sx={commonIconStyles} />
-                    </Box>
-                  )
-                }}
-              >
-                <MenuItem value="">
-                  <em>Seleccionar proyecto</em>
+            <TextField
+              select
+              fullWidth
+              size="small"
+              label="Proyecto"
+              value={formData.proyecto || ''}
+              onChange={handleChange('proyecto')}
+              error={!!errors.proyecto}
+              helperText={errors.proyecto}
+              required
+              sx={commonInputStyles}
+              SelectProps={{
+                sx: commonSelectStyles
+              }}
+              InputProps={{
+                startAdornment: (
+                  <Box sx={commonIconContainerStyles}>
+                    <ProjectIcon sx={commonIconStyles} />
+                  </Box>
+                )
+              }}
+            >
+              <MenuItem key="empty" value="">
+                <em>Seleccionar proyecto</em>
+              </MenuItem>
+              {(proyectos || []).map((proyecto) => (
+                <MenuItem 
+                  key={proyecto._id || `proyecto-${proyecto.id}`} 
+                  value={proyecto._id || proyecto.id}
+                >
+                  {proyecto.titulo || proyecto.nombre}
                 </MenuItem>
-                {(proyectos || []).map((proyecto) => (
-                  <MenuItem 
-                    key={proyecto._id || proyecto.id} 
-                    value={proyecto._id || proyecto.id}
-                  >
-                    {proyecto.titulo || proyecto.nombre}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <Button
-                variant="text"
-                startIcon={<AddIcon />}
-                onClick={() => setIsProyectoFormOpen(true)}
-                sx={{ 
-                  color: 'text.secondary',
-                  minWidth: 'auto',
-                  '&:hover': {
-                    color: 'primary.main',
-                    backgroundColor: 'transparent'
-                  }
-                }}
-                size="small"
-              >
-                Nuevo
-              </Button>
-            </Box>
+              ))}
+            </TextField>
           )}
 
           {/* Subtareas */}
@@ -597,7 +554,12 @@ const TareaForm = ({
               placeholder="Agregar subtarea"
               onKeyPress={(e) => e.key === 'Enter' && handleAddSubtarea()}
               fullWidth
-              sx={commonInputStyles}
+              sx={{
+                ...commonInputStyles,
+                '& .MuiInputBase-root': {
+                  height: 40
+                }
+              }}
               InputProps={{
                 startAdornment: (
                   <Box sx={commonIconContainerStyles}>
@@ -613,6 +575,7 @@ const TareaForm = ({
               sx={{ 
                 color: 'text.secondary',
                 minWidth: 'auto',
+                height: 40,
                 '&:hover': {
                   color: 'primary.main',
                   backgroundColor: 'transparent'
@@ -624,7 +587,7 @@ const TareaForm = ({
             </Button>
           </Box>
           {formData.subtareas.length > 0 && (
-            <Stack spacing={1} sx={{ mt: 1 }}>
+            <Stack spacing={1}>
               {formData.subtareas.map((subtarea, index) => (
                 <Box
                   key={index}
@@ -632,11 +595,13 @@ const TareaForm = ({
                     display: 'flex',
                     alignItems: 'center',
                     gap: 1,
-                    p: 1,
+                    py: 0.5,
+                    px: 2,
                     border: 1,
                     borderColor: 'grey.800',
                     borderRadius: 1,
-                    bgcolor: 'grey.900'
+                    bgcolor: 'grey.900',
+                    height: 40
                   }}
                 >
                   <IconButton
@@ -656,7 +621,8 @@ const TareaForm = ({
                     sx={{
                       flex: 1,
                       textDecoration: subtarea.completada ? 'line-through' : 'none',
-                      color: subtarea.completada ? 'text.secondary' : 'text.primary'
+                      color: subtarea.completada ? 'text.secondary' : 'text.primary',
+                      ml: 1
                     }}
                   >
                     {subtarea.titulo}

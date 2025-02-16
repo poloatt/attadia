@@ -1,5 +1,6 @@
 import { BaseController } from './BaseController.js';
 import { Subtareas } from '../models/index.js';
+import mongoose from 'mongoose';
 
 class SubtareasController extends BaseController {
   constructor() {
@@ -10,6 +11,7 @@ class SubtareasController extends BaseController {
     // Bind de los métodos al contexto de la instancia
     this.getAllByTarea = this.getAllByTarea.bind(this);
     this.getAllAdmin = this.getAllAdmin.bind(this);
+    this.toggleCompletada = this.toggleCompletada.bind(this);
   }
 
   // GET /api/subtareas/tarea/:tareaId
@@ -43,6 +45,33 @@ class SubtareasController extends BaseController {
     } catch (error) {
       console.error('Error al obtener subtareas:', error);
       res.status(500).json({ error: 'Error al obtener subtareas' });
+    }
+  }
+
+  // PATCH /api/subtareas/:id/toggle
+  async toggleCompletada(req, res) {
+    try {
+      const subtarea = await this.Model.findOne({
+        _id: req.params.id,
+        usuario: req.user.id
+      });
+
+      if (!subtarea) {
+        return res.status(404).json({ error: 'Subtarea no encontrada' });
+      }
+
+      // Cambiar el estado de completada
+      subtarea.completada = !subtarea.completada;
+      await subtarea.save();
+
+      // Obtener la tarea actualizada con todas sus subtareas
+      const Tareas = mongoose.model('Tareas');
+      const tareaActualizada = await Tareas.findById(subtarea.tarea).populate('subtareas');
+
+      res.json(tareaActualizada);
+    } catch (error) {
+      console.error('Error al actualizar subtarea:', error);
+      res.status(500).json({ error: 'Error al actualizar subtarea' });
     }
   }
 }

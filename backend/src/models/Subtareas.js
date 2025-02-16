@@ -18,11 +18,6 @@ const subtareaSchema = createSchema({
     trim: true
   },
   descripcion: String,
-  estado: {
-    type: String,
-    enum: ['PENDIENTE', 'COMPLETADA'],
-    default: 'PENDIENTE'
-  },
   completada: {
     type: Boolean,
     default: false
@@ -42,8 +37,8 @@ subtareaSchema.post('save', async function() {
     
     if (tarea) {
       const subtareas = await mongoose.model('Subtareas').find({ tarea: this.tarea });
-      const todasCompletadas = subtareas.every(subtarea => subtarea.estado === 'COMPLETADA');
-      const algunaEnProgreso = subtareas.some(subtarea => subtarea.estado === 'PENDIENTE');
+      const todasCompletadas = subtareas.every(subtarea => subtarea.completada);
+      const algunaEnProgreso = subtareas.some(subtarea => !subtarea.completada);
       
       let nuevoEstado = 'PENDIENTE';
       if (todasCompletadas) {

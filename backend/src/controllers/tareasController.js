@@ -246,19 +246,61 @@ class TareasController extends BaseController {
   async updateSubtareas(req, res) {
     try {
       const { id } = req.params;
-      const { subtareas } = req.body;
+      const { subtareaId, completada } = req.body;
 
-      const tarea = await this.Model.findOneAndUpdate(
-        { _id: id, usuario: req.user.id },
-        { subtareas },
-        { new: true }
-      ).populate('subtareas');
+      // Verificar que la tarea exista y pertenezca al usuario
+      const tarea = await this.Model.findOne({ 
+        _id: id, 
+        usuario: req.user.id 
+      });
 
       if (!tarea) {
         return res.status(404).json({ error: 'Tarea no encontrada' });
       }
 
-      res.json(tarea);
+      // Actualizar la subtarea específica
+      if (subtareaId) {
+        const subtareaIndex = tarea.subtareas.findIndex(
+          st => st._id.toString() === subtareaId
+        );
+
+        if (subtareaIndex === -1) {
+          return res.status(404).json({ error: 'Subtarea no encontrada' });
+        }
+
+        // Actualizar el estado de la subtarea
+        tarea.subtareas[subtareaIndex].completada = completada;
+
+        // Actualizar el estado de la tarea basado en las subtareas
+        const todasCompletadas = tarea.subtareas.every(st => st.completada);
+        const algunaCompletada = tarea.subtareas.some(st => st.completada);
+
+        if (todasCompletadas) {
+          tarea.estado = 'COMPLETADA';
+        } else if (algunaCompletada) {
+          tarea.estado = 'EN_PROGRESO';
+        } else {
+          tarea.estado = 'PENDIENTE';
+        }
+
+        await tarea.save();
+
+        // Obtener la tarea actualizada
+        const tareaActualizada = await this.Model.findById(id)
+          .populate('proyecto');
+
+        return res.json(tareaActualizada);
+      }
+
+      // Si no hay subtareaId, actualizar todas las subtareas
+      const { subtareas } = req.body;
+      tarea.subtareas = subtareas;
+      await tarea.save();
+
+      const tareaActualizada = await this.Model.findById(id)
+        .populate('proyecto');
+
+      res.json(tareaActualizada);
     } catch (error) {
       console.error('Error al actualizar subtareas:', error);
       res.status(500).json({ error: 'Error al actualizar subtareas' });

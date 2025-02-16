@@ -24,12 +24,24 @@ import { useSnackbar } from 'notistack';
 
 export function Tareas() {
   const [tareas, setTareas] = useState([]);
+  const [proyectos, setProyectos] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTarea, setEditingTarea] = useState(null);
   const [filterStatus, setFilterStatus] = useState('todos');
   const { enqueueSnackbar } = useSnackbar();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  const fetchProyectos = useCallback(async () => {
+    try {
+      const response = await clienteAxios.get('/proyectos');
+      setProyectos(response.data.docs || []);
+    } catch (error) {
+      console.error('Error:', error);
+      enqueueSnackbar('Error al cargar proyectos', { variant: 'error' });
+      setProyectos([]);
+    }
+  }, [enqueueSnackbar]);
 
   const fetchTareas = useCallback(async () => {
     try {
@@ -44,7 +56,8 @@ export function Tareas() {
 
   useEffect(() => {
     fetchTareas();
-  }, [fetchTareas]);
+    fetchProyectos();
+  }, [fetchTareas, fetchProyectos]);
 
   const handleFormSubmit = async (formData) => {
     try {
@@ -83,6 +96,17 @@ export function Tareas() {
       enqueueSnackbar('Error al eliminar la tarea', { variant: 'error' });
     }
   }, [enqueueSnackbar, fetchTareas]);
+
+  const handleUpdateEstado = (tareaActualizada) => {
+    setTareas(prevTareas => 
+      prevTareas.map(tarea => 
+        tarea._id === tareaActualizada._id ? tareaActualizada : tarea
+      )
+    );
+    if (editingTarea && editingTarea._id === tareaActualizada._id) {
+      setEditingTarea(tareaActualizada);
+    }
+  };
 
   const filteredTareas = tareas.filter(tarea => {
     if (filterStatus === 'todos') return true;
@@ -149,6 +173,7 @@ export function Tareas() {
           tareas={filteredTareas}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onUpdateEstado={handleUpdateEstado}
         />
       </Box>
 
@@ -162,6 +187,7 @@ export function Tareas() {
           onSubmit={handleFormSubmit}
           initialData={editingTarea}
           isEditing={!!editingTarea}
+          proyectos={proyectos}
         />
       )}
     </Container>

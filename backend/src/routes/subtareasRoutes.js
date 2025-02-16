@@ -22,5 +22,6 @@ router.post('/', subtareasController.create);
 router.get('/:id', [checkOwnership(Subtareas)], subtareasController.getById);
 router.put('/:id', [checkOwnership(Subtareas)], subtareasController.update);
 router.delete('/:id', [checkOwnership(Subtareas)], subtareasController.delete);
+router.patch('/:id/toggle', [checkOwnership(Subtareas)], subtareasController.toggleCompletada);
 
 export default router; 

@@ -50,8 +50,8 @@ const tareaSchema = createSchema({
   },
   prioridad: {
     type: String,
-    enum: ['BAJA', 'MEDIA', 'ALTA'],
-    default: 'MEDIA'
+    enum: ['BAJA', 'ALTA'],
+    default: 'BAJA'
   },
   fechaVencimiento: Date,
   completada: {
