@@ -5,10 +5,16 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    host: '0.0.0.0',
+    host: 'localhost',
     port: 5173,
+    strictPort: true,
+    hmr: {
+      clientPort: 5173,
+      host: 'localhost',
+    },
     watch: {
-      usePolling: true
+      usePolling: true,
+      interval: 1000,
     },
     proxy: {
       '/api': {
@@ -18,6 +24,25 @@ export default defineConfig({
         ws: true
       }
     }
+  },
+  optimizeDeps: {
+    include: [
+      '@mui/material',
+      '@emotion/react',
+      '@emotion/styled',
+      '@mui/icons-material',
+      '@mui/x-date-pickers',
+      'date-fns',
+      'react-router-dom',
+      'notistack',
+      'axios'
+    ],
+    force: true
+  },
+  build: {
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
   },
   preview: {
     port: 5173

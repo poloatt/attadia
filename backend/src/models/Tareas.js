@@ -1,27 +1,52 @@
 import mongoose from 'mongoose';
 import { createSchema, commonFields } from './BaseSchema.js';
 
-const tareaSchema = createSchema({
-  usuario: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Users',
-    required: true
-  },
-  proyecto: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Proyectos',
-    required: true
-  },
+const subtareaSchema = new mongoose.Schema({
   titulo: {
     type: String,
     required: true,
     trim: true
   },
-  descripcion: String,
+  completada: {
+    type: Boolean,
+    default: false
+  },
+  ...commonFields
+});
+
+const tareaSchema = createSchema({
+  titulo: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  descripcion: {
+    type: String,
+    trim: true
+  },
   estado: {
     type: String,
     enum: ['PENDIENTE', 'EN_PROGRESO', 'COMPLETADA', 'CANCELADA'],
     default: 'PENDIENTE'
+  },
+  fechaInicio: {
+    type: Date,
+    required: true,
+    default: Date.now
+  },
+  fechaFin: {
+    type: Date
+  },
+  subtareas: [subtareaSchema],
+  proyecto: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Proyectos',
+    required: true
+  },
+  usuario: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Users',
+    required: true
   },
   prioridad: {
     type: String,
@@ -43,11 +68,15 @@ const tareaSchema = createSchema({
     type: Number,
     default: 0
   },
-  subtareas: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Subtareas'
-  }],
   ...commonFields
+});
+
+// Middleware para validar fechas
+tareaSchema.pre('save', function(next) {
+  if (this.fechaFin && this.fechaInicio > this.fechaFin) {
+    next(new Error('La fecha de fin debe ser posterior a la fecha de inicio'));
+  }
+  next();
 });
 
 // Middleware para poblar subtareas

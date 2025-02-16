@@ -27,14 +27,9 @@ class TransaccionesController extends BaseController {
       }
 
       const query = { 
-        estado: 'COMPLETADA'
+        estado: 'COMPLETADA',
+        usuario: new mongoose.Types.ObjectId(req.user.id)
       };
-
-      // Convertir el ID a ObjectId si existe
-      if (req.user.id) {
-        const mongoose = await import('mongoose');
-        query.usuario = new mongoose.Types.ObjectId(req.user.id);
-      }
 
       console.log('Query a ejecutar:', JSON.stringify(query, null, 2));
 
@@ -75,7 +70,6 @@ class TransaccionesController extends BaseController {
         code: error.code
       });
 
-      // Si es un error de MongoDB
       if (error.name === 'MongoError' || error.name === 'MongoServerError') {
         return res.status(500).json({ 
           error: 'Error en la base de datos',
@@ -83,7 +77,6 @@ class TransaccionesController extends BaseController {
         });
       }
 
-      // Si es un error de validación
       if (error.name === 'ValidationError') {
         return res.status(400).json({ 
           error: 'Error de validación',

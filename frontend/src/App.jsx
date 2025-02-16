@@ -24,6 +24,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Toaster } from 'react-hot-toast';
 import GoogleCallback from './components/GoogleCallback';
+import Tareas from './pages/Tareas';
 
 function App() {
   return (
@@ -48,6 +49,7 @@ function App() {
               <Route path="/rutinas" element={<Rutinas />} />
               <Route path="/lab" element={<Lab />} />
               <Route path="/proyectos" element={<Proyectos />} />
+              <Route path="/tareas" element={<Tareas />} />
               <Route path="/habitaciones" element={<Habitaciones />} />
               <Route path="/monedas" element={<Monedas />} />
               <Route path="/cuentas" element={<Cuentas />} />

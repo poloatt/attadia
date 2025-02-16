@@ -83,7 +83,7 @@ const EntityForm = ({
       setFormData(initialData);
       setErrors({});
     }
-  }, [open, initialData]);
+  }, [open]);
 
   const handleChange = useCallback((event) => {
     const { name, value } = event.target;
@@ -92,13 +92,11 @@ const EntityForm = ({
       [name]: value
     }));
     
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: null
-      }));
-    }
-  }, [errors]);
+    setErrors(prev => ({
+      ...prev,
+      [name]: null
+    }));
+  }, []);
 
   const validateForm = useCallback(() => {
     const newErrors = {};

@@ -1,5 +1,6 @@
 import { BaseController } from './BaseController.js';
-import { Tareas, Subtareas } from '../models/index.js';
+import { Tareas, Subtareas, Proyectos } from '../models/index.js';
+import mongoose from 'mongoose';
 
 class TareasController extends BaseController {
   constructor() {
@@ -18,74 +19,46 @@ class TareasController extends BaseController {
     });
 
     // Bind de los métodos al contexto de la instancia
-    this.getAllByProyecto = this.getAllByProyecto.bind(this);
+    this.getByProyecto = this.getByProyecto.bind(this);
     this.getAllAdmin = this.getAllAdmin.bind(this);
     this.getAdminStats = this.getAdminStats.bind(this);
     this.updateSubtareas = this.updateSubtareas.bind(this);
     this.addSubtarea = this.addSubtarea.bind(this);
     this.removeSubtarea = this.removeSubtarea.bind(this);
+    this.create = this.create.bind(this);
+    this.updateEstado = this.updateEstado.bind(this);
   }
 
-  // Sobrescribir getAll para incluir filtro de usuario
-  async getAll(req, res) {
+  // GET /api/tareas/proyecto/:proyectoId
+  async getByProyecto(req, res) {
     try {
+      const { proyectoId } = req.params;
       const { 
         page = 1, 
         limit = 10, 
-        sort = 'orden',
-        search,
-        filter,
-        select
+        sort = '-fechaInicio',
+        estado
       } = req.query;
 
-      const query = {
-        usuario: req.user.id
+      const query = { 
+        proyecto: proyectoId,
+        usuario: req.user.id 
       };
 
-      if (search) {
-        query.$or = this.options.searchFields.map(field => ({
-          [field]: { $regex: search, $options: 'i' }
-        }));
-      }
-
-      if (filter) {
-        Object.assign(query, JSON.parse(filter));
-      }
+      if (estado) query.estado = estado;
 
       const options = {
         page: parseInt(page),
         limit: parseInt(limit),
         sort,
-        select,
-        populate: this.options.defaultPopulate
+        populate: ['proyecto']
       };
 
       const result = await this.Model.paginate(query, options);
       res.json(result);
     } catch (error) {
-      console.error('Error en getAll:', error);
+      console.error('Error en getByProyecto:', error);
       res.status(500).json({ error: error.message });
-    }
-  }
-
-  // GET /api/tareas/proyecto/:proyectoId
-  async getAllByProyecto(req, res) {
-    try {
-      const { proyectoId } = req.params;
-      const result = await this.Model.paginate(
-        { 
-          proyecto: proyectoId,
-          usuario: req.user.id 
-        },
-        {
-          populate: this.options.defaultPopulate,
-          sort: { orden: 'asc', fechaVencimiento: 'asc' }
-        }
-      );
-      res.json(result);
-    } catch (error) {
-      console.error('Error al obtener tareas del proyecto:', error);
-      res.status(500).json({ error: 'Error al obtener tareas del proyecto' });
     }
   }
 
@@ -167,6 +140,46 @@ class TareasController extends BaseController {
     } catch (error) {
       console.error('Error al obtener estadísticas:', error);
       res.status(500).json({ error: 'Error al obtener estadísticas' });
+    }
+  }
+
+  // POST /api/tareas
+  async create(req, res) {
+    try {
+      console.log('Creando tarea con datos:', req.body);
+      
+      if (!req.user?.id) {
+        return res.status(401).json({ error: 'Usuario no autenticado' });
+      }
+
+      // Validar que el proyecto exista y pertenezca al usuario
+      const proyecto = await Proyectos.findOne({
+        _id: req.body.proyecto,
+        usuario: req.user.id
+      });
+
+      if (!proyecto) {
+        return res.status(404).json({ error: 'El proyecto no existe o no pertenece al usuario' });
+      }
+
+      const tarea = new this.Model({
+        ...req.body,
+        usuario: req.user.id
+      });
+
+      await tarea.save();
+      await tarea.populate('proyecto');
+      
+      res.status(201).json(tarea);
+    } catch (error) {
+      console.error('Error al crear tarea:', error);
+      if (error.name === 'ValidationError') {
+        return res.status(400).json({ 
+          error: 'Error de validación', 
+          details: Object.values(error.errors).map(e => e.message)
+        });
+      }
+      res.status(500).json({ error: error.message });
     }
   }
 
@@ -252,19 +265,74 @@ class TareasController extends BaseController {
     }
   }
 
-  // Sobrescribir create para incluir el usuario
-  async create(req, res) {
+  // PATCH /api/tareas/:id/estado
+  async updateEstado(req, res) {
     try {
-      const item = new this.Model({
-        ...req.body,
-        usuario: req.user.id,
-        orden: await this.Model.countDocuments({ proyecto: req.body.proyecto }) + 1
-      });
-      const savedItem = await item.save();
-      res.status(201).json(savedItem);
+      const { estado } = req.body;
+      
+      if (!['PENDIENTE', 'EN_PROGRESO', 'COMPLETADA', 'CANCELADA'].includes(estado)) {
+        return res.status(400).json({ error: 'Estado no válido' });
+      }
+
+      const tarea = await this.Model.findOneAndUpdate(
+        { _id: req.params.id, usuario: req.user.id },
+        { estado },
+        { new: true, runValidators: true }
+      );
+
+      if (!tarea) {
+        return res.status(404).json({ error: 'Tarea no encontrada' });
+      }
+
+      res.json(tarea);
     } catch (error) {
-      console.error('Error en create:', error);
       res.status(400).json({ error: error.message });
+    }
+  }
+
+  // Sobrescribimos el método getAll del BaseController
+  async getAll(req, res) {
+    try {
+      const { 
+        page = 1, 
+        limit = 10, 
+        sort = '-fechaInicio',
+        estado,
+        proyecto
+      } = req.query;
+
+      const query = { usuario: req.user.id };
+
+      if (estado) query.estado = estado;
+      if (proyecto) query.proyecto = proyecto;
+
+      const options = {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        sort,
+        populate: ['proyecto'],
+        lean: true,
+        leanWithId: true
+      };
+
+      const result = await this.Model.paginate(query, options);
+      
+      const transformedDocs = result.docs.map(doc => ({
+        ...doc,
+        id: doc._id.toString(),
+        proyecto: doc.proyecto ? {
+          ...doc.proyecto,
+          id: doc.proyecto._id.toString()
+        } : null
+      }));
+
+      res.json({
+        ...result,
+        docs: transformedDocs
+      });
+    } catch (error) {
+      console.error('Error en getAll:', error);
+      res.status(500).json({ error: error.message });
     }
   }
 }

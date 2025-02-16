@@ -18,13 +18,14 @@ import {
   FitnessCenterOutlined as RutinasIcon,
   ScienceOutlined as LabIcon,
   RestaurantOutlined as DietaIcon,
-  AssignmentOutlined as ProjectIcon,
+  FolderOutlined as ProjectIcon,
   CurrencyExchangeOutlined as MoneyIcon,
   Inventory2Outlined as InventoryIcon,
   BedOutlined as BedIcon,
   PeopleOutlined as PeopleIcon,
   DescriptionOutlined as ContratosIcon,
   AccountBalanceOutlined as CuentasIcon,
+  AssignmentOutlined as TaskIcon,
   TaskAltOutlined,
   Visibility as ShowValuesIcon,
   VisibilityOff as HideValuesIcon,
@@ -80,7 +81,8 @@ const EntityToolbar = ({
     monedas: MoneyIcon,
     dieta: DietaIcon,
     proyectos: ProjectIcon,
-    datacorporal: WeightIcon
+    datacorporal: WeightIcon,
+    tareas: TaskIcon
   };
 
   // Determinar si estamos en la página de Rutinas

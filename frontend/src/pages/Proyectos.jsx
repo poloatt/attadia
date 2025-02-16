@@ -2,31 +2,37 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Container,
   Box,
-  Typography,
   Button,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip
+  Tab,
+  Tabs,
+  useTheme,
+  useMediaQuery,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+import {
+  Add as AddIcon,
+  ViewModule as ViewModuleIcon,
+  ViewList as ViewListIcon,
+  FilterList as FilterListIcon,
+  FolderOutlined as ProjectIcon,
+  AssignmentOutlined as TaskIcon,
+} from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
-import EntityDetails from '../components/EntityViews/EntityDetails';
-import EntityForm from '../components/EntityViews/EntityForm';
 import clienteAxios from '../config/axios';
-import EmptyState from '../components/EmptyState';
 import { useSnackbar } from 'notistack';
-import { EntityActions } from '../components/EntityViews/EntityActions';
+import ProyectosGrid from '../components/proyectos/ProyectosGrid';
+import ProyectoForm from '../components/proyectos/ProyectoForm';
 
 export function Proyectos() {
   const [proyectos, setProyectos] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProyecto, setEditingProyecto] = useState(null);
+  const [viewMode, setViewMode] = useState('grid');
+  const [filterStatus, setFilterStatus] = useState('todos');
   const { enqueueSnackbar } = useSnackbar();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const fetchProyectos = useCallback(async () => {
     try {
@@ -45,12 +51,18 @@ export function Proyectos() {
 
   const handleFormSubmit = async (formData) => {
     try {
+      const dataToSend = {
+        ...formData,
+        fechaInicio: formData.fechaInicio.toISOString(),
+        fechaFin: formData.fechaFin ? formData.fechaFin.toISOString() : null,
+      };
+
       let response;
       if (editingProyecto) {
-        response = await clienteAxios.put(`/proyectos/${editingProyecto.id}`, formData);
+        response = await clienteAxios.put(`/proyectos/${editingProyecto.id}`, dataToSend);
         enqueueSnackbar('Proyecto actualizado exitosamente', { variant: 'success' });
       } else {
-        response = await clienteAxios.post('/proyectos', formData);
+        response = await clienteAxios.post('/proyectos', dataToSend);
         enqueueSnackbar('Proyecto creado exitosamente', { variant: 'success' });
       }
       setIsFormOpen(false);
@@ -81,138 +93,91 @@ export function Proyectos() {
     }
   }, [enqueueSnackbar, fetchProyectos]);
 
-  const formFields = [
-    {
-      name: 'nombre',
-      label: 'Nombre',
-      type: 'text',
-      required: true
-    },
-    {
-      name: 'descripcion',
-      label: 'Descripción',
-      type: 'text',
-      multiline: true,
-      rows: 3
-    },
-    {
-      name: 'estado',
-      label: 'Estado',
-      type: 'select',
-      required: true,
-      options: [
-        { value: 'ACTIVO', label: 'Activo' },
-        { value: 'PAUSADO', label: 'Pausado' },
-        { value: 'COMPLETADO', label: 'Completado' },
-        { value: 'CANCELADO', label: 'Cancelado' }
-      ]
-    },
-    {
-      name: 'fechaInicio',
-      label: 'Fecha de Inicio',
-      type: 'date',
-      required: true
-    },
-    {
-      name: 'fechaFin',
-      label: 'Fecha de Fin',
-      type: 'date'
-    }
-  ];
+  const filteredProyectos = proyectos.filter(proyecto => {
+    if (filterStatus === 'todos') return true;
+    return proyecto.estado === filterStatus;
+  });
 
   return (
-    <Container maxWidth="lg">
-      <EntityToolbar
-        onAdd={() => {
-          setEditingProyecto(null);
-          setIsFormOpen(true);
-        }}
-        entityName="proyecto"
-        navigationItems={[]}
-      />
-      <EntityDetails
+    <Container maxWidth="xl">
+      <EntityToolbar 
         title="Proyectos"
-        action={
-          <Button 
-            variant="contained" 
-            startIcon={<AddIcon />} 
-            size="small"
+        icon={<ProjectIcon />}
+        actions={
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
             onClick={() => {
               setEditingProyecto(null);
               setIsFormOpen(true);
             }}
+            sx={{ borderRadius: 0 }}
           >
             Nuevo Proyecto
           </Button>
         }
+        navigationItems={[
+          { 
+            icon: <TaskIcon />, 
+            label: 'Tareas', 
+            to: '/tareas',
+            current: false
+          }
+        ]}
       >
-        {proyectos.length === 0 ? (
-          <Box sx={{ p: 2 }}>
-            <EmptyState onAdd={() => setIsFormOpen(true)} />
-          </Box>
-        ) : (
-          <TableContainer component={Paper} elevation={0}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Nombre</TableCell>
-                  <TableCell>Descripción</TableCell>
-                  <TableCell>Estado</TableCell>
-                  <TableCell>Fecha Inicio</TableCell>
-                  <TableCell>Fecha Fin</TableCell>
-                  <TableCell align="right">Acciones</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {proyectos.map((proyecto) => (
-                  <TableRow key={proyecto.id}>
-                    <TableCell>{proyecto.nombre}</TableCell>
-                    <TableCell>{proyecto.descripcion}</TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={proyecto.estado}
-                        color={
-                          proyecto.estado === 'ACTIVO' ? 'success' :
-                          proyecto.estado === 'PAUSADO' ? 'warning' :
-                          proyecto.estado === 'COMPLETADO' ? 'info' : 'error'
-                        }
-                        size="small"
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {proyecto.fechaInicio ? new Date(proyecto.fechaInicio).toLocaleDateString() : '-'}
-                    </TableCell>
-                    <TableCell>
-                      {proyecto.fechaFin ? new Date(proyecto.fechaFin).toLocaleDateString() : '-'}
-                    </TableCell>
-                    <TableCell align="right">
-                      <EntityActions
-                        onEdit={() => handleEdit(proyecto)}
-                        onDelete={() => handleDelete(proyecto.id)}
-                        itemName={`el proyecto ${proyecto.nombre}`}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-      </EntityDetails>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Tooltip title="Cambiar vista">
+            <IconButton
+              size="small"
+              onClick={() => setViewMode(prev => prev === 'grid' ? 'list' : 'grid')}
+            >
+              {viewMode === 'grid' ? <ViewListIcon /> : <ViewModuleIcon />}
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Filtros">
+            <IconButton size="small">
+              <FilterListIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </EntityToolbar>
 
-      <EntityForm
-        open={isFormOpen}
-        onClose={() => {
-          setIsFormOpen(false);
-          setEditingProyecto(null);
-        }}
-        onSubmit={handleFormSubmit}
-        title={editingProyecto ? 'Editar Proyecto' : 'Nuevo Proyecto'}
-        fields={formFields}
-        initialData={editingProyecto || {}}
-        isEditing={!!editingProyecto}
-      />
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs
+          value={filterStatus}
+          onChange={(_, newValue) => setFilterStatus(newValue)}
+          variant={isMobile ? "scrollable" : "standard"}
+          scrollButtons={isMobile ? "auto" : false}
+        >
+          <Tab label="Todos" value="todos" />
+          <Tab label="Pendientes" value="PENDIENTE" />
+          <Tab label="En Progreso" value="EN_PROGRESO" />
+          <Tab label="Completados" value="COMPLETADO" />
+          <Tab label="Cancelados" value="CANCELADO" />
+        </Tabs>
+      </Box>
+
+      <Box sx={{ py: 2 }}>
+        <ProyectosGrid
+          proyectos={filteredProyectos}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onAdd={() => setIsFormOpen(true)}
+        />
+      </Box>
+
+      {isFormOpen && (
+        <ProyectoForm
+          open={isFormOpen}
+          onClose={() => {
+            setIsFormOpen(false);
+            setEditingProyecto(null);
+          }}
+          onSubmit={handleFormSubmit}
+          initialData={editingProyecto}
+          isEditing={!!editingProyecto}
+        />
+      )}
     </Container>
   );
 }

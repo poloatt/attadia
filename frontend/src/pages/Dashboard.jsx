@@ -10,6 +10,7 @@ import {
   AttachMoneyOutlined as MoneyIcon,
   AccountBalanceWalletOutlined as WalletIcon,
   TaskAltOutlined as RutinasIcon,
+  AssignmentOutlined as TaskIcon,
   AssignmentOutlined as ProjectIcon,
   TimerOutlined as PeriodIcon,
   TrendingDownOutlined as GastosIcon,
@@ -423,9 +424,9 @@ export function Dashboard() {
             to: '/rutinas'
           },
           {
-            icon: <ProjectIcon sx={{ fontSize: 20 }} />,
-            label: 'Proyectos',
-            to: '/proyectos'
+            icon: <TaskIcon sx={{ fontSize: 20 }} />,
+            label: 'Tareas',
+            to: '/tareas'
           }
         ]}
         showValues={showValues}
