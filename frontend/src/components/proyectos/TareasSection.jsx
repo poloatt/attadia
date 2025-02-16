@@ -86,8 +86,7 @@ const TareasSection = ({ tareas = [], onChange }) => {
     const colors = {
       PENDIENTE: '#FFA726',
       EN_PROGRESO: '#42A5F5',
-      COMPLETADA: '#66BB6A',
-      CANCELADA: '#EF5350'
+      COMPLETADA: '#66BB6A'
     };
     return colors[estado] || '#757575';
   };
@@ -134,7 +133,6 @@ const TareasSection = ({ tareas = [], onChange }) => {
             <MenuItem value="PENDIENTE">Pendiente</MenuItem>
             <MenuItem value="EN_PROGRESO">En Progreso</MenuItem>
             <MenuItem value="COMPLETADA">Completada</MenuItem>
-            <MenuItem value="CANCELADA">Cancelada</MenuItem>
           </TextField>
           <Button
             variant="outlined"
@@ -202,7 +200,6 @@ const TareasSection = ({ tareas = [], onChange }) => {
                 <MenuItem value="PENDIENTE">Pendiente</MenuItem>
                 <MenuItem value="EN_PROGRESO">En Progreso</MenuItem>
                 <MenuItem value="COMPLETADA">Completada</MenuItem>
-                <MenuItem value="CANCELADA">Cancelada</MenuItem>
               </TextField>
               <IconButton 
                 size="small"

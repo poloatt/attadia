@@ -270,7 +270,7 @@ class TareasController extends BaseController {
     try {
       const { estado } = req.body;
       
-      if (!['PENDIENTE', 'EN_PROGRESO', 'COMPLETADA', 'CANCELADA'].includes(estado)) {
+      if (!['PENDIENTE', 'EN_PROGRESO', 'COMPLETADA'].includes(estado)) {
         return res.status(400).json({ error: 'Estado no válido' });
       }
 

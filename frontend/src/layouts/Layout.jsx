@@ -97,8 +97,8 @@ export function Layout() {
         component="main"
         sx={{
           flexGrow: 1,
-          pt: '40px',
-          pb: '32px',
+          pt: '48px',
+          pb: '24px',
           pr: {
             xs: 0,
             sm: isOpen ? '240px' : 0
@@ -121,11 +121,14 @@ export function Layout() {
           },
           mx: 'auto',
           px: {
-            xs: 1,
-            sm: 2,
-            md: 3
+            xs: 2,
+            sm: 3,
+            md: 4
           },
-          flex: 1
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2
         }}>
           <Outlet />
         </Box>

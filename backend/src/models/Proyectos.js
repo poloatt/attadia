@@ -15,7 +15,7 @@ const proyectoSchema = createSchema({
   descripcion: String,
   estado: {
     type: String,
-    enum: ['PENDIENTE', 'EN_PROGRESO', 'COMPLETADO', 'CANCELADO'],
+    enum: ['PENDIENTE', 'EN_PROGRESO', 'COMPLETADO'],
     default: 'PENDIENTE'
   },
   fechaInicio: {

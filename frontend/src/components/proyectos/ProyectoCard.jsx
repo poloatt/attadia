@@ -19,8 +19,7 @@ const ProyectoCard = ({ proyecto, onEdit, onDelete }) => {
     const colors = {
       PENDIENTE: '#FFA726',
       EN_PROGRESO: '#42A5F5',
-      COMPLETADO: '#66BB6A',
-      CANCELADO: '#EF5350'
+      COMPLETADO: '#66BB6A'
     };
     return colors[estado] || '#757575';
   };

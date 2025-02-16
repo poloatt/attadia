@@ -210,20 +210,21 @@ const EntityToolbar = ({
         <Box sx={{ 
           display: 'flex',
           alignItems: 'center',
-          height: 40,
+          height: 48,
           position: 'relative',
           gap: {
-            xs: 0.5,
-            sm: 1
-          }
+            xs: 1,
+            sm: 2
+          },
+          mb: 2
         }}>
           {/* Sección izquierda */}
           <Box sx={{ 
             display: 'flex',
             alignItems: 'center',
             gap: {
-              xs: 0.5,
-              sm: 1
+              xs: 1,
+              sm: 2
             },
             width: {
               xs: 48,

@@ -157,7 +157,6 @@ export function Proyectos() {
           <Tab label="Pendientes" value="PENDIENTE" />
           <Tab label="En Progreso" value="EN_PROGRESO" />
           <Tab label="Completados" value="COMPLETADO" />
-          <Tab label="Cancelados" value="CANCELADO" />
         </Tabs>
       </Box>
 

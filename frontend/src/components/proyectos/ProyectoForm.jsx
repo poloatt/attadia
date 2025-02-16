@@ -132,19 +132,18 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
 
   const getEstadoColor = (estado) => {
     const colors = {
-      PENDIENTE: theme.palette.warning.main,
-      EN_PROGRESO: theme.palette.info.main,
-      COMPLETADO: theme.palette.success.main,
-      CANCELADO: theme.palette.error.main
+      PENDIENTE: '#FFA726',
+      EN_PROGRESO: '#42A5F5',
+      COMPLETADO: '#66BB6A'
     };
     return colors[estado] || theme.palette.grey[500];
   };
 
   const getPrioridadColor = (prioridad) => {
     const colors = {
-      BAJA: theme.palette.success.light,
-      MEDIA: theme.palette.warning.light,
-      ALTA: theme.palette.error.light
+      BAJA: '#66BB6A',
+      MEDIA: '#FFA726',
+      ALTA: '#EF5350'
     };
     return colors[prioridad] || theme.palette.grey[500];
   };
@@ -182,6 +181,7 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
       <DialogContent>
         <Stack spacing={3} sx={{ mt: 2 }}>
           <TextField
+            size="small"
             label="Nombre del Proyecto"
             fullWidth
             value={formData.nombre}
@@ -190,11 +190,17 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
             helperText={errors.nombre}
             required
             InputProps={{
-              startAdornment: <FlagIcon sx={{ mr: 1, color: 'text.secondary' }} />
+              startAdornment: (
+                <Box sx={{ display: 'flex', alignItems: 'center', width: 40, justifyContent: 'center' }}>
+                  <FlagIcon sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
+                </Box>
+              )
             }}
+            sx={{ mt: 1 }}
           />
 
           <TextField
+            size="small"
             label="Descripción"
             fullWidth
             multiline
@@ -202,7 +208,11 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
             value={formData.descripcion}
             onChange={handleChange('descripcion')}
             InputProps={{
-              startAdornment: <DescriptionIcon sx={{ mr: 1, color: 'text.secondary', mt: 1 }} />
+              startAdornment: (
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', width: 40, justifyContent: 'center', pt: 1 }}>
+                  <DescriptionIcon sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
+                </Box>
+              )
             }}
           />
 
@@ -210,6 +220,7 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
             <Grid item xs={12} sm={6}>
               <TextField
                 select
+                size="small"
                 label="Estado"
                 fullWidth
                 value={formData.estado}
@@ -221,17 +232,15 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
                   sx: {
                     '& .MuiSelect-select': {
                       display: 'flex',
-                      alignItems: 'center',
-                      gap: 1
+                      alignItems: 'center'
                     }
                   }
                 }}
               >
                 {[
-                  { value: 'PENDIENTE', label: 'Pendiente', color: theme.palette.warning.main },
-                  { value: 'EN_PROGRESO', label: 'En Progreso', color: theme.palette.info.main },
-                  { value: 'COMPLETADO', label: 'Completado', color: theme.palette.success.main },
-                  { value: 'CANCELADO', label: 'Cancelado', color: theme.palette.error.main }
+                  { value: 'PENDIENTE', label: 'Pendiente', color: '#FFA726' },
+                  { value: 'EN_PROGRESO', label: 'En Progreso', color: '#42A5F5' },
+                  { value: 'COMPLETADO', label: 'Completado', color: '#66BB6A' }
                 ].map((option) => (
                   <MenuItem key={option.value} value={option.value}>
                     <Box
@@ -252,6 +261,7 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
             <Grid item xs={12} sm={6}>
               <TextField
                 select
+                size="small"
                 label="Prioridad"
                 fullWidth
                 value={formData.prioridad}
@@ -260,16 +270,15 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
                   sx: {
                     '& .MuiSelect-select': {
                       display: 'flex',
-                      alignItems: 'center',
-                      gap: 1
+                      alignItems: 'center'
                     }
                   }
                 }}
               >
                 {[
-                  { value: 'BAJA', label: 'Baja', color: theme.palette.success.light },
-                  { value: 'MEDIA', label: 'Media', color: theme.palette.warning.light },
-                  { value: 'ALTA', label: 'Alta', color: theme.palette.error.light }
+                  { value: 'BAJA', label: 'Baja', color: '#66BB6A' },
+                  { value: 'MEDIA', label: 'Media', color: '#FFA726' },
+                  { value: 'ALTA', label: 'Alta', color: '#EF5350' }
                 ].map((option) => (
                   <MenuItem key={option.value} value={option.value}>
                     <Box
@@ -286,9 +295,11 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
                 ))}
               </TextField>
             </Grid>
+          </Grid>
 
+          <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
-              <LocalizationProvider dateAdapter={AdapterDateFns} locale={es}>
+              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
                 <DatePicker
                   label="Fecha de Inicio"
                   value={formData.fechaInicio}
@@ -296,13 +307,18 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
                   renderInput={(params) => (
                     <TextField
                       {...params}
+                      size="small"
                       fullWidth
                       required
                       error={!!errors.fechaInicio}
                       helperText={errors.fechaInicio}
                       InputProps={{
                         ...params.InputProps,
-                        startAdornment: <ScheduleIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                        startAdornment: (
+                          <Box sx={{ display: 'flex', alignItems: 'center', width: 40, justifyContent: 'center' }}>
+                            <ScheduleIcon sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
+                          </Box>
+                        )
                       }}
                     />
                   )}
@@ -311,7 +327,7 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
             </Grid>
 
             <Grid item xs={12} sm={6}>
-              <LocalizationProvider dateAdapter={AdapterDateFns} locale={es}>
+              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
                 <DatePicker
                   label="Fecha de Fin"
                   value={formData.fechaFin}
@@ -319,12 +335,17 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
                   renderInput={(params) => (
                     <TextField
                       {...params}
+                      size="small"
                       fullWidth
                       error={!!errors.fechaFin}
                       helperText={errors.fechaFin}
                       InputProps={{
                         ...params.InputProps,
-                        startAdornment: <ScheduleIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                        startAdornment: (
+                          <Box sx={{ display: 'flex', alignItems: 'center', width: 40, justifyContent: 'center' }}>
+                            <ScheduleIcon sx={{ color: 'text.secondary', fontSize: '1.25rem' }} />
+                          </Box>
+                        )
                       }}
                     />
                   )}

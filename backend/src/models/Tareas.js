@@ -26,7 +26,7 @@ const tareaSchema = createSchema({
   },
   estado: {
     type: String,
-    enum: ['PENDIENTE', 'EN_PROGRESO', 'COMPLETADA', 'CANCELADA'],
+    enum: ['PENDIENTE', 'EN_PROGRESO', 'COMPLETADA'],
     default: 'PENDIENTE'
   },
   fechaInicio: {
