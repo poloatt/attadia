@@ -58,7 +58,6 @@ const tareaSchema = createSchema({
     type: Boolean,
     default: false
   },
-  etiquetas: [String],
   archivos: [{
     nombre: String,
     url: String,

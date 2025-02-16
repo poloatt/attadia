@@ -15,6 +15,7 @@ import {
   Chip,
   useTheme,
   useMediaQuery,
+  Divider,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -55,14 +56,12 @@ const TareaForm = ({
     fechaFin: initialData?.fechaFin ? new Date(initialData.fechaFin) : null,
     fechaVencimiento: initialData?.fechaVencimiento ? new Date(initialData.fechaVencimiento) : null,
     prioridad: initialData?.prioridad || 'MEDIA',
-    etiquetas: initialData?.etiquetas || [],
     archivos: initialData?.archivos || [],
     proyecto: proyectoId || initialData?.proyecto || null,
     completada: initialData?.completada || false,
     subtareas: initialData?.subtareas || []
   }));
 
-  const [newTag, setNewTag] = useState('');
   const [errors, setErrors] = useState({});
   const [newSubtarea, setNewSubtarea] = useState('');
 
@@ -75,7 +74,6 @@ const TareaForm = ({
       fechaFin: initialData?.fechaFin ? new Date(initialData.fechaFin) : null,
       fechaVencimiento: initialData?.fechaVencimiento ? new Date(initialData.fechaVencimiento) : null,
       prioridad: initialData?.prioridad || 'MEDIA',
-      etiquetas: initialData?.etiquetas || [],
       archivos: initialData?.archivos || [],
       proyecto: proyectoId || initialData?.proyecto || null,
       completada: initialData?.completada || false,
@@ -97,23 +95,6 @@ const TareaForm = ({
     setFormData(prev => ({
       ...prev,
       [field]: date
-    }));
-  };
-
-  const handleAddTag = () => {
-    if (newTag.trim() && !formData.etiquetas.includes(newTag.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        etiquetas: [...prev.etiquetas, newTag.trim()]
-      }));
-      setNewTag('');
-    }
-  };
-
-  const handleDeleteTag = (tagToDelete) => {
-    setFormData(prev => ({
-      ...prev,
-      etiquetas: prev.etiquetas.filter(tag => tag !== tagToDelete)
     }));
   };
 
@@ -259,341 +240,364 @@ const TareaForm = ({
         }
       }}
     >
-      <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="subtitle1" component="div">
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h6">
           {isEditing ? 'Editar Tarea' : 'Nueva Tarea'}
         </Typography>
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
-        </IconButton>
+        <Button
+          variant="text"
+          component="label"
+          startIcon={<AttachFileIcon />}
+          size="small"
+          sx={{ 
+            color: 'text.secondary',
+            '&:hover': {
+              backgroundColor: 'transparent',
+              color: 'primary.main'
+            }
+          }}
+        >
+          Adjuntar
+          <input
+            type="file"
+            hidden
+            multiple
+            onChange={handleFileChange}
+          />
+        </Button>
       </DialogTitle>
       
       <DialogContent>
-        <Stack spacing={3} sx={{ mt: 2 }}>
-          {/* Campo de Proyecto - solo se muestra si no hay proyectoId */}
-          {!proyectoId && (
-            <Box>
-              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+        <Box sx={{ mt: 2 }}>
+          {/* Campos básicos */}
+          <Stack spacing={2}>
+            <TextField
+              size="small"
+              label="Título"
+              fullWidth
+              value={formData.titulo}
+              onChange={handleChange('titulo')}
+              error={!!errors.titulo}
+              helperText={errors.titulo}
+              required
+              InputProps={{
+                startAdornment: <FlagIcon sx={{ mr: 1, color: 'text.secondary', fontSize: '1.25rem' }} />
+              }}
+            />
+
+            <TextField
+              size="small"
+              label="Descripción"
+              fullWidth
+              multiline
+              rows={3}
+              value={formData.descripcion}
+              onChange={handleChange('descripcion')}
+              InputProps={{
+                startAdornment: <DescriptionIcon sx={{ mr: 1, color: 'text.secondary', fontSize: '1.25rem', mt: 1 }} />
+              }}
+            />
+
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   select
-                  label="Proyecto"
+                  size="small"
+                  label="Estado"
                   fullWidth
-                  value={formData.proyecto || ''}
-                  onChange={handleChange('proyecto')}
-                  error={!!errors.proyecto}
-                  helperText={errors.proyecto}
+                  value={formData.estado}
+                  onChange={handleChange('estado')}
+                  error={!!errors.estado}
+                  helperText={errors.estado}
                   required
-                  InputProps={{
-                    startAdornment: <ProjectIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                  SelectProps={{
+                    sx: {
+                      '& .MuiSelect-select': {
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1
+                      }
+                    }
                   }}
                 >
-                  {proyectos?.map((proyecto) => (
-                    <MenuItem 
-                      key={proyecto._id || proyecto.id} 
-                      value={proyecto._id || proyecto.id}
-                    >
-                      {proyecto.titulo || proyecto.nombre}
+                  {[
+                    { value: 'PENDIENTE', label: 'Pendiente', color: theme.palette.warning.main },
+                    { value: 'EN_PROGRESO', label: 'En Progreso', color: theme.palette.info.main },
+                    { value: 'COMPLETADA', label: 'Completada', color: theme.palette.success.main },
+                    { value: 'CANCELADA', label: 'Cancelada', color: theme.palette.error.main }
+                  ].map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          backgroundColor: option.color,
+                          mr: 1
+                        }}
+                      />
+                      {option.label}
                     </MenuItem>
                   ))}
                 </TextField>
-                <Button
-                  variant="outlined"
-                  startIcon={<AddIcon />}
-                  onClick={() => setIsProyectoFormOpen(true)}
-                  sx={{ borderRadius: 0, whiteSpace: 'nowrap' }}
-                >
-                  Nuevo Proyecto
-                </Button>
-              </Box>
-            </Box>
-          )}
+              </Grid>
 
-          <TextField
-            label="Título de la Tarea"
-            fullWidth
-            value={formData.titulo}
-            onChange={handleChange('titulo')}
-            error={!!errors.titulo}
-            helperText={errors.titulo}
-            required
-            InputProps={{
-              startAdornment: <FlagIcon sx={{ mr: 1, color: 'text.secondary' }} />
-            }}
-          />
-
-          <TextField
-            label="Descripción"
-            fullWidth
-            multiline
-            rows={3}
-            value={formData.descripcion}
-            onChange={handleChange('descripcion')}
-            InputProps={{
-              startAdornment: <DescriptionIcon sx={{ mr: 1, color: 'text.secondary', mt: 1 }} />
-            }}
-          />
-
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                label="Estado"
-                fullWidth
-                value={formData.estado}
-                onChange={handleChange('estado')}
-                error={!!errors.estado}
-                helperText={errors.estado}
-                required
-              >
-                {[
-                  { value: 'PENDIENTE', label: 'Pendiente', color: theme.palette.warning.main },
-                  { value: 'EN_PROGRESO', label: 'En Progreso', color: theme.palette.info.main },
-                  { value: 'COMPLETADA', label: 'Completada', color: theme.palette.success.main },
-                  { value: 'CANCELADA', label: 'Cancelada', color: theme.palette.error.main }
-                ].map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    <Box
-                      sx={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        backgroundColor: option.color,
-                        mr: 1
-                      }}
-                    />
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                label="Prioridad"
-                fullWidth
-                value={formData.prioridad}
-                onChange={handleChange('prioridad')}
-                required
-              >
-                {[
-                  { value: 'BAJA', label: 'Baja', color: theme.palette.success.light },
-                  { value: 'MEDIA', label: 'Media', color: theme.palette.warning.light },
-                  { value: 'ALTA', label: 'Alta', color: theme.palette.error.light }
-                ].map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    <Box
-                      sx={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        backgroundColor: option.color,
-                        mr: 1
-                      }}
-                    />
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-                <DatePicker
-                  label="Fecha de Inicio"
-                  value={formData.fechaInicio}
-                  onChange={handleDateChange('fechaInicio')}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      fullWidth
-                      required
-                      error={!!errors.fechaInicio}
-                      helperText={errors.fechaInicio}
-                    />
-                  )}
-                />
-              </LocalizationProvider>
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-                <DatePicker
-                  label="Fecha de Vencimiento"
-                  value={formData.fechaVencimiento}
-                  onChange={handleDateChange('fechaVencimiento')}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      fullWidth
-                      error={!!errors.fechaVencimiento}
-                      helperText={errors.fechaVencimiento}
-                    />
-                  )}
-                />
-              </LocalizationProvider>
-            </Grid>
-          </Grid>
-
-          {/* Subtareas */}
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Subtareas
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
-              <TextField
-                size="small"
-                value={newSubtarea}
-                onChange={(e) => setNewSubtarea(e.target.value)}
-                placeholder="Agregar subtarea"
-                onKeyPress={(e) => e.key === 'Enter' && handleAddSubtarea()}
-                fullWidth
-              />
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={handleAddSubtarea}
-                startIcon={<AddIcon />}
-                sx={{ borderRadius: 0 }}
-              >
-                Agregar
-              </Button>
-            </Box>
-            <Stack spacing={1}>
-              {formData.subtareas.map((subtarea, index) => (
-                <Box
-                  key={index}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
-                    p: 1,
-                    border: 1,
-                    borderColor: 'divider',
-                    borderRadius: 1
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  select
+                  size="small"
+                  label="Prioridad"
+                  fullWidth
+                  value={formData.prioridad}
+                  onChange={handleChange('prioridad')}
+                  SelectProps={{
+                    sx: {
+                      '& .MuiSelect-select': {
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1
+                      }
+                    }
                   }}
                 >
-                  <IconButton
+                  {[
+                    { value: 'BAJA', label: 'Baja', color: theme.palette.success.light },
+                    { value: 'MEDIA', label: 'Media', color: theme.palette.warning.light },
+                    { value: 'ALTA', label: 'Alta', color: theme.palette.error.light }
+                  ].map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          backgroundColor: option.color,
+                          mr: 1
+                        }}
+                      />
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+            </Grid>
+
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+                  <DatePicker
+                    label="Fecha de Inicio"
+                    value={formData.fechaInicio}
+                    onChange={handleDateChange('fechaInicio')}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        size="small"
+                        fullWidth
+                        required
+                        error={!!errors.fechaInicio}
+                        helperText={errors.fechaInicio}
+                      />
+                    )}
+                  />
+                </LocalizationProvider>
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+                  <DatePicker
+                    label="Fecha de Vencimiento"
+                    value={formData.fechaVencimiento}
+                    onChange={handleDateChange('fechaVencimiento')}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        size="small"
+                        fullWidth
+                        error={!!errors.fechaVencimiento}
+                        helperText={errors.fechaVencimiento}
+                      />
+                    )}
+                  />
+                </LocalizationProvider>
+              </Grid>
+            </Grid>
+
+            {/* Campo de Proyecto - solo se muestra si no hay proyectoId */}
+            {!proyectoId && (
+              <Box>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    select
+                    fullWidth
                     size="small"
-                    onClick={() => handleToggleSubtarea(index)}
-                    sx={{ color: subtarea.completada ? 'success.main' : 'text.secondary' }}
-                  >
-                    <CompletedIcon />
-                  </IconButton>
-                  <Typography
-                    sx={{
-                      flex: 1,
-                      textDecoration: subtarea.completada ? 'line-through' : 'none',
-                      color: subtarea.completada ? 'text.secondary' : 'text.primary'
+                    label="Proyecto"
+                    value={formData.proyecto || ''}
+                    onChange={handleChange('proyecto')}
+                    error={!!errors.proyecto}
+                    helperText={errors.proyecto}
+                    required
+                    InputProps={{
+                      startAdornment: <ProjectIcon sx={{ mr: 1, color: 'text.secondary', fontSize: '1.25rem' }} />
                     }}
                   >
-                    {subtarea.titulo}
-                  </Typography>
-                  <IconButton
+                    {proyectos?.map((proyecto) => (
+                      <MenuItem 
+                        key={proyecto._id || proyecto.id} 
+                        value={proyecto._id || proyecto.id}
+                      >
+                        {proyecto.titulo || proyecto.nombre}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  <Button
+                    variant="text"
+                    startIcon={<AddIcon />}
+                    onClick={() => setIsProyectoFormOpen(true)}
+                    sx={{ 
+                      color: 'text.secondary',
+                      '&:hover': {
+                        backgroundColor: 'transparent',
+                        color: 'primary.main'
+                      }
+                    }}
                     size="small"
-                    onClick={() => handleDeleteSubtarea(index)}
-                    sx={{ color: 'error.main' }}
                   >
-                    <CloseIcon />
-                  </IconButton>
+                    Nuevo
+                  </Button>
                 </Box>
-              ))}
-            </Stack>
-          </Box>
+              </Box>
+            )}
 
-          {/* Etiquetas */}
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Etiquetas
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
-              <TextField
-                size="small"
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                placeholder="Agregar etiqueta"
-                onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
-                InputProps={{
-                  startAdornment: <LabelIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                }}
-              />
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={handleAddTag}
-                startIcon={<AddIcon />}
-                sx={{ borderRadius: 0 }}
-              >
-                Agregar
-              </Button>
-            </Box>
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-              {formData.etiquetas.map((tag, index) => (
-                <Chip
-                  key={index}
-                  label={tag}
-                  onDelete={() => handleDeleteTag(tag)}
+            {/* Subtareas */}
+            <Box>
+              <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                <TextField
                   size="small"
-                  sx={{ borderRadius: 1 }}
+                  label="Subtareas"
+                  value={newSubtarea}
+                  onChange={(e) => setNewSubtarea(e.target.value)}
+                  placeholder="Agregar subtarea"
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddSubtarea()}
+                  fullWidth
                 />
-              ))}
-            </Stack>
-          </Box>
-
-          {/* Archivos */}
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Archivos Adjuntos
-            </Typography>
-            <Button
-              variant="outlined"
-              component="label"
-              startIcon={<AttachFileIcon />}
-              size="small"
-              sx={{ borderRadius: 0 }}
-            >
-              Adjuntar Archivos
-              <input
-                type="file"
-                hidden
-                multiple
-                onChange={handleFileChange}
-              />
-            </Button>
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
-              {formData.archivos.map((archivo, index) => (
-                <Chip
-                  key={index}
-                  label={archivo.nombre}
-                  onDelete={() => {
-                    setFormData(prev => ({
-                      ...prev,
-                      archivos: prev.archivos.filter((_, i) => i !== index)
-                    }));
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={handleAddSubtarea}
+                  startIcon={<AddIcon />}
+                  sx={{ 
+                    color: 'text.secondary',
+                    '&:hover': {
+                      backgroundColor: 'transparent',
+                      color: 'primary.main'
+                    }
                   }}
-                  size="small"
-                  sx={{ borderRadius: 1 }}
-                />
-              ))}
-            </Stack>
-          </Box>
-        </Stack>
+                >
+                  Agregar
+                </Button>
+              </Box>
+              <Stack spacing={1}>
+                {formData.subtareas.map((subtarea, index) => (
+                  <Box
+                    key={index}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      p: 1,
+                      border: 1,
+                      borderColor: 'divider',
+                      borderRadius: 1
+                    }}
+                  >
+                    <IconButton
+                      size="small"
+                      onClick={() => handleToggleSubtarea(index)}
+                      sx={{ 
+                        p: 0.5,
+                        color: subtarea.completada ? 'success.main' : 'text.secondary',
+                        '& .MuiSvgIcon-root': {
+                          fontSize: '1.25rem'
+                        }
+                      }}
+                    >
+                      <CompletedIcon />
+                    </IconButton>
+                    <Typography
+                      sx={{
+                        flex: 1,
+                        textDecoration: subtarea.completada ? 'line-through' : 'none',
+                        color: subtarea.completada ? 'text.secondary' : 'text.primary'
+                      }}
+                    >
+                      {subtarea.titulo}
+                    </Typography>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDeleteSubtarea(index)}
+                      sx={{ 
+                        p: 0.5,
+                        color: 'error.main',
+                        '& .MuiSvgIcon-root': {
+                          fontSize: '1.25rem'
+                        }
+                      }}
+                    >
+                      <CloseIcon />
+                    </IconButton>
+                  </Box>
+                ))}
+              </Stack>
+            </Box>
+
+            {/* Archivos adjuntos */}
+            {formData.archivos.length > 0 && (
+              <Box>
+                <Typography 
+                  variant="subtitle2" 
+                  color="text.secondary" 
+                  sx={{ 
+                    mb: 1,
+                    fontSize: '0.75rem',
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase'
+                  }}
+                >
+                  Archivos Adjuntos
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {formData.archivos.map((archivo, index) => (
+                    <Chip
+                      key={index}
+                      label={archivo.nombre}
+                      onDelete={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          archivos: prev.archivos.filter((_, i) => i !== index)
+                        }));
+                      }}
+                      size="small"
+                      sx={{ borderRadius: 1 }}
+                    />
+                  ))}
+                </Stack>
+              </Box>
+            )}
+          </Stack>
+        </Box>
       </DialogContent>
 
-      <DialogActions sx={{ p: 2, gap: 1 }}>
-        <Button 
-          onClick={onClose} 
-          color="inherit"
-          sx={{ borderRadius: 0 }}
-        >
+      <DialogActions>
+        <Button onClick={onClose}>
           Cancelar
         </Button>
-        <Button
-          onClick={handleSubmit}
+        <Button 
+          onClick={handleSubmit} 
           variant="contained"
           sx={{ borderRadius: 0 }}
         >
-          {isEditing ? 'Guardar Cambios' : 'Crear Tarea'}
+          {isEditing ? 'Actualizar' : 'Guardar'}
         </Button>
       </DialogActions>
 

@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 class TareasController extends BaseController {
   constructor() {
     super(Tareas, {
-      searchFields: ['titulo', 'descripcion', 'etiquetas'],
+      searchFields: ['titulo', 'descripcion'],
       defaultPopulate: [
         { 
           path: 'proyecto',
