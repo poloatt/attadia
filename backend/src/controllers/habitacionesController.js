@@ -29,16 +29,12 @@ class HabitacionesController extends BaseController {
   // GET /api/habitaciones
   async getAll(req, res) {
     try {
-      const result = await this.Model.paginate(
-        {},
-        {
-          populate: ['propiedad', 'inventarios'],
-          sort: { createdAt: 'desc' }
-        }
-      );
+      const habitaciones = await this.Model.find()
+        .populate(['propiedad', 'inventarios'])
+        .sort({ createdAt: 'desc' });
 
-      const docs = result.docs.map(doc => this.formatResponse(doc));
-      res.json({ ...result, docs });
+      const docs = habitaciones.map(doc => this.formatResponse(doc));
+      res.json({ docs });
     } catch (error) {
       console.error('Error al obtener habitaciones:', error);
       res.status(500).json({ error: 'Error al obtener habitaciones' });
@@ -76,16 +72,12 @@ class HabitacionesController extends BaseController {
   async getAllByPropiedad(req, res) {
     try {
       const { propiedadId } = req.params;
-      const result = await this.Model.paginate(
-        { propiedad: propiedadId },
-        {
-          populate: ['propiedad', 'inventarios'],
-          sort: { createdAt: 'desc' }
-        }
-      );
+      const habitaciones = await this.Model.find({ propiedad: propiedadId })
+        .populate(['propiedad', 'inventarios'])
+        .sort({ createdAt: 'desc' });
 
-      const docs = result.docs.map(doc => this.formatResponse(doc));
-      res.json({ ...result, docs });
+      const docs = habitaciones.map(doc => this.formatResponse(doc));
+      res.json({ docs });
     } catch (error) {
       console.error('Error al obtener habitaciones:', error);
       res.status(500).json({ error: 'Error al obtener habitaciones' });

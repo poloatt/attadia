@@ -17,9 +17,23 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  MenuItem
+  MenuItem,
+  Collapse
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, BedOutlined as BedIcon, PeopleOutlined as PeopleIcon, DescriptionOutlined as DescriptionIcon, AttachMoneyOutlined as AttachMoneyIcon, AccountBalanceWalletOutlined as AccountBalanceWalletIcon, Inventory2Outlined as InventoryIcon } from '@mui/icons-material';
+import { 
+  Add as AddIcon, 
+  Edit as EditIcon, 
+  Delete as DeleteIcon, 
+  BedOutlined as BedIcon, 
+  PeopleOutlined as PeopleIcon, 
+  DescriptionOutlined as DescriptionIcon, 
+  AttachMoneyOutlined as AttachMoneyIcon, 
+  AccountBalanceWalletOutlined as AccountBalanceWalletIcon, 
+  Inventory2Outlined as InventoryIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  HomeWork
+} from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '@mui/material/styles';
@@ -68,6 +82,7 @@ export function Propiedades() {
   const [cuentas, setCuentas] = useState([]);
   const [loadingRelated, setLoadingRelated] = useState(true);
   const [editingPropiedad, setEditingPropiedad] = useState(null);
+  const [expandedCards, setExpandedCards] = useState({});
 
   // Función para cargar propiedades
   const fetchPropiedades = useCallback(async () => {
@@ -253,6 +268,13 @@ export function Propiedades() {
     return response.data;
   };
 
+  const handleExpandClick = (propiedadId) => {
+    setExpandedCards(prev => ({
+      ...prev,
+      [propiedadId]: !prev[propiedadId]
+    }));
+  };
+
   const formFields = [
     {
       name: 'titulo',
@@ -365,12 +387,30 @@ export function Propiedades() {
         text: `${propiedad.metrosCuadrados} m²`
       },
       {
-        icon: <BedIcon />,
-        text: `${propiedad.numDormitorios} dormitorios`
-      },
-      {
-        icon: <BathtubOutlinedIcon />,
-        text: `${propiedad.banos} baños`
+        icon: <HomeWork />,
+        text: (
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 0.5,
+              cursor: 'pointer',
+              '&:hover': {
+                color: 'primary.main'
+              }
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleExpandClick(propiedad._id);
+            }}
+          >
+            {`${(propiedad.habitaciones || []).length} habitaciones`}
+            {expandedCards[propiedad._id] ? 
+              <ExpandLessIcon sx={{ fontSize: 18 }} /> : 
+              <ExpandMoreIcon sx={{ fontSize: 18 }} />
+            }
+          </Box>
+        )
       },
       {
         icon: <AttachMoneyIcon />,
@@ -381,7 +421,64 @@ export function Propiedades() {
       onEdit: () => handleEdit(propiedad),
       onDelete: () => handleDelete(propiedad._id || propiedad.id),
       itemName: `la propiedad ${propiedad.nombre || propiedad.titulo}`,
-      entity: propiedad
+      entity: propiedad,
+      extraContent: (
+        <Collapse in={expandedCards[propiedad._id]} timeout="auto" unmountOnExit>
+          <Box 
+            sx={{ 
+              p: 2, 
+              bgcolor: 'background.paper', 
+              borderTop: '1px solid',
+              borderColor: 'divider',
+              mt: 1 
+            }}
+          >
+            <Typography 
+              variant="subtitle2" 
+              color="text.secondary" 
+              gutterBottom
+              sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1 
+              }}
+            >
+              <BedIcon fontSize="small" />
+              Detalle de Habitaciones
+            </Typography>
+            <Grid container spacing={1}>
+              <Grid item xs={6}>
+                <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <BedIcon fontSize="small" />
+                  Dormitorios ({propiedad.totalDormitorios || 0}):
+                </Typography>
+                <Box sx={{ pl: 3 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    • Simples: {propiedad.dormitoriosSimples || 0}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    • Dobles: {propiedad.dormitoriosDobles || 0}
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <BathtubOutlinedIcon fontSize="small" />
+                  Baños ({propiedad.banos || 0}):
+                </Typography>
+                <Box sx={{ pl: 3 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    • Baños: {propiedad.habitaciones?.filter(h => h.tipo === 'BAÑO').length || 0}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    • Toilettes: {propiedad.habitaciones?.filter(h => h.tipo === 'TOILETTE').length || 0}
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+          </Box>
+        </Collapse>
+      )
     })
   };
 

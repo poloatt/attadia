@@ -63,11 +63,13 @@ export function Inventario() {
         url = `/habitaciones/propiedad/${propiedadId}`;
       }
       const response = await clienteAxios.get(url);
+      const habitacionesData = propiedadId ? response.data.docs : (response.data.docs || []);
+      
       if (propiedadId) {
-        setHabitacionesDisponibles(response.data.docs || []);
+        setHabitacionesDisponibles(habitacionesData);
       } else {
-        setHabitaciones(response.data.docs || []);
-        setHabitacionesDisponibles(response.data.docs || []);
+        setHabitaciones(habitacionesData);
+        setHabitacionesDisponibles(habitacionesData);
       }
     } catch (error) {
       console.error('Error al cargar habitaciones:', error);

@@ -15,8 +15,8 @@ import {
   ViewModule as ViewModuleIcon,
   ViewList as ViewListIcon,
   FilterList as FilterListIcon,
-  FolderOutlined as ProjectIcon,
-  AssignmentOutlined as TaskIcon,
+  AssignmentOutlined as ProjectIcon,
+  TaskAltOutlined as TaskIcon,
 } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
 import clienteAxios from '../config/axios';

@@ -171,8 +171,6 @@ const PropiedadForm = ({
     estado: initialData.estado || 'DISPONIBLE',
     precio: initialData.precio?.toString() || '1',
     metrosCuadrados: initialData.metrosCuadrados?.toString() || '1',
-    numDormitorios: initialData.numDormitorios?.toString() || '1',
-    banos: initialData.banos?.toString() || '1',
     caracteristicas: initialData.caracteristicas || [],
     descripcion: initialData.descripcion || '',
     moneda: initialData.moneda?._id || initialData.moneda?.id || initialData.moneda || '',
@@ -218,8 +216,6 @@ const PropiedadForm = ({
         estado: initialData.estado || 'DISPONIBLE',
         precio: initialData.precio?.toString() || '1',
         metrosCuadrados: initialData.metrosCuadrados?.toString() || '1',
-        numDormitorios: initialData.numDormitorios?.toString() || '1',
-        banos: initialData.banos?.toString() || '1',
         caracteristicas: initialData.caracteristicas || [],
         descripcion: initialData.descripcion || '',
         moneda: initialData.moneda?._id || initialData.moneda?.id || initialData.moneda || '',
@@ -265,7 +261,7 @@ const PropiedadForm = ({
 
   const handleChange = (name, value) => {
     // Convertir valores numéricos
-    const numericFields = ['precio', 'metrosCuadrados', 'numDormitorios', 'banos'];
+    const numericFields = ['precio', 'metrosCuadrados'];
     const finalValue = numericFields.includes(name) ? 
       (value === '' ? '0' : value.replace(/[^0-9]/g, '')) : 
       value;
@@ -306,8 +302,6 @@ const PropiedadForm = ({
       ...formData,
       precio: Number(formData.precio),
       metrosCuadrados: Number(formData.metrosCuadrados),
-      numDormitorios: Number(formData.numDormitorios),
-      banos: Number(formData.banos),
       moneda: formData.moneda,
       cuenta: formData.cuenta,
       usuario: user?._id || user?.id
@@ -377,9 +371,7 @@ const PropiedadForm = ({
     // Validación de campos numéricos
     const numericFields = {
       precio: 'El precio',
-      metrosCuadrados: 'Los metros cuadrados',
-      numDormitorios: 'El número de dormitorios',
-      banos: 'El número de baños'
+      metrosCuadrados: 'Los metros cuadrados'
     };
 
     Object.entries(numericFields).forEach(([field, label]) => {
@@ -588,26 +580,6 @@ const PropiedadForm = ({
                   helperText={errors.metrosCuadrados}
                   InputProps={{
                     startAdornment: <SquareFoot sx={{ mr: 1, color: 'text.secondary' }} />
-                  }}
-                />
-                <StyledTextField
-                  sx={{ flex: 1 }}
-                  label="Dormitorios"
-                  type="number"
-                  value={formData.numDormitorios}
-                  onChange={(e) => handleChange('numDormitorios', e.target.value)}
-                  InputProps={{
-                    startAdornment: <MeetingRoom sx={{ mr: 1, color: 'text.secondary' }} />
-                  }}
-                />
-                <StyledTextField
-                  sx={{ flex: 1 }}
-                  label="Baños"
-                  type="number"
-                  value={formData.banos}
-                  onChange={(e) => handleChange('banos', e.target.value)}
-                  InputProps={{
-                    startAdornment: <Bathtub sx={{ mr: 1, color: 'text.secondary' }} />
                   }}
                 />
               </Box>

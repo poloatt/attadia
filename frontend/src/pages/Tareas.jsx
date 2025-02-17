@@ -11,8 +11,8 @@ import {
 import {
   Add as AddIcon,
   FilterList as FilterListIcon,
-  AssignmentOutlined as TaskIcon,
-  FolderOutlined as ProjectIcon,
+  TaskAltOutlined as TaskIcon,
+  AssignmentOutlined as ProjectIcon,
 } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
 import TareasTable from '../components/proyectos/TareasTable';

@@ -14,7 +14,7 @@ import {
 import { Add as AddIcon } from '@mui/icons-material';
 import { 
   ScienceOutlined as LabIcon,
-  TaskAltOutlined as RutinasIcon,
+  AutorenewOutlined as RutinasIcon,
   MonitorWeightOutlined as WeightIcon
 } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';

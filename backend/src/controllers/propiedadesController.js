@@ -1,5 +1,5 @@
 import { BaseController } from './BaseController.js';
-import { Propiedades } from '../models/index.js';
+import { Propiedades, Habitaciones } from '../models/index.js';
 
 class PropiedadesController extends BaseController {
   constructor() {
@@ -13,17 +13,38 @@ class PropiedadesController extends BaseController {
     this.updateStatus = this.updateStatus.bind(this);
     this.create = this.create.bind(this);
     this.getAll = this.getAll.bind(this);
+    this.getResumenHabitaciones = this.getResumenHabitaciones.bind(this);
+  }
+
+  // Método para obtener el resumen de habitaciones
+  async getResumenHabitaciones(propiedadId) {
+    const habitaciones = await Habitaciones.find({ propiedad: propiedadId });
+    
+    const resumen = {
+      dormitoriosSimples: habitaciones.filter(h => h.tipo === 'DORMITORIO_SIMPLE').length,
+      dormitoriosDobles: habitaciones.filter(h => h.tipo === 'DORMITORIO_DOBLE').length,
+      banos: habitaciones.filter(h => h.tipo === 'BAÑO' || h.tipo === 'TOILETTE').length
+    };
+
+    resumen.totalDormitorios = resumen.dormitoriosSimples + resumen.dormitoriosDobles;
+
+    return resumen;
   }
 
   // Método auxiliar para formatear la respuesta
-  formatResponse(doc) {
+  async formatResponse(doc) {
     if (!doc) return null;
     const formatted = doc.toObject ? doc.toObject() : doc;
+    
+    // Obtener resumen de habitaciones
+    const resumenHabitaciones = await this.getResumenHabitaciones(formatted._id);
+    
     return {
       ...formatted,
       id: formatted._id,
       monedaId: formatted.moneda?._id || formatted.moneda,
-      cuentaId: formatted.cuenta?._id || formatted.cuenta
+      cuentaId: formatted.cuenta?._id || formatted.cuenta,
+      ...resumenHabitaciones
     };
   }
 
@@ -43,14 +64,22 @@ class PropiedadesController extends BaseController {
       const result = await this.Model.paginate(
         query,
         {
-          populate: ['moneda', 'cuenta'],
+          populate: [
+            'moneda', 
+            'cuenta',
+            {
+              path: 'habitaciones',
+              populate: ['inventarios']
+            }
+          ],
           sort: { createdAt: 'desc' }
         }
       );
 
       console.log('Resultado de la búsqueda:', result);
 
-      const docs = result.docs.map(doc => this.formatResponse(doc));
+      // Formatear cada documento con el resumen de habitaciones
+      const docs = await Promise.all(result.docs.map(doc => this.formatResponse(doc)));
       console.log('Documentos formateados:', docs);
 
       res.json({ ...result, docs });
@@ -76,9 +105,10 @@ class PropiedadesController extends BaseController {
 
       const propiedad = await this.Model.create(data);
       const populatedPropiedad = await this.Model.findById(propiedad._id)
-        .populate(['moneda', 'cuenta']);
+        .populate(['moneda', 'cuenta', 'habitaciones']);
 
-      res.status(201).json(this.formatResponse(populatedPropiedad));
+      const formattedResponse = await this.formatResponse(populatedPropiedad);
+      res.status(201).json(formattedResponse);
     } catch (error) {
       console.error('Error al crear propiedad:', error);
       res.status(400).json({ 
@@ -110,12 +140,25 @@ class PropiedadesController extends BaseController {
         estado: 'RESERVADA'
       });
 
+      // Obtener estadísticas de habitaciones
+      const propiedades = await this.Model.find({ usuario: req.user.id });
+      let totalDormitorios = 0;
+      let totalBanos = 0;
+
+      for (const propiedad of propiedades) {
+        const resumen = await this.getResumenHabitaciones(propiedad._id);
+        totalDormitorios += resumen.totalDormitorios;
+        totalBanos += resumen.banos;
+      }
+
       console.log('Estadísticas calculadas:', {
         total,
         ocupadas,
         disponibles,
         mantenimiento,
-        reservadas
+        reservadas,
+        totalDormitorios,
+        totalBanos
       });
 
       res.json({
@@ -123,7 +166,9 @@ class PropiedadesController extends BaseController {
         ocupadas,
         disponibles,
         mantenimiento,
-        reservadas
+        reservadas,
+        totalDormitorios,
+        totalBanos
       });
     } catch (error) {
       console.error('Error en getStats propiedades:', error);
@@ -137,12 +182,17 @@ class PropiedadesController extends BaseController {
       const result = await this.Model.paginate(
         {},
         {
-          populate: { path: 'usuario', select: 'nombre email' },
+          populate: [
+            { path: 'usuario', select: 'nombre email' },
+            'moneda',
+            'cuenta',
+            'habitaciones'
+          ],
           sort: { createdAt: 'desc' }
         }
       );
 
-      const docs = result.docs.map(doc => this.formatResponse(doc));
+      const docs = await Promise.all(result.docs.map(doc => this.formatResponse(doc)));
       res.json({ ...result, docs });
     } catch (error) {
       console.error('Error al obtener propiedades:', error);
@@ -158,13 +208,14 @@ class PropiedadesController extends BaseController {
         req.params.id,
         { status },
         { new: true }
-      ).populate('usuario', 'nombre email');
+      ).populate(['usuario', 'moneda', 'cuenta', 'habitaciones']);
 
       if (!propiedad) {
         return res.status(404).json({ error: 'Propiedad no encontrada' });
       }
 
-      res.json(this.formatResponse(propiedad));
+      const formattedResponse = await this.formatResponse(propiedad);
+      res.json(formattedResponse);
     } catch (error) {
       console.error('Error al actualizar estado:', error);
       res.status(500).json({ error: 'Error al actualizar estado' });
