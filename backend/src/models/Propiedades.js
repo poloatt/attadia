@@ -35,7 +35,7 @@ const propiedadSchema = createSchema({
     enum: ['CASA', 'DEPARTAMENTO', 'OFICINA', 'LOCAL', 'TERRENO'],
     required: true
   },
-  numHabitaciones: {
+  numDormitorios: {
     type: Number,
     required: true
   },

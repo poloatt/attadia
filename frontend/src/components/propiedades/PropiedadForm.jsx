@@ -14,7 +14,8 @@ import {
   Paper,
   Grid,
   Chip,
-  Autocomplete
+  Autocomplete,
+  InputAdornment
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
@@ -30,7 +31,13 @@ import {
   MeetingRoom,
   Bathtub,
   LocalParking,
-  Pool
+  Pool,
+  PendingActions,
+  CheckCircle,
+  Engineering,
+  BookmarkAdded,
+  Description as DescriptionIcon,
+  Flag as FlagIcon,
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import { useRelationalData } from '../../hooks/useRelationalData';
@@ -75,48 +82,77 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
   }
 }));
 
-const CategoryChip = styled(Chip)(({ theme }) => ({
+const CategoryChip = styled(Chip)(({ theme, customcolor }) => ({
   borderRadius: 0,
   height: 40,
+  minWidth: 40,
+  padding: 0,
   transition: 'all 0.2s ease',
   backgroundColor: 'transparent',
-  border: `1px solid ${theme.palette.divider}`,
+  border: 'none',
+  color: theme.palette.text.secondary,
   '& .MuiChip-icon': {
-    margin: theme.spacing(0, 1),
-    transition: 'color 0.2s ease'
+    margin: 0,
+    fontSize: '1.25rem',
+    transition: 'all 0.2s ease'
+  },
+  '& .MuiChip-label': {
+    display: 'none',
+    transition: 'all 0.2s ease',
+    padding: theme.spacing(0, 1),
+    color: theme.palette.text.secondary
   },
   '&:hover': {
-    backgroundColor: theme.palette.action.hover
+    backgroundColor: 'transparent',
+    '& .MuiChip-label': {
+      display: 'block'
+    },
+    '& .MuiChip-icon': {
+      color: customcolor
+    }
   },
   '&.selected': {
-    backgroundColor: theme.palette.primary.main,
-    color: theme.palette.primary.contrastText,
+    backgroundColor: 'transparent',
     '& .MuiChip-icon': {
-      color: theme.palette.primary.contrastText
+      color: customcolor
+    },
+    '& .MuiChip-label': {
+      display: 'block'
     }
   }
 }));
 
+const StyledSectionTitle = styled(Typography)(({ theme }) => ({
+  position: 'absolute',
+  top: -9,
+  left: 8,
+  padding: '0 4px',
+  backgroundColor: theme.palette.background.default,
+  fontSize: '0.75rem',
+  color: theme.palette.text.secondary,
+  zIndex: 1
+}));
+
 const TIPOS_PROPIEDAD = [
-  { valor: 'CASA', icon: <House />, label: 'Casa' },
-  { valor: 'DEPARTAMENTO', icon: <Apartment />, label: 'Departamento' },
-  { valor: 'OFICINA', icon: <Business />, label: 'Oficina' },
-  { valor: 'LOCAL', icon: <Warehouse />, label: 'Local' },
-  { valor: 'TERRENO', icon: <LocationOn />, label: 'Terreno' }
+  { valor: 'CASA', icon: <House />, label: 'Casa', color: '#4caf50' },
+  { valor: 'DEPARTAMENTO', icon: <Apartment />, label: 'Departamento', color: '#2196f3' },
+  { valor: 'OFICINA', icon: <Business />, label: 'Oficina', color: '#9c27b0' },
+  { valor: 'LOCAL', icon: <Warehouse />, label: 'Local', color: '#ff9800' },
+  { valor: 'TERRENO', icon: <LocationOn />, label: 'Terreno', color: '#795548' }
 ];
 
 const ESTADOS_PROPIEDAD = [
-  { valor: 'DISPONIBLE', label: 'Disponible' },
-  { valor: 'OCUPADA', label: 'Ocupada' },
-  { valor: 'MANTENIMIENTO', label: 'En Mantenimiento' },
-  { valor: 'RESERVADA', label: 'Reservada' }
+  { valor: 'DISPONIBLE', icon: <PendingActions />, label: 'Disponible', color: '#4caf50' },
+  { valor: 'OCUPADA', icon: <CheckCircle />, label: 'Ocupada', color: '#2196f3' },
+  { valor: 'MANTENIMIENTO', icon: <Engineering />, label: 'En Mantenimiento', color: '#ff9800' },
+  { valor: 'RESERVADA', icon: <BookmarkAdded />, label: 'Reservada', color: '#9c27b0' }
 ];
 
 const CARACTERISTICAS = [
-  { valor: 'HABITACIONES', icon: <MeetingRoom />, label: 'Habitaciones' },
-  { valor: 'BAÑOS', icon: <Bathtub />, label: 'Baños' },
-  { valor: 'PARQUEADERO', icon: <LocalParking />, label: 'Parqueadero' },
-  { valor: 'PISCINA', icon: <Pool />, label: 'Piscina' }
+  { valor: 'HABITACIONES', icon: <MeetingRoom />, label: 'Dormitorios', color: '#4caf50' },
+  { valor: 'BAÑOS', icon: <Bathtub />, label: 'Baños', color: '#2196f3' },
+  { valor: 'PARQUEADERO', icon: <LocalParking />, label: 'Parqueadero', color: '#ff9800' },
+  { valor: 'PISCINA', icon: <Pool />, label: 'Piscina', color: '#9c27b0' }
 ];
 
 const PropiedadForm = ({
@@ -135,7 +171,7 @@ const PropiedadForm = ({
     estado: initialData.estado || 'DISPONIBLE',
     precio: initialData.precio?.toString() || '1',
     metrosCuadrados: initialData.metrosCuadrados?.toString() || '1',
-    numHabitaciones: initialData.numHabitaciones?.toString() || '1',
+    numDormitorios: initialData.numDormitorios?.toString() || '1',
     banos: initialData.banos?.toString() || '1',
     caracteristicas: initialData.caracteristicas || [],
     descripcion: initialData.descripcion || '',
@@ -182,7 +218,7 @@ const PropiedadForm = ({
         estado: initialData.estado || 'DISPONIBLE',
         precio: initialData.precio?.toString() || '1',
         metrosCuadrados: initialData.metrosCuadrados?.toString() || '1',
-        numHabitaciones: initialData.numHabitaciones?.toString() || '1',
+        numDormitorios: initialData.numDormitorios?.toString() || '1',
         banos: initialData.banos?.toString() || '1',
         caracteristicas: initialData.caracteristicas || [],
         descripcion: initialData.descripcion || '',
@@ -229,7 +265,7 @@ const PropiedadForm = ({
 
   const handleChange = (name, value) => {
     // Convertir valores numéricos
-    const numericFields = ['precio', 'metrosCuadrados', 'numHabitaciones', 'banos'];
+    const numericFields = ['precio', 'metrosCuadrados', 'numDormitorios', 'banos'];
     const finalValue = numericFields.includes(name) ? 
       (value === '' ? '0' : value.replace(/[^0-9]/g, '')) : 
       value;
@@ -270,7 +306,7 @@ const PropiedadForm = ({
       ...formData,
       precio: Number(formData.precio),
       metrosCuadrados: Number(formData.metrosCuadrados),
-      numHabitaciones: Number(formData.numHabitaciones),
+      numDormitorios: Number(formData.numDormitorios),
       banos: Number(formData.banos),
       moneda: formData.moneda,
       cuenta: formData.cuenta,
@@ -342,7 +378,7 @@ const PropiedadForm = ({
     const numericFields = {
       precio: 'El precio',
       metrosCuadrados: 'Los metros cuadrados',
-      numHabitaciones: 'El número de habitaciones',
+      numDormitorios: 'El número de dormitorios',
       banos: 'El número de baños'
     };
 
@@ -433,28 +469,182 @@ const PropiedadForm = ({
                 onChange={(e) => handleChange('titulo', e.target.value)}
                 error={!!errors.titulo}
                 helperText={errors.titulo}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <FlagIcon />
+                    </InputAdornment>
+                  )
+                }}
               />
             </Grid>
             
+            <Grid item xs={12}>
+              <StyledTextField
+                fullWidth
+                label="Descripción"
+                multiline
+                minRows={1}
+                maxRows={5}
+                value={formData.descripcion}
+                onChange={(e) => handleChange('descripcion', e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1 }}>
+                      <DescriptionIcon />
+                    </InputAdornment>
+                  )
+                }}
+              />
+            </Grid>
+            
+            {/* Precio y Cuenta */}
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', gap: 2, '& .MuiAutocomplete-root': { mt: -1 } }}>
+                <StyledTextField
+                  sx={{ flex: 1 }}
+                  label="Precio"
+                  type="number"
+                  value={formData.precio}
+                  onChange={(e) => handleChange('precio', e.target.value)}
+                  error={!!errors.precio}
+                  helperText={errors.precio}
+                  InputProps={{
+                    startAdornment: <AttachMoney sx={{ mr: 1, color: 'text.secondary' }} />
+                  }}
+                />
+                <Autocomplete
+                  sx={{ flex: 2 }}
+                  value={selectedCuenta}
+                  onChange={(_, newValue) => {
+                    console.log('Cuenta seleccionada:', newValue);
+                    setSelectedCuenta(newValue);
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      cuenta: newValue?._id || newValue?.id || null 
+                    }));
+                  }}
+                  options={relatedData?.cuenta || []}
+                  getOptionLabel={(option) => `${option?.nombre || ''} - ${option?.tipo || ''}`}
+                  loading={isLoadingRelated}
+                  renderInput={(params) => (
+                    <StyledTextField
+                      {...params}
+                      label="Cuenta"
+                      error={!!errors.cuenta}
+                      helperText={errors.cuenta}
+                      InputLabelProps={{
+                        ...params.InputLabelProps,
+                        shrink: true
+                      }}
+                    />
+                  )}
+                  isOptionEqualToValue={(option, value) => 
+                    option?._id === value?._id || 
+                    option?.id === value?.id
+                  }
+                />
+              </Box>
+            </Grid>
+
+            {/* Dirección y Ciudad */}
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <StyledTextField
+                  fullWidth
+                  label="Dirección"
+                  value={formData.direccion}
+                  onChange={(e) => handleChange('direccion', e.target.value)}
+                  error={!!errors.direccion}
+                  helperText={errors.direccion}
+                  InputProps={{
+                    startAdornment: <LocationOn sx={{ mr: 1, color: 'text.secondary' }} />
+                  }}
+                />
+                <StyledTextField
+                  fullWidth
+                  label="Ciudad"
+                  value={formData.ciudad}
+                  onChange={(e) => handleChange('ciudad', e.target.value)}
+                  error={!!errors.ciudad}
+                  helperText={errors.ciudad}
+                  InputProps={{
+                    startAdornment: <LocationOn sx={{ mr: 1, color: 'text.secondary' }} />
+                  }}
+                />
+              </Box>
+            </Grid>
+
+            {/* Características numéricas */}
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <StyledTextField
+                  sx={{ flex: 1 }}
+                  label="Metros Cuadrados"
+                  type="number"
+                  value={formData.metrosCuadrados}
+                  onChange={(e) => handleChange('metrosCuadrados', e.target.value)}
+                  error={!!errors.metrosCuadrados}
+                  helperText={errors.metrosCuadrados}
+                  InputProps={{
+                    startAdornment: <SquareFoot sx={{ mr: 1, color: 'text.secondary' }} />
+                  }}
+                />
+                <StyledTextField
+                  sx={{ flex: 1 }}
+                  label="Dormitorios"
+                  type="number"
+                  value={formData.numDormitorios}
+                  onChange={(e) => handleChange('numDormitorios', e.target.value)}
+                  InputProps={{
+                    startAdornment: <MeetingRoom sx={{ mr: 1, color: 'text.secondary' }} />
+                  }}
+                />
+                <StyledTextField
+                  sx={{ flex: 1 }}
+                  label="Baños"
+                  type="number"
+                  value={formData.banos}
+                  onChange={(e) => handleChange('banos', e.target.value)}
+                  InputProps={{
+                    startAdornment: <Bathtub sx={{ mr: 1, color: 'text.secondary' }} />
+                  }}
+                />
+              </Box>
+            </Grid>
+
             {/* Tipo de Propiedad */}
             <Grid item xs={12}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Tipo de Propiedad
-              </Typography>
               <Box sx={{ 
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 1
+                position: 'relative',
+                border: t => `1px solid ${t.palette.divider}`,
+                p: 2,
+                pt: 1.5
               }}>
-                {TIPOS_PROPIEDAD.map((tipo) => (
-                  <CategoryChip
-                    key={tipo.valor}
-                    icon={tipo.icon}
-                    label={tipo.label}
-                    onClick={() => handleChange('tipo', tipo.valor)}
-                    className={formData.tipo === tipo.valor ? 'selected' : ''}
-                  />
-                ))}
+                <StyledSectionTitle>
+                  Tipo de Propiedad
+                </StyledSectionTitle>
+                <Box sx={{ 
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 0,
+                  '& .MuiChip-root': {
+                    flex: '0 0 auto',
+                    width: 'auto',
+                    mr: 1
+                  }
+                }}>
+                  {TIPOS_PROPIEDAD.map((tipo) => (
+                    <CategoryChip
+                      key={tipo.valor}
+                      icon={tipo.icon}
+                      label={tipo.label}
+                      onClick={() => handleChange('tipo', tipo.valor)}
+                      className={formData.tipo === tipo.valor ? 'selected' : ''}
+                      customcolor={tipo.color}
+                    />
+                  ))}
+                </Box>
               </Box>
               {errors.tipo && (
                 <Typography color="error" variant="caption" sx={{ mt: 1 }}>
@@ -465,22 +655,36 @@ const PropiedadForm = ({
 
             {/* Estado de la Propiedad */}
             <Grid item xs={12}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Estado de la Propiedad
-              </Typography>
               <Box sx={{ 
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 1
+                position: 'relative',
+                border: t => `1px solid ${t.palette.divider}`,
+                p: 2,
+                pt: 1.5
               }}>
-                {ESTADOS_PROPIEDAD.map((estado) => (
-                  <CategoryChip
-                    key={estado.valor}
-                    label={estado.label}
-                    onClick={() => handleChange('estado', estado.valor)}
-                    className={formData.estado === estado.valor ? 'selected' : ''}
-                  />
-                ))}
+                <StyledSectionTitle>
+                  Estado de la Propiedad
+                </StyledSectionTitle>
+                <Box sx={{ 
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 0,
+                  '& .MuiChip-root': {
+                    flex: '0 0 auto',
+                    width: 'auto',
+                    mr: 1
+                  }
+                }}>
+                  {ESTADOS_PROPIEDAD.map((estado) => (
+                    <CategoryChip
+                      key={estado.valor}
+                      icon={estado.icon}
+                      label={estado.label}
+                      onClick={() => handleChange('estado', estado.valor)}
+                      className={formData.estado === estado.valor ? 'selected' : ''}
+                      customcolor={estado.color}
+                    />
+                  ))}
+                </Box>
               </Box>
               {errors.estado && (
                 <Typography color="error" variant="caption" sx={{ mt: 1 }}>
@@ -490,222 +694,40 @@ const PropiedadForm = ({
             </Grid>
           </Grid>
 
-          {/* Ubicación y Precio */}
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12}>
-              <StyledTextField
-                fullWidth
-                label="Dirección"
-                value={formData.direccion}
-                onChange={(e) => handleChange('direccion', e.target.value)}
-                error={!!errors.direccion}
-                helperText={errors.direccion}
-                InputProps={{
-                  startAdornment: <LocationOn sx={{ mr: 1, color: 'text.secondary' }} />
-                }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <StyledTextField
-                fullWidth
-                label="Ciudad"
-                value={formData.ciudad}
-                onChange={(e) => handleChange('ciudad', e.target.value)}
-                error={!!errors.ciudad}
-                helperText={errors.ciudad}
-                InputProps={{
-                  startAdornment: <LocationOn sx={{ mr: 1, color: 'text.secondary' }} />
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <StyledTextField
-                fullWidth
-                label="Precio"
-                type="number"
-                value={formData.precio}
-                onChange={(e) => handleChange('precio', e.target.value)}
-                error={!!errors.precio}
-                helperText={errors.precio}
-                InputProps={{
-                  startAdornment: <AttachMoney sx={{ mr: 1, color: 'text.secondary' }} />
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Autocomplete
-                value={selectedMoneda}
-                onChange={(_, newValue) => {
-                  console.log('Moneda seleccionada:', newValue);
-                  setSelectedMoneda(newValue);
-                  setFormData(prev => ({ 
-                    ...prev, 
-                    moneda: newValue?._id || newValue?.id || null 
-                  }));
-                }}
-                options={relatedData?.moneda || []}
-                getOptionLabel={(option) => `${option?.nombre || ''} (${option?.simbolo || ''})`}
-                loading={isLoadingRelated}
-                renderInput={(params) => (
-                  <StyledTextField
-                    {...params}
-                    label="Moneda"
-                    error={!!errors.moneda}
-                    helperText={errors.moneda}
-                    InputLabelProps={{
-                      ...params.InputLabelProps,
-                      shrink: true
-                    }}
-                  />
-                )}
-                isOptionEqualToValue={(option, value) => 
-                  option?._id === value?._id || 
-                  option?.id === value?.id
-                }
-                renderOption={(props, option) => (
-                  <Box
-                    component="li"
-                    {...props}
-                    key={option._id || option.id}
-                  >
-                    <Box>
-                      <Typography>{option.nombre}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {option.simbolo}
-                      </Typography>
-                    </Box>
-                  </Box>
-                )}
-              />
-            </Grid>
-          </Grid>
-
-          {/* Características */}
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={6}>
-              <StyledTextField
-                fullWidth
-                label="Metros Cuadrados"
-                type="number"
-                value={formData.metrosCuadrados}
-                onChange={(e) => handleChange('metrosCuadrados', e.target.value)}
-                error={!!errors.metrosCuadrados}
-                helperText={errors.metrosCuadrados}
-                InputProps={{
-                  startAdornment: <SquareFoot sx={{ mr: 1, color: 'text.secondary' }} />
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <StyledTextField
-                fullWidth
-                label="Habitaciones"
-                type="number"
-                value={formData.numHabitaciones}
-                onChange={(e) => handleChange('numHabitaciones', e.target.value)}
-                InputProps={{
-                  startAdornment: <MeetingRoom sx={{ mr: 1, color: 'text.secondary' }} />
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <StyledTextField
-                fullWidth
-                label="Baños"
-                type="number"
-                value={formData.banos}
-                onChange={(e) => handleChange('banos', e.target.value)}
-                InputProps={{
-                  startAdornment: <Bathtub sx={{ mr: 1, color: 'text.secondary' }} />
-                }}
-              />
-            </Grid>
-          </Grid>
-
           {/* Características Adicionales */}
           <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              Características Adicionales
-            </Typography>
             <Box sx={{ 
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 1
+              position: 'relative',
+              border: t => `1px solid ${t.palette.divider}`,
+              p: 2,
+              pt: 1.5
             }}>
-              {CARACTERISTICAS.map((caracteristica) => (
-                <CategoryChip
-                  key={caracteristica.valor}
-                  icon={caracteristica.icon}
-                  label={caracteristica.label}
-                  onClick={() => toggleCaracteristica(caracteristica.valor)}
-                  className={formData.caracteristicas.includes(caracteristica.valor) ? 'selected' : ''}
-                />
-              ))}
+              <StyledSectionTitle>
+                Características Adicionales
+              </StyledSectionTitle>
+              <Box sx={{ 
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 0,
+                '& .MuiChip-root': {
+                  flex: '0 0 auto',
+                  width: 'auto',
+                  mr: 1
+                }
+              }}>
+                {CARACTERISTICAS.map((caracteristica) => (
+                  <CategoryChip
+                    key={caracteristica.valor}
+                    icon={caracteristica.icon}
+                    label={caracteristica.label}
+                    onClick={() => toggleCaracteristica(caracteristica.valor)}
+                    className={formData.caracteristicas.includes(caracteristica.valor) ? 'selected' : ''}
+                    customcolor={caracteristica.color}
+                  />
+                ))}
+              </Box>
             </Box>
           </Box>
-
-          {/* Descripción */}
-          <StyledTextField
-            fullWidth
-            label="Descripción"
-            multiline
-            rows={4}
-            value={formData.descripcion}
-            onChange={(e) => handleChange('descripcion', e.target.value)}
-            error={!!errors.descripcion}
-            helperText={errors.descripcion}
-            sx={{ mb: 2 }}
-          />
-
-          {/* Cuenta */}
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12}>
-              <Autocomplete
-                value={selectedCuenta}
-                onChange={(_, newValue) => {
-                  console.log('Cuenta seleccionada:', newValue);
-                  setSelectedCuenta(newValue);
-                  setFormData(prev => ({ 
-                    ...prev, 
-                    cuenta: newValue?._id || newValue?.id || null 
-                  }));
-                }}
-                options={relatedData?.cuenta || []}
-                getOptionLabel={(option) => `${option?.nombre || ''} - ${option?.tipo || ''}`}
-                loading={isLoadingRelated}
-                renderInput={(params) => (
-                  <StyledTextField
-                    {...params}
-                    label="Cuenta"
-                    error={!!errors.cuenta}
-                    helperText={errors.cuenta}
-                    InputLabelProps={{
-                      ...params.InputLabelProps,
-                      shrink: true
-                    }}
-                  />
-                )}
-                isOptionEqualToValue={(option, value) => 
-                  option?._id === value?._id || 
-                  option?.id === value?.id
-                }
-                renderOption={(props, option) => (
-                  <Box
-                    component="li"
-                    {...props}
-                    key={option._id || option.id}
-                  >
-                    <Box>
-                      <Typography>{option.nombre}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {option.tipo} - {option.moneda?.simbolo}
-                      </Typography>
-                    </Box>
-                  </Box>
-                )}
-              />
-            </Grid>
-          </Grid>
         </Box>
       </DialogContent>
 

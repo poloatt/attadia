@@ -26,7 +26,6 @@ import { useTheme } from '@mui/material/styles';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import SquareFootIcon from '@mui/icons-material/SquareFoot';
 import BathtubOutlinedIcon from '@mui/icons-material/BathtubOutlined';
-import HomeIcon from '@mui/icons-material/Home';
 import EntityForm from '../components/EntityViews/EntityForm';
 import { useNavigate } from 'react-router-dom';
 import clienteAxios from '../config/axios';
@@ -53,9 +52,9 @@ export function Propiedades() {
     precio: '',
     direccion: '',
     ciudad: '',
-    estado: '',
+    estado: 'DISPONIBLE',
     tipo: 'CASA',
-    numHabitaciones: '',
+    numDormitorios: '',
     banos: '',
     metrosCuadrados: '',
     imagen: '',
@@ -157,7 +156,7 @@ export function Propiedades() {
         ...formData,
         precio: formData.precio ? Number(formData.precio) : 0,
         metrosCuadrados: formData.metrosCuadrados ? Number(formData.metrosCuadrados) : 0,
-        numHabitaciones: formData.numHabitaciones ? Number(formData.numHabitaciones) : 0,
+        numDormitorios: formData.numDormitorios ? Number(formData.numDormitorios) : 0,
         banos: formData.banos ? Number(formData.banos) : 0,
         caracteristicas: Array.isArray(formData.caracteristicas) ? formData.caracteristicas : [],
         moneda: formData.moneda || null,
@@ -300,11 +299,11 @@ export function Propiedades() {
       }))
     },
     {
-      name: 'numHabitaciones',
-      label: 'Número de Habitaciones',
+      name: 'numDormitorios',
+      label: 'Número de Dormitorios',
       type: 'number',
       required: true,
-      onChange: (value) => setFormData({...formData, numHabitaciones: value})
+      onChange: (value) => setFormData({...formData, numDormitorios: value})
     },
     {
       name: 'banos',
@@ -348,12 +347,11 @@ export function Propiedades() {
   ];
 
   const cardConfig = {
-    renderIcon: (propiedad) => <HomeIcon />,
     getTitle: (propiedad) => propiedad.nombre || propiedad.titulo,
     getDetails: (propiedad) => [
       {
         icon: <LocationOnIcon />,
-        text: `${propiedad.direccion}`,
+        text: `${propiedad.direccion}, ${propiedad.ciudad}`,
         noWrap: true
       },
       {
@@ -362,7 +360,7 @@ export function Propiedades() {
       },
       {
         icon: <BedIcon />,
-        text: `${propiedad.numHabitaciones} habitaciones`
+        text: `${propiedad.numDormitorios} dormitorios`
       },
       {
         icon: <BathtubOutlinedIcon />,
@@ -373,10 +371,6 @@ export function Propiedades() {
         text: `${propiedad.precio?.toLocaleString()} ${propiedad.moneda?.simbolo || ''}`
       }
     ],
-    getStatus: (propiedad) => ({
-      label: propiedad.tipo,
-      color: 'primary'
-    }),
     getActions: (propiedad) => ({
       onEdit: async (formData) => {
         console.log('Editando propiedad con datos:', formData);

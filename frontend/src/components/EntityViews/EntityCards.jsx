@@ -28,13 +28,13 @@ const EntityCards = ({
             sx={{ 
               p: 2,
               height: '100%',
-              border: t => `1px solid ${t.palette.divider}`,
+              border: 'none',
+              backgroundColor: 'background.default',
               transition: 'all 0.2s ease',
               position: 'relative',
               '&:hover': {
-                borderColor: 'primary.main',
-                transform: 'translateY(-2px)',
-                boxShadow: t => `0 4px 8px ${t.palette.divider}`
+                backgroundColor: 'background.paper',
+                transform: 'translateY(-2px)'
               }
             }}
           >

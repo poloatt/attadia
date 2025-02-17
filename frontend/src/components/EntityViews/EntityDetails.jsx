@@ -14,8 +14,7 @@ const EntityDetails = ({
       sx={{ 
         backgroundColor: 'background.default',
         height: '100%',
-        border: '1px solid',
-        borderColor: 'divider'
+        border: 'none'
       }}
     >
       {showTitle && (

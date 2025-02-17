@@ -69,21 +69,33 @@ export function Dashboard() {
       setLoading(true);
       console.log('Iniciando fetchStats...');
       
-      const [propiedadesStats, transaccionesStats] = await Promise.all([
-        clienteAxios.get('/propiedades/stats'),
-        clienteAxios.get('/transacciones/stats')
-      ]);
-
+      // Primero obtenemos las estadísticas de propiedades
+      const propiedadesStats = await clienteAxios.get('/propiedades/stats');
       console.log('Estadísticas de propiedades:', propiedadesStats.data);
-      console.log('Estadísticas de transacciones:', transaccionesStats.data);
       
       const propiedadesData = propiedadesStats.data;
       const porcentajeOcupacion = propiedadesData.total > 0 
         ? Math.round((propiedadesData.ocupadas / propiedadesData.total) * 100)
         : 0;
 
-      const transaccionesData = transaccionesStats.data;
-      
+      // Intentamos obtener las estadísticas de transacciones
+      let transaccionesData = {
+        ingresosMensuales: 0,
+        egresosMensuales: 0,
+        balanceTotal: 0,
+        monedaPrincipal: 'USD',
+        monedaColor: '#75AADB'
+      };
+
+      try {
+        const transaccionesStats = await clienteAxios.get('/transacciones/stats');
+        console.log('Estadísticas de transacciones:', transaccionesStats.data);
+        transaccionesData = transaccionesStats.data;
+      } catch (transaccionesError) {
+        console.error('Error al obtener estadísticas de transacciones:', transaccionesError);
+        // No lanzamos el error para que no afecte a las estadísticas de propiedades
+      }
+
       const newStats = {
         ...stats,
         propiedades: {
