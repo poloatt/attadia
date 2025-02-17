@@ -71,7 +71,13 @@ const EntityCards = ({
                       {detail.icon && React.cloneElement(detail.icon, { 
                         sx: { fontSize: 16, color: 'text.secondary' }
                       })}
-                      <Typography variant="body2" color="text.secondary" noWrap={detail.noWrap}>
+                      <Typography 
+                        component="span" 
+                        variant="body2" 
+                        color="text.secondary" 
+                        noWrap={detail.noWrap}
+                        sx={{ display: 'inline-block' }}
+                      >
                         {detail.text}
                       </Typography>
                     </Box>
