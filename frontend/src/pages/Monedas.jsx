@@ -35,6 +35,7 @@ import {
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import EmptyState from '../components/EmptyState';
+import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 
 const COLORES_MONEDA = {
   CELESTE_ARGENTINA: { value: '#75AADB', label: 'Celeste Argentina' },
@@ -271,7 +272,7 @@ export function Monedas() {
   const [editingMoneda, setEditingMoneda] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const { enqueueSnackbar } = useSnackbar();
-  const [showValues, setShowValues] = useState(true);
+  const { showValues } = useValuesVisibility();
 
   const fetchMonedas = useCallback(async () => {
     try {
@@ -413,8 +414,6 @@ export function Monedas() {
             to: '/transacciones'
           }
         ]}
-        showValues={showValues}
-        onToggleValues={() => setShowValues(!showValues)}
       />
       
       <EntityDetails 

@@ -13,6 +13,7 @@ import { useSnackbar } from 'notistack';
 import EmptyState from '../components/EmptyState';
 import TransaccionForm from '../components/transacciones/TransaccionForm';
 import TransaccionTable from '../components/transacciones/TransaccionTable';
+import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 
 export function Transacciones() {
   const [transacciones, setTransacciones] = useState([]);
@@ -22,7 +23,7 @@ export function Transacciones() {
   const [formKey, setFormKey] = useState(0);
   const { enqueueSnackbar } = useSnackbar();
   const [editingTransaccion, setEditingTransaccion] = useState(null);
-  const [showValues, setShowValues] = useState(true);
+  const { showValues } = useValuesVisibility();
 
   const fetchTransacciones = useCallback(async () => {
     try {
@@ -415,23 +416,24 @@ export function Transacciones() {
           }
         ]}
         showValues={showValues}
-        onToggleValues={() => setShowValues(!showValues)}
+        onToggleValues={() => {}}
       />
       <EntityDetails 
         title="Transacciones"
+        subtitle="Gestiona tus ingresos y gastos"
+        icon={<MoneyIcon />}
         action={
           <Button 
             variant="contained" 
-            startIcon={<AddIcon sx={{ fontSize: '1.25rem' }} />}
+            startIcon={<AddIcon />} 
             size="small"
-            onClick={handleOpenForm}
-            sx={{ 
-              borderRadius: 0,
-              fontSize: '0.75rem',
-              height: 24,
-              textTransform: 'none',
-              px: 1,
-              py: 0
+            onClick={() => {
+              setEditingTransaccion(null);
+              setIsFormOpen(true);
+            }}
+            sx={{
+              borderRadius: 1,
+              textTransform: 'none'
             }}
           >
             Nueva Transacción
@@ -439,11 +441,13 @@ export function Transacciones() {
         }
       >
         {transacciones.length === 0 ? (
-          <Box sx={{ p: 2 }}>
-            <EmptyState onAdd={handleOpenForm} />
-          </Box>
+          <EmptyState 
+            onAdd={() => setIsFormOpen(true)}
+            message="No hay transacciones registradas"
+            submessage="Haz clic en el botón para agregar una nueva transacción"
+          />
         ) : (
-          <TransaccionTable
+          <TransaccionTable 
             transacciones={transacciones}
             onEdit={handleEdit}
             onDelete={handleDelete}

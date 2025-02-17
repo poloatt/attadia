@@ -21,13 +21,14 @@ import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import EmptyState from '../components/EmptyState';
 import { EntityActions } from '../components/EntityViews/EntityActions';
+import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 
 export function Cuentas() {
   const [cuentas, setCuentas] = useState([]);
   const [monedas, setMonedas] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [expandedMonedas, setExpandedMonedas] = useState([]);
-  const [showValues, setShowValues] = useState(true);
+  const { showValues } = useValuesVisibility();
   const { enqueueSnackbar } = useSnackbar();
   const [editingCuenta, setEditingCuenta] = useState(null);
   const [balances, setBalances] = useState({});
@@ -404,8 +405,6 @@ export function Cuentas() {
             to: '/transacciones'
           }
         ]}
-        showValues={showValues}
-        onToggleValues={() => setShowValues(!showValues)}
       />
       
       <EntityForm

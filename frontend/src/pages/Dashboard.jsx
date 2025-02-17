@@ -25,6 +25,7 @@ import {
   TaskAltOutlined as TaskAltOutlined,
 } from '@mui/icons-material';
 import { toast } from 'react-hot-toast';
+import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 
 export function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -50,7 +51,7 @@ export function Dashboard() {
     },
   });
   const [selectedPeriod, setSelectedPeriod] = useState(30);
-  const [showValues, setShowValues] = useState(true);
+  const { showValues } = useValuesVisibility();
   const [isAccountsOpen, setIsAccountsOpen] = useState(false);
   const [accounts, setAccounts] = useState([]);
   const [isPropertiesDetailOpen, setIsPropertiesDetailOpen] = useState(false);
@@ -429,8 +430,6 @@ export function Dashboard() {
             to: '/tareas'
           }
         ]}
-        showValues={showValues}
-        onToggleValues={() => setShowValues(!showValues)}
       />
 
       <Grid container spacing={2}>

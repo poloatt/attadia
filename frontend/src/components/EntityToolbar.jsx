@@ -42,8 +42,6 @@ const EntityToolbar = ({
   showDivider = true,
   navigationItems = [],
   entityName = '',
-  showValues,
-  onToggleValues,
   additionalActions = []
 }) => {
   const navigate = useNavigate();
@@ -348,22 +346,6 @@ const EntityToolbar = ({
                 </Button>
               </Tooltip>
             ))}
-
-            {/* Botón de mostrar/ocultar valores si está habilitado */}
-            {typeof onToggleValues === 'function' && (
-              <Tooltip title={showValues ? 'Ocultar valores' : 'Mostrar valores'}>
-                <IconButton
-                  onClick={onToggleValues}
-                  size="small"
-                  sx={{
-                    color: 'text.secondary',
-                    '&:hover': { color: 'text.primary' }
-                  }}
-                >
-                  {showValues ? <HideValuesIcon sx={{ fontSize: 18 }} /> : <ShowValuesIcon sx={{ fontSize: 18 }} />}
-                </IconButton>
-              </Tooltip>
-            )}
 
             {/* Botón de agregar si está habilitado */}
             {showAddButton && (

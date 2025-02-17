@@ -8,13 +8,17 @@ import {
 } from '@mui/material';
 import { 
   PsychologyOutlined as BrainIcon,
-  SettingsOutlined as SettingsIcon
+  SettingsOutlined as SettingsIcon,
+  Visibility as ShowValuesIcon,
+  VisibilityOff as HideValuesIcon
 } from '@mui/icons-material';
 import { useSidebar } from '../context/SidebarContext';
+import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function Header() {
   const { toggleSidebar } = useSidebar();
+  const { showValues, toggleValuesVisibility } = useValuesVisibility();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -22,6 +26,15 @@ export default function Header() {
     const path = location.pathname.split('/')[1];
     return path.charAt(0).toUpperCase() + path.slice(1) || 'inicio';
   };
+
+  // Rutas donde se debe mostrar el botón de visibilidad
+  const showVisibilityButton = [
+    '/', // Dashboard
+    '/dashboard', // También en la ruta /dashboard
+    '/transacciones',
+    '/cuentas',
+    '/monedas'
+  ].includes(location.pathname);
 
   return (
     <AppBar 
@@ -74,6 +87,23 @@ export default function Header() {
         <Box sx={{ flexGrow: 1 }} />
 
         <Box sx={{ display: 'flex', gap: 0.5 }}>
+          {showVisibilityButton && (
+            <Tooltip title={showValues ? 'Ocultar valores' : 'Mostrar valores'}>
+              <IconButton 
+                size="small"
+                onClick={toggleValuesVisibility}
+                sx={{ 
+                  color: 'inherit',
+                  '&:hover': { color: 'text.primary' }
+                }}
+              >
+                {showValues ? 
+                  <HideValuesIcon sx={{ fontSize: 20 }} /> : 
+                  <ShowValuesIcon sx={{ fontSize: 20 }} />
+                }
+              </IconButton>
+            </Tooltip>
+          )}
           <Tooltip title="Configuración">
             <IconButton 
               size="small"
