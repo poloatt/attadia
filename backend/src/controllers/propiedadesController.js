@@ -63,12 +63,16 @@ class PropiedadesController extends BaseController {
   // Sobreescribimos el método create para asignar el usuario
   async create(req, res) {
     try {
+      console.log('Datos recibidos:', req.body);
+      
       const data = {
         ...req.body,
         usuario: req.user.id,
-        moneda: req.body.monedaId,
-        cuenta: req.body.cuentaId
+        moneda: req.body.monedaId || req.body.moneda,
+        cuenta: req.body.cuentaId || req.body.cuenta
       };
+
+      console.log('Datos a guardar:', data);
 
       const propiedad = await this.Model.create(data);
       const populatedPropiedad = await this.Model.findById(propiedad._id)
@@ -87,16 +91,39 @@ class PropiedadesController extends BaseController {
   // GET /api/propiedades/stats
   async getStats(req, res) {
     try {
+      console.log('Obteniendo estadísticas de propiedades...');
       const total = await this.Model.countDocuments({ usuario: req.user.id });
       const ocupadas = await this.Model.countDocuments({ 
         usuario: req.user.id,
         estado: 'OCUPADA'
       });
+      const disponibles = await this.Model.countDocuments({ 
+        usuario: req.user.id,
+        estado: 'DISPONIBLE'
+      });
+      const mantenimiento = await this.Model.countDocuments({ 
+        usuario: req.user.id,
+        estado: 'MANTENIMIENTO'
+      });
+      const reservadas = await this.Model.countDocuments({ 
+        usuario: req.user.id,
+        estado: 'RESERVADA'
+      });
+
+      console.log('Estadísticas calculadas:', {
+        total,
+        ocupadas,
+        disponibles,
+        mantenimiento,
+        reservadas
+      });
 
       res.json({
         total,
         ocupadas,
-        disponibles: total - ocupadas
+        disponibles,
+        mantenimiento,
+        reservadas
       });
     } catch (error) {
       console.error('Error en getStats propiedades:', error);

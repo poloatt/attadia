@@ -26,6 +26,8 @@ const propiedadSchema = createSchema({
   },
   estado: {
     type: String,
+    enum: ['DISPONIBLE', 'OCUPADA', 'MANTENIMIENTO', 'RESERVADA'],
+    default: 'DISPONIBLE',
     required: true
   },
   tipo: {

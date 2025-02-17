@@ -33,6 +33,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import EntityForm from './EntityViews/EntityForm';
+import PropiedadForm from './propiedades/PropiedadForm';
 import clienteAxios from '../config/axios';
 
 const EntityToolbar = ({ 
@@ -49,6 +50,7 @@ const EntityToolbar = ({
   const [openForm, setOpenForm] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const currentPath = location.pathname.slice(1);
 
   // Lista de rutas que deben volver al inicio
   const homeReturnRoutes = [
@@ -172,10 +174,20 @@ const EntityToolbar = ({
 
   const handleSubmit = async (formData) => {
     try {
-      const path = location.pathname.slice(1);
-      await clienteAxios.post(`/${path}`, formData);
+      await clienteAxios.post(`/${currentPath}`, formData);
       setOpenForm(false);
-      // Aquí podrías disparar un evento para actualizar la lista
+      
+      // Disparar evento de actualización
+      window.dispatchEvent(new CustomEvent('entityUpdated', {
+        detail: { type: currentPath, action: 'create' }
+      }));
+      
+      // Mostrar notificación de éxito
+      if (window.Notification && Notification.permission === 'granted') {
+        new Notification('Éxito', {
+          body: 'Registro creado exitosamente'
+        });
+      }
     } catch (error) {
       console.error('Error al guardar:', error);
       // Aquí podrías mostrar un mensaje de error
@@ -184,188 +196,20 @@ const EntityToolbar = ({
 
   const entityConfig = getEntityConfig();
 
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        bgcolor: theme.palette.background.default,
-        padding: '8px 16px',
-        borderBottom: 'none',
-        boxShadow: 'none',
-      }}
-    >
-      <Container 
-        maxWidth="lg" 
-        disableGutters
-        sx={{
-          px: {
-            xs: 1,
-            sm: 2,
-            md: 3
-          }
-        }}
-      >
-        <Box sx={{ 
-          display: 'flex',
-          alignItems: 'center',
-          height: 48,
-          position: 'relative',
-          gap: {
-            xs: 1,
-            sm: 2
-          },
-          mb: 2
-        }}>
-          {/* Sección izquierda */}
-          <Box sx={{ 
-            display: 'flex',
-            alignItems: 'center',
-            gap: {
-              xs: 1,
-              sm: 2
-            },
-            width: {
-              xs: 48,
-              sm: 72
-            }
-          }}>
-            {showBackButton && location.pathname !== '/' && (
-              <Tooltip title="Volver">
-                <IconButton 
-                  onClick={handleBack}
-                  size="small"
-                  sx={{
-                    color: 'text.secondary',
-                    '&:hover': { color: 'text.primary' }
-                  }}
-                >
-                  <ArrowBackOutlined sx={{ fontSize: 18 }} />
-                </IconButton>
-              </Tooltip>
-            )}
-          </Box>
+  const renderForm = () => {
+    if (currentPath === 'propiedades') {
+      return (
+        <PropiedadForm
+          open={openForm}
+          onClose={() => setOpenForm(false)}
+          onSubmit={handleSubmit}
+          initialData={{}}
+          isEditing={false}
+        />
+      );
+    }
 
-          {/* Sección central */}
-          <Box sx={{ 
-            display: 'flex',
-            alignItems: 'center',
-            gap: {
-              xs: 0.5,
-              sm: 1
-            },
-            justifyContent: 'center',
-            flex: 1,
-            overflow: 'auto'
-          }}>
-            {/* Íconos de navegación a la izquierda */}
-            {finalNavigationItems.length > 0 && (
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                {finalNavigationItems.slice(0, Math.ceil(finalNavigationItems.length / 2)).map((item) => (
-                  <Tooltip key={item.to} title={item.label}>
-                    <IconButton
-                      onClick={() => navigate(item.to)}
-                      size="small"
-                      sx={{
-                        color: 'text.secondary',
-                        '&:hover': { color: 'text.primary' }
-                      }}
-                    >
-                      {React.cloneElement(item.icon, { fontSize: 'small' })}
-                    </IconButton>
-                  </Tooltip>
-                ))}
-              </Box>
-            )}
-
-            {/* Ícono de la página actual */}
-            {getCurrentPageIcon() && (
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center',
-                color: 'text.primary',
-                mx: 1 // Margen horizontal para separación
-              }}>
-                {React.cloneElement(getCurrentPageIcon(), { fontSize: 'small' })}
-              </Box>
-            )}
-
-            {/* Íconos de navegación a la derecha */}
-            {finalNavigationItems.length > 0 && (
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                {finalNavigationItems.slice(Math.ceil(finalNavigationItems.length / 2)).map((item) => (
-                  <Tooltip key={item.to} title={item.label}>
-                    <IconButton
-                      onClick={() => navigate(item.to)}
-                      size="small"
-                      sx={{
-                        color: 'text.secondary',
-                        '&:hover': { color: 'text.primary' }
-                      }}
-                    >
-                      {React.cloneElement(item.icon, { fontSize: 'small' })}
-                    </IconButton>
-                  </Tooltip>
-                ))}
-              </Box>
-            )}
-          </Box>
-
-          {/* Sección derecha */}
-          <Box sx={{ 
-            display: 'flex',
-            alignItems: 'center',
-            gap: {
-              xs: 0.5,
-              sm: 1
-            },
-            justifyContent: 'flex-end',
-            minWidth: {
-              xs: 48,
-              sm: 72
-            }
-          }}>
-            {/* Botones adicionales */}
-            {additionalActions?.map((action, index) => (
-              <Tooltip key={index} title={action.tooltip || action.label}>
-                <Button
-                  onClick={action.onClick}
-                  size="small"
-                  variant="outlined"
-                  color={action.color || 'primary'}
-                  sx={{
-                    minWidth: 'auto',
-                    px: 1,
-                    py: 0.5,
-                    fontSize: '0.75rem',
-                    borderRadius: 1
-                  }}
-                >
-                  {action.label}
-                </Button>
-              </Tooltip>
-            ))}
-
-            {/* Botón de agregar si está habilitado */}
-            {showAddButton && (
-              <Tooltip title={`Agregar ${entityConfig.name || ''}`}>
-                <IconButton
-                  onClick={handleAdd}
-                  size="small"
-                  sx={{
-                    color: 'text.secondary',
-                    '&:hover': { color: 'text.primary' }
-                  }}
-                >
-                  <AddOutlined sx={{ fontSize: 18 }} />
-                </IconButton>
-              </Tooltip>
-            )}
-          </Box>
-        </Box>
-      </Container>
-
+    return (
       <EntityForm
         open={openForm}
         onClose={() => setOpenForm(false)}
@@ -373,7 +217,195 @@ const EntityToolbar = ({
         title={`Nuevo ${entityConfig.name}`}
         fields={entityConfig.fields}
       />
-    </Box>
+    );
+  };
+
+  return (
+    <>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          bgcolor: theme.palette.background.default,
+          padding: '8px 16px',
+          borderBottom: 'none',
+          boxShadow: 'none',
+        }}
+      >
+        <Container 
+          maxWidth="lg" 
+          disableGutters
+          sx={{
+            px: {
+              xs: 1,
+              sm: 2,
+              md: 3
+            }
+          }}
+        >
+          <Box sx={{ 
+            display: 'flex',
+            alignItems: 'center',
+            height: 48,
+            position: 'relative',
+            gap: {
+              xs: 1,
+              sm: 2
+            },
+            mb: 2
+          }}>
+            {/* Sección izquierda */}
+            <Box sx={{ 
+              display: 'flex',
+              alignItems: 'center',
+              gap: {
+                xs: 1,
+                sm: 2
+              },
+              width: {
+                xs: 48,
+                sm: 72
+              }
+            }}>
+              {showBackButton && location.pathname !== '/' && (
+                <Tooltip title="Volver">
+                  <IconButton 
+                    onClick={handleBack}
+                    size="small"
+                    sx={{
+                      color: 'text.secondary',
+                      '&:hover': { color: 'text.primary' }
+                    }}
+                  >
+                    <ArrowBackOutlined sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Box>
+
+            {/* Sección central */}
+            <Box sx={{ 
+              display: 'flex',
+              alignItems: 'center',
+              gap: {
+                xs: 0.5,
+                sm: 1
+              },
+              justifyContent: 'center',
+              flex: 1,
+              overflow: 'auto'
+            }}>
+              {/* Íconos de navegación a la izquierda */}
+              {finalNavigationItems.length > 0 && (
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  {finalNavigationItems.slice(0, Math.ceil(finalNavigationItems.length / 2)).map((item) => (
+                    <Tooltip key={item.to} title={item.label}>
+                      <IconButton
+                        onClick={() => navigate(item.to)}
+                        size="small"
+                        sx={{
+                          color: 'text.secondary',
+                          '&:hover': { color: 'text.primary' }
+                        }}
+                      >
+                        {React.cloneElement(item.icon, { fontSize: 'small' })}
+                      </IconButton>
+                    </Tooltip>
+                  ))}
+                </Box>
+              )}
+
+              {/* Ícono de la página actual */}
+              {getCurrentPageIcon() && (
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  color: 'text.primary',
+                  mx: 1 // Margen horizontal para separación
+                }}>
+                  {React.cloneElement(getCurrentPageIcon(), { fontSize: 'small' })}
+                </Box>
+              )}
+
+              {/* Íconos de navegación a la derecha */}
+              {finalNavigationItems.length > 0 && (
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  {finalNavigationItems.slice(Math.ceil(finalNavigationItems.length / 2)).map((item) => (
+                    <Tooltip key={item.to} title={item.label}>
+                      <IconButton
+                        onClick={() => navigate(item.to)}
+                        size="small"
+                        sx={{
+                          color: 'text.secondary',
+                          '&:hover': { color: 'text.primary' }
+                        }}
+                      >
+                        {React.cloneElement(item.icon, { fontSize: 'small' })}
+                      </IconButton>
+                    </Tooltip>
+                  ))}
+                </Box>
+              )}
+            </Box>
+
+            {/* Sección derecha */}
+            <Box sx={{ 
+              display: 'flex',
+              alignItems: 'center',
+              gap: {
+                xs: 0.5,
+                sm: 1
+              },
+              justifyContent: 'flex-end',
+              minWidth: {
+                xs: 48,
+                sm: 72
+              }
+            }}>
+              {/* Botones adicionales */}
+              {additionalActions?.map((action, index) => (
+                <Tooltip key={index} title={action.tooltip || action.label}>
+                  <Button
+                    onClick={action.onClick}
+                    size="small"
+                    variant="outlined"
+                    color={action.color || 'primary'}
+                    sx={{
+                      minWidth: 'auto',
+                      px: 1,
+                      py: 0.5,
+                      fontSize: '0.75rem',
+                      borderRadius: 1
+                    }}
+                  >
+                    {action.label}
+                  </Button>
+                </Tooltip>
+              ))}
+
+              {/* Botón de agregar si está habilitado */}
+              {showAddButton && (
+                <Tooltip title={`Agregar ${entityConfig.name || ''}`}>
+                  <IconButton
+                    onClick={handleAdd}
+                    size="small"
+                    sx={{
+                      color: 'text.secondary',
+                      '&:hover': { color: 'text.primary' }
+                    }}
+                  >
+                    <AddOutlined sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Box>
+          </Box>
+        </Container>
+      </Box>
+
+      {renderForm()}
+    </>
   );
 };
 

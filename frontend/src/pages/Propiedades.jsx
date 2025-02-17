@@ -35,6 +35,7 @@ import EntityDetails from '../components/EntityViews/EntityDetails';
 import EntityCards from '../components/EntityViews/EntityCards';
 import EmptyState from '../components/EmptyState';
 import { EntityActions } from '../components/EntityViews/EntityActions';
+import PropiedadForm from '../components/propiedades/PropiedadForm';
 
 // Cambiamos a exportación nombrada para coincidir con App.jsx
 export function Propiedades() {
@@ -114,17 +115,23 @@ export function Propiedades() {
     fetchRelatedData();
   }, [fetchPropiedades, fetchRelatedData]);
 
+  // Efecto para escuchar eventos de actualización
+  useEffect(() => {
+    const handleEntityUpdate = (event) => {
+      if (event.detail.type === 'propiedad' || event.detail.type === 'propiedades') {
+        fetchPropiedades();
+      }
+    };
+
+    window.addEventListener('entityUpdated', handleEntityUpdate);
+
+    return () => {
+      window.removeEventListener('entityUpdated', handleEntityUpdate);
+    };
+  }, [fetchPropiedades]);
+
   const handleEdit = useCallback((propiedad) => {
     console.log('Editando propiedad:', propiedad);
-    setFormData({
-      ...propiedad,
-      precio: propiedad.precio.toString(),
-      numHabitaciones: propiedad.numHabitaciones.toString(),
-      banos: propiedad.banos.toString(),
-      metrosCuadrados: propiedad.metrosCuadrados.toString(),
-      monedaId: propiedad.monedaId || propiedad.moneda?._id,
-      cuentaId: propiedad.cuentaId || propiedad.cuenta?._id
-    });
     setEditingPropiedad(propiedad);
     setIsFormOpen(true);
   }, []);
@@ -143,33 +150,62 @@ export function Propiedades() {
 
   const handleFormSubmit = async (formData) => {
     try {
-      console.log('Enviando datos:', formData);
+      console.log('Propiedades - Enviando datos:', formData);
       
-      // Convertir campos numéricos
+      // Asegurarnos que los campos numéricos son números y no strings
       const dataToSend = {
         ...formData,
-        precio: Number(formData.precio),
-        numHabitaciones: Number(formData.numHabitaciones),
-        banos: Number(formData.banos),
-        metrosCuadrados: Number(formData.metrosCuadrados)
+        precio: formData.precio ? Number(formData.precio) : 0,
+        metrosCuadrados: formData.metrosCuadrados ? Number(formData.metrosCuadrados) : 0,
+        numHabitaciones: formData.numHabitaciones ? Number(formData.numHabitaciones) : 0,
+        banos: formData.banos ? Number(formData.banos) : 0,
+        caracteristicas: Array.isArray(formData.caracteristicas) ? formData.caracteristicas : [],
+        moneda: formData.moneda || null,
+        cuenta: formData.cuenta || null,
+        usuario: user.id
       };
+      
+      console.log('Propiedades - Datos procesados para enviar:', dataToSend);
       
       let response;
       if (editingPropiedad) {
-        response = await clienteAxios.put(`/propiedades/${editingPropiedad.id}`, dataToSend);
-        setPropiedades(prev => prev.map(p => p.id === editingPropiedad.id ? response.data : p));
+        const id = editingPropiedad._id || editingPropiedad.id;
+        console.log('Propiedades - Actualizando propiedad con ID:', id);
+        response = await clienteAxios.put(`/propiedades/${id}`, dataToSend);
         enqueueSnackbar('Propiedad actualizada exitosamente', { variant: 'success' });
       } else {
+        console.log('Propiedades - Creando nueva propiedad');
         response = await clienteAxios.post('/propiedades', dataToSend);
-        setPropiedades(prev => [...prev, response.data]);
+        console.log('Propiedades - Respuesta de creación:', response.data);
         enqueueSnackbar('Propiedad creada exitosamente', { variant: 'success' });
       }
+
+      // Actualizar la lista de propiedades
+      await fetchPropiedades();
+      
+      // Cerrar el formulario solo si la operación fue exitosa
       setIsFormOpen(false);
       setEditingPropiedad(null);
-      fetchPropiedades();
+
+      // Disparar evento de actualización
+      window.dispatchEvent(new CustomEvent('entityUpdated', {
+        detail: { 
+          type: 'propiedades', 
+          action: editingPropiedad ? 'edit' : 'create',
+          data: response.data
+        }
+      }));
+
+      return response.data;
     } catch (error) {
-      console.error('Error al crear propiedad:', error);
-      enqueueSnackbar(error.response?.data?.error || 'Error al guardar la propiedad', { variant: 'error' });
+      console.error('Propiedades - Error al guardar propiedad:', error);
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          error.response?.data?.details || 
+                          'Error al guardar la propiedad';
+      console.log('Propiedades - Mensaje de error:', errorMessage);
+      enqueueSnackbar(errorMessage, { variant: 'error' });
+      throw error;
     }
   };
 
@@ -313,11 +349,11 @@ export function Propiedades() {
 
   const cardConfig = {
     renderIcon: (propiedad) => <HomeIcon />,
-    getTitle: (propiedad) => propiedad.titulo,
+    getTitle: (propiedad) => propiedad.nombre || propiedad.titulo,
     getDetails: (propiedad) => [
       {
         icon: <LocationOnIcon />,
-        text: `${propiedad.direccion}, ${propiedad.ciudad}`,
+        text: `${propiedad.direccion}`,
         noWrap: true
       },
       {
@@ -334,7 +370,7 @@ export function Propiedades() {
       },
       {
         icon: <AttachMoneyIcon />,
-        text: `${propiedad.precio?.toLocaleString()} ${monedas.find(m => m.id === propiedad.monedaId)?.simbolo || ''}`
+        text: `${propiedad.precio?.toLocaleString()} ${propiedad.moneda?.simbolo || ''}`
       }
     ],
     getStatus: (propiedad) => ({
@@ -342,9 +378,27 @@ export function Propiedades() {
       color: 'primary'
     }),
     getActions: (propiedad) => ({
-      onEdit: () => handleEdit(propiedad),
-      onDelete: () => handleDelete(propiedad.id),
-      itemName: `la propiedad ${propiedad.titulo}`
+      onEdit: async (formData) => {
+        console.log('Editando propiedad con datos:', formData);
+        try {
+          const response = await clienteAxios.put(`/propiedades/${propiedad._id || propiedad.id}`, formData);
+          enqueueSnackbar('Propiedad actualizada exitosamente', { variant: 'success' });
+          await fetchPropiedades();
+          return response.data;
+        } catch (error) {
+          console.error('Error al actualizar propiedad:', error);
+          enqueueSnackbar(
+            error.response?.data?.message || 
+            error.response?.data?.error || 
+            'Error al actualizar la propiedad',
+            { variant: 'error' }
+          );
+          throw error;
+        }
+      },
+      onDelete: () => handleDelete(propiedad._id || propiedad.id),
+      itemName: `la propiedad ${propiedad.nombre || propiedad.titulo}`,
+      entity: propiedad
     })
   };
 
@@ -377,21 +431,6 @@ export function Propiedades() {
       <EntityToolbar
         onAdd={() => {
           setEditingPropiedad(null);
-          setFormData({
-            titulo: '',
-            descripcion: '',
-            precio: '',
-            direccion: '',
-            ciudad: '',
-            estado: '',
-            tipo: 'CASA',
-            numHabitaciones: '',
-            banos: '',
-            metrosCuadrados: '',
-            imagen: '',
-            monedaId: '',
-            cuentaId: ''
-          });
           setIsFormOpen(true);
         }}
         searchPlaceholder="Buscar propiedades..."
@@ -428,21 +467,6 @@ export function Propiedades() {
             size="small"
             onClick={() => {
               setEditingPropiedad(null);
-              setFormData({
-                titulo: '',
-                descripcion: '',
-                precio: '',
-                direccion: '',
-                ciudad: '',
-                estado: '',
-                tipo: 'CASA',
-                numHabitaciones: '',
-                banos: '',
-                metrosCuadrados: '',
-                imagen: '',
-                monedaId: '',
-                cuentaId: ''
-              });
               setIsFormOpen(true);
             }}
             sx={{ borderRadius: 0 }}
@@ -467,31 +491,13 @@ export function Propiedades() {
         )}
       </EntityDetails>
 
-      <EntityForm
+      <PropiedadForm
         open={isFormOpen}
         onClose={() => {
           setIsFormOpen(false);
           setEditingPropiedad(null);
-          setFormData({
-            titulo: '',
-            descripcion: '',
-            precio: '',
-            direccion: '',
-            ciudad: '',
-            estado: '',
-            tipo: 'CASA',
-            numHabitaciones: '',
-            banos: '',
-            metrosCuadrados: '',
-            imagen: '',
-            monedaId: '',
-            cuentaId: ''
-          });
         }}
         onSubmit={handleFormSubmit}
-        entity={formData}
-        title={editingPropiedad ? 'Editar Propiedad' : 'Nueva Propiedad'}
-        fields={formFields}
         initialData={editingPropiedad || {}}
         isEditing={!!editingPropiedad}
       />
