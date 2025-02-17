@@ -64,7 +64,9 @@ const EntityToolbar = ({
     'transacciones',
     'cuentas',
     'monedas',
-    'dieta'
+    'dieta',
+    'proyectos',
+    'tareas'
   ];
 
   // Mapeo de rutas a íconos

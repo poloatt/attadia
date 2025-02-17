@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { styled } from '@mui/material/styles';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Box, Typography, IconButton, ToggleButtonGroup, ToggleButton, TextField, InputAdornment, Autocomplete, Paper, Button } from '@mui/material';
-import { AddIcon, RemoveIcon, CheckCircleIcon, PendingIcon, CloseIcon } from '../../icons';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Box, Typography, IconButton, ToggleButtonGroup, ToggleButton, TextField, InputAdornment, Autocomplete, Paper, Button, LinearProgress } from '@mui/material';
+import { AddIcon, RemoveIcon, CheckCircleIcon, PendingIcon, CloseIcon, Receipt, Fastfood, HealthAndSafety, Shirt, Cocktail, DirectionsBus, Devices, MoreHoriz } from '../../icons';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { es } from 'date-fns/locale';
 
 const CATEGORIAS = [
   { valor: 'Contabilidad y Facturas', icon: <Receipt />, color: '#7bba7f' },
@@ -96,6 +100,25 @@ const TransaccionForm = ({ open, onClose, isSaving, isEditing, formData, handleC
               </Typography>
             )}
           </Box>
+
+          {/* Fecha */}
+          <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+            <DatePicker
+              label="Fecha"
+              value={formData.fecha || null}
+              onChange={(newValue) => handleChange('fecha', newValue)}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  fullWidth
+                  error={!!errors?.fecha}
+                  helperText={errors?.fecha}
+                  sx={{ mb: 3 }}
+                />
+              )}
+              sx={{ width: '100%', mb: 3 }}
+            />
+          </LocalizationProvider>
 
           {/* Monto y Estado */}
           <Box sx={{ 

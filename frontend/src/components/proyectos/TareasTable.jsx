@@ -97,13 +97,13 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
   const getEstadoColor = (estado) => {
     switch (estado) {
       case 'COMPLETADA':
-        return '#2D5C2E';
+        return '#1E6820';
       case 'EN_PROGRESO':
-        return '#1B4A75';
+        return '#0B4C8C';
       case 'PENDIENTE':
-        return '#8C4E0B';
+        return '#A04600';
       default:
-        return '#8C4E0B';
+        return '#A04600';
     }
   };
 
@@ -224,7 +224,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
                   e.stopPropagation();
                   onDelete(tarea._id || tarea.id);
                 }}
-                sx={{ color: 'error.main', p: 0.25 }}
+                sx={{ color: '#8B0000', p: 0.25 }}
               >
                 <DeleteIcon fontSize="small" />
               </IconButton>
@@ -236,7 +236,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
         <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ py: 0.5, px: 1 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, textAlign: 'center', width: '100%', display: 'block' }}>
                 {format(new Date(tarea.fechaInicio), 'dd MMM yyyy', { locale: es })}
                 {tarea.fechaVencimiento && (
                   <> → {format(new Date(tarea.fechaVencimiento), 'dd MMM yyyy', { locale: es })}</>
@@ -256,7 +256,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
               {tarea.subtareas?.length > 0 && (
                 <Box sx={{ mb: 0.5 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.25 }}>
-                    <Typography variant="subtitle2">
+                    <Typography variant="body2">
                       Subtareas
                     </Typography>
                     <Typography variant="caption" color="text.secondary">

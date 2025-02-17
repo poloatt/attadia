@@ -17,6 +17,7 @@ import {
   useMediaQuery,
   Divider,
   InputAdornment,
+  Tooltip,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -359,21 +360,6 @@ const TareaForm = ({
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
           <Button
             variant="text"
-            onClick={() => handleChange('prioridad')({ target: { value: formData.prioridad === 'ALTA' ? 'BAJA' : 'ALTA' }})}
-            startIcon={<PriorityIcon />}
-            size="small"
-            sx={{ 
-              color: formData.prioridad === 'ALTA' ? 'error.main' : 'text.secondary',
-              '&:hover': {
-                color: formData.prioridad === 'ALTA' ? 'error.dark' : 'primary.main',
-                backgroundColor: 'transparent'
-              }
-            }}
-          >
-            {formData.prioridad === 'ALTA' ? 'Alta' : 'Baja'}
-          </Button>
-          <Button
-            variant="text"
             component="label"
             startIcon={<AttachFileIcon />}
             size="small"
@@ -442,32 +428,53 @@ const TareaForm = ({
             }}
           />
 
-          <TextField
-            select
-            fullWidth
-            size="small"
-            label="Estado"
-            value={formData.estado}
-            onChange={handleChange('estado')}
-            error={!!errors.estado}
-            helperText={errors.estado}
-            required
-            sx={commonInputStyles}
-            SelectProps={{
-              sx: commonSelectStyles
-            }}
-            InputProps={{
-              startAdornment: (
-                <Box sx={commonIconContainerStyles}>
-                  <LabelIcon sx={commonIconStyles} />
-                </Box>
-              )
-            }}
-          >
-            <MenuItem value="PENDIENTE">Pendiente</MenuItem>
-            <MenuItem value="EN_PROGRESO">En Progreso</MenuItem>
-            <MenuItem value="COMPLETADA">Completada</MenuItem>
-          </TextField>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+            <TextField
+              select
+              fullWidth
+              size="small"
+              label="Estado"
+              value={formData.estado}
+              onChange={handleChange('estado')}
+              error={!!errors.estado}
+              helperText={errors.estado}
+              required
+              sx={{ ...commonInputStyles, flex: 1 }}
+              SelectProps={{
+                sx: commonSelectStyles
+              }}
+              InputProps={{
+                startAdornment: (
+                  <Box sx={commonIconContainerStyles}>
+                    <LabelIcon sx={commonIconStyles} />
+                  </Box>
+                )
+              }}
+            >
+              <MenuItem value="PENDIENTE">Pendiente</MenuItem>
+              <MenuItem value="EN_PROGRESO">En Progreso</MenuItem>
+              <MenuItem value="COMPLETADA">Completada</MenuItem>
+            </TextField>
+            <Tooltip title="Prioridad">
+              <Button
+                variant="text"
+                onClick={() => handleChange('prioridad')({ target: { value: formData.prioridad === 'ALTA' ? 'BAJA' : 'ALTA' }})}
+                startIcon={<PriorityIcon />}
+                size="small"
+                sx={{ 
+                  color: formData.prioridad === 'ALTA' ? 'error.main' : 'text.secondary',
+                  '&:hover': {
+                    color: formData.prioridad === 'ALTA' ? 'error.dark' : 'primary.main',
+                    backgroundColor: 'transparent'
+                  },
+                  minWidth: 'auto',
+                  height: 40
+                }}
+              >
+                {formData.prioridad === 'ALTA' ? 'Alta' : 'Baja'}
+              </Button>
+            </Tooltip>
+          </Box>
 
           <Box sx={{ 
             display: 'grid', 

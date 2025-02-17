@@ -27,7 +27,7 @@ export function Transacciones() {
   const fetchTransacciones = useCallback(async () => {
     try {
       console.log('Solicitando transacciones...');
-      const response = await clienteAxios.get('/transacciones');
+      const response = await clienteAxios.get('/transacciones?limit=1000&sort=-fecha');
       console.log('Transacciones recibidas:', response.data);
       setTransacciones(response.data.docs || []);
     } catch (error) {
