@@ -14,9 +14,7 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
-import { useState, useEffect } from 'react';
-import PropiedadForm from '../propiedades/PropiedadForm';
-import { useSnackbar } from 'notistack';
+import { useState } from 'react';
 
 const DeleteConfirmDialog = memo(({ open, onClose, onConfirm, itemName }) => (
   <Dialog 
@@ -58,17 +56,9 @@ export const EntityActions = memo(({
   size = 'small',
   direction = 'row',
   showDelete = true,
-  disabled = false,
-  entity
+  disabled = false
 }) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [currentPath, setCurrentPath] = useState('');
-  const { enqueueSnackbar } = useSnackbar();
-
-  useEffect(() => {
-    setCurrentPath(window.location.pathname.split('/')[1]);
-  }, []);
 
   const handleDelete = () => {
     setDeleteDialogOpen(true);
@@ -79,26 +69,9 @@ export const EntityActions = memo(({
     setDeleteDialogOpen(false);
   };
 
-  const handleEditSubmit = async (formData) => {
-    try {
-      console.log('Enviando datos de edición:', formData);
-      await onEdit(formData);
-      setEditDialogOpen(false);
-      enqueueSnackbar('Registro actualizado exitosamente', { variant: 'success' });
-      
-      // Disparar evento de actualización
-      window.dispatchEvent(new CustomEvent('entityUpdated', {
-        detail: { type: currentPath, action: 'edit' }
-      }));
-    } catch (error) {
-      console.error('Error al editar:', error);
-      enqueueSnackbar(
-        error.response?.data?.message || 
-        error.message || 
-        'Error al actualizar el registro',
-        { variant: 'error' }
-      );
-    }
+  const handleEdit = (e) => {
+    e.stopPropagation(); // Evitar que el click se propague al contenedor
+    onEdit();
   };
 
   return (
@@ -114,7 +87,7 @@ export const EntityActions = memo(({
       >
         <Tooltip title="Editar">
           <IconButton 
-            onClick={() => setEditDialogOpen(true)}
+            onClick={handleEdit}
             size={size}
             sx={{ 
               color: 'text.secondary',
@@ -161,16 +134,6 @@ export const EntityActions = memo(({
         onConfirm={handleConfirmDelete}
         itemName={itemName}
       />
-
-      {currentPath === 'propiedades' && (
-        <PropiedadForm
-          open={editDialogOpen}
-          onClose={() => setEditDialogOpen(false)}
-          onSubmit={handleEditSubmit}
-          initialData={entity}
-          isEditing={true}
-        />
-      )}
     </>
   );
 }); 

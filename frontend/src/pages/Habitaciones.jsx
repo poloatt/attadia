@@ -16,13 +16,22 @@ import {
   DescriptionOutlined as DescriptionIcon,
   Inventory2Outlined as InventoryIcon,
   BedOutlined as BedIcon,
-  PersonOutlined as PersonIcon,
-  HomeOutlined as HomeIcon,
-  NumbersOutlined as NumberIcon
+  BathtubOutlined as BathIcon,
+  KitchenOutlined as KitchenIcon,
+  WeekendOutlined as LivingIcon,
+  YardOutlined as GardenIcon,
+  DeckOutlined as TerraceIcon,
+  LocalLaundryServiceOutlined as LaundryIcon,
+  HomeWorkOutlined as StudioIcon,
+  MeetingRoomOutlined as RoomIcon,
+  HomeOutlined as HouseIcon,
+  BusinessOutlined as OfficeIcon,
+  StorefrontOutlined as StoreIcon,
+  LandscapeOutlined as LandIcon
 } from '@mui/icons-material';
 import EmptyState from '../components/EmptyState';
 import { EntityActions } from '../components/EntityViews/EntityActions';
-import EntityCards from '../components/EntityViews/EntityCards';
+import EntityGroupedCards from '../components/EntityViews/EntityGroupedCards';
 
 export function Habitaciones() {
   const [habitaciones, setHabitaciones] = useState([]);
@@ -96,7 +105,9 @@ export function Habitaciones() {
   const handleEdit = useCallback((habitacion) => {
     setEditingHabitacion({
       ...habitacion,
-      propiedadId: habitacion.propiedadId || habitacion.propiedad?._id
+      propiedadId: habitacion.propiedadId || habitacion.propiedad?._id || habitacion.propiedad?.id,
+      tipo: habitacion.tipo,
+      nombrePersonalizado: habitacion.nombrePersonalizado
     });
     setIsFormOpen(true);
   }, []);
@@ -112,6 +123,128 @@ export function Habitaciones() {
     }
   }, [enqueueSnackbar]);
 
+  const getTipoIcon = (tipo) => {
+    switch (tipo) {
+      case 'BAÑO':
+        return <BathIcon />;
+      case 'TOILETTE':
+        return <BathIcon />;
+      case 'DORMITORIO_DOBLE':
+      case 'DORMITORIO_SIMPLE':
+        return <BedIcon />;
+      case 'ESTUDIO':
+        return <StudioIcon />;
+      case 'COCINA':
+        return <KitchenIcon />;
+      case 'DESPENSA':
+        return <KitchenIcon />;
+      case 'SALA_PRINCIPAL':
+        return <LivingIcon />;
+      case 'PATIO':
+      case 'JARDIN':
+        return <GardenIcon />;
+      case 'TERRAZA':
+        return <TerraceIcon />;
+      case 'LAVADERO':
+        return <LaundryIcon />;
+      default:
+        return <RoomIcon />;
+    }
+  };
+
+  const getPropiedadIcon = (tipo) => {
+    switch (tipo) {
+      case 'CASA':
+        return <HouseIcon sx={{ fontSize: 20, color: 'text.secondary' }} />;
+      case 'DEPARTAMENTO':
+        return <BuildingIcon sx={{ fontSize: 20, color: 'text.secondary' }} />;
+      case 'OFICINA':
+        return <OfficeIcon sx={{ fontSize: 20, color: 'text.secondary' }} />;
+      case 'LOCAL':
+        return <StoreIcon sx={{ fontSize: 20, color: 'text.secondary' }} />;
+      case 'TERRENO':
+        return <LandIcon sx={{ fontSize: 20, color: 'text.secondary' }} />;
+      default:
+        return <BuildingIcon sx={{ fontSize: 20, color: 'text.secondary' }} />;
+    }
+  };
+
+  const cardConfig = {
+    groupBy: (habitacion) => {
+      const propiedad = habitacion.propiedad?.titulo || 
+        propiedades.find(p => p.id === habitacion.propiedadId)?.titulo || 
+        'Sin Propiedad';
+      const propiedadData = habitacion.propiedad || 
+        propiedades.find(p => p.id === habitacion.propiedadId);
+      return {
+        key: propiedad,
+        label: propiedad,
+        icon: getPropiedadIcon(propiedadData?.tipo)
+      };
+    },
+    getTitle: (habitacion) => {
+      if (habitacion.tipo === 'OTRO') {
+        return (
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 1,
+            width: '100%'
+          }}>
+            <Box sx={{ 
+              display: 'flex',
+              alignItems: 'center',
+              '& .MuiSvgIcon-root': {
+                fontSize: '1rem',
+                color: 'text.secondary'
+              }
+            }}>
+              {getTipoIcon(habitacion.tipo)}
+            </Box>
+            <Typography 
+              variant="subtitle2"
+              sx={{ fontWeight: 500 }}
+            >
+              {habitacion.nombrePersonalizado}
+            </Typography>
+          </Box>
+        );
+      }
+      const tipoLabel = formFields.find(f => f.name === 'tipo')?.options.find(opt => opt.value === habitacion.tipo)?.label;
+      return (
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1,
+          width: '100%'
+        }}>
+          <Box sx={{ 
+            display: 'flex',
+            alignItems: 'center',
+            '& .MuiSvgIcon-root': {
+              fontSize: '1rem',
+              color: 'text.secondary'
+            }
+          }}>
+            {getTipoIcon(habitacion.tipo)}
+          </Box>
+          <Typography 
+            variant="subtitle2"
+            sx={{ fontWeight: 500 }}
+          >
+            {tipoLabel || habitacion.tipo}
+          </Typography>
+        </Box>
+      );
+    },
+    getDetails: () => [],
+    getActions: (habitacion) => ({
+      onEdit: () => handleEdit(habitacion),
+      onDelete: () => handleDelete(habitacion.id),
+      itemName: `la habitación "${habitacion.tipo === 'OTRO' ? habitacion.nombrePersonalizado : formFields.find(f => f.name === 'tipo')?.options.find(opt => opt.value === habitacion.tipo)?.label || habitacion.tipo}"`
+    })
+  };
+
   const formFields = [
     {
       name: 'propiedadId',
@@ -120,7 +253,8 @@ export function Habitaciones() {
       required: true,
       options: propiedades.map(p => ({
         value: p.id,
-        label: p.titulo
+        label: p.titulo,
+        icon: getPropiedadIcon(p.tipo)
       })),
       onCreateNew: handleCreatePropiedad,
       createFields: [
@@ -132,78 +266,43 @@ export function Habitaciones() {
       createTitle: 'Nueva Propiedad'
     },
     {
-      name: 'numero',
-      label: 'Número',
-      required: true
-    },
-    {
       name: 'tipo',
-      label: 'Tipo',
+      label: 'Tipo de Habitación',
       type: 'select',
       required: true,
       options: [
-        { value: 'INDIVIDUAL', label: 'Individual' },
-        { value: 'DOBLE', label: 'Doble' },
-        { value: 'SUITE', label: 'Suite' },
-        { value: 'ESTUDIO', label: 'Estudio' }
+        { value: 'BAÑO', label: 'Baño', icon: <BathIcon /> },
+        { value: 'TOILETTE', label: 'Toilette', icon: <BathIcon /> },
+        { value: 'DORMITORIO_DOBLE', label: 'Dormitorio Doble', icon: <BedIcon /> },
+        { value: 'DORMITORIO_SIMPLE', label: 'Dormitorio Simple', icon: <BedIcon /> },
+        { value: 'ESTUDIO', label: 'Estudio', icon: <StudioIcon /> },
+        { value: 'COCINA', label: 'Cocina', icon: <KitchenIcon /> },
+        { value: 'DESPENSA', label: 'Despensa', icon: <KitchenIcon /> },
+        { value: 'SALA_PRINCIPAL', label: 'Sala Principal', icon: <LivingIcon /> },
+        { value: 'PATIO', label: 'Patio', icon: <GardenIcon /> },
+        { value: 'JARDIN', label: 'Jardín', icon: <GardenIcon /> },
+        { value: 'TERRAZA', label: 'Terraza', icon: <TerraceIcon /> },
+        { value: 'LAVADERO', label: 'Lavadero', icon: <LaundryIcon /> },
+        { divider: true },
+        { value: 'OTRO', label: 'Otro tipo...', icon: <RoomIcon /> }
       ]
     },
     {
-      name: 'estado',
-      label: 'Estado',
-      type: 'select',
-      required: true,
-      options: [
-        { value: 'DISPONIBLE', label: 'Disponible' },
-        { value: 'OCUPADA', label: 'Ocupada' },
-        { value: 'MANTENIMIENTO', label: 'Mantenimiento' },
-        { value: 'RESERVADA', label: 'Reservada' }
-      ]
-    },
-    {
-      name: 'capacidad',
-      label: 'Capacidad',
-      type: 'number',
-      required: true
-    },
-    {
-      name: 'descripcion',
-      label: 'Descripción',
-      multiline: true,
-      rows: 3
+      name: 'nombrePersonalizado',
+      label: 'Especificar tipo',
+      type: 'text',
+      placeholder: 'Ej: Sala de juegos, Gimnasio, etc.',
+      helperText: 'Ingresa el nombre del tipo de habitación personalizado',
+      hidden: formData => formData.tipo !== 'OTRO',
+      required: false,
+      validate: (value, formData) => {
+        if (formData.tipo === 'OTRO' && (!value || value.trim() === '')) {
+          return 'Debes especificar el tipo de habitación';
+        }
+        return '';
+      }
     }
   ];
-
-  const cardConfig = {
-    renderIcon: () => <NumberIcon />,
-    getTitle: (habitacion) => `Habitación ${habitacion.numero}`,
-    getDetails: (habitacion) => [
-      {
-        icon: <HomeIcon />,
-        text: habitacion.propiedad?.titulo || propiedades.find(p => p.id === habitacion.propiedadId)?.titulo || 'N/A',
-        noWrap: true
-      },
-      {
-        icon: <BedIcon />,
-        text: habitacion.tipo
-      },
-      {
-        icon: <PersonIcon />,
-        text: `${habitacion.capacidad} personas`
-      }
-    ],
-    getStatus: (habitacion) => ({
-      label: habitacion.estado,
-      color: habitacion.estado === 'DISPONIBLE' ? 'success' :
-             habitacion.estado === 'OCUPADA' ? 'error' :
-             habitacion.estado === 'MANTENIMIENTO' ? 'warning' : 'info'
-    }),
-    getActions: (habitacion) => ({
-      onEdit: () => handleEdit(habitacion),
-      onDelete: () => handleDelete(habitacion.id),
-      itemName: `la habitación ${habitacion.numero}`
-    })
-  };
 
   return (
     <Container maxWidth="lg">
@@ -257,9 +356,15 @@ export function Habitaciones() {
         {habitaciones.length === 0 ? (
           <EmptyState onAdd={() => setIsFormOpen(true)} />
         ) : (
-          <EntityCards 
+          <EntityGroupedCards 
             data={habitaciones}
             config={cardConfig}
+            gridProps={{
+              xs: 12,
+              sm: 6,
+              md: 4,
+              lg: 3
+            }}
           />
         )}
       </EntityDetails>

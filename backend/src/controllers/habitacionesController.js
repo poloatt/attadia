@@ -4,13 +4,12 @@ import { Habitaciones } from '../models/index.js';
 class HabitacionesController extends BaseController {
   constructor() {
     super(Habitaciones, {
-      searchFields: ['numero', 'tipo', 'descripcion']
+      searchFields: ['tipo', 'nombrePersonalizado']
     });
 
     // Bind de los métodos al contexto de la instancia
     this.getAllByPropiedad = this.getAllByPropiedad.bind(this);
     this.getAllAdmin = this.getAllAdmin.bind(this);
-    this.updateStatus = this.updateStatus.bind(this);
     this.create = this.create.bind(this);
     this.delete = this.delete.bind(this);
     this.update = this.update.bind(this);
@@ -33,8 +32,8 @@ class HabitacionesController extends BaseController {
       const result = await this.Model.paginate(
         {},
         {
-          populate: 'propiedad',
-          sort: { numero: 'asc' }
+          populate: ['propiedad', 'inventarios'],
+          sort: { createdAt: 'desc' }
         }
       );
 
@@ -51,13 +50,17 @@ class HabitacionesController extends BaseController {
     try {
       const data = {
         ...req.body,
-        propiedad: req.body.propiedadId,
-        capacidad: Number(req.body.capacidad)
+        propiedad: req.body.propiedadId
       };
+
+      // Validación adicional para nombrePersonalizado
+      if (data.tipo === 'OTRO' && (!data.nombrePersonalizado || data.nombrePersonalizado.trim() === '')) {
+        throw new Error('Por favor, especifica el tipo de habitación personalizado');
+      }
 
       const habitacion = await this.Model.create(data);
       const populatedHabitacion = await this.Model.findById(habitacion._id)
-        .populate('propiedad');
+        .populate(['propiedad', 'inventarios']);
 
       res.status(201).json(this.formatResponse(populatedHabitacion));
     } catch (error) {
@@ -76,8 +79,8 @@ class HabitacionesController extends BaseController {
       const result = await this.Model.paginate(
         { propiedad: propiedadId },
         {
-          populate: 'propiedad',
-          sort: { numero: 'asc' }
+          populate: ['propiedad', 'inventarios'],
+          sort: { createdAt: 'desc' }
         }
       );
 
@@ -96,7 +99,8 @@ class HabitacionesController extends BaseController {
         {},
         {
           populate: [
-            { path: 'propiedad', select: 'nombre direccion' },
+            { path: 'propiedad', select: 'titulo direccion' },
+            { path: 'inventarios' },
             { path: 'usuario', select: 'nombre email' }
           ],
           sort: { createdAt: 'desc' }
@@ -106,27 +110,6 @@ class HabitacionesController extends BaseController {
     } catch (error) {
       console.error('Error al obtener habitaciones:', error);
       res.status(500).json({ error: 'Error al obtener habitaciones' });
-    }
-  }
-
-  // PATCH /api/habitaciones/:id/status
-  async updateStatus(req, res) {
-    try {
-      const { estado } = req.body;
-      const habitacion = await this.Model.findByIdAndUpdate(
-        req.params.id,
-        { estado },
-        { new: true }
-      ).populate('propiedad');
-
-      if (!habitacion) {
-        return res.status(404).json({ error: 'Habitación no encontrada' });
-      }
-
-      res.json(this.formatResponse(habitacion));
-    } catch (error) {
-      console.error('Error al actualizar estado:', error);
-      res.status(500).json({ error: 'Error al actualizar estado' });
     }
   }
 
@@ -153,15 +136,19 @@ class HabitacionesController extends BaseController {
       const { id } = req.params;
       const data = {
         ...req.body,
-        propiedad: req.body.propiedadId,
-        capacidad: Number(req.body.capacidad)
+        propiedad: req.body.propiedadId
       };
+
+      // Validación adicional para nombrePersonalizado
+      if (data.tipo === 'OTRO' && (!data.nombrePersonalizado || data.nombrePersonalizado.trim() === '')) {
+        throw new Error('Por favor, especifica el tipo de habitación personalizado');
+      }
 
       const habitacion = await this.Model.findByIdAndUpdate(
         id,
         data,
         { new: true }
-      ).populate('propiedad');
+      ).populate(['propiedad', 'inventarios']);
 
       if (!habitacion) {
         return res.status(404).json({ error: 'Habitación no encontrada' });

@@ -11,6 +11,7 @@ import {
   Typography,
   CircularProgress,
   InputAdornment,
+  Divider,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 
@@ -141,7 +142,8 @@ export const FormField = memo(({
   onCreateNew,
   isLoading = false,
   helperText,
-  nestedData
+  nestedData,
+  formData = {}
 }) => {
   const [isCreating, setIsCreating] = useState(false);
 
@@ -159,6 +161,10 @@ export const FormField = memo(({
       }
     });
   }, [field.name, field.type, onChange]);
+
+  if (field.hidden && typeof field.hidden === 'function' && field.hidden(formData)) {
+    return null;
+  }
 
   if (isCreating) {
     return (
@@ -205,14 +211,19 @@ export const FormField = memo(({
           label={field.label}
           disabled={isLoading}
         >
-          {options.map(option => (
-            <MenuItem 
-              key={option.value} 
-              value={option.value}
-            >
-              {option.label}
-            </MenuItem>
-          ))}
+          {options.map(option => {
+            if (option.divider) {
+              return <Divider key="divider" />;
+            }
+            return (
+              <MenuItem 
+                key={option.value} 
+                value={option.value}
+              >
+                {option.label}
+              </MenuItem>
+            );
+          })}
           {field.onCreateNew && (
             <MenuItem value="__create_new__">
               <AddIcon sx={{ mr: 1 }} />

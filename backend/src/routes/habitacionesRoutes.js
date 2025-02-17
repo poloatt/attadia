@@ -22,6 +22,5 @@ router.delete('/:id', habitacionesController.delete);
 
 // Rutas administrativas
 router.get('/admin/all', [checkRole([ROLES.ADMIN])], habitacionesController.getAllAdmin);
-router.put('/admin/:id/status', [checkRole([ROLES.ADMIN])], habitacionesController.updateStatus);
 
 export default router; 

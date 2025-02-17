@@ -157,6 +157,7 @@ const EntityForm = ({
         isLoading={field.type === 'relational' && isLoadingRelated}
         relatedData={field.type === 'relational' ? relatedData : undefined}
         onCreateNew={field.onCreateNew}
+        formData={formData}
       />
     ));
   }, [fields, formData, handleChange, errors, isLoadingRelated, relatedData]);

@@ -131,7 +131,13 @@ export function Propiedades() {
 
   const handleEdit = useCallback((propiedad) => {
     console.log('Editando propiedad:', propiedad);
-    setEditingPropiedad(propiedad);
+    setEditingPropiedad({
+      ...propiedad,
+      _id: propiedad._id || propiedad.id,
+      moneda: propiedad.moneda?._id || propiedad.moneda?.id || propiedad.moneda,
+      cuenta: propiedad.cuenta?._id || propiedad.cuenta?.id || propiedad.cuenta,
+      caracteristicas: propiedad.caracteristicas || []
+    });
     setIsFormOpen(true);
   }, []);
 
@@ -372,24 +378,7 @@ export function Propiedades() {
       }
     ],
     getActions: (propiedad) => ({
-      onEdit: async (formData) => {
-        console.log('Editando propiedad con datos:', formData);
-        try {
-          const response = await clienteAxios.put(`/propiedades/${propiedad._id || propiedad.id}`, formData);
-          enqueueSnackbar('Propiedad actualizada exitosamente', { variant: 'success' });
-          await fetchPropiedades();
-          return response.data;
-        } catch (error) {
-          console.error('Error al actualizar propiedad:', error);
-          enqueueSnackbar(
-            error.response?.data?.message || 
-            error.response?.data?.error || 
-            'Error al actualizar la propiedad',
-            { variant: 'error' }
-          );
-          throw error;
-        }
-      },
+      onEdit: () => handleEdit(propiedad),
       onDelete: () => handleDelete(propiedad._id || propiedad.id),
       itemName: `la propiedad ${propiedad.nombre || propiedad.titulo}`,
       entity: propiedad

@@ -65,4 +65,15 @@ const propiedadSchema = createSchema({
   ...commonFields
 });
 
+// Agregar relación virtual con habitaciones
+propiedadSchema.virtual('habitaciones', {
+  ref: 'Habitaciones',
+  localField: '_id',
+  foreignField: 'propiedad'
+});
+
+// Asegurar que los virtuals se incluyan cuando se convierte a JSON/Object
+propiedadSchema.set('toJSON', { virtuals: true });
+propiedadSchema.set('toObject', { virtuals: true });
+
 export const Propiedades = mongoose.model('Propiedades', propiedadSchema); 

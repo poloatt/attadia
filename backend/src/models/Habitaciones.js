@@ -7,28 +7,47 @@ const habitacionSchema = createSchema({
     ref: 'Propiedades',
     required: true
   },
-  numero: {
-    type: String,
-    required: true
-  },
   tipo: {
     type: String,
-    enum: ['INDIVIDUAL', 'DOBLE', 'SUITE', 'ESTUDIO'],
+    enum: [
+      'BAÑO',
+      'TOILETTE',
+      'DORMITORIO_DOBLE',
+      'DORMITORIO_SIMPLE',
+      'ESTUDIO',
+      'COCINA',
+      'DESPENSA',
+      'SALA_PRINCIPAL',
+      'PATIO',
+      'JARDIN',
+      'TERRAZA',
+      'LAVADERO',
+      'OTRO'
+    ],
     required: true
   },
-  estado: {
+  nombrePersonalizado: {
     type: String,
-    enum: ['DISPONIBLE', 'OCUPADA', 'MANTENIMIENTO', 'RESERVADA'],
-    default: 'DISPONIBLE'
+    trim: true,
+    validate: {
+      validator: function(v) {
+        return this.tipo !== 'OTRO' || (v && v.length > 0);
+      },
+      message: 'El nombre personalizado es requerido cuando el tipo es OTRO'
+    }
   },
-  capacidad: {
-    type: Number,
-    required: true
-  },
-  descripcion: String,
-  caracteristicas: [String],
-  imagenes: [String],
   ...commonFields
 });
+
+// Agregar relación virtual con inventarios
+habitacionSchema.virtual('inventarios', {
+  ref: 'Inventarios',
+  localField: '_id',
+  foreignField: 'habitacion'
+});
+
+// Asegurar que los virtuals se incluyan cuando se convierte a JSON/Object
+habitacionSchema.set('toJSON', { virtuals: true });
+habitacionSchema.set('toObject', { virtuals: true });
 
 export const Habitaciones = mongoose.model('Habitaciones', habitacionSchema); 
