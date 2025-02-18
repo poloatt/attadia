@@ -25,16 +25,46 @@ const transaccionRecurrenteSchema = createSchema({
 
 const contratoSchema = createSchema({
   inquilino: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Inquilinos'
+    type: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Inquilinos'
+    }],
+    validate: {
+      validator: function(v) {
+        return !this.esMantenimiento || (Array.isArray(v) && v.length === 0);
+      },
+      message: 'No se pueden asignar inquilinos a un contrato de mantenimiento'
+    }
   },
   propiedad: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Propiedades'
+    ref: 'Propiedades',
+    required: true
+  },
+  esPorHabitacion: {
+    type: Boolean,
+    default: false
   },
   habitacion: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Habitaciones'
+    ref: 'Habitaciones',
+    required: function() {
+      return this.esPorHabitacion;
+    }
+  },
+  cuenta: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Cuentas',
+    required: function() {
+      return !this.esMantenimiento;
+    }
+  },
+  moneda: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Monedas',
+    required: function() {
+      return !this.esMantenimiento;
+    }
   },
   fechaInicio: {
     type: Date,
@@ -45,18 +75,17 @@ const contratoSchema = createSchema({
   },
   estado: {
     type: String,
-    enum: ['ACTIVO', 'FINALIZADO', 'CANCELADO', 'PENDIENTE'],
-    default: 'PENDIENTE'
+    enum: ['ACTIVO', 'FINALIZADO', 'PLANEADO', 'MANTENIMIENTO'],
+    default: 'PLANEADO'
+  },
+  esMantenimiento: {
+    type: Boolean,
+    default: false
   },
   montoMensual: {
     type: Number,
     required: true,
     min: 0
-  },
-  moneda: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Monedas',
-    required: true
   },
   deposito: {
     type: Number,
@@ -75,6 +104,32 @@ contratoSchema.pre('save', function(next) {
   if (this.fechaFin && this.fechaInicio > this.fechaFin) {
     next(new Error('La fecha de fin debe ser posterior a la fecha de inicio'));
   }
+  next();
+});
+
+// Middleware para calcular estado automáticamente
+contratoSchema.pre('save', async function(next) {
+  const now = new Date();
+  
+  // Si es un contrato de mantenimiento, el estado siempre será MANTENIMIENTO
+  if (this.esMantenimiento) {
+    this.estado = 'MANTENIMIENTO';
+    this.montoMensual = 0; // Forzar monto 0 para contratos de mantenimiento
+    next();
+    return;
+  }
+
+  // Calcular estado basado en fechas
+  if (this.fechaInicio && this.fechaFin) {
+    if (this.fechaInicio <= now && this.fechaFin > now) {
+      this.estado = 'ACTIVO';
+    } else if (this.fechaInicio > now) {
+      this.estado = 'PLANEADO';
+    } else if (this.fechaFin <= now) {
+      this.estado = 'FINALIZADO';
+    }
+  }
+
   next();
 });
 
@@ -109,5 +164,33 @@ contratoSchema.pre('save', async function(next) {
   }
   next();
 });
+
+// Método estático para obtener contratos activos de una propiedad
+contratoSchema.statics.getContratosPropiedad = async function(propiedadId) {
+  const now = new Date();
+  return this.find({
+    propiedad: propiedadId,
+    $or: [
+      // Contratos activos (en curso)
+      {
+        fechaInicio: { $lte: now },
+        fechaFin: { $gt: now },
+        estado: 'ACTIVO'
+      },
+      // Contratos planeados (futuros)
+      {
+        fechaInicio: { $gt: now },
+        estado: 'PLANEADO'
+      },
+      // Contratos de mantenimiento activos
+      {
+        fechaInicio: { $lte: now },
+        fechaFin: { $gt: now },
+        esMantenimiento: true,
+        estado: 'MANTENIMIENTO'
+      }
+    ]
+  }).sort({ fechaInicio: 1 });
+};
 
 export const Contratos = mongoose.model('Contratos', contratoSchema); 

@@ -6,7 +6,8 @@ import {
   Grid,
   Paper,
   Chip,
-  Typography
+  Typography,
+  Dialog
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import { 
@@ -22,229 +23,140 @@ import {
 } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
-import EntityForm from '../components/EntityViews/EntityForm';
+import ContratoForm from '../components/contratos/ContratoForm';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '../config/axios';
 import EmptyState from '../components/EmptyState';
 import { EntityActions } from '../components/EntityViews/EntityActions';
 import EntityCards from '../components/EntityViews/EntityCards';
+import ContratosView from '../components/contratos/ContratosView';
 
 export function Contratos() {
   const [contratos, setContratos] = useState([]);
-  const [propiedades, setPropiedades] = useState([]);
-  const [inquilinos, setInquilinos] = useState([]);
-  const [monedas, setMonedas] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingContrato, setEditingContrato] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [relatedData, setRelatedData] = useState({
+    propiedades: [],
+    inquilinos: [],
+    habitaciones: [],
+    cuentas: [],
+    monedas: []
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
 
-  const fetchContratos = useCallback(async () => {
+  const loadData = useCallback(async () => {
     try {
-      const response = await clienteAxios.get('/contratos');
-      setContratos(response.data.docs || []);
-    } catch (error) {
-      console.error('Error al cargar contratos:', error);
-      enqueueSnackbar('Error al cargar contratos', { variant: 'error' });
-    }
-  }, [enqueueSnackbar]);
+      setIsLoading(true);
+      setError(null);
 
-  const fetchPropiedades = useCallback(async () => {
-    try {
-      const response = await clienteAxios.get('/propiedades');
-      setPropiedades(response.data.docs || []);
-    } catch (error) {
-      console.error('Error al cargar propiedades:', error);
-      enqueueSnackbar('Error al cargar propiedades', { variant: 'error' });
-    }
-  }, [enqueueSnackbar]);
+      // Cargar todos los datos en paralelo
+      const [
+        contratosRes,
+        propiedadesRes,
+        inquilinosRes,
+        habitacionesRes,
+        cuentasRes,
+        monedasRes
+      ] = await Promise.all([
+        clienteAxios.get('/contratos'),
+        clienteAxios.get('/propiedades'),
+        clienteAxios.get('/inquilinos'),
+        clienteAxios.get('/habitaciones'),
+        clienteAxios.get('/cuentas'),
+        clienteAxios.get('/monedas')
+      ]);
 
-  const fetchInquilinos = useCallback(async () => {
-    try {
-      const response = await clienteAxios.get('/inquilinos');
-      setInquilinos(response.data.docs || []);
-    } catch (error) {
-      console.error('Error al cargar inquilinos:', error);
-      enqueueSnackbar('Error al cargar inquilinos', { variant: 'error' });
+      setContratos(contratosRes.data.docs || []);
+      setRelatedData({
+        propiedades: propiedadesRes.data.docs || [],
+        inquilinos: inquilinosRes.data.docs || [],
+        habitaciones: habitacionesRes.data.docs || [],
+        cuentas: cuentasRes.data.docs || [],
+        monedas: monedasRes.data.docs || []
+      });
+    } catch (err) {
+      console.error('Error al cargar datos:', err);
+      setError('Error al cargar los datos. Por favor, intente nuevamente.');
+    } finally {
+      setIsLoading(false);
     }
-  }, [enqueueSnackbar]);
-
-  const fetchMonedas = useCallback(async () => {
-    try {
-      const response = await clienteAxios.get('/monedas');
-      setMonedas(response.data.docs || []);
-    } catch (error) {
-      console.error('Error al cargar monedas:', error);
-      enqueueSnackbar('Error al cargar monedas', { variant: 'error' });
-    }
-  }, [enqueueSnackbar]);
+  }, []);
 
   useEffect(() => {
-    fetchContratos();
-    fetchPropiedades();
-    fetchInquilinos();
-    fetchMonedas();
-  }, [fetchContratos, fetchPropiedades, fetchInquilinos, fetchMonedas]);
-
-  const handleCreatePropiedad = async (data) => {
-    try {
-      const response = await clienteAxios.post('/propiedades', data);
-      setPropiedades(prev => [...prev, response.data]);
-      enqueueSnackbar('Propiedad creada exitosamente', { variant: 'success' });
-      return response.data;
-    } catch (error) {
-      console.error('Error al crear propiedad:', error);
-      enqueueSnackbar('Error al crear la propiedad', { variant: 'error' });
-      throw error;
-    }
-  };
-
-  const handleCreateInquilino = async (data) => {
-    try {
-      const response = await clienteAxios.post('/inquilinos', data);
-      setInquilinos(prev => [...prev, response.data]);
-      enqueueSnackbar('Inquilino creado exitosamente', { variant: 'success' });
-      return response.data;
-    } catch (error) {
-      console.error('Error al crear inquilino:', error);
-      enqueueSnackbar('Error al crear el inquilino', { variant: 'error' });
-      throw error;
-    }
-  };
-
-  const handleFormSubmit = async (formData) => {
-    try {
-      let response;
-      if (editingContrato) {
-        response = await clienteAxios.put(`/contratos/${editingContrato.id}`, formData);
-        enqueueSnackbar('Contrato actualizado exitosamente', { variant: 'success' });
-      } else {
-        response = await clienteAxios.post('/contratos', formData);
-        enqueueSnackbar('Contrato creado exitosamente', { variant: 'success' });
-      }
-      setIsFormOpen(false);
-      setEditingContrato(null);
-      await fetchContratos();
-    } catch (error) {
-      console.error('Error:', error);
-      enqueueSnackbar(
-        error.response?.data?.error || 'Error al guardar el contrato', 
-        { variant: 'error' }
-      );
-    }
-  };
+    loadData();
+  }, [loadData]);
 
   const handleEdit = useCallback((contrato) => {
-    setEditingContrato(contrato);
-    setIsFormOpen(true);
-  }, []);
+    console.log('Editando contrato:', contrato);
+    // Asegurarse de que todos los datos relacionados estén cargados antes de abrir el formulario
+    if (relatedData.propiedades.length === 0 || 
+        relatedData.inquilinos.length === 0 || 
+        relatedData.cuentas.length === 0) {
+      loadData().then(() => {
+        setEditingContrato(contrato);
+        setIsFormOpen(true);
+      });
+    } else {
+      setEditingContrato(contrato);
+      setIsFormOpen(true);
+    }
+  }, [relatedData, loadData]);
 
   const handleDelete = useCallback(async (id) => {
     try {
       await clienteAxios.delete(`/contratos/${id}`);
       enqueueSnackbar('Contrato eliminado exitosamente', { variant: 'success' });
-      await fetchContratos();
+      await loadData();
     } catch (error) {
       console.error('Error al eliminar contrato:', error);
       enqueueSnackbar('Error al eliminar el contrato', { variant: 'error' });
     }
-  }, [enqueueSnackbar, fetchContratos]);
+  }, [enqueueSnackbar, loadData]);
 
-  const formFields = [
-    {
-      name: 'propiedadId',
-      label: 'Propiedad',
-      type: 'relational',
-      required: true,
-      options: propiedades.map(p => ({
-        value: p.id,
-        label: p.titulo
-      })),
-      onCreateNew: handleCreatePropiedad,
-      createFields: [
-        { name: 'titulo', label: 'Título', required: true },
-        { name: 'direccion', label: 'Dirección', required: true },
-        { name: 'ciudad', label: 'Ciudad', required: true },
-        { name: 'estado', label: 'Estado', required: true }
-      ],
-      createTitle: 'Nueva Propiedad'
-    },
-    {
-      name: 'inquilinoId',
-      label: 'Inquilino',
-      type: 'relational',
-      required: true,
-      options: inquilinos.map(i => ({
-        value: i.id,
-        label: `${i.nombre} ${i.apellido}`
-      })),
-      onCreateNew: handleCreateInquilino,
-      createFields: [
-        { name: 'nombre', label: 'Nombre', required: true },
-        { name: 'apellido', label: 'Apellido', required: true },
-        { name: 'email', label: 'Email', type: 'email', required: true },
-        { name: 'telefono', label: 'Teléfono', required: true },
-        { name: 'dni', label: 'DNI', required: true }
-      ],
-      createTitle: 'Nuevo Inquilino'
-    },
-    {
-      name: 'fechaInicio',
-      label: 'Fecha de Inicio',
-      type: 'date',
-      required: true
-    },
-    {
-      name: 'fechaFin',
-      label: 'Fecha de Fin',
-      type: 'date',
-      required: true
-    },
-    {
-      name: 'montoMensual',
-      label: 'Monto Mensual',
-      type: 'number',
-      required: true
-    },
-    {
-      name: 'monedaId',
-      label: 'Moneda',
-      type: 'select',
-      required: true,
-      options: monedas.map(m => ({
-        value: m.id,
-        label: `${m.nombre} (${m.simbolo})`
-      }))
-    },
-    {
-      name: 'estado',
-      label: 'Estado',
-      type: 'select',
-      required: true,
-      options: [
-        { value: 'ACTIVO', label: 'Activo' },
-        { value: 'FINALIZADO', label: 'Finalizado' },
-        { value: 'CANCELADO', label: 'Cancelado' }
-      ]
-    },
-    {
-      name: 'observaciones',
-      label: 'Observaciones',
-      multiline: true,
-      rows: 3
+  const handleFormSubmit = async (formData) => {
+    try {
+      setIsSaving(true);
+      console.log('Datos a enviar:', formData);
+      
+      let response;
+      if (editingContrato) {
+        response = await clienteAxios.put(`/contratos/${editingContrato._id}`, formData);
+        enqueueSnackbar('Contrato actualizado exitosamente', { variant: 'success' });
+      } else {
+        response = await clienteAxios.post('/contratos', formData);
+        enqueueSnackbar('Contrato creado exitosamente', { variant: 'success' });
+      }
+
+      await loadData();
+      setIsFormOpen(false);
+      setEditingContrato(null);
+    } catch (error) {
+      console.error('Error al guardar contrato:', error);
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          error.message || 
+                          'Error al guardar el contrato';
+      enqueueSnackbar(errorMessage, { variant: 'error' });
+      throw error;
+    } finally {
+      setIsSaving(false);
     }
-  ];
+  };
 
   const cardConfig = {
     renderIcon: () => <DescriptionIcon />,
     getTitle: (contrato) => {
-      const propiedad = propiedades.find(p => p.id === contrato.propiedadId);
+      const propiedad = relatedData.propiedades.find(p => p._id === contrato.propiedad);
       return propiedad?.titulo || 'N/A';
     },
     getDetails: (contrato) => [
       {
         icon: <PersonIcon />,
         text: (() => {
-          const inquilino = inquilinos.find(i => i.id === contrato.inquilinoId);
+          const inquilino = relatedData.inquilinos.find(i => i._id === contrato.inquilino);
           return inquilino ? `${inquilino.nombre} ${inquilino.apellido}` : 'N/A';
         })(),
         noWrap: true
@@ -256,28 +168,36 @@ export function Contratos() {
       {
         icon: <MoneyIcon />,
         text: (() => {
-          const moneda = monedas.find(m => m.id === contrato.monedaId);
-          return `${moneda?.simbolo || ''} ${contrato.montoMensual?.toLocaleString() || 0} /mes`;
+          const moneda = relatedData.monedas.find(m => m._id === contrato.moneda);
+          return `${moneda?.simbolo || ''} ${contrato.montoMensual}`;
+        })()
+      },
+      {
+        icon: <HomeIcon />,
+        text: (() => {
+          const habitacion = relatedData.habitaciones.find(h => h._id === contrato.habitacion);
+          return habitacion?.nombre || 'N/A';
         })()
       }
     ],
     getStatus: (contrato) => ({
       label: contrato.estado,
-      color: contrato.estado === 'ACTIVO' ? 'success' :
-             contrato.estado === 'FINALIZADO' ? 'info' : 'error'
-    }),
-    getActions: (contrato) => ({
-      onEdit: () => handleEdit(contrato),
-      onDelete: () => handleDelete(contrato.id),
-      itemName: `el contrato de ${
-        inquilinos.find(i => i.id === contrato.inquilinoId)?.nombre || 'N/A'
-      }`
+      color: (() => {
+        switch (contrato.estado) {
+          case 'ACTIVO': return 'success';
+          case 'FINALIZADO': return 'error';
+          case 'PLANEADO': return 'info';
+          case 'MANTENIMIENTO': return 'warning';
+          default: return 'default';
+        }
+      })()
     })
   };
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="xl">
       <EntityToolbar
+        title="Contratos"
         onAdd={() => {
           setEditingContrato(null);
           setIsFormOpen(true);
@@ -307,51 +227,35 @@ export function Contratos() {
         ]}
       />
 
-      <EntityDetails
-        title="Contratos"
-        action={
-          <Button 
-            variant="contained" 
-            startIcon={<AddIcon />} 
-            size="small"
-            onClick={() => {
-              setEditingContrato(null);
-              setIsFormOpen(true);
-            }}
-            sx={{ borderRadius: 0 }}
-          >
-            Nuevo Contrato
-          </Button>
-        }
-      >
-        {contratos.length === 0 ? (
-          <EmptyState onAdd={() => setIsFormOpen(true)} />
-        ) : (
-          <EntityCards 
-            data={contratos}
-            config={cardConfig}
-            gridProps={{
-              xs: 12,
-              sm: 6,
-              md: 4,
-              lg: 3
-            }}
-          />
-        )}
-      </EntityDetails>
+      {contratos.length === 0 ? (
+        <EmptyState
+          icon={DescriptionIcon}
+          title="No hay contratos"
+          description="Comienza creando un nuevo contrato"
+        />
+      ) : (
+        <ContratosView
+          contratos={contratos}
+          relatedData={relatedData}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
+      )}
 
-      <EntityForm
-        open={isFormOpen}
-        onClose={() => {
-          setIsFormOpen(false);
-          setEditingContrato(null);
-        }}
-        onSubmit={handleFormSubmit}
-        title={editingContrato ? 'Editar Contrato' : 'Nuevo Contrato'}
-        fields={formFields}
-        initialData={editingContrato || {}}
-        isEditing={!!editingContrato}
-      />
+      {isFormOpen && (
+        <ContratoForm
+          initialData={editingContrato || {}}
+          relatedData={relatedData}
+          onSubmit={handleFormSubmit}
+          onClose={() => {
+            if (!isSaving) {
+              setIsFormOpen(false);
+              setEditingContrato(null);
+            }
+          }}
+          isSaving={isSaving}
+        />
+      )}
     </Container>
   );
 }

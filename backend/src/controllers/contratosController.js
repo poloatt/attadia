@@ -1,5 +1,6 @@
 import { BaseController } from './BaseController.js';
 import { Contratos } from '../models/index.js';
+import mongoose from 'mongoose';
 
 class ContratosController extends BaseController {
   constructor() {
@@ -19,13 +20,37 @@ class ContratosController extends BaseController {
   formatResponse(doc) {
     if (!doc) return null;
     const formatted = doc.toObject ? doc.toObject() : doc;
+    
+    // Asegurarse que las propiedades relacionadas existan
+    const propiedad = formatted.propiedad || {};
+    const inquilinos = Array.isArray(formatted.inquilino) ? formatted.inquilino : [formatted.inquilino];
+    const habitacion = formatted.habitacion || {};
+    const cuenta = formatted.cuenta || {};
+    
     return {
       ...formatted,
       id: formatted._id,
-      propiedadId: formatted.propiedad?._id || formatted.propiedad,
-      inquilinoId: formatted.inquilino?._id || formatted.inquilino,
-      habitacionId: formatted.habitacion?._id || formatted.habitacion,
-      monedaId: formatted.moneda?._id || formatted.moneda
+      propiedad: {
+        ...propiedad,
+        id: propiedad._id,
+        titulo: propiedad.titulo || 'Propiedad no encontrada'
+      },
+      inquilino: inquilinos.filter(Boolean).map(inq => ({
+        ...inq,
+        id: inq._id
+      })),
+      habitacion: habitacion._id ? {
+        ...habitacion,
+        id: habitacion._id
+      } : null,
+      cuenta: cuenta._id ? {
+        ...cuenta,
+        id: cuenta._id,
+        moneda: cuenta.moneda ? {
+          ...cuenta.moneda,
+          id: cuenta.moneda._id
+        } : null
+      } : null
     };
   }
 
@@ -36,13 +61,39 @@ class ContratosController extends BaseController {
       const result = await this.Model.paginate(
         {},
         {
-          populate: ['propiedad', 'inquilino', 'habitacion', 'moneda'],
+          populate: [
+            { 
+              path: 'propiedad',
+              select: 'titulo direccion ciudad estado tipo'
+            },
+            {
+              path: 'inquilino',
+              select: 'nombre apellido email'
+            },
+            {
+              path: 'habitacion',
+              select: 'nombre tipo'
+            },
+            { 
+              path: 'cuenta',
+              populate: { 
+                path: 'moneda',
+                select: 'nombre simbolo'
+              }
+            }
+          ],
           sort: { createdAt: 'desc' }
         }
       );
 
-      const docs = result.docs.map(doc => this.formatResponse(doc));
-      console.log('Contratos encontrados:', docs.length);
+      console.log('Contratos sin formatear:', result.docs);
+      const docs = result.docs.map(doc => {
+        const formatted = this.formatResponse(doc);
+        console.log('Contrato formateado:', formatted);
+        return formatted;
+      });
+      
+      console.log('Total contratos encontrados:', docs.length);
       res.json({ ...result, docs });
     } catch (error) {
       console.error('Error al obtener contratos:', error);
@@ -54,23 +105,47 @@ class ContratosController extends BaseController {
   async create(req, res) {
     try {
       console.log('Creando contrato:', req.body);
+      
+      let moneda = null;
+      let cuenta = null;
+
+      // Solo buscar cuenta y moneda si no es mantenimiento
+      if (!req.body.esMantenimiento) {
+        // Obtener la cuenta y su moneda
+        const Cuentas = mongoose.model('Cuentas');
+        cuenta = await Cuentas.findById(req.body.cuenta).populate('moneda');
+        if (!cuenta) {
+          throw new Error('Cuenta no encontrada');
+        }
+        moneda = cuenta.moneda._id;
+      }
+
       const data = {
         ...req.body,
         fechaInicio: new Date(req.body.fechaInicio),
         fechaFin: req.body.fechaFin ? new Date(req.body.fechaFin) : null,
         montoMensual: parseFloat(req.body.montoMensual),
         deposito: req.body.deposito ? parseFloat(req.body.deposito) : null,
-        propiedad: req.body.propiedadId,
-        inquilino: req.body.inquilinoId,
-        habitacion: req.body.habitacionId,
-        moneda: req.body.monedaId
+        propiedad: req.body.propiedadId || req.body.propiedad,
+        inquilino: req.body.inquilinoId || req.body.inquilino,
+        habitacion: req.body.habitacionId || req.body.habitacion,
+        cuenta: req.body.esMantenimiento ? null : (req.body.cuentaId || req.body.cuenta),
+        moneda: req.body.esMantenimiento ? null : moneda
       };
 
       console.log('Datos procesados:', data);
 
       const contrato = await this.Model.create(data);
       const populatedContrato = await this.Model.findById(contrato._id)
-        .populate(['propiedad', 'inquilino', 'habitacion', 'moneda']);
+        .populate([
+          'propiedad', 
+          'inquilino', 
+          'habitacion',
+          { 
+            path: 'cuenta',
+            populate: { path: 'moneda' }
+          }
+        ]);
 
       console.log('Contrato creado:', populatedContrato);
       res.status(201).json(this.formatResponse(populatedContrato));

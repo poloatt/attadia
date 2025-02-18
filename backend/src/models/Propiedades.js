@@ -25,9 +25,11 @@ const propiedadSchema = createSchema({
     required: true
   },
   estado: {
-    type: String,
-    enum: ['DISPONIBLE', 'OCUPADA', 'MANTENIMIENTO', 'RESERVADA'],
-    default: 'DISPONIBLE',
+    type: [{
+      type: String,
+      enum: ['DISPONIBLE', 'OCUPADA', 'MANTENIMIENTO', 'RESERVADA']
+    }],
+    default: ['DISPONIBLE'],
     required: true
   },
   tipo: {
@@ -114,6 +116,57 @@ propiedadSchema.methods.getResumenHabitaciones = async function() {
     totalDormitorios: dormitoriosSimples + dormitoriosDobles,
     banos
   };
+};
+
+// Método para calcular estados basado en contratos
+propiedadSchema.methods.calcularEstados = async function() {
+  const Contratos = mongoose.model('Contratos');
+  const contratos = await Contratos.getContratosPropiedad(this._id);
+  
+  const estados = new Set();
+  const now = new Date();
+  
+  // Por defecto, la propiedad está disponible
+  estados.add('DISPONIBLE');
+  
+  for (const contrato of contratos) {
+    if (contrato.esMantenimiento && contrato.fechaInicio <= now && contrato.fechaFin > now) {
+      // Si hay un contrato de mantenimiento activo
+      estados.clear(); // Limpiar otros estados
+      estados.add('MANTENIMIENTO');
+      break; // El mantenimiento tiene prioridad sobre otros estados
+    }
+    
+    if (!contrato.esMantenimiento) {
+      if (contrato.fechaInicio <= now && contrato.fechaFin > now) {
+        // Contrato activo actual
+        estados.delete('DISPONIBLE');
+        estados.add('OCUPADA');
+      } else if (contrato.fechaInicio > now) {
+        // Contrato futuro
+        estados.add('RESERVADA');
+      }
+    }
+  }
+  
+  return Array.from(estados);
+};
+
+// Middleware para actualizar estados antes de guardar
+propiedadSchema.pre('save', async function(next) {
+  if (!this.isModified('estado')) {
+    this.estado = await this.calcularEstados();
+  }
+  next();
+});
+
+// Método estático para actualizar estados de todas las propiedades
+propiedadSchema.statics.actualizarEstados = async function() {
+  const propiedades = await this.find({});
+  for (const propiedad of propiedades) {
+    propiedad.estado = await propiedad.calcularEstados();
+    await propiedad.save();
+  }
 };
 
 // Asegurar que los virtuals se incluyan cuando se convierte a JSON/Object

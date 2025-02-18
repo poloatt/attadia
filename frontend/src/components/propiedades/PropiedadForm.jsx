@@ -625,16 +625,17 @@ const PropiedadForm = ({
               )}
             </Grid>
 
-            {/* Estado de la Propiedad */}
+            {/* Estado de la Propiedad - Solo Lectura */}
             <Grid item xs={12}>
               <Box sx={{ 
                 position: 'relative',
                 border: t => `1px solid ${t.palette.divider}`,
                 p: 2,
-                pt: 1.5
+                pt: 1.5,
+                opacity: 0.8 // Indicador visual de que es solo lectura
               }}>
                 <StyledSectionTitle>
-                  Estado de la Propiedad
+                  Estado de la Propiedad (Automático)
                 </StyledSectionTitle>
                 <Box sx={{ 
                   display: 'flex',
@@ -646,23 +647,24 @@ const PropiedadForm = ({
                     mr: 1
                   }
                 }}>
-                  {ESTADOS_PROPIEDAD.map((estado) => (
-                    <CategoryChip
-                      key={estado.valor}
-                      icon={estado.icon}
-                      label={estado.label}
-                      onClick={() => handleChange('estado', estado.valor)}
-                      className={formData.estado === estado.valor ? 'selected' : ''}
-                      customcolor={estado.color}
-                    />
-                  ))}
+                  {Array.isArray(formData.estado) ? formData.estado.map((estadoValor) => {
+                    const estado = ESTADOS_PROPIEDAD.find(e => e.valor === estadoValor);
+                    return estado ? (
+                      <CategoryChip
+                        key={estado.valor}
+                        icon={estado.icon}
+                        label={estado.label}
+                        className="selected"
+                        customcolor={estado.color}
+                        sx={{ pointerEvents: 'none' }}
+                      />
+                    ) : null;
+                  }) : null}
                 </Box>
-              </Box>
-              {errors.estado && (
-                <Typography color="error" variant="caption" sx={{ mt: 1 }}>
-                  {errors.estado}
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  El estado se calcula automáticamente basado en los contratos activos y futuros
                 </Typography>
-              )}
+              </Box>
             </Grid>
           </Grid>
 
