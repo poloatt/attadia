@@ -513,7 +513,7 @@ const ContratoForm = ({
             </FormSection>
 
             {/* Propiedad y Tipo de Alquiler */}
-            <FormSection alternate>
+            <FormSection isAlternate>
               <StyledSectionTitle>
                 <Home />
                 Propiedad y Tipo de Alquiler
@@ -626,7 +626,7 @@ const ContratoForm = ({
             )}
 
             {/* Fechas */}
-            <FormSection alternate>
+            <FormSection isAlternate>
               <StyledSectionTitle>
                 <CalendarToday />
                 Fechas del Contrato
@@ -729,7 +729,7 @@ const ContratoForm = ({
                 </FormSection>
 
                 {/* Montos y Cuenta */}
-                <FormSection alternate>
+                <FormSection isAlternate>
                   <StyledSectionTitle>
                     <AttachMoney />
                     Montos y Cuenta
