@@ -9,7 +9,7 @@ import {
   CreditCardOutlined as CardIcon,
   AttachMoneyOutlined as MoneyIcon,
   AccountBalanceWalletOutlined as WalletIcon,
-  AutorenewOutlined as RutinasIcon,
+  FitnessCenterOutlined as RutinasIcon,
   AssignmentOutlined as TaskIcon,
   AssignmentOutlined as ProjectIcon,
   TimerOutlined as PeriodIcon,

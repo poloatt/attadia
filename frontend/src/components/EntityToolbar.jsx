@@ -15,7 +15,7 @@ import {
   ArrowBackOutlined,
   ApartmentOutlined as BuildingIcon,
   AccountBalanceWalletOutlined as WalletIcon,
-  AutorenewOutlined as RutinasIcon,
+  FitnessCenterOutlined as RutinasIcon,
   ScienceOutlined as LabIcon,
   RestaurantOutlined as DietaIcon,
   AssignmentOutlined as ProjectIcon,

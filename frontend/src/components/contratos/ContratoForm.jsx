@@ -39,6 +39,12 @@ import {
 } from '@mui/icons-material';
 import EntityDateSelect from '../EntityViews/EntityDateSelect';
 import { CircularProgress } from '@mui/material';
+import ContratoMantenimientoSection from './ContratoMantenimientoSection';
+import ContratoPropiedadSection from './ContratoPropiedadSection';
+import ContratoHabitacionSection from './ContratoHabitacionSection';
+import ContratoFechasSection from './ContratoFechasSection';
+import ContratoInquilinosSection from './ContratoInquilinosSection';
+import ContratoMontosSection from './ContratoMontosSection';
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
@@ -61,30 +67,25 @@ const StyledDialog = styled(Dialog)(({ theme }) => ({
 const StyledTextField = styled(TextField)(({ theme }) => ({
   '& .MuiOutlinedInput-root': {
     borderRadius: 0,
-    backgroundColor: theme.palette.background.paper,
-    transition: 'all 0.2s ease',
+    backgroundColor: alpha(theme.palette.background.paper, 0.9),
     '& fieldset': {
-      borderColor: theme.palette.divider,
-      transition: 'border-color 0.2s ease'
+      borderColor: theme.palette.divider
     },
     '&:hover fieldset': {
-      borderColor: theme.palette.action.hover
+      borderColor: 'rgba(255, 255, 255, 0.2)'
     },
     '&.Mui-focused fieldset': {
       borderColor: theme.palette.primary.main
     }
   },
   '& .MuiInputLabel-root': {
-    color: theme.palette.text.secondary,
-    '&.Mui-focused': {
-      color: theme.palette.primary.main
+    transform: 'translate(14px, -9px) scale(0.75)',
+    '&.Mui-focused, &.MuiFormLabel-filled': {
+      transform: 'translate(14px, -9px) scale(0.75)'
     }
   },
-  '& .MuiInputAdornment-root': {
-    '& .MuiSvgIcon-root': {
-      fontSize: '1.2rem',
-      color: theme.palette.text.secondary
-    }
+  '& .MuiInputLabel-shrink': {
+    transform: 'translate(14px, -9px) scale(0.75)'
   }
 }));
 
@@ -102,40 +103,35 @@ const StyledSectionTitle = styled(Typography)(({ theme }) => ({
   }
 }));
 
-const FormSection = styled(Box, {
-  shouldForwardProp: prop => prop !== 'isAlternate'
-})(({ theme, isAlternate }) => ({
-  padding: theme.spacing(1.5),
-  backgroundColor: isAlternate ? theme.palette.background.paper : 'transparent',
-  marginBottom: theme.spacing(0.5),
-  transition: 'background-color 0.2s ease'
+const FormSection = styled(Box)(({ theme }) => ({
+  marginBottom: theme.spacing(2)
 }));
 
 const StyledToggleButton = styled(ToggleButton)(({ theme, customcolor }) => ({
   flex: 1,
   height: 40,
   borderRadius: 0,
-  border: `1px solid ${theme.palette.divider}`,
-  backgroundColor: theme.palette.background.paper,
+  border: 'none',
+  backgroundColor: 'transparent',
   color: theme.palette.text.secondary,
   transition: 'all 0.2s ease',
+  textTransform: 'none',
   '&:hover': {
-    backgroundColor: alpha(customcolor, 0.08),
-    '& .MuiSvgIcon-root': {
-      color: customcolor
-    }
-  },
-  '&.Mui-selected': {
-    backgroundColor: alpha(customcolor, 0.12),
-    borderColor: customcolor,
+    backgroundColor: 'transparent',
     '& .MuiSvgIcon-root': {
       color: customcolor
     },
     '& .MuiTypography-root': {
       color: customcolor
+    }
+  },
+  '&.Mui-selected': {
+    backgroundColor: 'transparent',
+    '& .MuiSvgIcon-root': {
+      color: customcolor
     },
-    '&:hover': {
-      backgroundColor: alpha(customcolor, 0.16)
+    '& .MuiTypography-root': {
+      color: customcolor
     }
   },
   '& .MuiSvgIcon-root': {
@@ -269,28 +265,55 @@ const ContratoForm = ({
     }
   }, [initialData, relatedData]);
 
-  const handleChange = (field, value) => {
-    console.log(`Cambiando ${field}:`, value);
-    
-    // Validación especial para fechas
-    if (field === 'fechaInicio' || field === 'fechaFin') {
-      if (value && !(value instanceof Date)) {
-        value = new Date(value);
-      }
-      if (value && isNaN(value.getTime())) {
-        console.error('Fecha inválida:', value);
-        return;
-      }
-    }
-    
+  const handleChange = (name, value) => {
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [name]: value
     }));
     
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: null }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
     }
+  };
+
+  const handleMantenimientoChange = (esMantenimiento) => {
+    setFormData(prev => ({
+      ...prev,
+      esMantenimiento,
+      montoMensual: esMantenimiento ? '0' : prev.montoMensual,
+      inquilino: esMantenimiento ? [] : prev.inquilino
+    }));
+    setSelectedInquilinos([]);
+  };
+
+  const handlePropiedadChange = (newValue) => {
+    setSelectedPropiedad(newValue);
+    handleChange('propiedad', newValue?._id || newValue?.id || '');
+    setSelectedHabitacion(null);
+    handleChange('habitacion', '');
+  };
+
+  const handleTipoAlquilerChange = (valor) => {
+    handleChange('esPorHabitacion', valor);
+    if (!valor) {
+      setSelectedHabitacion(null);
+      handleChange('habitacion', '');
+    }
+  };
+
+  const handleHabitacionChange = (newValue) => {
+    setSelectedHabitacion(newValue);
+    handleChange('habitacion', newValue?._id || newValue?.id || '');
+  };
+
+  const handleInquilinosChange = (newValue) => {
+    setSelectedInquilinos(newValue);
+    handleChange('inquilino', newValue.map(inq => inq._id));
+  };
+
+  const handleCuentaChange = (newValue) => {
+    setSelectedCuenta(newValue);
+    handleChange('cuenta', newValue?._id || newValue?.id || '');
   };
 
   const handleSubmit = async (e) => {
@@ -448,7 +471,7 @@ const ContratoForm = ({
 
         {/* Content */}
         <DialogContent sx={{ 
-          p: 0,
+          p: 3,
           bgcolor: 'background.default',
           flex: 1,
           overflowY: 'auto'
@@ -459,383 +482,54 @@ const ContratoForm = ({
             id="contrato-form"
             sx={{ display: 'flex', flexDirection: 'column' }}
           >
-            {/* Tipo de Contrato */}
-            <FormSection>
-              <Box sx={{ 
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                mb: 2
-              }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Engineering sx={{ color: 'warning.main' }} />
-                  <Typography variant="subtitle1">Tipo de Contrato</Typography>
-                </Box>
-                <Switch
-                  checked={formData.esMantenimiento}
-                  onChange={(e) => {
-                    const esMantenimiento = e.target.checked;
-                    setFormData(prev => ({
-                      ...prev,
-                      esMantenimiento,
-                      montoMensual: esMantenimiento ? '0' : prev.montoMensual,
-                      inquilino: esMantenimiento ? [] : prev.inquilino
-                    }));
-                    setSelectedInquilinos([]);
-                  }}
-                  sx={{
-                    '& .MuiSwitch-switchBase.Mui-checked': {
-                      color: 'warning.main',
-                      '&:hover': {
-                        backgroundColor: alpha(theme.palette.warning.main, 0.08)
-                      }
-                    },
-                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                      backgroundColor: 'warning.main'
-                    }
-                  }}
-                />
-              </Box>
-              {formData.esMantenimiento && (
-                <Typography 
-                  variant="caption" 
-                  color="warning.main"
-                  sx={{ 
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1
-                  }}
-                >
-                  <InfoIcon sx={{ fontSize: '1rem' }} />
-                  Durante el mantenimiento, el monto mensual será 0 y no se requiere inquilino
-                </Typography>
-              )}
-            </FormSection>
+            <ContratoMantenimientoSection
+              formData={formData}
+              onChange={handleMantenimientoChange}
+              theme={theme}
+            />
 
-            {/* Propiedad y Tipo de Alquiler */}
-            <FormSection isAlternate>
-              <StyledSectionTitle>
-                <Home />
-                Propiedad y Tipo de Alquiler
-              </StyledSectionTitle>
-              <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-                <Autocomplete
-                  sx={{ flex: 1 }}
-                  value={selectedPropiedad}
-                  onChange={(_, newValue) => {
-                    setSelectedPropiedad(newValue);
-                    handleChange('propiedad', newValue?._id || newValue?.id || '');
-                    setSelectedHabitacion(null);
-                    handleChange('habitacion', '');
-                  }}
-                  options={relatedData.propiedades || []}
-                  getOptionLabel={(option) => option.titulo || ''}
-                  renderInput={(params) => (
-                    <StyledTextField
-                      {...params}
-                      label="Propiedad"
-                      error={!!errors.propiedad}
-                      helperText={errors.propiedad}
-                      InputProps={{
-                        ...params.InputProps,
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            {selectedPropiedad ? 
-                              TIPOS_PROPIEDAD.find(t => t.valor === selectedPropiedad.tipo)?.icon || <Home /> 
-                              : <Home />
-                            }
-                          </InputAdornment>
-                        )
-                      }}
-                    />
-                  )}
-                  renderOption={(props, option) => (
-                    <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {TIPOS_PROPIEDAD.find(t => t.valor === option.tipo)?.icon || <Home />}
-                      <Typography>{option.titulo}</Typography>
-                    </Box>
-                  )}
-                />
-                {!formData.esMantenimiento && (
-                  <Box sx={{ 
-                    display: 'flex', 
-                    gap: 0.5,
-                    alignSelf: 'center',
-                    height: '56px',
-                    alignItems: 'center'
-                  }}>
-                    {TIPO_ALQUILER.map((tipo) => (
-                      <StyledToggleButton
-                        key={String(tipo.valor)}
-                        value={tipo.valor}
-                        selected={formData.esPorHabitacion === tipo.valor}
-                        onClick={() => {
-                          handleChange('esPorHabitacion', tipo.valor);
-                          if (!tipo.valor) {
-                            setSelectedHabitacion(null);
-                            handleChange('habitacion', '');
-                          }
-                        }}
-                        customcolor={tipo.color}
-                      >
-                        {tipo.icon}
-                        <Typography variant="body2">{tipo.label}</Typography>
-                      </StyledToggleButton>
-                    ))}
-                  </Box>
-                )}
-              </Box>
-            </FormSection>
+            <ContratoPropiedadSection
+              formData={formData}
+              selectedPropiedad={selectedPropiedad}
+              onPropiedadChange={handlePropiedadChange}
+              onTipoAlquilerChange={handleTipoAlquilerChange}
+              relatedData={relatedData}
+              errors={errors}
+            />
 
-            {/* Habitación (solo si esPorHabitacion es true) */}
-            {formData.esPorHabitacion && !formData.esMantenimiento && (
-              <FormSection>
-                <StyledSectionTitle>
-                  <MeetingRoom />
-                  Habitación
-                </StyledSectionTitle>
-                <Autocomplete
-                  value={selectedHabitacion}
-                  onChange={(_, newValue) => {
-                    setSelectedHabitacion(newValue);
-                    handleChange('habitacion', newValue?._id || newValue?.id || '');
-                  }}
-                  options={relatedData.habitaciones?.filter(h => 
-                    h.propiedad === formData.propiedad
-                  ) || []}
-                  getOptionLabel={(option) => option.nombre || ''}
-                  disabled={!formData.propiedad}
-                  renderInput={(params) => (
-                    <StyledTextField
-                      {...params}
-                      label="Seleccionar Habitación"
-                      error={!!errors.habitacion}
-                      helperText={errors.habitacion}
-                      InputProps={{
-                        ...params.InputProps,
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <MeetingRoom />
-                          </InputAdornment>
-                        )
-                      }}
-                    />
-                  )}
-                />
-              </FormSection>
-            )}
+            <ContratoHabitacionSection
+              selectedHabitacion={selectedHabitacion}
+              onHabitacionChange={handleHabitacionChange}
+              relatedData={relatedData}
+              formData={formData}
+              errors={errors}
+            />
 
-            {/* Fechas */}
-            <FormSection isAlternate>
-              <StyledSectionTitle>
-                <CalendarToday />
-                Fechas del Contrato
-              </StyledSectionTitle>
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <EntityDateSelect
-                  sx={{ flex: 1 }}
-                  label="Fecha de Inicio"
-                  value={formData.fechaInicio}
-                  onChange={(newValue) => handleChange('fechaInicio', newValue)}
-                  error={!!errors.fechaInicio}
-                  helperText={errors.fechaInicio}
-                />
-                <EntityDateSelect
-                  sx={{ flex: 1 }}
-                  label="Fecha de Fin"
-                  value={formData.fechaFin}
-                  onChange={(newValue) => handleChange('fechaFin', newValue)}
-                  error={!!errors.fechaFin}
-                  helperText={errors.fechaFin}
-                  minDate={formData.fechaInicio}
-                />
-              </Box>
-            </FormSection>
+            <ContratoFechasSection
+              formData={formData}
+              onFechaChange={handleChange}
+              errors={errors}
+            />
 
-            {/* Campos específicos según el tipo de contrato */}
             {!formData.esMantenimiento && (
               <>
-                {/* Inquilinos */}
-                <FormSection>
-                  <StyledSectionTitle>
-                    <Person />
-                    Inquilinos
-                  </StyledSectionTitle>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <Autocomplete
-                      multiple
-                      value={selectedInquilinos}
-                      onChange={(_, newValue) => {
-                        setSelectedInquilinos(newValue);
-                        handleChange('inquilino', newValue.map(inq => inq._id));
-                      }}
-                      options={relatedData.inquilinos || []}
-                      getOptionLabel={(option) => 
-                        option && typeof option === 'object' ? 
-                          `${option.nombre || ''} ${option.apellido || ''}` : ''
-                      }
-                      renderInput={(params) => (
-                        <StyledTextField
-                          {...params}
-                          label="Seleccionar Inquilinos"
-                          error={!!errors.inquilino}
-                          helperText={errors.inquilino}
-                          InputProps={{
-                            ...params.InputProps,
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <Person />
-                              </InputAdornment>
-                            )
-                          }}
-                        />
-                      )}
-                      renderTags={() => null}
-                    />
-                    {selectedInquilinos.length > 0 && (
-                      <Box sx={{ 
-                        display: 'flex', 
-                        flexWrap: 'wrap', 
-                        gap: 1,
-                        p: 1,
-                        bgcolor: 'background.default'
-                      }}>
-                        {selectedInquilinos.map((inquilino) => inquilino && (
-                          <Chip
-                            key={inquilino._id}
-                            label={`${inquilino.nombre || ''} ${inquilino.apellido || ''}`}
-                            onDelete={() => {
-                              const newInquilinos = selectedInquilinos.filter(
-                                i => i._id !== inquilino._id
-                              );
-                              setSelectedInquilinos(newInquilinos);
-                              handleChange('inquilino', newInquilinos.map(inq => inq._id));
-                            }}
-                            sx={{ 
-                              borderRadius: 0,
-                              bgcolor: 'background.paper',
-                              '& .MuiChip-deleteIcon': {
-                                color: 'text.secondary',
-                                '&:hover': {
-                                  color: 'error.main'
-                                }
-                              }
-                            }}
-                          />
-                        ))}
-                      </Box>
-                    )}
-                  </Box>
-                </FormSection>
+                <ContratoInquilinosSection
+                  selectedInquilinos={selectedInquilinos}
+                  onInquilinosChange={handleInquilinosChange}
+                  relatedData={relatedData}
+                  errors={errors}
+                />
 
-                {/* Montos y Cuenta */}
-                <FormSection isAlternate>
-                  <StyledSectionTitle>
-                    <AttachMoney />
-                    Montos y Cuenta
-                  </StyledSectionTitle>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                      <StyledTextField
-                        sx={{ flex: 1 }}
-                        label="Monto Mensual"
-                        value={formData.montoMensual}
-                        onChange={(e) => handleChange('montoMensual', e.target.value)}
-                        error={!!errors.montoMensual}
-                        helperText={errors.montoMensual}
-                        type="number"
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <AttachMoney />
-                            </InputAdornment>
-                          )
-                        }}
-                      />
-                      <StyledTextField
-                        sx={{ flex: 1 }}
-                        label="Depósito"
-                        value={formData.deposito}
-                        onChange={(e) => handleChange('deposito', e.target.value)}
-                        error={!!errors.deposito}
-                        helperText={errors.deposito}
-                        type="number"
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <AttachMoney />
-                            </InputAdornment>
-                          )
-                        }}
-                      />
-                    </Box>
-                    <Autocomplete
-                      value={selectedCuenta}
-                      onChange={(_, newValue) => {
-                        console.log('Nueva cuenta seleccionada:', newValue);
-                        setSelectedCuenta(newValue);
-                        handleChange('cuenta', newValue?._id || newValue?.id || '');
-                      }}
-                      options={relatedData.cuentas || []}
-                      getOptionLabel={(option) => 
-                        `${option.nombre || ''} - ${option.moneda?.simbolo || ''} (${option.tipo || ''})`
-                      }
-                      renderInput={(params) => (
-                        <StyledTextField
-                          {...params}
-                          label="Cuenta"
-                          error={!!errors.cuenta}
-                          helperText={errors.cuenta}
-                          InputProps={{
-                            ...params.InputProps,
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <AttachMoney />
-                              </InputAdornment>
-                            )
-                          }}
-                        />
-                      )}
-                      renderOption={(props, option) => {
-                        const { key, ...otherProps } = props;
-                        return (
-                          <Box component="li" key={key} {...otherProps}>
-                            <Box>
-                              <Typography>{option.nombre}</Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {option.moneda?.simbolo} - {option.tipo}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        );
-                      }}
-                    />
-                  </Box>
-                </FormSection>
+                <ContratoMontosSection
+                  formData={formData}
+                  selectedCuenta={selectedCuenta}
+                  onCuentaChange={handleCuentaChange}
+                  onMontoChange={handleChange}
+                  relatedData={relatedData}
+                  errors={errors}
+                />
               </>
             )}
-
-            {/* Observaciones */}
-            <FormSection>
-              <StyledSectionTitle>
-                <Description />
-                Observaciones
-              </StyledSectionTitle>
-              <StyledTextField
-                fullWidth
-                multiline
-                rows={3}
-                value={formData.observaciones}
-                onChange={(e) => handleChange('observaciones', e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1.5 }}>
-                      <Description />
-                    </InputAdornment>
-                  )
-                }}
-              />
-            </FormSection>
           </Box>
         </DialogContent>
 

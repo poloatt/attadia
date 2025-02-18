@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, TextField, InputAdornment } from '@mui/material';
+import { Box, TextField } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -19,6 +19,15 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
     '&.Mui-focused fieldset': {
       borderColor: theme.palette.primary.main
     }
+  },
+  '& .MuiInputLabel-root': {
+    transform: 'translate(14px, -9px) scale(0.75)',
+    '&.Mui-focused, &.MuiFormLabel-filled': {
+      transform: 'translate(14px, -9px) scale(0.75)'
+    }
+  },
+  '& .MuiInputLabel-shrink': {
+    transform: 'translate(14px, -9px) scale(0.75)'
   }
 }));
 
@@ -47,10 +56,13 @@ const EntityDateSelect = ({
         renderInput={(params) => (
           <StyledTextField
             {...params}
-            {...props}
             fullWidth={fullWidth}
             error={error}
             helperText={helperText}
+            InputLabelProps={{
+              ...params.InputLabelProps,
+              shrink: true
+            }}
           />
         )}
       />

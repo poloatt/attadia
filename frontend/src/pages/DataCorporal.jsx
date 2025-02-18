@@ -10,7 +10,7 @@ import AddIcon from '@mui/icons-material/Add';
 import { 
   ScienceOutlined as LabIcon,
   RestaurantOutlined as DietaIcon,
-  AutorenewOutlined as RutinasIcon,
+  FitnessCenterOutlined as RutinasIcon,
   MonitorWeightOutlined as WeightIcon
 } from '@mui/icons-material';
 
