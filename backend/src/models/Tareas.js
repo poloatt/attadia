@@ -27,15 +27,37 @@ const tareaSchema = createSchema({
   estado: {
     type: String,
     enum: ['PENDIENTE', 'EN_PROGRESO', 'COMPLETADA'],
-    default: 'PENDIENTE'
+    default: 'PENDIENTE',
+    immutable: true
   },
   fechaInicio: {
     type: Date,
     required: true,
-    default: Date.now
+    default: Date.now,
+    validate: {
+      validator: function(value) {
+        return value instanceof Date && !isNaN(value);
+      },
+      message: 'La fecha de inicio debe ser una fecha válida'
+    }
   },
   fechaFin: {
-    type: Date
+    type: Date,
+    validate: {
+      validator: function(value) {
+        return !value || (value instanceof Date && !isNaN(value));
+      },
+      message: 'La fecha de fin debe ser una fecha válida'
+    }
+  },
+  fechaVencimiento: {
+    type: Date,
+    validate: {
+      validator: function(value) {
+        return !value || (value instanceof Date && !isNaN(value));
+      },
+      message: 'La fecha de vencimiento debe ser una fecha válida'
+    }
   },
   subtareas: [subtareaSchema],
   proyecto: {
@@ -53,7 +75,6 @@ const tareaSchema = createSchema({
     enum: ['BAJA', 'ALTA'],
     default: 'BAJA'
   },
-  fechaVencimiento: Date,
   completada: {
     type: Boolean,
     default: false
@@ -72,9 +93,29 @@ const tareaSchema = createSchema({
 
 // Middleware para validar fechas
 tareaSchema.pre('save', function(next) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Si no hay fecha de inicio, establecer a hoy
+  if (!this.fechaInicio) {
+    this.fechaInicio = today;
+  }
+
+  // Validar que la fecha de inicio no sea anterior a hoy si es nueva tarea
+  if (this.isNew && this.fechaInicio < today) {
+    this.fechaInicio = today;
+  }
+
+  // Validar que la fecha de fin sea posterior a la fecha de inicio
   if (this.fechaFin && this.fechaInicio > this.fechaFin) {
     next(new Error('La fecha de fin debe ser posterior a la fecha de inicio'));
   }
+
+  // Validar que la fecha de vencimiento sea posterior a la fecha de inicio
+  if (this.fechaVencimiento && this.fechaInicio > this.fechaVencimiento) {
+    next(new Error('La fecha de vencimiento debe ser posterior a la fecha de inicio'));
+  }
+
   next();
 });
 
@@ -100,6 +141,25 @@ tareaSchema.pre('save', async function(next) {
     } catch (error) {
       next(error);
     }
+  }
+  next();
+});
+
+// Middleware para actualizar el estado basado en subtareas
+tareaSchema.pre('save', function(next) {
+  if (this.subtareas && this.subtareas.length > 0) {
+    const todasCompletadas = this.subtareas.every(st => st.completada);
+    const algunaCompletada = this.subtareas.some(st => st.completada);
+
+    if (todasCompletadas) {
+      this.estado = 'COMPLETADA';
+    } else if (algunaCompletada) {
+      this.estado = 'EN_PROGRESO';
+    } else {
+      this.estado = 'PENDIENTE';
+    }
+  } else {
+    this.estado = 'PENDIENTE';
   }
   next();
 });

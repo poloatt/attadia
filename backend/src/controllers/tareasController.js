@@ -337,22 +337,57 @@ class TareasController extends BaseController {
     try {
       const { 
         page = 1, 
-        limit = 10, 
-        sort = '-fechaInicio',
+        limit = 50, // Aumentamos el límite para mostrar más tareas
+        sort = 'fechaInicio', // Ordenar por fecha de inicio por defecto
         estado,
-        proyecto
+        proyecto,
+        periodo
       } = req.query;
 
       const query = { usuario: req.user.id };
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
       if (estado) query.estado = estado;
       if (proyecto) query.proyecto = proyecto;
+
+      // Filtrar por período si se especifica
+      if (periodo) {
+        switch (periodo) {
+          case 'hoy':
+            query.fechaInicio = {
+              $gte: today,
+              $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000)
+            };
+            break;
+          case 'semana':
+            const weekEnd = new Date(today);
+            weekEnd.setDate(today.getDate() + 7);
+            query.fechaInicio = { $gte: today, $lt: weekEnd };
+            break;
+          case 'mes':
+            const monthEnd = new Date(today);
+            monthEnd.setMonth(today.getMonth() + 1);
+            query.fechaInicio = { $gte: today, $lt: monthEnd };
+            break;
+          case 'trimestre':
+            const quarterEnd = new Date(today);
+            quarterEnd.setMonth(today.getMonth() + 3);
+            query.fechaInicio = { $gte: today, $lt: quarterEnd };
+            break;
+          case 'año':
+            const yearEnd = new Date(today);
+            yearEnd.setFullYear(today.getFullYear() + 1);
+            query.fechaInicio = { $gte: today, $lt: yearEnd };
+            break;
+        }
+      }
 
       const options = {
         page: parseInt(page),
         limit: parseInt(limit),
         sort,
-        populate: ['proyecto'],
+        populate: ['proyecto', 'subtareas'],
         lean: true,
         leanWithId: true
       };

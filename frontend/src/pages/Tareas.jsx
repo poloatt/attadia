@@ -31,7 +31,9 @@ export function Tareas() {
 
   const fetchProyectos = useCallback(async () => {
     try {
-      const response = await clienteAxios.get('/proyectos');
+      // Obtener proyectos con sus tareas incluidas
+      const response = await clienteAxios.get('/proyectos?populate=tareas');
+      console.log('Proyectos con tareas:', response.data);
       setProyectos(response.data.docs || []);
     } catch (error) {
       console.error('Error:', error);
@@ -59,18 +61,35 @@ export function Tareas() {
   const handleFormSubmit = async (formData) => {
     try {
       let response;
+      const datosAEnviar = {
+        ...formData,
+        proyecto: formData.proyecto?._id || formData.proyecto
+      };
+
+      console.log('Datos a enviar:', datosAEnviar);
+
       if (editingTarea) {
-        response = await clienteAxios.put(`/tareas/${editingTarea.id}`, formData);
+        console.log('Actualizando tarea:', editingTarea._id);
+        response = await clienteAxios.put(`/tareas/${editingTarea._id}`, datosAEnviar);
         enqueueSnackbar('Tarea actualizada exitosamente', { variant: 'success' });
       } else {
-        response = await clienteAxios.post('/tareas', formData);
+        console.log('Creando nueva tarea');
+        response = await clienteAxios.post('/tareas', datosAEnviar);
         enqueueSnackbar('Tarea creada exitosamente', { variant: 'success' });
       }
+
+      console.log('Respuesta del servidor:', response.data);
+      
       setIsFormOpen(false);
       setEditingTarea(null);
+      
+      // Primero actualizamos los proyectos para obtener la nueva estructura
+      await fetchProyectos();
+      // Luego actualizamos las tareas
       await fetchTareas();
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error completo:', error);
+      console.error('Detalles del error:', error.response?.data);
       enqueueSnackbar(
         error.response?.data?.error || 'Error al guardar la tarea', 
         { variant: 'error' }

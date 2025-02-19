@@ -15,7 +15,8 @@ import {
   Chip,
   useTheme,
   useMediaQuery,
-  InputAdornment
+  InputAdornment,
+  Tooltip
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -26,6 +27,7 @@ import {
   Description as DescriptionIcon,
   Home as HomeIcon,
   AttachMoney as MoneyIcon,
+  PriorityHigh as PriorityIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -294,43 +296,25 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
             </Grid>
 
             <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                size="small"
-                label="Prioridad"
-                fullWidth
-                value={formData.prioridad}
-                onChange={handleChange('prioridad')}
-                sx={{
-                  ...commonInputStyles,
-                  '& .MuiInputBase-root': {
-                    p: 0,
-                    mx: -2
-                  }
-                }}
-                SelectProps={{
-                  sx: commonSelectStyles
-                }}
-              >
-                {[
-                  { value: 'BAJA', label: 'Baja', color: '#66BB6A' },
-                  { value: 'MEDIA', label: 'Media', color: '#FFA726' },
-                  { value: 'ALTA', label: 'Alta', color: '#EF5350' }
-                ].map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    <Box
-                      sx={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        backgroundColor: option.color,
-                        mr: 1
-                      }}
-                    />
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </TextField>
+              <Tooltip title="Prioridad">
+                <Button
+                  variant="text"
+                  onClick={() => handleChange('prioridad')({ target: { value: formData.prioridad === 'ALTA' ? 'BAJA' : 'ALTA' }})}
+                  startIcon={<PriorityIcon />}
+                  size="small"
+                  sx={{ 
+                    color: formData.prioridad === 'ALTA' ? 'error.main' : 'text.secondary',
+                    '&:hover': {
+                      color: formData.prioridad === 'ALTA' ? 'error.dark' : 'primary.main',
+                      backgroundColor: 'transparent'
+                    },
+                    minWidth: 'auto',
+                    height: 40
+                  }}
+                >
+                  {formData.prioridad === 'ALTA' ? 'Alta' : 'Baja'}
+                </Button>
+              </Tooltip>
             </Grid>
           </Grid>
 

@@ -12,6 +12,7 @@ import {
   CardContent,
   CardActions
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import { 
@@ -153,6 +154,7 @@ export function Recurrente() {
   const [editingTransaccion, setEditingTransaccion] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
+  const navigate = useNavigate();
 
   const fetchTransacciones = useCallback(async () => {
     try {
@@ -346,6 +348,8 @@ export function Recurrente() {
     <Container maxWidth="lg">
       <EntityToolbar
         onAdd={() => setIsFormOpen(true)}
+        showBackButton={true}
+        onBack={() => navigate('/dashboard')}
         navigationItems={[
           {
             icon: <WalletIcon sx={{ fontSize: 20 }} />,

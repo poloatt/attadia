@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Button } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import { DataCorporalTable } from '../components/bodycomposition/DataCorporalTable';
@@ -18,6 +19,7 @@ export function DataCorporal() {
   const [openDialog, setOpenDialog] = useState(false);
   const [editingData, setEditingData] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchData();
@@ -80,6 +82,7 @@ export function DataCorporal() {
       <EntityToolbar
         onAdd={() => handleOpenDialog()}
         showBackButton={true}
+        onBack={() => navigate('/dashboard')}
         navigationItems={[
           {
             icon: <LabIcon sx={{ fontSize: 20 }} />,

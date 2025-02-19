@@ -8,9 +8,12 @@ class ProyectosController extends BaseController {
       defaultPopulate: [
         {
           path: 'tareas',
+          model: 'Tareas',
+          select: 'titulo descripcion estado fechaInicio fechaFin fechaVencimiento prioridad completada subtareas',
           populate: {
             path: 'subtareas',
-            model: 'Subtareas'
+            model: 'Subtareas',
+            select: 'titulo completada orden'
           }
         },
         {
@@ -38,8 +41,7 @@ class ProyectosController extends BaseController {
         limit = 10, 
         sort = '-createdAt',
         search,
-        filter,
-        select
+        filter
       } = req.query;
 
       const query = {
@@ -56,16 +58,48 @@ class ProyectosController extends BaseController {
         Object.assign(query, JSON.parse(filter));
       }
 
-      const options = {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        sort,
-        select,
-        populate: this.options.defaultPopulate
-      };
+      // Obtener todos los proyectos
+      const proyectos = await this.Model.find(query).lean();
 
-      const result = await this.Model.paginate(query, options);
-      res.json(result);
+      // Para cada proyecto, sincronizar sus tareas
+      for (const proyecto of proyectos) {
+        // Encontrar todas las tareas asociadas a este proyecto
+        const tareasDelProyecto = await Tareas.find({
+          proyecto: proyecto._id,
+          usuario: req.user.id
+        }).lean();
+
+        // Actualizar el array de tareas en el proyecto
+        await this.Model.findByIdAndUpdate(
+          proyecto._id,
+          { $set: { tareas: tareasDelProyecto.map(t => t._id) } }
+        );
+
+        // Asignar las tareas al proyecto en memoria
+        proyecto.tareas = tareasDelProyecto;
+      }
+
+      const total = await this.Model.countDocuments(query);
+      
+      console.log('Número de proyectos encontrados:', proyectos.length);
+      if (proyectos.length > 0) {
+        const primerProyecto = proyectos[0];
+        console.log('ID del primer proyecto:', primerProyecto._id);
+        console.log('Tareas sincronizadas en el primer proyecto:', primerProyecto.tareas);
+      }
+      
+      res.json({
+        docs: proyectos,
+        totalDocs: total,
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / parseInt(limit)),
+        page: parseInt(page),
+        pagingCounter: (parseInt(page) - 1) * parseInt(limit) + 1,
+        hasPrevPage: parseInt(page) > 1,
+        hasNextPage: parseInt(page) * parseInt(limit) < total,
+        prevPage: parseInt(page) > 1 ? parseInt(page) - 1 : null,
+        nextPage: parseInt(page) * parseInt(limit) < total ? parseInt(page) + 1 : null
+      });
     } catch (error) {
       console.error('Error en getAll:', error);
       res.status(500).json({ error: error.message });

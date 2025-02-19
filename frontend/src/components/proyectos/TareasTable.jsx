@@ -18,18 +18,30 @@ import {
   MenuItem,
   Checkbox,
   TextField,
+  Divider,
 } from '@mui/material';
 import {
-  Edit as EditIcon,
-  Delete as DeleteIcon,
+  EditOutlined as EditIcon,
+  DeleteOutlined as DeleteIcon,
   CheckCircle as CompletedIcon,
   RadioButtonUnchecked as PendingIcon,
   PlayCircle as InProgressIcon,
+  ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
-import { format } from 'date-fns';
+import { format, isToday, isThisWeek, isThisMonth, isThisYear, addMonths, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
 import clienteAxios from '../../config/axios';
 import { useSnackbar } from 'notistack';
+
+const getPeriodo = (fecha) => {
+  const date = new Date(fecha);
+  if (isToday(date)) return 'Hoy';
+  if (isThisWeek(date)) return 'Esta Semana';
+  if (isThisMonth(date)) return 'Este Mes';
+  if (isBefore(date, addMonths(new Date(), 3))) return 'Próximo Trimestre';
+  if (isThisYear(date)) return 'Este Año';
+  return 'Más Adelante';
+};
 
 const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
   const [open, setOpen] = useState(false);
@@ -165,17 +177,15 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
         <TableCell sx={{ py: 0.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <IconButton
-              onClick={(e) => handleEstadoClick(e)}
               size="small"
               sx={{
                 p: 0.25,
-                color: getEstadoColor(estadoLocal),
-                '&:hover': {
-                  backgroundColor: 'action.hover'
-                }
+                transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s',
+                color: 'text.secondary'
               }}
             >
-              {getEstadoIcon(estadoLocal)}
+              <ExpandMoreIcon fontSize="small" />
             </IconButton>
             {tarea.prioridad === 'ALTA' && (
               <Typography 
@@ -372,22 +382,64 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
 };
 
 const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado }) => {
+  const theme = useTheme();
+
+  // Agrupar tareas por período
+  const tareasAgrupadas = tareas.reduce((grupos, tarea) => {
+    const periodo = getPeriodo(tarea.fechaInicio);
+    if (!grupos[periodo]) grupos[periodo] = [];
+    grupos[periodo].push(tarea);
+    return grupos;
+  }, {});
+
+  // Ordenar períodos
+  const ordenPeriodos = ['Hoy', 'Esta Semana', 'Este Mes', 'Próximo Trimestre', 'Este Año', 'Más Adelante'];
+  const periodosOrdenados = Object.keys(tareasAgrupadas).sort(
+    (a, b) => ordenPeriodos.indexOf(a) - ordenPeriodos.indexOf(b)
+  );
+
   return (
-    <TableContainer component={Paper} sx={{ bgcolor: 'grey.900', borderRadius: 1 }}>
-      <Table>
-        <TableBody>
-          {tareas.map((tarea) => (
-            <TareaRow
-              key={tarea._id || tarea.id}
-              tarea={tarea}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onUpdateEstado={onUpdateEstado}
-            />
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
+    <Stack spacing={2}>
+      {periodosOrdenados.map((periodo) => (
+        <Paper 
+          key={periodo} 
+          sx={{ 
+            bgcolor: 'grey.900', 
+            borderRadius: 1,
+            overflow: 'hidden'
+          }}
+        >
+          <Box
+            sx={{
+              px: 2,
+              py: 1,
+              bgcolor: 'grey.800',
+              borderBottom: '1px solid',
+              borderColor: 'divider'
+            }}
+          >
+            <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
+              {periodo} ({tareasAgrupadas[periodo].length})
+            </Typography>
+          </Box>
+          <TableContainer>
+            <Table>
+              <TableBody>
+                {tareasAgrupadas[periodo].map((tarea) => (
+                  <TareaRow
+                    key={tarea._id || tarea.id}
+                    tarea={tarea}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onUpdateEstado={onUpdateEstado}
+                  />
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      ))}
+    </Stack>
   );
 };
 

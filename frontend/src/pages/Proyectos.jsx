@@ -3,8 +3,6 @@ import {
   Container,
   Box,
   Button,
-  Tab,
-  Tabs,
   useTheme,
   useMediaQuery,
   IconButton,
@@ -29,14 +27,15 @@ export function Proyectos() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProyecto, setEditingProyecto] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
-  const [filterStatus, setFilterStatus] = useState('todos');
   const { enqueueSnackbar } = useSnackbar();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const fetchProyectos = useCallback(async () => {
     try {
-      const response = await clienteAxios.get('/proyectos');
+      console.log('Solicitando proyectos con tareas...');
+      const response = await clienteAxios.get('/proyectos?populate=tareas');
+      console.log('Respuesta completa:', response.data);
       setProyectos(response.data.docs || []);
     } catch (error) {
       console.error('Error:', error);
@@ -93,10 +92,7 @@ export function Proyectos() {
     }
   }, [enqueueSnackbar, fetchProyectos]);
 
-  const filteredProyectos = proyectos.filter(proyecto => {
-    if (filterStatus === 'todos') return true;
-    return proyecto.estado === filterStatus;
-  });
+  const filteredProyectos = proyectos;
 
   return (
     <Container maxWidth="xl">
@@ -145,20 +141,6 @@ export function Proyectos() {
           </Tooltip>
         </Box>
       </EntityToolbar>
-
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs
-          value={filterStatus}
-          onChange={(_, newValue) => setFilterStatus(newValue)}
-          variant={isMobile ? "scrollable" : "standard"}
-          scrollButtons={isMobile ? "auto" : false}
-        >
-          <Tab label="Todos" value="todos" />
-          <Tab label="Pendientes" value="PENDIENTE" />
-          <Tab label="En Progreso" value="EN_PROGRESO" />
-          <Tab label="Completados" value="COMPLETADO" />
-        </Tabs>
-      </Box>
 
       <Box sx={{ py: 2 }}>
         <ProyectosGrid

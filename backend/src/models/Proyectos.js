@@ -51,26 +51,6 @@ const proyectoSchema = createSchema({
   ...commonFields
 });
 
-// Middleware para poblar referencias cuando se consulte un proyecto
-proyectoSchema.pre(['find', 'findOne'], function() {
-  this.populate([
-    {
-      path: 'tareas',
-      populate: {
-        path: 'subtareas',
-        model: 'Subtareas'
-      }
-    },
-    {
-      path: 'presupuesto.moneda'
-    },
-    {
-      path: 'propiedad',
-      select: 'nombre direccion'
-    }
-  ]);
-});
-
 // Middleware para validar fechas
 proyectoSchema.pre('save', function(next) {
   if (this.fechaFin && this.fechaInicio > this.fechaFin) {
