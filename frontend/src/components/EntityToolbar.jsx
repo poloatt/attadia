@@ -8,7 +8,8 @@ import {
   Container,
   useTheme,
   useMediaQuery,
-  Button
+  Button,
+  Typography
 } from '@mui/material';
 import { 
   AddOutlined,
@@ -29,7 +30,8 @@ import {
   Visibility as ShowValuesIcon,
   VisibilityOff as HideValuesIcon,
   MonitorWeightOutlined as WeightIcon,
-  HealthAndSafety as HealthIcon
+  HealthAndSafety as HealthIcon,
+  AutorenewOutlined
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import EntityForm from './EntityViews/EntityForm';
@@ -84,7 +86,27 @@ const EntityToolbar = ({
     dieta: DietaIcon,
     proyectos: ProjectIcon,
     datacorporal: WeightIcon,
-    tareas: TaskIcon
+    tareas: TaskIcon,
+    recurrente: AutorenewOutlined
+  };
+
+  // Mapeo de rutas a títulos
+  const routeTitles = {
+    propiedades: 'Propiedades',
+    habitaciones: 'Habitaciones',
+    contratos: 'Contratos',
+    inquilinos: 'Inquilinos',
+    inventario: 'Inventario',
+    lab: 'Laboratorio',
+    rutinas: 'Rutinas',
+    transacciones: 'Transacciones',
+    cuentas: 'Cuentas',
+    monedas: 'Monedas',
+    dieta: 'Dieta',
+    proyectos: 'Proyectos',
+    datacorporal: 'Composición Corporal',
+    tareas: 'Tareas',
+    recurrente: 'Transacciones Recurrentes'
   };
 
   // Determinar si estamos en la página de Rutinas
@@ -316,15 +338,25 @@ const EntityToolbar = ({
                 </Box>
               )}
 
-              {/* Ícono de la página actual */}
+              {/* Ícono y título de la página actual */}
               {getCurrentPageIcon() && (
                 <Box sx={{ 
                   display: 'flex', 
                   alignItems: 'center',
+                  gap: 1,
                   color: 'text.primary',
-                  mx: 1 // Margen horizontal para separación
+                  mx: 1
                 }}>
                   {React.cloneElement(getCurrentPageIcon(), { fontSize: 'small' })}
+                  <Typography 
+                    variant="subtitle2" 
+                    sx={{ 
+                      display: { xs: 'none', sm: 'block' },
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {routeTitles[currentPath] || ''}
+                  </Typography>
                 </Box>
               )}
 

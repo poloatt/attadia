@@ -363,11 +363,6 @@ export function Recurrente() {
             to: '/monedas'
           }
         ]}
-        currentPage={{
-          icon: <RecurrentIcon sx={{ fontSize: 20 }} />,
-          label: 'Transacciones Recurrentes',
-          path: '/recurrente'
-        }}
         showValues={showValues}
         onToggleValues={toggleValuesVisibility}
       />
@@ -375,20 +370,31 @@ export function Recurrente() {
       <EntityDetails
         title="Transacciones Recurrentes"
         subtitle="Gestiona tus transacciones periódicas"
-        icon={<RecurrentIcon />}
+        icon={<RecurrentIcon sx={{ fontSize: 24, color: 'primary.main' }} />}
         action={
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            size="small"
-            onClick={() => {
-              setEditingTransaccion(null);
-              setIsFormOpen(true);
-            }}
-            sx={{ borderRadius: 1 }}
-          >
-            Nueva Transacción Recurrente
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              size="small"
+              onClick={() => {
+                setEditingTransaccion(null);
+                setIsFormOpen(true);
+              }}
+              sx={{ borderRadius: 1 }}
+            >
+              Nueva Transacción Recurrente
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<RecurrentIcon />}
+              size="small"
+              onClick={handleGenerarTransacciones}
+              sx={{ borderRadius: 1 }}
+            >
+              Generar Transacciones
+            </Button>
+          </Box>
         }
       >
         {transacciones.length === 0 ? (
