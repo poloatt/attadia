@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Grid,
   Box,
@@ -9,24 +9,253 @@ import {
   Stack,
   Divider,
   Chip,
+  LinearProgress,
+  Checkbox,
+  Tooltip,
 } from '@mui/material';
 import {
   EditOutlined as EditIcon,
   DeleteOutlined as DeleteIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
+  CheckCircle as CompletedIcon,
+  RadioButtonUnchecked as PendingIcon,
 } from '@mui/icons-material';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import EmptyState from '../EmptyState';
+import clienteAxios from '../../config/axios';
+import { useSnackbar } from 'notistack';
 
-const ProyectoItem = ({ proyecto, onEdit, onDelete }) => {
+const TareaItem = ({ tarea, onUpdateTarea }) => {
+  const [open, setOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [tareaLocal, setTareaLocal] = useState(tarea);
+  const { enqueueSnackbar } = useSnackbar();
+
+  useEffect(() => {
+    setTareaLocal(tarea);
+  }, [tarea]);
+
+  const handleSubtareaToggle = async (subtareaId, completada) => {
+    if (isUpdating) return;
+    
+    try {
+      setIsUpdating(true);
+      const response = await clienteAxios.patch(`/tareas/${tarea._id}/subtareas`, {
+        subtareaId,
+        completada: !completada
+      });
+      
+      if (response.data) {
+        const tareaActualizada = response.data;
+        setTareaLocal(tareaActualizada);
+        if (onUpdateTarea) {
+          onUpdateTarea(tareaActualizada);
+        }
+      }
+      
+      enqueueSnackbar('Subtarea actualizada exitosamente', { variant: 'success' });
+    } catch (error) {
+      console.error('Error al actualizar subtarea:', error);
+      enqueueSnackbar('Error al actualizar subtarea', { variant: 'error' });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const getEstadoColor = (estado) => {
+    switch (estado) {
+      case 'COMPLETADA':
+        return '#2D5C2E';
+      case 'EN_PROGRESO':
+        return '#1B4A75';
+      case 'PENDIENTE':
+        return '#8C4E0B';
+      default:
+        return '#8C4E0B';
+    }
+  };
+
+  const getSubtareasProgress = () => {
+    if (!tareaLocal.subtareas?.length) return 0;
+    const completadas = tareaLocal.subtareas.filter(st => st.completada).length;
+    return (completadas / tareaLocal.subtareas.length) * 100;
+  };
+
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        backgroundColor: 'grey.900',
+        border: '1px solid',
+        borderColor: 'grey.800',
+        position: 'relative',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: 3,
+          backgroundColor: getEstadoColor(tareaLocal.estado)
+        }
+      }}
+    >
+      <Box
+        sx={{
+          p: 1,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          cursor: 'pointer',
+          '&:hover': {
+            backgroundColor: 'action.hover'
+          }
+        }}
+        onClick={() => setOpen(!open)}
+      >
+        <IconButton
+          size="small"
+          sx={{
+            p: 0.25,
+            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.2s',
+            color: 'text.secondary'
+          }}
+        >
+          <ExpandMoreIcon fontSize="small" />
+        </IconButton>
+        {tareaLocal.prioridad === 'ALTA' && (
+          <Typography 
+            color="error" 
+            sx={{ 
+              fontWeight: 'bold',
+              fontSize: '1rem',
+              lineHeight: 1
+            }}
+          >
+            !
+          </Typography>
+        )}
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="body2">
+            {tareaLocal.titulo}
+          </Typography>
+        </Box>
+        <Typography 
+          variant="caption" 
+          sx={{ 
+            px: 1, 
+            py: 0.5, 
+            backgroundColor: 'background.paper',
+            borderRadius: 1,
+            color: getEstadoColor(tareaLocal.estado)
+          }}
+        >
+          {tareaLocal.estado === 'COMPLETADA' 
+            ? 'Completada' 
+            : tareaLocal.estado === 'EN_PROGRESO' 
+              ? 'En Progreso' 
+              : 'Pendiente'}
+        </Typography>
+      </Box>
+
+      <Collapse in={open} timeout="auto" unmountOnExit>
+        <Divider />
+        <Box sx={{ py: 1, px: 2 }}>
+          {tareaLocal.descripcion && (
+            <Typography 
+              variant="body2" 
+              color="text.secondary"
+              sx={{ mb: 1, whiteSpace: 'pre-wrap' }}
+            >
+              {tareaLocal.descripcion}
+            </Typography>
+          )}
+
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', mb: 1 }}>
+            {format(new Date(tareaLocal.fechaInicio), 'dd MMM yyyy', { locale: es })}
+            {tareaLocal.fechaVencimiento && (
+              <> → {format(new Date(tareaLocal.fechaVencimiento), 'dd MMM yyyy', { locale: es })}</>
+            )}
+          </Typography>
+
+          {tareaLocal.subtareas?.length > 0 && (
+            <Box sx={{ mt: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Subtareas ({tareaLocal.subtareas.filter(st => st.completada).length}/{tareaLocal.subtareas.length})
+                </Typography>
+              </Box>
+              <LinearProgress 
+                variant="determinate" 
+                value={getSubtareasProgress()} 
+                sx={{ 
+                  height: 2,
+                  borderRadius: 1,
+                  mb: 1,
+                  backgroundColor: 'grey.800',
+                  '& .MuiLinearProgress-bar': {
+                    backgroundColor: '#2D5C2E'
+                  }
+                }}
+              />
+              <Stack spacing={0.5}>
+                {tareaLocal.subtareas.map((subtarea) => (
+                  <Box 
+                    key={subtarea._id}
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center',
+                      gap: 1,
+                      p: 0.5,
+                      borderRadius: 1,
+                      '&:hover': {
+                        backgroundColor: 'action.hover'
+                      }
+                    }}
+                  >
+                    <Checkbox
+                      checked={subtarea.completada}
+                      onChange={() => handleSubtareaToggle(subtarea._id, subtarea.completada)}
+                      size="small"
+                      sx={{
+                        padding: 0.25,
+                        color: 'text.secondary',
+                        '&.Mui-checked': {
+                          color: '#2D5C2E'
+                        }
+                      }}
+                      icon={<PendingIcon sx={{ fontSize: '1.2rem' }} />}
+                      checkedIcon={<CompletedIcon sx={{ fontSize: '1.2rem' }} />}
+                    />
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        textDecoration: subtarea.completada ? 'line-through' : 'none',
+                        color: subtarea.completada ? 'text.secondary' : 'text.primary',
+                        flex: 1,
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => handleSubtareaToggle(subtarea._id, subtarea.completada)}
+                    >
+                      {subtarea.titulo}
+                    </Typography>
+                  </Box>
+                ))}
+              </Stack>
+            </Box>
+          )}
+        </Box>
+      </Collapse>
+    </Paper>
+  );
+};
+
+const ProyectoItem = ({ proyecto, onEdit, onDelete, onUpdateTarea }) => {
   const [expanded, setExpanded] = useState(false);
-
-  // Asegurarse de que el proyecto tenga un ID válido
   const proyectoId = proyecto._id || proyecto.id;
-
-  // Debug log para ver la estructura del proyecto
-  console.log('Proyecto:', proyecto);
-  console.log('Tareas del proyecto:', proyecto.tareas);
 
   return (
     <Paper
@@ -112,70 +341,14 @@ const ProyectoItem = ({ proyecto, onEdit, onDelete }) => {
         <Divider />
         <Box sx={{ p: 2 }}>
           {Array.isArray(proyecto.tareas) && proyecto.tareas.length > 0 ? (
-            <Stack spacing={0.5}>
-              {proyecto.tareas.map((tarea) => {
-                const tareaId = tarea._id || tarea.id;
-                console.log('Renderizando tarea:', tarea);
-                return (
-                  <Paper
-                    key={tareaId}
-                    elevation={0}
-                    sx={{
-                      p: 0.75,
-                      backgroundColor: 'grey.900',
-                      border: '1px solid',
-                      borderColor: 'grey.800',
-                      position: 'relative',
-                      '&::before': {
-                        content: '""',
-                        position: 'absolute',
-                        left: 0,
-                        top: 0,
-                        bottom: 0,
-                        width: 3,
-                        backgroundColor: tarea.estado === 'COMPLETADA' 
-                          ? '#2D5C2E' 
-                          : tarea.estado === 'EN_PROGRESO' 
-                            ? '#1B4A75' 
-                            : '#8C4E0B'
-                      }
-                    }}
-                  >
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="body2">
-                          {tarea.titulo}
-                        </Typography>
-                        {tarea.descripcion && (
-                          <Typography variant="caption" color="text.secondary">
-                            {tarea.descripcion}
-                          </Typography>
-                        )}
-                      </Box>
-                      <Typography 
-                        variant="caption" 
-                        sx={{ 
-                          px: 1, 
-                          py: 0.5, 
-                          backgroundColor: 'background.paper',
-                          borderRadius: 1,
-                          color: tarea.estado === 'COMPLETADA' 
-                            ? '#2D5C2E' 
-                            : tarea.estado === 'EN_PROGRESO' 
-                              ? '#1B4A75' 
-                              : '#8C4E0B'
-                        }}
-                      >
-                        {tarea.estado === 'COMPLETADA' 
-                          ? 'Completada' 
-                          : tarea.estado === 'EN_PROGRESO' 
-                            ? 'En Progreso' 
-                            : 'Pendiente'}
-                      </Typography>
-                    </Stack>
-                  </Paper>
-                );
-              })}
+            <Stack spacing={1}>
+              {proyecto.tareas.map((tarea) => (
+                <TareaItem
+                  key={tarea._id || tarea.id}
+                  tarea={tarea}
+                  onUpdateTarea={onUpdateTarea}
+                />
+              ))}
             </Stack>
           ) : (
             <Typography variant="body2" color="text.secondary" align="center">
@@ -188,7 +361,7 @@ const ProyectoItem = ({ proyecto, onEdit, onDelete }) => {
   );
 };
 
-const ProyectosGrid = ({ proyectos, onEdit, onDelete, onAdd }) => {
+const ProyectosGrid = ({ proyectos, onEdit, onDelete, onAdd, onUpdateTarea }) => {
   if (proyectos.length === 0) {
     return (
       <Box sx={{ p: 2 }}>
@@ -201,10 +374,11 @@ const ProyectosGrid = ({ proyectos, onEdit, onDelete, onAdd }) => {
     <Stack spacing={2}>
       {proyectos.map((proyecto) => (
         <ProyectoItem
-          key={proyecto.id}
+          key={proyecto._id || proyecto.id}
           proyecto={proyecto}
           onEdit={onEdit}
           onDelete={onDelete}
+          onUpdateTarea={onUpdateTarea}
         />
       ))}
     </Stack>

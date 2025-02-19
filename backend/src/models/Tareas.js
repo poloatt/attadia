@@ -147,19 +147,25 @@ tareaSchema.pre('save', async function(next) {
 
 // Middleware para actualizar el estado basado en subtareas
 tareaSchema.pre('save', function(next) {
-  if (this.subtareas && this.subtareas.length > 0) {
-    const todasCompletadas = this.subtareas.every(st => st.completada);
-    const algunaCompletada = this.subtareas.some(st => st.completada);
+  if (this.isModified('subtareas') || this.isNew) {
+    if (this.subtareas && this.subtareas.length > 0) {
+      const todasCompletadas = this.subtareas.every(st => st.completada);
+      const algunaCompletada = this.subtareas.some(st => st.completada);
 
-    if (todasCompletadas) {
-      this.estado = 'COMPLETADA';
-    } else if (algunaCompletada) {
-      this.estado = 'EN_PROGRESO';
+      if (todasCompletadas) {
+        this.estado = 'COMPLETADA';
+        this.completada = true;
+      } else if (algunaCompletada) {
+        this.estado = 'EN_PROGRESO';
+        this.completada = false;
+      } else {
+        this.estado = 'PENDIENTE';
+        this.completada = false;
+      }
     } else {
       this.estado = 'PENDIENTE';
+      this.completada = false;
     }
-  } else {
-    this.estado = 'PENDIENTE';
   }
   next();
 });

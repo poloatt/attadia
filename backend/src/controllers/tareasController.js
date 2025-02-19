@@ -252,7 +252,7 @@ class TareasController extends BaseController {
       const tarea = await this.Model.findOne({ 
         _id: id, 
         usuario: req.user.id 
-      });
+      }).populate('subtareas');
 
       if (!tarea) {
         return res.status(404).json({ error: 'Tarea no encontrada' });
@@ -277,17 +277,29 @@ class TareasController extends BaseController {
 
         if (todasCompletadas) {
           tarea.estado = 'COMPLETADA';
+          tarea.completada = true;
         } else if (algunaCompletada) {
           tarea.estado = 'EN_PROGRESO';
+          tarea.completada = false;
         } else {
           tarea.estado = 'PENDIENTE';
+          tarea.completada = false;
         }
 
         await tarea.save();
 
-        // Obtener la tarea actualizada
+        // Obtener la tarea actualizada con todas sus relaciones
         const tareaActualizada = await this.Model.findById(id)
-          .populate('proyecto');
+          .populate([
+            { 
+              path: 'proyecto',
+              select: 'nombre descripcion estado'
+            },
+            {
+              path: 'subtareas',
+              select: 'titulo descripcion estado completada orden'
+            }
+          ]);
 
         return res.json(tareaActualizada);
       }
@@ -298,7 +310,16 @@ class TareasController extends BaseController {
       await tarea.save();
 
       const tareaActualizada = await this.Model.findById(id)
-        .populate('proyecto');
+        .populate([
+          { 
+            path: 'proyecto',
+            select: 'nombre descripcion estado'
+          },
+          {
+            path: 'subtareas',
+            select: 'titulo descripcion estado completada orden'
+          }
+        ]);
 
       res.json(tareaActualizada);
     } catch (error) {

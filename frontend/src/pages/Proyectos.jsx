@@ -58,7 +58,7 @@ export function Proyectos() {
 
       let response;
       if (editingProyecto) {
-        response = await clienteAxios.put(`/proyectos/${editingProyecto.id}`, dataToSend);
+        response = await clienteAxios.put(`/proyectos/${editingProyecto._id || editingProyecto.id}`, dataToSend);
         enqueueSnackbar('Proyecto actualizado exitosamente', { variant: 'success' });
       } else {
         response = await clienteAxios.post('/proyectos', dataToSend);
@@ -91,6 +91,22 @@ export function Proyectos() {
       enqueueSnackbar('Error al eliminar el proyecto', { variant: 'error' });
     }
   }, [enqueueSnackbar, fetchProyectos]);
+
+  const handleUpdateTarea = useCallback(async (tareaActualizada) => {
+    setProyectos(prevProyectos => 
+      prevProyectos.map(proyecto => {
+        if (proyecto._id === tareaActualizada.proyecto) {
+          return {
+            ...proyecto,
+            tareas: proyecto.tareas.map(tarea => 
+              tarea._id === tareaActualizada._id ? tareaActualizada : tarea
+            )
+          };
+        }
+        return proyecto;
+      })
+    );
+  }, []);
 
   const filteredProyectos = proyectos;
 
@@ -148,6 +164,7 @@ export function Proyectos() {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onAdd={() => setIsFormOpen(true)}
+          onUpdateTarea={handleUpdateTarea}
         />
       </Box>
 
