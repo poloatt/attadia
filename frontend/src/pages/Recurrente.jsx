@@ -152,7 +152,7 @@ export function Recurrente() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTransaccion, setEditingTransaccion] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
-  const { showValues } = useValuesVisibility();
+  const { showValues, toggleValuesVisibility } = useValuesVisibility();
 
   const fetchTransacciones = useCallback(async () => {
     try {
@@ -363,6 +363,13 @@ export function Recurrente() {
             to: '/monedas'
           }
         ]}
+        currentPage={{
+          icon: <RecurrentIcon sx={{ fontSize: 20 }} />,
+          label: 'Transacciones Recurrentes',
+          path: '/recurrente'
+        }}
+        showValues={showValues}
+        onToggleValues={toggleValuesVisibility}
       />
 
       <EntityDetails
@@ -393,7 +400,7 @@ export function Recurrente() {
         ) : (
           <Grid container spacing={2}>
             {transacciones.map((transaccion) => (
-              <Grid item xs={12} sm={6} md={4} key={transaccion._id}>
+              <Grid item xs={12} sm={6} md={4} key={transaccion._id || transaccion.id}>
                 <RecurrenteCard
                   transaccion={transaccion}
                   onEdit={() => {

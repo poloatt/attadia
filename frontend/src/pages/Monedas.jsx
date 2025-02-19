@@ -30,7 +30,8 @@ import {
   DeleteOutlineOutlined as DeleteIcon,
   CheckOutlined as CheckIcon,
   CloseOutlined as CloseIcon,
-  AddOutlined as AddIcon
+  AddOutlined as AddIcon,
+  AutorenewOutlined as RecurrentIcon
 } from '@mui/icons-material';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
@@ -401,17 +402,21 @@ export function Monedas() {
           setEditingMoneda(null);
           setIsFormOpen(true);
         }}
-        entityName="moneda"
         navigationItems={[
           {
-            icon: <BankIcon sx={{ fontSize: 18 }} />,
+            icon: <BankIcon sx={{ fontSize: 20 }} />,
             label: 'Cuentas',
             to: '/cuentas'
           },
           {
-            icon: <WalletIcon sx={{ fontSize: 18 }} />,
+            icon: <WalletIcon sx={{ fontSize: 20 }} />,
             label: 'Transacciones',
             to: '/transacciones'
+          },
+          {
+            icon: <RecurrentIcon sx={{ fontSize: 20 }} />,
+            label: 'Recurrentes',
+            to: '/recurrente'
           }
         ]}
       />

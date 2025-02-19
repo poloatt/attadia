@@ -16,7 +16,9 @@ import {
   Paper,
   InputAdornment,
   Chip,
-  Autocomplete
+  Autocomplete,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
@@ -24,6 +26,7 @@ import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PendingIcon from '@mui/icons-material/Pending';
+import AutorenewIcon from '@mui/icons-material/Autorenew';
 import { useSnackbar } from 'notistack';
 import { useRelationalData } from '../../hooks/useRelationalData';
 import {
@@ -36,6 +39,8 @@ import {
   Devices,
   MoreHoriz,
 } from '@mui/icons-material';
+import TransaccionRecurrenteForm from '../transaccionesrecurrentes/TransaccionRecurrenteForm';
+import clienteAxios from '../../config/axios';
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
@@ -197,6 +202,7 @@ const TransaccionForm = ({
   });
 
   const [selectedCuenta, setSelectedCuenta] = useState(null);
+  const [isRecurrente, setIsRecurrente] = useState(false);
 
   // Efecto para reiniciar el formulario cuando se abre
   useEffect(() => {
@@ -323,6 +329,85 @@ const TransaccionForm = ({
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
+  const handleRecurrenteToggle = () => {
+    setIsRecurrente(prev => !prev);
+  };
+
+  const handleRecurrenteSubmit = async (recurrenteData) => {
+    try {
+      // Preparar datos para enviar
+      const datosAEnviar = {
+        ...recurrenteData,
+        estado: 'ACTIVO', // Estado inicial siempre ACTIVO
+        origen: {
+          tipo: 'MANUAL',
+          referencia: null
+        }
+      };
+
+      // Eliminar propiedad si está vacía
+      if (!datosAEnviar.propiedad) {
+        delete datosAEnviar.propiedad;
+      }
+
+      // Eliminar campos que no corresponden al modelo recurrente
+      delete datosAEnviar.fecha;
+      delete datosAEnviar.moneda;
+
+      console.log('Enviando datos a transacciones recurrentes:', datosAEnviar);
+
+      let response;
+      if (isEditing) {
+        response = await clienteAxios.put(`/transaccionesrecurrentes/${editingTransaccion._id}`, datosAEnviar);
+      } else {
+        response = await clienteAxios.post('/transaccionesrecurrentes', datosAEnviar);
+      }
+
+      enqueueSnackbar(
+        isEditing ? 'Transacción recurrente actualizada' : 'Transacción recurrente guardada', 
+        { variant: 'success' }
+      );
+      onClose();
+    } catch (error) {
+      console.error('Error al guardar transacción recurrente:', error);
+      enqueueSnackbar(
+        error.response?.data?.message || error.message || 'Error al guardar', 
+        { variant: 'error' }
+      );
+    }
+  };
+
+  if (isRecurrente) {
+    return (
+      <TransaccionRecurrenteForm
+        open={open}
+        onClose={() => {
+          setIsRecurrente(false);
+          onClose();
+        }}
+        onSubmit={handleRecurrenteSubmit}
+        initialData={{
+          ...formData,
+          cuenta: selectedCuenta?._id || selectedCuenta?.id || formData.cuenta,
+          fechaInicio: formData.fecha,
+          diaDelMes: new Date(formData.fecha).getDate().toString()
+        }}
+        relatedData={{
+          cuentas: relatedData?.cuenta || [],
+          propiedades: []
+        }}
+        isEditing={isEditing}
+        onSwitchToSimple={(data) => {
+          setIsRecurrente(false);
+          setFormData(prev => ({
+            ...prev,
+            ...data
+          }));
+        }}
+      />
+    );
+  }
 
   return (
     <StyledDialog
@@ -561,7 +646,7 @@ const TransaccionForm = ({
                     '& .MuiChip-icon': {
                       color: formData.categoria === categoria.valor ? 
                         categoria.color : 
-                        theme => theme.palette.text.secondary
+                        'text.secondary'
                     },
                     '&:hover': {
                       '& .MuiChip-icon': {
@@ -572,6 +657,42 @@ const TransaccionForm = ({
                 />
               ))}
             </Box>
+          </Box>
+
+          {/* Switch Recurrente */}
+          <Box sx={{ 
+            mt: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: 1,
+            borderTop: t => `1px solid ${t.palette.divider}`,
+            pt: 2
+          }}>
+            <Typography variant="body2" color="text.secondary">
+              ¿Es una transacción recurrente?
+            </Typography>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={isRecurrente}
+                  onChange={handleRecurrenteToggle}
+                  size="small"
+                />
+              }
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <AutorenewIcon sx={{ fontSize: 18 }} />
+                  <Typography variant="caption">Recurrente</Typography>
+                </Box>
+              }
+              sx={{ 
+                m: 0,
+                '& .MuiFormControlLabel-label': {
+                  color: 'text.secondary'
+                }
+              }}
+            />
           </Box>
         </Box>
       </DialogContent>

@@ -16,6 +16,7 @@ import {
   CreditCardOutlined as CardIcon,
   AttachMoneyOutlined as MoneyIcon,
   ExpandMore as ExpandMoreIcon,
+  AutorenewOutlined as RecurrentIcon
 } from '@mui/icons-material';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
@@ -403,6 +404,11 @@ export function Cuentas() {
             icon: <WalletIcon sx={{ fontSize: 20 }} />,
             label: 'Transacciones',
             to: '/transacciones'
+          },
+          {
+            icon: <RecurrentIcon sx={{ fontSize: 20 }} />,
+            label: 'Recurrentes',
+            to: '/recurrente'
           }
         ]}
       />
