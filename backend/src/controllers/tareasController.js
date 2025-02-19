@@ -286,6 +286,7 @@ class TareasController extends BaseController {
           tarea.completada = false;
         }
 
+        // Guardar los cambios
         await tarea.save();
 
         // Obtener la tarea actualizada con todas sus relaciones
@@ -300,6 +301,24 @@ class TareasController extends BaseController {
               select: 'titulo descripcion estado completada orden'
             }
           ]);
+
+        // Actualizar el proyecto si es necesario
+        const Proyectos = mongoose.model('Proyectos');
+        const proyecto = await Proyectos.findById(tarea.proyecto);
+        if (proyecto) {
+          const tareasDelProyecto = await this.Model.find({ proyecto: proyecto._id });
+          const todasTareasCompletadas = tareasDelProyecto.every(t => t.estado === 'COMPLETADA');
+          const algunaTareaEnProgreso = tareasDelProyecto.some(t => t.estado === 'EN_PROGRESO' || t.estado === 'COMPLETADA');
+          
+          let nuevoEstadoProyecto = 'PENDIENTE';
+          if (todasTareasCompletadas) {
+            nuevoEstadoProyecto = 'COMPLETADO';
+          } else if (algunaTareaEnProgreso) {
+            nuevoEstadoProyecto = 'EN_PROGRESO';
+          }
+          
+          await Proyectos.findByIdAndUpdate(proyecto._id, { estado: nuevoEstadoProyecto });
+        }
 
         return res.json(tareaActualizada);
       }

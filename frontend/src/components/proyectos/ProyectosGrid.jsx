@@ -42,25 +42,53 @@ const TareaItem = ({ tarea, onUpdateTarea }) => {
     
     try {
       setIsUpdating(true);
+      
+      // Actualizar estado local inmediatamente
+      const nuevasSubtareas = tareaLocal.subtareas.map(st => 
+        st._id === subtareaId ? { ...st, completada: !completada } : st
+      );
+      
+      // Determinar nuevo estado basado en subtareas
+      const todasCompletadas = nuevasSubtareas.every(st => st.completada);
+      const algunaCompletada = nuevasSubtareas.some(st => st.completada);
+      let nuevoEstado = 'PENDIENTE';
+      if (todasCompletadas) {
+        nuevoEstado = 'COMPLETADA';
+      } else if (algunaCompletada) {
+        nuevoEstado = 'EN_PROGRESO';
+      }
+
+      // Actualizar estado local con todos los cambios
+      const tareaActualizada = {
+        ...tareaLocal,
+        estado: nuevoEstado,
+        subtareas: nuevasSubtareas,
+        completada: todasCompletadas
+      };
+      setTareaLocal(tareaActualizada);
+
       const response = await clienteAxios.patch(`/tareas/${tarea._id}/subtareas`, {
         subtareaId,
         completada: !completada
       });
       
       if (response.data) {
-        const tareaActualizada = response.data;
-        setTareaLocal(tareaActualizada);
+        // Actualizar estado global con la respuesta del servidor
         if (onUpdateTarea) {
-          onUpdateTarea(tareaActualizada);
+          onUpdateTarea(response.data);
         }
+        enqueueSnackbar('Subtarea actualizada exitosamente', { variant: 'success' });
       }
-      
-      enqueueSnackbar('Subtarea actualizada exitosamente', { variant: 'success' });
     } catch (error) {
+      // Revertir estado local en caso de error
+      setTareaLocal(tarea);
       console.error('Error al actualizar subtarea:', error);
       enqueueSnackbar('Error al actualizar subtarea', { variant: 'error' });
     } finally {
-      setIsUpdating(false);
+      // Asegurar que el estado de actualización se resetee después de un tiempo
+      setTimeout(() => {
+        setIsUpdating(false);
+      }, 500);
     }
   };
 

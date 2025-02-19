@@ -33,8 +33,16 @@ import { es } from 'date-fns/locale';
 import clienteAxios from '../../config/axios';
 import { useSnackbar } from 'notistack';
 
-const getPeriodo = (fecha) => {
+const getPeriodo = (fecha, estado, completada) => {
   const date = new Date(fecha);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Si la tarea no está completada y su fecha de inicio es anterior a hoy, mostrarla en "Hoy"
+  if (!completada && date < today) {
+    return 'Hoy';
+  }
+
   if (isToday(date)) return 'Hoy';
   if (isThisWeek(date)) return 'Esta Semana';
   if (isThisMonth(date)) return 'Este Mes';
@@ -54,7 +62,55 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
   useEffect(() => {
     setEstadoLocal(tarea.estado);
     setSubtareasLocal(tarea.subtareas || []);
-  }, [tarea.estado, tarea.subtareas]);
+  }, [tarea]);
+
+  const handleSubtareaToggle = async (subtareaId, completada) => {
+    if (isUpdating) return;
+    
+    try {
+      setIsUpdating(true);
+      
+      // Actualizar estado local inmediatamente
+      const nuevasSubtareas = subtareasLocal.map(st => 
+        st._id === subtareaId ? { ...st, completada: !completada } : st
+      );
+      setSubtareasLocal(nuevasSubtareas);
+      
+      // Determinar nuevo estado basado en subtareas
+      const todasCompletadas = nuevasSubtareas.every(st => st.completada);
+      const algunaCompletada = nuevasSubtareas.some(st => st.completada);
+      let nuevoEstado = 'PENDIENTE';
+      if (todasCompletadas) {
+        nuevoEstado = 'COMPLETADA';
+      } else if (algunaCompletada) {
+        nuevoEstado = 'EN_PROGRESO';
+      }
+      setEstadoLocal(nuevoEstado);
+
+      const response = await clienteAxios.patch(`/tareas/${tarea._id}/subtareas`, {
+        subtareaId,
+        completada: !completada
+      });
+      
+      if (response.data) {
+        // Actualizar estado global
+        if (onUpdateEstado) {
+          onUpdateEstado(response.data);
+        }
+        enqueueSnackbar('Subtarea actualizada exitosamente', { variant: 'success' });
+      }
+    } catch (error) {
+      // Revertir cambios locales en caso de error
+      setSubtareasLocal(tarea.subtareas || []);
+      setEstadoLocal(tarea.estado);
+      console.error('Error al actualizar subtarea:', error);
+      enqueueSnackbar('Error al actualizar subtarea', { variant: 'error' });
+    } finally {
+      setTimeout(() => {
+        setIsUpdating(false);
+      }, 300);
+    }
+  };
 
   const handleEstadoClick = async (event) => {
     event.stopPropagation();
@@ -72,37 +128,6 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
     } catch (error) {
       console.error('Error al actualizar estado:', error);
       enqueueSnackbar('Error al actualizar estado', { variant: 'error' });
-    }
-  };
-
-  const handleSubtareaToggle = async (subtareaId, completada) => {
-    if (isUpdating) return; // Prevenir múltiples solicitudes
-    
-    try {
-      setIsUpdating(true);
-      const response = await clienteAxios.patch(`/tareas/${tarea._id}/subtareas`, {
-        subtareaId,
-        completada: !completada
-      });
-      
-      if (response.data) {
-        const tareaActualizada = response.data;
-        // Actualizar el estado local de las subtareas
-        setSubtareasLocal(tareaActualizada.subtareas);
-        // Actualizar el estado de la tarea
-        setEstadoLocal(tareaActualizada.estado);
-        if (onUpdateEstado) {
-          onUpdateEstado(tareaActualizada);
-        }
-      }
-    } catch (error) {
-      console.error('Error al actualizar subtarea:', error);
-      enqueueSnackbar(
-        error.response?.data?.error || 'Error al actualizar subtarea', 
-        { variant: 'error' }
-      );
-    } finally {
-      setIsUpdating(false);
     }
   };
 
@@ -386,7 +411,7 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado }) => {
 
   // Agrupar tareas por período
   const tareasAgrupadas = tareas.reduce((grupos, tarea) => {
-    const periodo = getPeriodo(tarea.fechaInicio);
+    const periodo = getPeriodo(tarea.fechaInicio, tarea.estado, tarea.completada);
     if (!grupos[periodo]) grupos[periodo] = [];
     grupos[periodo].push(tarea);
     return grupos;

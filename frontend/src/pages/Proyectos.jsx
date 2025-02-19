@@ -106,7 +106,20 @@ export function Proyectos() {
         return proyecto;
       })
     );
-  }, []);
+
+    // Refrescar los datos después de un breve delay para asegurar sincronización
+    setTimeout(async () => {
+      try {
+        const response = await clienteAxios.get('/proyectos?populate=tareas');
+        if (response.data && response.data.docs) {
+          setProyectos(response.data.docs);
+        }
+      } catch (error) {
+        console.error('Error al actualizar proyectos:', error);
+        enqueueSnackbar('Error al sincronizar datos', { variant: 'error' });
+      }
+    }, 1000);
+  }, [enqueueSnackbar]);
 
   const filteredProyectos = proyectos;
 

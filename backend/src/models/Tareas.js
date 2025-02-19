@@ -27,8 +27,7 @@ const tareaSchema = createSchema({
   estado: {
     type: String,
     enum: ['PENDIENTE', 'EN_PROGRESO', 'COMPLETADA'],
-    default: 'PENDIENTE',
-    immutable: true
+    default: 'PENDIENTE'
   },
   fechaInicio: {
     type: Date,
@@ -172,25 +171,23 @@ tareaSchema.pre('save', function(next) {
 
 // Middleware para actualizar el estado del proyecto cuando cambia el estado de la tarea
 tareaSchema.post('save', async function() {
-  if (this.isModified('estado')) {
-    try {
-      const Proyectos = mongoose.model('Proyectos');
-      const tareas = await mongoose.model('Tareas').find({ proyecto: this.proyecto });
-      
-      const todasCompletadas = tareas.every(tarea => tarea.estado === 'COMPLETADA');
-      const algunaEnProgreso = tareas.some(tarea => tarea.estado === 'EN_PROGRESO');
-      
-      let nuevoEstado = 'PENDIENTE';
-      if (todasCompletadas) {
-        nuevoEstado = 'COMPLETADO';
-      } else if (algunaEnProgreso) {
-        nuevoEstado = 'EN_PROGRESO';
-      }
-      
-      await Proyectos.findByIdAndUpdate(this.proyecto, { estado: nuevoEstado });
-    } catch (error) {
-      console.error('Error al actualizar estado del proyecto:', error);
+  try {
+    const Proyectos = mongoose.model('Proyectos');
+    const tareas = await mongoose.model('Tareas').find({ proyecto: this.proyecto });
+    
+    const todasCompletadas = tareas.every(tarea => tarea.estado === 'COMPLETADA');
+    const algunaEnProgreso = tareas.some(tarea => tarea.estado === 'EN_PROGRESO' || tarea.estado === 'COMPLETADA');
+    
+    let nuevoEstado = 'PENDIENTE';
+    if (todasCompletadas) {
+      nuevoEstado = 'COMPLETADO';
+    } else if (algunaEnProgreso) {
+      nuevoEstado = 'EN_PROGRESO';
     }
+    
+    await Proyectos.findByIdAndUpdate(this.proyecto, { estado: nuevoEstado });
+  } catch (error) {
+    console.error('Error al actualizar estado del proyecto:', error);
   }
 });
 
