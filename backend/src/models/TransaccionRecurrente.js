@@ -1,10 +1,10 @@
-@const mongoose = require('mongoose');
-const { createSchema, commonFields } = require('./BaseSchema');
+import mongoose from 'mongoose';
+import { createSchema, commonFields } from './BaseSchema.js';
 
 const transaccionRecurrenteSchema = createSchema({
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Usuario',
+    ref: 'Users',
     required: true
   },
   descripcion: {
@@ -18,7 +18,7 @@ const transaccionRecurrenteSchema = createSchema({
   },
   cuenta: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Cuenta',
+    ref: 'Cuentas',
     required: true
   },
   tipo: {
@@ -66,7 +66,7 @@ const transaccionRecurrenteSchema = createSchema({
   },
   propiedad: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Propiedad'
+    ref: 'Propiedades'
   },
   ultimaGeneracion: {
     type: Date
@@ -76,15 +76,21 @@ const transaccionRecurrenteSchema = createSchema({
   },
   transaccionesGeneradas: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Transaccion'
+    ref: 'Transacciones'
   }],
   ...commonFields
 });
 
-// Índices para mejorar el rendimiento de las consultas
+// Índices para mejorar el rendimiento
 transaccionRecurrenteSchema.index({ estado: 1, proximaGeneracion: 1 });
 transaccionRecurrenteSchema.index({ 'origen.tipo': 1, 'origen.referencia': 1 });
 transaccionRecurrenteSchema.index({ propiedad: 1 });
+
+// Configuración para populate automático
+transaccionRecurrenteSchema.pre(/^find/, function(next) {
+  this.populate('cuenta').populate('propiedad');
+  next();
+});
 
 // Método para obtener la etiqueta personalizada
 transaccionRecurrenteSchema.methods.getLabel = function() {
@@ -96,4 +102,4 @@ transaccionRecurrenteSchema.methods.getDisplayValue = function() {
   return `${this.monto} - ${this.descripcion}`;
 };
 
-module.exports = mongoose.model('TransaccionRecurrente', transaccionRecurrenteSchema); 
+export const TransaccionRecurrente = mongoose.model('TransaccionRecurrente', transaccionRecurrenteSchema); 

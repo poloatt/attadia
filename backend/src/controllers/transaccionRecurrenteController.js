@@ -1,7 +1,8 @@
-const { BaseController } = require('./BaseController');
-const TransaccionRecurrente = require('../models/TransaccionRecurrente');
-const Transaccion = require('../models/Transaccion');
-const { addMonths, setDate, isBefore, isAfter } = require('date-fns');
+import { BaseController } from './BaseController.js';
+import { TransaccionRecurrente } from '../models/TransaccionRecurrente.js';
+import { Transacciones } from '../models/Transacciones.js';
+import mongoose from 'mongoose';
+import { addMonths, setDate, isBefore, isAfter } from 'date-fns';
 
 class TransaccionRecurrenteController extends BaseController {
   constructor() {
@@ -10,8 +11,9 @@ class TransaccionRecurrenteController extends BaseController {
       populate: ['cuenta', 'propiedad']
     });
 
-    // Bind de los métodos adicionales
+    // Bind de los métodos al contexto de la instancia
     this.generarTransacciones = this.generarTransacciones.bind(this);
+    this.create = this.create.bind(this);
   }
 
   // Sobreescribir el método create para manejar la generación inicial
@@ -75,7 +77,7 @@ class TransaccionRecurrenteController extends BaseController {
       }
 
       // Crear la nueva transacción
-      const nuevaTransaccion = new Transaccion({
+      const nuevaTransaccion = new Transacciones({
         descripcion: transaccionRecurrente.descripcion,
         monto: transaccionRecurrente.monto,
         fecha: proximaGeneracion,
@@ -122,4 +124,4 @@ class TransaccionRecurrenteController extends BaseController {
   }
 }
 
-module.exports = new TransaccionRecurrenteController(); 
+export const transaccionRecurrenteController = new TransaccionRecurrenteController(); 

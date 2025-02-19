@@ -6,6 +6,7 @@ import { Layout } from './layouts/Layout';
 import { Register } from './components/Register';
 import Dashboard from './pages/Dashboard';
 import Transacciones from './pages/Transacciones';
+import { Recurrente } from './pages/Recurrente';
 import Rutinas from './pages/Rutinas';
 import Lab from './pages/Lab';
 import Proyectos from './pages/Proyectos';
@@ -48,6 +49,7 @@ function App() {
                 <Route path="/propiedades" element={<Propiedades />} />
                 <Route path="/perfil" element={<Perfil />} />
                 <Route path="/transacciones" element={<Transacciones />} />
+                <Route path="/recurrente" element={<Recurrente />} />
                 <Route path="/rutinas" element={<Rutinas />} />
                 <Route path="/lab" element={<Lab />} />
                 <Route path="/proyectos" element={<Proyectos />} />

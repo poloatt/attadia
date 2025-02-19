@@ -30,6 +30,7 @@ import { useSnackbar } from 'notistack';
 import EmptyState from '../components/EmptyState';
 import TransaccionRecurrenteForm from '../components/transaccionesrecurrentes/TransaccionRecurrenteForm';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
+import { api } from '../services/api';
 
 const RecurrenteCard = ({ 
   transaccion, 
@@ -146,35 +147,18 @@ const RecurrenteCard = ({
 
 export function Recurrente() {
   const [transacciones, setTransacciones] = useState([]);
+  const [cuentas, setCuentas] = useState([]);
+  const [propiedades, setPropiedades] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTransaccion, setEditingTransaccion] = useState(null);
-  const [relatedData, setRelatedData] = useState({
-    cuentas: [],
-    propiedades: []
-  });
   const { enqueueSnackbar } = useSnackbar();
   const { showValues } = useValuesVisibility();
 
-  const fetchRelatedData = useCallback(async () => {
-    try {
-      const [cuentasRes, propiedadesRes] = await Promise.all([
-        clienteAxios.get('/cuentas'),
-        clienteAxios.get('/propiedades')
-      ]);
-
-      setRelatedData({
-        cuentas: cuentasRes.data.docs || [],
-        propiedades: propiedadesRes.data.docs || []
-      });
-    } catch (error) {
-      console.error('Error al cargar datos relacionados:', error);
-      enqueueSnackbar('Error al cargar datos relacionados', { variant: 'error' });
-    }
-  }, [enqueueSnackbar]);
-
   const fetchTransacciones = useCallback(async () => {
     try {
-      const response = await clienteAxios.get('/transaccionesrecurrentes');
+      console.log('Solicitando transacciones recurrentes...');
+      const response = await api.getTransaccionesRecurrentes();
+      console.log('Transacciones recurrentes recibidas:', response.data);
       setTransacciones(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar transacciones recurrentes:', error);
@@ -182,49 +166,160 @@ export function Recurrente() {
     }
   }, [enqueueSnackbar]);
 
-  useEffect(() => {
-    fetchRelatedData();
-    fetchTransacciones();
-  }, [fetchRelatedData, fetchTransacciones]);
-
-  const handleFormSubmit = async (formData) => {
+  const fetchCuentas = useCallback(async () => {
     try {
+      console.log('Cargando cuentas...');
+      const response = await api.getCuentas();
+      console.log('Cuentas recibidas:', response.data);
+      
+      if (!response.data || !Array.isArray(response.data.docs)) {
+        console.error('Formato de respuesta inválido para cuentas:', response.data);
+        enqueueSnackbar('Error en el formato de datos de cuentas', { variant: 'error' });
+        return [];
+      }
+
+      const cuentasData = response.data.docs.map(cuenta => ({
+        ...cuenta,
+        _id: cuenta._id || cuenta.id,
+        nombre: cuenta.nombre || 'Sin nombre'
+      }));
+
+      console.log('Cuentas procesadas:', cuentasData);
+      setCuentas(cuentasData);
+      return cuentasData;
+    } catch (error) {
+      console.error('Error al cargar cuentas:', error);
+      enqueueSnackbar('Error al cargar cuentas', { variant: 'error' });
+      return [];
+    }
+  }, [enqueueSnackbar]);
+
+  const fetchPropiedades = useCallback(async () => {
+    try {
+      console.log('Cargando propiedades...');
+      const response = await api.getPropiedades();
+      console.log('Propiedades recibidas:', response.data);
+      
+      if (!response.data || !Array.isArray(response.data.docs)) {
+        console.error('Formato de respuesta inválido para propiedades:', response.data);
+        enqueueSnackbar('Error en el formato de datos de propiedades', { variant: 'error' });
+        return [];
+      }
+
+      const propiedadesData = response.data.docs.map(propiedad => ({
+        ...propiedad,
+        _id: propiedad._id || propiedad.id,
+        titulo: propiedad.titulo || 'Sin título'
+      }));
+
+      console.log('Propiedades procesadas:', propiedadesData);
+      setPropiedades(propiedadesData);
+      return propiedadesData;
+    } catch (error) {
+      console.error('Error al cargar propiedades:', error);
+      enqueueSnackbar('Error al cargar propiedades', { variant: 'error' });
+      return [];
+    }
+  }, [enqueueSnackbar]);
+
+  const fetchInitialData = useCallback(async () => {
+    try {
+      console.log('Iniciando carga de datos...');
+      await Promise.all([
+        fetchCuentas(),
+        fetchPropiedades()
+      ]);
+      await fetchTransacciones();
+    } catch (error) {
+      console.error('Error al cargar datos iniciales:', error);
+    }
+  }, [fetchTransacciones, fetchCuentas, fetchPropiedades]);
+
+  useEffect(() => {
+    fetchInitialData();
+  }, [fetchInitialData]);
+
+  const handleFormSubmit = useCallback(async (formData) => {
+    try {
+      console.log('Datos del formulario recibidos:', formData);
+      
+      // Verificar autenticación
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No hay sesión activa. Por favor, inicia sesión nuevamente.');
+      }
+
+      // Validar que la cuenta exista
+      const cuentaSeleccionada = cuentas.find(c => 
+        c._id === formData.cuenta || 
+        c.id === formData.cuenta
+      );
+
+      if (!cuentaSeleccionada) {
+        console.log('Cuentas disponibles:', cuentas);
+        console.log('ID de cuenta buscado:', formData.cuenta);
+        throw new Error('La cuenta seleccionada no existe');
+      }
+
+      const datosAEnviar = {
+        ...formData,
+        cuenta: cuentaSeleccionada._id || cuentaSeleccionada.id,
+        monto: parseFloat(formData.monto),
+        diaDelMes: parseInt(formData.diaDelMes),
+        fechaInicio: new Date(formData.fechaInicio).toISOString(),
+        fechaFin: formData.fechaFin ? new Date(formData.fechaFin).toISOString() : undefined,
+        origen: {
+          tipo: 'MANUAL',
+          referencia: null
+        }
+      };
+
+      console.log('Datos procesados a enviar:', datosAEnviar);
+      
       if (editingTransaccion) {
-        await clienteAxios.put(`/transaccionesrecurrentes/${editingTransaccion._id}`, formData);
+        await api.updateTransaccionRecurrente(editingTransaccion._id, datosAEnviar);
         enqueueSnackbar('Transacción recurrente actualizada exitosamente', { variant: 'success' });
       } else {
-        await clienteAxios.post('/transaccionesrecurrentes', formData);
+        await api.createTransaccionRecurrente(datosAEnviar);
         enqueueSnackbar('Transacción recurrente creada exitosamente', { variant: 'success' });
       }
+      
       setIsFormOpen(false);
       setEditingTransaccion(null);
-      fetchTransacciones();
+      await fetchTransacciones();
     } catch (error) {
-      console.error('Error:', error);
-      enqueueSnackbar(
-        error.response?.data?.error || 'Error al guardar la transacción recurrente', 
-        { variant: 'error' }
-      );
+      console.error('Error completo:', error);
+      
+      // Manejar error de autenticación
+      if (error.response?.status === 401) {
+        enqueueSnackbar('Sesión expirada. Por favor, inicia sesión nuevamente.', { 
+          variant: 'error',
+          autoHideDuration: 5000
+        });
+        window.location.href = '/login';
+        return;
+      }
+      
+      const mensajeError = error.response?.data?.message || error.message || 'Error al guardar la transacción recurrente';
+      enqueueSnackbar(mensajeError, { variant: 'error' });
     }
-  };
+  }, [enqueueSnackbar, fetchTransacciones, editingTransaccion, cuentas]);
 
-  const handleDelete = async (id) => {
+  const handleDelete = useCallback(async (id) => {
     try {
-      await clienteAxios.delete(`/transaccionesrecurrentes/${id}`);
+      await api.deleteTransaccionRecurrente(id);
       enqueueSnackbar('Transacción recurrente eliminada exitosamente', { variant: 'success' });
       fetchTransacciones();
     } catch (error) {
       console.error('Error al eliminar transacción recurrente:', error);
       enqueueSnackbar('Error al eliminar la transacción recurrente', { variant: 'error' });
     }
-  };
+  }, [enqueueSnackbar, fetchTransacciones]);
 
-  const handleToggleEstado = async (transaccion) => {
+  const handleToggleEstado = useCallback(async (transaccion) => {
     try {
       const nuevoEstado = transaccion.estado === 'ACTIVO' ? 'PAUSADO' : 'ACTIVO';
-      await clienteAxios.put(`/transaccionesrecurrentes/${transaccion._id}`, {
-        estado: nuevoEstado
-      });
+      await api.updateTransaccionRecurrente(transaccion._id, { estado: nuevoEstado });
       enqueueSnackbar(
         `Transacción recurrente ${nuevoEstado === 'ACTIVO' ? 'activada' : 'pausada'} exitosamente`, 
         { variant: 'success' }
@@ -234,15 +329,23 @@ export function Recurrente() {
       console.error('Error al cambiar estado:', error);
       enqueueSnackbar('Error al cambiar el estado', { variant: 'error' });
     }
-  };
+  }, [enqueueSnackbar, fetchTransacciones]);
+
+  const handleGenerarTransacciones = useCallback(async () => {
+    try {
+      const response = await api.generarTransaccionesRecurrentes();
+      enqueueSnackbar(response.data.message, { variant: 'success' });
+      fetchTransacciones();
+    } catch (error) {
+      console.error('Error al generar transacciones:', error);
+      enqueueSnackbar('Error al generar transacciones', { variant: 'error' });
+    }
+  }, [enqueueSnackbar, fetchTransacciones]);
 
   return (
     <Container maxWidth="lg">
       <EntityToolbar
-        onAdd={() => {
-          setEditingTransaccion(null);
-          setIsFormOpen(true);
-        }}
+        onAdd={() => setIsFormOpen(true)}
         navigationItems={[
           {
             icon: <WalletIcon sx={{ fontSize: 20 }} />,
@@ -300,7 +403,7 @@ export function Recurrente() {
                   onDelete={handleDelete}
                   onToggleEstado={handleToggleEstado}
                   showValues={showValues}
-                  relatedData={relatedData}
+                  relatedData={{ cuentas, propiedades }}
                 />
               </Grid>
             ))}
@@ -308,17 +411,19 @@ export function Recurrente() {
         )}
       </EntityDetails>
 
-      <TransaccionRecurrenteForm
-        open={isFormOpen}
-        onClose={() => {
-          setIsFormOpen(false);
-          setEditingTransaccion(null);
-        }}
-        onSubmit={handleFormSubmit}
-        initialData={editingTransaccion}
-        relatedData={relatedData}
-        isEditing={!!editingTransaccion}
-      />
+      {isFormOpen && (
+        <TransaccionRecurrenteForm
+          open={isFormOpen}
+          onClose={() => {
+            setIsFormOpen(false);
+            setEditingTransaccion(null);
+          }}
+          onSubmit={handleFormSubmit}
+          initialData={editingTransaccion}
+          relatedData={{ cuentas, propiedades }}
+          isEditing={!!editingTransaccion}
+        />
+      )}
     </Container>
   );
 }

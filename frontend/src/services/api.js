@@ -36,6 +36,13 @@ export const api = {
   updateTransaccion: (id, data) => clienteAxios.put(`/transacciones/${id}`, data),
   deleteTransaccion: (id) => clienteAxios.delete(`/transacciones/${id}`),
 
+  // Transacciones Recurrentes
+  getTransaccionesRecurrentes: () => clienteAxios.get('/transaccionesrecurrentes'),
+  createTransaccionRecurrente: (data) => clienteAxios.post('/transaccionesrecurrentes', data),
+  updateTransaccionRecurrente: (id, data) => clienteAxios.put(`/transaccionesrecurrentes/${id}`, data),
+  deleteTransaccionRecurrente: (id) => clienteAxios.delete(`/transaccionesrecurrentes/${id}`),
+  generarTransaccionesRecurrentes: () => clienteAxios.post('/transaccionesrecurrentes/generar'),
+
   // Monedas
   getMonedas: () => clienteAxios.get('/monedas'),
   

@@ -14,8 +14,9 @@ import {
 import { Add as AddIcon } from '@mui/icons-material';
 import { 
   ScienceOutlined as LabIcon,
-  FitnessCenterOutlined as RutinasIcon,
-  MonitorWeightOutlined as WeightIcon
+  LocalHospitalOutlined as RutinasIcon,
+  MonitorWeightOutlined as WeightIcon,
+  HealthAndSafety as HealthIcon
 } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
@@ -155,7 +156,7 @@ export function Dieta() {
             to: '/lab'
           },
           {
-            icon: <RutinasIcon sx={{ fontSize: 20 }} />,
+            icon: <HealthIcon sx={{ fontSize: 20 }} />,
             label: 'Rutinas',
             to: '/rutinas'
           },

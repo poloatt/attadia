@@ -16,10 +16,10 @@ import EntityDetails from '../components/EntityViews/EntityDetails';
 import EntityForm from '../components/EntityViews/EntityForm';
 import AddIcon from '@mui/icons-material/Add';
 import { 
-  ScienceOutlined as LabIcon,
   RestaurantOutlined as DietaIcon,
-  FitnessCenterOutlined as RutinasIcon,
-  MonitorWeightOutlined as WeightIcon
+  LocalHospitalOutlined as RutinasIcon,
+  MonitorWeightOutlined as WeightIcon,
+  HealthAndSafety as HealthIcon
 } from '@mui/icons-material';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
@@ -144,7 +144,7 @@ export function Lab() {
         }}
         navigationItems={[
           {
-            icon: <RutinasIcon sx={{ fontSize: 20 }} />,
+            icon: <HealthIcon sx={{ fontSize: 20 }} />,
             label: 'Rutinas',
             to: '/rutinas'
           },

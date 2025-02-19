@@ -1,10 +1,11 @@
-const express = require('express');
+import express from 'express';
+import { checkAuth } from '../middleware/auth.js';
+import { transaccionRecurrenteController } from '../controllers/transaccionRecurrenteController.js';
+
 const router = express.Router();
-const transaccionRecurrenteController = require('../controllers/transaccionRecurrenteController');
-const auth = require('../middleware/auth');
 
 // Todas las rutas requieren autenticación
-router.use(auth);
+router.use(checkAuth);
 
 // Rutas base del controlador
 router.get('/', transaccionRecurrenteController.getAll);
@@ -18,4 +19,4 @@ router.patch('/:id/toggle-active', transaccionRecurrenteController.toggleActive)
 // Rutas específicas
 router.post('/generar', transaccionRecurrenteController.generarTransacciones);
 
-module.exports = router; 
+export default router; 

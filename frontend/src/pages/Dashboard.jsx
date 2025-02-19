@@ -25,6 +25,7 @@ import {
   TaskAltOutlined as TaskAltOutlined,
   HandymanOutlined as MaintenanceIcon,
   BookmarkOutlined as ReservedIcon,
+  HealthAndSafety as HealthIcon,
 } from '@mui/icons-material';
 import { toast } from 'react-hot-toast';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
@@ -820,7 +821,7 @@ export function Dashboard() {
             to: '/propiedades'
           },
           {
-            icon: <RutinasIcon sx={{ fontSize: 20 }} />,
+            icon: <HealthIcon sx={{ fontSize: 20 }} />,
             label: 'Rutinas',
             to: '/rutinas'
           },

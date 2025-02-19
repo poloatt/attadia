@@ -15,7 +15,7 @@ import {
   ArrowBackOutlined,
   ApartmentOutlined as BuildingIcon,
   AccountBalanceWalletOutlined as WalletIcon,
-  FitnessCenterOutlined as RutinasIcon,
+  LocalHospitalOutlined as RutinasIcon,
   ScienceOutlined as LabIcon,
   RestaurantOutlined as DietaIcon,
   AssignmentOutlined as ProjectIcon,
@@ -28,7 +28,8 @@ import {
   TaskAltOutlined as TaskIcon,
   Visibility as ShowValuesIcon,
   VisibilityOff as HideValuesIcon,
-  MonitorWeightOutlined as WeightIcon
+  MonitorWeightOutlined as WeightIcon,
+  HealthAndSafety as HealthIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import EntityForm from './EntityViews/EntityForm';
@@ -76,7 +77,7 @@ const EntityToolbar = ({
     inquilinos: PeopleIcon,
     inventario: InventoryIcon,
     lab: LabIcon,
-    rutinas: RutinasIcon,
+    rutinas: HealthIcon,
     transacciones: WalletIcon,
     cuentas: CuentasIcon,
     monedas: MoneyIcon,

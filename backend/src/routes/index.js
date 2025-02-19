@@ -9,6 +9,7 @@ import habitacionesRoutes from './habitacionesRoutes.js';
 import monedasRoutes from './monedasRoutes.js';
 import cuentasRoutes from './cuentasRoutes.js';
 import transaccionesRoutes from './transaccionesRoutes.js';
+import transaccionRecurrenteRoutes from './transaccionRecurrenteRoutes.js';
 import proyectosRoutes from './proyectosRoutes.js';
 import tareasRoutes from './tareasRoutes.js';
 import subtareasRoutes from './subtareasRoutes.js';
@@ -42,6 +43,7 @@ router.use('/habitaciones', habitacionesRoutes);
 router.use('/monedas', monedasRoutes);
 router.use('/cuentas', cuentasRoutes);
 router.use('/transacciones', transaccionesRoutes);
+router.use('/transaccionesrecurrentes', transaccionRecurrenteRoutes);
 
 // Rutas de gestión de proyectos
 router.use('/proyectos', proyectosRoutes);
@@ -58,4 +60,4 @@ router.use('/objetivos', objetivosRoutes);
 // Rutas de monitoreo
 router.use('/monitoreo', monitoreoRoutes);
 
-export { router }; 
+export { router };

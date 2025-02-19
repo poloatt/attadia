@@ -1,6 +1,11 @@
 import React, { useCallback } from 'react';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '../config/axios';
+import { AutorenewOutlined as RecurrentIcon } from '@mui/icons-material';
+import { Container } from '@mui/material';
+import EntityToolbar from '../components/EntityToolbar';
+import BankIcon from '@mui/icons-material/Bank';
+import CurrencyIcon from '@mui/icons-material/CurrencyExchange';
 
 const mapearCategoriaValida = (categoriaAntigua) => {
   const categoriasValidas = [
@@ -111,5 +116,28 @@ export function Transacciones() {
     }
   }, [enqueueSnackbar, fetchTransacciones, editingTransaccion, cuentas]);
 
-  // ... rest of the code ...
+  return (
+    <Container maxWidth="lg">
+      <EntityToolbar
+        navigationItems={[
+          {
+            icon: <RecurrentIcon sx={{ fontSize: 20 }} />,
+            label: 'Transacciones Recurrentes',
+            to: '/recurrente'
+          },
+          {
+            icon: <BankIcon sx={{ fontSize: 20 }} />,
+            label: 'Cuentas',
+            to: '/cuentas'
+          },
+          {
+            icon: <CurrencyIcon sx={{ fontSize: 20 }} />,
+            label: 'Monedas',
+            to: '/monedas'
+          }
+        ]}
+        onAdd={() => setIsFormOpen(true)}
+      />
+    </Container>
+  );
 } 

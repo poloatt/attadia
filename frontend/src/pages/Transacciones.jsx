@@ -3,7 +3,8 @@ import { Container, Box } from '@mui/material';
 import EntityToolbar from '../components/EntityToolbar';
 import { 
   AccountBalanceOutlined as BankIcon,
-  CurrencyExchangeOutlined as MoneyIcon
+  CurrencyExchangeOutlined as MoneyIcon,
+  AutorenewOutlined as RecurrentIcon
 } from '@mui/icons-material';
 import { Button } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -404,6 +405,11 @@ export function Transacciones() {
       <EntityToolbar
         onAdd={handleOpenForm}
         navigationItems={[
+          {
+            icon: <RecurrentIcon sx={{ fontSize: 18 }} />,
+            label: 'Transacciones Recurrentes',
+            to: '/recurrente'
+          },
           {
             icon: <BankIcon sx={{ fontSize: 18 }} />,
             label: 'Cuentas',

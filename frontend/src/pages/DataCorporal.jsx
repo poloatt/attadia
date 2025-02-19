@@ -10,8 +10,7 @@ import AddIcon from '@mui/icons-material/Add';
 import { 
   ScienceOutlined as LabIcon,
   RestaurantOutlined as DietaIcon,
-  FitnessCenterOutlined as RutinasIcon,
-  MonitorWeightOutlined as WeightIcon
+  HealthAndSafety as HealthIcon
 } from '@mui/icons-material';
 
 export function DataCorporal() {
@@ -88,7 +87,7 @@ export function DataCorporal() {
             to: '/lab'
           },
           {
-            icon: <RutinasIcon sx={{ fontSize: 20 }} />,
+            icon: <HealthIcon sx={{ fontSize: 20 }} />,
             label: 'Rutinas',
             to: '/rutinas'
           },
