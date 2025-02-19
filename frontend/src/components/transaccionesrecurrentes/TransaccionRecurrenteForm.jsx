@@ -120,22 +120,40 @@ const TransaccionRecurrenteForm = ({
 
   useEffect(() => {
     if (open) {
-      setFormData(initialData);
+      // Establecer datos iniciales del formulario
+      setFormData({
+        descripcion: '',
+        monto: '',
+        cuenta: '',
+        tipo: 'INGRESO',
+        categoria: '',
+        frecuencia: 'MENSUAL',
+        diaDelMes: '1',
+        fechaInicio: null,
+        fechaFin: null,
+        propiedad: '',
+        estado: 'ACTIVO',
+        ...initialData
+      });
       
       // Establecer cuenta seleccionada
-      if (initialData.cuenta && relatedData.cuentas) {
+      if (initialData?.cuenta && relatedData?.cuentas) {
         const cuenta = relatedData.cuentas.find(c => 
-          c._id === (initialData.cuenta?._id || initialData.cuenta)
+          c._id === (typeof initialData.cuenta === 'object' ? initialData.cuenta._id : initialData.cuenta)
         );
         setSelectedCuenta(cuenta || null);
+      } else {
+        setSelectedCuenta(null);
       }
 
       // Establecer propiedad seleccionada
-      if (initialData.propiedad && relatedData.propiedades) {
+      if (initialData?.propiedad && relatedData?.propiedades) {
         const propiedad = relatedData.propiedades.find(p => 
-          p._id === (initialData.propiedad?._id || initialData.propiedad)
+          p._id === (typeof initialData.propiedad === 'object' ? initialData.propiedad._id : initialData.propiedad)
         );
         setSelectedPropiedad(propiedad || null);
+      } else {
+        setSelectedPropiedad(null);
       }
     }
   }, [open, initialData, relatedData]);
