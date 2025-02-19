@@ -1,0 +1,125 @@
+const { BaseController } = require('./BaseController');
+const TransaccionRecurrente = require('../models/TransaccionRecurrente');
+const Transaccion = require('../models/Transaccion');
+const { addMonths, setDate, isBefore, isAfter } = require('date-fns');
+
+class TransaccionRecurrenteController extends BaseController {
+  constructor() {
+    super(TransaccionRecurrente, {
+      searchFields: ['descripcion', 'categoria'],
+      populate: ['cuenta', 'propiedad']
+    });
+
+    // Bind de los métodos adicionales
+    this.generarTransacciones = this.generarTransacciones.bind(this);
+  }
+
+  // Sobreescribir el método create para manejar la generación inicial
+  async create(req, res) {
+    try {
+      const nuevaTransaccionRecurrente = new this.Model({
+        ...req.body,
+        usuario: req.user.id,
+        proximaGeneracion: new Date(req.body.fechaInicio)
+      });
+
+      await nuevaTransaccionRecurrente.save();
+      
+      // Generar la primera transacción si la fecha de inicio es hoy o anterior
+      if (isBefore(new Date(req.body.fechaInicio), new Date()) || 
+          new Date(req.body.fechaInicio).toDateString() === new Date().toDateString()) {
+        await this.generarTransaccion(nuevaTransaccionRecurrente);
+      }
+
+      res.status(201).json(nuevaTransaccionRecurrente);
+    } catch (error) {
+      console.error('Error al crear transacción recurrente:', error);
+      res.status(500).json({ error: 'Error al crear transacción recurrente' });
+    }
+  }
+
+  // Método para generar transacciones pendientes
+  async generarTransacciones(req, res) {
+    try {
+      const transaccionesRecurrentes = await this.Model.find({
+        usuario: req.user.id,
+        estado: 'ACTIVO',
+        $or: [
+          { fechaFin: { $exists: false } },
+          { fechaFin: { $gt: new Date() } }
+        ]
+      });
+
+      let generadas = 0;
+      for (const transaccion of transaccionesRecurrentes) {
+        if (await this.generarTransaccion(transaccion)) {
+          generadas++;
+        }
+      }
+
+      res.json({ message: `${generadas} transacciones generadas` });
+    } catch (error) {
+      console.error('Error al generar transacciones:', error);
+      res.status(500).json({ error: 'Error al generar transacciones' });
+    }
+  }
+
+  // Método auxiliar para generar una transacción
+  async generarTransaccion(transaccionRecurrente) {
+    try {
+      const fechaActual = new Date();
+      const proximaGeneracion = new Date(transaccionRecurrente.proximaGeneracion);
+
+      if (isAfter(proximaGeneracion, fechaActual)) {
+        return false;
+      }
+
+      // Crear la nueva transacción
+      const nuevaTransaccion = new Transaccion({
+        descripcion: transaccionRecurrente.descripcion,
+        monto: transaccionRecurrente.monto,
+        fecha: proximaGeneracion,
+        tipo: transaccionRecurrente.tipo,
+        categoria: transaccionRecurrente.categoria,
+        cuenta: transaccionRecurrente.cuenta,
+        usuario: transaccionRecurrente.usuario,
+        estado: 'PENDIENTE'
+      });
+
+      await nuevaTransaccion.save();
+
+      // Calcular próxima fecha de generación
+      let proximaFecha;
+      switch (transaccionRecurrente.frecuencia) {
+        case 'MENSUAL':
+          proximaFecha = addMonths(proximaGeneracion, 1);
+          break;
+        case 'TRIMESTRAL':
+          proximaFecha = addMonths(proximaGeneracion, 3);
+          break;
+        case 'SEMESTRAL':
+          proximaFecha = addMonths(proximaGeneracion, 6);
+          break;
+        case 'ANUAL':
+          proximaFecha = addMonths(proximaGeneracion, 12);
+          break;
+      }
+
+      // Ajustar al día del mes especificado
+      proximaFecha = setDate(proximaFecha, transaccionRecurrente.diaDelMes);
+
+      // Actualizar la transacción recurrente
+      transaccionRecurrente.ultimaGeneracion = proximaGeneracion;
+      transaccionRecurrente.proximaGeneracion = proximaFecha;
+      transaccionRecurrente.transaccionesGeneradas.push(nuevaTransaccion._id);
+      await transaccionRecurrente.save();
+
+      return true;
+    } catch (error) {
+      console.error('Error al generar transacción:', error);
+      return false;
+    }
+  }
+}
+
+module.exports = new TransaccionRecurrenteController(); 
