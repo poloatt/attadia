@@ -40,9 +40,8 @@ export function Lab() {
       setMediciones(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar mediciones:', error);
-      enqueueSnackbar('Error al cargar mediciones', { variant: 'error' });
     }
-  }, [enqueueSnackbar]);
+  }, []);
 
   useEffect(() => {
     fetchMediciones();
@@ -50,12 +49,11 @@ export function Lab() {
 
   const handleFormSubmit = async (formData) => {
     try {
-      let response;
       if (editingMedicion) {
-        response = await clienteAxios.put(`/mediciones/${editingMedicion.id}`, formData);
+        await clienteAxios.put(`/mediciones/${editingMedicion.id}`, formData);
         enqueueSnackbar('Medición actualizada exitosamente', { variant: 'success' });
       } else {
-        response = await clienteAxios.post('/mediciones', formData);
+        await clienteAxios.post('/mediciones', formData);
         enqueueSnackbar('Medición creada exitosamente', { variant: 'success' });
       }
       setIsFormOpen(false);
@@ -63,10 +61,6 @@ export function Lab() {
       await fetchMediciones();
     } catch (error) {
       console.error('Error:', error);
-      enqueueSnackbar(
-        error.response?.data?.error || 'Error al guardar la medición', 
-        { variant: 'error' }
-      );
     }
   };
 
@@ -82,7 +76,6 @@ export function Lab() {
       await fetchMediciones();
     } catch (error) {
       console.error('Error al eliminar medición:', error);
-      enqueueSnackbar('Error al eliminar la medición', { variant: 'error' });
     }
   }, [enqueueSnackbar, fetchMediciones]);
 

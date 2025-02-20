@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Variables
-PROJECT_ID="present-attadia"
-REGION="us-central1"
+PROJECT_ID="present-webapp-449410"
+REGION="southamerica-east1"
 VM_NAME="present-prod"
 DOMAIN="present.attadia.com"
 
@@ -43,7 +43,7 @@ echo "A     api.$DOMAIN    $EXTERNAL_IP"
 echo "
 Próximos pasos:
 1. Configurar registros DNS
-2. SSH a la VM: gcloud compute ssh $VM_NAME
+2. SSH a la VM: gcloud compute ssh $VM_NAME --zone=$REGION-a
 3. Clonar repositorio y cambiar a rama producción
 4. Ejecutar: docker-compose -f docker-compose.prod.yml up -d
 " 
