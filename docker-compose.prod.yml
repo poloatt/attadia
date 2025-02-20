@@ -25,6 +25,13 @@ services:
       dockerfile: Dockerfile.prod
     container_name: backend-prod
     restart: always
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/present?authSource=admin
+      - CORS_ORIGIN=https://present.attadia.com
+      - FRONTEND_URL=https://present.attadia.com
+      - BACKEND_URL=https://api.present.attadia.com
+      - PORT=5000
     env_file:
       - ./backend/.env.production
     volumes:

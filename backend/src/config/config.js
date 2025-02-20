@@ -5,7 +5,7 @@ dotenv.config();
 const config = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '5000', 10),
-  mongoUrl: process.env.MONGODB_URI || process.env.MONGO_URL || 'mongodb://root:example@localhost:27017/present?authSource=admin',
+  mongoUrl: process.env.MONGODB_URI || 'mongodb://mongodb:27017/present',
   jwtSecret: process.env.JWT_SECRET || 'your-secret-key-development-only',
   refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET || 'your-refresh-secret-development-only',
   apiUrl: process.env.API_URL || process.env.BACKEND_URL || 'http://localhost:5000',
@@ -37,5 +37,10 @@ if (config.env === 'production') {
     }
   }
 }
+
+console.log('Configuración de MongoDB:', {
+  url: config.mongoUrl,
+  environment: config.env
+});
 
 export default config; 

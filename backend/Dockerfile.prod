@@ -3,5 +3,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
+COPY .env.production .env
 EXPOSE 5000
+ENV NODE_ENV=production
+ENV MONGODB_URI=mongodb://admin:MiContraseñaSegura123@mongodb:27017/present?authSource=admin
 CMD ["npm", "start"] 

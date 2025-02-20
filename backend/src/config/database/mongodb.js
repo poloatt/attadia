@@ -3,6 +3,10 @@ import config from '../config.js';
 
 const connectDB = async (retries = 5) => {
   try {
+    console.log('Intentando conectar a MongoDB...');
+    console.log('URL de conexión:', config.mongoUrl);
+    console.log('Ambiente:', config.env);
+    
     const conn = await mongoose.connect(config.mongoUrl, {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
@@ -11,11 +15,10 @@ const connectDB = async (retries = 5) => {
       family: 4
     });
     
-    console.log(`MongoDB conectado: ${conn.connection.host}`);
+    console.log(`MongoDB conectado exitosamente a ${conn.connection.host}`);
     
-    // Manejadores de eventos de conexión
     mongoose.connection.on('error', err => {
-      console.error('Error de MongoDB:', err);
+      console.error('Error de conexión MongoDB:', err);
     });
 
     mongoose.connection.on('disconnected', () => {
@@ -25,9 +28,15 @@ const connectDB = async (retries = 5) => {
 
     return conn;
   } catch (error) {
-    console.error(`Error al conectar MongoDB: ${error.message}`);
+    console.error('Error al conectar MongoDB:', error.message);
+    console.error('Detalles de la conexión:', {
+      url: config.mongoUrl,
+      ambiente: config.env,
+      error: error.stack
+    });
+    
     if (retries > 0) {
-      console.log(`Reintentando en 5 segundos... (${retries} intentos restantes)`);
+      console.log(`Reintentando conexión en 5 segundos... (${retries} intentos restantes)`);
       await new Promise(resolve => setTimeout(resolve, 5000));
       return connectDB(retries - 1);
     } else {
