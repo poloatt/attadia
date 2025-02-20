@@ -16,7 +16,7 @@ import {
   ArrowBackOutlined,
   ApartmentOutlined as BuildingIcon,
   AccountBalanceWalletOutlined as WalletIcon,
-  LocalHospitalOutlined as RutinasIcon,
+  CalendarMonth as DateIcon,
   ScienceOutlined as LabIcon,
   RestaurantOutlined as DietaIcon,
   AssignmentOutlined as ProjectIcon,
@@ -27,8 +27,6 @@ import {
   DescriptionOutlined as ContratosIcon,
   AccountBalanceOutlined as CuentasIcon,
   TaskAltOutlined as TaskIcon,
-  Visibility as ShowValuesIcon,
-  VisibilityOff as HideValuesIcon,
   MonitorWeightOutlined as WeightIcon,
   HealthAndSafety as HealthIcon,
   AutorenewOutlined
@@ -47,7 +45,8 @@ const EntityToolbar = ({
   entityName = '',
   additionalActions = [],
   icon,
-  title
+  title,
+  children
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -65,6 +64,7 @@ const EntityToolbar = ({
     'inventario',
     'lab',
     'rutinas',
+    'salud',
     'transacciones',
     'cuentas',
     'monedas',
@@ -81,7 +81,8 @@ const EntityToolbar = ({
     inquilinos: PeopleIcon,
     inventario: InventoryIcon,
     lab: LabIcon,
-    rutinas: HealthIcon,
+    rutinas: DateIcon,
+    salud: HealthIcon,
     transacciones: WalletIcon,
     cuentas: CuentasIcon,
     monedas: MoneyIcon,
@@ -101,6 +102,7 @@ const EntityToolbar = ({
     inventario: 'Inventario',
     lab: 'Laboratorio',
     rutinas: 'Rutinas',
+    salud: 'Salud',
     transacciones: 'Transacciones',
     cuentas: 'Cuentas',
     monedas: 'Monedas',
@@ -123,12 +125,7 @@ const EntityToolbar = ({
   }));
 
   const handleBack = () => {
-    const currentPath = location.pathname.slice(1);
-    if (homeReturnRoutes.includes(currentPath)) {
-      navigate('/');
-    } else {
-      navigate(-1);
-    }
+    navigate('/dashboard');
   };
 
   // Obtener el ícono de la página actual
@@ -256,20 +253,23 @@ const EntityToolbar = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           bgcolor: theme.palette.background.default,
-          padding: '8px 16px',
+          padding: '5.6px 0',
           borderBottom: 'none',
           boxShadow: 'none',
+          width: '100%',
         }}
       >
         <Container 
-          maxWidth="lg" 
+          maxWidth={false}
           disableGutters
           sx={{
             px: {
-              xs: 1,
-              sm: 2,
-              md: 3
-            }
+              xs: 0.15,
+              sm: 0.3,
+              md: 0.45,
+              lg: 0.6
+            },
+            maxWidth: '100%'
           }}
         >
           <Box sx={{ 
@@ -281,7 +281,7 @@ const EntityToolbar = ({
               xs: 1,
               sm: 2
             },
-            mb: 2
+            mb: 1.2
           }}>
             {/* Sección izquierda */}
             <Box sx={{ 
@@ -292,8 +292,8 @@ const EntityToolbar = ({
                 sm: 2
               },
               width: {
-                xs: 48,
-                sm: 72
+                xs: 40,
+                sm: 48
               }
             }}>
               {showBackButton && location.pathname !== '/' && (
@@ -303,10 +303,14 @@ const EntityToolbar = ({
                     size="small"
                     sx={{
                       color: 'text.secondary',
-                      '&:hover': { color: 'text.primary' }
+                      '&:hover': { 
+                        color: 'text.primary',
+                        bgcolor: 'action.hover',
+                      },
+                      borderRadius: '50%',
                     }}
                   >
-                    <ArrowBackOutlined sx={{ fontSize: 18 }} />
+                    <ArrowBackOutlined sx={{ fontSize: 21.6 }} />
                   </IconButton>
                 </Tooltip>
               )}
@@ -326,7 +330,7 @@ const EntityToolbar = ({
             }}>
               {/* Íconos de navegación a la izquierda */}
               {finalNavigationItems.length > 0 && (
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   {finalNavigationItems.slice(0, Math.ceil(finalNavigationItems.length / 2)).map((item) => (
                     <Tooltip key={item.to} title={item.label}>
                       <IconButton
@@ -335,13 +339,18 @@ const EntityToolbar = ({
                         sx={{
                           color: item.current ? 'primary.main' : 'text.secondary',
                           bgcolor: item.current ? 'action.selected' : 'transparent',
+                          borderRadius: '50%',
+                          width: 38,
+                          height: 38,
                           '&:hover': { 
                             color: item.current ? 'primary.main' : 'text.primary',
                             bgcolor: item.current ? 'action.selected' : 'action.hover'
                           }
                         }}
                       >
-                        {React.cloneElement(item.icon, { fontSize: 'small' })}
+                        {React.cloneElement(item.icon, { 
+                          sx: { fontSize: item.current ? 24 : 21.6 }
+                        })}
                       </IconButton>
                     </Tooltip>
                   ))}
@@ -356,12 +365,20 @@ const EntityToolbar = ({
                   gap: 1,
                   color: 'primary.main',
                   mx: 1,
-                  bgcolor: 'action.selected',
-                  px: 1,
-                  py: 0.5,
-                  borderRadius: 1
                 }}>
-                  {React.cloneElement(getCurrentPageIcon(), { fontSize: 'small' })}
+                  <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: 'action.selected',
+                    borderRadius: '50%',
+                    width: 38,
+                    height: 38,
+                  }}>
+                    {React.cloneElement(getCurrentPageIcon(), { 
+                      sx: { fontSize: 24 }
+                    })}
+                  </Box>
                   <Typography 
                     variant="subtitle2" 
                     sx={{ 
@@ -377,7 +394,7 @@ const EntityToolbar = ({
 
               {/* Íconos de navegación a la derecha */}
               {finalNavigationItems.length > 0 && (
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   {finalNavigationItems.slice(Math.ceil(finalNavigationItems.length / 2)).map((item) => (
                     <Tooltip key={item.to} title={item.label}>
                       <IconButton
@@ -386,13 +403,18 @@ const EntityToolbar = ({
                         sx={{
                           color: item.current ? 'primary.main' : 'text.secondary',
                           bgcolor: item.current ? 'action.selected' : 'transparent',
+                          borderRadius: '50%',
+                          width: 38,
+                          height: 38,
                           '&:hover': { 
                             color: item.current ? 'primary.main' : 'text.primary',
                             bgcolor: item.current ? 'action.selected' : 'action.hover'
                           }
                         }}
                       >
-                        {React.cloneElement(item.icon, { fontSize: 'small' })}
+                        {React.cloneElement(item.icon, { 
+                          sx: { fontSize: item.current ? 24 : 21.6 }
+                        })}
                       </IconButton>
                     </Tooltip>
                   ))}
@@ -410,10 +432,11 @@ const EntityToolbar = ({
               },
               justifyContent: 'flex-end',
               minWidth: {
-                xs: 48,
-                sm: 72
+                xs: 40,
+                sm: 48
               }
             }}>
+              {children}
               {/* Botones adicionales */}
               {additionalActions?.map((action, index) => (
                 <Tooltip key={index} title={action.tooltip || action.label}>
@@ -427,7 +450,7 @@ const EntityToolbar = ({
                       px: 1,
                       py: 0.5,
                       fontSize: '0.75rem',
-                      borderRadius: 1
+                      borderRadius: 19.2,
                     }}
                   >
                     {action.label}
@@ -443,10 +466,16 @@ const EntityToolbar = ({
                     size="small"
                     sx={{
                       color: 'text.secondary',
-                      '&:hover': { color: 'text.primary' }
+                      borderRadius: '50%',
+                      width: 38,
+                      height: 38,
+                      '&:hover': { 
+                        color: 'text.primary',
+                        bgcolor: 'action.hover'
+                      }
                     }}
                   >
-                    <AddOutlined sx={{ fontSize: 18 }} />
+                    <AddOutlined sx={{ fontSize: 21.6 }} />
                   </IconButton>
                 </Tooltip>
               )}

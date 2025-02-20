@@ -5,12 +5,14 @@ import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import { DataCorporalTable } from '../components/bodycomposition/DataCorporalTable';
 import { DataCorporalForm } from '../components/bodycomposition/DataCorporalForm';
+import UnderConstruction from '../components/UnderConstruction';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import AddIcon from '@mui/icons-material/Add';
 import { 
   ScienceOutlined as LabIcon,
   RestaurantOutlined as DietaIcon,
+  CalendarMonth as DateIcon,
   HealthAndSafety as HealthIcon
 } from '@mui/icons-material';
 
@@ -85,17 +87,22 @@ export function DataCorporal() {
         onBack={() => navigate('/dashboard')}
         navigationItems={[
           {
-            icon: <LabIcon sx={{ fontSize: 20 }} />,
+            icon: <LabIcon sx={{ fontSize: 21.6 }} />,
             label: 'Lab',
             to: '/lab'
           },
           {
-            icon: <HealthIcon sx={{ fontSize: 20 }} />,
+            icon: <HealthIcon sx={{ fontSize: 21.6 }} />,
+            label: 'Salud',
+            to: '/salud'
+          },
+          {
+            icon: <DateIcon sx={{ fontSize: 21.6 }} />,
             label: 'Rutinas',
             to: '/rutinas'
           },
           {
-            icon: <DietaIcon sx={{ fontSize: 20 }} />,
+            icon: <DietaIcon sx={{ fontSize: 21.6 }} />,
             label: 'Dieta',
             to: '/dieta'
           }
@@ -116,11 +123,7 @@ export function DataCorporal() {
           </Button>
         }
       >
-        <DataCorporalTable
-          data={data}
-          onEdit={handleOpenDialog}
-          onDelete={handleDelete}
-        />
+        <UnderConstruction />
       </EntityDetails>
 
       <DataCorporalForm

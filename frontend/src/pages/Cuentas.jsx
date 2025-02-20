@@ -16,7 +16,8 @@ import {
   CreditCardOutlined as CardIcon,
   AttachMoneyOutlined as MoneyIcon,
   ExpandMore as ExpandMoreIcon,
-  AutorenewOutlined as RecurrentIcon
+  AutorenewOutlined as RecurrentIcon,
+  PersonOutlineOutlined as DeudoresIcon
 } from '@mui/icons-material';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
@@ -396,19 +397,24 @@ export function Cuentas() {
         onAdd={() => setIsFormOpen(true)}
         navigationItems={[
           {
-            icon: <CurrencyIcon sx={{ fontSize: 20 }} />,
+            icon: <CurrencyIcon sx={{ fontSize: 21.6 }} />,
             label: 'Monedas',
             to: '/monedas'
           },
           {
-            icon: <WalletIcon sx={{ fontSize: 20 }} />,
+            icon: <WalletIcon sx={{ fontSize: 21.6 }} />,
             label: 'Transacciones',
             to: '/transacciones'
           },
           {
-            icon: <RecurrentIcon sx={{ fontSize: 20 }} />,
+            icon: <RecurrentIcon sx={{ fontSize: 21.6 }} />,
             label: 'Recurrentes',
             to: '/recurrente'
+          },
+          {
+            icon: <DeudoresIcon sx={{ fontSize: 21.6 }} />,
+            label: 'Deudores',
+            to: '/deudores'
           }
         ]}
       />

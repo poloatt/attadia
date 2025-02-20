@@ -9,18 +9,21 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Chip
+  Chip,
+  Box,
+  Typography
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import { 
   ScienceOutlined as LabIcon,
-  LocalHospitalOutlined as RutinasIcon,
+  CalendarMonth as DateIcon,
   MonitorWeightOutlined as WeightIcon,
   HealthAndSafety as HealthIcon
 } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import EntityForm from '../components/EntityViews/EntityForm';
+import UnderConstruction from '../components/UnderConstruction';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '../config/axios';
 import EmptyState from '../components/EmptyState';
@@ -151,17 +154,22 @@ export function Dieta() {
         }}
         navigationItems={[
           {
-            icon: <LabIcon sx={{ fontSize: 20 }} />,
+            icon: <LabIcon sx={{ fontSize: 21.6 }} />,
             label: 'Lab',
             to: '/lab'
           },
           {
-            icon: <HealthIcon sx={{ fontSize: 20 }} />,
+            icon: <HealthIcon sx={{ fontSize: 21.6 }} />,
+            label: 'Salud',
+            to: '/salud'
+          },
+          {
+            icon: <DateIcon sx={{ fontSize: 21.6 }} />,
             label: 'Rutinas',
             to: '/rutinas'
           },
           {
-            icon: <WeightIcon sx={{ fontSize: 20 }} />,
+            icon: <WeightIcon sx={{ fontSize: 21.6 }} />,
             label: 'Composición Corporal',
             to: '/datacorporal'
           }
@@ -184,55 +192,7 @@ export function Dieta() {
           </Button>
         }
       >
-        {comidas.length === 0 ? (
-          <EmptyState onAdd={() => setIsFormOpen(true)} />
-        ) : (
-          <TableContainer component={Paper} elevation={0}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Nombre</TableCell>
-                  <TableCell>Tipo</TableCell>
-                  <TableCell align="right">Calorías</TableCell>
-                  <TableCell align="right">Proteínas</TableCell>
-                  <TableCell align="right">Carbohidratos</TableCell>
-                  <TableCell align="right">Grasas</TableCell>
-                  <TableCell align="right">Acciones</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {comidas.map((comida) => (
-                  <TableRow key={comida.id}>
-                    <TableCell>{comida.nombre}</TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={comida.tipo}
-                        size="small"
-                        color={
-                          comida.tipo === 'DESAYUNO' ? 'primary' :
-                          comida.tipo === 'ALMUERZO' ? 'success' :
-                          comida.tipo === 'MERIENDA' ? 'info' :
-                          comida.tipo === 'CENA' ? 'warning' : 'default'
-                        }
-                      />
-                    </TableCell>
-                    <TableCell align="right">{comida.calorias} kcal</TableCell>
-                    <TableCell align="right">{comida.proteinas}g</TableCell>
-                    <TableCell align="right">{comida.carbohidratos}g</TableCell>
-                    <TableCell align="right">{comida.grasas}g</TableCell>
-                    <TableCell align="right">
-                      <EntityActions
-                        onEdit={() => handleEdit(comida)}
-                        onDelete={() => handleDelete(comida.id)}
-                        itemName={`la comida ${comida.nombre}`}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
+        <UnderConstruction />
       </EntityDetails>
 
       <EntityForm

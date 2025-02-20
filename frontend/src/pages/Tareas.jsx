@@ -14,6 +14,8 @@ import {
   TaskAltOutlined as TaskIcon,
   AssignmentOutlined as ProjectIcon,
   ArchiveOutlined as ArchiveIcon,
+  Visibility as ShowValuesIcon,
+  VisibilityOff as HideValuesIcon,
 } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
 import TareasTable from '../components/proyectos/TareasTable';
@@ -22,6 +24,7 @@ import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import { useLocation } from 'react-router-dom';
 import { useNavigationBar } from '../context/NavigationBarContext';
+import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 
 export function Tareas() {
   const [tareas, setTareas] = useState([]);
@@ -33,6 +36,7 @@ export function Tareas() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const location = useLocation();
   const { setTitle, setActions } = useNavigationBar();
+  const { showValues, toggleValuesVisibility } = useValuesVisibility();
 
   useEffect(() => {
     setTitle('Tareas');
@@ -175,27 +179,19 @@ export function Tareas() {
         }
         navigationItems={[
           { 
-            icon: <ProjectIcon />, 
+            icon: <ProjectIcon sx={{ fontSize: 21.6 }} />, 
             label: 'Proyectos', 
             to: '/proyectos',
             current: location.pathname === '/proyectos'
           },
           {
-            icon: <ArchiveIcon />,
+            icon: <ArchiveIcon sx={{ fontSize: 21.6 }} />,
             label: 'Archivo',
             to: '/archivo',
             current: location.pathname === '/archivo'
           }
         ]}
-      >
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Tooltip title="Filtros">
-            <IconButton size="small">
-              <FilterListIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </EntityToolbar>
+      />
 
       <Box sx={{ py: 2 }}>
         <TareasTable
@@ -203,6 +199,7 @@ export function Tareas() {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onUpdateEstado={handleUpdateEstado}
+          showValues={showValues}
         />
       </Box>
 

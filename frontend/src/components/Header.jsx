@@ -33,7 +33,10 @@ export default function Header() {
     '/dashboard', // También en la ruta /dashboard
     '/transacciones',
     '/cuentas',
-    '/monedas'
+    '/monedas',
+    '/proyectos',
+    '/tareas',
+    '/archivo'
   ].includes(location.pathname);
 
   return (

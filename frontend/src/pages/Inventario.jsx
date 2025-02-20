@@ -26,6 +26,7 @@ import {
 } from '@mui/icons-material';
 import EmptyState from '../components/EmptyState';
 import { EntityActions } from '../components/EntityViews/EntityActions';
+import UnderConstruction from '../components/UnderConstruction';
 
 export function Inventario() {
   const [items, setItems] = useState([]);
@@ -256,40 +257,7 @@ export function Inventario() {
           </Button>
         }
       >
-        {items.length === 0 ? (
-          <EmptyState onAdd={() => setIsFormOpen(true)} />
-        ) : (
-          <TableContainer component={Paper} elevation={0}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Nombre</TableCell>
-                  <TableCell>Descripción</TableCell>
-                  <TableCell align="right">Cantidad</TableCell>
-                  <TableCell>Estado</TableCell>
-                  <TableCell align="right">Acciones</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>{item.nombre}</TableCell>
-                    <TableCell>{item.descripcion}</TableCell>
-                    <TableCell align="right">{item.cantidad}</TableCell>
-                    <TableCell>{item.estado}</TableCell>
-                    <TableCell align="right">
-                      <EntityActions
-                        onEdit={() => handleEdit(item)}
-                        onDelete={() => handleDelete(item.id)}
-                        itemName={`el item ${item.nombre}`}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
+        <UnderConstruction />
       </EntityDetails>
 
       <EntityForm

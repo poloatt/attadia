@@ -114,16 +114,13 @@ export function Layout() {
       >
         <Box sx={{ 
           width: '100%',
-          maxWidth: {
-            xs: '100%',
-            sm: '100%',
-            md: '1200px'
-          },
+          maxWidth: '100%',
           mx: 'auto',
           px: {
-            xs: 2,
-            sm: 3,
-            md: 4
+            xs: 0.15,
+            sm: 0.3,
+            md: 0.45,
+            lg: 0.6
           },
           flex: 1,
           display: 'flex',

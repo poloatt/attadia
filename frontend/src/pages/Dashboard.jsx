@@ -811,22 +811,22 @@ export function Dashboard() {
         showDivider={false}
         navigationItems={[
           {
-            icon: <WalletIcon sx={{ fontSize: 20 }} />,
+            icon: <WalletIcon sx={{ fontSize: 21.6 }} />,
             label: 'Transacciones',
             to: '/transacciones'
           },
           {
-            icon: <BuildingIcon sx={{ fontSize: 20 }} />,
+            icon: <BuildingIcon sx={{ fontSize: 21.6 }} />,
             label: 'Propiedades',
             to: '/propiedades'
           },
           {
-            icon: <HealthIcon sx={{ fontSize: 20 }} />,
-            label: 'Rutinas',
-            to: '/rutinas'
+            icon: <HealthIcon sx={{ fontSize: 21.6 }} />,
+            label: 'Salud',
+            to: '/salud'
           },
           {
-            icon: <TaskAltOutlined sx={{ fontSize: 20 }} />,
+            icon: <TaskAltOutlined sx={{ fontSize: 21.6 }} />,
             label: 'Tareas',
             to: '/tareas'
           }

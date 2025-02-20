@@ -20,6 +20,7 @@ import {
   TextField,
   Divider,
   Chip,
+  TableHead,
 } from '@mui/material';
 import {
   EditOutlined as EditIcon,
@@ -34,6 +35,7 @@ import { es } from 'date-fns/locale';
 import clienteAxios from '../../config/axios';
 import { useSnackbar } from 'notistack';
 import TareaActions from './TareaActions';
+import { useValuesVisibility } from '../../context/ValuesVisibilityContext';
 
 const getPeriodo = (tarea, isArchive = false) => {
   const fechaInicio = new Date(tarea.fechaInicio);
@@ -76,13 +78,14 @@ const ordenarTareas = (tareas) => {
   });
 };
 
-const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false }) => {
+const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues }) => {
   const [open, setOpen] = useState(false);
   const [estadoLocal, setEstadoLocal] = useState(tarea.estado);
   const [subtareasLocal, setSubtareasLocal] = useState(tarea.subtareas || []);
   const [isUpdating, setIsUpdating] = useState(false);
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
+  const { maskText } = useValuesVisibility();
 
   useEffect(() => {
     setEstadoLocal(tarea.estado);
@@ -385,7 +388,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false }
                   whiteSpace: 'nowrap'
                 }}
               >
-                {tarea.titulo}
+                {showValues ? tarea.titulo : maskText(tarea.titulo)}
               </Typography>
             </Box>
           </Box>
@@ -422,7 +425,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false }
                   color="text.secondary"
                   sx={{ mb: 0.5, whiteSpace: 'pre-wrap' }}
                 >
-                  {tarea.descripcion}
+                  {showValues ? tarea.descripcion : maskText(tarea.descripcion)}
                 </Typography>
               )}
 
@@ -473,7 +476,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false }
                             padding: 0.25,
                             color: 'text.secondary',
                             '&.Mui-checked': {
-                              color: isArchive ? '#2D5C2E' : theme.palette.secondary.main
+                              color: isArchive ? '#2D5C2E' : 'grey.800'
                             },
                             '& .MuiSvgIcon-root': {
                               borderRadius: '50%'
@@ -486,23 +489,23 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false }
                           checkedIcon={<CompletedIcon sx={{ 
                             fontSize: '1.2rem', 
                             backgroundColor: 'background.default',
-                            color: theme.palette.secondary.main,
+                            color: isArchive ? '#2D5C2E' : 'grey.800',
                             borderRadius: '50%',
-                            border: isArchive ? 'none' : '2px solid', 
-                            borderColor: 'secondary.main'
+                            border: '2px solid', 
+                            borderColor: isArchive ? '#2D5C2E' : 'grey.800'
                           }} />}
                         />
                         <Typography
                           variant="body2"
                           sx={{
                             textDecoration: subtarea.completada ? 'line-through' : 'none',
-                            color: subtarea.completada ? 'text.secondary' : 'text.primary',
+                            color: subtarea.completada ? (isArchive ? '#2D5C2E' : 'grey.800') : 'text.primary',
                             flex: 1,
                             cursor: 'pointer'
                           }}
                           onClick={() => !isUpdating && handleSubtareaToggle(subtarea._id, subtarea.completada)}
                         >
-                          {subtarea.titulo}
+                          {showValues ? subtarea.titulo : maskText(subtarea.titulo)}
                         </Typography>
                       </Box>
                     ))}
@@ -562,8 +565,9 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false }
   );
 };
 
-const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false }) => {
+const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues }) => {
   const theme = useTheme();
+  const { maskText } = useValuesVisibility();
 
   // Filtrar tareas según si es archivo o no
   const tareasAMostrar = isArchive 
@@ -607,7 +611,7 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
             sx={{
               px: 2,
               py: 1,
-              bgcolor: '#141414', // 5% más oscuro que background.paper
+              bgcolor: '#141414',
               borderBottom: '1px solid',
               borderColor: 'divider'
             }}
@@ -627,6 +631,7 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
                     onDelete={onDelete}
                     onUpdateEstado={onUpdateEstado}
                     isArchive={isArchive}
+                    showValues={showValues}
                   />
                 ))}
               </TableBody>

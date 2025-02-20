@@ -314,22 +314,22 @@ export function Habitaciones() {
         searchPlaceholder="Buscar habitaciones..."
         navigationItems={[
           {
-            icon: <BuildingIcon sx={{ fontSize: 20 }} />,
+            icon: <BuildingIcon sx={{ fontSize: 21.6 }} />,
             label: 'Propiedades',
             to: '/propiedades'
           },
           {
-            icon: <PeopleIcon sx={{ fontSize: 20 }} />,
+            icon: <PeopleIcon sx={{ fontSize: 21.6 }} />,
             label: 'Inquilinos',
             to: '/inquilinos'
           },
           {
-            icon: <DescriptionIcon sx={{ fontSize: 20 }} />,
+            icon: <DescriptionIcon sx={{ fontSize: 21.6 }} />,
             label: 'Contratos',
             to: '/contratos'
           },
           {
-            icon: <InventoryIcon sx={{ fontSize: 20 }} />,
+            icon: <InventoryIcon sx={{ fontSize: 21.6 }} />,
             label: 'Inventario',
             to: '/inventario'
           }

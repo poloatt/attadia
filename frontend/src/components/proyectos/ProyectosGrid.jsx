@@ -33,13 +33,15 @@ import { useSnackbar } from 'notistack';
 import TareaActions from './TareaActions';
 import { addDays, addWeeks, addMonths, isWeekend, startOfMonth } from 'date-fns';
 import { useTheme } from '@mui/material/styles';
+import { useValuesVisibility } from '../../context/ValuesVisibilityContext';
 
-const TareaItem = ({ tarea, onUpdateTarea }) => {
+const TareaItem = ({ tarea, onUpdateTarea, showValues }) => {
   const [open, setOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [tareaLocal, setTareaLocal] = useState(tarea);
   const { enqueueSnackbar } = useSnackbar();
   const theme = useTheme();
+  const { maskText } = useValuesVisibility();
 
   useEffect(() => {
     setTareaLocal(tarea);
@@ -278,8 +280,6 @@ const TareaItem = ({ tarea, onUpdateTarea }) => {
       elevation={0}
       sx={{
         backgroundColor: 'grey.900',
-        border: '1px solid',
-        borderColor: 'grey.800',
         position: 'relative',
         '&::before': {
           content: '""',
@@ -330,7 +330,7 @@ const TareaItem = ({ tarea, onUpdateTarea }) => {
         )}
         <Box sx={{ flex: 1 }}>
           <Typography variant="body2">
-            {tareaLocal.titulo}
+            {showValues ? tareaLocal.titulo : maskText(tareaLocal.titulo)}
           </Typography>
         </Box>
         <Typography 
@@ -356,7 +356,7 @@ const TareaItem = ({ tarea, onUpdateTarea }) => {
               color="text.secondary"
               sx={{ mb: 1, whiteSpace: 'pre-wrap' }}
             >
-              {tareaLocal.descripcion}
+              {showValues ? tareaLocal.descripcion : maskText(tareaLocal.descripcion)}
             </Typography>
           )}
 
@@ -410,7 +410,7 @@ const TareaItem = ({ tarea, onUpdateTarea }) => {
                         padding: 0.25,
                         color: 'text.secondary',
                         '&.Mui-checked': {
-                          color: theme.palette.secondary.main
+                          color: 'grey.800'
                         },
                         '& .MuiSvgIcon-root': {
                           borderRadius: '50%'
@@ -423,23 +423,23 @@ const TareaItem = ({ tarea, onUpdateTarea }) => {
                       checkedIcon={<CompletedIcon sx={{ 
                         fontSize: '1.2rem', 
                         backgroundColor: 'background.default',
-                        color: theme.palette.secondary.main,
+                        color: 'grey.800',
                         borderRadius: '50%',
                         border: '2px solid', 
-                        borderColor: 'secondary.main'
+                        borderColor: 'grey.800'
                       }} />}
                     />
                     <Typography
                       variant="body2"
                       sx={{
                         textDecoration: subtarea.completada ? 'line-through' : 'none',
-                        color: subtarea.completada ? 'text.secondary' : 'text.primary',
+                        color: subtarea.completada ? 'grey.800' : 'text.primary',
                         flex: 1,
                         cursor: 'pointer'
                       }}
                       onClick={() => handleSubtareaToggle(subtarea._id, subtarea.completada)}
                     >
-                      {subtarea.titulo}
+                      {showValues ? subtarea.titulo : maskText(subtarea.titulo)}
                     </Typography>
                   </Box>
                 ))}
@@ -464,7 +464,7 @@ const TareaItem = ({ tarea, onUpdateTarea }) => {
   );
 };
 
-const ProyectoItem = ({ proyecto, onEdit, onDelete, onUpdateTarea, onAddTarea }) => {
+const ProyectoItem = ({ proyecto, onEdit, onDelete, onUpdateTarea, onAddTarea, showValues }) => {
   const [expanded, setExpanded] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const proyectoId = proyecto._id || proyecto.id;
@@ -627,6 +627,7 @@ const ProyectoItem = ({ proyecto, onEdit, onDelete, onUpdateTarea, onAddTarea })
                     key={tarea._id || tarea.id}
                     tarea={tarea}
                     onUpdateTarea={onUpdateTarea}
+                    showValues={showValues}
                   />
                 ))}
             </Stack>
@@ -641,7 +642,9 @@ const ProyectoItem = ({ proyecto, onEdit, onDelete, onUpdateTarea, onAddTarea })
   );
 };
 
-const ProyectosGrid = ({ proyectos, onEdit, onDelete, onAdd, onUpdateTarea, onAddTarea }) => {
+const ProyectosGrid = ({ proyectos, onEdit, onDelete, onAdd, onUpdateTarea, onAddTarea, showValues }) => {
+  const { maskText } = useValuesVisibility();
+
   if (proyectos.length === 0) {
     return (
       <Box sx={{ p: 2 }}>
@@ -660,6 +663,7 @@ const ProyectosGrid = ({ proyectos, onEdit, onDelete, onAdd, onUpdateTarea, onAd
           onDelete={onDelete}
           onUpdateTarea={onUpdateTarea}
           onAddTarea={onAddTarea}
+          showValues={showValues}
         />
       ))}
     </Stack>

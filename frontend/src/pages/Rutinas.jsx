@@ -3,7 +3,10 @@ import { Container } from '@mui/material';
 import EntityToolbar from '../components/EntityToolbar';
 import { 
   ScienceOutlined as LabIcon,
-  RestaurantOutlined as DietaIcon
+  RestaurantOutlined as DietaIcon,
+  MonitorWeightOutlined as WeightIcon,
+  HealthAndSafety as HealthIcon,
+  CalendarMonth as DateIcon
 } from '@mui/icons-material';
 import { Button } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -139,20 +142,31 @@ export function Rutinas() {
         onAdd={() => handleOpenDialog()}
         navigationItems={[
           {
-            icon: <LabIcon sx={{ fontSize: 20 }} />,
+            icon: <LabIcon sx={{ fontSize: 21.6 }} />,
             label: 'Lab',
             to: '/lab'
           },
           {
-            icon: <DietaIcon sx={{ fontSize: 20 }} />,
+            icon: <HealthIcon sx={{ fontSize: 21.6 }} />,
+            label: 'Salud',
+            to: '/salud'
+          },
+          {
+            icon: <DietaIcon sx={{ fontSize: 21.6 }} />,
             label: 'Dieta',
             to: '/dieta'
+          },
+          {
+            icon: <WeightIcon sx={{ fontSize: 21.6 }} />,
+            label: 'Composición Corporal',
+            to: '/datacorporal'
           }
         ]}
       />
       
       <EntityDetails 
         title="Rutinas"
+        icon={<DateIcon sx={{ fontSize: 20 }} />}
         action={
           <Button
             variant="contained"

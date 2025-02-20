@@ -24,7 +24,8 @@ import {
   EditOutlined as EditIcon,
   DeleteOutlineOutlined as DeleteIcon,
   PauseOutlined as PauseIcon,
-  PlayArrowOutlined as PlayIcon
+  PlayArrowOutlined as PlayIcon,
+  PersonOutlineOutlined
 } from '@mui/icons-material';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
@@ -365,6 +366,11 @@ export function Recurrente() {
             icon: <CurrencyIcon sx={{ fontSize: 20 }} />,
             label: 'Monedas',
             to: '/monedas'
+          },
+          {
+            icon: <PersonOutlineOutlined sx={{ fontSize: 20 }} />,
+            label: 'Deudores',
+            to: '/deudores'
           }
         ]}
         showValues={showValues}

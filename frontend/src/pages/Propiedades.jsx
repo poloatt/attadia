@@ -516,22 +516,22 @@ export function Propiedades() {
         searchPlaceholder="Buscar propiedades..."
         navigationItems={[
           {
-            icon: <BedIcon sx={{ fontSize: 20 }} />,
+            icon: <BedIcon sx={{ fontSize: 21.6 }} />,
             label: 'Habitaciones',
             to: '/habitaciones'
           },
           {
-            icon: <PeopleIcon sx={{ fontSize: 20 }} />,
+            icon: <PeopleIcon sx={{ fontSize: 21.6 }} />,
             label: 'Inquilinos',
             to: '/inquilinos'
           },
           {
-            icon: <DescriptionIcon sx={{ fontSize: 20 }} />,
+            icon: <DescriptionIcon sx={{ fontSize: 21.6 }} />,
             label: 'Contratos',
             to: '/contratos'
           },
           {
-            icon: <InventoryIcon sx={{ fontSize: 20 }} />,
+            icon: <InventoryIcon sx={{ fontSize: 21.6 }} />,
             label: 'Inventario',
             to: '/inventario'
           }

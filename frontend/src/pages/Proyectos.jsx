@@ -16,6 +16,8 @@ import {
   AssignmentOutlined as ProjectIcon,
   TaskAltOutlined as TaskIcon,
   ArchiveOutlined as ArchiveIcon,
+  Visibility as ShowValuesIcon,
+  VisibilityOff as HideValuesIcon,
 } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
 import clienteAxios from '../config/axios';
@@ -24,6 +26,7 @@ import ProyectosGrid from '../components/proyectos/ProyectosGrid';
 import ProyectoForm from '../components/proyectos/ProyectoForm';
 import { useNavigationBar } from '../context/NavigationBarContext';
 import TareaForm from '../components/proyectos/TareaForm';
+import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 
 export function Proyectos() {
   const [proyectos, setProyectos] = useState([]);
@@ -36,6 +39,7 @@ export function Proyectos() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { setTitle, setActions } = useNavigationBar();
+  const { showValues, toggleValuesVisibility } = useValuesVisibility();
 
   useEffect(() => {
     setTitle('Proyectos');
@@ -210,23 +214,7 @@ export function Proyectos() {
             current: location.pathname === '/archivo'
           }
         ]}
-      >
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Tooltip title="Cambiar vista">
-            <IconButton
-              size="small"
-              onClick={() => setViewMode(prev => prev === 'grid' ? 'list' : 'grid')}
-            >
-              {viewMode === 'grid' ? <ViewListIcon /> : <ViewModuleIcon />}
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Filtros">
-            <IconButton size="small">
-              <FilterListIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </EntityToolbar>
+      />
 
       <Box sx={{ py: 2 }}>
         <ProyectosGrid
@@ -236,6 +224,7 @@ export function Proyectos() {
           onAdd={() => setIsFormOpen(true)}
           onUpdateTarea={handleUpdateTarea}
           onAddTarea={handleAddTarea}
+          showValues={showValues}
         />
       </Box>
 

@@ -205,22 +205,22 @@ export function Contratos() {
         searchPlaceholder="Buscar contratos..."
         navigationItems={[
           {
-            icon: <BuildingIcon sx={{ fontSize: 20 }} />,
+            icon: <BuildingIcon sx={{ fontSize: 21.6 }} />,
             label: 'Propiedades',
             to: '/propiedades'
           },
           {
-            icon: <BedIcon sx={{ fontSize: 20 }} />,
+            icon: <BedIcon sx={{ fontSize: 21.6 }} />,
             label: 'Habitaciones',
             to: '/habitaciones'
           },
           {
-            icon: <PeopleIcon sx={{ fontSize: 20 }} />,
+            icon: <PeopleIcon sx={{ fontSize: 21.6 }} />,
             label: 'Inquilinos',
             to: '/inquilinos'
           },
           {
-            icon: <InventoryIcon sx={{ fontSize: 20 }} />,
+            icon: <InventoryIcon sx={{ fontSize: 21.6 }} />,
             label: 'Inventario',
             to: '/inventario'
           }

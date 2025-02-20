@@ -14,6 +14,10 @@ import {
   TaskAltOutlined as TaskIcon,
   AssignmentOutlined as ProjectIcon,
   ArchiveOutlined as ArchiveIcon,
+  CheckCircle as CompletedIcon,
+  RadioButtonUnchecked as PendingIcon,
+  Visibility as ShowValuesIcon,
+  VisibilityOff as HideValuesIcon,
 } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
 import TareasTable from '../components/proyectos/TareasTable';
@@ -22,6 +26,7 @@ import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import { useNavigationBar } from '../context/NavigationBarContext';
 import { useLocation } from 'react-router-dom';
+import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 
 export function Archivo() {
   const [tareas, setTareas] = useState([]);
@@ -33,6 +38,7 @@ export function Archivo() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { setTitle, setActions } = useNavigationBar();
   const location = useLocation();
+  const { showValues, toggleValuesVisibility } = useValuesVisibility();
 
   useEffect(() => {
     setTitle('Archivo de Tareas');
@@ -152,15 +158,7 @@ export function Archivo() {
             current: location.pathname === '/tareas'
           }
         ]}
-      >
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Tooltip title="Filtros">
-            <IconButton size="small" sx={{ color: 'text.secondary' }}>
-              <FilterListIcon sx={{ fontSize: 20 }} />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </EntityToolbar>
+      />
 
       <Box sx={{ py: 2 }}>
         <TareasTable
@@ -169,6 +167,7 @@ export function Archivo() {
           onDelete={handleDelete}
           onUpdateEstado={handleUpdateEstado}
           isArchive={true}
+          showValues={showValues}
         />
       </Box>
 

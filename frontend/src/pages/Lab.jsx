@@ -9,7 +9,9 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Chip
+  Chip,
+  Box,
+  Typography
 } from '@mui/material';
 import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
@@ -17,13 +19,13 @@ import EntityForm from '../components/EntityViews/EntityForm';
 import AddIcon from '@mui/icons-material/Add';
 import { 
   RestaurantOutlined as DietaIcon,
-  LocalHospitalOutlined as RutinasIcon,
+  CalendarMonth as DateIcon,
   MonitorWeightOutlined as WeightIcon,
   HealthAndSafety as HealthIcon
 } from '@mui/icons-material';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
-import EmptyState from '../components/EmptyState';
+import UnderConstruction from '../components/UnderConstruction';
 import { EntityActions } from '../components/EntityViews/EntityActions';
 
 export function Lab() {
@@ -144,17 +146,22 @@ export function Lab() {
         }}
         navigationItems={[
           {
-            icon: <HealthIcon sx={{ fontSize: 20 }} />,
+            icon: <HealthIcon sx={{ fontSize: 21.6 }} />,
+            label: 'Salud',
+            to: '/salud'
+          },
+          {
+            icon: <DateIcon sx={{ fontSize: 21.6 }} />,
             label: 'Rutinas',
             to: '/rutinas'
           },
           {
-            icon: <DietaIcon sx={{ fontSize: 20 }} />,
+            icon: <DietaIcon sx={{ fontSize: 21.6 }} />,
             label: 'Dieta',
             to: '/dieta'
           },
           {
-            icon: <WeightIcon sx={{ fontSize: 20 }} />,
+            icon: <WeightIcon sx={{ fontSize: 21.6 }} />,
             label: 'Composición Corporal',
             to: '/datacorporal'
           }
@@ -177,56 +184,7 @@ export function Lab() {
           </Button>
         }
       >
-        {mediciones.length === 0 ? (
-          <EmptyState onAdd={() => setIsFormOpen(true)} />
-        ) : (
-          <TableContainer component={Paper} elevation={0}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Fecha</TableCell>
-                  <TableCell align="right">Peso</TableCell>
-                  <TableCell align="right">Músculo</TableCell>
-                  <TableCell align="right">Grasa</TableCell>
-                  <TableCell align="right">Agua</TableCell>
-                  <TableCell align="right">IMC</TableCell>
-                  <TableCell align="right">Acciones</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {mediciones.map((medicion) => (
-                  <TableRow key={medicion.id}>
-                    <TableCell>
-                      {new Date(medicion.fecha).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell align="right">{medicion.peso?.toFixed(1)} kg</TableCell>
-                    <TableCell align="right">{medicion.musculo?.toFixed(1)}%</TableCell>
-                    <TableCell align="right">{medicion.grasa?.toFixed(1)}%</TableCell>
-                    <TableCell align="right">{medicion.agua?.toFixed(1)}%</TableCell>
-                    <TableCell align="right">
-                      <Chip 
-                        label={medicion.imc?.toFixed(1)}
-                        color={
-                          medicion.imc < 18.5 ? 'warning' :
-                          medicion.imc < 25 ? 'success' :
-                          medicion.imc < 30 ? 'warning' : 'error'
-                        }
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <EntityActions
-                        onEdit={() => handleEdit(medicion)}
-                        onDelete={() => handleDelete(medicion.id)}
-                        itemName={`la medición del ${new Date(medicion.fecha).toLocaleDateString()}`}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
+        <UnderConstruction />
       </EntityDetails>
 
       <EntityForm

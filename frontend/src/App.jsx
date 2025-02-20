@@ -19,6 +19,8 @@ import { Contratos } from './pages/Contratos';
 import { Inventario } from './pages/Inventario';
 import Dieta from './pages/Dieta';
 import DataCorporal from './pages/DataCorporal';
+import { Deudores } from './pages/Deudores';
+import { Salud } from './pages/Salud';
 import ErrorBoundary from './components/ErrorBoundary';
 import theme from './context/ThemeContext';
 import { ThemeProvider } from '@mui/material/styles';
@@ -66,6 +68,8 @@ function App() {
                   <Route path="/dieta" element={<Dieta />} />
                   <Route path="/datacorporal" element={<DataCorporal />} />
                   <Route path="/archivo" element={<Archivo />} />
+                  <Route path="/deudores" element={<Deudores />} />
+                  <Route path="/salud" element={<Salud />} />
                 </Route>
               </Route>
 
