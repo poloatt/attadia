@@ -1,4 +1,32 @@
-# Present - Sistema de Gestión
+#
+Análisis de la Aplicación:
+Arquitectura General:
+Aplicación de 3 capas: Frontend, Backend y Base de datos (MongoDB)
+Utiliza Docker para la containerización
+Sistema de autenticación con JWT y Google OAuth
+Desarrollo actual en ambiente local/desarrollo
+Frontend:
+Aplicación Vite.js
+Puerto de desarrollo: 5173
+Variables de entorno configuradas para desarrollo
+Dependencias manejadas a través de npm/node_modules
+Backend:
+Node.js
+Puerto: 5000
+Autenticación con JWT y Google OAuth
+Conexión a MongoDB
+Variables de entorno sensibles configuradas
+Base de Datos:
+MongoDB como base de datos principal
+Credenciales de desarrollo expuestas en docker-compose
+Volumen persistente para datos
+5. Configuración Actual:
+Ambiente de desarrollo con URLs locales
+Secretos y claves API expuestas en configuración
+Logging básico configurado
+Network bridge entre servicios
+
+ Present - Sistema de Gestión
 
 ## Descripción
 Present es un sistema de gestión integral que incluye módulos para administración de propiedades, finanzas, rutinas, laboratorio y más.

@@ -25,7 +25,9 @@ RUN npm install @mui/x-date-pickers@5.0.20 \
     @mui/material@5.15.10 \
     @emotion/react@11.11.3 \
     @emotion/styled@11.11.0 \
-    @mui/icons-material@5.15.10
+    @mui/icons-material@5.15.10 \
+    framer-motion@12.4.6 \
+    lottie-react@2.4.1
 
 # Instalar el resto de dependencias
 RUN npm install --legacy-peer-deps
