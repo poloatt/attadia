@@ -31,3 +31,7 @@ postgres_data/
 # OS
 .DS_Store
 Thumbs.db
+
+# Nginx logs y configuraciones temporales
+nginx/logs/
+frontend/nginx.conf
