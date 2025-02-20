@@ -15,21 +15,49 @@ import {
   FilterList as FilterListIcon,
   AssignmentOutlined as ProjectIcon,
   TaskAltOutlined as TaskIcon,
+  ArchiveOutlined as ArchiveIcon,
 } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import ProyectosGrid from '../components/proyectos/ProyectosGrid';
 import ProyectoForm from '../components/proyectos/ProyectoForm';
+import { useNavigationBar } from '../context/NavigationBarContext';
+import TareaForm from '../components/proyectos/TareaForm';
 
 export function Proyectos() {
   const [proyectos, setProyectos] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProyecto, setEditingProyecto] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
+  const [isTareaFormOpen, setIsTareaFormOpen] = useState(false);
+  const [selectedProyecto, setSelectedProyecto] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { setTitle, setActions } = useNavigationBar();
+
+  useEffect(() => {
+    setTitle('Proyectos');
+    setActions([
+      {
+        component: (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => {
+              setEditingProyecto(null);
+              setIsFormOpen(true);
+            }}
+            sx={{ borderRadius: 0 }}
+          >
+            Nuevo Proyecto
+          </Button>
+        ),
+        onClick: () => {}
+      }
+    ]);
+  }, [setTitle, setActions]);
 
   const fetchProyectos = useCallback(async () => {
     try {
@@ -121,6 +149,29 @@ export function Proyectos() {
     }, 1000);
   }, [enqueueSnackbar]);
 
+  const handleAddTarea = (proyecto) => {
+    setSelectedProyecto(proyecto);
+    setIsTareaFormOpen(true);
+  };
+
+  const handleTareaSubmit = async (formData) => {
+    try {
+      const datosAEnviar = {
+        ...formData,
+        proyecto: selectedProyecto._id
+      };
+
+      const response = await clienteAxios.post('/tareas', datosAEnviar);
+      enqueueSnackbar('Tarea creada exitosamente', { variant: 'success' });
+      setIsTareaFormOpen(false);
+      setSelectedProyecto(null);
+      await fetchProyectos();
+    } catch (error) {
+      console.error('Error al crear tarea:', error);
+      enqueueSnackbar('Error al crear la tarea', { variant: 'error' });
+    }
+  };
+
   const filteredProyectos = proyectos;
 
   return (
@@ -150,7 +201,13 @@ export function Proyectos() {
             icon: <TaskIcon />, 
             label: 'Tareas', 
             to: '/tareas',
-            current: false
+            current: location.pathname === '/tareas'
+          },
+          {
+            icon: <ArchiveIcon />,
+            label: 'Archivo',
+            to: '/archivo',
+            current: location.pathname === '/archivo'
           }
         ]}
       >
@@ -178,6 +235,7 @@ export function Proyectos() {
           onDelete={handleDelete}
           onAdd={() => setIsFormOpen(true)}
           onUpdateTarea={handleUpdateTarea}
+          onAddTarea={handleAddTarea}
         />
       </Box>
 
@@ -191,6 +249,20 @@ export function Proyectos() {
           onSubmit={handleFormSubmit}
           initialData={editingProyecto}
           isEditing={!!editingProyecto}
+        />
+      )}
+
+      {isTareaFormOpen && (
+        <TareaForm
+          open={isTareaFormOpen}
+          onClose={() => {
+            setIsTareaFormOpen(false);
+            setSelectedProyecto(null);
+          }}
+          onSubmit={handleTareaSubmit}
+          initialData={{ proyecto: selectedProyecto }}
+          isEditing={false}
+          proyectos={[selectedProyecto]}
         />
       )}
     </Container>

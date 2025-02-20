@@ -20,10 +20,10 @@ import TareasTable from '../components/proyectos/TareasTable';
 import TareaForm from '../components/proyectos/TareaForm';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
-import { useLocation } from 'react-router-dom';
 import { useNavigationBar } from '../context/NavigationBarContext';
+import { useLocation } from 'react-router-dom';
 
-export function Tareas() {
+export function Archivo() {
   const [tareas, setTareas] = useState([]);
   const [proyectos, setProyectos] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -31,34 +31,16 @@ export function Tareas() {
   const { enqueueSnackbar } = useSnackbar();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const location = useLocation();
   const { setTitle, setActions } = useNavigationBar();
+  const location = useLocation();
 
   useEffect(() => {
-    setTitle('Tareas');
-    setActions([
-      {
-        component: (
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => {
-              setEditingTarea(null);
-              setIsFormOpen(true);
-            }}
-            sx={{ borderRadius: 0 }}
-          >
-            Nueva Tarea
-          </Button>
-        ),
-        onClick: () => {}
-      }
-    ]);
+    setTitle('Archivo de Tareas');
+    setActions([]);
   }, [setTitle, setActions]);
 
   const fetchProyectos = useCallback(async () => {
     try {
-      // Obtener proyectos con sus tareas incluidas
       const response = await clienteAxios.get('/proyectos?populate=tareas');
       console.log('Proyectos con tareas:', response.data);
       setProyectos(response.data.docs || []);
@@ -71,7 +53,8 @@ export function Tareas() {
 
   const fetchTareas = useCallback(async () => {
     try {
-      const response = await clienteAxios.get('/tareas');
+      // Modificamos la llamada para obtener solo tareas completadas
+      const response = await clienteAxios.get('/tareas?estado=COMPLETADA');
       setTareas(response.data.docs || []);
     } catch (error) {
       console.error('Error:', error);
@@ -110,9 +93,7 @@ export function Tareas() {
       setIsFormOpen(false);
       setEditingTarea(null);
       
-      // Primero actualizamos los proyectos para obtener la nueva estructura
       await fetchProyectos();
-      // Luego actualizamos las tareas
       await fetchTareas();
     } catch (error) {
       console.error('Error completo:', error);
@@ -154,44 +135,28 @@ export function Tareas() {
   return (
     <Container maxWidth="xl">
       <EntityToolbar 
-        title="Tareas"
-        icon={<TaskIcon />}
-        onAdd={() => {
-          setEditingTarea(null);
-          setIsFormOpen(true);
-        }}
-        actions={
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => {
-              setEditingTarea(null);
-              setIsFormOpen(true);
-            }}
-            sx={{ borderRadius: 0 }}
-          >
-            Nueva Tarea
-          </Button>
-        }
+        title="Archivo"
+        icon={<ArchiveIcon sx={{ fontSize: 20 }} />}
+        showAddButton={false}
         navigationItems={[
           { 
-            icon: <ProjectIcon />, 
+            icon: <ProjectIcon sx={{ fontSize: 20 }} />, 
             label: 'Proyectos', 
             to: '/proyectos',
             current: location.pathname === '/proyectos'
           },
           {
-            icon: <ArchiveIcon />,
-            label: 'Archivo',
-            to: '/archivo',
-            current: location.pathname === '/archivo'
+            icon: <TaskIcon sx={{ fontSize: 20 }} />,
+            label: 'Tareas',
+            to: '/tareas',
+            current: location.pathname === '/tareas'
           }
         ]}
       >
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Tooltip title="Filtros">
-            <IconButton size="small">
-              <FilterListIcon />
+            <IconButton size="small" sx={{ color: 'text.secondary' }}>
+              <FilterListIcon sx={{ fontSize: 20 }} />
             </IconButton>
           </Tooltip>
         </Box>
@@ -203,6 +168,7 @@ export function Tareas() {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onUpdateEstado={handleUpdateEstado}
+          isArchive={true}
         />
       </Box>
 
@@ -224,4 +190,4 @@ export function Tareas() {
   );
 }
 
-export default Tareas;
+export default Archivo; 

@@ -45,7 +45,9 @@ const EntityToolbar = ({
   showDivider = true,
   navigationItems = [],
   entityName = '',
-  additionalActions = []
+  additionalActions = [],
+  icon,
+  title
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -109,18 +111,16 @@ const EntityToolbar = ({
     recurrente: 'Transacciones Recurrentes'
   };
 
-  // Determinar si estamos en la página de Rutinas
-  const isRutinasPage = location.pathname === '/rutinas';
+  // Determinar si estamos en la página actual
+  const isCurrentPage = (path) => {
+    return location.pathname === path;
+  };
 
   // Si estamos en la página de Rutinas, agregar el botón de DataCorporal
-  const finalNavigationItems = isRutinasPage ? [
-    ...navigationItems,
-    {
-      icon: <WeightIcon sx={{ fontSize: 20 }} />,
-      label: 'Composición Corporal',
-      to: '/datacorporal'
-    }
-  ] : navigationItems;
+  const finalNavigationItems = navigationItems.map(item => ({
+    ...item,
+    current: isCurrentPage(item.to)
+  }));
 
   const handleBack = () => {
     const currentPath = location.pathname.slice(1);
@@ -133,9 +133,15 @@ const EntityToolbar = ({
 
   // Obtener el ícono de la página actual
   const getCurrentPageIcon = () => {
-    const currentPath = location.pathname.slice(1);
+    if (icon) return icon;
     const IconComponent = routeIcons[currentPath];
     return IconComponent ? <IconComponent /> : null;
+  };
+
+  // Obtener el título de la página actual
+  const getCurrentPageTitle = () => {
+    if (title) return title;
+    return routeTitles[currentPath] || '';
   };
 
   // Determinar el tipo de entidad basado en la ruta
@@ -327,8 +333,12 @@ const EntityToolbar = ({
                         onClick={() => navigate(item.to)}
                         size="small"
                         sx={{
-                          color: 'text.secondary',
-                          '&:hover': { color: 'text.primary' }
+                          color: item.current ? 'primary.main' : 'text.secondary',
+                          bgcolor: item.current ? 'action.selected' : 'transparent',
+                          '&:hover': { 
+                            color: item.current ? 'primary.main' : 'text.primary',
+                            bgcolor: item.current ? 'action.selected' : 'action.hover'
+                          }
                         }}
                       >
                         {React.cloneElement(item.icon, { fontSize: 'small' })}
@@ -344,18 +354,23 @@ const EntityToolbar = ({
                   display: 'flex', 
                   alignItems: 'center',
                   gap: 1,
-                  color: 'text.primary',
-                  mx: 1
+                  color: 'primary.main',
+                  mx: 1,
+                  bgcolor: 'action.selected',
+                  px: 1,
+                  py: 0.5,
+                  borderRadius: 1
                 }}>
                   {React.cloneElement(getCurrentPageIcon(), { fontSize: 'small' })}
                   <Typography 
                     variant="subtitle2" 
                     sx={{ 
                       display: { xs: 'none', sm: 'block' },
-                      whiteSpace: 'nowrap'
+                      whiteSpace: 'nowrap',
+                      color: 'primary.main'
                     }}
                   >
-                    {routeTitles[currentPath] || ''}
+                    {getCurrentPageTitle()}
                   </Typography>
                 </Box>
               )}
@@ -369,8 +384,12 @@ const EntityToolbar = ({
                         onClick={() => navigate(item.to)}
                         size="small"
                         sx={{
-                          color: 'text.secondary',
-                          '&:hover': { color: 'text.primary' }
+                          color: item.current ? 'primary.main' : 'text.secondary',
+                          bgcolor: item.current ? 'action.selected' : 'transparent',
+                          '&:hover': { 
+                            color: item.current ? 'primary.main' : 'text.primary',
+                            bgcolor: item.current ? 'action.selected' : 'action.hover'
+                          }
                         }}
                       >
                         {React.cloneElement(item.icon, { fontSize: 'small' })}

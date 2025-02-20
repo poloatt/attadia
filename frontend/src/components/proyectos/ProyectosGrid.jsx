@@ -12,6 +12,8 @@ import {
   LinearProgress,
   Checkbox,
   Tooltip,
+  Menu,
+  MenuItem,
 } from '@mui/material';
 import {
   EditOutlined as EditIcon,
@@ -20,18 +22,24 @@ import {
   ExpandLess as ExpandLessIcon,
   CheckCircle as CompletedIcon,
   RadioButtonUnchecked as PendingIcon,
+  MoreVert as MoreVertIcon,
+  Add as AddIcon,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import EmptyState from '../EmptyState';
 import clienteAxios from '../../config/axios';
 import { useSnackbar } from 'notistack';
+import TareaActions from './TareaActions';
+import { addDays, addWeeks, addMonths, isWeekend, startOfMonth } from 'date-fns';
+import { useTheme } from '@mui/material/styles';
 
 const TareaItem = ({ tarea, onUpdateTarea }) => {
   const [open, setOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [tareaLocal, setTareaLocal] = useState(tarea);
   const { enqueueSnackbar } = useSnackbar();
+  const theme = useTheme();
 
   useEffect(() => {
     setTareaLocal(tarea);
@@ -77,7 +85,6 @@ const TareaItem = ({ tarea, onUpdateTarea }) => {
         if (onUpdateTarea) {
           onUpdateTarea(response.data);
         }
-        enqueueSnackbar('Subtarea actualizada exitosamente', { variant: 'success' });
       }
     } catch (error) {
       // Revertir estado local en caso de error
@@ -86,6 +93,161 @@ const TareaItem = ({ tarea, onUpdateTarea }) => {
       enqueueSnackbar('Error al actualizar subtarea', { variant: 'error' });
     } finally {
       // Asegurar que el estado de actualización se resetee después de un tiempo
+      setTimeout(() => {
+        setIsUpdating(false);
+      }, 500);
+    }
+  };
+
+  const handlePush = async (tarea) => {
+    if (isUpdating) return;
+    
+    try {
+      setIsUpdating(true);
+      const today = new Date();
+      let nuevaFecha;
+      
+      switch (tarea.pushCount % 4) {
+        case 0: // Próximo día hábil
+          nuevaFecha = addDays(today, 1);
+          while (isWeekend(nuevaFecha)) {
+            nuevaFecha = addDays(nuevaFecha, 1);
+          }
+          break;
+        case 1: // Próxima semana
+          nuevaFecha = addWeeks(today, 1);
+          break;
+        case 2: // Próximo mes
+          nuevaFecha = startOfMonth(addMonths(today, 1));
+          break;
+        case 3: // Hoy
+          nuevaFecha = today;
+          break;
+      }
+
+      const response = await clienteAxios.patch(`/tareas/${tarea._id}`, {
+        fechaInicio: nuevaFecha.toISOString(),
+        pushCount: (tarea.pushCount || 0) + 1
+      });
+      
+      if (onUpdateTarea) {
+        onUpdateTarea(response.data);
+      }
+      enqueueSnackbar('Fecha actualizada exitosamente', { variant: 'success' });
+    } catch (error) {
+      console.error('Error al actualizar fecha:', error);
+      enqueueSnackbar('Error al actualizar fecha', { variant: 'error' });
+    } finally {
+      setTimeout(() => {
+        setIsUpdating(false);
+      }, 500);
+    }
+  };
+
+  const handleDelegate = (tarea) => {
+    // Por implementar
+    enqueueSnackbar('Función por implementar', { variant: 'info' });
+  };
+
+  const handleTogglePriority = async (tarea) => {
+    if (isUpdating) return;
+    
+    try {
+      setIsUpdating(true);
+      const nuevaPrioridad = tarea.prioridad === 'ALTA' ? 'BAJA' : 'ALTA';
+      
+      const response = await clienteAxios.patch(`/tareas/${tarea._id}`, {
+        prioridad: nuevaPrioridad
+      });
+      
+      if (onUpdateTarea) {
+        onUpdateTarea(response.data);
+      }
+      enqueueSnackbar('Prioridad actualizada exitosamente', { variant: 'success' });
+    } catch (error) {
+      console.error('Error al actualizar prioridad:', error);
+      enqueueSnackbar('Error al actualizar prioridad', { variant: 'error' });
+    } finally {
+      setTimeout(() => {
+        setIsUpdating(false);
+      }, 500);
+    }
+  };
+
+  const handleComplete = async (tarea) => {
+    if (isUpdating) return;
+    
+    try {
+      setIsUpdating(true);
+      const nuevasSubtareas = tareaLocal.subtareas.map(st => ({
+        ...st,
+        completada: true
+      }));
+
+      const response = await clienteAxios.patch(`/tareas/${tarea._id}/subtareas`, {
+        subtareas: nuevasSubtareas
+      });
+      
+      if (onUpdateTarea) {
+        onUpdateTarea(response.data);
+      }
+      enqueueSnackbar('Tarea completada exitosamente', { variant: 'success' });
+    } catch (error) {
+      console.error('Error al completar tarea:', error);
+      enqueueSnackbar('Error al completar tarea', { variant: 'error' });
+    } finally {
+      setTimeout(() => {
+        setIsUpdating(false);
+      }, 500);
+    }
+  };
+
+  const handleReactivate = async (tarea) => {
+    if (isUpdating) return;
+    
+    try {
+      setIsUpdating(true);
+      const nuevasSubtareas = tareaLocal.subtareas.map(st => ({
+        ...st,
+        completada: false
+      }));
+
+      const response = await clienteAxios.patch(`/tareas/${tarea._id}/subtareas`, {
+        subtareas: nuevasSubtareas
+      });
+      
+      if (onUpdateTarea) {
+        onUpdateTarea(response.data);
+      }
+      enqueueSnackbar('Tarea reactivada exitosamente', { variant: 'success' });
+    } catch (error) {
+      console.error('Error al reactivar tarea:', error);
+      enqueueSnackbar('Error al reactivar tarea', { variant: 'error' });
+    } finally {
+      setTimeout(() => {
+        setIsUpdating(false);
+      }, 500);
+    }
+  };
+
+  const handleCancel = async (tarea) => {
+    if (isUpdating) return;
+    
+    try {
+      setIsUpdating(true);
+      const response = await clienteAxios.patch(`/tareas/${tarea._id}`, {
+        estado: 'CANCELADA',
+        completada: false
+      });
+      
+      if (onUpdateTarea) {
+        onUpdateTarea(response.data);
+      }
+      enqueueSnackbar('Tarea cancelada exitosamente', { variant: 'success' });
+    } catch (error) {
+      console.error('Error al cancelar tarea:', error);
+      enqueueSnackbar('Error al cancelar tarea', { variant: 'error' });
+    } finally {
       setTimeout(() => {
         setIsUpdating(false);
       }, 500);
@@ -174,10 +336,6 @@ const TareaItem = ({ tarea, onUpdateTarea }) => {
         <Typography 
           variant="caption" 
           sx={{ 
-            px: 1, 
-            py: 0.5, 
-            backgroundColor: 'background.paper',
-            borderRadius: 1,
             color: getEstadoColor(tareaLocal.estado)
           }}
         >
@@ -225,7 +383,7 @@ const TareaItem = ({ tarea, onUpdateTarea }) => {
                   mb: 1,
                   backgroundColor: 'grey.800',
                   '& .MuiLinearProgress-bar': {
-                    backgroundColor: '#2D5C2E'
+                    backgroundColor: tareaLocal.estado === 'EN_PROGRESO' ? '#1B4A75' : '#2D5C2E'
                   }
                 }}
               />
@@ -252,11 +410,24 @@ const TareaItem = ({ tarea, onUpdateTarea }) => {
                         padding: 0.25,
                         color: 'text.secondary',
                         '&.Mui-checked': {
-                          color: '#2D5C2E'
+                          color: theme.palette.secondary.main
+                        },
+                        '& .MuiSvgIcon-root': {
+                          borderRadius: '50%'
+                        },
+                        '&:hover': {
+                          backgroundColor: 'transparent'
                         }
                       }}
                       icon={<PendingIcon sx={{ fontSize: '1.2rem' }} />}
-                      checkedIcon={<CompletedIcon sx={{ fontSize: '1.2rem' }} />}
+                      checkedIcon={<CompletedIcon sx={{ 
+                        fontSize: '1.2rem', 
+                        backgroundColor: 'background.default',
+                        color: theme.palette.secondary.main,
+                        borderRadius: '50%',
+                        border: '2px solid', 
+                        borderColor: 'secondary.main'
+                      }} />}
                     />
                     <Typography
                       variant="body2"
@@ -275,15 +446,50 @@ const TareaItem = ({ tarea, onUpdateTarea }) => {
               </Stack>
             </Box>
           )}
+
+          <TareaActions 
+            tarea={tareaLocal}
+            onEdit={() => {}} // No implementado en ProyectosGrid
+            onDelete={() => {}} // No implementado en ProyectosGrid
+            onPush={handlePush}
+            onDelegate={handleDelegate}
+            onTogglePriority={handleTogglePriority}
+            onComplete={handleComplete}
+            onReactivate={handleReactivate}
+            onCancel={handleCancel}
+          />
         </Box>
       </Collapse>
     </Paper>
   );
 };
 
-const ProyectoItem = ({ proyecto, onEdit, onDelete, onUpdateTarea }) => {
+const ProyectoItem = ({ proyecto, onEdit, onDelete, onUpdateTarea, onAddTarea }) => {
   const [expanded, setExpanded] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
   const proyectoId = proyecto._id || proyecto.id;
+
+  const handleMenuClick = (event) => {
+    event.stopPropagation();
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = (event) => {
+    event?.stopPropagation();
+    setAnchorEl(null);
+  };
+
+  const handleEdit = (event) => {
+    event.stopPropagation();
+    onEdit(proyecto);
+    handleMenuClose();
+  };
+
+  const handleDelete = (event) => {
+    event.stopPropagation();
+    onDelete(proyectoId);
+    handleMenuClose();
+  };
 
   return (
     <Paper
@@ -333,7 +539,7 @@ const ProyectoItem = ({ proyecto, onEdit, onDelete, onUpdateTarea }) => {
         <Stack direction="row" spacing={1} alignItems="center">
           <Chip
             size="small"
-            label={`${proyecto.tareas.length}`}
+            label={`${proyecto.tareas.filter(t => !t.completada).length}`}
             sx={{
               height: 20,
               backgroundColor: 'grey.800',
@@ -345,38 +551,84 @@ const ProyectoItem = ({ proyecto, onEdit, onDelete, onUpdateTarea }) => {
           />
           <IconButton
             size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(proyecto);
-            }}
+            onClick={handleMenuClick}
             sx={{ color: 'text.secondary' }}
           >
-            <EditIcon fontSize="small" />
-          </IconButton>
-          <IconButton
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(proyectoId);
-            }}
-            sx={{ color: '#8B0000' }}
-          >
-            <DeleteIcon fontSize="small" />
+            <MoreVertIcon fontSize="small" />
           </IconButton>
         </Stack>
       </Box>
+
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        onClick={(e) => e.stopPropagation()}
+        PaperProps={{
+          sx: {
+            backgroundColor: 'background.paper',
+            borderRadius: 1,
+            border: '1px solid',
+            borderColor: 'divider',
+            boxShadow: 'none',
+            '& .MuiMenuItem-root': {
+              fontSize: '0.875rem',
+              py: 1,
+              px: 2,
+              '&:hover': {
+                backgroundColor: 'action.hover'
+              }
+            }
+          }
+        }}
+      >
+        <MenuItem onClick={() => {
+          handleMenuClose();
+          onAddTarea(proyecto);
+        }}>
+          <AddIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+          Nueva Tarea
+        </MenuItem>
+        <MenuItem onClick={handleEdit}>
+          <EditIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+          Editar
+        </MenuItem>
+        <MenuItem onClick={handleDelete}>
+          <DeleteIcon fontSize="small" sx={{ mr: 1, color: '#8B0000' }} />
+          Eliminar
+        </MenuItem>
+      </Menu>
+
       <Collapse in={expanded} timeout="auto" unmountOnExit>
         <Divider />
         <Box sx={{ p: 2 }}>
           {Array.isArray(proyecto.tareas) && proyecto.tareas.length > 0 ? (
             <Stack spacing={1}>
-              {proyecto.tareas.map((tarea) => (
-                <TareaItem
-                  key={tarea._id || tarea.id}
-                  tarea={tarea}
-                  onUpdateTarea={onUpdateTarea}
-                />
-              ))}
+              {[...proyecto.tareas]
+                .sort((a, b) => {
+                  // Primero ordenar por estado
+                  const estadoOrden = {
+                    'EN_PROGRESO': 0,
+                    'PENDIENTE': 1,
+                    'COMPLETADA': 2
+                  };
+                  
+                  if (estadoOrden[a.estado] !== estadoOrden[b.estado]) {
+                    return estadoOrden[a.estado] - estadoOrden[b.estado];
+                  }
+
+                  // Si tienen el mismo estado, ordenar por fecha
+                  const fechaA = a.fechaVencimiento ? new Date(a.fechaVencimiento) : new Date(a.fechaInicio);
+                  const fechaB = b.fechaVencimiento ? new Date(b.fechaVencimiento) : new Date(b.fechaInicio);
+                  return fechaA - fechaB;
+                })
+                .map((tarea) => (
+                  <TareaItem
+                    key={tarea._id || tarea.id}
+                    tarea={tarea}
+                    onUpdateTarea={onUpdateTarea}
+                  />
+                ))}
             </Stack>
           ) : (
             <Typography variant="body2" color="text.secondary" align="center">
@@ -389,7 +641,7 @@ const ProyectoItem = ({ proyecto, onEdit, onDelete, onUpdateTarea }) => {
   );
 };
 
-const ProyectosGrid = ({ proyectos, onEdit, onDelete, onAdd, onUpdateTarea }) => {
+const ProyectosGrid = ({ proyectos, onEdit, onDelete, onAdd, onUpdateTarea, onAddTarea }) => {
   if (proyectos.length === 0) {
     return (
       <Box sx={{ p: 2 }}>
@@ -407,6 +659,7 @@ const ProyectosGrid = ({ proyectos, onEdit, onDelete, onAdd, onUpdateTarea }) =>
           onEdit={onEdit}
           onDelete={onDelete}
           onUpdateTarea={onUpdateTarea}
+          onAddTarea={onAddTarea}
         />
       ))}
     </Stack>

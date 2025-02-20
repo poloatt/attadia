@@ -19,6 +19,7 @@ import {
   Checkbox,
   TextField,
   Divider,
+  Chip,
 } from '@mui/material';
 import {
   EditOutlined as EditIcon,
@@ -28,30 +29,54 @@ import {
   PlayCircle as InProgressIcon,
   ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
-import { format, isToday, isThisWeek, isThisMonth, isThisYear, addMonths, isBefore } from 'date-fns';
+import { format, isToday, isThisWeek, isThisMonth, isThisYear, addMonths, isBefore, addDays, addWeeks, isWeekend, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import clienteAxios from '../../config/axios';
 import { useSnackbar } from 'notistack';
+import TareaActions from './TareaActions';
 
-const getPeriodo = (fecha, estado, completada) => {
-  const date = new Date(fecha);
+const getPeriodo = (tarea, isArchive = false) => {
+  const fechaInicio = new Date(tarea.fechaInicio);
+  const fechaFin = tarea.fechaVencimiento ? new Date(tarea.fechaVencimiento) : null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Si la tarea no está completada y su fecha de inicio es anterior a hoy, mostrarla en "Hoy"
-  if (!completada && date < today) {
-    return 'Hoy';
-  }
+  if (isArchive) {
+    // Lógica para archivo (tareas completadas)
+    const fechaReferencia = fechaFin || fechaInicio;
+    
+    if (isToday(fechaReferencia)) return 'Hoy';
+    if (isBefore(fechaReferencia, today) && isThisWeek(fechaReferencia)) return 'Esta Semana';
+    if (isBefore(fechaReferencia, today) && isThisMonth(fechaReferencia)) return 'Este Mes';
+    if (isBefore(fechaReferencia, addMonths(today, -3))) return 'Último Trimestre';
+    if (isBefore(fechaReferencia, addMonths(today, -12))) return 'Último Año';
+    return 'Más Antiguo';
+  } else {
+    // Lógica para tareas activas (no completadas)
+    if (!tarea.completada && fechaInicio < today && !fechaFin) {
+      return 'Hoy';
+    }
 
-  if (isToday(date)) return 'Hoy';
-  if (isThisWeek(date)) return 'Esta Semana';
-  if (isThisMonth(date)) return 'Este Mes';
-  if (isBefore(date, addMonths(new Date(), 3))) return 'Próximo Trimestre';
-  if (isThisYear(date)) return 'Este Año';
-  return 'Más Adelante';
+    const fechaReferencia = fechaFin || fechaInicio;
+
+    if (isToday(fechaReferencia)) return 'Hoy';
+    if (isThisWeek(fechaReferencia)) return 'Esta Semana';
+    if (isThisMonth(fechaReferencia)) return 'Este Mes';
+    if (isBefore(fechaReferencia, addMonths(new Date(), 3))) return 'Próximo Trimestre';
+    if (isThisYear(fechaReferencia)) return 'Este Año';
+    return 'Más Adelante';
+  }
 };
 
-const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
+const ordenarTareas = (tareas) => {
+  return tareas.sort((a, b) => {
+    const fechaA = a.fechaVencimiento ? new Date(a.fechaVencimiento) : new Date(a.fechaInicio);
+    const fechaB = b.fechaVencimiento ? new Date(b.fechaVencimiento) : new Date(b.fechaInicio);
+    return fechaA - fechaB;
+  });
+};
+
+const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false }) => {
   const [open, setOpen] = useState(false);
   const [estadoLocal, setEstadoLocal] = useState(tarea.estado);
   const [subtareasLocal, setSubtareasLocal] = useState(tarea.subtareas || []);
@@ -97,7 +122,6 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
         if (onUpdateEstado) {
           onUpdateEstado(response.data);
         }
-        enqueueSnackbar('Subtarea actualizada exitosamente', { variant: 'success' });
       }
     } catch (error) {
       // Revertir cambios locales en caso de error
@@ -134,13 +158,13 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
   const getEstadoColor = (estado) => {
     switch (estado) {
       case 'COMPLETADA':
-        return '#1E6820';
+        return '#2D5C2E';
       case 'EN_PROGRESO':
-        return '#0B4C8C';
+        return '#1B4A75';
       case 'PENDIENTE':
-        return '#A04600';
+        return '#8F7F3D';
       default:
-        return '#A04600';
+        return '#8F7F3D';
     }
   };
 
@@ -176,6 +200,127 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
     return (completadas / subtareasLocal.length) * 100;
   };
 
+  const handlePush = async (tarea) => {
+    const today = new Date();
+    let nuevaFecha;
+    
+    switch (tarea.pushCount % 4) {
+      case 0: // Próximo día hábil
+        nuevaFecha = addDays(today, 1);
+        while (isWeekend(nuevaFecha)) {
+          nuevaFecha = addDays(nuevaFecha, 1);
+        }
+        break;
+      case 1: // Próxima semana
+        nuevaFecha = addWeeks(today, 1);
+        break;
+      case 2: // Próximo mes
+        nuevaFecha = startOfMonth(addMonths(today, 1));
+        break;
+      case 3: // Hoy
+        nuevaFecha = today;
+        break;
+    }
+
+    try {
+      const response = await clienteAxios.patch(`/tareas/${tarea._id}`, {
+        fechaInicio: nuevaFecha.toISOString(),
+        pushCount: (tarea.pushCount || 0) + 1
+      });
+      
+      if (onUpdateEstado) {
+        onUpdateEstado(response.data);
+      }
+      enqueueSnackbar('Fecha actualizada exitosamente', { variant: 'success' });
+    } catch (error) {
+      console.error('Error al actualizar fecha:', error);
+      enqueueSnackbar('Error al actualizar fecha', { variant: 'error' });
+    }
+  };
+
+  const handleDelegate = (tarea) => {
+    // Por implementar
+    enqueueSnackbar('Función por implementar', { variant: 'info' });
+  };
+
+  const handleTogglePriority = async (tarea) => {
+    try {
+      const nuevaPrioridad = tarea.prioridad === 'ALTA' ? 'BAJA' : 'ALTA';
+      const response = await clienteAxios.patch(`/tareas/${tarea._id}`, {
+        prioridad: nuevaPrioridad
+      });
+      
+      if (onUpdateEstado) {
+        onUpdateEstado(response.data);
+      }
+      enqueueSnackbar('Prioridad actualizada exitosamente', { variant: 'success' });
+    } catch (error) {
+      console.error('Error al actualizar prioridad:', error);
+      enqueueSnackbar('Error al actualizar prioridad', { variant: 'error' });
+    }
+  };
+
+  const handleComplete = async (tarea) => {
+    try {
+      // Marcar todas las subtareas como completadas
+      const nuevasSubtareas = tarea.subtareas.map(st => ({
+        ...st,
+        completada: true
+      }));
+
+      const response = await clienteAxios.patch(`/tareas/${tarea._id}/subtareas`, {
+        subtareas: nuevasSubtareas
+      });
+      
+      if (onUpdateEstado) {
+        onUpdateEstado(response.data);
+      }
+      enqueueSnackbar('Tarea completada exitosamente', { variant: 'success' });
+    } catch (error) {
+      console.error('Error al completar tarea:', error);
+      enqueueSnackbar('Error al completar tarea', { variant: 'error' });
+    }
+  };
+
+  const handleReactivate = async (tarea) => {
+    try {
+      // Marcar todas las subtareas como no completadas
+      const nuevasSubtareas = tarea.subtareas.map(st => ({
+        ...st,
+        completada: false
+      }));
+
+      const response = await clienteAxios.patch(`/tareas/${tarea._id}/subtareas`, {
+        subtareas: nuevasSubtareas
+      });
+      
+      if (onUpdateEstado) {
+        onUpdateEstado(response.data);
+      }
+      enqueueSnackbar('Tarea reactivada exitosamente', { variant: 'success' });
+    } catch (error) {
+      console.error('Error al reactivar tarea:', error);
+      enqueueSnackbar('Error al reactivar tarea', { variant: 'error' });
+    }
+  };
+
+  const handleCancel = async (tarea) => {
+    try {
+      const response = await clienteAxios.patch(`/tareas/${tarea._id}`, {
+        estado: 'CANCELADA',
+        completada: false
+      });
+      
+      if (onUpdateEstado) {
+        onUpdateEstado(response.data);
+      }
+      enqueueSnackbar('Tarea cancelada exitosamente', { variant: 'success' });
+    } catch (error) {
+      console.error('Error al cancelar tarea:', error);
+      enqueueSnackbar('Error al cancelar tarea', { variant: 'error' });
+    }
+  };
+
   return (
     <>
       <TableRow 
@@ -187,6 +332,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
           },
           position: 'relative',
           height: '38px',
+          bgcolor: 'background.paper',
           '&::before': {
             content: '""',
             position: 'absolute',
@@ -224,53 +370,45 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
                 !
               </Typography>
             )}
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                flex: 1,
-                minWidth: 0,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              {tarea.titulo}
-            </Typography>
+            <Box sx={{ 
+              flex: 1, 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between'
+            }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  minWidth: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {tarea.titulo}
+              </Typography>
+            </Box>
           </Box>
         </TableCell>
         <TableCell align="right" sx={{ width: 120, py: 0.5 }}>
-          <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
-            <Tooltip title="Editar">
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(tarea);
-                }}
-                sx={{ color: 'text.secondary', p: 0.25 }}
-              >
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Eliminar">
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(tarea._id || tarea.id);
-                }}
-                sx={{ color: '#8B0000', p: 0.25 }}
-              >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              color: 'text.secondary'
+            }}
+          >
+            {tarea.fechaVencimiento ? format(new Date(tarea.fechaVencimiento), 'dd MMM', { locale: es }).toUpperCase() : '---'}
+          </Typography>
         </TableCell>
       </TableRow>
       <TableRow>
         <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
           <Collapse in={open} timeout="auto" unmountOnExit>
-            <Box sx={{ py: 0.5, px: 1 }}>
+            <Box sx={{ 
+              py: 0.5, 
+              px: 1,
+              bgcolor: 'background.paper'
+            }}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, textAlign: 'center', width: '100%', display: 'block' }}>
                 {format(new Date(tarea.fechaInicio), 'dd MMM yyyy', { locale: es })}
                 {tarea.fechaVencimiento && (
@@ -307,8 +445,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
                       mb: 0.5,
                       backgroundColor: theme.palette.grey[800],
                       '& .MuiLinearProgress-bar': {
-                        backgroundColor: '#2D5C2E',
-                        borderRadius: 1
+                        backgroundColor: isArchive ? '#2D5C2E' : '#1B4A75'
                       }
                     }}
                   />
@@ -336,7 +473,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
                             padding: 0.25,
                             color: 'text.secondary',
                             '&.Mui-checked': {
-                              color: '#2D5C2E'
+                              color: isArchive ? '#2D5C2E' : theme.palette.secondary.main
                             },
                             '& .MuiSvgIcon-root': {
                               borderRadius: '50%'
@@ -346,7 +483,14 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
                             }
                           }}
                           icon={<PendingIcon sx={{ fontSize: '1.2rem' }} />}
-                          checkedIcon={<CompletedIcon sx={{ fontSize: '1.2rem' }} />}
+                          checkedIcon={<CompletedIcon sx={{ 
+                            fontSize: '1.2rem', 
+                            backgroundColor: 'background.default',
+                            color: theme.palette.secondary.main,
+                            borderRadius: '50%',
+                            border: isArchive ? 'none' : '2px solid', 
+                            borderColor: 'secondary.main'
+                          }} />}
                         />
                         <Typography
                           variant="body2"
@@ -398,6 +542,18 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
                   </Box>
                 </Box>
               )}
+
+              <TareaActions 
+                tarea={tarea}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onPush={handlePush}
+                onDelegate={handleDelegate}
+                onTogglePriority={handleTogglePriority}
+                onComplete={handleComplete}
+                onReactivate={handleReactivate}
+                onCancel={handleCancel}
+              />
             </Box>
           </Collapse>
         </TableCell>
@@ -406,19 +562,32 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado }) => {
   );
 };
 
-const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado }) => {
+const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false }) => {
   const theme = useTheme();
 
+  // Filtrar tareas según si es archivo o no
+  const tareasAMostrar = isArchive 
+    ? tareas.filter(tarea => tarea.completada) 
+    : tareas.filter(tarea => !tarea.completada);
+
   // Agrupar tareas por período
-  const tareasAgrupadas = tareas.reduce((grupos, tarea) => {
-    const periodo = getPeriodo(tarea.fechaInicio, tarea.estado, tarea.completada);
+  const tareasAgrupadas = tareasAMostrar.reduce((grupos, tarea) => {
+    const periodo = getPeriodo(tarea, isArchive);
     if (!grupos[periodo]) grupos[periodo] = [];
     grupos[periodo].push(tarea);
     return grupos;
   }, {});
 
-  // Ordenar períodos
-  const ordenPeriodos = ['Hoy', 'Esta Semana', 'Este Mes', 'Próximo Trimestre', 'Este Año', 'Más Adelante'];
+  // Ordenar tareas dentro de cada grupo
+  Object.keys(tareasAgrupadas).forEach(periodo => {
+    tareasAgrupadas[periodo] = ordenarTareas(tareasAgrupadas[periodo]);
+  });
+
+  // Ordenar períodos según si es archivo o no
+  const ordenPeriodosArchivo = ['Hoy', 'Esta Semana', 'Este Mes', 'Último Trimestre', 'Último Año', 'Más Antiguo'];
+  const ordenPeriodosActivas = ['Hoy', 'Esta Semana', 'Este Mes', 'Próximo Trimestre', 'Este Año', 'Más Adelante'];
+  
+  const ordenPeriodos = isArchive ? ordenPeriodosArchivo : ordenPeriodosActivas;
   const periodosOrdenados = Object.keys(tareasAgrupadas).sort(
     (a, b) => ordenPeriodos.indexOf(a) - ordenPeriodos.indexOf(b)
   );
@@ -429,7 +598,7 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado }) => {
         <Paper 
           key={periodo} 
           sx={{ 
-            bgcolor: 'grey.900', 
+            bgcolor: 'background.paper', 
             borderRadius: 1,
             overflow: 'hidden'
           }}
@@ -438,7 +607,7 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado }) => {
             sx={{
               px: 2,
               py: 1,
-              bgcolor: 'grey.800',
+              bgcolor: '#141414', // 5% más oscuro que background.paper
               borderBottom: '1px solid',
               borderColor: 'divider'
             }}
@@ -457,6 +626,7 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado }) => {
                     onEdit={onEdit}
                     onDelete={onDelete}
                     onUpdateEstado={onUpdateEstado}
+                    isArchive={isArchive}
                   />
                 ))}
               </TableBody>
