@@ -63,4 +63,4 @@ server.listen(PORT, () => {
   console.log(`Servidor corriendo en el puerto ${PORT}`);
   console.log(`Ambiente: ${config.env}`);
   console.log(`CORS habilitado para: ${config.corsOrigins.join(', ')}`);
-}); 
+});
