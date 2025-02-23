@@ -8,7 +8,7 @@ import mongoose from 'mongoose';
 import config from './config/config.js';
 import routes from './routes/index.js';
 import { connectDB } from './config/database/mongodb.js';
-import * as RedisStore from 'connect-redis';
+import { RedisStore } from 'connect-redis';
 
 const app = express();
 const server = createServer(app);
@@ -31,7 +31,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Configuración de sesión
 app.use(session({
-  store: new RedisStore.default({ client: redisClient }),
+  store: new RedisStore({ client: redisClient }),
   secret: config.sessionSecret,
   resave: false,
   saveUninitialized: false,
