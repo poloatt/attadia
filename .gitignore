@@ -21,7 +21,7 @@ out/
 .env.production
 
 # Config files (usar .example.js como templates)
-**/config.js
+
 **/config.prod.js
 **/config.dev.js
 
