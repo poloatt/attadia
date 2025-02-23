@@ -8,8 +8,8 @@ import morgan from 'morgan';
 import connectDB from './config/database/mongodb.js';
 import { initializeMonedas } from './config/initData.js';
 import config from './config/config.js';
-import RedisStore from 'connect-redis';
 import { createClient } from 'redis';
+import { RedisStore } from 'connect-redis';
 
 const app = express();
 
