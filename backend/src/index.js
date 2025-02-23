@@ -8,8 +8,20 @@ import morgan from 'morgan';
 import connectDB from './config/database/mongodb.js';
 import { initializeMonedas } from './config/initData.js';
 import config from './config/config.js';
+import RedisStore from 'connect-redis';
+import { createClient } from 'redis';
 
 const app = express();
+
+// Crear cliente Redis
+const redisClient = createClient({
+  url: process.env.REDIS_URL || 'redis://redis:6379'
+});
+
+redisClient.on('error', (err) => console.log('Error de Redis:', err));
+redisClient.on('connect', () => console.log('Redis conectado'));
+
+await redisClient.connect();
 
 // Manejo de errores no capturados
 process.on('unhandledRejection', (reason, promise) => {
@@ -22,18 +34,21 @@ process.on('uncaughtException', (error) => {
 });
 
 // Configuración de CORS más permisiva en desarrollo
-const corsOptions = config.isDev ? {
-  origin: true, // Permite cualquier origen en desarrollo
+const corsOptions = {
+  origin: (origin, callback) => {
+    const allowedOrigins = config.corsOrigins;
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('Origen bloqueado por CORS:', origin);
+      callback(new Error('No permitido por CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['Content-Range', 'X-Content-Range']
-} : {
-  origin: config.corsOrigins,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['Content-Range', 'X-Content-Range']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  optionsSuccessStatus: 200
 };
 
 // Middlewares
@@ -43,8 +58,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(config.sessionSecret));
 
-// Configuración de sesión
+// Configuración de sesión con Redis
 app.use(session({
+  store: new RedisStore({ client: redisClient }),
   secret: config.sessionSecret,
   resave: false,
   saveUninitialized: false,

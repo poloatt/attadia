@@ -18,7 +18,7 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://backend:5000',
+        target: 'https://api.present.attadia.com',
         changeOrigin: true,
         secure: false,
         ws: true
@@ -48,6 +48,6 @@ export default defineConfig({
     port: 5173
   },
   define: {
-    'process.env': {}
+    'process.env': {}, 'window.API_URL': '"https://api.present.attadia.com/api"', 'window.GOOGLE_REDIRECT_URI': '"https://api.present.attadia.com/api/auth/google/callback"'
   }
 }) 
