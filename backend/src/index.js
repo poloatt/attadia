@@ -46,9 +46,10 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-  exposedHeaders: ['Content-Range', 'X-Content-Range'],
-  optionsSuccessStatus: 200
+  allowedHeaders: ['Authorization', 'Content-Type', 'Accept', 'X-Requested-With', 'X-CSRF-Token'],
+  exposedHeaders: ['Content-Length', 'Content-Range'],
+  optionsSuccessStatus: 204,
+  maxAge: 1728000
 };
 
 // Middlewares
@@ -89,7 +90,7 @@ if (config.isDev) {
 }
 
 // Health check con más información
-app.get('/api/health', (req, res) => {
+app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'ok',
     timestamp: new Date(),
