@@ -26,7 +26,7 @@ import theme from './context/ThemeContext';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Toaster } from 'react-hot-toast';
-import GoogleCallback from './components/GoogleCallback';
+import AuthCallback from './components/auth/AuthCallback';
 import Tareas from './pages/Tareas';
 import { ValuesVisibilityProvider } from './context/ValuesVisibilityContext';
 import { Archivo } from './pages/Archivo';
@@ -44,7 +44,7 @@ function App() {
               {/* Rutas públicas */}
               <Route path="/login" element={<Login />} />
               <Route path="/registro" element={<Register />} />
-              <Route path="/auth/callback" element={<GoogleCallback />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
               
               {/* Rutas protegidas */}
               <Route element={<PrivateRoute />}>
