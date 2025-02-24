@@ -12,8 +12,14 @@ RUN npm config set registry https://registry.npmjs.org/ && \
     npm config set fetch-retries 5 && \
     npm config set legacy-peer-deps true
 
-# Copiar package.json y package-lock.json
-COPY package*.json ./
+# Crear directorio para node_modules y establecer permisos
+RUN mkdir -p /app/node_modules && chown -R node:node /app
+
+# Cambiar al usuario node
+USER node
+
+# Copiar package.json y package-lock.json con los permisos correctos
+COPY --chown=node:node package*.json ./
 
 # Limpiar caché y node_modules
 RUN npm cache clean --force && \
@@ -32,14 +38,8 @@ RUN npm install @mui/x-date-pickers@5.0.20 \
 # Instalar el resto de dependencias
 RUN npm install --legacy-peer-deps
 
-# Copiar el resto de la aplicación
-COPY . .
-
-# Crear directorio para node_modules y establecer permisos
-RUN mkdir -p /app/node_modules && chown -R node:node /app
-
-# Cambiar al usuario node
-USER node
+# Copiar el resto de la aplicación con los permisos correctos
+COPY --chown=node:node . .
 
 # Variables de entorno para desarrollo
 ENV VITE_HOST=0.0.0.0
