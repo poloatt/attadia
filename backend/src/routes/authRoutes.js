@@ -18,7 +18,10 @@ const loginLimiter = rateLimit({
   message: { error: 'Demasiados intentos de inicio de sesión. Por favor, intente más tarde.' },
   standardHeaders: true,
   legacyHeaders: false,
-  trustProxy: true
+  trustProxy: true,
+  keyGenerator: (req) => {
+    return req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  }
 });
 
 const generalLimiter = rateLimit({
@@ -26,7 +29,10 @@ const generalLimiter = rateLimit({
   max: 100, // límite de 100 peticiones por hora
   standardHeaders: true,
   legacyHeaders: false,
-  trustProxy: true
+  trustProxy: true,
+  keyGenerator: (req) => {
+    return req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  }
 });
 
 // Aplicar rate limiting general a todas las rutas

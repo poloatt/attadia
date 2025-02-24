@@ -12,7 +12,7 @@ import config from './config/config.js';
 const app = express();
 
 // Configurar trust proxy para trabajar con nginx
-app.set('trust proxy', true);
+app.enable('trust proxy');
 
 // Manejo de errores no capturados
 process.on('unhandledRejection', (reason, promise) => {
