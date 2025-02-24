@@ -8,12 +8,12 @@ RUN apk add --no-cache wget curl git
 
 # Configurar npm
 RUN npm config set registry https://registry.npmjs.org/ && \
-    npm config set fetch-timeout 600000 && \
-    npm config set fetch-retries 5 && \
-    npm config set legacy-peer-deps true
+    npm config set strict-ssl false
 
 # Crear directorio para node_modules y establecer permisos
-RUN mkdir -p /app/node_modules && chown -R node:node /app
+RUN mkdir -p /app/node_modules && \
+    chown -R node:node /app && \
+    chmod -R 755 /app
 
 # Cambiar al usuario node
 USER node
@@ -28,18 +28,19 @@ RUN npm cache clean --force && \
 # Instalar dependencias específicas primero
 RUN npm install @mui/x-date-pickers@5.0.20 \
     date-fns@2.30.0 \
-    @mui/material@5.15.10 \
+    @mui/material@5.15.11 \
     @emotion/react@11.11.3 \
     @emotion/styled@11.11.0 \
-    @mui/icons-material@5.15.10 \
-    framer-motion@12.4.6 \
-    lottie-react@2.4.1
+    @mui/icons-material@5.15.11
 
 # Instalar el resto de dependencias
 RUN npm install --legacy-peer-deps
 
 # Copiar el resto de la aplicación con los permisos correctos
 COPY --chown=node:node . .
+
+# Asegurar que todos los archivos tengan los permisos correctos
+RUN chmod -R 755 /app
 
 # Variables de entorno para desarrollo
 ENV VITE_HOST=0.0.0.0

@@ -14,7 +14,7 @@ COPY package*.json ./
 RUN npm cache clean --force && \
     rm -rf node_modules && \
     npm install --verbose && \
-    npm install morgan@1.10.0 express-session@1.17.3 connect-mongo@5.1.0 connect-redis@7.1.1
+    npm install morgan@1.10.0 express-session@1.17.3 connect-mongo@5.1.0
 
 # Copiar el resto de la aplicación
 COPY . .

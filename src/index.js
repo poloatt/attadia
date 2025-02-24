@@ -1,24 +1,18 @@
 import express from 'express';
-import session from 'express-session';
-import { createClient } from 'redis';
 import { createServer } from 'http';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import session from 'express-session';
 import passport from 'passport';
-import mongoose from 'mongoose';
+import { passportConfig } from './config/passport.js';
+import { router } from './routes/index.js';
+import morgan from 'morgan';
+import connectDB from './config/database/mongodb.js';
+import { initializeMonedas } from './config/initData.js';
 import config from './config/config.js';
-import routes from './routes/index.js';
-import { connectDB } from './config/database/mongodb.js';
-import { RedisStore } from 'connect-redis';
 
 const app = express();
 const server = createServer(app);
-
-// Configuración de Redis
-const redisClient = createClient({
-  url: `redis://${config.redis?.host || 'localhost'}:${config.redis?.port || 6379}`
-});
-
-redisClient.connect().catch(console.error);
 
 // Middleware
 app.use(cors({
@@ -31,7 +25,6 @@ app.use(express.urlencoded({ extended: true }));
 
 // Configuración de sesión
 app.use(session({
-  store: new RedisStore({ client: redisClient }),
   secret: config.sessionSecret,
   resave: false,
   saveUninitialized: false,

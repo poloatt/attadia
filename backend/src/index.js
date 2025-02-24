@@ -8,20 +8,8 @@ import morgan from 'morgan';
 import connectDB from './config/database/mongodb.js';
 import { initializeMonedas } from './config/initData.js';
 import config from './config/config.js';
-import { createClient } from 'redis';
-import { RedisStore } from 'connect-redis';
 
 const app = express();
-
-// Crear cliente Redis
-const redisClient = createClient({
-  url: process.env.REDIS_URL || 'redis://redis:6379'
-});
-
-redisClient.on('error', (err) => console.log('Error de Redis:', err));
-redisClient.on('connect', () => console.log('Redis conectado'));
-
-await redisClient.connect();
 
 // Manejo de errores no capturados
 process.on('unhandledRejection', (reason, promise) => {
@@ -59,9 +47,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(config.sessionSecret));
 
-// Configuración de sesión con Redis
+// Configuración de sesión
 app.use(session({
-  store: new RedisStore({ client: redisClient }),
   secret: config.sessionSecret,
   resave: false,
   saveUninitialized: false,

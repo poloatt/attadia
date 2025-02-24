@@ -10,8 +10,7 @@ COPY package*.json ./
 # Instalar dependencias
 RUN npm cache clean --force && \
     rm -rf node_modules && \
-    npm install --verbose && \
-    npm install connect-redis@7.1.1
+    npm install --verbose
 
 # Copiar el resto de la aplicación
 COPY . .
