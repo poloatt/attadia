@@ -43,4 +43,4 @@ console.log('Configuración de MongoDB:', {
   environment: config.env
 });
 
-export default config; 
+export default config;
