@@ -15,12 +15,18 @@ const router = express.Router();
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 5, // límite de 5 intentos por ventana
-  message: { error: 'Demasiados intentos de inicio de sesión. Por favor, intente más tarde.' }
+  message: { error: 'Demasiados intentos de inicio de sesión. Por favor, intente más tarde.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  trustProxy: true
 });
 
 const generalLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hora
-  max: 100 // límite de 100 peticiones por hora
+  max: 100, // límite de 100 peticiones por hora
+  standardHeaders: true,
+  legacyHeaders: false,
+  trustProxy: true
 });
 
 // Aplicar rate limiting general a todas las rutas
