@@ -46,10 +46,6 @@ const refreshAuthToken = async () => {
   }
 };
 
-let isRetrying = false;
-let retryCount = 0;
-const MAX_RETRIES = 3;
-
 // Interceptor para agregar el token a las peticiones
 clienteAxios.interceptors.request.use(
   config => {
@@ -57,40 +53,16 @@ clienteAxios.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    // Log para depuración
-    console.log('Request:', {
-      method: config.method,
-      url: config.url,
-      baseURL: config.baseURL,
-      fullUrl: config.baseURL + config.url
-    });
     return config;
   },
-  error => {
-    console.error('Error en la petición:', error);
-    return Promise.reject(error);
-  }
+  error => Promise.reject(error)
 );
 
 // Interceptor para manejar respuestas y errores
 clienteAxios.interceptors.response.use(
-  response => {
-    console.log('Respuesta exitosa:', {
-      url: response.config.url,
-      status: response.status,
-      data: response.data
-    });
-    return response;
-  },
+  response => response,
   async error => {
-    console.error('Error en la respuesta:', {
-      url: error.config?.url,
-      message: error.message,
-      response: error.response?.data
-    });
-
     if (error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
-      console.error('Error de red detectado');
       throw new Error('Error de conexión con el servidor. Por favor, verifica tu conexión a internet.');
     }
 
