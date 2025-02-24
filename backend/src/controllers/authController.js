@@ -150,7 +150,10 @@ export const authController = {
         return res.json({ authenticated: false });
       }
 
-      const user = await Users.findById(req.user.id).select('-password');
+      // Obtener el ID del usuario del token, manejando ambas estructuras posibles
+      const userId = req.user.id || req.user._id;
+      
+      const user = await Users.findById(userId).select('-password');
       if (!user) {
         return res.json({ authenticated: false });
       }
