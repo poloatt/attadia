@@ -8,6 +8,11 @@ export const checkAuth = (req, res, next) => {
     }
 
     if (!user) {
+      // Si es una petición a /api/auth/check, devolver authenticated: false
+      if (req.path === '/check') {
+        return res.json({ authenticated: false });
+      }
+      // Para otras rutas, devolver error 401
       return res.status(401).json({ error: 'Token no válido o expirado' });
     }
 

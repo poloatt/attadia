@@ -33,18 +33,7 @@ const generalLimiter = rateLimit({
 router.use(generalLimiter);
 
 // Rutas públicas
-router.get('/check', (req, res, next) => {
-  passportConfig.authenticate('jwt', { session: false }, (err, user) => {
-    if (err) {
-      return res.status(500).json({ error: 'Error en la autenticación' });
-    }
-    if (!user) {
-      return res.status(200).json({ authenticated: false });
-    }
-    req.user = user;
-    next();
-  })(req, res, next);
-}, authController.check);
+router.get('/check', checkAuth, authController.check);
 
 router.post('/register', [
   check('nombre', 'El nombre es obligatorio').not().isEmpty(),
