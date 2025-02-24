@@ -59,6 +59,10 @@ const config = {
   frontendUrl: process.env.FRONTEND_URL || 'https://present.attadia.com',
   corsOrigins: ['https://present.attadia.com'],
   sessionSecret: process.env.SESSION_SECRET || 'session-secret-development-only',
+  redis: {
+    host: process.env.REDIS_HOST || 'redis',
+    port: parseInt(process.env.REDIS_PORT || '6379', 10)
+  },
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
