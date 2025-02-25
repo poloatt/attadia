@@ -10,7 +10,8 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
       MONGO_INITDB_DATABASE: present
     volumes:
-      - mongodb_data:/data/db
+      - /data/mongodb:/data/db
+      - /data/backups:/data/backups
     networks:
       - app_network
     logging:
