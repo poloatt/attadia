@@ -158,13 +158,19 @@ export const authController = {
         return res.json({ authenticated: false });
       }
 
+      // Asegurarnos de enviar todos los campos necesarios
       res.json({
         authenticated: true,
         user: {
           id: user._id,
           nombre: user.nombre,
           email: user.email,
-          role: user.role
+          role: user.role,
+          googleId: user.googleId,
+          preferences: user.preferences,
+          lastLogin: user.lastLogin,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt
         }
       });
     } catch (error) {

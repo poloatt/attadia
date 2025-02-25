@@ -36,8 +36,21 @@ function AuthProvider({ children }) {
       clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       const response = await clienteAxios.get('/auth/check');
-      setState({ user: response.data, loading: false, error: null });
-      return { user: response.data };
+      
+      if (!response.data.authenticated) {
+        localStorage.removeItem('token');
+        delete clienteAxios.defaults.headers.common['Authorization'];
+        setState({ user: null, loading: false, error: 'No autenticado' });
+        return { error: 'No autenticado' };
+      }
+      
+      setState({ 
+        user: response.data.user, 
+        loading: false, 
+        error: null 
+      });
+      
+      return { user: response.data.user };
     } catch (error) {
       console.error('Error en checkAuth:', error.response || error);
       if (error.response?.status === 401) {

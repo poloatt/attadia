@@ -21,11 +21,25 @@ export default function Perfil() {
         
         <Box sx={{ mt: 2 }}>
           <Typography variant="body1">
-            <strong>Nombre:</strong> {user?.name || 'No especificado'}
+            <strong>Nombre:</strong> {user?.nombre || 'No especificado'}
           </Typography>
           
           <Typography variant="body1" sx={{ mt: 1 }}>
-            <strong>Email:</strong> {user?.email}
+            <strong>Email:</strong> {user?.email || 'No especificado'}
+          </Typography>
+
+          <Typography variant="body1" sx={{ mt: 1 }}>
+            <strong>ID:</strong> {user?.id || 'No especificado'}
+          </Typography>
+
+          <Typography variant="body1" sx={{ mt: 1 }}>
+            <strong>Rol:</strong> {user?.role || 'No especificado'}
+          </Typography>
+        </Box>
+
+        <Box sx={{ mt: 3 }}>
+          <Typography variant="body2" color="text.secondary">
+            Estado de autenticación: {user ? 'Autenticado' : 'No autenticado'}
           </Typography>
         </Box>
       </Paper>
