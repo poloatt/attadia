@@ -1,0 +1,10 @@
+{
+  "type": "module",
+  "name": "present-webhook",
+  "version": "1.0.0",
+  "description": "Webhook server for Present app auto-deployment",
+  "main": "webhook-server.js",
+  "scripts": {
+    "start": "node webhook-server.js"
+  }
+} 
