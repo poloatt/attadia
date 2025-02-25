@@ -28,11 +28,11 @@ const server = http.createServer((req, res) => {
             try {
                 const event = JSON.parse(body);
                 
-                // Solo procesar push events a la rama production
+                // Solo procesar push events a la rama produccion
                 if (req.headers['x-github-event'] === 'push' && 
-                    event.ref === 'refs/heads/production') {
+                    event.ref === 'refs/heads/produccion') {
                     
-                    console.log('Recibido push a production, ejecutando deploy...');
+                    console.log('Recibido push a produccion, ejecutando deploy...');
                     
                     // Ejecutar script de deploy
                     exec('bash /home/polo/presentprod/scripts/auto-deploy.sh', 
