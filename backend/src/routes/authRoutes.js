@@ -20,9 +20,11 @@ const loginLimiter = rateLimit({
   message: { error: 'Demasiados intentos de inicio de sesión. Por favor, intente más tarde.' },
   standardHeaders: true,
   legacyHeaders: false,
-  trustProxy: true,
   keyGenerator: (req) => {
-    return req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const realIp = req.headers['x-real-ip'] || 
+                  req.headers['x-forwarded-for']?.split(',')[0] || 
+                  req.ip;
+    return realIp;
   }
 });
 
@@ -31,9 +33,11 @@ const generalLimiter = rateLimit({
   max: 100, // límite de 100 peticiones por hora
   standardHeaders: true,
   legacyHeaders: false,
-  trustProxy: true,
   keyGenerator: (req) => {
-    return req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const realIp = req.headers['x-real-ip'] || 
+                  req.headers['x-forwarded-for']?.split(',')[0] || 
+                  req.ip;
+    return realIp;
   }
 });
 
@@ -50,10 +54,9 @@ router.post('/register', [
   validateFields
 ], authController.register);
 
-router.post('/login', [
-  loginLimiter,
-  check('email', 'Incluye un email válido').isEmail(),
-  check('password', 'La contraseña es obligatoria').exists(),
+router.post('/login', loginLimiter, [
+  check('email', 'El email es obligatorio').isEmail(),
+  check('password', 'La contraseña es obligatoria').not().isEmpty(),
   validateFields
 ], authController.login);
 

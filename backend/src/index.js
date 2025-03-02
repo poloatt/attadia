@@ -8,6 +8,7 @@ import authRoutes from './routes/authRoutes.js';
 import morgan from 'morgan';
 import connectDB from './config/database/mongodb.js';
 import { initializeMonedas } from './config/initData.js';
+import MongoStore from 'connect-mongo';
 
 // Importar configuración según el entorno
 const config = process.env.NODE_ENV === 'production' 
@@ -17,7 +18,7 @@ const config = process.env.NODE_ENV === 'production'
 const app = express();
 
 // Configurar trust proxy para trabajar con nginx
-app.enable('trust proxy');
+app.set('trust proxy', 1);
 
 // Manejo de errores no capturados
 process.on('unhandledRejection', (reason, promise) => {
@@ -29,34 +30,18 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-// Configuración de CORS más permisiva en desarrollo
-const corsOptions = {
-  origin: (origin, callback) => {
-    const allowedOrigins = config.corsOrigins;
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.log('Origen bloqueado por CORS:', origin);
-      callback(new Error('No permitido por CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Authorization', 'Content-Type', 'Accept', 'X-Requested-With', 'X-CSRF-Token'],
-  exposedHeaders: ['Content-Length', 'Content-Range'],
-  optionsSuccessStatus: 204,
-  maxAge: 1728000
-};
-
-// Middlewares
-app.use(cors(corsOptions));
-app.use(morgan('dev'));
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cors({
+  origin: config.corsOrigins,
+  credentials: true
+}));
+
 app.use(cookieParser(config.sessionSecret));
 
 // Configuración de sesión
-app.use(session({
+const sessionConfig = {
   secret: config.sessionSecret,
   resave: false,
   saveUninitialized: false,
@@ -67,94 +52,46 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000, // 24 horas
     sameSite: config.env === 'production' ? 'strict' : 'lax'
   }
-}));
+};
+
+// En producción, usar MongoStore
+if (config.env === 'production') {
+  sessionConfig.store = MongoStore.create({
+    mongoUrl: config.mongoUrl,
+    ttl: 24 * 60 * 60, // 24 horas
+    autoRemove: 'native',
+    touchAfter: 24 * 3600 // 24 horas
+  });
+}
+
+app.use(session(sessionConfig));
 
 // Inicialización de Passport
 app.use(passportConfig.initialize());
 app.use(passportConfig.session());
 
-// Logging middleware mejorado
+// Logging middleware
 if (config.isDev) {
-  app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-    console.log('Headers:', req.headers);
-    console.log('Query:', req.query);
-    console.log('Body:', req.body);
-    next();
-  });
+  app.use(morgan('dev'));
 }
 
-// Health check con más información
+// Health check
 app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'ok',
     timestamp: new Date(),
-    env: config.env,
-    cors: {
-      enabled: true,
-      origins: config.isDev ? 'all' : config.corsOrigins
-    },
-    auth: {
-      google: !!config.google.clientId,
-      session: !!config.sessionSecret
-    }
+    env: config.env
   });
 });
 
-// Montamos las rutas de autenticación en la raíz
-app.use('/auth', authRoutes);
-
-// Montamos el resto de rutas bajo /api
+// Rutas
 app.use('/api', router);
 
-// Manejo de errores global mejorado
+// Manejo de errores global
 app.use((err, req, res, next) => {
-  console.error('Error:', {
-    message: err.message,
-    stack: err.stack,
-    path: req.path,
-    method: req.method,
-    headers: req.headers
-  });
-  
-  // Si es un error de CORS
-  if (err.message.includes('Not allowed by CORS')) {
-    return res.status(403).json({
-      error: 'Origen no permitido',
-      message: 'El origen de la petición no está autorizado',
-      origin: req.headers.origin
-    });
-  }
-  
-  // Si es un error de MongoDB
-  if (err.name === 'MongoError' || err.name === 'MongooseError') {
-    return res.status(503).json({
-      error: 'Error de base de datos',
-      message: config.isDev ? err.message : 'Error interno del servidor'
-    });
-  }
-  
-  // Si es un error de validación
-  if (err.name === 'ValidationError') {
-    return res.status(400).json({
-      error: 'Error de validación',
-      message: err.message,
-      details: config.isDev ? err.errors : undefined
-    });
-  }
-  
-  // Si es un error de autenticación
-  if (err.name === 'AuthenticationError' || err.name === 'UnauthorizedError') {
-    return res.status(401).json({
-      error: 'Error de autenticación',
-      message: err.message
-    });
-  }
-  
-  res.status(500).json({ 
-    error: 'Error interno del servidor',
-    message: config.isDev ? err.message : 'Error interno del servidor',
-    stack: config.isDev ? err.stack : undefined
+  console.error('Error:', err);
+  res.status(err.status || 500).json({
+    error: config.isDev ? err.message : 'Error interno del servidor'
   });
 });
 
