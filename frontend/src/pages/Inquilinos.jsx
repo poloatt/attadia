@@ -38,7 +38,7 @@ export function Inquilinos() {
 
   const fetchInquilinos = useCallback(async () => {
     try {
-      const response = await clienteAxios.get('/inquilinos');
+      const response = await clienteAxios.get('/api/inquilinos');
       setInquilinos(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar inquilinos:', error);
@@ -57,7 +57,7 @@ export function Inquilinos() {
         response = await clienteAxios.put(`/inquilinos/${editingInquilino.id}`, formData);
         enqueueSnackbar('Inquilino actualizado exitosamente', { variant: 'success' });
       } else {
-        response = await clienteAxios.post('/inquilinos', formData);
+        response = await clienteAxios.post('/api/inquilinos', formData);
         enqueueSnackbar('Inquilino creado exitosamente', { variant: 'success' });
       }
       setIsFormOpen(false);

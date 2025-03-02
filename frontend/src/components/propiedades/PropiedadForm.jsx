@@ -316,10 +316,10 @@ const PropiedadForm = ({
       
       if (initialData._id) {
         console.log('Actualizando propiedad existente');
-        response = await clienteAxios.put(`/propiedades/${initialData._id}`, dataToSubmit);
+        response = await clienteAxios.put(`/api/propiedades/${initialData._id}`, dataToSubmit);
       } else {
         console.log('Creando nueva propiedad');
-        response = await clienteAxios.post('/propiedades', dataToSubmit);
+        response = await clienteAxios.post('/api/propiedades', dataToSubmit);
       }
 
       console.log('Respuesta del servidor:', response.data);

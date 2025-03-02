@@ -61,12 +61,12 @@ export function Contratos() {
         cuentasRes,
         monedasRes
       ] = await Promise.all([
-        clienteAxios.get('/contratos'),
-        clienteAxios.get('/propiedades'),
-        clienteAxios.get('/inquilinos'),
-        clienteAxios.get('/habitaciones'),
-        clienteAxios.get('/cuentas'),
-        clienteAxios.get('/monedas')
+        clienteAxios.get('/api/contratos'),
+        clienteAxios.get('/api/propiedades'),
+        clienteAxios.get('/api/inquilinos'),
+        clienteAxios.get('/api/habitaciones'),
+        clienteAxios.get('/api/cuentas'),
+        clienteAxios.get('/api/monedas')
       ]);
 
       setContratos(contratosRes.data.docs || []);
@@ -126,7 +126,7 @@ export function Contratos() {
         response = await clienteAxios.put(`/contratos/${editingContrato._id}`, formData);
         enqueueSnackbar('Contrato actualizado exitosamente', { variant: 'success' });
       } else {
-        response = await clienteAxios.post('/contratos', formData);
+        response = await clienteAxios.post('/api/contratos', formData);
         enqueueSnackbar('Contrato creado exitosamente', { variant: 'success' });
       }
 

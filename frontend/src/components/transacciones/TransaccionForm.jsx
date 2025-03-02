@@ -359,9 +359,9 @@ const TransaccionForm = ({
 
       let response;
       if (isEditing) {
-        response = await clienteAxios.put(`/transaccionesrecurrentes/${editingTransaccion._id}`, datosAEnviar);
+        response = await clienteAxios.put(`/api/transaccionesrecurrentes/${editingTransaccion._id}`, datosAEnviar);
       } else {
-        response = await clienteAxios.post('/transaccionesrecurrentes', datosAEnviar);
+        response = await clienteAxios.post('/api/transaccionesrecurrentes', datosAEnviar);
       }
 
       enqueueSnackbar(

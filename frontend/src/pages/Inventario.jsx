@@ -47,7 +47,7 @@ export function Inventario() {
 
   const fetchInventario = async () => {
     try {
-      const response = await clienteAxios.get('/inventarios');
+      const response = await clienteAxios.get('/api/inventarios');
       setItems(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar inventario:', error);
@@ -80,7 +80,7 @@ export function Inventario() {
 
   const fetchPropiedades = async () => {
     try {
-      const response = await clienteAxios.get('/propiedades');
+      const response = await clienteAxios.get('/api/propiedades');
       setPropiedades(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar propiedades:', error);
@@ -90,7 +90,7 @@ export function Inventario() {
 
   const handleCreateHabitacion = async (formData) => {
     try {
-      const response = await clienteAxios.post('/habitaciones', formData);
+      const response = await clienteAxios.post('/api/habitaciones', formData);
       await fetchHabitaciones(); // Recargar las habitaciones
       return response.data;
     } catch (error) {
@@ -105,7 +105,7 @@ export function Inventario() {
         response = await clienteAxios.put(`/inventarios/${editingItem.id}`, formData);
         enqueueSnackbar('Item actualizado exitosamente', { variant: 'success' });
       } else {
-        response = await clienteAxios.post('/inventarios', formData);
+        response = await clienteAxios.post('/api/inventarios', formData);
         enqueueSnackbar('Item agregado exitosamente', { variant: 'success' });
       }
       setIsFormOpen(false);

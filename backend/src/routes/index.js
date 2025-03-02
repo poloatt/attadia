@@ -1,5 +1,4 @@
 import express from 'express';
-import authRoutes from './authRoutes.js';
 import usersRoutes from './usersRoutes.js';
 import propiedadesRoutes from './propiedadesRoutes.js';
 import inquilinosRoutes from './inquilinosRoutes.js';
@@ -24,9 +23,8 @@ import dataCorporalRoutes from './dataCorporalRoutes.js';
 
 const router = express.Router();
 
-// Rutas de salud y autenticación
+// Rutas de salud
 router.use('/health', healthRoutes);
-router.use('/auth', authRoutes);
 
 // Rutas de usuarios y perfil
 router.use('/users', usersRoutes);

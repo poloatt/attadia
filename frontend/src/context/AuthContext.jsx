@@ -3,6 +3,22 @@ import clienteAxios from '../config/axios';
 
 const AuthContext = createContext();
 
+// Configuración según el ambiente
+const config = {
+  development: {
+    authPrefix: '/auth',
+    apiPrefix: '/api'
+  },
+  production: {
+    authPrefix: '/api/auth',
+    apiPrefix: '/api'
+  }
+};
+
+// Determinar el ambiente actual
+const env = import.meta.env.MODE || 'development';
+const currentConfig = config[env];
+
 function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
@@ -23,22 +39,34 @@ function AuthProvider({ children }) {
       const token = localStorage.getItem('token');
       
       if (!token) {
+        console.log('No se encontró token en localStorage');
         setState({ user: null, loading: false, error: null });
         return { error: 'No token found' };
       }
 
-      // Si ya tenemos un usuario y el token es el mismo, no necesitamos verificar
-      if (state.user && clienteAxios.defaults.headers.common['Authorization'] === `Bearer ${token}`) {
-        return { user: state.user };
+      console.log('Token encontrado en localStorage:', token.substring(0, 20) + '...');
+
+      // Verificar que el token esté configurado en axios
+      if (clienteAxios.defaults.headers.common['Authorization'] !== `Bearer ${token}`) {
+        console.log('Configurando token en Axios');
+        clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       }
 
       setState(prev => ({ ...prev, loading: true, error: null }));
-      clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
-      const response = await clienteAxios.get('/auth/check');
+      console.log('Realizando petición de verificación...');
+      console.log('Headers de la petición:', {
+        ...clienteAxios.defaults.headers.common,
+        Authorization: clienteAxios.defaults.headers.common['Authorization']?.substring(0, 20) + '...'
+      });
+      
+      const response = await clienteAxios.get(`${currentConfig.authPrefix}/check`);
+      console.log('Respuesta de verificación:', response.data);
       
       if (!response.data.authenticated) {
+        console.log('Usuario no autenticado según la respuesta');
         localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
         delete clienteAxios.defaults.headers.common['Authorization'];
         setState({ user: null, loading: false, error: 'No autenticado' });
         return { error: 'No autenticado' };
@@ -53,18 +81,22 @@ function AuthProvider({ children }) {
       return { user: response.data.user };
     } catch (error) {
       console.error('Error en checkAuth:', error.response || error);
+      
       if (error.response?.status === 401) {
         localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
         delete clienteAxios.defaults.headers.common['Authorization'];
       }
+      
       setState({ 
         user: null, 
         loading: false, 
-        error: error.response?.data || error 
+        error: error.response?.data?.error || error.message || 'Error de autenticación'
       });
-      return { error: error.response?.data || error };
+      
+      return { error: error.response?.data || error.message || 'Error de autenticación' };
     }
-  }, [state.user]);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -79,14 +111,15 @@ function AuthProvider({ children }) {
   const login = async (credentials) => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
-      const response = await clienteAxios.post('/auth/login', credentials);
-      const { token } = response.data;
+      const response = await clienteAxios.post(`${currentConfig.authPrefix}/login`, credentials);
+      const { token, refreshToken } = response.data;
       
       if (!token) {
         throw new Error('No se recibió token del servidor');
       }
 
       localStorage.setItem('token', token);
+      localStorage.setItem('refreshToken', refreshToken);
       clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       const authResult = await checkAuth();
@@ -116,7 +149,7 @@ function AuthProvider({ children }) {
         }
       }
 
-      const response = await clienteAxios.get('/auth/google/url');
+      const response = await clienteAxios.get(`${currentConfig.authPrefix}/google/url`);
       
       if (!response.data?.url) {
         throw new Error('No se recibió la URL de autenticación');
@@ -149,14 +182,16 @@ function AuthProvider({ children }) {
   const logout = async () => {
     try {
       setState(prev => ({ ...prev, loading: true }));
-      await clienteAxios.post('/auth/logout');
+      await clienteAxios.post(`${currentConfig.authPrefix}/logout`);
       localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
       delete clienteAxios.defaults.headers.common['Authorization'];
       setState({ user: null, loading: false, error: null });
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
       // Incluso si hay un error, limpiamos el estado local
       localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
       delete clienteAxios.defaults.headers.common['Authorization'];
       setState({ user: null, loading: false, error: error });
     }

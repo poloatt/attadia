@@ -228,7 +228,7 @@ export const RutinaForm = ({
     }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const dataToSubmit = {
       ...formData,
       fecha: new Date(formData.fecha)
@@ -236,6 +236,9 @@ export const RutinaForm = ({
 
     if (initialData?._id) {
       dataToSubmit._id = initialData._id;
+      await clienteAxios.put(`/api/rutinas/${initialData._id}`, dataToSubmit);
+    } else {
+      await clienteAxios.post('/api/rutinas', dataToSubmit);
     }
 
     onSubmit(dataToSubmit);

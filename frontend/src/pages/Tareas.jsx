@@ -63,7 +63,7 @@ export function Tareas() {
   const fetchProyectos = useCallback(async () => {
     try {
       // Obtener proyectos con sus tareas incluidas
-      const response = await clienteAxios.get('/proyectos?populate=tareas');
+      const response = await clienteAxios.get('/api/proyectos?populate=tareas');
       console.log('Proyectos con tareas:', response.data);
       setProyectos(response.data.docs || []);
     } catch (error) {
@@ -75,7 +75,7 @@ export function Tareas() {
 
   const fetchTareas = useCallback(async () => {
     try {
-      const response = await clienteAxios.get('/tareas');
+      const response = await clienteAxios.get('/api/tareas');
       setTareas(response.data.docs || []);
     } catch (error) {
       console.error('Error:', error);
@@ -105,7 +105,7 @@ export function Tareas() {
         enqueueSnackbar('Tarea actualizada exitosamente', { variant: 'success' });
       } else {
         console.log('Creando nueva tarea');
-        response = await clienteAxios.post('/tareas', datosAEnviar);
+        response = await clienteAxios.post('/api/tareas', datosAEnviar);
         enqueueSnackbar('Tarea creada exitosamente', { variant: 'success' });
       }
 

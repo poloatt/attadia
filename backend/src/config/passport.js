@@ -2,8 +2,13 @@ import passport from 'passport';
 import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
 import { Strategy as LocalStrategy } from 'passport-local';
 import { Users } from '../models/index.js';
-import config from './config.js';
 import bcrypt from 'bcrypt';
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+
+// Importar configuración según el entorno
+const config = process.env.NODE_ENV === 'production' 
+  ? (await import('./config.js')).default
+  : (await import('./config.dev.js')).default;
 
 // Configuración de la estrategia JWT
 const jwtOptions = {
@@ -55,23 +60,21 @@ passport.use(new LocalStrategy({
 }));
 
 // Configuración de la estrategia Google OAuth2
-let GoogleStrategy;
-try {
-  const { Strategy } = await import('passport-google-oauth20');
-  GoogleStrategy = Strategy;
-} catch (error) {
-  console.warn('Google OAuth no configurado:', error.message);
-}
-
-if (GoogleStrategy && config.google.clientId && config.google.clientSecret) {
+if (config.google.clientId && config.google.clientSecret) {
   passport.use(new GoogleStrategy({
     clientID: config.google.clientId,
     clientSecret: config.google.clientSecret,
     callbackURL: config.google.callbackUrl,
-    proxy: true,
-    passReqToCallback: true
-  }, async (req, accessToken, refreshToken, profile, done) => {
+    scope: ['profile', 'email'],
+    proxy: true
+  }, async (accessToken, refreshToken, profile, done) => {
     try {
+      console.log('Google callback recibido:', { 
+        profileId: profile.id,
+        email: profile.emails?.[0]?.value,
+        displayName: profile.displayName
+      });
+
       if (!profile.emails?.[0]?.value) {
         return done(new Error('No se recibió email del perfil de Google'), null);
       }
@@ -91,22 +94,32 @@ if (GoogleStrategy && config.google.clientId && config.google.clientSecret) {
           role: 'USER',
           activo: true
         });
+        console.log('Nuevo usuario creado:', user);
       } else if (!user.googleId) {
         user.googleId = profile.id;
         await user.save();
+        console.log('Usuario existente actualizado con googleId:', user);
       }
 
       if (!user.activo) {
+        console.log('Usuario inactivo intentando acceder:', user);
         return done(null, false, { message: 'Usuario inactivo' });
       }
       
       return done(null, user);
     } catch (error) {
+      console.error('Error en autenticación de Google:', error);
       return done(error);
     }
   }));
 } else {
-  console.warn('Google OAuth no está configurado completamente');
+  console.warn('Google OAuth no está configurado completamente. Verifica las variables de entorno:',
+    {
+      clientId: !!config.google.clientId,
+      clientSecret: !!config.google.clientSecret,
+      callbackUrl: config.google.callbackUrl
+    }
+  );
 }
 
 passport.serializeUser((user, done) => {

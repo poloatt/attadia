@@ -36,7 +36,7 @@ export function Lab() {
 
   const fetchMediciones = useCallback(async () => {
     try {
-      const response = await clienteAxios.get('/mediciones');
+      const response = await clienteAxios.get('/api/mediciones');
       setMediciones(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar mediciones:', error);
@@ -53,7 +53,7 @@ export function Lab() {
         await clienteAxios.put(`/mediciones/${editingMedicion.id}`, formData);
         enqueueSnackbar('Medición actualizada exitosamente', { variant: 'success' });
       } else {
-        await clienteAxios.post('/mediciones', formData);
+        await clienteAxios.post('/api/mediciones', formData);
         enqueueSnackbar('Medición creada exitosamente', { variant: 'success' });
       }
       setIsFormOpen(false);

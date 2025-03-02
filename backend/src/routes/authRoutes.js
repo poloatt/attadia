@@ -4,10 +4,12 @@ import { checkAuth } from '../middleware/auth.js';
 import { check } from 'express-validator';
 import { validateFields } from '../middleware/validateFields.js';
 import passport from 'passport';
-import config from '../config/config.js';
 import rateLimit from 'express-rate-limit';
-import jwt from 'jsonwebtoken';
-import { passportConfig } from '../config/passport.js';
+
+// Importar configuración según el entorno
+const config = process.env.NODE_ENV === 'production' 
+  ? (await import('../config/config.js')).default
+  : (await import('../config/config.dev.js')).default;
 
 const router = express.Router();
 
@@ -63,59 +65,57 @@ router.post('/refresh-token', [
 
 // Rutas de autenticación con Google
 router.get('/google/url', (req, res) => {
+  if (!config.google.clientId || !config.google.clientSecret) {
+    console.error('Google OAuth no está configurado correctamente');
+    return res.status(500).json({ 
+      error: 'Autenticación con Google no disponible',
+      details: 'Configuración incompleta'
+    });
+  }
+
   const scopes = [
     'https://www.googleapis.com/auth/userinfo.profile',
     'https://www.googleapis.com/auth/userinfo.email'
-  ].join(' ');
+  ];
   
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-    `client_id=${config.google.clientId}&` +
+    `client_id=${encodeURIComponent(config.google.clientId)}&` +
     `redirect_uri=${encodeURIComponent(config.google.callbackUrl)}&` +
     `response_type=code&` +
-    `scope=${encodeURIComponent(scopes)}&` +
+    `scope=${encodeURIComponent(scopes.join(' '))}&` +
     `access_type=offline&` +
     `prompt=consent`;
+  
+  console.log('URL de autenticación generada:', {
+    clientId: config.google.clientId ? 'configurado' : 'no configurado',
+    redirectUri: config.google.callbackUrl,
+    scopes
+  });
   
   res.json({ url: authUrl });
 });
 
 router.get('/google/callback',
   (req, res, next) => {
+    console.log('Callback de Google recibido:', {
+      error: req.query.error,
+      code: req.query.code ? 'presente' : 'ausente',
+      state: req.query.state
+    });
+
     if (req.query.error) {
-      return res.redirect(`${config.frontendUrl}/login?error=${req.query.error}`);
+      console.error('Error en autenticación de Google:', req.query.error);
+      return res.redirect(`${config.frontendUrl}/auth/error?message=${encodeURIComponent(req.query.error)}`);
     }
     next();
   },
   passport.authenticate('google', { 
+    scope: ['profile', 'email'],
     session: false,
-    failureRedirect: `${config.frontendUrl}/login`,
+    failureRedirect: `${config.frontendUrl}/auth/error?message=auth_failed`,
     failWithError: true
   }),
-  (req, res) => {
-    try {
-      if (!req.user) {
-        return res.redirect(`${config.frontendUrl}/login?error=no_user_info`);
-      }
-
-      const token = jwt.sign(
-        { 
-          user: { 
-            id: req.user._id,
-            email: req.user.email,
-            nombre: req.user.nombre
-          } 
-        },
-        config.jwtSecret,
-        { expiresIn: '24h' }
-      );
-      
-      const redirectUrl = `${config.frontendUrl}/auth/callback?token=${token}`;
-      res.redirect(redirectUrl);
-    } catch (error) {
-      console.error('Error en el callback:', error);
-      res.redirect(`${config.frontendUrl}/login?error=server_error`);
-    }
-  }
+  authController.googleCallback
 );
 
 // Rutas que requieren autenticación

@@ -4,10 +4,15 @@ import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import { passportConfig } from './config/passport.js';
 import { router } from './routes/index.js';
+import authRoutes from './routes/authRoutes.js';
 import morgan from 'morgan';
 import connectDB from './config/database/mongodb.js';
 import { initializeMonedas } from './config/initData.js';
-import config from './config/config.js';
+
+// Importar configuración según el entorno
+const config = process.env.NODE_ENV === 'production' 
+  ? (await import('./config/config.js')).default
+  : (await import('./config/config.dev.js')).default;
 
 const app = express();
 
@@ -96,7 +101,10 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Montamos todas las rutas bajo /api
+// Montamos las rutas de autenticación en la raíz
+app.use('/auth', authRoutes);
+
+// Montamos el resto de rutas bajo /api
 app.use('/api', router);
 
 // Manejo de errores global mejorado

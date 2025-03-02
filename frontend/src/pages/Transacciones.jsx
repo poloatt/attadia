@@ -30,7 +30,7 @@ export function Transacciones() {
   const fetchTransacciones = useCallback(async () => {
     try {
       console.log('Solicitando transacciones...');
-      const response = await clienteAxios.get('/transacciones?limit=1000&sort=-fecha');
+      const response = await clienteAxios.get('/api/transacciones?limit=1000&sort=-fecha');
       console.log('Transacciones recibidas:', response.data);
       setTransacciones(response.data.docs || []);
     } catch (error) {
@@ -43,7 +43,7 @@ export function Transacciones() {
   const fetchMonedas = useCallback(async () => {
     try {
       console.log('Cargando monedas...');
-      const response = await clienteAxios.get('/monedas');
+      const response = await clienteAxios.get('/api/monedas');
       console.log('Respuesta completa de monedas:', response);
       console.log('Monedas recibidas:', response.data);
       
@@ -74,7 +74,7 @@ export function Transacciones() {
   const fetchCuentas = useCallback(async () => {
     try {
       console.log('Cargando cuentas...');
-      const response = await clienteAxios.get('/cuentas');
+      const response = await clienteAxios.get('/api/cuentas');
       console.log('Respuesta completa de cuentas:', response);
       console.log('Cuentas recibidas:', response.data);
       
@@ -121,7 +121,7 @@ export function Transacciones() {
 
   const handleCreateMoneda = useCallback(async (data) => {
     try {
-      const response = await clienteAxios.post('/monedas', data);
+      const response = await clienteAxios.post('/api/monedas', data);
       const newMoneda = response.data;
       setMonedas(prev => [...prev, newMoneda]);
       enqueueSnackbar('Moneda creada exitosamente', { variant: 'success' });
@@ -136,7 +136,7 @@ export function Transacciones() {
   const handleCreateCuenta = useCallback(async (data) => {
     try {
       console.log('Creando cuenta con datos:', data);
-      const response = await clienteAxios.post('/cuentas', { 
+      const response = await clienteAxios.post('/api/cuentas', { 
         nombre: data.nombre,
         moneda: data.monedaId,
         tipo: data.tipo
@@ -229,12 +229,12 @@ export function Transacciones() {
       let response;
       if (editingTransaccion) {
         console.log('Actualizando transacción:', editingTransaccion._id);
-        response = await clienteAxios.put(`/transacciones/${editingTransaccion._id}`, datosAEnviar);
+        response = await clienteAxios.put(`/api/transacciones/${editingTransaccion._id}`, datosAEnviar);
         console.log('Respuesta del servidor:', response.data);
         enqueueSnackbar('Transacción actualizada exitosamente', { variant: 'success' });
       } else {
         console.log('Creando nueva transacción');
-        response = await clienteAxios.post('/transacciones', datosAEnviar);
+        response = await clienteAxios.post('/api/transacciones', datosAEnviar);
         enqueueSnackbar('Transacción creada exitosamente', { variant: 'success' });
       }
       
@@ -263,7 +263,7 @@ export function Transacciones() {
 
   const handleDelete = useCallback(async (id) => {
     try {
-      await clienteAxios.delete(`/transacciones/${id}`);
+      await clienteAxios.delete(`/api/transacciones/${id}`);
       enqueueSnackbar('Transacción eliminada exitosamente', { variant: 'success' });
       fetchTransacciones();
     } catch (error) {

@@ -77,7 +77,7 @@ export function Dashboard() {
       console.log('Iniciando fetchStats...');
       
       // Primero obtenemos las estadísticas de propiedades
-      const propiedadesStats = await clienteAxios.get('/propiedades/stats');
+      const propiedadesStats = await clienteAxios.get('/api/propiedades/stats');
       console.log('Estadísticas de propiedades:', propiedadesStats.data);
       
       const propiedadesData = propiedadesStats.data;
@@ -95,7 +95,7 @@ export function Dashboard() {
       };
 
       try {
-        const transaccionesStats = await clienteAxios.get('/transacciones/stats');
+        const transaccionesStats = await clienteAxios.get('/api/transacciones/stats');
         console.log('Estadísticas de transacciones:', transaccionesStats.data);
         transaccionesData = transaccionesStats.data;
       } catch (transaccionesError) {
@@ -125,7 +125,7 @@ export function Dashboard() {
   const fetchAccounts = useCallback(async () => {
     try {
       console.log('Obteniendo cuentas...');
-      const response = await clienteAxios.get('/cuentas');
+      const response = await clienteAxios.get('/api/cuentas');
       const cuentas = response.data.docs || [];
       console.log('Cuentas obtenidas:', cuentas);
       
@@ -135,7 +135,7 @@ export function Dashboard() {
           const today = new Date().toISOString().split('T')[0];
           console.log(`Obteniendo transacciones para cuenta ${cuenta.nombre} (${cuenta._id})`);
           
-          const transaccionesResponse = await clienteAxios.get(`/transacciones/by-cuenta/${cuenta._id || cuenta.id}`, {
+          const transaccionesResponse = await clienteAxios.get(`/api/transacciones/by-cuenta/${cuenta._id || cuenta.id}`, {
             params: {
               fechaFin: today,
               estado: 'PAGADO'
@@ -195,8 +195,8 @@ export function Dashboard() {
     try {
       console.log('Iniciando fetchInquilinosYContratos...');
       const [inquilinosRes, contratosRes] = await Promise.all([
-        clienteAxios.get('/inquilinos/activos'),
-        clienteAxios.get('/contratos/activos')
+        clienteAxios.get('/api/inquilinos/activos'),
+        clienteAxios.get('/api/contratos/activos')
       ]);
 
       console.log('Respuesta de inquilinos:', inquilinosRes.data);
@@ -237,8 +237,8 @@ export function Dashboard() {
       
       // Obtener todas las tareas y proyectos
       const [tareasRes, proyectosRes] = await Promise.all([
-        clienteAxios.get('/tareas'),
-        clienteAxios.get('/proyectos')
+        clienteAxios.get('/api/tareas'),
+        clienteAxios.get('/api/proyectos')
       ]);
 
       console.log('Tareas obtenidas:', tareasRes.data);

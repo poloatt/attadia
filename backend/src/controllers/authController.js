@@ -3,9 +3,29 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import config from '../config/config.js';
 
-const generateTokens = (userId) => {
-  const token = jwt.sign({ user: { id: userId } }, config.jwtSecret, { expiresIn: '24h' });
-  const refreshToken = jwt.sign({ user: { id: userId } }, config.refreshTokenSecret, { expiresIn: '7d' });
+const generateTokens = (user) => {
+  const payload = {
+    user: {
+      id: user._id || user.id,
+      email: user.email,
+      nombre: user.nombre,
+      role: user.role,
+      googleId: user.googleId,
+      activo: user.activo
+    },
+    iat: Math.floor(Date.now() / 1000),
+    type: 'access'
+  };
+
+  const refreshPayload = {
+    user: { id: user._id || user.id },
+    iat: Math.floor(Date.now() / 1000),
+    type: 'refresh'
+  };
+
+  const token = jwt.sign(payload, config.jwtSecret, { expiresIn: '24h' });
+  const refreshToken = jwt.sign(refreshPayload, config.refreshTokenSecret, { expiresIn: '7d' });
+  
   return { token, refreshToken };
 };
 
@@ -56,7 +76,7 @@ export const authController = {
       });
 
       // Generar tokens
-      const { token, refreshToken } = generateTokens(user._id);
+      const { token, refreshToken } = generateTokens(user);
 
       res.json({ token, refreshToken });
     } catch (error) {
@@ -93,7 +113,7 @@ export const authController = {
       }
 
       // Generar tokens
-      const { token, refreshToken } = generateTokens(user._id);
+      const { token, refreshToken } = generateTokens(user);
 
       res.json({ token, refreshToken });
     } catch (error) {
@@ -119,7 +139,7 @@ export const authController = {
       }
 
       // Generar nuevos tokens
-      const tokens = generateTokens(user._id);
+      const tokens = generateTokens(user);
       res.json(tokens);
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
@@ -153,7 +173,10 @@ export const authController = {
       // Obtener el ID del usuario del token, manejando ambas estructuras posibles
       const userId = req.user.id || req.user._id;
       
-      const user = await Users.findById(userId).select('-password');
+      const user = await Users.findById(userId)
+        .select('-password')
+        .lean();
+
       if (!user) {
         return res.json({ authenticated: false });
       }
@@ -162,15 +185,17 @@ export const authController = {
       res.json({
         authenticated: true,
         user: {
-          id: user._id,
+          id: user._id.toString(),
           nombre: user.nombre,
           email: user.email,
           role: user.role,
           googleId: user.googleId,
-          preferences: user.preferences,
+          preferences: user.preferences || {},
           lastLogin: user.lastLogin,
           createdAt: user.createdAt,
-          updatedAt: user.updatedAt
+          updatedAt: user.updatedAt,
+          telefono: user.telefono,
+          activo: user.activo
         }
       });
     } catch (error) {
@@ -190,13 +215,13 @@ export const authController = {
       }
 
       // Generar tokens JWT
-      const { token, refreshToken } = generateTokens(req.user._id);
+      const { token, refreshToken } = generateTokens(req.user);
 
       // URL del frontend
       console.log('URL del frontend:', config.frontendUrl);
 
-      // Redirigir al frontend con el token
-      const redirectUrl = `${config.frontendUrl}/auth/callback?token=${token}`;
+      // Redirigir al frontend con ambos tokens
+      const redirectUrl = `${config.frontendUrl}/auth/callback?token=${token}&refreshToken=${refreshToken}`;
       console.log('Redirigiendo a:', redirectUrl);
       
       res.redirect(redirectUrl);

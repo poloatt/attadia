@@ -49,6 +49,7 @@ import {
   Autorenew as AutorenewIcon,
 } from '@mui/icons-material';
 import EntityDateSelect from '../EntityViews/EntityDateSelect';
+import clienteAxios from '../../config/axios';
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
@@ -246,7 +247,11 @@ const TransaccionRecurrenteForm = ({
         diaDelMes: parseInt(formData.diaDelMes)
       };
 
-      await onSubmit(dataToSubmit);
+      if (isEditing) {
+        await clienteAxios.put(`/api/transaccionesrecurrentes/${initialData._id}`, dataToSubmit);
+      } else {
+        await onSubmit(dataToSubmit);
+      }
     } catch (error) {
       console.error('Error al guardar:', error);
       setErrors(prev => ({

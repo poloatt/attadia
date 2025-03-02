@@ -90,7 +90,7 @@ export function Propiedades() {
       setLoading(true);
       console.log('Solicitando propiedades...');
       
-      const response = await clienteAxios.get('/propiedades');
+      const response = await clienteAxios.get('/api/propiedades');
       console.log('Respuesta recibida:', response.data);
       setPropiedades(response.data.docs || []);
       setFilteredPropiedades(response.data.docs || []);
@@ -109,8 +109,8 @@ export function Propiedades() {
     try {
       setLoadingRelated(true);
       const [monedasRes, cuentasRes] = await Promise.all([
-        clienteAxios.get('/monedas'),
-        clienteAxios.get('/cuentas')
+        clienteAxios.get('/api/monedas'),
+        clienteAxios.get('/api/cuentas')
       ]);
 
       setMonedas(monedasRes.data.docs || []);
@@ -159,7 +159,7 @@ export function Propiedades() {
   const handleDelete = useCallback(async (id) => {
     try {
       console.log('Eliminando propiedad:', id);
-      await clienteAxios.delete(`/propiedades/${id}`);
+      await clienteAxios.delete(`/api/propiedades/${id}`);
       enqueueSnackbar('Propiedad eliminada exitosamente', { variant: 'success' });
       fetchPropiedades();
     } catch (error) {
@@ -191,11 +191,11 @@ export function Propiedades() {
       if (editingPropiedad) {
         const id = editingPropiedad._id || editingPropiedad.id;
         console.log('Propiedades - Actualizando propiedad con ID:', id);
-        response = await clienteAxios.put(`/propiedades/${id}`, dataToSend);
+        response = await clienteAxios.put(`/api/propiedades/${id}`, dataToSend);
         enqueueSnackbar('Propiedad actualizada exitosamente', { variant: 'success' });
       } else {
         console.log('Propiedades - Creando nueva propiedad');
-        response = await clienteAxios.post('/propiedades', dataToSend);
+        response = await clienteAxios.post('/api/propiedades', dataToSend);
         console.log('Propiedades - Respuesta de creación:', response.data);
         enqueueSnackbar('Propiedad creada exitosamente', { variant: 'success' });
       }
@@ -254,13 +254,13 @@ export function Propiedades() {
   };
 
   const handleCreateMoneda = async (data) => {
-    const response = await clienteAxios.post('/monedas', data);
+    const response = await clienteAxios.post('/api/monedas', data);
     setMonedas([...monedas, response.data]);
     return response.data;
   };
 
   const handleCreateCuenta = async (data) => {
-    const response = await clienteAxios.post('/cuentas', {
+    const response = await clienteAxios.post('/api/cuentas', {
       ...data,
       usuarioId: user.id
     });

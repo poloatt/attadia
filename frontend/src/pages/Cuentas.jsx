@@ -65,7 +65,7 @@ export function Cuentas() {
   const fetchCuentas = useCallback(async () => {
     try {
       console.log('Solicitando cuentas...');
-      const response = await clienteAxios.get('/cuentas');
+      const response = await clienteAxios.get('/api/cuentas');
       console.log('Respuesta de cuentas:', response.data);
 
       let cuentasData = response.data?.docs || response.data || [];
@@ -117,7 +117,7 @@ export function Cuentas() {
   const fetchMonedas = useCallback(async () => {
     try {
       console.log('Solicitando monedas...');
-      const response = await clienteAxios.get('/monedas');
+      const response = await clienteAxios.get('/api/monedas');
       console.log('Respuesta completa de monedas:', response);
 
       // Asegurarnos de que tenemos datos válidos
@@ -180,7 +180,7 @@ export function Cuentas() {
 
   const handleCreateMoneda = async (data) => {
     try {
-      const response = await clienteAxios.post('/monedas', data);
+      const response = await clienteAxios.post('/api/monedas', data);
       const newMoneda = response.data;
       setMonedas(prev => [...prev, newMoneda]);
       enqueueSnackbar('Moneda creada exitosamente', { variant: 'success' });
@@ -211,7 +211,7 @@ export function Cuentas() {
         return;
       }
 
-      const response = await clienteAxios.delete(`/cuentas/${id}`);
+      const response = await clienteAxios.delete(`/api/cuentas/${id}`);
       console.log('Respuesta de eliminación:', response);
 
       if (response.status === 200) {
@@ -254,9 +254,9 @@ export function Cuentas() {
 
       let response;
       if (editingCuenta) {
-        response = await clienteAxios.put(`/cuentas/${editingCuenta._id || editingCuenta.id}`, datosAEnviar);
+        response = await clienteAxios.put(`/api/cuentas/${editingCuenta._id || editingCuenta.id}`, datosAEnviar);
       } else {
-        response = await clienteAxios.post('/cuentas', datosAEnviar);
+        response = await clienteAxios.post('/api/cuentas', datosAEnviar);
       }
 
       console.log('Respuesta del servidor:', response.data);

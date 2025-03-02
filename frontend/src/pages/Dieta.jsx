@@ -37,7 +37,7 @@ export function Dieta() {
 
   const fetchComidas = useCallback(async () => {
     try {
-      const response = await clienteAxios.get('/dietas');
+      const response = await clienteAxios.get('/api/dietas');
       setComidas(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar comidas:', error);
@@ -56,7 +56,7 @@ export function Dieta() {
         response = await clienteAxios.put(`/dietas/${editingComida.id}`, formData);
         enqueueSnackbar('Comida actualizada exitosamente', { variant: 'success' });
       } else {
-        response = await clienteAxios.post('/dietas', formData);
+        response = await clienteAxios.post('/api/dietas', formData);
         enqueueSnackbar('Comida agregada exitosamente', { variant: 'success' });
       }
       setIsFormOpen(false);

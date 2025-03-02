@@ -19,7 +19,7 @@ export default function Footer() {
   useEffect(() => {
     const checkConnections = async () => {
       try {
-        const response = await clienteAxios.get('/health');
+        const response = await clienteAxios.get('/api/health');
         setConnectionStatus({
           backend: true,
           database: true,

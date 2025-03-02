@@ -66,7 +66,7 @@ export function Proyectos() {
   const fetchProyectos = useCallback(async () => {
     try {
       console.log('Solicitando proyectos con tareas...');
-      const response = await clienteAxios.get('/proyectos?populate=tareas');
+      const response = await clienteAxios.get('/api/proyectos?populate=tareas');
       console.log('Respuesta completa:', response.data);
       setProyectos(response.data.docs || []);
     } catch (error) {
@@ -90,10 +90,10 @@ export function Proyectos() {
 
       let response;
       if (editingProyecto) {
-        response = await clienteAxios.put(`/proyectos/${editingProyecto._id || editingProyecto.id}`, dataToSend);
+        response = await clienteAxios.put(`/api/proyectos/${editingProyecto._id || editingProyecto.id}`, dataToSend);
         enqueueSnackbar('Proyecto actualizado exitosamente', { variant: 'success' });
       } else {
-        response = await clienteAxios.post('/proyectos', dataToSend);
+        response = await clienteAxios.post('/api/proyectos', dataToSend);
         enqueueSnackbar('Proyecto creado exitosamente', { variant: 'success' });
       }
       setIsFormOpen(false);
@@ -115,7 +115,7 @@ export function Proyectos() {
 
   const handleDelete = useCallback(async (id) => {
     try {
-      await clienteAxios.delete(`/proyectos/${id}`);
+      await clienteAxios.delete(`/api/proyectos/${id}`);
       enqueueSnackbar('Proyecto eliminado exitosamente', { variant: 'success' });
       await fetchProyectos();
     } catch (error) {
@@ -142,7 +142,7 @@ export function Proyectos() {
     // Refrescar los datos después de un breve delay para asegurar sincronización
     setTimeout(async () => {
       try {
-        const response = await clienteAxios.get('/proyectos?populate=tareas');
+        const response = await clienteAxios.get('/api/proyectos?populate=tareas');
         if (response.data && response.data.docs) {
           setProyectos(response.data.docs);
         }
@@ -165,7 +165,7 @@ export function Proyectos() {
         proyecto: selectedProyecto._id
       };
 
-      const response = await clienteAxios.post('/tareas', datosAEnviar);
+      const response = await clienteAxios.post('/api/tareas', datosAEnviar);
       enqueueSnackbar('Tarea creada exitosamente', { variant: 'success' });
       setIsTareaFormOpen(false);
       setSelectedProyecto(null);

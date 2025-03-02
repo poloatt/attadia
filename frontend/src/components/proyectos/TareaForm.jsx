@@ -155,7 +155,7 @@ const TareaForm = ({
       });
 
       // Si la subtarea ya existe, llamamos al endpoint
-      const response = await clienteAxios.patch(`/tareas/${formData._id}/subtareas`, {
+      const response = await clienteAxios.patch(`/api/tareas/${formData._id}/subtareas`, {
         subtareaId: subtarea._id,
         completada: !subtarea.completada
       });
@@ -255,7 +255,7 @@ const TareaForm = ({
 
   const handleProyectoSubmit = async (proyectoData) => {
     try {
-      const response = await clienteAxios.post('/proyectos', proyectoData);
+      const response = await clienteAxios.post('/api/proyectos', proyectoData);
       const nuevoProyecto = response.data;
       
       // Actualizar el campo de proyecto en el formulario

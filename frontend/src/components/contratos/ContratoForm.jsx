@@ -45,6 +45,7 @@ import ContratoHabitacionSection from './ContratoHabitacionSection';
 import ContratoFechasSection from './ContratoFechasSection';
 import ContratoInquilinosSection from './ContratoInquilinosSection';
 import ContratoMontosSection from './ContratoMontosSection';
+import clienteAxios from '../../utils/clienteAxios';
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
@@ -358,7 +359,11 @@ const ContratoForm = ({
       });
 
       console.log('Datos preparados para envío:', dataToSubmit);
-      await onSubmit(dataToSubmit);
+      if (initialData._id) {
+        await clienteAxios.put(`/api/contratos/${initialData._id}`, dataToSubmit);
+      } else {
+        await clienteAxios.post('/api/contratos', dataToSubmit);
+      }
       onClose(); // Cerrar el formulario después de enviar exitosamente
     } catch (error) {
       console.error('Error en submit:', error);

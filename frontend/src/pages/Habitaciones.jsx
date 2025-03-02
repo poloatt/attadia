@@ -42,7 +42,7 @@ export function Habitaciones() {
 
   const fetchHabitaciones = useCallback(async () => {
     try {
-      const response = await clienteAxios.get('/habitaciones');
+      const response = await clienteAxios.get('/api/habitaciones');
       setHabitaciones(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar habitaciones:', error);
@@ -52,7 +52,7 @@ export function Habitaciones() {
 
   const fetchPropiedades = useCallback(async () => {
     try {
-      const response = await clienteAxios.get('/propiedades');
+      const response = await clienteAxios.get('/api/propiedades');
       setPropiedades(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar propiedades:', error);
@@ -67,7 +67,7 @@ export function Habitaciones() {
 
   const handleCreatePropiedad = async (data) => {
     try {
-      const response = await clienteAxios.post('/propiedades', data);
+      const response = await clienteAxios.post('/api/propiedades', data);
       setPropiedades(prev => [...prev, response.data]);
       enqueueSnackbar('Propiedad creada exitosamente', { variant: 'success' });
       return response.data;
@@ -86,7 +86,7 @@ export function Habitaciones() {
         response = await clienteAxios.put(`/habitaciones/${editingHabitacion.id}`, formData);
         setHabitaciones(prev => prev.map(h => h.id === editingHabitacion.id ? response.data : h));
       } else {
-        response = await clienteAxios.post('/habitaciones', formData);
+        response = await clienteAxios.post('/api/habitaciones', formData);
         setHabitaciones(prev => [...prev, response.data]);
       }
       setIsFormOpen(false);

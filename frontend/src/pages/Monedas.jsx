@@ -279,7 +279,7 @@ export function Monedas() {
   const fetchMonedas = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await clienteAxios.get('/monedas');
+      const response = await clienteAxios.get('/api/monedas');
       setMonedas(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar monedas:', error);
@@ -301,7 +301,7 @@ export function Monedas() {
         setMonedas(prev => prev.map(m => m.id === editingMoneda.id ? response.data : m));
         enqueueSnackbar('Moneda actualizada exitosamente', { variant: 'success' });
       } else {
-        response = await clienteAxios.post('/monedas', formData);
+        response = await clienteAxios.post('/api/monedas', formData);
         setMonedas(prev => [...prev, response.data]);
         enqueueSnackbar('Moneda creada exitosamente', { variant: 'success' });
       }

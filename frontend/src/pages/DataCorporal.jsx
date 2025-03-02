@@ -29,7 +29,7 @@ export function DataCorporal() {
 
   const fetchData = async () => {
     try {
-      const response = await clienteAxios.get('/datacorporal');
+      const response = await clienteAxios.get('/api/datacorporal');
       setData(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar datos:', error);
@@ -53,7 +53,7 @@ export function DataCorporal() {
         await clienteAxios.put(`/datacorporal/${editingData._id}`, formData);
         enqueueSnackbar('Registro actualizado exitosamente', { variant: 'success' });
       } else {
-        await clienteAxios.post('/datacorporal', formData);
+        await clienteAxios.post('/api/datacorporal', formData);
         enqueueSnackbar('Registro creado exitosamente', { variant: 'success' });
       }
       handleCloseDialog();

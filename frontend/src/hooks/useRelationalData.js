@@ -28,7 +28,7 @@ export const useRelationalData = ({
           .filter(field => field.type === 'relational' && field.endpoint)
           .map(async field => {
             try {
-              const response = await clienteAxios.get(field.endpoint);
+              const response = await clienteAxios.get(`/api${field.endpoint}`);
               const data = response.data.docs || response.data || [];
               
               // Transformar los datos para asegurar consistencia
@@ -91,7 +91,7 @@ export const useRelationalData = ({
     setError(null);
 
     try {
-      const response = await clienteAxios.get(field.endpoint);
+      const response = await clienteAxios.get(`/api${field.endpoint}`);
       const data = response.data.docs || response.data || [];
       
       // Transformar los datos para asegurar consistencia

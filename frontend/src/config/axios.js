@@ -1,7 +1,15 @@
 import axios from 'axios';
 
+// Determinar la URL base según el ambiente
+const getBaseUrl = () => {
+  if (import.meta.env.MODE === 'development') {
+    return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  }
+  return import.meta.env.VITE_API_URL || 'https://api.present.attadia.com';
+};
+
 const clienteAxios = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://api.present.attadia.com/api',
+  baseURL: getBaseUrl(),
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',

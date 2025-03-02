@@ -199,7 +199,7 @@ const EntityToolbar = ({
 
   const handleSubmit = async (formData) => {
     try {
-      await clienteAxios.post(`/${currentPath}`, formData);
+      await clienteAxios.post(`/api/${currentPath}`, formData);
       setOpenForm(false);
       
       // Disparar evento de actualización
