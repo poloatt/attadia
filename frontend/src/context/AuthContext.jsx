@@ -55,11 +55,6 @@ function AuthProvider({ children }) {
       setState(prev => ({ ...prev, loading: true, error: null }));
       
       console.log('Realizando petición de verificación...');
-      console.log('Headers de la petición:', {
-        ...clienteAxios.defaults.headers.common,
-        Authorization: clienteAxios.defaults.headers.common['Authorization']?.substring(0, 20) + '...'
-      });
-      
       const response = await clienteAxios.get(`${currentConfig.authPrefix}/check`);
       console.log('Respuesta de verificación:', response.data);
       
@@ -72,13 +67,21 @@ function AuthProvider({ children }) {
         return { error: 'No autenticado' };
       }
       
+      // Asegurarse de que todos los campos necesarios estén presentes
+      const userData = {
+        ...response.data.user,
+        id: response.data.user.id || response.data.user._id,
+      };
+
+      console.log('Datos del usuario actualizados:', userData);
+      
       setState({ 
-        user: response.data.user, 
+        user: userData, 
         loading: false, 
         error: null 
       });
       
-      return { user: response.data.user };
+      return { user: userData };
     } catch (error) {
       console.error('Error en checkAuth:', error.response || error);
       
