@@ -38,81 +38,40 @@ function AuthProvider({ children }) {
   });
 
   const checkAuth = useCallback(async () => {
+    if (state.loading) return;
+
     try {
+      setState(prev => ({ ...prev, loading: true, error: null }));
+
       const token = localStorage.getItem('token');
       
       if (!token) {
-        console.log('No se encontró token en localStorage');
-        setState({ user: null, loading: false, error: null });
-        return { error: 'No token found' };
+        setState(prev => ({ ...prev, user: null }));
+        return;
       }
 
-      console.log('Token encontrado en localStorage:', token.substring(0, 20) + '...');
-
-      // Verificar que el token esté configurado en axios
-      if (clienteAxios.defaults.headers.common['Authorization'] !== `Bearer ${token}`) {
-        console.log('Configurando token en Axios');
-        clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      }
-
-      setState(prev => ({ ...prev, loading: true, error: null }));
+      const { data } = await clienteAxios.get('/auth/me');
       
-      console.log('Realizando petición de verificación...');
-      const response = await clienteAxios.get(`${currentConfig.authPrefix}/check`);
-      console.log('Respuesta de verificación:', response.data);
-      
-      if (!response.data.authenticated) {
-        console.log('Usuario no autenticado según la respuesta');
+      if (data.user) {
+        setState(prev => ({ ...prev, user: data.user }));
+        // Actualizar el último acceso
+        console.log('Usuario autenticado:', data.user);
+      } else {
+        console.warn('No se recibieron datos de usuario');
+        setState(prev => ({ ...prev, user: null }));
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
-        delete clienteAxios.defaults.headers.common['Authorization'];
-        setState({ user: null, loading: false, error: 'No autenticado' });
-        return { error: 'No autenticado' };
       }
-      
-      // Asegurarse de que todos los campos necesarios estén presentes
-      const userData = {
-        ...response.data.user,
-        id: response.data.user.id || response.data.user._id,
-      };
-
-      console.log('Datos del usuario actualizados:', userData);
-      
-      setState({ 
-        user: userData, 
-        loading: false, 
-        error: null 
-      });
-      
-      return { user: userData };
     } catch (error) {
-      console.error('Error en checkAuth:', error.response || error);
-      
-      if (error.response?.status === 401) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-        delete clienteAxios.defaults.headers.common['Authorization'];
-      }
-      
-      setState({ 
-        user: null, 
-        loading: false, 
-        error: error.response?.data?.error || error.message || 'Error de autenticación'
-      });
-      
-      return { error: error.response?.data || error.message || 'Error de autenticación' };
+      console.error('Error en checkAuth:', error);
+      setState(prev => ({ ...prev, error: error.message }));
+      setState(prev => ({ ...prev, user: null }));
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+    } finally {
+      setState(prev => ({ ...prev, loading: false }));
     }
-  }, []);
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      checkAuth();
-    } else {
-      setState({ user: null, loading: false, error: null });
-    }
-  }, [checkAuth]);
+  }, [state.loading]);
 
   const login = async (credentials) => {
     try {
@@ -141,57 +100,53 @@ function AuthProvider({ children }) {
     }
   };
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
       
-      // Verificar el servidor solo una vez al inicio
-      if (!window._serverHealthChecked) {
-        try {
-          await clienteAxios.get('/health');
-          window._serverHealthChecked = true;
-        } catch (error) {
-          throw new Error('El servidor no está disponible. Por favor, intenta más tarde.');
-        }
+      const { data } = await clienteAxios.get('/auth/google/url');
+      
+      if (data.url) {
+        console.log('Redirigiendo a Google OAuth...');
+        window.location.href = data.url;
+      } else {
+        throw new Error('No se pudo obtener la URL de autenticación');
       }
-
-      console.log('Configuración actual:', {
-        authPrefix: currentConfig.authPrefix,
-        apiUrl: clienteAxios.defaults.baseURL
-      });
-
-      const response = await clienteAxios.get(`${currentConfig.authPrefix}/google/url`);
-      
-      console.log('Respuesta del servidor para URL de Google:', response.data);
-      
-      if (!response.data?.url) {
-        throw new Error('No se recibió la URL de autenticación');
-      }
-      
-      console.log('Redirigiendo a:', response.data.url);
-      window.location.href = response.data.url;
     } catch (error) {
-      console.error('Error al iniciar el proceso de autenticación con Google:', error);
-      
-      let errorMessage = 'Error al conectar con el servidor';
-      
-      if (error.code === 'ERR_NETWORK') {
-        errorMessage = 'No se puede conectar con el servidor. Por favor, verifica que el servidor esté corriendo.';
-      } else if (error.response?.status === 404) {
-        errorMessage = 'La ruta de autenticación no está disponible';
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      setState({ 
-        ...state, 
-        loading: false, 
-        error: errorMessage
-      });
-      
-      throw new Error(errorMessage);
+      console.error('Error al iniciar sesión con Google:', error);
+      setState(prev => ({ ...prev, error: 'Error al iniciar sesión con Google. Por favor, intenta de nuevo.' }));
+    } finally {
+      setState(prev => ({ ...prev, loading: false }));
     }
-  };
+  }, []);
+
+  const handleGoogleCallback = useCallback(async (code) => {
+    try {
+      setState(prev => ({ ...prev, loading: true, error: null }));
+
+      const { data } = await clienteAxios.post('/auth/google/callback', { code });
+      
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        if (data.refreshToken) {
+          localStorage.setItem('refreshToken', data.refreshToken);
+        }
+        await checkAuth();
+      } else {
+        throw new Error('No se recibió el token de autenticación');
+      }
+    } catch (error) {
+      console.error('Error en callback de Google:', error);
+      setState(prev => ({ ...prev, error: 'Error al completar la autenticación con Google' }));
+      setState(prev => ({ ...prev, user: null }));
+    } finally {
+      setState(prev => ({ ...prev, loading: false }));
+    }
+  }, [checkAuth]);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const logout = async () => {
     try {
