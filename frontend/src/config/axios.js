@@ -6,12 +6,11 @@ const getBaseUrl = () => {
   const apiUrl = import.meta.env.VITE_API_URL;
   
   if (mode === 'development') {
-    return apiUrl || 'http://localhost:5000/api';
+    return apiUrl || 'http://localhost:5000';
   }
   
-  // En producción, asegurarse de que la URL tenga el prefijo /api
-  const prodUrl = apiUrl || 'https://api.present.attadia.com';
-  return prodUrl.endsWith('/api') ? prodUrl : `${prodUrl}/api`;
+  // En producción, usar la URL sin /api
+  return apiUrl || 'https://api.present.attadia.com';
 };
 
 const clienteAxios = axios.create({
