@@ -20,10 +20,12 @@ const clienteAxios = axios.create({
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    'X-Requested-With': 'XMLHttpRequest'
+    'X-Requested-With': 'XMLHttpRequest',
+    'Access-Control-Allow-Credentials': 'true'
   },
   timeout: 30000,
-  maxRedirects: 5
+  maxRedirects: 5,
+  credentials: 'include'
 });
 
 let isRefreshing = false;

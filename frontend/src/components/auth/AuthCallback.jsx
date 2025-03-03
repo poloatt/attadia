@@ -47,8 +47,7 @@ function AuthCallback() {
 
         if (error) {
           console.error('Error en callback:', error);
-          const errorMessage = ERROR_MESSAGES[error] || ERROR_MESSAGES.default;
-          toast.error(errorMessage);
+          toast.error(ERROR_MESSAGES[error] || ERROR_MESSAGES.default);
           navigate('/login', { replace: true });
           return;
         }
@@ -62,8 +61,9 @@ function AuthCallback() {
 
         console.log('Tokens recibidos, procediendo a guardarlos');
         
-        // Limpiar tokens existentes primero
-        localStorage.clear(); // Limpiar todo el localStorage primero
+        // Limpiar tokens existentes
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
         
         // Guardar nuevos tokens
         localStorage.setItem('token', token);
@@ -73,24 +73,19 @@ function AuthCallback() {
         clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
         console.log('Tokens guardados y Axios configurado');
+        console.log('Token almacenado:', !!token);
         
-        // Verificar que el token se haya guardado correctamente
-        const storedToken = localStorage.getItem('token');
-        console.log('Token almacenado:', !!storedToken, storedToken);
-        console.log('Headers de Axios:', clienteAxios.defaults.headers.common['Authorization']);
-        
-        // Verificar autenticación
-        const authResult = await checkAuth();
-        console.log('Resultado de checkAuth:', authResult);
-        
-        if (!authResult || authResult.error) {
-          console.error('Error en checkAuth:', authResult?.error);
-          throw new Error(authResult?.error || 'Error de autenticación');
+        try {
+          // Verificar autenticación
+          await checkAuth();
+          
+          // Si llegamos aquí, la autenticación fue exitosa
+          toast.success('¡Bienvenido!');
+          navigate('/dashboard', { replace: true });
+        } catch (authError) {
+          console.error('Error en la verificación de autenticación:', authError);
+          throw new Error('Error de verificación de autenticación');
         }
-
-        // Redirigir al dashboard
-        toast.success('¡Bienvenido!');
-        navigate('/dashboard', { replace: true });
       } catch (error) {
         console.error('Error en el manejo del callback:', error);
         // Limpiar tokens en caso de error
@@ -107,8 +102,10 @@ function AuthCallback() {
     const params = new URLSearchParams(location.search);
     if (params.get('token')) {
       handleCallback();
+    } else {
+      navigate('/login', { replace: true });
     }
-  }, [navigate, location.search]); // Remover checkAuth de las dependencias
+  }, [navigate, location.search, checkAuth]); // Agregar checkAuth a las dependencias
 
   return (
     <div className="flex items-center justify-center min-h-screen">

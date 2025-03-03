@@ -3,6 +3,15 @@ import clienteAxios from '../config/axios';
 
 const AuthContext = createContext();
 
+// Hook personalizado para usar el contexto de autenticación
+const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
+  }
+  return context;
+};
+
 // Configuración según el ambiente
 const config = {
   development: {
@@ -15,22 +24,13 @@ const config = {
   }
 };
 
-// Determinar el ambiente actual
 const env = import.meta.env.MODE || 'development';
 const currentConfig = config[env];
 
 // Configurar axios para enviar credenciales
 clienteAxios.defaults.withCredentials = true;
 
-function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
-  }
-  return context;
-}
-
-function AuthProvider({ children }) {
+export function AuthProvider({ children }) {
   const [state, setState] = useState({
     user: null,
     loading: true,
@@ -38,40 +38,58 @@ function AuthProvider({ children }) {
   });
 
   const checkAuth = useCallback(async () => {
-    if (state.loading) return;
+    const currentToken = localStorage.getItem('token');
+    if (!currentToken) {
+      setState(prev => ({ ...prev, user: null, loading: false }));
+      return;
+    }
 
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
-
-      const token = localStorage.getItem('token');
+      clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${currentToken}`;
+      const { data } = await clienteAxios.get(`${currentConfig.authPrefix}/check`);
       
-      if (!token) {
-        setState(prev => ({ ...prev, user: null }));
-        return;
-      }
-
-      const { data } = await clienteAxios.get('/auth/me');
-      
-      if (data.user) {
-        setState(prev => ({ ...prev, user: data.user }));
-        // Actualizar el último acceso
+      if (data.authenticated && data.user) {
+        setState(prev => ({ ...prev, user: data.user, loading: false }));
         console.log('Usuario autenticado:', data.user);
       } else {
         console.warn('No se recibieron datos de usuario');
-        setState(prev => ({ ...prev, user: null }));
+        setState(prev => ({ ...prev, user: null, loading: false }));
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
+        delete clienteAxios.defaults.headers.common['Authorization'];
       }
     } catch (error) {
       console.error('Error en checkAuth:', error);
-      setState(prev => ({ ...prev, error: error.message }));
-      setState(prev => ({ ...prev, user: null }));
+      if (error.response?.status === 401) {
+        // Intentar refresh token
+        try {
+          const refreshToken = localStorage.getItem('refreshToken');
+          if (refreshToken) {
+            const { data: refreshData } = await clienteAxios.post(`${currentConfig.authPrefix}/refresh`, {
+              refreshToken
+            });
+            if (refreshData.token) {
+              localStorage.setItem('token', refreshData.token);
+              clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${refreshData.token}`;
+              return checkAuth(); // Intentar de nuevo con el nuevo token
+            }
+          }
+        } catch (refreshError) {
+          console.error('Error al refrescar token:', refreshError);
+        }
+      }
+      setState(prev => ({ 
+        ...prev, 
+        user: null, 
+        error: error.message,
+        loading: false 
+      }));
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
-    } finally {
-      setState(prev => ({ ...prev, loading: false }));
+      delete clienteAxios.defaults.headers.common['Authorization'];
     }
-  }, [state.loading]);
+  }, []);
 
   const login = async (credentials) => {
     try {
@@ -104,7 +122,7 @@ function AuthProvider({ children }) {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
       
-      const { data } = await clienteAxios.get('/auth/google/url');
+      const { data } = await clienteAxios.get(`${currentConfig.authPrefix}/google/url`);
       
       if (data.url) {
         console.log('Redirigiendo a Google OAuth...');
@@ -114,9 +132,11 @@ function AuthProvider({ children }) {
       }
     } catch (error) {
       console.error('Error al iniciar sesión con Google:', error);
-      setState(prev => ({ ...prev, error: 'Error al iniciar sesión con Google. Por favor, intenta de nuevo.' }));
-    } finally {
-      setState(prev => ({ ...prev, loading: false }));
+      setState(prev => ({ 
+        ...prev, 
+        error: 'Error al iniciar sesión con Google. Por favor, intenta de nuevo.',
+        loading: false
+      }));
     }
   }, []);
 
@@ -124,7 +144,7 @@ function AuthProvider({ children }) {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
 
-      const { data } = await clienteAxios.post('/auth/google/callback', { code });
+      const { data } = await clienteAxios.post(`${currentConfig.authPrefix}/google/callback`, { code });
       
       if (data.token) {
         localStorage.setItem('token', data.token);
@@ -137,41 +157,49 @@ function AuthProvider({ children }) {
       }
     } catch (error) {
       console.error('Error en callback de Google:', error);
-      setState(prev => ({ ...prev, error: 'Error al completar la autenticación con Google' }));
-      setState(prev => ({ ...prev, user: null }));
-    } finally {
-      setState(prev => ({ ...prev, loading: false }));
+      setState(prev => ({ 
+        ...prev, 
+        user: null,
+        error: 'Error al completar la autenticación con Google',
+        loading: false
+      }));
     }
   }, [checkAuth]);
 
   useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+    let mounted = true;
 
-  const logout = async () => {
-    try {
-      setState(prev => ({ ...prev, loading: true }));
-      await clienteAxios.post(`${currentConfig.authPrefix}/logout`);
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      delete clienteAxios.defaults.headers.common['Authorization'];
-      setState({ user: null, loading: false, error: null });
-    } catch (error) {
-      console.error('Error al cerrar sesión:', error);
-      // Incluso si hay un error, limpiamos el estado local
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      delete clienteAxios.defaults.headers.common['Authorization'];
-      setState({ user: null, loading: false, error: error });
-    }
-  };
+    const initializeAuth = async () => {
+      if (!mounted) return;
+      await checkAuth();
+    };
+
+    initializeAuth();
+
+    return () => {
+      mounted = false;
+    };
+  }, [checkAuth]);
 
   const value = {
     user: state.user,
     login,
     loginWithGoogle,
-    logout,
+    handleGoogleCallback,
     checkAuth,
+    logout: async () => {
+      try {
+        setState(prev => ({ ...prev, loading: true }));
+        await clienteAxios.post(`${currentConfig.authPrefix}/logout`);
+      } catch (error) {
+        console.error('Error al cerrar sesión:', error);
+      } finally {
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        delete clienteAxios.defaults.headers.common['Authorization'];
+        setState({ user: null, loading: false, error: null });
+      }
+    },
     loading: state.loading,
     error: state.error
   };
@@ -183,4 +211,4 @@ function AuthProvider({ children }) {
   );
 }
 
-export { AuthProvider, useAuth };
+export { useAuth };
