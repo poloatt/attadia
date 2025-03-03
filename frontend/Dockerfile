@@ -1,62 +1,37 @@
 # Etapa de construcción
-FROM node:18-alpine
+FROM node:18-alpine as builder
 
+# Directorio de trabajo
 WORKDIR /app
 
-# Instalar dependencias del sistema
+# Instalar dependencias necesarias
 RUN apk add --no-cache wget curl git
 
-# Configurar npm
+# Copiar package.json y package-lock.json
+COPY package*.json ./
+
+# Instalar dependencias con una configuración más estricta
 RUN npm config set registry https://registry.npmjs.org/ && \
-    npm config set strict-ssl false
+    npm cache clean --force && \
+    npm install --no-audit --no-fund --no-optional
 
-# Crear directorio para node_modules y establecer permisos
-RUN mkdir -p /app/node_modules && \
-    chown -R node:node /app && \
-    chmod -R 755 /app
+# Copiar el resto de los archivos
+COPY . .
 
-# Cambiar al usuario node
-USER node
+# Construir la aplicación
+RUN npm run build
 
-# Copiar package.json y package-lock.json con los permisos correctos
-COPY --chown=node:node package*.json ./
+# Etapa de producción
+FROM nginx:alpine
 
-# Limpiar caché y node_modules
-RUN npm cache clean --force && \
-    rm -rf node_modules
+# Copiar la configuración de nginx
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Instalar dependencias específicas primero
-RUN npm install @mui/x-date-pickers@5.0.20 \
-    date-fns@2.30.0 \
-    @mui/material@5.15.11 \
-    @emotion/react@11.11.3 \
-    @emotion/styled@11.11.0 \
-    @mui/icons-material@5.15.11
+# Copiar los archivos construidos
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Instalar el resto de dependencias
-RUN npm install --legacy-peer-deps
+# Exponer el puerto
+EXPOSE 80
 
-# Copiar el archivo .env y el resto de la aplicación con los permisos correctos
-COPY --chown=node:node .env .env
-COPY --chown=node:node . .
-
-# Asegurar que todos los archivos tengan los permisos correctos
-RUN chmod -R 755 /app
-
-# Variables de entorno para desarrollo
-ENV VITE_HOST=0.0.0.0
-ENV VITE_PORT=5173
-ENV HOST=0.0.0.0
-ENV PORT=5173
-ENV VITE_API_URL=http://localhost:5000
-ENV VITE_GOOGLE_CLIENT_ID=21564026422-0ncvsjsea468s3o4qrmlaljos0d2cumk.apps.googleusercontent.com
-
-# Exponer el puerto de Vite
-EXPOSE 5173
-
-# Healthcheck más tolerante
-HEALTHCHECK --interval=30s --timeout=30s --start-period=60s --retries=5 \
-    CMD curl -f http://localhost:5173 || wget -q --spider http://localhost:5173 || exit 1
-
-# Comando para desarrollo con host explícito y opciones de Vite
-CMD ["sh", "-c", "npm run dev -- --host 0.0.0.0 --port 5173 --force"]
+# Comando para iniciar nginx
+CMD ["nginx", "-g", "daemon off;"]

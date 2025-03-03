@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"fecha":{"$numberInt":"1"}},"name":"fecha_1","background":true,"unique":true}],"uuid":"69082ac8155b4ebe917009ff95ba1daf","collectionName":"rutinas","type":"collection"}
