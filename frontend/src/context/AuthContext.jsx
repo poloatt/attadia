@@ -6,7 +6,7 @@ const AuthContext = createContext();
 // Configuración según el ambiente
 const config = {
   development: {
-    authPrefix: '/auth',
+    authPrefix: '/api/auth',
     apiPrefix: '/api'
   },
   production: {
@@ -152,12 +152,20 @@ function AuthProvider({ children }) {
         }
       }
 
+      console.log('Configuración actual:', {
+        authPrefix: currentConfig.authPrefix,
+        apiUrl: clienteAxios.defaults.baseURL
+      });
+
       const response = await clienteAxios.get(`${currentConfig.authPrefix}/google/url`);
+      
+      console.log('Respuesta del servidor para URL de Google:', response.data);
       
       if (!response.data?.url) {
         throw new Error('No se recibió la URL de autenticación');
       }
       
+      console.log('Redirigiendo a:', response.data.url);
       window.location.href = response.data.url;
     } catch (error) {
       console.error('Error al iniciar el proceso de autenticación con Google:', error);

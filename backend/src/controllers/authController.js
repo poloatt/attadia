@@ -206,7 +206,11 @@ export const authController = {
 
   googleCallback: async (req, res) => {
     try {
-      console.log('Iniciando callback de Google');
+      console.log('Iniciando callback de Google con datos:', {
+        user: req.user ? 'presente' : 'ausente',
+        session: req.session ? 'presente' : 'ausente',
+        headers: req.headers
+      });
       
       // El usuario ya viene autenticado por Passport
       if (!req.user) {
@@ -216,6 +220,10 @@ export const authController = {
 
       // Generar tokens JWT
       const { token, refreshToken } = generateTokens(req.user);
+      console.log('Tokens generados:', {
+        token: token ? 'presente' : 'ausente',
+        refreshToken: refreshToken ? 'presente' : 'ausente'
+      });
 
       // URL del frontend
       console.log('URL del frontend:', config.frontendUrl);

@@ -13,8 +13,8 @@ const config = {
   corsOrigins: ['https://present.attadia.com', 'http://localhost:5173'],
   sessionSecret: process.env.SESSION_SECRET || 'session-secret-development-only',
   google: {
-    clientId: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    clientId: process.env.GOOGLE_CLIENT_ID || '21564026422-n684af8adp48dni8tuc2q2pqc8npb1r7.apps.googleusercontent.com',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || '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',
     callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'https://api.present.attadia.com/api/auth/google/callback'
   },
   isDev: process.env.NODE_ENV !== 'production'

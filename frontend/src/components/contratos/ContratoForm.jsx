@@ -45,7 +45,7 @@ import ContratoHabitacionSection from './ContratoHabitacionSection';
 import ContratoFechasSection from './ContratoFechasSection';
 import ContratoInquilinosSection from './ContratoInquilinosSection';
 import ContratoMontosSection from './ContratoMontosSection';
-import clienteAxios from '../../utils/clienteAxios';
+import clienteAxios from '../../config/axios';
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {

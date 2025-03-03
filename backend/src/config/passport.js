@@ -61,21 +61,31 @@ passport.use(new LocalStrategy({
 
 // Configuración de la estrategia Google OAuth2
 if (config.google.clientId && config.google.clientSecret) {
+  console.log('Configurando estrategia de Google OAuth2:', {
+    callbackURL: config.google.callbackUrl,
+    proxy: true
+  });
+
   passport.use(new GoogleStrategy({
     clientID: config.google.clientId,
     clientSecret: config.google.clientSecret,
     callbackURL: config.google.callbackUrl,
+    passReqToCallback: true,
     scope: ['profile', 'email'],
     proxy: true
-  }, async (accessToken, refreshToken, profile, done) => {
+  }, async (req, accessToken, refreshToken, profile, done) => {
     try {
       console.log('Google callback recibido:', { 
         profileId: profile.id,
         email: profile.emails?.[0]?.value,
-        displayName: profile.displayName
+        displayName: profile.displayName,
+        accessToken: accessToken ? 'presente' : 'ausente',
+        refreshToken: refreshToken ? 'presente' : 'ausente',
+        headers: req.headers
       });
 
       if (!profile.emails?.[0]?.value) {
+        console.error('No se recibió email del perfil de Google');
         return done(new Error('No se recibió email del perfil de Google'), null);
       }
 
@@ -87,18 +97,34 @@ if (config.google.clientId && config.google.clientSecret) {
       });
       
       if (!user) {
+        console.log('Creando nuevo usuario con Google:', {
+          nombre: profile.displayName,
+          email: profile.emails[0].value,
+          googleId: profile.id
+        });
+
         user = await Users.create({
           nombre: profile.displayName,
           email: profile.emails[0].value,
           googleId: profile.id,
           role: 'USER',
-          activo: true
+          activo: true,
+          lastLogin: new Date()
         });
         console.log('Nuevo usuario creado:', user);
-      } else if (!user.googleId) {
-        user.googleId = profile.id;
+      } else {
+        console.log('Usuario existente encontrado:', {
+          id: user._id,
+          email: user.email,
+          googleId: user.googleId
+        });
+
+        // Actualizar lastLogin y googleId si es necesario
+        user.lastLogin = new Date();
+        if (!user.googleId) {
+          user.googleId = profile.id;
+        }
         await user.save();
-        console.log('Usuario existente actualizado con googleId:', user);
       }
 
       if (!user.activo) {

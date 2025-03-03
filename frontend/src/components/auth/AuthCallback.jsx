@@ -7,8 +7,8 @@ import clienteAxios from '../../config/axios';
 // Configuración según el ambiente
 const config = {
   development: {
-    authPrefix: '/auth',
-    apiPrefix: ''
+    authPrefix: '/api/auth',
+    apiPrefix: '/api'
   },
   production: {
     authPrefix: '/api/auth',

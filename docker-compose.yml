@@ -38,9 +38,9 @@ services:
       - PORT=5000
       - JWT_SECRET=your_jwt_secret
       - REFRESH_TOKEN_SECRET=your_refresh_token_secret_here
-      - GOOGLE_CLIENT_ID=21564026422-n684af8adp48dni8tuc2q2pqc8npb1r7.apps.googleusercontent.com
-      - GOOGLE_CLIENT_SECRET=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
+      - GOOGLE_CLIENT_ID=21564026422-0ncvsjsea468s3o4qrmlaljos0d2cumk.apps.googleusercontent.com
       - GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
+      - SESSION_SECRET=your_session_secret_here
     volumes:
       - ./backend:/app
       - backend_node_modules:/app/node_modules
@@ -64,6 +64,7 @@ services:
       - "5173:5173"
     environment:
       - VITE_API_URL=http://localhost:5000
+      - VITE_GOOGLE_CLIENT_ID=21564026422-0ncvsjsea468s3o4qrmlaljos0d2cumk.apps.googleusercontent.com
       - VITE_HOST=0.0.0.0
       - VITE_PORT=5173
       - HOST=0.0.0.0

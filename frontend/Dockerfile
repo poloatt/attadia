@@ -36,7 +36,8 @@ RUN npm install @mui/x-date-pickers@5.0.20 \
 # Instalar el resto de dependencias
 RUN npm install --legacy-peer-deps
 
-# Copiar el resto de la aplicación con los permisos correctos
+# Copiar el archivo .env y el resto de la aplicación con los permisos correctos
+COPY --chown=node:node .env .env
 COPY --chown=node:node . .
 
 # Asegurar que todos los archivos tengan los permisos correctos
@@ -47,6 +48,8 @@ ENV VITE_HOST=0.0.0.0
 ENV VITE_PORT=5173
 ENV HOST=0.0.0.0
 ENV PORT=5173
+ENV VITE_API_URL=http://localhost:5000
+ENV VITE_GOOGLE_CLIENT_ID=21564026422-0ncvsjsea468s3o4qrmlaljos0d2cumk.apps.googleusercontent.com
 
 # Exponer el puerto de Vite
 EXPOSE 5173

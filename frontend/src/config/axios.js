@@ -3,7 +3,7 @@ import axios from 'axios';
 // Determinar la URL base según el ambiente
 const getBaseUrl = () => {
   if (import.meta.env.MODE === 'development') {
-    return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    return import.meta.env.VITE_API_URL || 'http://localhost:5000';
   }
   return import.meta.env.VITE_API_URL || 'https://api.present.attadia.com';
 };
@@ -40,7 +40,7 @@ const refreshAuthToken = async () => {
       throw new Error('No refresh token available');
     }
     
-    const response = await clienteAxios.post('/auth/refresh-token', {
+    const response = await clienteAxios.post('/api/auth/refresh-token', {
       refreshToken
     });
     

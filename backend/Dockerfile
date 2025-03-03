@@ -16,12 +16,16 @@ RUN npm cache clean --force && \
     npm install --verbose && \
     npm install morgan@1.10.0 express-session@1.17.3 connect-mongo@5.1.0
 
-# Copiar el resto de la aplicación
+# Copiar el archivo .env y el resto de la aplicación
+COPY .env .env
 COPY . .
 
 # Variables de entorno
 ENV NODE_ENV=development
 ENV PORT=5000
+ENV GOOGLE_CLIENT_ID=21564026422-0ncvsjsea468s3o4qrmlaljos0d2cumk.apps.googleusercontent.com
+ENV GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
+ENV FRONTEND_URL=http://localhost:5173
 
 # Exponer el puerto
 EXPOSE 5000

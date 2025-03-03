@@ -62,6 +62,13 @@ if (config.env === 'production') {
     autoRemove: 'native',
     touchAfter: 24 * 3600 // 24 horas
   });
+} else {
+  // En desarrollo, usar MongoStore también para consistencia
+  sessionConfig.store = MongoStore.create({
+    mongoUrl: config.mongoUrl,
+    ttl: 24 * 60 * 60,
+    autoRemove: 'native'
+  });
 }
 
 app.use(session(sessionConfig));
@@ -85,6 +92,7 @@ app.get('/health', (req, res) => {
 });
 
 // Rutas
+app.use('/api/auth', authRoutes);
 app.use('/api', router);
 
 // Manejo de errores global
