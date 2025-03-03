@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import clienteAxios from '../config/axios';
 
 function GoogleCallback() {
   const navigate = useNavigate();
@@ -8,19 +9,37 @@ function GoogleCallback() {
 
   useEffect(() => {
     const handleGoogleCallback = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const token = params.get('token');
-      
-      if (token) {
-        // Guardar el token
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+        const refreshToken = params.get('refreshToken');
+        
+        if (!token) {
+          console.error('No se recibió token en el callback');
+          navigate('/auth/error?message=no_token');
+          return;
+        }
+
+        // Guardar tokens
         localStorage.setItem('token', token);
+        if (refreshToken) {
+          localStorage.setItem('refreshToken', refreshToken);
+        }
+
+        // Configurar el token en axios
+        clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
         // Verificar la autenticación
-        await checkAuth();
+        const authResult = await checkAuth();
+        if (!authResult || authResult.error) {
+          throw new Error('Error al verificar la autenticación');
+        }
+
         // Redirigir al dashboard
         navigate('/dashboard');
-      } else {
-        // Si no hay token, redirigir al login
-        navigate('/login');
+      } catch (error) {
+        console.error('Error en el callback de Google:', error);
+        navigate('/auth/error?message=auth_failed');
       }
     };
 

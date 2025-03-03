@@ -4,27 +4,26 @@ import jwt from 'jsonwebtoken';
 import config from '../config/config.js';
 
 const generateTokens = (user) => {
+  const now = Math.floor(Date.now() / 1000);
   const payload = {
-    user: {
-      id: user._id || user.id,
-      email: user.email,
-      nombre: user.nombre,
-      role: user.role,
-      googleId: user.googleId,
-      activo: user.activo
-    },
-    iat: Math.floor(Date.now() / 1000),
+    userId: user._id.toString(),
+    email: user.email,
+    role: user.role,
+    exp: now + (24 * 60 * 60), // 24 horas
+    iat: now,
     type: 'access'
   };
 
   const refreshPayload = {
-    user: { id: user._id || user.id },
-    iat: Math.floor(Date.now() / 1000),
+    userId: user._id.toString(),
+    email: user.email,
+    exp: now + (7 * 24 * 60 * 60), // 7 días
+    iat: now,
     type: 'refresh'
   };
 
-  const token = jwt.sign(payload, config.jwtSecret, { expiresIn: '24h' });
-  const refreshToken = jwt.sign(refreshPayload, config.refreshTokenSecret, { expiresIn: '7d' });
+  const token = jwt.sign(payload, config.jwtSecret);
+  const refreshToken = jwt.sign(refreshPayload, config.refreshTokenSecret);
   
   return { token, refreshToken };
 };
@@ -207,31 +206,46 @@ export const authController = {
   googleCallback: async (req, res) => {
     try {
       console.log('Iniciando callback de Google con datos:', {
-        user: req.user ? 'presente' : 'ausente',
-        session: req.session ? 'presente' : 'ausente',
-        headers: req.headers
+        user: req.user ? {
+          id: req.user._id,
+          email: req.user.email,
+          nombre: req.user.nombre,
+          googleId: req.user.googleId
+        } : 'ausente',
+        session: req.session ? 'presente' : 'ausente'
       });
       
-      // El usuario ya viene autenticado por Passport
       if (!req.user) {
         console.error('No se recibió información del usuario de Google');
         return res.redirect(`${config.frontendUrl}/auth/error?message=google_auth_failed`);
       }
 
+      // Asegurarse de que el usuario existe y está actualizado en la base de datos
+      let user = await Users.findById(req.user._id);
+      if (!user) {
+        console.error('Usuario no encontrado en la base de datos después de la autenticación');
+        return res.redirect(`${config.frontendUrl}/auth/error?message=user_not_found`);
+      }
+
+      // Actualizar lastLogin
+      user.lastLogin = new Date();
+      await user.save();
+
       // Generar tokens JWT
-      const { token, refreshToken } = generateTokens(req.user);
-      console.log('Tokens generados:', {
-        token: token ? 'presente' : 'ausente',
-        refreshToken: refreshToken ? 'presente' : 'ausente'
+      const { token, refreshToken } = generateTokens(user);
+      console.log('Tokens generados para:', {
+        userId: user._id,
+        email: user.email,
+        tokenPresente: !!token,
+        refreshTokenPresente: !!refreshToken
       });
 
-      // URL del frontend
-      console.log('URL del frontend:', config.frontendUrl);
-
-      // Redirigir al frontend con ambos tokens
-      const redirectUrl = `${config.frontendUrl}/auth/callback?token=${token}&refreshToken=${refreshToken}`;
-      console.log('Redirigiendo a:', redirectUrl);
+      // Redirigir al frontend con los tokens
+      const redirectUrl = `${config.frontendUrl}/auth/callback?` +
+        `token=${encodeURIComponent(token)}&` +
+        `refreshToken=${encodeURIComponent(refreshToken)}`;
       
+      console.log('Redirigiendo a:', config.frontendUrl);
       res.redirect(redirectUrl);
     } catch (error) {
       console.error('Error en Google callback:', error);
