@@ -59,6 +59,8 @@ services:
     restart: always
     env_file:
       - ./frontend/.env.production
+    volumes:
+      - frontend_build:/app/dist
     depends_on:
       - backend
     networks:
@@ -80,6 +82,7 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./nginx/ssl:/etc/nginx/ssl
       - ./nginx/logs:/var/log/nginx
+      - frontend_build:/usr/share/nginx/html
     depends_on:
       - frontend
       - backend
@@ -92,4 +95,5 @@ networks:
 
 volumes:
   mongodb_data:
-  backend_logs: 
+  backend_logs:
+  frontend_build: 
