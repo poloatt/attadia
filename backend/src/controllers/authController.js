@@ -5,18 +5,31 @@ import config from '../config/config.js';
 
 const generateTokens = (user) => {
   const now = Math.floor(Date.now() / 1000);
-  const payload = {
-    userId: user._id.toString(),
+  
+  // Asegurarnos de que tenemos todos los campos necesarios del usuario
+  const userInfo = {
+    id: user._id.toString(),
     email: user.email,
+    nombre: user.nombre,
     role: user.role,
+    googleId: user.googleId,
+    activo: user.activo
+  };
+
+  const payload = {
+    user: userInfo,  // Incluir toda la información del usuario
     exp: now + (24 * 60 * 60), // 24 horas
     iat: now,
     type: 'access'
   };
 
+  console.log('Generando token con payload:', {
+    ...payload,
+    jwtSecret: config.jwtSecret ? 'configurado' : 'no configurado'
+  });
+
   const refreshPayload = {
-    userId: user._id.toString(),
-    email: user.email,
+    user: { id: userInfo.id },  // Solo incluir el ID para el refresh token
     exp: now + (7 * 24 * 60 * 60), // 7 días
     iat: now,
     type: 'refresh'
@@ -24,6 +37,13 @@ const generateTokens = (user) => {
 
   const token = jwt.sign(payload, config.jwtSecret);
   const refreshToken = jwt.sign(refreshPayload, config.refreshTokenSecret);
+
+  console.log('Tokens generados:', {
+    token: token.substring(0, 20) + '...',
+    refreshToken: refreshToken.substring(0, 20) + '...',
+    tokenLength: token.length,
+    refreshTokenLength: refreshToken.length
+  });
   
   return { token, refreshToken };
 };
@@ -165,20 +185,40 @@ export const authController = {
 
   check: async (req, res) => {
     try {
+      console.log('Check de autenticación:', {
+        user: req.user ? {
+          id: req.user._id || req.user.id,
+          email: req.user.email,
+          role: req.user.role
+        } : null,
+        headers: {
+          authorization: req.headers.authorization ? 'presente' : 'ausente'
+        }
+      });
+
       if (!req.user) {
+        console.log('No hay usuario en la request');
         return res.json({ authenticated: false });
       }
 
-      // Obtener el ID del usuario del token, manejando ambas estructuras posibles
+      // Obtener el ID del usuario del token
       const userId = req.user.id || req.user._id;
+      console.log('Buscando usuario con ID:', userId);
       
       const user = await Users.findById(userId)
         .select('-password')
         .lean();
 
       if (!user) {
+        console.log('Usuario no encontrado en la base de datos');
         return res.json({ authenticated: false });
       }
+
+      console.log('Usuario encontrado:', {
+        id: user._id,
+        email: user.email,
+        role: user.role
+      });
 
       // Asegurarnos de enviar todos los campos necesarios
       res.json({

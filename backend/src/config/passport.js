@@ -20,12 +20,12 @@ const jwtOptions = {
 passport.use(new JwtStrategy(jwtOptions, async (req, jwt_payload, done) => {
   try {
     console.log('Verificando token JWT:', {
-      userId: jwt_payload.userId,
-      email: jwt_payload.email,
+      payload: jwt_payload,
+      user: jwt_payload.user,
       exp: new Date(jwt_payload.exp * 1000).toISOString()
     });
 
-    const user = await Users.findById(jwt_payload.userId);
+    const user = await Users.findById(jwt_payload.user.id);
     if (!user) {
       console.log('Usuario no encontrado en la base de datos');
       return done(null, false, { message: 'Usuario no encontrado' });
