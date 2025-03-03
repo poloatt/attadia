@@ -2,10 +2,16 @@ import axios from 'axios';
 
 // Determinar la URL base según el ambiente
 const getBaseUrl = () => {
-  if (import.meta.env.MODE === 'development') {
-    return import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const mode = import.meta.env.MODE;
+  const apiUrl = import.meta.env.VITE_API_URL;
+  
+  if (mode === 'development') {
+    return apiUrl || 'http://localhost:5000/api';
   }
-  return import.meta.env.VITE_API_URL || 'https://api.present.attadia.com';
+  
+  // En producción, asegurarse de que la URL tenga el prefijo /api
+  const prodUrl = apiUrl || 'https://api.present.attadia.com';
+  return prodUrl.endsWith('/api') ? prodUrl : `${prodUrl}/api`;
 };
 
 const clienteAxios = axios.create({
@@ -13,7 +19,8 @@ const clienteAxios = axios.create({
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json'
+    'Accept': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest'
   },
   timeout: 30000,
   maxRedirects: 5
@@ -71,7 +78,18 @@ clienteAxios.interceptors.response.use(
   response => response,
   async error => {
     if (error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
+      console.error('Error de conexión:', error);
       throw new Error('Error de conexión con el servidor. Por favor, verifica tu conexión a internet.');
+    }
+
+    // Agregar logging detallado en producción
+    if (import.meta.env.MODE === 'production') {
+      console.error('Error en la petición:', {
+        status: error.response?.status,
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: error.config?.headers
+      });
     }
 
     const originalRequest = error.config;
@@ -86,7 +104,10 @@ clienteAxios.interceptors.response.use(
             originalRequest.headers['Authorization'] = `Bearer ${token}`;
             return clienteAxios(originalRequest);
           })
-          .catch(err => Promise.reject(err));
+          .catch(err => {
+            console.error('Error en refresh token:', err);
+            return Promise.reject(err);
+          });
       }
 
       originalRequest._retry = true;
@@ -100,8 +121,14 @@ clienteAxios.interceptors.response.use(
         processQueue(null, newToken);
         return clienteAxios(originalRequest);
       } catch (refreshError) {
+        console.error('Error al refrescar token:', refreshError);
         processQueue(refreshError, null);
-        window.location.href = '/login';
+        
+        // Solo redirigir si es un error de autenticación real
+        if (refreshError.response?.status === 401) {
+          window.location.href = '/login';
+        }
+        
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

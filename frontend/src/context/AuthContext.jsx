@@ -19,6 +19,9 @@ const config = {
 const env = import.meta.env.MODE || 'development';
 const currentConfig = config[env];
 
+// Configurar axios para enviar credenciales
+clienteAxios.defaults.withCredentials = true;
+
 function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
