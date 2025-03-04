@@ -36,10 +36,7 @@ function AuthCallback() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        console.log('Iniciando manejo de callback');
-        console.log('Ambiente:', env);
-        console.log('Configuración:', currentConfig);
-        
+        console.log('Iniciando manejo de callback de Google');
         const params = new URLSearchParams(location.search);
         const token = params.get('token');
         const refreshToken = params.get('refreshToken');
@@ -47,68 +44,45 @@ function AuthCallback() {
 
         if (error) {
           console.error('Error en callback:', error);
-          const errorMessage = ERROR_MESSAGES[error] || ERROR_MESSAGES.default;
-          toast.error(errorMessage);
-          navigate('/login', { replace: true });
+          toast.error('Error en la autenticación con Google');
+          navigate('/login');
           return;
         }
 
-        if (!token || !refreshToken) {
-          console.error('Token o refreshToken no encontrado en la URL');
-          toast.error(ERROR_MESSAGES.token_missing);
-          navigate('/login', { replace: true });
+        if (!token) {
+          console.error('No se recibió token en el callback');
+          toast.error('Error en la autenticación');
+          navigate('/login');
           return;
         }
 
-        console.log('Tokens recibidos, procediendo a guardarlos');
-        
-        // Limpiar tokens existentes primero
-        localStorage.clear(); // Limpiar todo el localStorage primero
-        
-        // Guardar nuevos tokens
+        // Guardar tokens
         localStorage.setItem('token', token);
-        localStorage.setItem('refreshToken', refreshToken);
-        
-        // Configurar Axios
-        clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        
-        console.log('Tokens guardados y Axios configurado');
-        
-        // Verificar que el token se haya guardado correctamente
-        const storedToken = localStorage.getItem('token');
-        console.log('Token almacenado:', !!storedToken, storedToken);
-        console.log('Headers de Axios:', clienteAxios.defaults.headers.common['Authorization']);
-        
-        // Verificar autenticación
-        const authResult = await checkAuth();
-        console.log('Resultado de checkAuth:', authResult);
-        
-        if (!authResult || authResult.error) {
-          console.error('Error en checkAuth:', authResult?.error);
-          throw new Error(authResult?.error || 'Error de autenticación');
+        if (refreshToken) {
+          localStorage.setItem('refreshToken', refreshToken);
         }
 
-        // Redirigir al dashboard
+        // Configurar axios
+        clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+        // Verificar autenticación
+        await checkAuth();
+        
+        console.log('Autenticación exitosa, redirigiendo al dashboard');
         toast.success('¡Bienvenido!');
         navigate('/dashboard', { replace: true });
       } catch (error) {
-        console.error('Error en el manejo del callback:', error);
-        // Limpiar tokens en caso de error
+        console.error('Error en el callback:', error);
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
         delete clienteAxios.defaults.headers.common['Authorization'];
-        
-        toast.error(ERROR_MESSAGES.default);
-        navigate('/login', { replace: true });
+        toast.error('Error en la autenticación');
+        navigate('/login');
       }
     };
 
-    // Solo ejecutar si hay token en la URL
-    const params = new URLSearchParams(location.search);
-    if (params.get('token')) {
-      handleCallback();
-    }
-  }, [navigate, location.search]); // Remover checkAuth de las dependencias
+    handleCallback();
+  }, [navigate, location.search, checkAuth]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

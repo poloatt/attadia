@@ -80,7 +80,7 @@ if (config.google.clientId && config.google.clientSecret) {
     clientSecret: config.google.clientSecret,
     callbackURL: config.google.callbackUrl,
     passReqToCallback: true,
-    scope: ['profile', 'email'],
+    scope: ['profile', 'email', 'openid'],
     proxy: true
   }, async (req, accessToken, refreshToken, profile, done) => {
     try {
@@ -90,58 +90,51 @@ if (config.google.clientId && config.google.clientSecret) {
         displayName: profile.displayName,
         accessToken: accessToken ? 'presente' : 'ausente',
         refreshToken: refreshToken ? 'presente' : 'ausente',
-        headers: req.headers
+        code: req.query?.code,
+        profile: profile._json
       });
 
-      if (!profile.emails?.[0]?.value) {
-        console.error('No se recibió email del perfil de Google');
-        return done(new Error('No se recibió email del perfil de Google'), null);
+      if (!profile || !profile.emails || !profile.emails[0]?.value) {
+        console.error('Perfil de Google incompleto:', profile);
+        return done(null, false, { message: 'Perfil de Google incompleto' });
       }
 
-      let user = await Users.findOne({ 
-        $or: [
-          { googleId: profile.id },
-          { email: profile.emails[0].value }
-        ]
-      });
-      
-      if (!user) {
-        console.log('Creando nuevo usuario con Google:', {
-          nombre: profile.displayName,
-          email: profile.emails[0].value,
-          googleId: profile.id
+      try {
+        let user = await Users.findOne({ 
+          $or: [
+            { googleId: profile.id },
+            { email: profile.emails[0].value }
+          ]
         });
-
-        user = await Users.create({
-          nombre: profile.displayName,
-          email: profile.emails[0].value,
-          googleId: profile.id,
-          role: 'USER',
-          activo: true,
-          lastLogin: new Date()
-        });
-        console.log('Nuevo usuario creado:', user);
-      } else {
-        console.log('Usuario existente encontrado:', {
-          id: user._id,
-          email: user.email,
-          googleId: user.googleId
-        });
-
-        // Actualizar lastLogin y googleId si es necesario
-        user.lastLogin = new Date();
-        if (!user.googleId) {
-          user.googleId = profile.id;
+        
+        if (!user) {
+          console.log('Creando nuevo usuario con Google');
+          user = await Users.create({
+            nombre: profile.displayName,
+            email: profile.emails[0].value,
+            googleId: profile.id,
+            role: 'USER',
+            activo: true,
+            lastLogin: new Date()
+          });
+        } else {
+          console.log('Actualizando usuario existente');
+          user.lastLogin = new Date();
+          if (!user.googleId) {
+            user.googleId = profile.id;
+          }
+          await user.save();
         }
-        await user.save();
-      }
 
-      if (!user.activo) {
-        console.log('Usuario inactivo intentando acceder:', user);
-        return done(null, false, { message: 'Usuario inactivo' });
+        if (!user.activo) {
+          return done(null, false, { message: 'Usuario inactivo' });
+        }
+        
+        return done(null, user);
+      } catch (dbError) {
+        console.error('Error en la base de datos:', dbError);
+        return done(dbError);
       }
-      
-      return done(null, user);
     } catch (error) {
       console.error('Error en autenticación de Google:', error);
       return done(error);

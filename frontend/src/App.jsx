@@ -31,8 +31,16 @@ import Tareas from './pages/Tareas';
 import { ValuesVisibilityProvider } from './context/ValuesVisibilityContext';
 import { Archivo } from './pages/Archivo';
 import { NavigationBarProvider } from './context/NavigationBarContext';
+import { useAuth } from './context/AuthContext';
+import AuthError from './components/auth/AuthError';
 
 function App() {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <div>Cargando...</div>;
+  }
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -42,15 +50,16 @@ function App() {
           <ErrorBoundary>
             <Routes>
               {/* Rutas públicas */}
-              <Route path="/login" element={<Login />} />
+              <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" />} />
               <Route path="/registro" element={<Register />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/auth/error" element={<AuthError />} />
               
               {/* Rutas protegidas */}
               <Route element={<PrivateRoute />}>
                 <Route element={<Layout />}>
-                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
+                  <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
                   <Route path="/propiedades" element={<Propiedades />} />
                   <Route path="/perfil" element={<Perfil />} />
                   <Route path="/transacciones" element={<Transacciones />} />
