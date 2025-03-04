@@ -22,53 +22,11 @@ const clienteAxios = axios.create({
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    'X-Requested-With': 'XMLHttpRequest',
-    'Access-Control-Allow-Credentials': 'true'
+    'X-Requested-With': 'XMLHttpRequest'
   },
   timeout: 30000,
-  maxRedirects: 5,
-  validateStatus: function (status) {
-    return status >= 200 && status < 500;
-  }
+  maxRedirects: 5
 });
-
-// Configuración global de Axios para CORS
-axios.defaults.withCredentials = true;
-
-let isRefreshing = false;
-let failedQueue = [];
-
-const processQueue = (error, token = null) => {
-  failedQueue.forEach(prom => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
-  });
-  failedQueue = [];
-};
-
-const refreshAuthToken = async () => {
-  try {
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (!refreshToken) {
-      throw new Error('No refresh token available');
-    }
-    
-    const response = await clienteAxios.post('/api/auth/refresh-token', {
-      refreshToken
-    });
-    
-    const { token: newToken } = response.data;
-    localStorage.setItem('token', newToken);
-    return newToken;
-  } catch (error) {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    throw error;
-  }
-};
 
 // Interceptor para agregar el token a las peticiones
 clienteAxios.interceptors.request.use(
@@ -106,33 +64,28 @@ clienteAxios.interceptors.response.use(
 
     // Si el token expiró, intentar refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then(token => {
-            originalRequest.headers['Authorization'] = `Bearer ${token}`;
-            return clienteAxios(originalRequest);
-          })
-          .catch(err => {
-            console.error('Error en refresh token:', err);
-            return Promise.reject(err);
-          });
-      }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
       try {
-        const newToken = await refreshAuthToken();
+        const refreshToken = localStorage.getItem('refreshToken');
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
+        }
+
+        originalRequest._retry = true;
+        
+        const response = await clienteAxios.post('/api/auth/refresh-token', {
+          refreshToken
+        });
+        
+        const { token: newToken } = response.data;
+        localStorage.setItem('token', newToken);
         clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
         originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
         
-        processQueue(null, newToken);
         return clienteAxios(originalRequest);
       } catch (refreshError) {
         console.error('Error al refrescar token:', refreshError);
-        processQueue(refreshError, null);
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
         
         // Solo redirigir si es un error de autenticación real
         if (refreshError.response?.status === 401) {
@@ -140,8 +93,6 @@ clienteAxios.interceptors.response.use(
         }
         
         return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
       }
     }
 

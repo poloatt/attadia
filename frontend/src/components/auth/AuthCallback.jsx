@@ -73,16 +73,14 @@ function AuthCallback() {
         
         console.log('Tokens guardados y Axios configurado');
         
-        try {
-          // Verificar autenticación
-          await checkAuth();
-          
-          // Si llegamos aquí, la autenticación fue exitosa
+        // Verificar autenticación
+        const isAuthenticated = await checkAuth();
+        
+        if (isAuthenticated) {
           console.log('Autenticación exitosa, redirigiendo al dashboard');
           toast.success('¡Bienvenido!');
           navigate('/dashboard', { replace: true });
-        } catch (authError) {
-          console.error('Error en la verificación de autenticación:', authError);
+        } else {
           throw new Error('Error de verificación de autenticación');
         }
       } catch (error) {

@@ -35,7 +35,7 @@ import { useAuth } from './context/AuthContext';
 import AuthError from './components/auth/AuthError';
 
 function App() {
-  const { isAuthenticated, loading } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return <div>Cargando...</div>;
@@ -50,24 +50,25 @@ function App() {
           <ErrorBoundary>
             <Routes>
               {/* Rutas públicas */}
-              <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" />} />
+              <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
               <Route path="/registro" element={<Register />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/auth/error" element={<AuthError />} />
               
+              {/* Ruta raíz */}
+              <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
+              
               {/* Rutas protegidas */}
               <Route element={<PrivateRoute />}>
                 <Route element={<Layout />}>
-                  <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
-                  <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/propiedades" element={<Propiedades />} />
-                  <Route path="/perfil" element={<Perfil />} />
                   <Route path="/transacciones" element={<Transacciones />} />
                   <Route path="/recurrente" element={<Recurrente />} />
                   <Route path="/rutinas" element={<Rutinas />} />
                   <Route path="/lab" element={<Lab />} />
                   <Route path="/proyectos" element={<Proyectos />} />
-                  <Route path="/tareas" element={<Tareas />} />
+                  <Route path="/perfil" element={<Perfil />} />
                   <Route path="/habitaciones" element={<Habitaciones />} />
                   <Route path="/monedas" element={<Monedas />} />
                   <Route path="/cuentas" element={<Cuentas />} />
@@ -76,14 +77,15 @@ function App() {
                   <Route path="/inventario" element={<Inventario />} />
                   <Route path="/dieta" element={<Dieta />} />
                   <Route path="/datacorporal" element={<DataCorporal />} />
-                  <Route path="/archivo" element={<Archivo />} />
                   <Route path="/deudores" element={<Deudores />} />
                   <Route path="/salud" element={<Salud />} />
+                  <Route path="/tareas" element={<Tareas />} />
+                  <Route path="/archivo" element={<Archivo />} />
                 </Route>
               </Route>
 
-              {/* Redirigir a login si no hay ruta */}
-              <Route path="*" element={<Navigate to="/login" replace />} />
+              {/* Ruta 404 */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </ErrorBoundary>
         </NavigationBarProvider>

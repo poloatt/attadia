@@ -18,11 +18,11 @@ export function PrivateRoute() {
     return <LoadingScreen />;
   }
 
-  return user ? (
-    <Outlet />
-  ) : (
-    <Navigate to="/login" state={{ from: location }} replace />
-  );
+  if (user) {
+    return <Outlet />;
+  }
+
+  return <Navigate to="/login" state={{ from: location.pathname }} replace />;
 }
 
 const LoadingScreen = () => {
