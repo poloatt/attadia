@@ -36,6 +36,7 @@ console.log('Configuración:', currentConfig);
 clienteAxios.defaults.withCredentials = true;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 function useAuth() {
   const context = useContext(AuthContext);
@@ -45,6 +46,8 @@ function useAuth() {
   return context;
 }
 
+>>>>>>> develop
+=======
 >>>>>>> develop
 export function AuthProvider({ children }) {
   const [state, setState] = useState({
@@ -113,6 +116,27 @@ export function AuthProvider({ children }) {
       }
     } catch (error) {
       console.error('Error en checkAuth:', error);
+<<<<<<< HEAD
+>>>>>>> develop
+=======
+      if (error.response?.status === 401) {
+        // Intentar refresh token
+        try {
+          const refreshToken = localStorage.getItem('refreshToken');
+          if (refreshToken) {
+            const { data: refreshData } = await clienteAxios.post(`${currentConfig.authPrefix}/refresh`, {
+              refreshToken
+            });
+            if (refreshData.token) {
+              localStorage.setItem('token', refreshData.token);
+              clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${refreshData.token}`;
+              return checkAuth(); // Intentar de nuevo con el nuevo token
+            }
+          }
+        } catch (refreshError) {
+          console.error('Error al refrescar token:', refreshError);
+        }
+      }
 >>>>>>> develop
       setState(prev => ({ 
         ...prev, 
@@ -249,6 +273,7 @@ export function AuthProvider({ children }) {
     handleGoogleCallback,
     checkAuth,
 <<<<<<< HEAD
+<<<<<<< HEAD
     logout: async () => {
       try {
         setState(prev => ({ ...prev, loading: true }));
@@ -267,6 +292,9 @@ export function AuthProvider({ children }) {
 =======
     isAuthenticated: !!state.user,
     handleGoogleCallback
+>>>>>>> develop
+=======
+    logout
 >>>>>>> develop
   };
 
