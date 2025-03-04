@@ -3,6 +3,15 @@ import clienteAxios from '../config/axios';
 
 const AuthContext = createContext();
 
+// Hook personalizado para usar el contexto de autenticación
+const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
+  }
+  return context;
+};
+
 // Configuración según el ambiente
 const config = {
   development: {
@@ -25,14 +34,6 @@ console.log('Configuración:', currentConfig);
 
 // Configurar axios para enviar credenciales
 clienteAxios.defaults.withCredentials = true;
-
-function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
-  }
-  return context;
-}
 
 export function AuthProvider({ children }) {
   const [state, setState] = useState({
@@ -66,6 +67,24 @@ export function AuthProvider({ children }) {
       }
     } catch (error) {
       console.error('Error en checkAuth:', error);
+      if (error.response?.status === 401) {
+        // Intentar refresh token
+        try {
+          const refreshToken = localStorage.getItem('refreshToken');
+          if (refreshToken) {
+            const { data: refreshData } = await clienteAxios.post(`${currentConfig.authPrefix}/refresh`, {
+              refreshToken
+            });
+            if (refreshData.token) {
+              localStorage.setItem('token', refreshData.token);
+              clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${refreshData.token}`;
+              return checkAuth(); // Intentar de nuevo con el nuevo token
+            }
+          }
+        } catch (refreshError) {
+          console.error('Error al refrescar token:', refreshError);
+        }
+      }
       setState(prev => ({ 
         ...prev, 
         user: null, 
@@ -175,10 +194,9 @@ export function AuthProvider({ children }) {
     error: state.error,
     login,
     loginWithGoogle,
-    logout,
+    handleGoogleCallback,
     checkAuth,
-    isAuthenticated: !!state.user,
-    handleGoogleCallback
+    logout
   };
 
   return (
