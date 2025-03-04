@@ -44,24 +44,18 @@ function AuthCallback() {
 
         if (error) {
           console.error('Error en callback:', error);
-<<<<<<< HEAD
           toast.error(ERROR_MESSAGES[error] || ERROR_MESSAGES.default);
           navigate('/login', { replace: true });
-=======
-          toast.error('Error en la autenticación con Google');
-          navigate('/login');
->>>>>>> develop
           return;
         }
 
         if (!token) {
           console.error('No se recibió token en el callback');
           toast.error('Error en la autenticación');
-          navigate('/login');
+          navigate('/login', { replace: true });
           return;
         }
 
-<<<<<<< HEAD
         console.log('Tokens recibidos, procediendo a guardarlos');
         
         // Limpiar tokens existentes
@@ -70,65 +64,45 @@ function AuthCallback() {
         
         // Guardar nuevos tokens
         localStorage.setItem('token', token);
-        localStorage.setItem('refreshToken', refreshToken);
+        if (refreshToken) {
+          localStorage.setItem('refreshToken', refreshToken);
+        }
         
         // Configurar Axios
         clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
         console.log('Tokens guardados y Axios configurado');
-        console.log('Token almacenado:', !!token);
         
         try {
           // Verificar autenticación
           await checkAuth();
           
           // Si llegamos aquí, la autenticación fue exitosa
+          console.log('Autenticación exitosa, redirigiendo al dashboard');
           toast.success('¡Bienvenido!');
           navigate('/dashboard', { replace: true });
         } catch (authError) {
           console.error('Error en la verificación de autenticación:', authError);
           throw new Error('Error de verificación de autenticación');
         }
-=======
-        // Guardar tokens
-        localStorage.setItem('token', token);
-        if (refreshToken) {
-          localStorage.setItem('refreshToken', refreshToken);
-        }
-
-        // Configurar axios
-        clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-        // Verificar autenticación
-        await checkAuth();
-        
-        console.log('Autenticación exitosa, redirigiendo al dashboard');
-        toast.success('¡Bienvenido!');
-        navigate('/dashboard', { replace: true });
->>>>>>> develop
       } catch (error) {
         console.error('Error en el callback:', error);
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
         delete clienteAxios.defaults.headers.common['Authorization'];
         toast.error('Error en la autenticación');
-        navigate('/login');
+        navigate('/login', { replace: true });
       }
     };
 
-<<<<<<< HEAD
-    // Solo ejecutar si hay token en la URL
+    // Solo ejecutar si hay parámetros en la URL
     const params = new URLSearchParams(location.search);
-    if (params.get('token')) {
+    if (params.get('token') || params.get('error')) {
       handleCallback();
     } else {
       navigate('/login', { replace: true });
     }
-  }, [navigate, location.search, checkAuth]); // Agregar checkAuth a las dependencias
-=======
-    handleCallback();
   }, [navigate, location.search, checkAuth]);
->>>>>>> develop
 
   return (
     <div className="flex items-center justify-center min-h-screen">

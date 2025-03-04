@@ -3,21 +3,14 @@ import axios from 'axios';
 // Determinar la URL base según el ambiente
 const getBaseUrl = () => {
   const mode = import.meta.env.MODE;
+  const apiUrl = import.meta.env.VITE_API_URL;
   console.log('Modo de Axios:', mode);
   
   if (mode === 'development') {
-<<<<<<< HEAD
     return apiUrl || 'http://localhost:5000';
   }
   
-  // En producción, usar la URL sin /api
   return apiUrl || 'https://api.present.attadia.com';
-=======
-    return 'http://localhost:5000';
-  }
-  
-  return 'https://api.present.attadia.com';
->>>>>>> develop
 };
 
 const baseURL = getBaseUrl();
@@ -32,15 +25,11 @@ const clienteAxios = axios.create({
     'X-Requested-With': 'XMLHttpRequest',
     'Access-Control-Allow-Credentials': 'true'
   },
-<<<<<<< HEAD
   timeout: 30000,
   maxRedirects: 5,
-  credentials: 'include'
-=======
   validateStatus: function (status) {
     return status >= 200 && status < 500;
   }
->>>>>>> develop
 });
 
 // Configuración global de Axios para CORS
