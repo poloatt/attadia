@@ -35,7 +35,17 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({
   origin: config.corsOrigins,
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Allow-Headers'
+  ],
+  exposedHeaders: ['Content-Length', 'X-Requested-With']
 }));
 
 app.use(cookieParser(config.sessionSecret));
@@ -57,7 +67,7 @@ const sessionConfig = {
 // En producción, usar MongoStore
 if (config.env === 'production') {
   sessionConfig.store = MongoStore.create({
-    mongoUrl: config.mongoUrl,
+    mongoUrl: config.mongoUri,
     ttl: 24 * 60 * 60, // 24 horas
     autoRemove: 'native',
     touchAfter: 24 * 3600 // 24 horas
@@ -65,7 +75,7 @@ if (config.env === 'production') {
 } else {
   // En desarrollo, usar MongoStore también para consistencia
   sessionConfig.store = MongoStore.create({
-    mongoUrl: config.mongoUrl,
+    mongoUrl: config.mongoUri,
     ttl: 24 * 60 * 60,
     autoRemove: 'native'
   });

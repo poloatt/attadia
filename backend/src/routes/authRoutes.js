@@ -84,8 +84,9 @@ router.get('/google/url', (req, res) => {
   });
 
   const scopes = [
-    'https://www.googleapis.com/auth/userinfo.profile',
-    'https://www.googleapis.com/auth/userinfo.email'
+    'openid',
+    'profile',
+    'email'
   ];
   
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
@@ -99,8 +100,7 @@ router.get('/google/url', (req, res) => {
   console.log('URL de autenticación generada:', {
     clientId: config.google.clientId ? 'configurado' : 'no configurado',
     redirectUri: config.google.callbackUrl,
-    scopes,
-    fullUrl: authUrl
+    scopes
   });
   
   res.json({ url: authUrl });
@@ -111,12 +111,11 @@ router.get('/google/callback',
     console.log('Callback de Google recibido:', {
       error: req.query.error,
       code: req.query.code ? 'presente' : 'ausente',
-      state: req.query.state,
-      query: req.query,
-      headers: req.headers,
-      url: req.url,
-      baseUrl: req.baseUrl,
-      originalUrl: req.originalUrl
+      query: JSON.stringify(req.query),
+      headers: {
+        ...req.headers,
+        cookie: req.headers.cookie ? 'presente' : 'ausente'
+      }
     });
 
     if (req.query.error) {
@@ -124,22 +123,15 @@ router.get('/google/callback',
       return res.redirect(`${config.frontendUrl}/auth/error?message=${encodeURIComponent(req.query.error)}`);
     }
 
+    if (!req.query.code) {
+      console.error('No se recibió código de autorización');
+      return res.redirect(`${config.frontendUrl}/auth/error?message=no_auth_code`);
+    }
+
     passport.authenticate('google', { 
       session: false,
-      failureRedirect: `${config.frontendUrl}/auth/error?message=auth_failed`
-    }, (err, user, info) => {
-      if (err) {
-        console.error('Error en autenticación de Google:', err);
-        return res.redirect(`${config.frontendUrl}/auth/error?message=server_error`);
-      }
-
-      if (!user) {
-        console.error('No se recibió usuario de Google:', info);
-        return res.redirect(`${config.frontendUrl}/auth/error?message=auth_failed`);
-      }
-
-      req.user = user;
-      next();
+      failureRedirect: `${config.frontendUrl}/auth/error?message=auth_failed`,
+      failureMessage: true
     })(req, res, next);
   },
   authController.googleCallback

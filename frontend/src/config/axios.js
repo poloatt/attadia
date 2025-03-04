@@ -3,18 +3,28 @@ import axios from 'axios';
 // Determinar la URL base según el ambiente
 const getBaseUrl = () => {
   const mode = import.meta.env.MODE;
-  const apiUrl = import.meta.env.VITE_API_URL;
+  console.log('Modo de Axios:', mode);
   
   if (mode === 'development') {
+<<<<<<< HEAD
     return apiUrl || 'http://localhost:5000';
   }
   
   // En producción, usar la URL sin /api
   return apiUrl || 'https://api.present.attadia.com';
+=======
+    return 'http://localhost:5000';
+  }
+  
+  return 'https://api.present.attadia.com';
+>>>>>>> develop
 };
 
+const baseURL = getBaseUrl();
+console.log('URL base de Axios:', baseURL);
+
 const clienteAxios = axios.create({
-  baseURL: getBaseUrl(),
+  baseURL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -22,10 +32,19 @@ const clienteAxios = axios.create({
     'X-Requested-With': 'XMLHttpRequest',
     'Access-Control-Allow-Credentials': 'true'
   },
+<<<<<<< HEAD
   timeout: 30000,
   maxRedirects: 5,
   credentials: 'include'
+=======
+  validateStatus: function (status) {
+    return status >= 200 && status < 500;
+  }
+>>>>>>> develop
 });
+
+// Configuración global de Axios para CORS
+axios.defaults.withCredentials = true;
 
 let isRefreshing = false;
 let failedQueue = [];
@@ -83,13 +102,14 @@ clienteAxios.interceptors.response.use(
       throw new Error('Error de conexión con el servidor. Por favor, verifica tu conexión a internet.');
     }
 
-    // Agregar logging detallado en producción
-    if (import.meta.env.MODE === 'production') {
+    // Log detallado en desarrollo
+    if (import.meta.env.MODE === 'development') {
       console.error('Error en la petición:', {
         status: error.response?.status,
         url: error.config?.url,
         method: error.config?.method,
-        headers: error.config?.headers
+        headers: error.config?.headers,
+        data: error.config?.data
       });
     }
 

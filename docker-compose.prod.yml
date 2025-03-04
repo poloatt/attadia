@@ -8,48 +8,60 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
-      MONGO_INITDB_DATABASE: present
+      MONGO_INITDB_DATABASE: ${MONGO_DB:-present}
     volumes:
-      - /data/mongodb:/data/db
-      - /data/backups:/data/backups
+      - mongodb_prod_data:/data/db
     networks:
-      - app_network
+      - app_network_prod
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     logging:
       driver: "json-file"
       options:
-        max-size: "100m"
-        max-file: "5"
+        max-size: "10m"
+        max-file: "3"
 
   backend:
-    build: 
+    build:
       context: ./backend
       dockerfile: Dockerfile.prod
     container_name: backend-prod
     restart: always
+    ports:
+      - "${BACKEND_PORT:-5000}:5000"
+    env_file:
+      - ./backend/.env.production
     environment:
       - NODE_ENV=production
-      - MONGODB_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/present?authSource=admin
-      - CORS_ORIGINS=https://present.attadia.com
-      - FRONTEND_URL=https://present.attadia.com
-      - BACKEND_URL=https://api.present.attadia.com
-      - PORT=5000
-      - JWT_SECRET=un_secreto_jwt_muy_largo_y_seguro_123456789
-      - REFRESH_TOKEN_SECRET=otro_secreto_refresh_muy_largo_y_seguro_987654321
-      - SESSION_SECRET=un_secreto_session_muy_largo_y_seguro_456789123
-      - GOOGLE_CLIENT_ID=21564026422-n684af8adp48dni8tuc2q2pqc8npb1r7.apps.googleusercontent.com
-      - GOOGLE_CLIENT_SECRET=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
-      - GOOGLE_CALLBACK_URL=https://api.present.attadia.com/api/auth/google/callback
-    volumes:
-      - backend_logs:/app/logs
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - MONGODB_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb-prod:27017/${MONGO_DB:-present}?authSource=admin
+      - FRONTEND_URL=${FRONTEND_URL:-https://present.attadia.com}
+      - BACKEND_URL=${BACKEND_URL:-https://api.present.attadia.com}
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
     networks:
-      - app_network
+      - app_network_prod
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     logging:
       driver: "json-file"
       options:
-        max-size: "100m"
-        max-file: "5"
+        max-size: "10m"
+        max-file: "3"
 
   frontend:
     build:
@@ -57,43 +69,37 @@ services:
       dockerfile: Dockerfile.prod
     container_name: frontend-prod
     restart: always
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
     env_file:
       - ./frontend/.env.production
+    environment:
+      - NODE_ENV=production
+      - VITE_API_URL=${BACKEND_URL:-https://api.present.attadia.com}
+      - VITE_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
     volumes:
-      - frontend_build:/app/dist
+      - ./ssl:/etc/nginx/ssl
+      - ./nginx/conf.d:/etc/nginx/conf.d
     depends_on:
       - backend
     networks:
-      - app_network
+      - app_network_prod
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     logging:
       driver: "json-file"
       options:
-        max-size: "100m"
-        max-file: "5"
-
-  nginx:
-    image: nginx:alpine
-    container_name: nginx-proxy
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./nginx/ssl:/etc/nginx/ssl
-      - ./nginx/logs:/var/log/nginx
-      - frontend_build:/usr/share/nginx/html
-    depends_on:
-      - frontend
-      - backend
-    networks:
-      - app_network
+        max-size: "10m"
+        max-file: "3"
 
 networks:
-  app_network:
+  app_network_prod:
     driver: bridge
 
 volumes:
-  mongodb_data:
-  backend_logs:
-  frontend_build: 
+  mongodb_prod_data: 
