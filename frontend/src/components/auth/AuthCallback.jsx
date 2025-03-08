@@ -38,8 +38,7 @@ function AuthCallback() {
       try {
         console.log('Iniciando manejo de callback de Google');
         const params = new URLSearchParams(location.search);
-        const token = params.get('token');
-        const refreshToken = params.get('refreshToken');
+        const code = params.get('code');
         const error = params.get('error');
 
         if (error) {
@@ -49,11 +48,19 @@ function AuthCallback() {
           return;
         }
 
-        if (!token) {
-          console.error('No se recibió token en el callback');
+        if (!code) {
+          console.error('No se recibió código de autorización');
           toast.error('Error en la autenticación');
           navigate('/login');
           return;
+        }
+
+        // Realizar la petición al backend con el código
+        const response = await clienteAxios.get(`${currentConfig.authPrefix}/google/callback?code=${code}`);
+        const { token, refreshToken } = response.data;
+
+        if (!token) {
+          throw new Error('No se recibió token del servidor');
         }
 
         // Guardar tokens
@@ -66,17 +73,21 @@ function AuthCallback() {
         clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
         // Verificar autenticación
-        await checkAuth();
+        const authResult = await checkAuth();
         
-        console.log('Autenticación exitosa, redirigiendo al dashboard');
-        toast.success('¡Bienvenido!');
-        navigate('/dashboard', { replace: true });
+        if (authResult) {
+          console.log('Autenticación exitosa, redirigiendo al dashboard');
+          toast.success('¡Bienvenido!');
+          navigate('/dashboard', { replace: true });
+        } else {
+          throw new Error('Fallo en la verificación de autenticación');
+        }
       } catch (error) {
         console.error('Error en el callback:', error);
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
         delete clienteAxios.defaults.headers.common['Authorization'];
-        toast.error('Error en la autenticación');
+        toast.error(error.response?.data?.message || 'Error en la autenticación');
         navigate('/login');
       }
     };

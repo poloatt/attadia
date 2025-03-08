@@ -39,14 +39,15 @@ export function AuthProvider({ children }) {
   const [state, setState] = useState({
     user: null,
     loading: true,
-    error: null
+    error: null,
+    isAuthenticated: false
   });
 
   const checkAuth = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        setState(prev => ({ ...prev, user: null, loading: false }));
+        setState(prev => ({ ...prev, user: null, loading: false, isAuthenticated: false }));
         return false;
       }
 
@@ -54,12 +55,23 @@ export function AuthProvider({ children }) {
       const { data } = await clienteAxios.get(`${currentConfig.authPrefix}/check`);
       
       if (data.authenticated && data.user) {
-        setState(prev => ({ ...prev, user: data.user, loading: false }));
+        setState(prev => ({ 
+          ...prev, 
+          user: data.user, 
+          loading: false, 
+          isAuthenticated: true,
+          error: null 
+        }));
         console.log('Usuario autenticado:', data.user);
         return true;
       } else {
         console.warn('No se recibieron datos de usuario');
-        setState(prev => ({ ...prev, user: null, loading: false }));
+        setState(prev => ({ 
+          ...prev, 
+          user: null, 
+          loading: false, 
+          isAuthenticated: false 
+        }));
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
         delete clienteAxios.defaults.headers.common['Authorization'];
@@ -68,7 +80,6 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.error('Error en checkAuth:', error);
       if (error.response?.status === 401) {
-        // Intentar refresh token
         try {
           const refreshToken = localStorage.getItem('refreshToken');
           if (refreshToken) {
@@ -77,8 +88,11 @@ export function AuthProvider({ children }) {
             });
             if (refreshData.token) {
               localStorage.setItem('token', refreshData.token);
+              if (refreshData.refreshToken) {
+                localStorage.setItem('refreshToken', refreshData.refreshToken);
+              }
               clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${refreshData.token}`;
-              return checkAuth(); // Intentar de nuevo con el nuevo token
+              return checkAuth();
             }
           }
         } catch (refreshError) {
@@ -88,8 +102,9 @@ export function AuthProvider({ children }) {
       setState(prev => ({ 
         ...prev, 
         user: null, 
-        error: error.message,
-        loading: false 
+        error: error.response?.data?.message || error.message,
+        loading: false,
+        isAuthenticated: false
       }));
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
@@ -109,15 +124,25 @@ export function AuthProvider({ children }) {
       }
 
       localStorage.setItem('token', token);
-      localStorage.setItem('refreshToken', refreshToken);
+      if (refreshToken) {
+        localStorage.setItem('refreshToken', refreshToken);
+      }
       clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
-      await checkAuth();
+      const authResult = await checkAuth();
+      if (!authResult) {
+        throw new Error('Fallo en la verificación de autenticación');
+      }
       return response.data;
     } catch (error) {
       console.error('Error al iniciar sesión:', error);
-      setState(prev => ({ ...prev, loading: false, error: error.response?.data || error }));
-      throw error.response?.data || error;
+      setState(prev => ({ 
+        ...prev, 
+        loading: false, 
+        error: error.response?.data?.message || error.message,
+        isAuthenticated: false 
+      }));
+      throw error;
     }
   };
 
@@ -137,8 +162,9 @@ export function AuthProvider({ children }) {
       console.error('Error al iniciar sesión con Google:', error);
       setState(prev => ({ 
         ...prev, 
-        error: 'Error al iniciar sesión con Google. Por favor, intenta de nuevo.',
-        loading: false
+        error: error.response?.data?.message || 'Error al iniciar sesión con Google',
+        loading: false,
+        isAuthenticated: false
       }));
       throw error;
     }
@@ -173,14 +199,24 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     try {
       setState(prev => ({ ...prev, loading: true }));
-      await clienteAxios.post(`${currentConfig.authPrefix}/logout`);
+      const token = localStorage.getItem('token');
+      if (token) {
+        await clienteAxios.post(`${currentConfig.authPrefix}/logout`, null, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
     } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
       delete clienteAxios.defaults.headers.common['Authorization'];
-      setState({ user: null, loading: false, error: null });
+      setState({ 
+        user: null, 
+        loading: false, 
+        error: null, 
+        isAuthenticated: false 
+      });
     }
   };
 
@@ -192,6 +228,7 @@ export function AuthProvider({ children }) {
     user: state.user,
     loading: state.loading,
     error: state.error,
+    isAuthenticated: state.isAuthenticated,
     login,
     loginWithGoogle,
     handleGoogleCallback,
