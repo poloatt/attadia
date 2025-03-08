@@ -14,7 +14,8 @@ COPY package*.json ./
 # Instalar dependencias
 RUN npm cache clean --force && \
     rm -rf node_modules && \
-    npm install --no-audit
+    npm install --no-audit && \
+    npm install connect-mongo@5.1.0 --save
 
 # Variables de entorno para desarrollo
 ENV NODE_ENV=development
@@ -28,4 +29,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=30s --retries=3 \
     CMD wget -q --spider http://localhost:5000/api/health || exit 1
 
 # Comando para desarrollo con nodemon
-CMD ["npm", "run", "dev"] 
+CMD ["npm", "run", "dev"]
