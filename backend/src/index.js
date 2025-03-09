@@ -67,7 +67,7 @@ const sessionConfig = {
 // En producción, usar MongoStore
 if (config.env === 'production') {
   sessionConfig.store = MongoStore.create({
-    mongoUrl: config.mongoUri,
+    mongoUrl: config.mongoUrl,
     ttl: 24 * 60 * 60, // 24 horas
     autoRemove: 'native',
     touchAfter: 24 * 3600 // 24 horas
@@ -75,7 +75,7 @@ if (config.env === 'production') {
 } else {
   // En desarrollo, usar MongoStore también para consistencia
   sessionConfig.store = MongoStore.create({
-    mongoUrl: config.mongoUri,
+    mongoUrl: config.mongoUrl,
     ttl: 24 * 60 * 60,
     autoRemove: 'native'
   });
