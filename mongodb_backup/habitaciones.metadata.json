@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"78b84adbc0f7483b8847b3ecf1866a5d","collectionName":"habitaciones","type":"collection"}

@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"fecha":{"$numberInt":"1"}},"name":"fecha_1","background":true,"unique":true}],"uuid":"01a907c345f94c449c42e9152e896acc","collectionName":"datacorporals","type":"collection"}
