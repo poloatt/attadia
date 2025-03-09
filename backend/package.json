@@ -6,9 +6,13 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "nodemon src/index.js",
+    "dev": "NODE_ENV=development nodemon src/index.js",
+    "staging": "NODE_ENV=staging nodemon src/index.js",
+    "prod": "NODE_ENV=production node src/index.js",
     "lint": "eslint src/**/*.js",
-    "test": "jest"
+    "test": "jest",
+    "test:staging": "NODE_ENV=staging jest",
+    "test:prod": "NODE_ENV=production jest"
   },
   "keywords": [],
   "author": "",

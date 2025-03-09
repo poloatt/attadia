@@ -11,6 +11,11 @@ const config = {
     apiPrefix: '/api',
     baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:5000'
   },
+  staging: {
+    authPrefix: '/api/auth',
+    apiPrefix: '/api',
+    baseUrl: import.meta.env.VITE_API_URL || 'https://staging-api.present.attadia.com'
+  },
   production: {
     authPrefix: '/api/auth',
     apiPrefix: '/api',
@@ -20,9 +25,14 @@ const config = {
 
 // Determinar el ambiente actual
 const env = import.meta.env.MODE || 'development';
-const currentConfig = config[env];
+const currentConfig = config[env] || config.development;
 
-console.log('Ambiente de autenticación:', env);
+console.log('Ambiente de autenticación:', {
+  env,
+  baseUrl: currentConfig.baseUrl,
+  mode: import.meta.env.MODE,
+  viteApiUrl: import.meta.env.VITE_API_URL
+});
 console.log('Configuración:', currentConfig);
 
 const ERROR_MESSAGES = {
@@ -43,29 +53,22 @@ function AuthCallback() {
       try {
         console.log('Iniciando manejo de callback de Google');
         const params = new URLSearchParams(location.search);
-        const code = params.get('code');
+        const token = params.get('token');
+        const refreshToken = params.get('refreshToken');
         const error = params.get('error');
 
         if (error) {
           console.error('Error en callback:', error);
-          toast.error('Error en la autenticación con Google');
+          toast.error(ERROR_MESSAGES[error] || ERROR_MESSAGES.default);
           navigate('/login');
           return;
         }
-
-        if (!code) {
-          console.error('No se recibió código de autorización');
-          toast.error('Error en la autenticación');
-          navigate('/login');
-          return;
-        }
-
-        // Realizar la petición al backend con el código
-        const response = await clienteAxios.get(`${currentConfig.authPrefix}/google/callback?code=${code}`);
-        const { token, refreshToken } = response.data;
 
         if (!token) {
-          throw new Error('No se recibió token del servidor');
+          console.error('No se recibió token de autenticación');
+          toast.error(ERROR_MESSAGES.token_missing);
+          navigate('/login');
+          return;
         }
 
         // Guardar tokens

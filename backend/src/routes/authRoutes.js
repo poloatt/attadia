@@ -7,9 +7,26 @@ import passport from 'passport';
 import rateLimit from 'express-rate-limit';
 
 // Importar configuración según el entorno
-const config = process.env.NODE_ENV === 'production' 
-  ? (await import('../config/config.js')).default
-  : (await import('../config/config.dev.js')).default;
+let config;
+switch (process.env.NODE_ENV) {
+  case 'production':
+    config = (await import('../config/config.js')).default;
+    break;
+  case 'staging':
+    config = (await import('../config/config.staging.js')).default;
+    break;
+  case 'development':
+  default:
+    config = (await import('../config/config.dev.js')).default;
+    break;
+}
+
+console.log('Configuración de autenticación cargada:', {
+  env: config.env,
+  frontendUrl: config.frontendUrl,
+  backendUrl: config.backendUrl,
+  googleCallbackUrl: config.google.callbackUrl
+});
 
 const router = express.Router();
 
@@ -69,17 +86,18 @@ router.post('/refresh-token', [
 // Rutas de autenticación con Google
 router.get('/google/url', (req, res) => {
   if (!config.google.clientId || !config.google.clientSecret) {
-    console.error('Google OAuth no está configurado correctamente');
+    console.error('Google OAuth no está configurado correctamente para el ambiente:', config.env);
     return res.status(500).json({ 
       error: 'Autenticación con Google no disponible',
-      details: 'Configuración incompleta'
+      details: 'Configuración incompleta',
+      env: config.env
     });
   }
 
-  console.log('Configuración de Google OAuth:', {
+  console.log('Configuración de Google OAuth para ambiente:', {
+    env: config.env,
     clientId: config.google.clientId ? 'configurado' : 'no configurado',
     callbackUrl: config.google.callbackUrl,
-    environment: config.env,
     frontendUrl: config.frontendUrl
   });
 
@@ -97,8 +115,8 @@ router.get('/google/url', (req, res) => {
     `access_type=offline&` +
     `prompt=consent`;
   
-  console.log('URL de autenticación generada:', {
-    clientId: config.google.clientId ? 'configurado' : 'no configurado',
+  console.log('URL de autenticación generada para ambiente:', {
+    env: config.env,
     redirectUri: config.google.callbackUrl,
     scopes
   });
@@ -108,29 +126,41 @@ router.get('/google/url', (req, res) => {
 
 router.get('/google/callback',
   (req, res, next) => {
-    console.log('Callback de Google recibido:', {
+    console.log('Callback de Google recibido en ambiente:', {
+      env: config.env,
       error: req.query.error,
       code: req.query.code ? 'presente' : 'ausente',
-      query: JSON.stringify(req.query),
+      query: req.query,
       headers: {
-        ...req.headers,
+        host: req.headers.host,
+        origin: req.headers.origin,
+        referer: req.headers.referer,
+        'user-agent': req.headers['user-agent'],
         cookie: req.headers.cookie ? 'presente' : 'ausente'
       }
     });
 
     if (req.query.error) {
-      console.error('Error en autenticación de Google:', req.query.error);
-      return res.redirect(`${config.frontendUrl}/auth/error?message=${encodeURIComponent(req.query.error)}`);
+      console.error('Error en autenticación de Google:', {
+        env: config.env,
+        error: req.query.error,
+        error_description: req.query.error_description,
+        error_uri: req.query.error_uri
+      });
+      return res.redirect(`${config.frontendUrl}/auth/callback?error=${encodeURIComponent(req.query.error)}`);
     }
 
     if (!req.query.code) {
-      console.error('No se recibió código de autorización');
-      return res.redirect(`${config.frontendUrl}/auth/error?message=no_auth_code`);
+      console.error('No se recibió código de autorización en ambiente:', {
+        env: config.env,
+        headers: req.headers
+      });
+      return res.redirect(`${config.frontendUrl}/auth/callback?error=no_auth_code`);
     }
 
     passport.authenticate('google', { 
       session: false,
-      failureRedirect: `${config.frontendUrl}/auth/error?message=auth_failed`,
+      failureRedirect: `${config.frontendUrl}/auth/callback?error=auth_failed`,
       failureMessage: true
     })(req, res, next);
   },
