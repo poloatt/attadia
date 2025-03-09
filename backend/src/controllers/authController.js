@@ -249,47 +249,31 @@ export const authController = {
         user: req.user ? {
           id: req.user._id,
           email: req.user.email,
-          nombre: req.user.nombre,
-          googleId: req.user.googleId
-        } : 'ausente',
-        session: req.session ? 'presente' : 'ausente'
+          nombre: req.user.nombre
+        } : null
       });
-      
+
       if (!req.user) {
-        console.error('No se recibió información del usuario de Google');
-        return res.redirect(`${config.frontendUrl}/auth/error?message=google_auth_failed`);
+        console.error('No se recibió información del usuario');
+        return res.redirect(`${config.frontendUrl}/auth/callback?error=no_user_info`);
       }
 
-      // Asegurarse de que el usuario existe y está actualizado en la base de datos
-      let user = await Users.findById(req.user._id);
-      if (!user) {
-        console.error('Usuario no encontrado en la base de datos después de la autenticación');
-        return res.redirect(`${config.frontendUrl}/auth/error?message=user_not_found`);
-      }
-
-      // Actualizar lastLogin
-      user.lastLogin = new Date();
-      await user.save();
-
-      // Generar tokens JWT
-      const { token, refreshToken } = generateTokens(user);
-      console.log('Tokens generados para:', {
-        userId: user._id,
-        email: user.email,
-        tokenPresente: !!token,
-        refreshTokenPresente: !!refreshToken
-      });
+      // Generar tokens
+      const { token, refreshToken } = generateTokens(req.user);
 
       // Redirigir al frontend con los tokens
-      const redirectUrl = `${config.frontendUrl}/auth/callback?` +
-        `token=${encodeURIComponent(token)}&` +
-        `refreshToken=${encodeURIComponent(refreshToken)}`;
-      
-      console.log('Redirigiendo a:', config.frontendUrl);
-      res.redirect(redirectUrl);
+      const redirectUrl = new URL('/auth/callback', config.frontendUrl);
+      redirectUrl.searchParams.append('token', token);
+      redirectUrl.searchParams.append('refreshToken', refreshToken);
+
+      console.log('Redirigiendo al frontend:', {
+        url: redirectUrl.toString().replace(/token=[^&]+/, 'token=REDACTED')
+      });
+
+      res.redirect(redirectUrl.toString());
     } catch (error) {
-      console.error('Error en Google callback:', error);
-      res.redirect(`${config.frontendUrl}/auth/error?message=server_error`);
+      console.error('Error en callback de Google:', error);
+      res.redirect(`${config.frontendUrl}/auth/callback?error=server_error`);
     }
   }
 };
