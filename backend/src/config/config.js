@@ -1,43 +1,28 @@
 import dotenv from 'dotenv';
 
-dotenv.config();
+// Determinar qué archivo de configuración cargar según el entorno
+const env = process.env.NODE_ENV || 'development';
+let configModule;
 
-const config = {
-  env: process.env.NODE_ENV || 'development',
-  port: parseInt(process.env.PORT || '5000', 10),
-  mongoUrl: process.env.MONGODB_URI || 'mongodb://mongodb:27017/present',
-  jwtSecret: process.env.JWT_SECRET || 'your-secret-key-development-only',
-  refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET || 'your-refresh-secret-development-only',
-  apiUrl: process.env.API_URL || process.env.BACKEND_URL || 'https://api.present.attadia.com',
-  frontendUrl: process.env.FRONTEND_URL || 'https://present.attadia.com',
-  corsOrigins: ['https://present.attadia.com', 'http://localhost:5173'],
-  sessionSecret: process.env.SESSION_SECRET || 'session-secret-development-only',
-  google: {
-    clientId: process.env.GOOGLE_CLIENT_ID || '21564026422-n684af8adp48dni8tuc2q2pqc8npb1r7.apps.googleusercontent.com',
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET || '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',
-    callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'https://api.present.attadia.com/api/auth/google/callback'
-  },
-  isDev: process.env.NODE_ENV !== 'production'
-};
-
-// Validación de configuración crítica en producción
-if (config.env === 'production') {
-  const requiredEnvVars = [
-    'JWT_SECRET',
-    'REFRESH_TOKEN_SECRET',
-    'SESSION_SECRET',
-    'MONGODB_URI',
-    'GOOGLE_CLIENT_ID',
-    'GOOGLE_CLIENT_SECRET'
-  ];
-
-  for (const envVar of requiredEnvVars) {
-    if (!process.env[envVar]) {
-      throw new Error(`La variable de entorno ${envVar} es requerida en producción`);
-    }
-  }
+switch (env) {
+  case 'production':
+    dotenv.config({ path: '.env.production' });
+    configModule = await import('./config.prod.js');
+    break;
+  case 'staging':
+    dotenv.config({ path: '.env.staging' });
+    configModule = await import('./config.staging.js');
+    break;
+  case 'development':
+  default:
+    dotenv.config({ path: '.env.development' });
+    configModule = await import('./config.dev.js');
+    break;
 }
 
+const config = configModule.default;
+
+console.log(`Cargando configuración para el entorno: ${env}`);
 console.log('Configuración de MongoDB:', {
   url: config.mongoUrl,
   environment: config.env

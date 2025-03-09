@@ -6,9 +6,19 @@ import bcrypt from 'bcrypt';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 
 // Importar configuración según el entorno
-const config = process.env.NODE_ENV === 'production' 
-  ? (await import('./config.js')).default
-  : (await import('./config.dev.js')).default;
+let config;
+switch (process.env.NODE_ENV) {
+  case 'production':
+    config = (await import('./config.js')).default;
+    break;
+  case 'staging':
+    config = (await import('./config.staging.js')).default;
+    break;
+  case 'development':
+  default:
+    config = (await import('./config.dev.js')).default;
+    break;
+}
 
 // Configuración de la estrategia JWT
 const jwtOptions = {

@@ -11,9 +11,19 @@ import { initializeMonedas } from './config/initData.js';
 import MongoStore from 'connect-mongo';
 
 // Importar configuración según el entorno
-const config = process.env.NODE_ENV === 'production' 
-  ? (await import('./config/config.js')).default
-  : (await import('./config/config.dev.js')).default;
+let config;
+switch (process.env.NODE_ENV) {
+  case 'production':
+    config = (await import('./config/config.js')).default;
+    break;
+  case 'staging':
+    config = (await import('./config/config.staging.js')).default;
+    break;
+  case 'development':
+  default:
+    config = (await import('./config/config.dev.js')).default;
+    break;
+}
 
 const app = express();
 
@@ -33,21 +43,15 @@ process.on('uncaughtException', (error) => {
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors({
+
+// Configuración de CORS
+const corsOptions = {
   origin: config.corsOrigins,
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'X-Requested-With',
-    'Accept',
-    'Origin',
-    'Access-Control-Allow-Headers'
-  ],
-  exposedHeaders: ['Content-Length', 'X-Requested-With']
-}));
+  optionsSuccessStatus: 200
+};
 
+app.use(cors(corsOptions));
 app.use(cookieParser(config.sessionSecret));
 
 // Configuración de sesión
@@ -65,9 +69,9 @@ const sessionConfig = {
 };
 
 // En producción, usar MongoStore
-if (config.env === 'production') {
+if (config.env === 'production' || config.env === 'staging') {
   sessionConfig.store = MongoStore.create({
-    mongoUrl: config.mongoUri,
+    mongoUrl: config.mongoUrl,
     ttl: 24 * 60 * 60, // 24 horas
     autoRemove: 'native',
     touchAfter: 24 * 3600 // 24 horas
@@ -75,7 +79,7 @@ if (config.env === 'production') {
 } else {
   // En desarrollo, usar MongoStore también para consistencia
   sessionConfig.store = MongoStore.create({
-    mongoUrl: config.mongoUri,
+    mongoUrl: config.mongoUrl,
     ttl: 24 * 60 * 60,
     autoRemove: 'native'
   });

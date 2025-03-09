@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb-staging
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB:-present}
+    volumes:
+      - mongodb_staging_data:/data/db
+    networks:
+      - app_network_staging
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+      args:
+        - NODE_ENV=staging
+    container_name: backend-staging
+    restart: always
+    ports:
+      - "5001:5000"
+    env_file:
+      - .env.staging
+    environment:
+      - NODE_ENV=staging
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_CALLBACK_URL=http://localhost:5001/api/auth/google/callback
+      - JWT_SECRET=${JWT_SECRET}
+      - REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - MONGODB_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb-staging:27017/${MONGO_DB:-present}?authSource=admin
+      - FRONTEND_URL=http://localhost:8080
+      - BACKEND_URL=http://localhost:5001
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - app_network_staging
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        - NODE_ENV=staging
+    container_name: frontend-staging
+    restart: always
+    ports:
+      - "8080:80"
+      - "8443:443"
+    env_file:
+      - .env.staging
+    environment:
+      - NODE_ENV=staging
+      - VITE_API_URL=http://localhost:5001
+      - VITE_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+    volumes:
+      - ./ssl:/etc/nginx/ssl
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - backend
+    networks:
+      - app_network_staging
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+networks:
+  app_network_staging:
+    driver: bridge
+
+volumes:
+  mongodb_staging_data: 
