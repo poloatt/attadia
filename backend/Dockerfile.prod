@@ -1,4 +1,6 @@
+# Build stage
 FROM node:18-alpine
+
 WORKDIR /app
 
 # Instalar dependencias necesarias
@@ -15,7 +17,10 @@ RUN npm cache clean --force && \
 
 # Copiar el resto de la aplicación
 COPY . .
-COPY .env.production .env
+
+# Copiar el archivo .env según el ambiente
+ARG BUILD_ENV=production
+COPY .env.${BUILD_ENV} .env
 
 # Variables de entorno
 ENV NODE_ENV=production
