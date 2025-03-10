@@ -8,18 +8,17 @@ const config = {
   mongoUrl: process.env.MONGODB_URI || 'mongodb://mongodb-staging:27017/present',
   jwtSecret: process.env.JWT_SECRET,
   refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET,
-  apiUrl: process.env.BACKEND_URL || 'http://localhost:5001',
-  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:8080',
+  apiUrl: process.env.BACKEND_URL || 'https://api.staging.present.attadia.com',
+  frontendUrl: process.env.FRONTEND_URL || 'https://staging.present.attadia.com',
   corsOrigins: [
-    'http://localhost:8080',
-    'http://localhost:5001',
-    'http://localhost:5173'
+    'https://staging.present.attadia.com',
+    'https://api.staging.present.attadia.com'
   ],
   sessionSecret: process.env.SESSION_SECRET,
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5001/api/auth/google/callback'
+    callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'https://api.staging.present.attadia.com/api/auth/google/callback'
   },
   isDev: false
 };
