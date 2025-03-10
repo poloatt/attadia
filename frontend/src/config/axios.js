@@ -6,11 +6,16 @@ const getBaseUrl = () => {
   const apiUrl = import.meta.env.VITE_API_URL;
   console.log('Modo de Axios:', mode);
   
-  if (mode === 'development') {
-    return apiUrl || 'http://localhost:5000';
+  if (!apiUrl) {
+    if (mode === 'development') {
+      return 'http://localhost:5000';
+    } else if (mode === 'staging') {
+      return 'https://api.staging.present.attadia.com';
+    }
+    return 'https://api.present.attadia.com';
   }
   
-  return apiUrl || 'https://api.present.attadia.com';
+  return apiUrl;
 };
 
 const baseURL = getBaseUrl();

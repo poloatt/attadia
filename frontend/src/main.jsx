@@ -17,7 +17,23 @@ const router = {
 };
 
 // Configurar axios
-axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'https://api.present.attadia.com/api'
+const getBaseUrl = () => {
+  const mode = import.meta.env.MODE;
+  const apiUrl = import.meta.env.VITE_API_URL;
+  
+  if (!apiUrl) {
+    if (mode === 'development') {
+      return 'http://localhost:5000/api';
+    } else if (mode === 'staging') {
+      return 'https://api.staging.present.attadia.com/api';
+    }
+    return 'https://api.present.attadia.com/api';
+  }
+  
+  return `${apiUrl}/api`;
+};
+
+axios.defaults.baseURL = getBaseUrl();
 axios.defaults.withCredentials = true
 
 ReactDOM.createRoot(document.getElementById('root')).render(

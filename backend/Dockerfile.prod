@@ -1,21 +1,29 @@
+# Build stage
 FROM node:18-alpine
+
 WORKDIR /app
 
 # Instalar dependencias necesarias
-RUN apk add --no-cache curl wget
+RUN apk add --no-cache wget curl git
+
+# Configurar npm
+RUN npm config set registry https://registry.npmjs.org/ && \
+    npm config set strict-ssl false
 
 # Copiar package.json y package-lock.json
 COPY package*.json ./
 
-# Limpiar cache de npm e instalar dependencias
+# Limpiar cache e instalar dependencias
 RUN npm cache clean --force && \
     rm -rf node_modules && \
-    npm install --verbose && \
-    npm install connect-mongo@5.1.0
+    npm install
 
 # Copiar el resto de la aplicación
 COPY . .
-COPY .env.production .env
+
+# Copiar el archivo .env según el ambiente
+ARG BUILD_ENV=production
+COPY .env.${BUILD_ENV} .env
 
 # Variables de entorno
 ENV NODE_ENV=production

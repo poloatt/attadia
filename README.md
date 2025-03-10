@@ -97,3 +97,59 @@ El sistema utiliza despliegue automático a través de webhooks:
 - Los logs se encuentran en `/var/log/`
 - Monitoreo del webhook: `tail -f /home/poloatt/presentprod/webhook/webhook.log`
 - Estado de los servicios: `docker-compose ps`
+
+# Present - Ambiente de Staging
+
+## Prerequisitos
+
+Asegúrate de tener instalado:
+```bash
+sudo apt-get update && sudo apt-get install -y make
+```
+
+## Comandos Make Disponibles
+
+### Comandos Principales
+
+| Comando | Descripción |
+|---------|-------------|
+| `make staging` | Construye e inicia todos los contenedores de staging (comando todo en uno) |
+| `make staging-build` | Construye las imágenes de los contenedores sin usar caché |
+| `make staging-up` | Inicia todos los contenedores en modo detached |
+| `make staging-down` | Detiene y elimina todos los contenedores |
+| `make staging-logs` | Muestra los logs de todos los contenedores en tiempo real |
+| `make staging-restart` | Reinicia todos los contenedores |
+
+### Ejemplos de Uso
+
+1. Primera vez o después de cambios:
+```bash
+make staging
+```
+
+2. Ver logs en tiempo real:
+```bash
+make staging-logs
+```
+
+3. Reiniciar servicios:
+```bash
+make staging-restart
+```
+
+4. Detener todos los servicios:
+```bash
+make staging-down
+```
+
+## Archivos de Configuración
+
+El ambiente de staging utiliza los siguientes archivos de configuración:
+- `.env.staging` - Variables de entorno para la aplicación
+- `.env.staging.docker` - Variables de entorno para Docker Compose
+- `docker-compose.staging.yml` - Configuración de los servicios
+
+## URLs
+
+- Frontend: https://staging.present.attadia.com
+- Backend API: https://api.staging.present.attadia.com
