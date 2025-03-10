@@ -1,4 +1,5 @@
-FROM node:18-alpine
+# Build stage
+FROM node:18-alpine as build
 
 WORKDIR /app
 
@@ -30,16 +31,20 @@ RUN npm install --legacy-peer-deps
 # Copiar el resto de la aplicación
 COPY . .
 
-# Establecer permisos correctos
-RUN mkdir -p /app/node_modules && \
-    chown -R node:node /app && \
-    chmod -R 755 /app
-
-# Cambiar al usuario node
-USER node
-
 # Construir la aplicación
 RUN npm run build
 
-# Mantener el contenedor vivo
-CMD ["tail", "-f", "/dev/null"] 
+# Production stage
+FROM nginx:alpine
+
+# Crear directorio para la configuración de nginx
+RUN mkdir -p /etc/nginx/conf.d
+
+# Exponer el puerto 80
+EXPOSE 80
+
+# Copiar los archivos construidos
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# Iniciar nginx
+CMD ["nginx", "-g", "daemon off;"] 
