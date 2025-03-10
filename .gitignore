@@ -22,7 +22,7 @@ out/
 
 # Config files (usar .example.js como templates)
 
-**/config.prod.js
+
 **/config.dev.js
 
 # Logs
