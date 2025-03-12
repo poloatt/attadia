@@ -44,6 +44,7 @@ services:
       - NODE_ENV=production
       - ENVIRONMENT=staging
       - IS_STAGING=true
+      - MONGODB_URI=mongodb://admin:MiContraseñaSegura123@mongodb-staging:27017/present?authSource=admin
     depends_on:
       mongodb:
         condition: service_healthy
