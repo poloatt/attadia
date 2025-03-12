@@ -54,4 +54,4 @@ docker-compose.override.yml
 # Specific config files that deben ser ignorados
 backend/src/config/config.js
 frontend/src/config.js
-nginx/conf.d/default.conf
+# nginx/conf.d/default.conf  # Comentado para permitir los archivos de configuración de Nginx
