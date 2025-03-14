@@ -110,7 +110,7 @@ services:
       - ./ssl/certbot/www:/var/www/certbot
     depends_on:
       - frontend
-    command: certonly --webroot --webroot-path=/var/www/certbot --email admin@attadia.com --agree-tos --no-eff-email -d staging.present.attadia.com -d api.staging.present.attadia.com
+    command: certonly --webroot --webroot-path=/var/www/certbot --email admin@attadia.com --agree-tos --no-eff-email -d staging.present.attadia.com
 
 networks:
   app_network_staging:
