@@ -31,13 +31,20 @@ const config = {
     apiPrefix: '/api',
     baseUrl: import.meta.env.VITE_API_URL || 'https://api.present.attadia.com',
     frontendUrl: import.meta.env.VITE_FRONTEND_URL || 'https://present.attadia.com'
+  },
+  staging: {
+    authPrefix: '/api/auth',
+    apiPrefix: '/api',
+    baseUrl: 'https://api.staging.present.attadia.com',
+    frontendUrl: 'https://staging.present.attadia.com'
   }
 };
 
 const env = import.meta.env.MODE || 'development';
-const currentConfig = config[env];
+const isStaging = typeof window !== 'undefined' && window.location.hostname.includes('staging');
+const currentConfig = isStaging ? config.staging : config[env];
 
-console.log('Ambiente de autenticación:', env);
+console.log('Ambiente de autenticación:', { env, baseUrl: currentConfig.baseUrl, mode: env, viteApiUrl: import.meta.env.VITE_API_URL, isStaging });
 console.log('Configuración:', currentConfig);
 
 // Configurar axios con la URL base y credenciales
