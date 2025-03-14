@@ -14,7 +14,7 @@ const config = {
   staging: {
     authPrefix: '/api/auth',
     apiPrefix: '/api',
-    baseUrl: import.meta.env.VITE_API_URL || 'https://staging-api.present.attadia.com'
+    baseUrl: 'https://api.staging.present.attadia.com'
   },
   production: {
     authPrefix: '/api/auth',
@@ -25,13 +25,15 @@ const config = {
 
 // Determinar el ambiente actual
 const env = import.meta.env.MODE || 'development';
-const currentConfig = config[env] || config.development;
+const isStaging = typeof window !== 'undefined' && window.location.hostname.includes('staging');
+const currentConfig = isStaging ? config.staging : config[env] || config.development;
 
 console.log('Ambiente de autenticación:', {
   env,
   baseUrl: currentConfig.baseUrl,
   mode: import.meta.env.MODE,
-  viteApiUrl: import.meta.env.VITE_API_URL
+  viteApiUrl: import.meta.env.VITE_API_URL,
+  isStaging
 });
 console.log('Configuración:', currentConfig);
 
