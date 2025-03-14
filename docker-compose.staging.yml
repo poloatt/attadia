@@ -6,9 +6,9 @@ services:
     container_name: mongodb-staging
     restart: always
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
-      MONGO_INITDB_DATABASE: ${MONGO_DB:-present}
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: MiContraseñaSegura123
+      MONGO_INITDB_DATABASE: present
       ENVIRONMENT: staging
     volumes:
       - mongodb_staging_data:/data/db
@@ -44,7 +44,7 @@ services:
       - NODE_ENV=production
       - ENVIRONMENT=staging
       - IS_STAGING=true
-      - MONGODB_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb-staging:27017/${MONGO_DB}?authSource=admin
+      - MONGODB_URI=mongodb://admin:MiContraseñaSegura123@mongodb-staging:27017/present?authSource=admin
     depends_on:
       mongodb:
         condition: service_healthy
@@ -110,7 +110,7 @@ services:
       - ./ssl/certbot/www:/var/www/certbot
     depends_on:
       - frontend
-    command: certonly --webroot --webroot-path=/var/www/certbot --email admin@attadia.com --agree-tos --no-eff-email -d staging.present.attadia.com -d api.staging.present.attadia.com
+    command: certonly --webroot --webroot-path=/var/www/certbot --email admin@attadia.com --agree-tos --no-eff-email -d staging.present.attadia.com
 
 networks:
   app_network_staging:
