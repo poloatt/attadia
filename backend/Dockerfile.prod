@@ -1,24 +1,19 @@
 # Build stage
 FROM node:18-alpine
 
+# Argumentos de construcción
+ARG BUILD_ENV=production
+
+# Directorio de trabajo
 WORKDIR /app
-
-# Instalar dependencias necesarias
-RUN apk add --no-cache wget curl git
-
-# Configurar npm
-RUN npm config set registry https://registry.npmjs.org/ && \
-    npm config set strict-ssl false
 
 # Copiar package.json y package-lock.json
 COPY package*.json ./
 
-# Limpiar cache e instalar dependencias
-RUN npm cache clean --force && \
-    rm -rf node_modules && \
-    npm install
+# Instalar dependencias
+RUN npm install --production
 
-# Copiar el resto de la aplicación
+# Copiar el código fuente
 COPY . .
 <<<<<<< HEAD
 
@@ -28,19 +23,18 @@ COPY .env.${BUILD_ENV} .env
 =======
 >>>>>>> staging
 
-# Copiar el archivo .env según el ambiente
-ARG BUILD_ENV=production
-COPY .env.${BUILD_ENV} .env
-
-# Configurar el ambiente
-ENV NODE_ENV=production \
-    ENVIRONMENT=${BUILD_ENV}
-
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=30s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:5000/api/health || wget -q --spider http://localhost:5000/api/health || exit 1
+# Copiar el script de inicialización
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Exponer el puerto
 EXPOSE 5000
 
+# Establecer variables de entorno
+ENV NODE_ENV=production
+
+# Usar el script de inicialización como punto de entrada
+ENTRYPOINT ["/entrypoint.sh"]
+
+# Comando por defecto
 CMD ["npm", "start"] 

@@ -18,6 +18,13 @@ RUN npm cache clean --force && \
     rm -rf node_modules && \
     npm install --no-audit
 
+# Asegurarse de que el usuario node tenga permisos en el directorio de trabajo
+RUN mkdir -p /app/node_modules/.vite && \
+    chown -R node:node /app
+
+# Cambiar al usuario node
+USER node
+
 # Variables de entorno para desarrollo
 ENV VITE_HOST=0.0.0.0
 ENV VITE_PORT=5173
