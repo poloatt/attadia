@@ -6,6 +6,10 @@ BLUE='\033[0;34m'
 RED='\033[0;31m'
 NC='\033[0m'
 
+# Variables de MongoDB (asegúrate de configurar estas variables)
+MONGO_USER="admin"
+MONGO_PASSWORD="password"
+
 # Verificar si se proporcionó un archivo
 if [ -z "$1" ]; then
     echo -e "${RED}Error: Debes especificar el archivo de backup a restaurar${NC}"
@@ -34,13 +38,13 @@ sudo chown -R 1001:1001 "$TEMP_DIR"
 # Extraer backup
 echo -e "${BLUE}Extrayendo backup...${NC}"
 cd "$TEMP_DIR"
-tar xzf "$BACKUP_FILE"
+sudo tar xzf "$BACKUP_FILE"
 
 # Restaurar base de datos
 echo -e "${BLUE}Restaurando base de datos...${NC}"
-docker exec mongodb-prod mongorestore \
-    --username $MONGO_USER \
-    --password $MONGO_PASSWORD \
+sudo docker exec mongodb-prod mongorestore \
+    --username "$MONGO_USER" \
+    --password "$MONGO_PASSWORD" \
     --authenticationDatabase admin \
     --db present \
     --drop \
