@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, Typography, Autocomplete, InputAdornment } from '@mui/material';
 import { AttachMoney } from '@mui/icons-material';
 import { StyledTextField, FormSection } from './ContratoFormStyles';
@@ -11,6 +11,12 @@ const ContratoMontosSection = ({
   relatedData,
   errors
 }) => {
+  useEffect(() => {
+    console.log('ContratoMontosSection - selectedCuenta:', selectedCuenta);
+    console.log('ContratoMontosSection - formData.cuenta:', formData.cuenta);
+    console.log('ContratoMontosSection - cuentas disponibles:', relatedData.cuentas);
+  }, [selectedCuenta, formData.cuenta, relatedData.cuentas]);
+
   return (
     <FormSection>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -61,6 +67,7 @@ const ContratoMontosSection = ({
           getOptionLabel={(option) => 
             `${option.nombre || ''} - ${option.moneda?.simbolo || ''} (${option.tipo || ''})`
           }
+          isOptionEqualToValue={(option, value) => option._id === value._id}
           renderInput={(params) => (
             <StyledTextField
               {...params}
