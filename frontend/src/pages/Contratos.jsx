@@ -162,6 +162,14 @@ export function Contratos() {
       setIsSaving(true);
       console.log('Datos a enviar:', formData);
       
+      // Asegurarse de que la cuenta esté presente si no es un contrato de mantenimiento
+      if (!formData.esMantenimiento && !formData.cuenta && editingContrato?.cuenta) {
+        console.log('Agregando cuenta del contrato existente:', editingContrato.cuenta);
+        formData.cuenta = typeof editingContrato.cuenta === 'object' ? 
+          (editingContrato.cuenta._id || editingContrato.cuenta.id) : 
+          editingContrato.cuenta;
+      }
+      
       let response;
       if (editingContrato) {
         response = await clienteAxios.put(`/api/contratos/${editingContrato._id}`, formData);

@@ -277,10 +277,21 @@ class ContratosController extends BaseController {
       console.log('Datos recibidos:', req.body);
       
       // Buscar el contrato existente primero
-      const existingContrato = await this.Model.findById(id);
+      const existingContrato = await this.Model.findById(id)
+        .populate(['propiedad', 'inquilino', 'habitacion', 'cuenta', 'moneda']);
+      
       if (!existingContrato) {
         return res.status(404).json({ error: 'Contrato no encontrado' });
       }
+      
+      console.log('Contrato existente:', {
+        _id: existingContrato._id,
+        propiedad: existingContrato.propiedad?._id,
+        inquilino: existingContrato.inquilino,
+        habitacion: existingContrato.habitacion?._id,
+        cuenta: existingContrato.cuenta?._id,
+        moneda: existingContrato.moneda?._id
+      });
       
       // Procesar los datos recibidos
       const data = {
@@ -289,11 +300,11 @@ class ContratosController extends BaseController {
         fechaFin: req.body.fechaFin ? new Date(req.body.fechaFin) : undefined,
         montoMensual: req.body.montoMensual !== undefined ? parseFloat(req.body.montoMensual) : undefined,
         deposito: req.body.deposito !== undefined ? parseFloat(req.body.deposito) : undefined,
-        propiedad: req.body.propiedad || req.body.propiedadId || existingContrato.propiedad,
+        propiedad: req.body.propiedad || req.body.propiedadId || existingContrato.propiedad?._id,
         inquilino: req.body.inquilino || req.body.inquilinoId || existingContrato.inquilino,
-        habitacion: req.body.habitacion || req.body.habitacionId || existingContrato.habitacion,
-        cuenta: req.body.cuenta || req.body.cuentaId || existingContrato.cuenta,
-        moneda: req.body.moneda || req.body.monedaId || existingContrato.moneda
+        habitacion: req.body.habitacion || req.body.habitacionId || existingContrato.habitacion?._id,
+        cuenta: req.body.cuenta || req.body.cuentaId || existingContrato.cuenta?._id,
+        moneda: req.body.moneda || req.body.monedaId || existingContrato.moneda?._id
       };
 
       // Solo agregar el usuario si está disponible
@@ -301,6 +312,26 @@ class ContratosController extends BaseController {
         data.usuario = req.user.id;
       } else if (existingContrato.usuario) {
         data.usuario = existingContrato.usuario;
+      }
+
+      // Si no es un contrato de mantenimiento, asegurarse de que tenga cuenta y moneda
+      if (!data.esMantenimiento) {
+        if (!data.cuenta && existingContrato.cuenta) {
+          data.cuenta = existingContrato.cuenta._id;
+        }
+        
+        // Si tiene cuenta pero no moneda, obtener la moneda de la cuenta
+        if (data.cuenta && !data.moneda) {
+          try {
+            const Cuentas = mongoose.model('Cuentas');
+            const cuenta = await Cuentas.findById(data.cuenta).populate('moneda');
+            if (cuenta && cuenta.moneda) {
+              data.moneda = cuenta.moneda._id;
+            }
+          } catch (error) {
+            console.error('Error al obtener moneda de la cuenta:', error);
+          }
+        }
       }
 
       console.log('Datos procesados para actualización:', data);

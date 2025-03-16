@@ -269,20 +269,52 @@ const ContratoForm = ({
 
     if (relatedData.cuentas?.length > 0 && initialData.cuenta) {
       console.log('Buscando cuenta en relatedData:', initialData.cuenta);
-      const cuentaId = initialData.cuenta?._id || initialData.cuenta;
-      console.log('ID de cuenta a buscar:', cuentaId);
       
-      const cuenta = relatedData.cuentas.find(c => c._id === cuentaId);
+      // Obtener el ID de la cuenta de manera más robusta
+      let cuentaId;
+      if (typeof initialData.cuenta === 'object' && initialData.cuenta?._id) {
+        cuentaId = initialData.cuenta._id;
+      } else if (typeof initialData.cuenta === 'string') {
+        cuentaId = initialData.cuenta;
+      } else if (initialData.cuenta?.id) {
+        cuentaId = initialData.cuenta.id;
+      }
+      
+      console.log('ID de cuenta a buscar:', cuentaId);
+      console.log('Cuentas disponibles:', relatedData.cuentas.map(c => ({ id: c._id, nombre: c.nombre })));
+      
+      // Buscar la cuenta por ID
+      let cuenta = null;
+      if (cuentaId) {
+        cuenta = relatedData.cuentas.find(c => 
+          c._id === cuentaId || c.id === cuentaId
+        );
+      }
+      
       console.log('Cuenta encontrada:', cuenta);
       
-      setSelectedCuenta(cuenta || null);
-      
-      // Asegurarse de que el ID de la cuenta esté en formData
       if (cuenta) {
+        setSelectedCuenta(cuenta);
         setFormData(prev => ({
           ...prev,
-          cuenta: cuenta._id
+          cuenta: cuenta._id || cuenta.id
         }));
+      } else {
+        console.warn('No se encontró la cuenta con ID:', cuentaId);
+        // Si no se encuentra la cuenta, intentar buscarla por nombre
+        if (typeof initialData.cuenta === 'object' && initialData.cuenta?.nombre) {
+          const cuentaPorNombre = relatedData.cuentas.find(c => 
+            c.nombre === initialData.cuenta.nombre
+          );
+          if (cuentaPorNombre) {
+            console.log('Cuenta encontrada por nombre:', cuentaPorNombre);
+            setSelectedCuenta(cuentaPorNombre);
+            setFormData(prev => ({
+              ...prev,
+              cuenta: cuentaPorNombre._id || cuentaPorNombre.id
+            }));
+          }
+        }
       }
     }
   }, [initialData, relatedData]);

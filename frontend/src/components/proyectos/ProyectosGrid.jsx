@@ -77,7 +77,7 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues }) => {
       };
       setTareaLocal(tareaActualizada);
 
-      const response = await clienteAxios.patch(`/tareas/${tarea._id}/subtareas`, {
+      const response = await clienteAxios.put(`/api/tareas/${tarea._id}/subtareas`, {
         subtareaId,
         completada: !completada
       });
@@ -601,7 +601,24 @@ const ProyectoItem = ({ proyecto, onEdit, onDelete, onUpdateTarea, onAddTarea, s
 
       <Collapse in={expanded} timeout="auto" unmountOnExit>
         <Divider />
-        <Box sx={{ p: 2 }}>
+        <Box sx={{ 
+          p: 2, 
+          maxHeight: '300px', 
+          overflowY: 'auto',
+          '&::-webkit-scrollbar': {
+            width: '8px',
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: 'rgba(0,0,0,0.1)',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(0,0,0,0.2)',
+            borderRadius: '4px',
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            backgroundColor: 'rgba(0,0,0,0.3)',
+          },
+        }}>
           {Array.isArray(proyecto.tareas) && proyecto.tareas.length > 0 ? (
             <Stack spacing={1}>
               {[...proyecto.tareas]

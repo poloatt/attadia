@@ -160,7 +160,26 @@ export function Archivo() {
         ]}
       />
 
-      <Box sx={{ py: 2 }}>
+      <Box 
+        sx={{ 
+          py: 2,
+          height: 'calc(100vh - 140px)', // Altura calculada restando el espacio del toolbar y otros elementos
+          overflowY: 'auto',
+          '&::-webkit-scrollbar': {
+            width: '8px',
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: 'rgba(0,0,0,0.1)',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(0,0,0,0.2)',
+            borderRadius: '4px',
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            backgroundColor: 'rgba(0,0,0,0.3)',
+          },
+        }}
+      >
         <TareasTable
           tareas={tareas}
           onEdit={handleEdit}
