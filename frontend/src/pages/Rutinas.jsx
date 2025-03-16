@@ -31,7 +31,7 @@ export function Rutinas() {
   const fetchRutina = async (page) => {
     try {
       console.log('Fetching rutina para página:', page);
-      const response = await clienteAxios.get('/rutinas', {
+      const response = await clienteAxios.get('/api/rutinas', {
         params: {
           sort: '-fecha',
           page,
@@ -94,10 +94,10 @@ export function Rutinas() {
       };
 
       if (editingRutina?._id) {
-        await clienteAxios.put(`/rutinas/${editingRutina._id}`, dataToSend);
+        await clienteAxios.put(`/api/rutinas/${editingRutina._id}`, dataToSend);
         enqueueSnackbar('Rutina actualizada exitosamente', { variant: 'success' });
       } else {
-        await clienteAxios.post('/rutinas', dataToSend);
+        await clienteAxios.post('/api/rutinas', dataToSend);
         enqueueSnackbar('Rutina creada exitosamente', { variant: 'success' });
       }
       handleCloseDialog();
@@ -115,7 +115,7 @@ export function Rutinas() {
 
   const handleDelete = async (id) => {
     try {
-      await clienteAxios.delete(`/rutinas/${id}`);
+      await clienteAxios.delete(`/api/rutinas/${id}`);
       enqueueSnackbar('Rutina eliminada exitosamente', { variant: 'success' });
       fetchRutina(currentPage);
     } catch (error) {
@@ -126,7 +126,7 @@ export function Rutinas() {
 
   const handleCheckChange = async (updatedRutina) => {
     try {
-      const { data } = await clienteAxios.put(`/rutinas/${updatedRutina._id}`, updatedRutina);
+      const { data } = await clienteAxios.put(`/api/rutinas/${updatedRutina._id}`, updatedRutina);
       setRutina(data);
       fetchRutina(currentPage);
     } catch (error) {

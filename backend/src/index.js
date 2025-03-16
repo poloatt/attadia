@@ -46,8 +46,29 @@ app.use(express.urlencoded({ extended: true }));
 
 // Configuración de CORS
 const corsOptions = {
-  origin: config.corsOrigins,
+  origin: function(origin, callback) {
+    // Lista de dominios permitidos
+    const allowedOrigins = [
+      config.frontendUrl,
+      'https://present.attadia.com',
+      'https://api.present.attadia.com',
+      'https://staging.present.attadia.com',
+      'https://api.staging.present.attadia.com',
+      'http://localhost:5173',
+      'http://localhost:5000'
+    ];
+    
+    // Permitir solicitudes sin origen (como aplicaciones móviles o curl)
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.warn(`Origen bloqueado por CORS: ${origin}`);
+      callback(null, false);
+    }
+  },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   optionsSuccessStatus: 200
 };
 

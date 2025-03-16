@@ -21,6 +21,7 @@ router.delete('/:id', checkOwnership(Tareas), tareasController.delete);
 // Rutas específicas
 router.get('/proyecto/:proyectoId', tareasController.getByProyecto);
 router.patch('/:id/estado', checkOwnership(Tareas), tareasController.updateEstado);
+router.put('/:id/estado', checkOwnership(Tareas), tareasController.updateEstado);
 
 // Rutas administrativas (solo admin)
 router.get('/admin/all', [checkRole([ROLES.ADMIN])], tareasController.getAllAdmin);
@@ -29,7 +30,8 @@ router.get('/admin/stats', [checkRole([ROLES.ADMIN])], tareasController.getAdmin
 // Rutas para subtareas (requieren ser dueño de la tarea)
 router.route('/:id/subtareas')
   .post([checkOwnership(Tareas)], tareasController.addSubtarea)
-  .patch([checkOwnership(Tareas)], tareasController.updateSubtareas);
+  .patch([checkOwnership(Tareas)], tareasController.updateSubtareas)
+  .put([checkOwnership(Tareas)], tareasController.updateSubtareas);
 
 router.delete('/:id/subtareas/:subtareaId', 
   [checkOwnership(Tareas)], 

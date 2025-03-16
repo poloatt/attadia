@@ -188,27 +188,37 @@ export function Proyectos() {
           setIsFormOpen(true);
         }}
         actions={
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => {
-              setEditingProyecto(null);
-              setIsFormOpen(true);
-            }}
-            sx={{ borderRadius: 0 }}
-          >
-            Nuevo Proyecto
-          </Button>
+          <>
+            <Tooltip title={showValues ? "Ocultar valores" : "Mostrar valores"}>
+              <IconButton 
+                onClick={toggleValuesVisibility}
+                sx={{ color: 'white' }}
+              >
+                {showValues ? <HideValuesIcon /> : <ShowValuesIcon />}
+              </IconButton>
+            </Tooltip>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => {
+                setEditingProyecto(null);
+                setIsFormOpen(true);
+              }}
+              sx={{ borderRadius: 0 }}
+            >
+              Nuevo Proyecto
+            </Button>
+          </>
         }
         navigationItems={[
           { 
-            icon: <TaskIcon />, 
+            icon: <TaskIcon sx={{ fontSize: 21.6 }} />, 
             label: 'Tareas', 
             to: '/tareas',
             current: location.pathname === '/tareas'
           },
           {
-            icon: <ArchiveIcon />,
+            icon: <ArchiveIcon sx={{ fontSize: 21.6 }} />,
             label: 'Archivo',
             to: '/archivo',
             current: location.pathname === '/archivo'
@@ -216,12 +226,34 @@ export function Proyectos() {
         ]}
       />
 
-      <Box sx={{ py: 2 }}>
+      <Box 
+        sx={{ 
+          py: 2,
+          height: 'calc(100vh - 140px)', // Altura calculada restando el espacio del toolbar y otros elementos
+          overflowY: 'auto',
+          '&::-webkit-scrollbar': {
+            width: '8px',
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: 'rgba(0,0,0,0.1)',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(0,0,0,0.2)',
+            borderRadius: '4px',
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            backgroundColor: 'rgba(0,0,0,0.3)',
+          },
+        }}
+      >
         <ProyectosGrid
-          proyectos={filteredProyectos}
+          proyectos={proyectos}
           onEdit={handleEdit}
           onDelete={handleDelete}
-          onAdd={() => setIsFormOpen(true)}
+          onAdd={() => {
+            setEditingProyecto(null);
+            setIsFormOpen(true);
+          }}
           onUpdateTarea={handleUpdateTarea}
           onAddTarea={handleAddTarea}
           showValues={showValues}

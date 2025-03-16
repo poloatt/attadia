@@ -4,20 +4,30 @@ import axios from 'axios';
 const getBaseUrl = () => {
   const mode = import.meta.env.MODE;
   const apiUrl = import.meta.env.VITE_API_URL;
-  const isStaging = window.location.hostname.includes('staging');
+  const hostname = window.location.hostname;
   
   console.log('Modo de Axios:', mode);
-  console.log('Hostname:', window.location.hostname);
+  console.log('Hostname:', hostname);
   
-  if (isStaging) {
-    console.log('Detectado entorno de staging, usando API de staging');
+  // Entorno de producción
+  if (hostname === 'present.attadia.com') {
+    console.log('Detectado entorno de producción');
+    return 'https://api.present.attadia.com';
+  }
+  
+  // Entorno de staging
+  if (hostname.includes('staging')) {
+    console.log('Detectado entorno de staging');
     return 'https://api.staging.present.attadia.com';
   }
   
+  // Entorno de desarrollo
   if (mode === 'development') {
+    console.log('Detectado entorno de desarrollo');
     return apiUrl || 'http://localhost:5000';
   }
   
+  // Fallback a producción
   return apiUrl || 'https://api.present.attadia.com';
 };
 

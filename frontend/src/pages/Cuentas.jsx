@@ -39,14 +39,14 @@ export function Cuentas() {
   const fetchBalanceCuenta = useCallback(async (cuentaId) => {
     try {
       const today = new Date().toISOString().split('T')[0];
-      const response = await clienteAxios.get(`/transacciones/by-cuenta/${cuentaId}`, {
+      const response = await clienteAxios.get(`/api/transacciones/by-cuenta/${cuentaId}`, {
         params: {
           fechaFin: today,
           estado: 'PAGADO'
         }
       });
       
-      const transacciones = response.data.docs || [];
+      const transacciones = response.data?.docs || [];
       const balance = transacciones.reduce((acc, trans) => {
         if (trans.tipo === 'INGRESO') {
           return acc + trans.monto;

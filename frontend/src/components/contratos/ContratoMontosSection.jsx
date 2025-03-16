@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, Typography, Autocomplete, InputAdornment } from '@mui/material';
 import { AttachMoney } from '@mui/icons-material';
 import { StyledTextField, FormSection } from './ContratoFormStyles';
@@ -11,6 +11,22 @@ const ContratoMontosSection = ({
   relatedData,
   errors
 }) => {
+  useEffect(() => {
+    console.log('ContratoMontosSection - selectedCuenta:', selectedCuenta);
+    console.log('ContratoMontosSection - formData.cuenta:', formData.cuenta);
+    console.log('ContratoMontosSection - cuentas disponibles:', relatedData.cuentas?.length || 0);
+    
+    // Si hay un ID de cuenta en formData pero no hay selectedCuenta, intentar encontrarla
+    if (formData.cuenta && !selectedCuenta && relatedData.cuentas?.length > 0) {
+      console.log('Intentando encontrar cuenta por ID:', formData.cuenta);
+      const cuenta = relatedData.cuentas.find(c => c._id === formData.cuenta || c.id === formData.cuenta);
+      if (cuenta) {
+        console.log('Cuenta encontrada en ContratoMontosSection:', cuenta);
+        onCuentaChange(cuenta);
+      }
+    }
+  }, [selectedCuenta, formData.cuenta, relatedData.cuentas, onCuentaChange]);
+
   return (
     <FormSection>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -58,15 +74,20 @@ const ContratoMontosSection = ({
           value={selectedCuenta}
           onChange={(_, newValue) => onCuentaChange(newValue)}
           options={relatedData.cuentas || []}
-          getOptionLabel={(option) => 
-            `${option.nombre || ''} - ${option.moneda?.simbolo || ''} (${option.tipo || ''})`
-          }
+          getOptionLabel={(option) => {
+            if (!option) return '';
+            return `${option.nombre || ''} - ${option.moneda?.simbolo || ''} (${option.tipo || ''})`;
+          }}
+          isOptionEqualToValue={(option, value) => {
+            if (!option || !value) return false;
+            return option._id === value._id || option.id === value.id;
+          }}
           renderInput={(params) => (
             <StyledTextField
               {...params}
               label="Cuenta"
               error={!!errors.cuenta}
-              helperText={errors.cuenta}
+              helperText={errors.cuenta || (formData.cuenta && !selectedCuenta ? 'Seleccione una cuenta' : '')}
               InputLabelProps={{
                 ...params.InputLabelProps,
                 shrink: true
@@ -74,9 +95,10 @@ const ContratoMontosSection = ({
             />
           )}
           renderOption={(props, option) => {
+            if (!option) return null;
             const { key, ...otherProps } = props;
             return (
-              <Box component="li" key={key} {...otherProps}>
+              <Box component="li" key={option._id || option.id} {...otherProps}>
                 <Box>
                   <Typography>{option.nombre}</Typography>
                   <Typography variant="caption" color="text.secondary">
