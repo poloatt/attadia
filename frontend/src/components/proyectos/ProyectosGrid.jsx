@@ -127,7 +127,7 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues }) => {
           break;
       }
 
-      const response = await clienteAxios.patch(`/tareas/${tarea._id}`, {
+      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}`, {
         fechaInicio: nuevaFecha.toISOString(),
         pushCount: (tarea.pushCount || 0) + 1
       });

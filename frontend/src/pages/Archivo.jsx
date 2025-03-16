@@ -86,7 +86,7 @@ export function Archivo() {
 
       if (editingTarea) {
         console.log('Actualizando tarea:', editingTarea._id);
-        response = await clienteAxios.put(`/tareas/${editingTarea._id}`, datosAEnviar);
+        response = await clienteAxios.put(`/api/tareas/${editingTarea._id}`, datosAEnviar);
         enqueueSnackbar('Tarea actualizada exitosamente', { variant: 'success' });
       } else {
         console.log('Creando nueva tarea');
@@ -118,7 +118,7 @@ export function Archivo() {
 
   const handleDelete = useCallback(async (id) => {
     try {
-      await clienteAxios.delete(`/tareas/${id}`);
+      await clienteAxios.delete(`/api/tareas/${id}`);
       enqueueSnackbar('Tarea eliminada exitosamente', { variant: 'success' });
       await fetchTareas();
     } catch (error) {

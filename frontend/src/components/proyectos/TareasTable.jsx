@@ -226,7 +226,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
     }
 
     try {
-      const response = await clienteAxios.patch(`/tareas/${tarea._id}`, {
+      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}`, {
         fechaInicio: nuevaFecha.toISOString(),
         pushCount: (tarea.pushCount || 0) + 1
       });
@@ -249,7 +249,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
   const handleTogglePriority = async (tarea) => {
     try {
       const nuevaPrioridad = tarea.prioridad === 'ALTA' ? 'BAJA' : 'ALTA';
-      const response = await clienteAxios.patch(`/tareas/${tarea._id}`, {
+      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}`, {
         prioridad: nuevaPrioridad
       });
       
