@@ -142,12 +142,18 @@ app.use((err, req, res, next) => {
 const startServer = async () => {
   try {
     await connectDB();
+    console.log('MongoDB conectado exitosamente a mongodb-staging');
     console.log('MongoDB conectado exitosamente');
     
     await initializeMonedas();
     console.log('Datos iniciales cargados');
     
     app.listen(config.port, () => {
+      // Asegurarse de que corsOrigins sea un array antes de usar join
+      const corsOriginsStr = Array.isArray(config.corsOrigins) 
+        ? config.corsOrigins.join(', ')
+        : String(config.corsOrigins);
+        
       console.log(`
 =================================
 🚀 Servidor iniciado
@@ -155,7 +161,7 @@ const startServer = async () => {
 🌍 Puerto: ${config.port}
 🔧 Ambiente: ${config.env}
 🔗 Frontend URL: ${config.frontendUrl}
-🛡️ CORS: ${config.isDev ? 'Todos los orígenes (dev)' : config.corsOrigins.join(', ')}
+🛡️ CORS: ${config.isDev ? 'Todos los orígenes (dev)' : corsOriginsStr}
 =================================
       `);
     });

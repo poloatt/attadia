@@ -80,6 +80,9 @@ services:
     environment:
       - NODE_ENV=production
       - ENVIRONMENT=staging
+      - VITE_API_URL=https://api.staging.present.attadia.com
+      - VITE_FRONTEND_URL=https://staging.present.attadia.com
+      - VITE_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - IS_STAGING=true
     volumes:
       - ./nginx/conf.d/staging.conf:/etc/nginx/conf.d/default.conf
@@ -110,7 +113,7 @@ services:
       - ./ssl/certbot/www:/var/www/certbot
     depends_on:
       - frontend
-    command: certonly --webroot --webroot-path=/var/www/certbot --email admin@attadia.com --agree-tos --no-eff-email -d staging.present.attadia.com
+    command: certonly --webroot --webroot-path=/var/www/certbot --email admin@attadia.com --agree-tos --no-eff-email --non-interactive --keep-until-expiring -d staging.present.attadia.com
 
 networks:
   app_network_staging:
