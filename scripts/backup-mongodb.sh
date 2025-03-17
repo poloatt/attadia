@@ -12,6 +12,10 @@ if [ "$(id -u)" -ne 0 ]; then
     echo -e "${YELLOW}Advertencia: Este script podría requerir permisos elevados para crear directorios y archivos.${NC}"
 fi
 
+# Obtener la ruta absoluta del directorio del script
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+PROJECT_DIR="$( dirname "$SCRIPT_DIR" )"
+
 # Determinar el entorno
 if [ "$2" = "staging" ]; then
     ENVIRONMENT="staging"
@@ -28,7 +32,7 @@ else
 fi
 
 # Configuración
-BACKUP_DIR="/data/backups/$ENVIRONMENT"
+BACKUP_DIR="$PROJECT_DIR/data/backups/mongodb/$ENVIRONMENT"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 
 # Verificar si el contenedor de MongoDB está en ejecución

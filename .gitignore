@@ -55,3 +55,8 @@ docker-compose.override.yml
 backend/src/config/config.js
 frontend/src/config.js
 # nginx/conf.d/default.conf  # Comentado para permitir los archivos de configuración de Nginx
+
+# Archivos temporales
+temp/
+*.bak
+*.tmp
