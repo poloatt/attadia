@@ -5,16 +5,10 @@ After=network.target
 [Service]
 Type=simple
 User=poloatt
-# Puerto en el que escuchará el servidor webhook
 Environment=PORT=9000
-# Secreto compartido con GitHub para validar las solicitudes
-# Este valor debe coincidir con el secreto configurado en GitHub
 Environment=WEBHOOK_SECRET=StagingSecret_ATTADIA99
-# Directorio de trabajo donde se encuentra el código
 WorkingDirectory=/home/poloatt/present
-# Comando para iniciar el servidor webhook
 ExecStart=/usr/bin/node scripts/webhook-server.js
-# Reiniciar automáticamente si el servicio falla
 Restart=always
 RestartSec=10
 
