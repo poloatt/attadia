@@ -73,9 +73,7 @@ const server = http.createServer((req, res) => {
                 log(`Recibido push a rama ${event.ref}, ejecutando deploy para entorno ${environment}...`);
                 
                 // Ejecutar script de deploy con el entorno correspondiente
-                const deployScript = environment === 'staging' 
-                    ? '/home/polo/presentstaging/scripts/auto-deploy.sh'
-                    : '/home/polo/presentprod/scripts/auto-deploy.sh';
+                const deployScript = '/home/poloatt/present/scripts/auto-deploy.sh';
                 
                 exec(`bash ${deployScript} ${environment}`, 
                     (error, stdout, stderr) => {
@@ -103,6 +101,7 @@ const server = http.createServer((req, res) => {
     }
 });
 
-server.listen(PORT, () => {
-    log(`Servidor webhook escuchando en puerto ${PORT}`);
+// Escuchar en todas las interfaces (0.0.0.0)
+server.listen(PORT, '0.0.0.0', () => {
+    log(`Servidor webhook escuchando en puerto ${PORT} en todas las interfaces (IPv4 e IPv6)`);
 }); 
