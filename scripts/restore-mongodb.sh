@@ -14,20 +14,20 @@ PROJECT_DIR="$( dirname "$SCRIPT_DIR" )"
 # Determinar el entorno
 if [ "$2" = "staging" ]; then
     ENVIRONMENT="staging"
-    MONGO_CONTAINER="mongodb-staging"
+    MONGO_CONTAINER="mongodb"
     MONGO_USER=${MONGO_USER:-"admin"}
     MONGO_PASSWORD=${MONGO_PASSWORD:-"MiContraseñaSegura123"}
     MONGO_DB=${MONGO_DB:-"present"}
 else
     ENVIRONMENT="production"
-    MONGO_CONTAINER="mongodb-prod"
+    MONGO_CONTAINER="mongodb"
     MONGO_USER=${MONGO_USER:-"admin"}
     MONGO_PASSWORD=${MONGO_PASSWORD:-"MiContraseñaSegura123"}
     MONGO_DB=${MONGO_DB:-"present"}
 fi
 
 # Configuración
-BACKUP_DIR="$PROJECT_DIR/data/backups/mongodb/$ENVIRONMENT"
+BACKUP_DIR="/data/backups/$ENVIRONMENT"
 
 # Verificar si se proporcionó un archivo de backup
 if [ -z "$1" ]; then

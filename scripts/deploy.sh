@@ -97,7 +97,7 @@ version: '3.8'
 services:
   mongodb:
     image: mongo:latest
-    container_name: mongodb-prod
+    container_name: mongodb
     restart: always
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
@@ -129,7 +129,7 @@ services:
       args:
         - BUILD_ENV=production
     image: present/backend:production
-    container_name: backend-prod
+    container_name: backend
     restart: always
     expose:
       - "5000"
@@ -138,7 +138,7 @@ services:
     environment:
       - NODE_ENV=production
       - ENVIRONMENT=production
-      - MONGODB_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-MiContraseñaSegura123}@mongodb-prod:27017/${MONGO_DB:-present}?authSource=admin
+      - MONGODB_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-MiContraseñaSegura123}@mongodb:27017/${MONGO_DB:-present}?authSource=admin
     depends_on:
       mongodb:
         condition: service_healthy
@@ -164,7 +164,7 @@ services:
       args:
         - BUILD_ENV=production
     image: present/frontend:production
-    container_name: frontend-prod
+    container_name: frontend
     restart: always
     ports:
       - "80:80"
@@ -214,7 +214,7 @@ mkdir -p ~/present-prod/mongodb_backup
 cat > ~/present-prod/backend/.env.prod << 'EOL'
 NODE_ENV=production
 PORT=5000
-MONGODB_URI=mongodb://admin:MiContraseñaSegura123@mongodb-prod:27017/present?authSource=admin
+MONGODB_URI=mongodb://admin:MiContraseñaSegura123@mongodb:27017/present?authSource=admin
 JWT_SECRET=tu_secreto_jwt_seguro
 GOOGLE_CLIENT_ID=tu_google_client_id
 GOOGLE_CLIENT_SECRET=tu_google_client_secret
@@ -292,7 +292,7 @@ server {
     ssl_certificate_key /etc/nginx/ssl/privkey.pem;
     
     location /api {
-        proxy_pass http://backend-prod:5000;
+        proxy_pass http://backend:5000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';

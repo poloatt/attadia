@@ -48,15 +48,15 @@ else
     LOG_FILE="$BACKUP_DIR/deploy-production.log"
     BRANCH="production"
     COMPOSE_FILE="docker-compose.prod.yml"
-    MONGODB_CONTAINER="mongodb-prod"
-    BACKEND_CONTAINER="backend-prod"
-    FRONTEND_CONTAINER="frontend-prod"
+    MONGODB_CONTAINER="mongodb"
+    BACKEND_CONTAINER="backend"
+    FRONTEND_CONTAINER="frontend"
     API_URL="https://api.present.attadia.com"
     FRONTEND_URL="https://present.attadia.com"
-    # Definir variables MongoDB
+    # Definir variables MongoDB según lo que se usará en producción
     MONGO_USER="admin"
-    MONGO_PASSWORD="passwordadmin" 
-    MONGO_DB="presentapp"
+    MONGO_PASSWORD="MiContraseñaSegura123" 
+    MONGO_DB="present"
 fi
 
 # Variables globales para el rollback

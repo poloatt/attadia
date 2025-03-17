@@ -5,7 +5,7 @@ import fs from 'fs';
 
 const PORT = process.env.PORT || 9000;
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'tu_secreto_aqui';
-const LOG_FILE = '/var/log/webhook-server.log';
+const LOG_FILE = process.env.LOG_FILE || '/var/log/webhook-server/webhook-server.log';
 
 // Función para logging
 const log = (message) => {

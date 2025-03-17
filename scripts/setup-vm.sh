@@ -66,7 +66,11 @@ fi
 echo -e "${BLUE}Creando directorios necesarios...${NC}"
 sudo mkdir -p /data/backups/staging
 sudo mkdir -p /data/backups/production
+sudo mkdir -p /var/log/webhook-server
 sudo chown -R $USER:$USER /data/backups
+sudo chown -R $USER:$USER /var/log/webhook-server
+touch /var/log/webhook-server/webhook-server.log
+sudo chown -R $USER:$USER /var/log/webhook-server/webhook-server.log
 
 # Configurar el servicio de webhook
 echo -e "${BLUE}Configurando el servicio de webhook...${NC}"
