@@ -6,20 +6,34 @@ BLUE='\033[0;34m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-# Variables de MongoDB (asegúrate de configurar estas variables)
-MONGO_USER="admin"
-MONGO_PASSWORD="password"
+# Determinar el entorno
+if [ "$2" = "staging" ]; then
+    ENVIRONMENT="staging"
+    MONGO_CONTAINER="mongodb-staging"
+    MONGO_USER=${MONGO_USER:-"admin"}
+    MONGO_PASSWORD=${MONGO_PASSWORD:-"MiContraseñaSegura123"}
+    MONGO_DB=${MONGO_DB:-"present"}
+else
+    ENVIRONMENT="production"
+    MONGO_CONTAINER="mongodb-prod"
+    MONGO_USER=${MONGO_USER:-"admin"}
+    MONGO_PASSWORD=${MONGO_PASSWORD:-"MiContraseñaSegura123"}
+    MONGO_DB=${MONGO_DB:-"present"}
+fi
+
+# Configuración
+BACKUP_DIR="/data/backups/$ENVIRONMENT"
 
 # Verificar si se proporcionó un archivo
 if [ -z "$1" ]; then
     echo -e "${RED}Error: Debes especificar el archivo de backup a restaurar${NC}"
-    echo "Uso: $0 nombre_del_backup.tar.gz"
-    echo -e "${BLUE}Backups disponibles:${NC}"
-    ls -1 /data/backups/*.tar.gz 2>/dev/null
+    echo "Uso: $0 nombre_del_backup.tar.gz [staging|production]"
+    echo -e "${BLUE}Backups disponibles para $ENVIRONMENT:${NC}"
+    ls -1 $BACKUP_DIR/*.tar.gz 2>/dev/null || echo "No hay backups disponibles"
     exit 1
 fi
 
-BACKUP_FILE="/data/backups/$1"
+BACKUP_FILE="$BACKUP_DIR/$1"
 
 # Verificar si el archivo existe
 if [ ! -f "$BACKUP_FILE" ]; then
@@ -27,31 +41,37 @@ if [ ! -f "$BACKUP_FILE" ]; then
     exit 1
 fi
 
-echo -e "${BLUE}Preparando restauración...${NC}"
+echo -e "${BLUE}Preparando restauración para entorno $ENVIRONMENT...${NC}"
 
-# Crear directorio temporal
-TEMP_DIR="/data/mongodb/temp_restore"
-sudo rm -rf "$TEMP_DIR"
-sudo mkdir -p "$TEMP_DIR"
-sudo chown -R 1001:1001 "$TEMP_DIR"
+# Copiar el archivo de backup al contenedor
+echo -e "${BLUE}Copiando archivo de backup al contenedor...${NC}"
+docker cp "$BACKUP_FILE" $MONGO_CONTAINER:/data/db/backup_temp.tar.gz
 
-# Extraer backup
+# Extraer backup dentro del contenedor
 echo -e "${BLUE}Extrayendo backup...${NC}"
-cd "$TEMP_DIR"
-sudo tar xzf "$BACKUP_FILE"
+docker exec $MONGO_CONTAINER bash -c "mkdir -p /data/db/restore_temp && tar -xzf /data/db/backup_temp.tar.gz -C /data/db/restore_temp"
 
 # Restaurar base de datos
-echo -e "${BLUE}Restaurando base de datos...${NC}"
-sudo docker exec mongodb-prod mongorestore \
+echo -e "${BLUE}Restaurando base de datos $MONGO_DB en $ENVIRONMENT...${NC}"
+docker exec $MONGO_CONTAINER mongorestore \
     --username "$MONGO_USER" \
     --password "$MONGO_PASSWORD" \
     --authenticationDatabase admin \
-    --db present \
+    --db $MONGO_DB \
     --drop \
-    /data/db/temp_restore/present
+    /data/db/restore_temp/backup_temp/$MONGO_DB
+
+# Verificar si la restauración fue exitosa
+if [ $? -ne 0 ]; then
+    echo -e "${RED}Error al restaurar la base de datos${NC}"
+    # Limpiar
+    docker exec $MONGO_CONTAINER rm -rf /data/db/backup_temp.tar.gz /data/db/restore_temp
+    exit 1
+fi
 
 # Limpiar
 echo -e "${BLUE}Limpiando archivos temporales...${NC}"
-sudo rm -rf "$TEMP_DIR"
+docker exec $MONGO_CONTAINER rm -rf /data/db/backup_temp.tar.gz /data/db/restore_temp
 
-echo -e "${GREEN}¡Restauración completada!${NC}" 
+echo -e "${GREEN}¡Restauración completada exitosamente para entorno $ENVIRONMENT!${NC}"
+exit 0 
