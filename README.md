@@ -54,4 +54,4 @@ Para desplegar en staging o producción, consulta la [Guía de Despliegue](docs/
 
 - Los backups de la base de datos se realizan automáticamente
 - Se mantienen los últimos 7 backups
-- Todos los datos persistentes se almacenan en `/data`
+- Todos los datos persistentes se almacenan en `/data`# Prueba de webhook
