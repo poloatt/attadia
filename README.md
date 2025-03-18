@@ -56,7 +56,9 @@ Para desplegar en staging o producción, consulta la [Guía de Despliegue](docs/
 - Se mantienen los últimos 7 backups
 - Todos los datos persistentes se almacenan en `/data`# Prueba de webhook
 # Test webhook Mon Mar 17 19:31:43 CET 2025
+
+
    
  
- 
+
     
