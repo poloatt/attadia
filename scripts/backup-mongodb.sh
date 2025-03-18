@@ -19,13 +19,13 @@ PROJECT_DIR="$( dirname "$SCRIPT_DIR" )"
 # Determinar el entorno
 if [ "$2" = "staging" ]; then
     ENVIRONMENT="staging"
-    MONGO_CONTAINER="mongodb"
+    MONGO_CONTAINER="mongodb-staging"
     MONGO_USER=${MONGO_USER:-"admin"}
     MONGO_PASSWORD=${MONGO_PASSWORD:-"MiContraseñaSegura123"}
     MONGO_DB=${MONGO_DB:-"present"}
 else
     ENVIRONMENT="production"
-    MONGO_CONTAINER="mongodb-prod"
+    MONGO_CONTAINER="mongodb"
     MONGO_USER=${MONGO_USER:-"admin"}
     MONGO_PASSWORD=${MONGO_PASSWORD:-"MiContraseñaSegura123"}
     MONGO_DB=${MONGO_DB:-"present"}

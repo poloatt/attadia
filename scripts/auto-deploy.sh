@@ -33,9 +33,9 @@ if [ "$ENVIRONMENT" = "staging" ]; then
     LOG_FILE="$BACKUP_DIR/deploy-staging.log"
     BRANCH="staging"
     COMPOSE_FILE="docker-compose.staging.yml"
-    MONGODB_CONTAINER="mongodb"
-    BACKEND_CONTAINER="backend"
-    FRONTEND_CONTAINER="frontend"
+    MONGODB_CONTAINER="mongodb-staging"
+    BACKEND_CONTAINER="backend-staging"
+    FRONTEND_CONTAINER="frontend-staging"
     API_URL="https://api.staging.present.attadia.com"
     FRONTEND_URL="https://staging.present.attadia.com"
     # Definir variables MongoDB según .env.staging
