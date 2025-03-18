@@ -120,8 +120,8 @@ update_code() {
 rebuild_containers() {
     log "${BLUE}Reconstruyendo y reiniciando contenedores para $ENVIRONMENT...${NC}"
     
-    # Reconstruir contenedores
-    if ! docker compose -f $PROJECT_DIR/$COMPOSE_FILE up -d --build; then
+    # Reconstruir contenedores usando docker-compose en lugar de docker compose
+    if ! docker-compose -f $PROJECT_DIR/$COMPOSE_FILE up -d --build; then
         log "${RED}Error al reconstruir los contenedores para $ENVIRONMENT${NC}"
         return 1
     fi
@@ -190,7 +190,7 @@ perform_rollback() {
     
     # 3. Reconstruir los contenedores con la versión anterior
     log "${BLUE}Reconstruyendo contenedores con la versión anterior...${NC}"
-    if ! docker compose -f $PROJECT_DIR/$COMPOSE_FILE up -d --build; then
+    if ! docker-compose -f $PROJECT_DIR/$COMPOSE_FILE up -d --build; then
         log "${RED}Error al reconstruir los contenedores durante el rollback.${NC}"
         log "${RED}Se requiere intervención manual.${NC}"
         return 1
