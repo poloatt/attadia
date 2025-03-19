@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 
 // Cargar el archivo .env correspondiente
 const isStaging = process.env.ENVIRONMENT === 'staging';
-dotenv.config({ path: isStaging ? '.env.staging' : '.env.production' });
+dotenv.config({ path: isStaging ? '.env.staging' : '.env.prod' });
 
 const config = {
   env: process.env.ENVIRONMENT || 'production',
