@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.present.attadia.com/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.present.attadia.com';
 const HEALTH_URL = `${API_URL}/health`;
 const BASE_URL = import.meta.env.VITE_BASE_URL || '';
 
