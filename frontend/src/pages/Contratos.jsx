@@ -52,6 +52,8 @@ export function Contratos() {
       setIsLoading(true);
       setError(null);
 
+      console.log('Cargando datos relacionados...');
+
       // Cargar todos los datos en paralelo
       const [
         contratosRes,
@@ -69,13 +71,38 @@ export function Contratos() {
         clienteAxios.get('/api/monedas')
       ]);
 
-      setContratos(contratosRes.data.docs || []);
+      const contratos = contratosRes.data.docs || [];
+      const propiedades = propiedadesRes.data.docs || [];
+      const inquilinos = inquilinosRes.data.docs || [];
+      const habitaciones = habitacionesRes.data.docs || [];
+      const cuentas = cuentasRes.data.docs || [];
+      const monedas = monedasRes.data.docs || [];
+
+      console.log('Datos cargados:', {
+        contratos: contratos.length,
+        propiedades: propiedades.length,
+        inquilinos: inquilinos.length,
+        habitaciones: habitaciones.length,
+        cuentas: cuentas.length,
+        monedas: monedas.length
+      });
+
+      // Verificar que los contratos tengan la información de cuenta
+      contratos.forEach(contrato => {
+        if (contrato.cuenta) {
+          console.log(`Contrato ${contrato._id} tiene cuenta:`, contrato.cuenta);
+        } else {
+          console.log(`Contrato ${contrato._id} NO tiene cuenta`);
+        }
+      });
+
+      setContratos(contratos);
       setRelatedData({
-        propiedades: propiedadesRes.data.docs || [],
-        inquilinos: inquilinosRes.data.docs || [],
-        habitaciones: habitacionesRes.data.docs || [],
-        cuentas: cuentasRes.data.docs || [],
-        monedas: monedasRes.data.docs || []
+        propiedades,
+        inquilinos,
+        habitaciones,
+        cuentas,
+        monedas
       });
     } catch (err) {
       console.error('Error al cargar datos:', err);
@@ -91,15 +118,29 @@ export function Contratos() {
 
   const handleEdit = useCallback((contrato) => {
     console.log('Editando contrato:', contrato);
+    console.log('Cuenta del contrato:', contrato.cuenta);
+    
     // Asegurarse de que todos los datos relacionados estén cargados antes de abrir el formulario
     if (relatedData.propiedades.length === 0 || 
         relatedData.inquilinos.length === 0 || 
         relatedData.cuentas.length === 0) {
       loadData().then(() => {
+        console.log('Datos relacionados cargados:', {
+          propiedades: relatedData.propiedades.length,
+          inquilinos: relatedData.inquilinos.length,
+          cuentas: relatedData.cuentas.length,
+          monedas: relatedData.monedas.length
+        });
         setEditingContrato(contrato);
         setIsFormOpen(true);
       });
     } else {
+      console.log('Datos relacionados ya cargados:', {
+        propiedades: relatedData.propiedades.length,
+        inquilinos: relatedData.inquilinos.length,
+        cuentas: relatedData.cuentas.length,
+        monedas: relatedData.monedas.length
+      });
       setEditingContrato(contrato);
       setIsFormOpen(true);
     }
@@ -107,7 +148,7 @@ export function Contratos() {
 
   const handleDelete = useCallback(async (id) => {
     try {
-      await clienteAxios.delete(`/contratos/${id}`);
+      await clienteAxios.delete(`/api/contratos/${id}`);
       enqueueSnackbar('Contrato eliminado exitosamente', { variant: 'success' });
       await loadData();
     } catch (error) {
@@ -121,9 +162,17 @@ export function Contratos() {
       setIsSaving(true);
       console.log('Datos a enviar:', formData);
       
+      // Asegurarse de que la cuenta esté presente si no es un contrato de mantenimiento
+      if (!formData.esMantenimiento && !formData.cuenta && editingContrato?.cuenta) {
+        console.log('Agregando cuenta del contrato existente:', editingContrato.cuenta);
+        formData.cuenta = typeof editingContrato.cuenta === 'object' ? 
+          (editingContrato.cuenta._id || editingContrato.cuenta.id) : 
+          editingContrato.cuenta;
+      }
+      
       let response;
       if (editingContrato) {
-        response = await clienteAxios.put(`/contratos/${editingContrato._id}`, formData);
+        response = await clienteAxios.put(`/api/contratos/${editingContrato._id}`, formData);
         enqueueSnackbar('Contrato actualizado exitosamente', { variant: 'success' });
       } else {
         response = await clienteAxios.post('/api/contratos', formData);

@@ -21,8 +21,6 @@ out/
 .env.production
 
 # Config files (usar .example.js como templates)
-
-**/config.prod.js
 **/config.dev.js
 
 # Logs
@@ -51,7 +49,12 @@ Thumbs.db
 # Docker
 docker-compose.override.yml
 
-# Specific config files that deben ser ignorados
-backend/src/config/config.js
-frontend/src/config.js
-nginx/conf.d/default.conf
+# Archivos temporales
+temp/
+*.bak
+*.tmp
+
+# SSL Certificates
+ssl/certbot/conf/*
+!ssl/certbot/conf/*.example
+ssl/certbot/www/*

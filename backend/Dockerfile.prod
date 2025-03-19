@@ -1,31 +1,43 @@
+# Build stage
 FROM node:18-alpine
-WORKDIR /app
 
-# Instalar dependencias necesarias
-RUN apk add --no-cache curl wget
+# Argumentos de construcción
+ARG BUILD_ENV=production
+
+# Instalar curl para health checks
+RUN apk add --no-cache curl
+
+# Directorio de trabajo
+WORKDIR /app
 
 # Copiar package.json y package-lock.json
 COPY package*.json ./
 
-# Limpiar cache de npm e instalar dependencias
-RUN npm cache clean --force && \
-    rm -rf node_modules && \
-    npm install --verbose && \
-    npm install connect-mongo@5.1.0
+# Instalar dependencias
+RUN npm install --production
 
-# Copiar el resto de la aplicación
+# Copiar el código fuente
 COPY . .
-COPY .env.production .env
+<<<<<<< HEAD
 
-# Variables de entorno
-ENV NODE_ENV=production
-ENV PORT=5000
+# Copiar el archivo .env según el ambiente
+ARG BUILD_ENV=production
+COPY .env.${BUILD_ENV} .env
+=======
+>>>>>>> staging
 
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=30s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:5000/api/health || wget -q --spider http://localhost:5000/api/health || exit 1
+# Copiar el script de inicialización
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Exponer el puerto
 EXPOSE 5000
 
+# Establecer variables de entorno
+ENV NODE_ENV=production
+
+# Usar el script de inicialización como punto de entrada
+ENTRYPOINT ["/entrypoint.sh"]
+
+# Comando por defecto
 CMD ["npm", "start"] 

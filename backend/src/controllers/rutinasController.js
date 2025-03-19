@@ -14,6 +14,9 @@ class RutinasController extends BaseController {
     this.create = this.create.bind(this);
     this.update = this.update.bind(this);
     this.getAll = this.getAll.bind(this);
+    this.verifyDate = this.verifyDate.bind(this);
+    this.getById = this.getById.bind(this);
+    this.getAllFechas = this.getAllFechas.bind(this);
   }
 
   async getAll(req, res) {
@@ -82,12 +85,21 @@ class RutinasController extends BaseController {
   async create(req, res) {
     try {
       const { fecha } = req.body;
-      const fechaInicio = new Date(fecha);
-      fechaInicio.setHours(0, 0, 0, 0);
       
-      const fechaFin = new Date(fecha);
-      fechaFin.setHours(23, 59, 59, 999);
+      // Normalizar la fecha a inicio del día en UTC
+      const fechaInicio = new Date(fecha);
+      fechaInicio.setUTCHours(0, 0, 0, 0);
+      
+      // Crear el rango del día completo
+      const fechaFin = new Date(fechaInicio);
+      fechaFin.setUTCHours(23, 59, 59, 999);
 
+      console.log('Buscando rutina existente:', {
+        fechaInicio,
+        fechaFin,
+        usuario: req.user.id
+      });
+      
       // Verificar si ya existe una rutina para este día
       const existingRutina = await this.Model.findOne({
         fecha: {
@@ -98,63 +110,54 @@ class RutinasController extends BaseController {
       });
 
       if (existingRutina) {
+        console.log('Rutina existente encontrada:', existingRutina);
         return res.status(409).json({
-          error: 'Ya existe una rutina para esta fecha'
+          error: 'Ya existe una rutina para esta fecha',
+          rutina: existingRutina
         });
       }
 
-      // Asegurar que todos los campos de checklist estén presentes
-      const checklistData = {
-        morning: {
-          wakeUp: false,
+      console.log('Creando nueva rutina para fecha:', fechaInicio);
+
+      // Crear la nueva rutina con la estructura correcta
+      const newDoc = new this.Model({
+        fecha: fechaInicio,
+        usuario: req.user.id,
+        bodyCare: {
+          bath: false,
           skinCareDay: false,
-          meds: false,
-          teeth: false,
-          ...req.body.morning
+          skinCareNight: false,
+          bodyCream: false
         },
-        cleaning: {
-          platos: false,
-          piso: false,
-          ropa: false,
-          ...req.body.cleaning
-        },
-        ejercicio: {
-          cardio: false,
-          stretching: false,
-          gym: false,
-          protein: false,
-          meditate: false,
-          ...req.body.ejercicio
-        },
-        cooking: {
+        nutricion: {
           cocinar: false,
           agua: false,
-          food: false,
-          ...req.body.cooking
+          protein: false,
+          meds: false
         },
-        night: {
-          skinCareNight: false,
-          bath: false,
-          bodyCream: false,
-          ...req.body.night
+        ejercicio: {
+          meditate: false,
+          stretching: false,
+          gym: false,
+          cardio: false
+        },
+        cleaning: {
+          bed: false,
+          platos: false,
+          piso: false,
+          ropa: false
         }
-      };
-
-      // Crear la nueva rutina
-      const newDoc = new this.Model({
-        ...req.body,
-        ...checklistData,
-        usuario: req.user.id,
-        fecha: fechaInicio
       });
 
       const savedDoc = await newDoc.save();
+      console.log('Rutina creada exitosamente:', savedDoc);
       res.status(201).json(savedDoc);
     } catch (error) {
       console.error('Error al crear rutina:', error);
       res.status(500).json({ 
         error: 'Error al crear la rutina',
-        details: error.message 
+        details: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       });
     }
   }
@@ -315,6 +318,125 @@ class RutinasController extends BaseController {
       console.error('Error al obtener estadísticas:', error);
       res.status(500).json({ 
         error: 'Error al obtener estadísticas',
+        details: error.message 
+      });
+    }
+  }
+
+  async verifyDate(req, res) {
+    try {
+      const { fecha } = req.query;
+      
+      if (!fecha) {
+        return res.status(400).json({ error: 'La fecha es requerida' });
+      }
+      
+      // Normalizar la fecha a inicio del día en UTC
+      const fechaInicio = new Date(fecha);
+      
+      // Comprobar si la fecha es válida
+      if (isNaN(fechaInicio.getTime())) {
+        return res.status(400).json({ 
+          error: 'Formato de fecha inválido', 
+          fecha 
+        });
+      }
+      
+      fechaInicio.setUTCHours(0, 0, 0, 0);
+      
+      // Crear el rango del día completo
+      const fechaFin = new Date(fechaInicio);
+      fechaFin.setUTCHours(23, 59, 59, 999);
+      
+      console.log('Verificando rutina existente:', {
+        fechaInicio,
+        fechaFin,
+        usuario: req.user.id
+      });
+      
+      // Verificar si ya existe una rutina para este día
+      const existingRutina = await this.Model.findOne({
+        fecha: {
+          $gte: fechaInicio,
+          $lte: fechaFin
+        },
+        usuario: req.user.id
+      }).lean();
+      
+      if (existingRutina) {
+        console.log('Rutina existente encontrada para verificación:', existingRutina._id);
+        return res.json({
+          exists: true,
+          rutinaId: existingRutina._id,
+          fecha: existingRutina.fecha
+        });
+      }
+      
+      return res.json({
+        exists: false,
+        fechaNormalizada: fechaInicio
+      });
+    } catch (error) {
+      console.error('Error al verificar fecha:', error);
+      res.status(500).json({ 
+        error: 'Error al verificar fecha',
+        details: error.message 
+      });
+    }
+  }
+
+  async getById(req, res) {
+    try {
+      const { id } = req.params;
+      
+      const doc = await this.Model.findOne({ 
+        _id: id,
+        usuario: req.user.id
+      }).lean();
+      
+      if (!doc) {
+        return res.status(404).json({ error: 'Rutina no encontrada' });
+      }
+      
+      // Formatear el documento para mantener consistencia
+      const formattedDoc = {
+        _id: doc._id.toString(),
+        ...doc,
+        bodyCare: { ...doc.bodyCare },
+        nutricion: { ...doc.nutricion },
+        ejercicio: { ...doc.ejercicio },
+        cleaning: { ...doc.cleaning }
+      };
+      
+      res.json(formattedDoc);
+    } catch (error) {
+      console.error('Error al obtener rutina por ID:', error);
+      res.status(500).json({ 
+        error: 'Error al obtener rutina',
+        details: error.message 
+      });
+    }
+  }
+
+  async getAllFechas(req, res) {
+    try {
+      // Obtener todas las fechas de rutinas del usuario
+      const rutinas = await this.Model.find(
+        { usuario: req.user.id },
+        { fecha: 1 }
+      ).lean();
+      
+      // Extraer solo las fechas y formatearlas
+      const fechas = rutinas.map(rutina => rutina.fecha);
+      
+      return res.json({
+        fechas,
+        total: fechas.length
+      });
+    } catch (error) {
+      console.error('Error al obtener fechas con rutinas:', error);
+      res.status(500).json({ 
+        error: 'Error al obtener fechas con rutinas',
         details: error.message 
       });
     }

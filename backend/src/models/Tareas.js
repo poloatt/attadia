@@ -118,9 +118,47 @@ tareaSchema.pre('save', function(next) {
   next();
 });
 
-// Middleware para poblar subtareas
+// Middleware para poblar subtareas con validación de usuario
 tareaSchema.pre(['find', 'findOne'], function() {
-  this.populate('subtareas');
+  if (this._conditions.usuario) {
+    const userId = this._conditions.usuario;
+    this.populate({
+      path: 'subtareas',
+      match: { usuario: userId }
+    });
+  }
+});
+
+// Middleware para validar actualizaciones parciales
+tareaSchema.pre('findOneAndUpdate', async function() {
+  const docToUpdate = await this.model.findOne(this.getQuery());
+  if (!docToUpdate) return;
+
+  const update = this.getUpdate();
+  
+  // Si hay subtareas en la actualización, asegurarse de preservar las existentes
+  if (update.subtareas) {
+    update.subtareas = [
+      ...docToUpdate.subtareas,
+      ...update.subtareas.filter(st => 
+        !docToUpdate.subtareas.some(existing => 
+          existing._id.toString() === st._id?.toString()
+        )
+      )
+    ];
+  }
+
+  // Asegurar que el estado se actualice correctamente
+  if (update.subtareas || update.completada !== undefined) {
+    const allSubtareas = update.subtareas || docToUpdate.subtareas;
+    const todasCompletadas = allSubtareas.every(st => st.completada);
+    const algunaCompletada = allSubtareas.some(st => st.completada);
+
+    update.estado = todasCompletadas ? 'COMPLETADA' : 
+                    algunaCompletada ? 'EN_PROGRESO' : 
+                    'PENDIENTE';
+    update.completada = todasCompletadas;
+  }
 });
 
 // Middleware para validar que el proyecto pertenezca al usuario

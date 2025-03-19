@@ -115,7 +115,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
       }
       setEstadoLocal(nuevoEstado);
 
-      const response = await clienteAxios.patch(`/tareas/${tarea._id}/subtareas`, {
+      const response = await clienteAxios.put(`/api/tareas/${tarea._id}/subtareas`, {
         subtareaId,
         completada: !completada
       });
@@ -146,7 +146,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
     const nuevoEstado = estados[(currentIndex + 1) % estados.length];
     
     try {
-      const response = await clienteAxios.patch(`/tareas/${tarea._id}/estado`, { estado: nuevoEstado });
+      const response = await clienteAxios.put(`/api/tareas/${tarea._id}/estado`, { estado: nuevoEstado });
       setEstadoLocal(nuevoEstado);
       if (onUpdateEstado) {
         onUpdateEstado(response.data);
@@ -226,7 +226,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
     }
 
     try {
-      const response = await clienteAxios.patch(`/tareas/${tarea._id}`, {
+      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}`, {
         fechaInicio: nuevaFecha.toISOString(),
         pushCount: (tarea.pushCount || 0) + 1
       });
@@ -249,7 +249,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
   const handleTogglePriority = async (tarea) => {
     try {
       const nuevaPrioridad = tarea.prioridad === 'ALTA' ? 'BAJA' : 'ALTA';
-      const response = await clienteAxios.patch(`/tareas/${tarea._id}`, {
+      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}`, {
         prioridad: nuevaPrioridad
       });
       
@@ -271,7 +271,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
         completada: true
       }));
 
-      const response = await clienteAxios.patch(`/tareas/${tarea._id}/subtareas`, {
+      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}/subtareas`, {
         subtareas: nuevasSubtareas
       });
       
@@ -293,7 +293,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
         completada: false
       }));
 
-      const response = await clienteAxios.patch(`/tareas/${tarea._id}/subtareas`, {
+      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}/subtareas`, {
         subtareas: nuevasSubtareas
       });
       
@@ -309,7 +309,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
 
   const handleCancel = async (tarea) => {
     try {
-      const response = await clienteAxios.patch(`/tareas/${tarea._id}`, {
+      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}`, {
         estado: 'CANCELADA',
         completada: false
       });
@@ -408,9 +408,23 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
         <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ 
-              py: 0.5, 
-              px: 1,
-              bgcolor: 'background.paper'
+              p: 2, 
+              bgcolor: theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.02)',
+              maxHeight: '300px', 
+              overflowY: 'auto',
+              '&::-webkit-scrollbar': {
+                width: '8px',
+              },
+              '&::-webkit-scrollbar-track': {
+                backgroundColor: 'rgba(0,0,0,0.1)',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: 'rgba(0,0,0,0.2)',
+                borderRadius: '4px',
+              },
+              '&::-webkit-scrollbar-thumb:hover': {
+                backgroundColor: 'rgba(0,0,0,0.3)',
+              },
             }}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, textAlign: 'center', width: '100%', display: 'block' }}>
                 {format(new Date(tarea.fechaInicio), 'dd MMM yyyy', { locale: es })}
