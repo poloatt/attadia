@@ -12,23 +12,23 @@ const getBaseUrl = () => {
   // Entorno de producción
   if (hostname === 'present.attadia.com') {
     console.log('Detectado entorno de producción');
-    return 'https://api.present.attadia.com';
+    return 'https://api.present.attadia.com/api';
   }
   
   // Entorno de staging
   if (hostname.includes('staging')) {
     console.log('Detectado entorno de staging');
-    return 'https://api.staging.present.attadia.com';
+    return 'https://api.staging.present.attadia.com/api';
   }
   
   // Entorno de desarrollo
   if (mode === 'development') {
     console.log('Detectado entorno de desarrollo');
-    return apiUrl || 'http://localhost:5000';
+    return apiUrl || 'http://localhost:5000/api';
   }
   
   // Fallback a producción
-  return apiUrl || 'https://api.present.attadia.com';
+  return apiUrl || 'https://api.present.attadia.com/api';
 };
 
 const baseURL = getBaseUrl();

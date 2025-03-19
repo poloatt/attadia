@@ -16,7 +16,7 @@ import { useSnackbar } from 'notistack';
 import { RutinaTable } from '../components/rutinas/RutinaTable';
 import { RutinaForm } from '../components/rutinas/RutinaForm';
 
-export function Rutinas() {
+function Rutinas() {
   const [rutina, setRutina] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRutina, setEditingRutina] = useState(null);
