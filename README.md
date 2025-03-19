@@ -11,7 +11,8 @@ La documentación detallada del proyecto se encuentra en la carpeta `docs`:
 - [Flujo de Trabajo](docs/README.md) - Estructura de ramas y flujo de trabajo con Git
 
 ## Estructura del Proyecto   
-
+ 
+ 
 ```
 present/
 ├── backend/         # API REST (Node.js, Express, MongoDB)
