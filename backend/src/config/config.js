@@ -21,7 +21,7 @@ const validateRequiredEnvVars = () => {
 
   for (const envVar of requiredEnvVars) {
     if (!process.env[envVar]) {
-      throw new Error(`La variable de entorno ${envVar} es requerida en ${environment}`);
+      console.warn(`Advertencia: La variable de entorno ${envVar} no está definida en ${environment}`);
     }
   }
 };
@@ -51,25 +51,35 @@ const baseConfig = {
 let config;
 
 if (environment === 'development') {
-  const devConfig = await import('./config.dev.js');
-  config = devConfig.default;
+  try {
+    const devConfig = await import('./config.dev.js');
+    config = devConfig.default;
+  } catch (error) {
+    console.warn('No se pudo cargar la configuración de desarrollo, usando configuración base:', error.message);
+    config = baseConfig;
+  }
 } else if (environment === 'staging') {
-  const stagingConfig = await import('./config.staging.js');
-  config = stagingConfig.default;
+  try {
+    const stagingConfig = await import('./config.staging.js');
+    config = stagingConfig.default;
+  } catch (error) {
+    console.warn('No se pudo cargar la configuración de staging, usando configuración base:', error.message);
+    config = baseConfig;
+  }
 } else {
   validateRequiredEnvVars();
   config = baseConfig;
-
-  console.log(`Configuración de MongoDB en ${environment}:`, {
-    url: config.mongoUrl,
-    environment: config.env
-  });
-
-  console.log(`Configuración de URLs en ${environment}:`, {
-    frontend: config.frontendUrl,
-    backend: config.apiUrl,
-    corsOrigins: config.corsOrigins
-  });
 }
+
+console.log(`Configuración de MongoDB en ${environment}:`, {
+  url: config.mongoUrl,
+  environment: config.env
+});
+
+console.log(`Configuración de URLs en ${environment}:`, {
+  frontend: config.frontendUrl,
+  backend: config.apiUrl,
+  corsOrigins: config.corsOrigins
+});
 
 export default config;

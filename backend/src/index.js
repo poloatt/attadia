@@ -12,17 +12,30 @@ import MongoStore from 'connect-mongo';
 
 // Importar configuración según el entorno
 let config;
-switch (process.env.NODE_ENV) {
-  case 'production':
-    config = (await import('./config/config.js')).default;
-    break;
-  case 'staging':
-    config = (await import('./config/config.staging.js')).default;
-    break;
-  case 'development':
-  default:
-    config = (await import('./config/config.dev.js')).default;
-    break;
+try {
+  switch (process.env.NODE_ENV) {
+    case 'production':
+      config = (await import('./config/config.js')).default;
+      break;
+    case 'staging':
+      config = (await import('./config/config.js')).default;
+      break;
+    case 'development':
+    default:
+      config = (await import('./config/config.js')).default;
+      break;
+  }
+} catch (error) {
+  console.error('Error al cargar la configuración, usando configuración básica:', error.message);
+  // Configuración básica por defecto
+  config = {
+    env: process.env.NODE_ENV || 'development',
+    port: parseInt(process.env.PORT || '5000', 10),
+    mongoUrl: process.env.MONGO_URL || process.env.MONGODB_URI || 'mongodb://mongodb-staging:27017/present?authSource=admin',
+    frontendUrl: process.env.FRONTEND_URL || 'https://staging.present.attadia.com',
+    corsOrigins: (process.env.CORS_ORIGINS || 'https://staging.present.attadia.com,https://api.staging.present.attadia.com').split(','),
+    sessionSecret: process.env.SESSION_SECRET || 'fallback_session_secret'
+  };
 }
 
 const app = express();

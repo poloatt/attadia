@@ -8,17 +8,32 @@ import rateLimit from 'express-rate-limit';
 
 // Importar configuración según el entorno
 let config;
-switch (process.env.NODE_ENV) {
-  case 'production':
-    config = (await import('../config/config.js')).default;
-    break;
-  case 'staging':
-    config = (await import('../config/config.staging.js')).default;
-    break;
-  case 'development':
-  default:
-    config = (await import('../config/config.dev.js')).default;
-    break;
+try {
+  switch (process.env.NODE_ENV) {
+    case 'production':
+      config = (await import('../config/config.js')).default;
+      break;
+    case 'staging':
+      config = (await import('../config/config.js')).default;
+      break;
+    case 'development':
+    default:
+      config = (await import('../config/config.js')).default;
+      break;
+  }
+} catch (error) {
+  console.error('Error al cargar la configuración en authRoutes, usando configuración básica:', error.message);
+  // Configuración básica por defecto
+  config = {
+    env: process.env.NODE_ENV || 'development',
+    frontendUrl: process.env.FRONTEND_URL || 'https://staging.present.attadia.com',
+    backendUrl: process.env.BACKEND_URL || 'https://api.staging.present.attadia.com',
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'https://api.staging.present.attadia.com/api/auth/google/callback'
+    }
+  };
 }
 
 console.log('Configuración de autenticación cargada:', {
