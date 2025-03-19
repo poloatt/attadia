@@ -1,0 +1,12 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Para loggearse a cualquier proyecto:
+- ingresas desde powershell a wsl
+- luego en powershell asegurate de estar en el directorio present
+- si necesita entrar a una VM:
+Staging:gcloud compute ssh --zone "southamerica-west1-c" "foco-staging" --project "present-webapp-449410"
+Produccion:gcloud compute ssh --zone "southamerica-west1-c" "foco-prod" --project "present-webapp-449410"

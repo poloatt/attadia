@@ -31,8 +31,11 @@ RUN npm install --legacy-peer-deps
 # Copiar el resto de la aplicación
 COPY . .
 
-# Construir la aplicación
-RUN npm run build
+# Construir la aplicación para staging
+ARG BUILD_ENV=staging
+ENV NODE_ENV=production
+ENV VITE_MODE=staging
+RUN npm run build -- --mode ${BUILD_ENV}
 
 # Production stage
 FROM nginx:alpine
@@ -40,11 +43,12 @@ FROM nginx:alpine
 # Crear directorio para la configuración de nginx
 RUN mkdir -p /etc/nginx/conf.d
 
+# Copiar los archivos estáticos
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY --from=build /app/public /usr/share/nginx/html
+
 # Exponer el puerto 80
 EXPOSE 80
-
-# Copiar los archivos construidos
-COPY --from=build /app/dist /usr/share/nginx/html
 
 # Iniciar nginx
 CMD ["nginx", "-g", "daemon off;"] 
