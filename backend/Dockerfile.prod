@@ -2,7 +2,7 @@
 FROM node:18-alpine
 
 # Argumentos de construcción
-ARG BUILD_ENV=production
+ARG BUILD_ENV=prod
 
 # Instalar curl para health checks
 RUN apk add --no-cache curl
@@ -19,9 +19,16 @@ RUN npm install --production
 # Copiar el código fuente
 COPY . .
 
-# Copiar el archivo .env según el ambiente
-ARG BUILD_ENV=production
-COPY .env.${BUILD_ENV} .env
+# Crear un archivo .env por defecto si no existe
+RUN touch .env.default
+
+# Intentar copiar el archivo .env según el ambiente (si existe) o usar el default
+ARG BUILD_ENV=prod
+RUN if [ -f ".env.${BUILD_ENV}" ]; then \
+    cp .env.${BUILD_ENV} .env; \
+    else \
+    echo "# Default environment variables" > .env; \
+    fi
 
 # Copiar el script de inicialización
 COPY entrypoint.sh /entrypoint.sh
