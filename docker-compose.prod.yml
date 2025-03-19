@@ -100,6 +100,41 @@ services:
         max-file: "3"
         tag: "frontend-prod"
 
+  webhook:
+    build:
+      context: ./webhook
+      dockerfile: Dockerfile.prod
+      args:
+        - BUILD_ENV=production
+    image: present/webhook:production
+    container_name: webhook-prod
+    restart: always
+    expose:
+      - "9000"
+    environment:
+      - NODE_ENV=production
+      - ENVIRONMENT=production
+      - PORT=9000
+      - WEBHOOK_SECRET=ProductionSecret_ATTADIA99
+      - LOG_FILE=/var/log/webhook-server/webhook-production.log
+    volumes:
+      - /var/log/webhook-server:/var/log/webhook-server
+      - .:/home/poloatt/present
+    networks:
+      - app_network_prod
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "webhook-prod"
+
 volumes:
   mongodb_prod_data:
     name: present_mongodb_prod_data

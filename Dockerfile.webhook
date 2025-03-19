@@ -1,0 +1,19 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copiar solo los archivos necesarios
+COPY package*.json ./
+COPY scripts/webhook-server.js ./scripts/
+
+# Instalar dependencias
+RUN npm install --production
+
+# Crear directorio para logs
+RUN mkdir -p /var/log/webhook-server
+
+# Exponer puerto
+EXPOSE 9000
+
+# Comando para iniciar el servidor
+CMD ["node", "scripts/webhook-server.js"] 
