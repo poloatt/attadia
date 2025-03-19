@@ -36,8 +36,8 @@ const baseConfig = {
   apiUrl: process.env.BACKEND_URL,
   frontendUrl: process.env.FRONTEND_URL,
   corsOrigins: process.env.CORS_ORIGINS ? 
-    process.env.CORS_ORIGINS.split(',') : 
-    [process.env.FRONTEND_URL, process.env.BACKEND_URL].filter(Boolean),
+    Array.from(new Set(process.env.CORS_ORIGINS.split(',').map(origin => origin.trim()))) : 
+    Array.from(new Set([process.env.FRONTEND_URL, process.env.BACKEND_URL].filter(Boolean))),
   sessionSecret: process.env.SESSION_SECRET,
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID,

@@ -8,18 +8,8 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 // Importar configuración según el entorno
 let config;
 try {
-  switch (process.env.NODE_ENV) {
-    case 'production':
-      config = (await import('./config.js')).default;
-      break;
-    case 'staging':
-      config = (await import('./config.js')).default;
-      break;
-    case 'development':
-    default:
-      config = (await import('./config.js')).default;
-      break;
-  }
+  // Cargar directamente desde config.js para asegurar consistencia
+  config = (await import('./config.js')).default;
 } catch (error) {
   console.error('Error al cargar la configuración en passport, usando configuración básica:', error.message);
   // Configuración básica por defecto

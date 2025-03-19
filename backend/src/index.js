@@ -28,12 +28,13 @@ try {
 } catch (error) {
   console.error('Error al cargar la configuración, usando configuración básica:', error.message);
   // Configuración básica por defecto
+  const defaultCorsOrigins = 'https://staging.present.attadia.com,https://api.staging.present.attadia.com';
   config = {
     env: process.env.NODE_ENV || 'development',
     port: parseInt(process.env.PORT || '5000', 10),
     mongoUrl: process.env.MONGO_URL || process.env.MONGODB_URI || 'mongodb://mongodb-staging:27017/present?authSource=admin',
     frontendUrl: process.env.FRONTEND_URL || 'https://staging.present.attadia.com',
-    corsOrigins: (process.env.CORS_ORIGINS || 'https://staging.present.attadia.com,https://api.staging.present.attadia.com').split(','),
+    corsOrigins: Array.from(new Set((process.env.CORS_ORIGINS || defaultCorsOrigins).split(',').map(origin => origin.trim()))),
     sessionSecret: process.env.SESSION_SECRET || 'fallback_session_secret'
   };
 }
@@ -60,17 +61,31 @@ app.use(express.urlencoded({ extended: true }));
 // Configuración de CORS
 const corsOptions = {
   origin: function(origin, callback) {
-    // Usar los orígenes configurados en config.corsOrigins
-    const allowedOrigins = Array.isArray(config.corsOrigins) ? 
-      config.corsOrigins : 
-      config.corsOrigins.split(',');
+    // Asegurarse de que corsOrigins sea un array sin duplicados
+    let allowedOrigins;
+    if (Array.isArray(config.corsOrigins)) {
+      allowedOrigins = Array.from(new Set(config.corsOrigins));
+    } else if (typeof config.corsOrigins === 'string') {
+      allowedOrigins = Array.from(new Set(config.corsOrigins.split(',').map(origin => origin.trim())));
+    } else {
+      allowedOrigins = [config.frontendUrl].filter(Boolean);
+    }
+    
+    console.log('CORS: Orígenes permitidos:', allowedOrigins);
+    console.log('CORS: Solicitud de origen:', origin);
     
     // Permitir solicitudes sin origen (como aplicaciones móviles o curl)
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    if (!origin) {
+      console.log('CORS: Permitiendo solicitud sin origen');
+      return callback(null, true);
+    }
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log(`CORS: Permitiendo origen ${origin}`);
       callback(null, true);
     } else {
-      console.warn(`Origen bloqueado por CORS: ${origin}`);
-      callback(null, false);
+      console.warn(`CORS: Origen bloqueado ${origin}`);
+      callback(new Error(`Origen ${origin} no permitido por CORS`));
     }
   },
   credentials: true,

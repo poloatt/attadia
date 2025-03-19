@@ -9,18 +9,8 @@ import rateLimit from 'express-rate-limit';
 // Importar configuración según el entorno
 let config;
 try {
-  switch (process.env.NODE_ENV) {
-    case 'production':
-      config = (await import('../config/config.js')).default;
-      break;
-    case 'staging':
-      config = (await import('../config/config.js')).default;
-      break;
-    case 'development':
-    default:
-      config = (await import('../config/config.js')).default;
-      break;
-  }
+  // Cargar directamente desde config.js para asegurar consistencia
+  config = (await import('../config/config.js')).default;
 } catch (error) {
   console.error('Error al cargar la configuración en authRoutes, usando configuración básica:', error.message);
   // Configuración básica por defecto
@@ -39,7 +29,7 @@ try {
 console.log('Configuración de autenticación cargada:', {
   env: config.env,
   frontendUrl: config.frontendUrl,
-  backendUrl: config.backendUrl,
+  backendUrl: config.apiUrl || config.backendUrl,
   googleCallbackUrl: config.google.callbackUrl
 });
 
