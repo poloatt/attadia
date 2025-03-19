@@ -14,24 +14,35 @@ try {
 } catch (error) {
   console.error('Error al cargar la configuración en authRoutes, usando configuración básica:', error.message);
   // Configuración básica por defecto
+  const defaultFrontendUrl = process.env.NODE_ENV === 'production' 
+    ? 'https://present.attadia.com'
+    : 'https://staging.present.attadia.com';
+  
+  const defaultBackendUrl = process.env.NODE_ENV === 'production'
+    ? 'https://api.present.attadia.com'
+    : 'https://api.staging.present.attadia.com';
+
   config = {
     env: process.env.NODE_ENV || 'development',
-    frontendUrl: process.env.FRONTEND_URL || 'https://staging.present.attadia.com',
-    backendUrl: process.env.BACKEND_URL || 'https://api.staging.present.attadia.com',
+    frontendUrl: process.env.FRONTEND_URL || defaultFrontendUrl,
+    backendUrl: process.env.BACKEND_URL || defaultBackendUrl,
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'https://api.staging.present.attadia.com/api/auth/google/callback'
+      callbackUrl: process.env.GOOGLE_CALLBACK_URL || `${defaultBackendUrl}/api/auth/google/callback`
     }
   };
 }
 
-console.log('Configuración de autenticación cargada:', {
-  env: config.env,
-  frontendUrl: config.frontendUrl,
-  backendUrl: config.apiUrl || config.backendUrl,
-  googleCallbackUrl: config.google.callbackUrl
-});
+// Solo loggear en staging/producción
+if (config.env !== 'development') {
+  console.log('Configuración de autenticación cargada:', {
+    env: config.env,
+    frontendUrl: config.frontendUrl,
+    backendUrl: config.apiUrl || config.backendUrl,
+    googleCallbackUrl: config.google.callbackUrl
+  });
+}
 
 const router = express.Router();
 

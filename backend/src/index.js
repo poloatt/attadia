@@ -61,14 +61,27 @@ app.use(express.urlencoded({ extended: true }));
 // Configuración manual de CORS
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+  const allowedOrigins = {
+    development: [origin], // En desarrollo, permitir cualquier origen
+    staging: [
+      'https://staging.present.attadia.com',
+      'https://api.staging.present.attadia.com'
+    ],
+    production: [
+      'https://present.attadia.com',
+      'https://api.present.attadia.com'
+    ]
+  };
+
+  const currentAllowedOrigins = allowedOrigins[config.env] || allowedOrigins.staging;
 
   // En desarrollo, permitir cualquier origen
   if (config.env === 'development' && origin) {
     res.header('Access-Control-Allow-Origin', origin);
   } 
   // En staging/producción, solo permitir orígenes específicos
-  else if (origin === 'https://staging.present.attadia.com') {
-    res.header('Access-Control-Allow-Origin', 'https://staging.present.attadia.com');
+  else if (origin && currentAllowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
   }
 
   // Headers comunes para todos los ambientes
@@ -82,10 +95,12 @@ app.use((req, res, next) => {
   // Log solo en staging/producción
   if (config.env !== 'development') {
     console.log('CORS Request:', {
+      env: config.env,
       origin,
       method: req.method,
       path: req.path,
-      allowedOrigin: res.getHeader('Access-Control-Allow-Origin')
+      allowedOrigin: res.getHeader('Access-Control-Allow-Origin'),
+      isAllowed: currentAllowedOrigins.includes(origin)
     });
   }
 
