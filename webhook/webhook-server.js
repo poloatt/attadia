@@ -40,14 +40,24 @@ app.get('/health', (req, res) => {
 
 // Función para verificar la firma de GitHub
 function verifySignature(payload, signature) {
-    if (!signature) return false;
+    if (!signature) {
+        logger.error('No se proporcionó firma');
+        return false;
+    }
     
-    const sig = Buffer.from(signature, 'utf8');
-    const hmac = crypto.createHmac('sha256', webhookSecret);
-    const digest = Buffer.from('sha256=' + hmac.update(payload).digest('hex'), 'utf8');
-    
-    if (sig.length !== digest.length) return false;
-    return crypto.timingSafeEqual(digest, sig);
+    try {
+        const hmac = crypto.createHmac('sha256', webhookSecret);
+        const digest = 'sha256=' + hmac.update(payload).digest('hex');
+        
+        // Comparación segura: vulnerable a timing attacks pero más segura que una comparación directa
+        return crypto.timingSafeEqual(
+            Buffer.from(digest, 'utf8'),
+            Buffer.from(signature, 'utf8')
+        );
+    } catch (error) {
+        logger.error('Error al verificar firma', { error: error.message });
+        return false;
+    }
 }
 
 // Endpoint del webhook
@@ -56,7 +66,7 @@ app.post('/webhook', (req, res) => {
     const payload = JSON.stringify(req.body);
     
     if (!verifySignature(payload, signature)) {
-        logger.error('Firma inválida');
+        logger.error('Firma inválida o error en verificación');
         return res.status(401).send('Invalid signature');
     }
 

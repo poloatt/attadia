@@ -11,8 +11,9 @@ COPY package*.json ./
 # Instalar dependencias
 RUN npm ci --only=production
 
-# Copiar código fuente
-COPY . .
+# Copiar código fuente específicamente
+COPY webhook-server.js ./
+COPY .env* ./
 
 # Crear directorio para logs y dar permisos
 RUN mkdir -p /var/log/webhook-server && \

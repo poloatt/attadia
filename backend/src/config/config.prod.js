@@ -56,4 +56,4 @@ console.log(`Configuración de URLs en ${config.env}:`, {
   corsOrigins: config.corsOrigins
 });
 
-export default config; 
+export default config;
