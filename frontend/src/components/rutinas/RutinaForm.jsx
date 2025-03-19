@@ -215,25 +215,33 @@ export const RutinaForm = ({
       
       console.log('Enviando datos de rutina:', dataToSubmit);
       
-      // Cierre inmediato para evitar doble clic
-      const localCloseFunction = onClose;
-      const localSubmitFunction = onSubmit;
-      
       // Enviar solicitud
       if (initialData?._id) {
         const response = await clienteAxios.put(`/api/rutinas/${initialData._id}`, dataToSubmit);
         console.log('Rutina actualizada:', response.data);
         
-        // Notificar al componente padre y cerrar
-        if (localCloseFunction) localCloseFunction();
-        if (localSubmitFunction) localSubmitFunction(response.data);
+        // Primero notificar al padre
+        if (onSubmit) {
+          onSubmit(response.data);
+        }
+        
+        // Luego cerrar el formulario
+        if (onClose) {
+          onClose();
+        }
       } else {
         const response = await clienteAxios.post('/api/rutinas', dataToSubmit);
         console.log('Rutina creada:', response.data);
         
-        // Notificar al componente padre y cerrar
-        if (localCloseFunction) localCloseFunction();
-        if (localSubmitFunction) localSubmitFunction(response.data);
+        // Primero notificar al padre con los datos recibidos
+        if (onSubmit) {
+          onSubmit(response.data);
+        }
+        
+        // Luego cerrar el formulario
+        if (onClose) {
+          onClose();
+        }
       }
     } catch (error) {
       console.error('Error en el envío de la rutina:', error);
@@ -241,6 +249,23 @@ export const RutinaForm = ({
       // Manejar error de conflicto (fecha duplicada)
       if (error.response?.status === 409) {
         enqueueSnackbar('Ya existe una rutina para esta fecha', { variant: 'error' });
+        
+        // Si hay un id en la respuesta de error, podemos cargar esa rutina
+        if (error.response?.data?.rutina?.id) {
+          // Notificar al padre sobre el conflicto antes de cerrar
+          if (onSubmit) {
+            onSubmit({ 
+              _id: error.response.data.rutina.id,
+              fecha: formData.fecha,
+              _error: 'conflict'
+            });
+          }
+          
+          // Y luego cerrar
+          if (onClose) {
+            onClose();
+          }
+        }
       } else {
         enqueueSnackbar(
           error.response?.data?.error || 'Error al guardar la rutina',
