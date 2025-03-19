@@ -61,42 +61,37 @@ app.use(express.urlencoded({ extended: true }));
 // Configuración manual de CORS
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  const allowedOrigins = config.env === 'development' 
-    ? [origin] // En desarrollo, permitir cualquier origen
-    : [ // En staging/producción, solo orígenes específicos
-        'https://staging.present.attadia.com',
-        'https://api.staging.present.attadia.com'
-      ];
 
-  // Log detallado para debugging solo en staging/producción
+  // En desarrollo, permitir cualquier origen
+  if (config.env === 'development' && origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } 
+  // En staging/producción, solo permitir orígenes específicos
+  else if (origin === 'https://staging.present.attadia.com') {
+    res.header('Access-Control-Allow-Origin', 'https://staging.present.attadia.com');
+  }
+
+  // Headers comunes para todos los ambientes
+  if (res.getHeader('Access-Control-Allow-Origin')) {
+    res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Vary', 'Origin');
+  }
+
+  // Log solo en staging/producción
   if (config.env !== 'development') {
     console.log('CORS Request:', {
       origin,
       method: req.method,
       path: req.path,
-      headers: req.headers
+      allowedOrigin: res.getHeader('Access-Control-Allow-Origin')
     });
   }
 
-  // En desarrollo, permitir cualquier origen. En staging/producción, verificar la lista
-  if (config.env === 'development' || (origin && allowedOrigins.includes(origin))) {
-    if (config.env !== 'development') {
-      console.log(`CORS: Permitiendo origen ${origin}`);
-    }
-    
-    // Establecer headers CORS
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Vary', 'Origin');
-
-    // Para requests OPTIONS (preflight)
-    if (req.method === 'OPTIONS') {
-      return res.status(204).end();
-    }
-  } else if (config.env !== 'development') {
-    console.log(`CORS: Origen no permitido ${origin}`);
+  // Para requests OPTIONS (preflight)
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
   }
 
   next();

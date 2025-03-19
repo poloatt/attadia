@@ -105,9 +105,7 @@ router.get('/google/url', (req, res) => {
       env: config.env,
       clientId: config.google.clientId ? 'configurado' : 'no configurado',
       callbackUrl: config.google.callbackUrl,
-      frontendUrl: config.frontendUrl,
-      headers: req.headers,
-      origin: req.headers.origin
+      frontendUrl: config.frontendUrl
     });
   }
 
@@ -127,26 +125,11 @@ router.get('/google/url', (req, res) => {
   
   // Solo loggear en staging/producción
   if (config.env !== 'development') {
-    console.log('URL de autenticación generada para ambiente:', {
+    console.log('URL de autenticación generada:', {
       env: config.env,
       redirectUri: config.google.callbackUrl,
-      scopes,
-      responseHeaders: res.getHeaders()
+      scopes
     });
-  }
-  
-  // En desarrollo, permitir cualquier origen
-  if (config.env === 'development') {
-    const origin = req.headers.origin;
-    if (origin) {
-      res.header('Access-Control-Allow-Origin', origin);
-      res.header('Access-Control-Allow-Credentials', 'true');
-      res.header('Vary', 'Origin');
-    }
-  } else if (req.headers.origin === 'https://staging.present.attadia.com') {
-    res.header('Access-Control-Allow-Origin', req.headers.origin);
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Vary', 'Origin');
   }
   
   res.json({ url: authUrl });
