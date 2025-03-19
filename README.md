@@ -52,7 +52,6 @@ Para desplegar en staging o producción, consulta la [Guía de Despliegue](docs/
 
 ## Mantenimiento
 
-<<<<<<< HEAD
 - Los logs se encuentran en `/var/log/`
 - Monitoreo del webhook: `tail -f /home/poloatt/presentprod/webhook/webhook.log`
 - Estado de los servicios: `docker-compose ps`
@@ -112,17 +111,9 @@ El ambiente de staging utiliza los siguientes archivos de configuración:
 
 - Frontend: https://staging.present.attadia.com
 - Backend API: https://api.staging.present.attadia.com
-=======
-- Los backups de la base de datos se realizan automáticamente
-- Se mantienen los últimos 7 backups
-- Todos los datos persistentes se almacenan en `/data`# Prueba de webhook
-# Test webhook Mon Mar 17 19:31:43 CET 2025
 
+## Webhooks
 
-   
- 
-
-    
-
-    
->>>>>>> staging
+El sistema utiliza webhooks para el despliegue automático:
+- Rama `main` -> Ambiente de producción (Puerto 9000)
+- Rama `staging` -> Ambiente de staging (Puerto 9001)
