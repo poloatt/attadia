@@ -1,23 +1,16 @@
-
 [Unit]
-Description=Present App Webhook Server
+Description=Present App Webhook Server (%i)
 After=network.target
 
 [Service]
 Type=simple
 User=poloatt
-# Puerto en el que escuchará el servidor webhook
-Environment=PORT=9000
-# Secreto compartido con GitHub para validar las solicitudes
-# Este valor debe coincidir con el secreto configurado en GitHub
-Environment=WEBHOOK_SECRET=StagingSecret_ATTADIA99
+# Cargar variables de entorno según el ambiente
+EnvironmentFile=/home/poloatt/present/.env.%i
 # Directorio de trabajo donde se encuentra el código
 WorkingDirectory=/home/poloatt/present
-<<<<<<< HEAD
-=======
 # Configurar el archivo de log
-Environment=LOG_FILE=/var/log/webhook-server/webhook-server.log
->>>>>>> staging
+Environment=LOG_FILE=/var/log/webhook-server/webhook-%i.log
 # Comando para iniciar el servidor webhook
 ExecStart=/usr/bin/node scripts/webhook-server.js
 # Reiniciar automáticamente si el servicio falla
