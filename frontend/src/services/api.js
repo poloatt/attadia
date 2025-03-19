@@ -2,9 +2,9 @@ import clienteAxios from '../config/axios';
 
 export const api = {
   // Auth
-  login: (credentials) => clienteAxios.post('/api/auth/login', credentials),
-  register: (userData) => clienteAxios.post('/api/auth/register', userData),
-  logout: () => clienteAxios.post('/api/auth/logout'),
+  login: (credentials) => clienteAxios.post('/auth/login', credentials),
+  register: (userData) => clienteAxios.post('/auth/register', userData),
+  logout: () => clienteAxios.post('/auth/logout'),
   
   // Perfil
   getPerfil: () => clienteAxios.get('/api/perfil'),
