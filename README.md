@@ -10,7 +10,7 @@ La documentación detallada del proyecto se encuentra en la carpeta `docs`:
 - [Configuración de OAuth](docs/OAUTH_CONFIG.md) - Configuración de autenticación con Google
 - [Flujo de Trabajo](docs/README.md) - Estructura de ramas y flujo de trabajo con Git
 
-## Estructura del Proyecto
+## Estructura del Proyecto   
 
 ```
 present/
@@ -54,4 +54,13 @@ Para desplegar en staging o producción, consulta la [Guía de Despliegue](docs/
 
 - Los backups de la base de datos se realizan automáticamente
 - Se mantienen los últimos 7 backups
-- Todos los datos persistentes se almacenan en `/data`
+- Todos los datos persistentes se almacenan en `/data`# Prueba de webhook
+# Test webhook Mon Mar 17 19:31:43 CET 2025
+
+
+   
+ 
+
+    
+
+    

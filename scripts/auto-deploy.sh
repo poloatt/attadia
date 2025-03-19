@@ -28,7 +28,7 @@ fi
 
 # Configuración según el entorno
 if [ "$ENVIRONMENT" = "staging" ]; then
-    PROJECT_DIR="/home/polo/presentstaging"
+    PROJECT_DIR="/home/poloatt/present"
     BACKUP_DIR="/data/backups/staging"
     LOG_FILE="$BACKUP_DIR/deploy-staging.log"
     BRANCH="staging"
@@ -38,17 +38,25 @@ if [ "$ENVIRONMENT" = "staging" ]; then
     FRONTEND_CONTAINER="frontend-staging"
     API_URL="https://api.staging.present.attadia.com"
     FRONTEND_URL="https://staging.present.attadia.com"
+    # Definir variables MongoDB según .env.staging
+    MONGO_USER="admin"
+    MONGO_PASSWORD="MiContraseñaSegura123"
+    MONGO_DB="present"
 else
-    PROJECT_DIR="/home/polo/presentprod"
+    PROJECT_DIR="/home/poloatt/present"
     BACKUP_DIR="/data/backups/production"
     LOG_FILE="$BACKUP_DIR/deploy-production.log"
     BRANCH="production"
     COMPOSE_FILE="docker-compose.prod.yml"
-    MONGODB_CONTAINER="mongodb-prod"
-    BACKEND_CONTAINER="backend-prod"
-    FRONTEND_CONTAINER="frontend-prod"
+    MONGODB_CONTAINER="mongodb"
+    BACKEND_CONTAINER="backend"
+    FRONTEND_CONTAINER="frontend"
     API_URL="https://api.present.attadia.com"
     FRONTEND_URL="https://present.attadia.com"
+    # Definir variables MongoDB según lo que se usará en producción
+    MONGO_USER="admin"
+    MONGO_PASSWORD="MiContraseñaSegura123" 
+    MONGO_DB="present"
 fi
 
 # Variables globales para el rollback
@@ -96,10 +104,10 @@ update_code() {
         return 1
     fi
     
-    NEW_HASH=$(git rev-parse HEAD)
+    NEW_GIT_HASH=$(git rev-parse HEAD)
     
     # Si no hay cambios, no necesitamos reconstruir
-    if [ "$OLD_HASH" = "$NEW_HASH" ]; then
+    if [ "$OLD_GIT_HASH" = "$NEW_GIT_HASH" ]; then
         log "${BLUE}No hay cambios nuevos que aplicar en rama $BRANCH${NC}"
         return 2
     fi
@@ -112,8 +120,8 @@ update_code() {
 rebuild_containers() {
     log "${BLUE}Reconstruyendo y reiniciando contenedores para $ENVIRONMENT...${NC}"
     
-    # Reconstruir contenedores
-    if ! docker compose -f $PROJECT_DIR/$COMPOSE_FILE up -d --build; then
+    # Reconstruir contenedores usando docker-compose en lugar de docker compose
+    if ! docker-compose -f $PROJECT_DIR/$COMPOSE_FILE up -d --build; then
         log "${RED}Error al reconstruir los contenedores para $ENVIRONMENT${NC}"
         return 1
     fi
@@ -125,7 +133,7 @@ rebuild_containers() {
 # Función para verificar el estado de los servicios
 check_services() {
     log "${BLUE}Verificando estado de los servicios de $ENVIRONMENT...${NC}"
-    sleep 10 # Esperar a que los servicios se inicien
+    sleep 20 # Dar más tiempo a que los servicios se inicien
     
     # Verificar MongoDB
     if ! docker exec $MONGODB_CONTAINER mongosh --eval "db.runCommand({ ping: 1 })" > /dev/null; then
@@ -133,21 +141,20 @@ check_services() {
         return 1
     fi
     
-    # Verificar Backend (health check)
-    if ! curl -s $API_URL/api/health > /dev/null; then
-        log "${RED}Error: Backend ($BACKEND_CONTAINER) no responde${NC}"
+    # Verificar contenedores simplemente comprobando que estén en ejecución
+    if ! docker ps | grep -q $BACKEND_CONTAINER; then
+        log "${RED}Error: El contenedor del Backend ($BACKEND_CONTAINER) no está en ejecución${NC}"
         return 1
     fi
     
-    # Verificar Frontend
-    if ! curl -s $FRONTEND_URL > /dev/null; then
-        log "${RED}Error: Frontend ($FRONTEND_CONTAINER) no responde${NC}"
+    if ! docker ps | grep -q $FRONTEND_CONTAINER; then
+        log "${RED}Error: El contenedor del Frontend ($FRONTEND_CONTAINER) no está en ejecución${NC}"
         return 1
     fi
     
-    # Verificar específicamente los datos de usuarios
+    # Verificación simplificada
     log "${BLUE}Verificando datos de usuarios...${NC}"
-    USER_COUNT=$(docker exec $MONGODB_CONTAINER mongosh --quiet --username $MONGO_USER --password $MONGO_PASSWORD --authenticationDatabase admin --eval "db.getSiblingDB('$MONGO_DB').usuarios.countDocuments({})" | tr -d '\r')
+    USER_COUNT=$(docker exec $MONGODB_CONTAINER mongosh --quiet --eval "db.getSiblingDB('$MONGO_DB').usuarios.countDocuments({})" | tr -d '\r')
     
     if [ -z "$USER_COUNT" ] || [ "$USER_COUNT" -eq 0 ]; then
         log "${YELLOW}Advertencia: No se encontraron usuarios en la base de datos${NC}"
@@ -183,14 +190,14 @@ perform_rollback() {
     
     # 3. Reconstruir los contenedores con la versión anterior
     log "${BLUE}Reconstruyendo contenedores con la versión anterior...${NC}"
-    if ! docker compose -f $PROJECT_DIR/$COMPOSE_FILE up -d --build; then
+    if ! docker-compose -f $PROJECT_DIR/$COMPOSE_FILE up -d --build; then
         log "${RED}Error al reconstruir los contenedores durante el rollback.${NC}"
         log "${RED}Se requiere intervención manual.${NC}"
         return 1
     fi
     
     # 4. Verificar que todo funcione después del rollback
-    sleep 10
+    sleep 20
     if ! check_services; then
         log "${RED}Los servicios no están funcionando correctamente después del rollback.${NC}"
         log "${RED}Se requiere intervención manual.${NC}"

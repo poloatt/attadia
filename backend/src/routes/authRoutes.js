@@ -8,23 +8,28 @@ import rateLimit from 'express-rate-limit';
 
 // Importar configuración según el entorno
 let config;
-switch (process.env.NODE_ENV) {
-  case 'production':
-    config = (await import('../config/config.js')).default;
-    break;
-  case 'staging':
-    config = (await import('../config/config.staging.js')).default;
-    break;
-  case 'development':
-  default:
-    config = (await import('../config/config.dev.js')).default;
-    break;
+try {
+  // Cargar directamente desde config.js para asegurar consistencia
+  config = (await import('../config/config.js')).default;
+} catch (error) {
+  console.error('Error al cargar la configuración en authRoutes, usando configuración básica:', error.message);
+  // Configuración básica por defecto
+  config = {
+    env: process.env.NODE_ENV || 'development',
+    frontendUrl: process.env.FRONTEND_URL || 'https://staging.present.attadia.com',
+    backendUrl: process.env.BACKEND_URL || 'https://api.staging.present.attadia.com',
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'https://api.staging.present.attadia.com/api/auth/google/callback'
+    }
+  };
 }
 
 console.log('Configuración de autenticación cargada:', {
   env: config.env,
   frontendUrl: config.frontendUrl,
-  backendUrl: config.backendUrl,
+  backendUrl: config.apiUrl || config.backendUrl,
   googleCallbackUrl: config.google.callbackUrl
 });
 
@@ -94,12 +99,17 @@ router.get('/google/url', (req, res) => {
     });
   }
 
-  console.log('Configuración de Google OAuth para ambiente:', {
-    env: config.env,
-    clientId: config.google.clientId ? 'configurado' : 'no configurado',
-    callbackUrl: config.google.callbackUrl,
-    frontendUrl: config.frontendUrl
-  });
+  // Solo loggear en staging/producción
+  if (config.env !== 'development') {
+    console.log('Configuración de Google OAuth para ambiente:', {
+      env: config.env,
+      clientId: config.google.clientId ? 'configurado' : 'no configurado',
+      callbackUrl: config.google.callbackUrl,
+      frontendUrl: config.frontendUrl,
+      headers: req.headers,
+      origin: req.headers.origin
+    });
+  }
 
   const scopes = [
     'openid',
@@ -115,11 +125,29 @@ router.get('/google/url', (req, res) => {
     `access_type=offline&` +
     `prompt=consent`;
   
-  console.log('URL de autenticación generada para ambiente:', {
-    env: config.env,
-    redirectUri: config.google.callbackUrl,
-    scopes
-  });
+  // Solo loggear en staging/producción
+  if (config.env !== 'development') {
+    console.log('URL de autenticación generada para ambiente:', {
+      env: config.env,
+      redirectUri: config.google.callbackUrl,
+      scopes,
+      responseHeaders: res.getHeaders()
+    });
+  }
+  
+  // En desarrollo, permitir cualquier origen
+  if (config.env === 'development') {
+    const origin = req.headers.origin;
+    if (origin) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Vary', 'Origin');
+    }
+  } else if (req.headers.origin === 'https://staging.present.attadia.com') {
+    res.header('Access-Control-Allow-Origin', req.headers.origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Vary', 'Origin');
+  }
   
   res.json({ url: authUrl });
 });

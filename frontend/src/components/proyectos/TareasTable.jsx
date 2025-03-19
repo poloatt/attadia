@@ -226,7 +226,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
     }
 
     try {
-      const response = await clienteAxios.patch(`/tareas/${tarea._id}`, {
+      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}`, {
         fechaInicio: nuevaFecha.toISOString(),
         pushCount: (tarea.pushCount || 0) + 1
       });
@@ -249,7 +249,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
   const handleTogglePriority = async (tarea) => {
     try {
       const nuevaPrioridad = tarea.prioridad === 'ALTA' ? 'BAJA' : 'ALTA';
-      const response = await clienteAxios.patch(`/tareas/${tarea._id}`, {
+      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}`, {
         prioridad: nuevaPrioridad
       });
       
@@ -271,7 +271,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
         completada: true
       }));
 
-      const response = await clienteAxios.patch(`/tareas/${tarea._id}/subtareas`, {
+      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}/subtareas`, {
         subtareas: nuevasSubtareas
       });
       
@@ -293,7 +293,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
         completada: false
       }));
 
-      const response = await clienteAxios.patch(`/tareas/${tarea._id}/subtareas`, {
+      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}/subtareas`, {
         subtareas: nuevasSubtareas
       });
       
@@ -309,7 +309,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
 
   const handleCancel = async (tarea) => {
     try {
-      const response = await clienteAxios.patch(`/tareas/${tarea._id}`, {
+      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}`, {
         estado: 'CANCELADA',
         completada: false
       });

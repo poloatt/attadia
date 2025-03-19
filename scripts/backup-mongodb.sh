@@ -25,14 +25,14 @@ if [ "$2" = "staging" ]; then
     MONGO_DB=${MONGO_DB:-"present"}
 else
     ENVIRONMENT="production"
-    MONGO_CONTAINER="mongodb-prod"
+    MONGO_CONTAINER="mongodb"
     MONGO_USER=${MONGO_USER:-"admin"}
     MONGO_PASSWORD=${MONGO_PASSWORD:-"MiContraseñaSegura123"}
     MONGO_DB=${MONGO_DB:-"present"}
 fi
 
 # Configuración
-BACKUP_DIR="$PROJECT_DIR/data/backups/mongodb/$ENVIRONMENT"
+BACKUP_DIR="/data/backups/$ENVIRONMENT"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 
 # Verificar si el contenedor de MongoDB está en ejecución

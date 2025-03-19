@@ -127,7 +127,7 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues }) => {
           break;
       }
 
-      const response = await clienteAxios.patch(`/tareas/${tarea._id}`, {
+      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}`, {
         fechaInicio: nuevaFecha.toISOString(),
         pushCount: (tarea.pushCount || 0) + 1
       });
@@ -158,7 +158,7 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues }) => {
       setIsUpdating(true);
       const nuevaPrioridad = tarea.prioridad === 'ALTA' ? 'BAJA' : 'ALTA';
       
-      const response = await clienteAxios.patch(`/tareas/${tarea._id}`, {
+      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}`, {
         prioridad: nuevaPrioridad
       });
       
@@ -186,7 +186,7 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues }) => {
         completada: true
       }));
 
-      const response = await clienteAxios.patch(`/tareas/${tarea._id}/subtareas`, {
+      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}/subtareas`, {
         subtareas: nuevasSubtareas
       });
       
@@ -214,7 +214,7 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues }) => {
         completada: false
       }));
 
-      const response = await clienteAxios.patch(`/tareas/${tarea._id}/subtareas`, {
+      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}/subtareas`, {
         subtareas: nuevasSubtareas
       });
       
@@ -237,7 +237,7 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues }) => {
     
     try {
       setIsUpdating(true);
-      const response = await clienteAxios.patch(`/tareas/${tarea._id}`, {
+      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}`, {
         estado: 'CANCELADA',
         completada: false
       });
