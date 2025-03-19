@@ -2,40 +2,57 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const config = {
-  env: process.env.NODE_ENV || 'development',
+// Configuración base para todos los ambientes
+const baseConfig = {
   port: parseInt(process.env.PORT || '5000', 10),
-  mongoUrl: process.env.MONGODB_URI || 'mongodb://mongodb:27017/present',
-  jwtSecret: process.env.JWT_SECRET || 'your-secret-key-development-only',
-  refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET || 'your-refresh-secret-development-only',
-  apiUrl: process.env.API_URL || process.env.BACKEND_URL || 'https://api.present.attadia.com',
-  frontendUrl: process.env.FRONTEND_URL || 'https://present.attadia.com',
-  corsOrigins: ['https://present.attadia.com', 'http://localhost:5173'],
-  sessionSecret: process.env.SESSION_SECRET || 'session-secret-development-only',
-  google: {
-    clientId: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'https://api.present.attadia.com/api/auth/google/callback'
-  },
-  isDev: process.env.NODE_ENV !== 'production'
+  sessionSecret: process.env.SESSION_SECRET || 'fallback_session_secret',
+  isDev: false
 };
 
-// Validación de configuración crítica en producción
-if (config.env === 'production') {
-  const requiredEnvVars = [
-    'JWT_SECRET',
-    'REFRESH_TOKEN_SECRET',
-    'SESSION_SECRET',
-    'MONGODB_URI',
-    'GOOGLE_CLIENT_ID',
-    'GOOGLE_CLIENT_SECRET'
-  ];
-
-  for (const envVar of requiredEnvVars) {
-    if (!process.env[envVar]) {
-      throw new Error(`La variable de entorno ${envVar} es requerida en producción`);
+// Configuraciones específicas por ambiente
+const configs = {
+  development: {
+    ...baseConfig,
+    env: 'development',
+    isDev: true,
+    mongoUrl: 'mongodb://localhost:27017/present',
+    frontendUrl: 'http://localhost:3000',
+    backendUrl: 'http://localhost:5000',
+    corsOrigins: ['http://localhost:3000'],
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackUrl: 'http://localhost:5000/api/auth/google/callback'
+    }
+  },
+  staging: {
+    ...baseConfig,
+    env: 'staging',
+    mongoUrl: 'mongodb://admin:MiContraseñaSegura123@mongodb:27017/present?authSource=admin',
+    frontendUrl: 'https://staging.present.attadia.com',
+    backendUrl: 'https://api.staging.present.attadia.com',
+    corsOrigins: ['https://staging.present.attadia.com'],
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackUrl: 'https://api.staging.present.attadia.com/api/auth/google/callback'
+    }
+  },
+  production: {
+    ...baseConfig,
+    env: 'production',
+    mongoUrl: 'mongodb://admin:MiContraseñaSegura123@mongodb:27017/present?authSource=admin',
+    frontendUrl: 'https://present.attadia.com',
+    backendUrl: 'https://api.present.attadia.com',
+    corsOrigins: ['https://present.attadia.com'],
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackUrl: 'https://api.present.attadia.com/api/auth/google/callback'
     }
   }
-}
+};
 
-export default config; 
+// Exportar la configuración según el ambiente
+const env = process.env.NODE_ENV || 'development';
+export default configs[env] || configs.development; 

@@ -2,10 +2,54 @@
 
 # Variables
 PROJECT_ID="present-webapp-449410"
+<<<<<<< HEAD
 REGION="southamerica-east1"
 VM_NAME="present-prod"
 DOMAIN="present.attadia.com"
 
+=======
+REGION="southamerica-west1"
+ZONE="southamerica-west1-c"
+VM_NAME="foco-prod"
+DOMAIN="present.attadia.com"
+
+# Instrucciones para desplegar en la VM existente
+echo "=== INSTRUCCIONES PARA DESPLEGAR EN VM EXISTENTE ==="
+echo "1. Conectarse a la VM: gcloud compute ssh --zone \"$ZONE\" \"$VM_NAME\" --project \"$PROJECT_ID\""
+echo "2. Crear directorio del proyecto: mkdir -p ~/present-prod"
+echo "3. Copiar el archivo docker-compose.prod.yml a ~/present-prod/docker-compose.yml"
+echo ""
+echo "=== CONFIGURACIÓN DEL ENTORNO EN LA VM ==="
+echo "Ejecute los siguientes comandos en la VM:"
+echo ""
+echo "# Crear directorios necesarios"
+echo "mkdir -p ~/present-prod/backend"
+echo "mkdir -p ~/present-prod/frontend"
+echo "mkdir -p ~/present-prod/nginx/conf.d"
+echo "mkdir -p ~/present-prod/ssl/nginx/ssl"
+echo "mkdir -p ~/present-prod/mongodb_backup"
+echo ""
+echo "# Instalar Docker si no está instalado"
+echo "sudo apt-get update"
+echo "sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common"
+echo "curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -"
+echo "sudo add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/debian \$(lsb_release -cs) stable\""
+echo "sudo apt-get update"
+echo "sudo apt-get install -y docker-ce docker-ce-cli containerd.io"
+echo "sudo usermod -aG docker \$USER"
+echo ""
+echo "# Instalar Docker Compose si no está instalado"
+echo "sudo curl -L \"https://github.com/docker/compose/releases/download/v2.24.6/docker-compose-\$(uname -s)-\$(uname -m)\" -o /usr/local/bin/docker-compose"
+echo "sudo chmod +x /usr/local/bin/docker-compose"
+echo ""
+echo "# Iniciar los servicios"
+echo "cd ~/present-prod && sudo docker-compose up -d"
+echo ""
+echo "=== NOTA ==="
+echo "Para configurar backups automáticos y otras tareas de mantenimiento, utilice el script setup-production.sh"
+echo "Para actualizaciones automáticas, utilice el script auto-deploy.sh"
+
+>>>>>>> staging
 # Configurar gcloud
 echo "Configurando gcloud..."
 gcloud config set project $PROJECT_ID
@@ -60,7 +104,11 @@ version: '3.8'
 services:
   mongodb:
     image: mongo:latest
+<<<<<<< HEAD
     container_name: mongodb-prod
+=======
+    container_name: mongodb
+>>>>>>> staging
     restart: always
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
@@ -92,7 +140,11 @@ services:
       args:
         - BUILD_ENV=production
     image: present/backend:production
+<<<<<<< HEAD
     container_name: backend-prod
+=======
+    container_name: backend
+>>>>>>> staging
     restart: always
     expose:
       - "5000"
@@ -101,7 +153,11 @@ services:
     environment:
       - NODE_ENV=production
       - ENVIRONMENT=production
+<<<<<<< HEAD
       - MONGODB_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-MiContraseñaSegura123}@mongodb-prod:27017/${MONGO_DB:-present}?authSource=admin
+=======
+      - MONGODB_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-MiContraseñaSegura123}@mongodb:27017/${MONGO_DB:-present}?authSource=admin
+>>>>>>> staging
     depends_on:
       mongodb:
         condition: service_healthy
@@ -127,7 +183,11 @@ services:
       args:
         - BUILD_ENV=production
     image: present/frontend:production
+<<<<<<< HEAD
     container_name: frontend-prod
+=======
+    container_name: frontend
+>>>>>>> staging
     restart: always
     ports:
       - "80:80"
@@ -177,7 +237,11 @@ mkdir -p ~/present-prod/mongodb_backup
 cat > ~/present-prod/backend/.env.prod << 'EOL'
 NODE_ENV=production
 PORT=5000
+<<<<<<< HEAD
 MONGODB_URI=mongodb://admin:MiContraseñaSegura123@mongodb-prod:27017/present?authSource=admin
+=======
+MONGODB_URI=mongodb://admin:MiContraseñaSegura123@mongodb:27017/present?authSource=admin
+>>>>>>> staging
 JWT_SECRET=tu_secreto_jwt_seguro
 GOOGLE_CLIENT_ID=tu_google_client_id
 GOOGLE_CLIENT_SECRET=tu_google_client_secret
@@ -255,7 +319,11 @@ server {
     ssl_certificate_key /etc/nginx/ssl/privkey.pem;
     
     location /api {
+<<<<<<< HEAD
         proxy_pass http://backend-prod:5000;
+=======
+        proxy_pass http://backend:5000;
+>>>>>>> staging
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';

@@ -1,99 +1,58 @@
 # Present - Sistema de Gestión
 
-## Estructura de Ramas
+Sistema de gestión financiera y de proyectos para empresas y profesionales independientes.
 
-El proyecto utiliza el siguiente flujo de trabajo con Git:
+## Documentación
 
-- `main`: Rama principal, contiene el código estable
-- `develop`: Rama de desarrollo, donde se integran las nuevas características
-- `produccion`: Rama de producción, conectada al sistema de despliegue automático
-- `feature/*`: Ramas para nuevas características
+La documentación detallada del proyecto se encuentra en la carpeta `docs`:
 
-## Flujo de Trabajo
+- [Guía de Despliegue](docs/DEPLOYMENT.md) - Instrucciones para desplegar en staging y producción
+- [Configuración de OAuth](docs/OAUTH_CONFIG.md) - Configuración de autenticación con Google
+- [Flujo de Trabajo](docs/README.md) - Estructura de ramas y flujo de trabajo con Git
 
-1. **Desarrollo de Nuevas Características**:
-   ```bash
-   # Crear nueva rama feature desde develop
-   git checkout develop
-   git pull origin develop
-   git checkout -b feature/nueva-funcionalidad
+## Estructura del Proyecto   
 
-   # Desarrollar y hacer commits
-   git add .
-   git commit -m "feat: descripción del cambio"
-   git push origin feature/nueva-funcionalidad
-   ```
+```
+present/
+├── backend/         # API REST (Node.js, Express, MongoDB)
+├── frontend/        # Interfaz de usuario (React, Vite)
+├── nginx/           # Configuración de Nginx para producción
+├── scripts/         # Scripts de despliegue y mantenimiento
+├── docs/            # Documentación del proyecto
+├── config/          # Archivos de configuración
+│   └── mongodb/     # Configuración de MongoDB
+├── data/            # Datos persistentes
+│   └── backups/     # Backups de la base de datos
+│       └── mongodb/ # Backups de MongoDB
+├── examples/        # Ejemplos de configuración
+├── temp/            # Archivos temporales (ignorados por git)
+└── docker-compose.* # Configuraciones para diferentes entornos
+```
 
-2. **Integración a Develop**:
-   ```bash
-   # Cuando la feature está lista
-   git checkout develop
-   git pull origin develop
-   git merge feature/nueva-funcionalidad
-   git push origin develop
-   ```
+## Inicio Rápido
 
-3. **Despliegue a Producción**:
-   ```bash
-   # Cuando develop está estable
-   git checkout produccion
-   git pull origin produccion
-   git merge develop
-   git push origin produccion  # Esto activará el despliegue automático
-   ```
+### Desarrollo Local
 
-## Configuración del Proyecto
+```bash
+# Clonar el repositorio
+git clone https://github.com/poloatt/present.git
+cd present
 
-1. **Configuración Inicial**:
-   ```bash
-   # Clonar el repositorio
-   git clone https://github.com/poloatt/present.git
-   cd present
+# Instalar dependencias
+cd frontend && npm install
+cd ../backend && npm install
 
-   # Instalar dependencias
-   cd frontend && npm install
-   cd ../backend && npm install
-   ```
+# Iniciar servicios en modo desarrollo
+docker-compose up -d
+```
 
-2. **Archivos de Configuración**:
-   - Copiar los archivos de ejemplo:
-     ```bash
-     cp backend/src/config/config.example.js backend/src/config/config.js
-     cp frontend/src/config.example.js frontend/src/config.js
-     ```
-   - Editar los archivos con las configuraciones necesarias
+### Despliegue
 
-3. **Variables de Entorno**:
-   - Crear archivos `.env` basados en `.env.example`
-   - Configurar las variables necesarias para cada entorno
-
-## Despliegue
-
-El sistema utiliza despliegue automático a través de webhooks:
-
-1. Los pushes a la rama `produccion` activan el webhook
-2. El sistema ejecuta automáticamente:
-   - Pull de los últimos cambios
-   - Reconstrucción de contenedores Docker
-   - Reinicio de servicios
-
-## Desarrollo Local
-
-1. **Entorno de Desarrollo**:
-   ```bash
-   # Iniciar servicios en modo desarrollo
-   docker-compose up -d
-   ```
-
-2. **Pruebas**:
-   ```bash
-   # Ejecutar pruebas
-   cd backend && npm test
-   cd frontend && npm test
-   ```
+Para desplegar en staging o producción, consulta la [Guía de Despliegue](docs/DEPLOYMENT.md).
 
 ## Mantenimiento
 
+<<<<<<< HEAD
 - Los logs se encuentran en `/var/log/`
 - Monitoreo del webhook: `tail -f /home/poloatt/presentprod/webhook/webhook.log`
 - Estado de los servicios: `docker-compose ps`
@@ -153,3 +112,17 @@ El ambiente de staging utiliza los siguientes archivos de configuración:
 
 - Frontend: https://staging.present.attadia.com
 - Backend API: https://api.staging.present.attadia.com
+=======
+- Los backups de la base de datos se realizan automáticamente
+- Se mantienen los últimos 7 backups
+- Todos los datos persistentes se almacenan en `/data`# Prueba de webhook
+# Test webhook Mon Mar 17 19:31:43 CET 2025
+
+
+   
+ 
+
+    
+
+    
+>>>>>>> staging

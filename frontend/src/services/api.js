@@ -25,10 +25,10 @@ export const api = {
 
   // Tareas
   getTareas: () => clienteAxios.get('/api/tareas'),
-  getTareasByProyecto: (proyectoId) => clienteAxios.get(`/tareas/proyecto/${proyectoId}`),
+  getTareasByProyecto: (proyectoId) => clienteAxios.get(`/api/tareas/proyecto/${proyectoId}`),
   createTarea: (data) => clienteAxios.post('/api/tareas', data),
-  updateTarea: (id, data) => clienteAxios.put(`/tareas/${id}`, data),
-  deleteTarea: (id) => clienteAxios.delete(`/tareas/${id}`),
+  updateTarea: (id, data) => clienteAxios.put(`/api/tareas/${id}`, data),
+  deleteTarea: (id) => clienteAxios.delete(`/api/tareas/${id}`),
 
   // Transacciones
   getTransacciones: () => clienteAxios.get('/api/transacciones'),

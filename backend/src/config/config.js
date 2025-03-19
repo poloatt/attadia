@@ -1,73 +1,96 @@
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const environment = process.env.ENVIRONMENT || process.env.NODE_ENV || 'development';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Determinar el ambiente
+const environment = process.env.NODE_ENV || 'development';
+console.log('Ambiente detectado:', environment);
 
 // Cargar el archivo .env correspondiente
-dotenv.config({ path: `.env.${environment}` });
+const envPath = path.resolve(__dirname, '../../.env.' + environment);
+console.log('Cargando configuración desde:', envPath);
+dotenv.config({ path: envPath });
 
-// Función para validar variables de entorno requeridas
+// Validar variables de entorno requeridas
 const validateRequiredEnvVars = () => {
   const requiredEnvVars = [
     'JWT_SECRET',
     'REFRESH_TOKEN_SECRET',
     'SESSION_SECRET',
-    'MONGODB_URI',
+    'MONGO_URL',
     'GOOGLE_CLIENT_ID',
     'GOOGLE_CLIENT_SECRET',
     'FRONTEND_URL',
     'BACKEND_URL',
-    'GOOGLE_CALLBACK_URL'
+    'GOOGLE_CALLBACK_URL',
+    'CORS_ORIGINS'
   ];
 
   for (const envVar of requiredEnvVars) {
     if (!process.env[envVar]) {
-      throw new Error(`La variable de entorno ${envVar} es requerida en ${environment}`);
+      console.warn(`Advertencia: La variable de entorno ${envVar} no está definida en ${environment}`);
     }
   }
 };
 
-// Configuración base
+// Configuración base para todos los ambientes
 const baseConfig = {
-  env: environment,
   port: parseInt(process.env.PORT || '5000', 10),
-  mongoUrl: process.env.MONGODB_URI || `mongodb://mongodb-${environment}:27017/present`,
-  jwtSecret: process.env.JWT_SECRET,
-  refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET,
-  apiUrl: process.env.BACKEND_URL,
-  frontendUrl: process.env.FRONTEND_URL,
-  corsOrigins: [
-    process.env.FRONTEND_URL,
-    process.env.BACKEND_URL
-  ].filter(Boolean),
-  sessionSecret: process.env.SESSION_SECRET,
-  google: {
-    clientId: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackUrl: process.env.GOOGLE_CALLBACK_URL
-  },
-  isDev: environment === 'development'
+  sessionSecret: process.env.SESSION_SECRET || 'fallback_session_secret',
+  jwtSecret: process.env.JWT_SECRET || 'fallback_jwt_secret',
+  refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET || 'fallback_refresh_token_secret',
+  isDev: false
 };
 
-// Cargar configuración según el ambiente
-let config;
+// Configuraciones específicas por ambiente
+const configs = {
+  development: {
+    ...baseConfig,
+    env: 'development',
+    isDev: true,
+    mongoUrl: process.env.MONGO_URL || 'mongodb://localhost:27017/present',
+    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+    backendUrl: process.env.BACKEND_URL || 'http://localhost:5000',
+    corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:3000'],
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback'
+    }
+  },
+  staging: {
+    ...baseConfig,
+    env: 'staging',
+    mongoUrl: process.env.MONGO_URL || process.env.MONGODB_URI || `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@mongodb:27017/${process.env.MONGO_DB}?authSource=admin`,
+    frontendUrl: process.env.FRONTEND_URL,
+    backendUrl: process.env.BACKEND_URL,
+    corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [],
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackUrl: process.env.GOOGLE_CALLBACK_URL
+    }
+  },
+  production: {
+    ...baseConfig,
+    env: 'production',
+    mongoUrl: process.env.MONGO_URL || process.env.MONGODB_URI || `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@mongodb:27017/${process.env.MONGO_DB}?authSource=admin`,
+    frontendUrl: process.env.FRONTEND_URL,
+    backendUrl: process.env.BACKEND_URL,
+    corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['https://present.attadia.com'],
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackUrl: process.env.GOOGLE_CALLBACK_URL
+    }
+  }
+};
 
-if (environment === 'development') {
-  const devConfig = await import('./config.dev.js');
-  config = devConfig.default;
-} else {
-  validateRequiredEnvVars();
-  config = baseConfig;
+// Validar variables de entorno
+validateRequiredEnvVars();
 
-  console.log(`Configuración de MongoDB en ${environment}:`, {
-    url: config.mongoUrl,
-    environment: config.env
-  });
-
-  console.log(`Configuración de URLs en ${environment}:`, {
-    frontend: config.frontendUrl,
-    backend: config.apiUrl,
-    corsOrigins: config.corsOrigins
-  });
-}
-
-export default config;
+// Exportar la configuración según el ambiente
+export default configs[environment] || configs.development;

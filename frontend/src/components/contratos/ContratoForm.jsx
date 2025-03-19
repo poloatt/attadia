@@ -230,6 +230,15 @@ const ContratoForm = ({
   const [selectedCuenta, setSelectedCuenta] = useState(null);
 
   useEffect(() => {
+    console.log('initialData en ContratoForm:', initialData);
+    console.log('relatedData en ContratoForm:', {
+      propiedades: relatedData.propiedades?.length || 0,
+      habitaciones: relatedData.habitaciones?.length || 0,
+      inquilinos: relatedData.inquilinos?.length || 0,
+      cuentas: relatedData.cuentas?.length || 0
+    });
+    console.log('Cuenta en initialData:', initialData.cuenta);
+    
     if (relatedData.propiedades?.length > 0 && initialData.propiedad) {
       const propiedad = relatedData.propiedades.find(p => 
         p._id === (initialData.propiedad?._id || initialData.propiedad)
@@ -259,10 +268,54 @@ const ContratoForm = ({
     }
 
     if (relatedData.cuentas?.length > 0 && initialData.cuenta) {
-      const cuenta = relatedData.cuentas.find(c => 
-        c._id === (initialData.cuenta?._id || initialData.cuenta)
-      );
-      setSelectedCuenta(cuenta || null);
+      console.log('Buscando cuenta en relatedData:', initialData.cuenta);
+      
+      // Obtener el ID de la cuenta de manera más robusta
+      let cuentaId;
+      if (typeof initialData.cuenta === 'object' && initialData.cuenta?._id) {
+        cuentaId = initialData.cuenta._id;
+      } else if (typeof initialData.cuenta === 'string') {
+        cuentaId = initialData.cuenta;
+      } else if (initialData.cuenta?.id) {
+        cuentaId = initialData.cuenta.id;
+      }
+      
+      console.log('ID de cuenta a buscar:', cuentaId);
+      console.log('Cuentas disponibles:', relatedData.cuentas.map(c => ({ id: c._id, nombre: c.nombre })));
+      
+      // Buscar la cuenta por ID
+      let cuenta = null;
+      if (cuentaId) {
+        cuenta = relatedData.cuentas.find(c => 
+          c._id === cuentaId || c.id === cuentaId
+        );
+      }
+      
+      console.log('Cuenta encontrada:', cuenta);
+      
+      if (cuenta) {
+        setSelectedCuenta(cuenta);
+        setFormData(prev => ({
+          ...prev,
+          cuenta: cuenta._id || cuenta.id
+        }));
+      } else {
+        console.warn('No se encontró la cuenta con ID:', cuentaId);
+        // Si no se encuentra la cuenta, intentar buscarla por nombre
+        if (typeof initialData.cuenta === 'object' && initialData.cuenta?.nombre) {
+          const cuentaPorNombre = relatedData.cuentas.find(c => 
+            c.nombre === initialData.cuenta.nombre
+          );
+          if (cuentaPorNombre) {
+            console.log('Cuenta encontrada por nombre:', cuentaPorNombre);
+            setSelectedCuenta(cuentaPorNombre);
+            setFormData(prev => ({
+              ...prev,
+              cuenta: cuentaPorNombre._id || cuentaPorNombre.id
+            }));
+          }
+        }
+      }
     }
   }, [initialData, relatedData]);
 
@@ -320,6 +373,7 @@ const ContratoForm = ({
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log('Iniciando submit con datos:', formData);
+    console.log('Cuenta seleccionada:', selectedCuenta);
     
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length > 0) {
@@ -335,7 +389,7 @@ const ContratoForm = ({
         propiedad: formData.propiedad || null,
         habitacion: formData.habitacion || null,
         inquilino: formData.esMantenimiento ? null : (formData.inquilino || []),
-        cuenta: formData.cuenta || null,
+        cuenta: formData.cuenta || (selectedCuenta ? selectedCuenta._id : null),
         montoMensual: formData.esMantenimiento ? 0 : parseFloat(formData.montoMensual || 0),
         deposito: parseFloat(formData.deposito || 0),
         fechaInicio: formData.fechaInicio?.toISOString(),
@@ -351,6 +405,13 @@ const ContratoForm = ({
         throw new Error('Las fechas son requeridas');
       }
 
+      // Asegurarse de que la cuenta esté presente si no es un contrato de mantenimiento
+      if (!dataToSubmit.esMantenimiento && !dataToSubmit.cuenta) {
+        if (initialData.cuenta) {
+          dataToSubmit.cuenta = typeof initialData.cuenta === 'object' ? initialData.cuenta._id : initialData.cuenta;
+        }
+      }
+
       // Eliminar campos null o undefined
       Object.keys(dataToSubmit).forEach(key => {
         if (dataToSubmit[key] === null || dataToSubmit[key] === undefined) {
@@ -359,11 +420,9 @@ const ContratoForm = ({
       });
 
       console.log('Datos preparados para envío:', dataToSubmit);
-      if (initialData._id) {
-        await clienteAxios.put(`/api/contratos/${initialData._id}`, dataToSubmit);
-      } else {
-        await clienteAxios.post('/api/contratos', dataToSubmit);
-      }
+      
+      // Usar onSubmit para enviar los datos al componente padre
+      await onSubmit(dataToSubmit);
       onClose(); // Cerrar el formulario después de enviar exitosamente
     } catch (error) {
       console.error('Error en submit:', error);

@@ -80,6 +80,10 @@ class ContratosController extends BaseController {
                 path: 'moneda',
                 select: 'nombre simbolo'
               }
+            },
+            {
+              path: 'moneda',
+              select: 'nombre simbolo codigo'
             }
           ],
           sort: { createdAt: 'desc' }
@@ -132,6 +136,11 @@ class ContratosController extends BaseController {
         cuenta: req.body.esMantenimiento ? null : (req.body.cuentaId || req.body.cuenta),
         moneda: req.body.esMantenimiento ? null : moneda
       };
+
+      // Solo agregar el usuario si está disponible
+      if (req.user && req.user.id) {
+        data.usuario = req.user.id;
+      }
 
       console.log('Datos procesados:', data);
 
@@ -264,28 +273,77 @@ class ContratosController extends BaseController {
   async update(req, res) {
     try {
       const { id } = req.params;
+      console.log('Actualizando contrato:', id);
+      console.log('Datos recibidos:', req.body);
+      
+      // Buscar el contrato existente primero
+      const existingContrato = await this.Model.findById(id)
+        .populate(['propiedad', 'inquilino', 'habitacion', 'cuenta', 'moneda']);
+      
+      if (!existingContrato) {
+        return res.status(404).json({ error: 'Contrato no encontrado' });
+      }
+      
+      console.log('Contrato existente:', {
+        _id: existingContrato._id,
+        propiedad: existingContrato.propiedad?._id,
+        inquilino: existingContrato.inquilino,
+        habitacion: existingContrato.habitacion?._id,
+        cuenta: existingContrato.cuenta?._id,
+        moneda: existingContrato.moneda?._id
+      });
+      
+      // Procesar los datos recibidos
       const data = {
         ...req.body,
-        fechaInicio: new Date(req.body.fechaInicio),
-        fechaFin: req.body.fechaFin ? new Date(req.body.fechaFin) : null,
-        montoMensual: parseFloat(req.body.montoMensual),
-        deposito: req.body.deposito ? parseFloat(req.body.deposito) : null,
-        propiedad: req.body.propiedadId,
-        inquilino: req.body.inquilinoId,
-        habitacion: req.body.habitacionId,
-        moneda: req.body.monedaId
+        fechaInicio: req.body.fechaInicio ? new Date(req.body.fechaInicio) : undefined,
+        fechaFin: req.body.fechaFin ? new Date(req.body.fechaFin) : undefined,
+        montoMensual: req.body.montoMensual !== undefined ? parseFloat(req.body.montoMensual) : undefined,
+        deposito: req.body.deposito !== undefined ? parseFloat(req.body.deposito) : undefined,
+        propiedad: req.body.propiedad || req.body.propiedadId || existingContrato.propiedad?._id,
+        inquilino: req.body.inquilino || req.body.inquilinoId || existingContrato.inquilino,
+        habitacion: req.body.habitacion || req.body.habitacionId || existingContrato.habitacion?._id,
+        cuenta: req.body.cuenta || req.body.cuentaId || existingContrato.cuenta?._id,
+        moneda: req.body.moneda || req.body.monedaId || existingContrato.moneda?._id
       };
 
+      // Solo agregar el usuario si está disponible
+      if (req.user && req.user.id) {
+        data.usuario = req.user.id;
+      } else if (existingContrato.usuario) {
+        data.usuario = existingContrato.usuario;
+      }
+
+      // Si no es un contrato de mantenimiento, asegurarse de que tenga cuenta y moneda
+      if (!data.esMantenimiento) {
+        if (!data.cuenta && existingContrato.cuenta) {
+          data.cuenta = existingContrato.cuenta._id;
+        }
+        
+        // Si tiene cuenta pero no moneda, obtener la moneda de la cuenta
+        if (data.cuenta && !data.moneda) {
+          try {
+            const Cuentas = mongoose.model('Cuentas');
+            const cuenta = await Cuentas.findById(data.cuenta).populate('moneda');
+            if (cuenta && cuenta.moneda) {
+              data.moneda = cuenta.moneda._id;
+            }
+          } catch (error) {
+            console.error('Error al obtener moneda de la cuenta:', error);
+          }
+        }
+      }
+
+      console.log('Datos procesados para actualización:', data);
+
+      // Actualizar el contrato
       const contrato = await this.Model.findByIdAndUpdate(
         id,
         data,
-        { new: true }
-      ).populate(['propiedad', 'inquilino', 'habitacion', 'moneda']);
+        { new: true, runValidators: true }
+      ).populate(['propiedad', 'inquilino', 'habitacion', 'cuenta', 'moneda']);
 
-      if (!contrato) {
-        return res.status(404).json({ error: 'Contrato no encontrado' });
-      }
-
+      console.log('Contrato actualizado:', contrato);
       res.json(this.formatResponse(contrato));
     } catch (error) {
       console.error('Error al actualizar contrato:', error);

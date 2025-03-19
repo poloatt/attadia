@@ -5,6 +5,7 @@ import session from 'express-session';
 import { passportConfig } from './config/passport.js';
 import { router } from './routes/index.js';
 import authRoutes from './routes/authRoutes.js';
+import webhookRoutes from './routes/webhookRoutes.js';
 import morgan from 'morgan';
 import connectDB from './config/database/mongodb.js';
 import { initializeMonedas } from './config/initData.js';
@@ -12,17 +13,18 @@ import MongoStore from 'connect-mongo';
 
 // Importar configuración según el entorno
 let config;
-switch (process.env.NODE_ENV) {
-  case 'production':
-    config = (await import('./config/config.js')).default;
-    break;
-  case 'staging':
-    config = (await import('./config/config.staging.js')).default;
-    break;
-  case 'development':
-  default:
-    config = (await import('./config/config.dev.js')).default;
-    break;
+try {
+  config = (await import('./config/config.js')).default;
+} catch (error) {
+  console.error('Error al cargar la configuración, usando configuración básica:', error.message);
+  config = {
+    env: process.env.NODE_ENV || 'development',
+    port: parseInt(process.env.PORT || '5000', 10),
+    mongoUrl: process.env.MONGO_URL || 'mongodb://mongodb:27017/present?authSource=admin',
+    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+    corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:3000'],
+    sessionSecret: process.env.SESSION_SECRET || 'fallback_session_secret'
+  };
 }
 
 const app = express();
@@ -45,13 +47,68 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Configuración de CORS
-const corsOptions = {
-  origin: config.corsOrigins,
-  credentials: true,
-  optionsSuccessStatus: 200
-};
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const corsOrigins = Array.isArray(config.corsOrigins) ? config.corsOrigins : [config.frontendUrl];
 
-app.use(cors(corsOptions));
+  // Log solo en staging/producción
+  if (config.env !== 'development') {
+    console.log('CORS Request:', {
+      env: config.env,
+      origin,
+      method: req.method,
+      path: req.path,
+      allowedOrigins: corsOrigins,
+      headers: req.headers
+    });
+  }
+
+  // Permitir peticiones de GitHub para el webhook
+  if (req.path === '/webhook') {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, X-Hub-Signature-256');
+    if (req.method === 'OPTIONS') {
+      return res.status(204).end();
+    }
+    return next();
+  }
+
+  // En desarrollo permitir cualquier origen, en otros ambientes solo los configurados
+  if (config.env === 'development' || (origin && corsOrigins.includes(origin))) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+    res.header('Vary', 'Origin');
+  }
+
+  // Manejar preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+
+  next();
+});
+
+// Middleware para verificar headers de respuesta solo en staging/producción
+if (config.env !== 'development') {
+  app.use((req, res, next) => {
+    const oldJson = res.json;
+    res.json = function(...args) {
+      const headers = res.getHeaders();
+      console.log('Response Headers:', {
+        origin: headers['access-control-allow-origin'],
+        methods: headers['access-control-allow-methods'],
+        credentials: headers['access-control-allow-credentials'],
+        vary: headers.vary
+      });
+      return oldJson.apply(res, args);
+    };
+    next();
+  });
+}
+
 app.use(cookieParser(config.sessionSecret));
 
 // Configuración de sesión
@@ -108,6 +165,7 @@ app.get('/health', (req, res) => {
 // Rutas
 app.use('/api/auth', authRoutes);
 app.use('/api', router);
+app.use('/webhook', webhookRoutes);
 
 // Manejo de errores global
 app.use((err, req, res, next) => {
@@ -121,12 +179,18 @@ app.use((err, req, res, next) => {
 const startServer = async () => {
   try {
     await connectDB();
+    console.log('MongoDB conectado exitosamente a mongodb-staging');
     console.log('MongoDB conectado exitosamente');
     
     await initializeMonedas();
     console.log('Datos iniciales cargados');
     
     app.listen(config.port, () => {
+      // Asegurarse de que corsOrigins sea un array antes de usar join
+      const corsOriginsStr = Array.isArray(config.corsOrigins) 
+        ? config.corsOrigins.join(', ')
+        : String(config.corsOrigins);
+        
       console.log(`
 =================================
 🚀 Servidor iniciado
@@ -134,7 +198,7 @@ const startServer = async () => {
 🌍 Puerto: ${config.port}
 🔧 Ambiente: ${config.env}
 🔗 Frontend URL: ${config.frontendUrl}
-🛡️ CORS: ${config.isDev ? 'Todos los orígenes (dev)' : config.corsOrigins.join(', ')}
+🛡️ CORS: ${config.isDev ? 'Todos los orígenes (dev)' : corsOriginsStr}
 =================================
       `);
     });

@@ -60,7 +60,7 @@ const MonedaCard = ({ moneda, onEdit, onDelete, onToggleActive, onColorChange, s
       try {
         setLoadingBalance(true);
         const today = new Date().toISOString().split('T')[0];
-        const response = await clienteAxios.get(`/monedas/${moneda.id}/balance`, {
+        const response = await clienteAxios.get(`/api/monedas/${moneda.id}/balance`, {
           params: {
             fechaFin: today,
             estado: 'PAGADO'
@@ -297,25 +297,23 @@ export function Monedas() {
     try {
       let response;
       if (editingMoneda) {
-        response = await clienteAxios.put(`/monedas/${editingMoneda.id}`, formData);
-        setMonedas(prev => prev.map(m => m.id === editingMoneda.id ? response.data : m));
+        response = await clienteAxios.put(`/api/monedas/${editingMoneda.id}`, formData);
         enqueueSnackbar('Moneda actualizada exitosamente', { variant: 'success' });
+        setMonedas(prev => prev.map(m => 
+          m.id === editingMoneda.id ? { ...m, ...formData } : m
+        ));
       } else {
         response = await clienteAxios.post('/api/monedas', formData);
-        setMonedas(prev => [...prev, response.data]);
         enqueueSnackbar('Moneda creada exitosamente', { variant: 'success' });
+        setMonedas(prev => [...prev, response.data]);
       }
       setIsFormOpen(false);
       setEditingMoneda(null);
-      await fetchMonedas();
     } catch (error) {
-      console.error('Error:', error);
-      enqueueSnackbar(
-        error.response?.data?.error || 'Error al guardar la moneda', 
-        { variant: 'error' }
-      );
+      console.error('Error al guardar moneda:', error);
+      enqueueSnackbar('Error al guardar moneda', { variant: 'error' });
     }
-  }, [enqueueSnackbar, editingMoneda, fetchMonedas]);
+  }, [editingMoneda, enqueueSnackbar]);
 
   const handleEdit = useCallback((moneda) => {
     setEditingMoneda(moneda);
@@ -324,7 +322,7 @@ export function Monedas() {
 
   const handleDelete = useCallback(async (id) => {
     try {
-      await clienteAxios.delete(`/monedas/${id}`);
+      await clienteAxios.delete(`/api/monedas/${id}`);
       setMonedas(prev => prev.filter(m => m.id !== id));
       enqueueSnackbar('Moneda eliminada exitosamente', { variant: 'success' });
     } catch (error) {
@@ -336,7 +334,7 @@ export function Monedas() {
   const handleToggleActive = useCallback(async (id) => {
     try {
       const moneda = monedas.find(m => m.id === id);
-      await clienteAxios.patch(`/monedas/${id}/toggle-active`);
+      await clienteAxios.patch(`/api/monedas/${id}/toggle-active`);
       setMonedas(prev => prev.map(m => 
         m.id === id ? { ...m, activa: !m.activa } : m
       ));
@@ -352,7 +350,7 @@ export function Monedas() {
 
   const handleColorChange = useCallback(async (id, color) => {
     try {
-      const response = await clienteAxios.put(`/monedas/${id}`, { color });
+      const response = await clienteAxios.put(`/api/monedas/${id}`, { color });
       setMonedas(prev => prev.map(m => m.id === id ? response.data : m));
       enqueueSnackbar('Color actualizado exitosamente', { variant: 'success' });
     } catch (error) {

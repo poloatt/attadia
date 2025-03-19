@@ -86,7 +86,7 @@ export function Archivo() {
 
       if (editingTarea) {
         console.log('Actualizando tarea:', editingTarea._id);
-        response = await clienteAxios.put(`/tareas/${editingTarea._id}`, datosAEnviar);
+        response = await clienteAxios.put(`/api/tareas/${editingTarea._id}`, datosAEnviar);
         enqueueSnackbar('Tarea actualizada exitosamente', { variant: 'success' });
       } else {
         console.log('Creando nueva tarea');
@@ -118,7 +118,7 @@ export function Archivo() {
 
   const handleDelete = useCallback(async (id) => {
     try {
-      await clienteAxios.delete(`/tareas/${id}`);
+      await clienteAxios.delete(`/api/tareas/${id}`);
       enqueueSnackbar('Tarea eliminada exitosamente', { variant: 'success' });
       await fetchTareas();
     } catch (error) {
@@ -160,7 +160,26 @@ export function Archivo() {
         ]}
       />
 
-      <Box sx={{ py: 2 }}>
+      <Box 
+        sx={{ 
+          py: 2,
+          height: 'calc(100vh - 140px)', // Altura calculada restando el espacio del toolbar y otros elementos
+          overflowY: 'auto',
+          '&::-webkit-scrollbar': {
+            width: '8px',
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: 'rgba(0,0,0,0.1)',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(0,0,0,0.2)',
+            borderRadius: '4px',
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            backgroundColor: 'rgba(0,0,0,0.3)',
+          },
+        }}
+      >
         <TareasTable
           tareas={tareas}
           onEdit={handleEdit}

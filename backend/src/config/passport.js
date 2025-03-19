@@ -7,17 +7,23 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 
 // Importar configuración según el entorno
 let config;
-switch (process.env.NODE_ENV) {
-  case 'production':
-    config = (await import('./config.js')).default;
-    break;
-  case 'staging':
-    config = (await import('./config.staging.js')).default;
-    break;
-  case 'development':
-  default:
-    config = (await import('./config.dev.js')).default;
-    break;
+try {
+  // Cargar directamente desde config.js para asegurar consistencia
+  config = (await import('./config.js')).default;
+} catch (error) {
+  console.error('Error al cargar la configuración en passport, usando configuración básica:', error.message);
+  // Configuración básica por defecto
+  config = {
+    env: process.env.NODE_ENV || 'development',
+    jwtSecret: process.env.JWT_SECRET || 'fallback_jwt_secret',
+    refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET || 'fallback_refresh_secret',
+    frontendUrl: process.env.FRONTEND_URL || 'https://staging.present.attadia.com',
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'https://api.staging.present.attadia.com/api/auth/google/callback'
+    }
+  };
 }
 
 // Configuración de la estrategia JWT
