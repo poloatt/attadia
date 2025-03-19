@@ -58,47 +58,29 @@ process.on('uncaughtException', (error) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Configuración de CORS
-const corsOptions = {
-  origin: function(origin, callback) {
-    // Asegurarse de que corsOrigins sea un array sin duplicados
-    const allowedOrigins = Array.from(new Set([
-      'https://staging.present.attadia.com',
-      'https://api.staging.present.attadia.com'
-    ]));
-    
-    console.log('CORS: Solicitud de origen:', origin);
-    
-    // Permitir solicitudes sin origen (como aplicaciones móviles o curl)
-    if (!origin) {
-      console.log('CORS: Permitiendo solicitud sin origen');
-      return callback(null, true);
-    }
-    
-    if (allowedOrigins.includes(origin)) {
-      console.log(`CORS: Permitiendo origen ${origin}`);
-      callback(null, origin);
-    } else {
-      console.warn(`CORS: Origen bloqueado ${origin}`);
-      callback(new Error(`Origen ${origin} no permitido por CORS`));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-  exposedHeaders: ['Access-Control-Allow-Origin'],
-  optionsSuccessStatus: 200
-};
-
-app.use(cors(corsOptions));
-
-// Middleware adicional para asegurar que no haya duplicados en Access-Control-Allow-Origin
+// Configuración manual de CORS
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (origin) {
-    // Asegurarse de que solo haya un valor en el encabezado
+  const allowedOrigins = [
+    'https://staging.present.attadia.com',
+    'https://api.staging.present.attadia.com'
+  ];
+
+  console.log('CORS: Solicitud de origen:', origin);
+
+  if (origin && allowedOrigins.includes(origin)) {
+    console.log(`CORS: Permitiendo origen ${origin}`);
     res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
+
+  // Manejar preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   next();
 });
 
