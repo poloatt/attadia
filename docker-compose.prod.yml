@@ -33,7 +33,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile.prod
       args:
-        - BUILD_ENV=production
+        - BUILD_ENV=prod
     image: present/backend:production
     container_name: backend-prod
     restart: always
@@ -68,7 +68,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.prod
       args:
-        - BUILD_ENV=production
+        - BUILD_ENV=prod
     image: present/frontend:production
     container_name: frontend-prod
     restart: always
@@ -105,7 +105,7 @@ services:
       context: ./webhook
       dockerfile: Dockerfile.prod
       args:
-        - BUILD_ENV=production
+        - BUILD_ENV=prod
     image: present/webhook:production
     container_name: webhook-prod
     restart: always
