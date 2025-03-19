@@ -10,8 +10,8 @@ Environment=PORT=9000
 # Ambiente (staging o production)
 Environment=NODE_ENV=%i
 # Secreto compartido con GitHub para validar las solicitudes según el ambiente
-Environment=WEBHOOK_SECRET=${WEBHOOK_STAGING_SECRET}
-Environment=WEBHOOK_SECRET=${WEBHOOK_PRODUCTION_SECRET}
+Environment=WEBHOOK_STAGING_SECRET=StagingSecret_ATTADIA99
+Environment=WEBHOOK_PRODUCTION_SECRET=ProductionSecret_ATTADIA99
 # Directorio de trabajo donde se encuentra el código
 WorkingDirectory=/home/poloatt/present
 # Configurar el archivo de log

@@ -4,13 +4,16 @@ import crypto from 'crypto';
 import fs from 'fs';
 
 const PORT = process.env.PORT || 9000;
-const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'tu_secreto_aqui';
+const NODE_ENV = process.env.NODE_ENV || 'staging';
+const WEBHOOK_SECRET = NODE_ENV === 'production' 
+    ? process.env.WEBHOOK_PRODUCTION_SECRET 
+    : process.env.WEBHOOK_STAGING_SECRET;
 const LOG_FILE = process.env.LOG_FILE || '/var/log/webhook-server/webhook-server.log';
 
 // Función para logging
 const log = (message) => {
     const timestamp = new Date().toISOString();
-    const logMessage = `[${timestamp}] ${message}\n`;
+    const logMessage = `[${timestamp}] [${NODE_ENV}] ${message}\n`;
     console.log(logMessage.trim());
     
     // Escribir en archivo de log
