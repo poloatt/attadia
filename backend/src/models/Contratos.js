@@ -24,6 +24,11 @@ const transaccionRecurrenteSchema = createSchema({
 });
 
 const contratoSchema = createSchema({
+  usuario: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Users',
+    required: true
+  },
   inquilino: {
     type: [{
       type: mongoose.Schema.Types.ObjectId,
@@ -163,6 +168,39 @@ contratoSchema.pre('save', async function(next) {
     }
   }
   next();
+});
+
+// Middleware para validar que el usuario tenga acceso a la propiedad
+contratoSchema.pre('save', async function(next) {
+  if (this.isNew || this.isModified('propiedad')) {
+    try {
+      const Propiedades = mongoose.model('Propiedades');
+      const propiedad = await Propiedades.findById(this.propiedad);
+      
+      if (!propiedad) {
+        throw new Error('La propiedad especificada no existe');
+      }
+      
+      if (propiedad.usuario.toString() !== this.usuario.toString()) {
+        throw new Error('No tienes permiso para crear contratos en esta propiedad');
+      }
+    } catch (error) {
+      next(error);
+    }
+  }
+  next();
+});
+
+// Middleware para filtrar por usuario en las consultas
+contratoSchema.pre(/^find/, function() {
+  this.populate('propiedad').populate('inquilino');
+  if (this._conditions.usuario) {
+    const userId = this._conditions.usuario;
+    this._conditions.$or = [
+      { usuario: userId },
+      { 'propiedad.usuario': userId }
+    ];
+  }
 });
 
 // Método estático para obtener contratos activos de una propiedad
