@@ -88,16 +88,12 @@ function Rutinas() {
 
   const handleSubmit = async (formData) => {
     try {
-      const dataToSend = {
-        ...formData,
-        fecha: new Date(formData.fecha).toISOString()
-      };
-
       if (editingRutina?._id) {
-        await clienteAxios.put(`/api/rutinas/${editingRutina._id}`, dataToSend);
+        await clienteAxios.put(`/api/rutinas/${editingRutina._id}`, formData);
         enqueueSnackbar('Rutina actualizada exitosamente', { variant: 'success' });
       } else {
-        await clienteAxios.post('/api/rutinas', dataToSend);
+        const { data } = await clienteAxios.post('/api/rutinas', formData);
+        console.log('Rutina creada:', data);
         enqueueSnackbar('Rutina creada exitosamente', { variant: 'success' });
       }
       handleCloseDialog();
@@ -105,11 +101,17 @@ function Rutinas() {
       setCurrentPage(1);
     } catch (error) {
       console.error('Error al guardar rutina:', error);
+      // Si es un error de conflicto (409), mostrar mensaje específico
       if (error.response?.status === 409) {
-        enqueueSnackbar('Ya existe una rutina para el día de hoy', { variant: 'error' });
+        enqueueSnackbar('Ya existe una rutina para esta fecha', { variant: 'error' });
       } else {
-        enqueueSnackbar('Error al guardar la rutina', { variant: 'error' });
+        enqueueSnackbar(
+          error.response?.data?.error || 'Error al guardar la rutina', 
+          { variant: 'error' }
+        );
       }
+      // No cerrar el diálogo si hay error
+      throw error;
     }
   };
 

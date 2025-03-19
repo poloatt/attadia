@@ -229,19 +229,27 @@ export const RutinaForm = ({
   };
 
   const handleSubmit = async () => {
-    const dataToSubmit = {
-      ...formData,
-      fecha: new Date(formData.fecha)
-    };
+    try {
+      const dataToSubmit = {
+        ...formData,
+        fecha: new Date(formData.fecha)
+      };
 
-    if (initialData?._id) {
-      dataToSubmit._id = initialData._id;
-      await clienteAxios.put(`/api/rutinas/${initialData._id}`, dataToSubmit);
-    } else {
-      await clienteAxios.post('/api/rutinas', dataToSubmit);
+      let response;
+      if (initialData?._id) {
+        dataToSubmit._id = initialData._id;
+        response = await clienteAxios.put(`/api/rutinas/${initialData._id}`, dataToSubmit);
+      } else {
+        response = await clienteAxios.post('/api/rutinas', dataToSubmit);
+      }
+
+      // Solo llamar a onSubmit si la petición fue exitosa
+      onSubmit(response.data);
+    } catch (error) {
+      console.error('Error al guardar rutina:', error);
+      // Re-lanzar el error para que sea manejado por el componente padre
+      throw error;
     }
-
-    onSubmit(dataToSubmit);
   };
 
   return (
