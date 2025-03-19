@@ -14,14 +14,14 @@ export const api = {
   // Propiedades
   getPropiedades: () => clienteAxios.get('/api/propiedades'),
   createPropiedad: (data) => clienteAxios.post('/api/propiedades', data),
-  updatePropiedad: (id, data) => clienteAxios.put(`/propiedades/${id}`, data),
-  deletePropiedad: (id) => clienteAxios.delete(`/propiedades/${id}`),
+  updatePropiedad: (id, data) => clienteAxios.put(`/api/propiedades/${id}`, data),
+  deletePropiedad: (id) => clienteAxios.delete(`/api/propiedades/${id}`),
   
   // Proyectos
   getProyectos: () => clienteAxios.get('/api/proyectos'),
   createProyecto: (data) => clienteAxios.post('/api/proyectos', data),
-  updateProyecto: (id, data) => clienteAxios.put(`/proyectos/${id}`, data),
-  deleteProyecto: (id) => clienteAxios.delete(`/proyectos/${id}`),
+  updateProyecto: (id, data) => clienteAxios.put(`/api/proyectos/${id}`, data),
+  deleteProyecto: (id) => clienteAxios.delete(`/api/proyectos/${id}`),
 
   // Tareas
   getTareas: () => clienteAxios.get('/api/tareas'),

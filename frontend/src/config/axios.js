@@ -17,18 +17,18 @@ const getBaseUrl = () => {
   // Entorno de staging (prioridad más alta)
   if (hostname.includes('staging') || environment === 'staging') {
     console.log('Detectado entorno de staging');
-    return 'https://api.staging.present.attadia.com/api';
+    return 'https://api.staging.present.attadia.com';
   }
   
   // Entorno de producción
   if (hostname === 'present.attadia.com' || environment === 'production') {
     console.log('Detectado entorno de producción');
-    return 'https://api.present.attadia.com/api';
+    return 'https://api.present.attadia.com';
   }
   
   // Entorno de desarrollo (fallback)
   console.log('Detectado entorno de desarrollo');
-  return 'http://localhost:5000/api';
+  return 'http://localhost:5000';
 };
 
 const baseURL = getBaseUrl();
