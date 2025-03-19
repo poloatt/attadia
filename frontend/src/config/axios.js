@@ -5,48 +5,36 @@ const getBaseUrl = () => {
   const mode = import.meta.env.MODE;
   const apiUrl = import.meta.env.VITE_API_URL;
   const hostname = window.location.hostname;
+  const environment = import.meta.env.VITE_ENVIRONMENT || mode;
   
-  console.log('Modo de Axios:', mode);
-  console.log('Hostname:', hostname);
+  console.log('Configuración de Axios:', {
+    mode,
+    environment,
+    hostname,
+    apiUrl
+  });
+  
+  // Entorno de staging (prioridad más alta)
+  if (hostname.includes('staging') || environment === 'staging') {
+    console.log('Detectado entorno de staging');
+    return 'https://api.staging.present.attadia.com/api';
+  }
   
   // Entorno de producción
-  if (hostname === 'present.attadia.com') {
+  if (hostname === 'present.attadia.com' || environment === 'production') {
     console.log('Detectado entorno de producción');
-    return 'https://api.present.attadia.com';
+    return 'https://api.present.attadia.com/api';
   }
   
-  // Entorno de staging
-  if (hostname.includes('staging')) {
-    console.log('Detectado entorno de staging');
-    return 'https://api.staging.present.attadia.com';
-  }
-  
-<<<<<<< HEAD
-  if (!apiUrl) {
-    if (mode === 'development') {
-      return 'http://localhost:5000';
-    } else if (mode === 'staging') {
-      return 'https://api.staging.present.attadia.com';
-    }
-    return 'https://api.present.attadia.com';
-  }
-  
-  return apiUrl;
-=======
-  // Entorno de desarrollo
-  if (mode === 'development') {
-    console.log('Detectado entorno de desarrollo');
-    return apiUrl || 'http://localhost:5000';
-  }
-  
-  // Fallback a producción
-  return apiUrl || 'https://api.present.attadia.com';
->>>>>>> staging
+  // Entorno de desarrollo (fallback)
+  console.log('Detectado entorno de desarrollo');
+  return 'http://localhost:5000/api';
 };
 
 const baseURL = getBaseUrl();
 console.log('URL base de Axios:', baseURL);
 
+// Crear la instancia de Axios
 const clienteAxios = axios.create({
   baseURL,
   withCredentials: true,
@@ -130,5 +118,8 @@ clienteAxios.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Asegurarse de que clienteAxios esté disponible globalmente
+window.clienteAxios = clienteAxios;
 
 export default clienteAxios;

@@ -11,6 +11,11 @@ const COLORES_MONEDA = {
 };
 
 const monedaSchema = createSchema({
+  usuario: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Users',
+    required: true
+  },
   codigo: {
     type: String,
     required: true,
@@ -42,6 +47,17 @@ const monedaSchema = createSchema({
     default: () => ({})
   },
   ...commonFields
+});
+
+// Middleware para filtrar por usuario en las consultas
+monedaSchema.pre(/^find/, function() {
+  if (this._conditions.usuario) {
+    const userId = this._conditions.usuario;
+    this._conditions.$or = [
+      { usuario: userId },
+      { activa: true } // Permitir acceso a monedas activas (globales)
+    ];
+  }
 });
 
 const Monedas = mongoose.model('Monedas', monedaSchema);
