@@ -61,36 +61,15 @@ app.use(express.urlencoded({ extended: true }));
 // Configuración manual de CORS
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+
+  // Definir orígenes permitidos según el ambiente
   const allowedOrigins = {
-    development: [origin], // En desarrollo, permitir cualquier origen
-    staging: [
-      'https://staging.present.attadia.com',
-      'https://api.staging.present.attadia.com'
-    ],
-    production: [
-      'https://present.attadia.com',
-      'https://api.present.attadia.com'
-    ]
+    development: ['http://localhost:3000'],
+    staging: ['https://staging.present.attadia.com'],
+    production: ['https://present.attadia.com']
   };
 
   const currentAllowedOrigins = allowedOrigins[config.env] || allowedOrigins.staging;
-
-  // En desarrollo, permitir cualquier origen
-  if (config.env === 'development' && origin) {
-    res.header('Access-Control-Allow-Origin', origin);
-  } 
-  // En staging/producción, solo permitir orígenes específicos
-  else if (origin && currentAllowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
-
-  // Headers comunes para todos los ambientes
-  if (res.getHeader('Access-Control-Allow-Origin')) {
-    res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Vary', 'Origin');
-  }
 
   // Log solo en staging/producción
   if (config.env !== 'development') {
@@ -99,9 +78,28 @@ app.use((req, res, next) => {
       origin,
       method: req.method,
       path: req.path,
-      allowedOrigin: res.getHeader('Access-Control-Allow-Origin'),
-      isAllowed: currentAllowedOrigins.includes(origin)
+      currentAllowedOrigins
     });
+  }
+
+  // Verificar y establecer el origen
+  if (config.env === 'development') {
+    // En desarrollo, permitir cualquier origen
+    if (origin) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+    }
+  } else if (origin && currentAllowedOrigins.includes(origin)) {
+    // En staging/producción, solo permitir orígenes específicos
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
+
+  // Si se estableció un origen, agregar los headers adicionales
+  if (res.getHeader('Access-Control-Allow-Origin')) {
+    res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+    res.header('Vary', 'Origin');
   }
 
   // Para requests OPTIONS (preflight)
@@ -117,7 +115,13 @@ if (config.env !== 'development') {
   app.use((req, res, next) => {
     const oldJson = res.json;
     res.json = function(...args) {
-      console.log('Response Headers:', res.getHeaders());
+      const headers = res.getHeaders();
+      console.log('Response Headers:', {
+        origin: headers['access-control-allow-origin'],
+        methods: headers['access-control-allow-methods'],
+        credentials: headers['access-control-allow-credentials'],
+        vary: headers.vary
+      });
       return oldJson.apply(res, args);
     };
     next();
