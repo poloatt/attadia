@@ -70,7 +70,8 @@ propiedadSchema.virtual('habitaciones', {
 propiedadSchema.virtual('dormitoriosSimples').get(async function() {
   const habitaciones = await mongoose.model('Habitaciones').find({
     propiedad: this._id,
-    tipo: 'DORMITORIO_SIMPLE'
+    tipo: 'DORMITORIO_SIMPLE',
+    usuario: this.usuario
   });
   return habitaciones.length;
 });
@@ -79,7 +80,8 @@ propiedadSchema.virtual('dormitoriosSimples').get(async function() {
 propiedadSchema.virtual('dormitoriosDobles').get(async function() {
   const habitaciones = await mongoose.model('Habitaciones').find({
     propiedad: this._id,
-    tipo: 'DORMITORIO_DOBLE'
+    tipo: 'DORMITORIO_DOBLE',
+    usuario: this.usuario
   });
   return habitaciones.length;
 });
@@ -97,7 +99,8 @@ propiedadSchema.virtual('totalDormitorios').get(async function() {
 propiedadSchema.virtual('totalBanos').get(async function() {
   const banos = await mongoose.model('Habitaciones').find({
     propiedad: this._id,
-    tipo: { $in: ['BAÑO', 'TOILETTE'] }
+    tipo: { $in: ['BAÑO', 'TOILETTE'] },
+    usuario: this.usuario
   });
   return banos.length;
 });
@@ -168,6 +171,16 @@ propiedadSchema.statics.actualizarEstados = async function() {
     await propiedad.save();
   }
 };
+
+// Middleware para filtrar por usuario en las consultas
+propiedadSchema.pre(/^find/, function() {
+  if (this._conditions.usuario) {
+    const userId = this._conditions.usuario;
+    this._conditions.$or = [
+      { usuario: userId }
+    ];
+  }
+});
 
 // Asegurar que los virtuals se incluyan cuando se convierte a JSON/Object
 propiedadSchema.set('toJSON', { virtuals: true });

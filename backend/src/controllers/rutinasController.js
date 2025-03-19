@@ -14,6 +14,8 @@ class RutinasController extends BaseController {
     this.create = this.create.bind(this);
     this.update = this.update.bind(this);
     this.getAll = this.getAll.bind(this);
+    this.verifyDate = this.verifyDate.bind(this);
+    this.getById = this.getById.bind(this);
   }
 
   async getAll(req, res) {
@@ -82,20 +84,39 @@ class RutinasController extends BaseController {
   async create(req, res) {
     try {
       const { fecha } = req.body;
+      
+      // Normalizar la fecha a inicio del día en UTC
       const fechaInicio = new Date(fecha);
-      fechaInicio.setHours(0, 0, 0, 0);
+      fechaInicio.setUTCHours(0, 0, 0, 0);
+      
+      // Crear el rango del día completo
+      const fechaFin = new Date(fechaInicio);
+      fechaFin.setUTCHours(23, 59, 59, 999);
+
+      console.log('Buscando rutina existente:', {
+        fechaInicio,
+        fechaFin,
+        usuario: req.user.id
+      });
       
       // Verificar si ya existe una rutina para este día
       const existingRutina = await this.Model.findOne({
-        fecha: fechaInicio,
+        fecha: {
+          $gte: fechaInicio,
+          $lte: fechaFin
+        },
         usuario: req.user.id
       });
 
       if (existingRutina) {
+        console.log('Rutina existente encontrada:', existingRutina);
         return res.status(409).json({
-          error: 'Ya existe una rutina para esta fecha'
+          error: 'Ya existe una rutina para esta fecha',
+          rutina: existingRutina
         });
       }
+
+      console.log('Creando nueva rutina para fecha:', fechaInicio);
 
       // Crear la nueva rutina con la estructura correcta
       const newDoc = new this.Model({
@@ -128,12 +149,14 @@ class RutinasController extends BaseController {
       });
 
       const savedDoc = await newDoc.save();
+      console.log('Rutina creada exitosamente:', savedDoc);
       res.status(201).json(savedDoc);
     } catch (error) {
       console.error('Error al crear rutina:', error);
       res.status(500).json({ 
         error: 'Error al crear la rutina',
-        details: error.message 
+        details: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       });
     }
   }
@@ -294,6 +317,90 @@ class RutinasController extends BaseController {
       console.error('Error al obtener estadísticas:', error);
       res.status(500).json({ 
         error: 'Error al obtener estadísticas',
+        details: error.message 
+      });
+    }
+  }
+
+  async verifyDate(req, res) {
+    try {
+      const { fecha } = req.query;
+      
+      if (!fecha) {
+        return res.status(400).json({ error: 'La fecha es requerida' });
+      }
+      
+      // Normalizar la fecha a inicio del día en UTC
+      const fechaInicio = new Date(fecha);
+      fechaInicio.setUTCHours(0, 0, 0, 0);
+      
+      // Crear el rango del día completo
+      const fechaFin = new Date(fechaInicio);
+      fechaFin.setUTCHours(23, 59, 59, 999);
+      
+      console.log('Verificando rutina existente:', {
+        fechaInicio,
+        fechaFin,
+        usuario: req.user.id
+      });
+      
+      // Verificar si ya existe una rutina para este día
+      const existingRutina = await this.Model.findOne({
+        fecha: {
+          $gte: fechaInicio,
+          $lte: fechaFin
+        },
+        usuario: req.user.id
+      });
+      
+      if (existingRutina) {
+        console.log('Rutina existente encontrada para verificación:', existingRutina._id);
+        return res.json({
+          exists: true,
+          rutinaId: existingRutina._id
+        });
+      }
+      
+      return res.json({
+        exists: false
+      });
+    } catch (error) {
+      console.error('Error al verificar fecha:', error);
+      res.status(500).json({ 
+        error: 'Error al verificar fecha',
+        details: error.message 
+      });
+    }
+  }
+
+  async getById(req, res) {
+    try {
+      const { id } = req.params;
+      
+      const doc = await this.Model.findOne({ 
+        _id: id,
+        usuario: req.user.id
+      }).lean();
+      
+      if (!doc) {
+        return res.status(404).json({ error: 'Rutina no encontrada' });
+      }
+      
+      // Formatear el documento para mantener consistencia
+      const formattedDoc = {
+        _id: doc._id.toString(),
+        ...doc,
+        bodyCare: { ...doc.bodyCare },
+        nutricion: { ...doc.nutricion },
+        ejercicio: { ...doc.ejercicio },
+        cleaning: { ...doc.cleaning }
+      };
+      
+      res.json(formattedDoc);
+    } catch (error) {
+      console.error('Error al obtener rutina por ID:', error);
+      res.status(500).json({ 
+        error: 'Error al obtener rutina',
         details: error.message 
       });
     }

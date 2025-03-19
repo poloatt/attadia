@@ -28,6 +28,24 @@ function Rutinas() {
     fetchRutina(currentPage);
   }, [currentPage]);
 
+  // Escuchar el evento editRutina
+  useEffect(() => {
+    const handleEditRutinaEvent = (event) => {
+      const { rutina } = event.detail;
+      if (rutina) {
+        console.log('Editando rutina recibida del evento:', rutina);
+        setEditingRutina(rutina);
+        setOpenDialog(true);
+      }
+    };
+
+    window.addEventListener('editRutina', handleEditRutinaEvent);
+    
+    return () => {
+      window.removeEventListener('editRutina', handleEditRutinaEvent);
+    };
+  }, []);
+
   const fetchRutina = async (page) => {
     try {
       console.log('Fetching rutina para página:', page);
@@ -88,30 +106,37 @@ function Rutinas() {
 
   const handleSubmit = async (formData) => {
     try {
+      let response;
       if (editingRutina?._id) {
-        await clienteAxios.put(`/api/rutinas/${editingRutina._id}`, formData);
+        response = await clienteAxios.put(`/api/rutinas/${editingRutina._id}`, formData);
         enqueueSnackbar('Rutina actualizada exitosamente', { variant: 'success' });
+        handleCloseDialog();
       } else {
-        const { data } = await clienteAxios.post('/api/rutinas', formData);
-        console.log('Rutina creada:', data);
+        response = await clienteAxios.post('/api/rutinas', formData);
+        console.log('Rutina creada:', response.data);
+        setRutina(response.data);
+        setCurrentPage(1);
+        setTotalPages(prev => Math.max(1, prev));
         enqueueSnackbar('Rutina creada exitosamente', { variant: 'success' });
+        handleCloseDialog();
       }
-      handleCloseDialog();
-      fetchRutina(1); // Volver a la primera página después de crear/editar
-      setCurrentPage(1);
+      
+      if (editingRutina?._id) {
+        await fetchRutina(1);
+        setCurrentPage(1);
+      }
     } catch (error) {
       console.error('Error al guardar rutina:', error);
-      // Si es un error de conflicto (409), mostrar mensaje específico
       if (error.response?.status === 409) {
         enqueueSnackbar('Ya existe una rutina para esta fecha', { variant: 'error' });
+        return;
       } else {
         enqueueSnackbar(
           error.response?.data?.error || 'Error al guardar la rutina', 
           { variant: 'error' }
         );
+        handleCloseDialog();
       }
-      // No cerrar el diálogo si hay error
-      throw error;
     }
   };
 

@@ -52,7 +52,50 @@ const rutinaSchema = createSchema({
 });
 
 // Crear un índice compuesto único para fecha y usuario
-rutinaSchema.index({ fecha: 1, usuario: 1 }, { unique: true });
+rutinaSchema.index({ 
+  usuario: 1, 
+  fecha: 1 
+}, { 
+  unique: true,
+  name: 'usuario_fecha_unique',
+  partialFilterExpression: { fecha: { $exists: true } }
+});
+
+// Middleware para normalizar la fecha antes de guardar
+rutinaSchema.pre('save', function(next) {
+  if (this.isModified('fecha')) {
+    // Normalizar la fecha a UTC
+    const fecha = new Date(this.fecha);
+    fecha.setUTCHours(0, 0, 0, 0);
+    this.fecha = fecha;
+  }
+  next();
+});
+
+// Middleware para validar que no exista otra rutina en el mismo día
+rutinaSchema.pre('save', async function(next) {
+  if (this.isModified('fecha')) {
+    const fechaInicio = new Date(this.fecha);
+    fechaInicio.setUTCHours(0, 0, 0, 0);
+    
+    const fechaFin = new Date(fechaInicio);
+    fechaFin.setUTCHours(23, 59, 59, 999);
+
+    const existingRutina = await this.constructor.findOne({
+      _id: { $ne: this._id },
+      usuario: this.usuario,
+      fecha: {
+        $gte: fechaInicio,
+        $lte: fechaFin
+      }
+    });
+
+    if (existingRutina) {
+      next(new Error('Ya existe una rutina para esta fecha'));
+    }
+  }
+  next();
+});
 
 rutinaSchema.pre('save', function(next) {
   let totalTasks = 0;

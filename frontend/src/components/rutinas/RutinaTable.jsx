@@ -235,7 +235,27 @@ export const RutinaTable = ({
   hasPrevious,
   hasNext 
 }) => {
-  if (!rutina) return null;
+  // Agregar useEffect para debugging
+  React.useEffect(() => {
+    console.log('RutinaTable recibió nueva rutina:', rutina);
+  }, [rutina]);
+
+  if (!rutina) {
+    console.log('No hay rutina para mostrar');
+    return (
+      <TableContainer>
+        <Table>
+          <TableBody>
+            <TableRow>
+              <TableCell colSpan={6} align="center">
+                No hay rutina para mostrar
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </TableContainer>
+    );
+  }
 
   const handleDateChange = (event) => {
     const newDate = new Date(event.target.value);

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -12,8 +12,10 @@ import {
   Stack,
   useTheme,
   useMediaQuery,
-  TextField
+  TextField,
+  CircularProgress
 } from '@mui/material';
+import InfoIcon from '@mui/icons-material/Info';
 
 // Importar los mismos iconos que RutinaTable
 import BathtubOutlinedIcon from '@mui/icons-material/BathtubOutlined';
@@ -178,6 +180,8 @@ export const RutinaForm = ({
 }) => {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const [fechaError, setFechaError] = useState('');
+  const [isValidating, setIsValidating] = useState(false);
 
   const [formData, setFormData] = React.useState(() => {
     if (!initialData) return defaultFormData;
@@ -195,6 +199,7 @@ export const RutinaForm = ({
 
   React.useEffect(() => {
     if (open) {
+      setFechaError('');
       if (!initialData) {
         setFormData(defaultFormData);
       } else {
@@ -221,14 +226,67 @@ export const RutinaForm = ({
     }));
   };
 
-  const handleDateChange = (event) => {
+  const handleDateChange = async (event) => {
+    const newDate = event.target.value;
     setFormData(prev => ({
       ...prev,
-      fecha: event.target.value
+      fecha: newDate
     }));
+    
+    // Limpiar error previo
+    setFechaError('');
+    
+    // Si estamos editando una rutina existente y la fecha no cambió, no validamos
+    if (initialData?._id) {
+      const fechaOriginal = new Date(initialData.fecha).toISOString().split('T')[0];
+      if (fechaOriginal === newDate) {
+        return;
+      }
+    }
+    
+    // Verificar si ya existe rutina para esta fecha
+    try {
+      setIsValidating(true);
+      const response = await clienteAxios.get('/api/rutinas/verify', {
+        params: { fecha: newDate }
+      });
+      
+      if (response.data.exists) {
+        setFechaError(`Ya existe una rutina para esta fecha (ID: ${response.data.rutinaId})`);
+      }
+    } catch (error) {
+      console.error('Error al verificar fecha:', error);
+    } finally {
+      setIsValidating(false);
+    }
   };
 
   const handleSubmit = async () => {
+    // Verificar si hay error de fecha
+    if (fechaError) {
+      return;
+    }
+    
+    // Verificar una última vez antes de enviar
+    if (!initialData?._id) {
+      try {
+        setIsValidating(true);
+        const response = await clienteAxios.get('/api/rutinas/verify', {
+          params: { fecha: formData.fecha }
+        });
+        
+        if (response.data.exists) {
+          setFechaError('Ya existe una rutina para esta fecha');
+          setIsValidating(false);
+          return;
+        }
+        setIsValidating(false);
+      } catch (error) {
+        console.error('Error al verificar fecha:', error);
+        setIsValidating(false);
+      }
+    }
+    
     try {
       const dataToSubmit = {
         ...formData,
@@ -247,6 +305,10 @@ export const RutinaForm = ({
       onSubmit(response.data);
     } catch (error) {
       console.error('Error al guardar rutina:', error);
+      // Si es un error de conflicto, actualizar el mensaje de error
+      if (error.response?.status === 409) {
+        setFechaError('Ya existe una rutina para esta fecha');
+      }
       // Re-lanzar el error para que sea manejado por el componente padre
       throw error;
     }
@@ -278,11 +340,56 @@ export const RutinaForm = ({
             onChange={handleDateChange}
             fullWidth
             variant="outlined"
-            sx={{ mb: 3 }}
+            sx={{ mb: 1 }}
+            error={!!fechaError}
+            helperText={fechaError}
             InputLabelProps={{
               shrink: true
             }}
+            disabled={isValidating}
           />
+          {isValidating && (
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <CircularProgress size={16} sx={{ mr: 1 }} />
+              <Typography variant="caption" color="text.secondary">
+                Verificando disponibilidad de fecha...
+              </Typography>
+            </Box>
+          )}
+          {fechaError && fechaError.includes('ID:') && (
+            <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+              <InfoIcon color="warning" fontSize="small" sx={{ mr: 1 }} />
+              <Typography variant="body2" color="error">
+                Esta fecha ya tiene una rutina. 
+                <Button 
+                  color="primary" 
+                  size="small" 
+                  sx={{ ml: 1 }}
+                  onClick={() => {
+                    // Extraer el ID de la rutina existente
+                    const idMatch = fechaError.match(/ID: ([a-f0-9]+)/i);
+                    if (idMatch && idMatch[1]) {
+                      // Cerrar este diálogo
+                      onClose();
+                      // Obtener la rutina existente para editar
+                      clienteAxios.get(`/api/rutinas/${idMatch[1]}`)
+                        .then(response => {
+                          // Abrir el formulario de edición con la rutina existente
+                          window.dispatchEvent(new CustomEvent('editRutina', {
+                            detail: { rutina: response.data }
+                          }));
+                        })
+                        .catch(err => {
+                          console.error('Error al obtener rutina existente:', err);
+                        });
+                    }
+                  }}
+                >
+                  Editar rutina existente
+                </Button>
+              </Typography>
+            </Box>
+          )}
           <ChecklistSection 
             title="Body Care" 
             items={formData.bodyCare} 
@@ -318,6 +425,7 @@ export const RutinaForm = ({
           onClick={handleSubmit} 
           variant="contained"
           sx={{ borderRadius: 0 }}
+          disabled={!!fechaError || isValidating}
         >
           {initialData?._id ? 'Actualizar' : 'Guardar'}
         </Button>
