@@ -6,13 +6,14 @@ Sistema de gestión financiera y de proyectos para empresas y profesionales inde
 
 La documentación detallada del proyecto se encuentra en la carpeta `docs`:
 
+
 - [Guía de Despliegue](docs/DEPLOYMENT.md) - Instrucciones para desplegar en staging y producción
 - [Configuración de OAuth](docs/OAUTH_CONFIG.md) - Configuración de autenticación con Google
 - [Flujo de Trabajo](docs/README.md) - Estructura de ramas y flujo de trabajo con Git
 
 ## Estructura del Proyecto   
  
- 
+
 ```
 present/
 ├── backend/         # API REST (Node.js, Express, MongoDB)
