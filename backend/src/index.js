@@ -71,7 +71,6 @@ const corsOptions = {
       allowedOrigins = [config.frontendUrl].filter(Boolean);
     }
     
-    console.log('CORS: Orígenes permitidos:', allowedOrigins);
     console.log('CORS: Solicitud de origen:', origin);
     
     // Permitir solicitudes sin origen (como aplicaciones móviles o curl)
@@ -80,9 +79,10 @@ const corsOptions = {
       return callback(null, true);
     }
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (allowedOrigins.includes(origin)) {
       console.log(`CORS: Permitiendo origen ${origin}`);
-      callback(null, true);
+      // Importante: devolver solo el origen específico que hizo la solicitud
+      callback(null, origin);
     } else {
       console.warn(`CORS: Origen bloqueado ${origin}`);
       callback(new Error(`Origen ${origin} no permitido por CORS`));
