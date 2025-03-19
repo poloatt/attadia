@@ -29,14 +29,8 @@ const config = {
   production: {
     authPrefix: '/api/auth',
     apiPrefix: '/api',
-    baseUrl: import.meta.env.VITE_API_URL || 'https://api.present.attadia.com',
+    baseUrl: import.meta.env.VITE_API_URL || 'https://present.attadia.com',
     frontendUrl: import.meta.env.VITE_FRONTEND_URL || 'https://present.attadia.com'
-  },
-  staging: {
-    authPrefix: '/api/auth',
-    apiPrefix: '/api',
-    baseUrl: 'https://api.staging.present.attadia.com',
-    frontendUrl: 'https://staging.present.attadia.com'
   }
 };
 
