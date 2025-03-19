@@ -62,14 +62,10 @@ app.use(express.urlencoded({ extended: true }));
 const corsOptions = {
   origin: function(origin, callback) {
     // Asegurarse de que corsOrigins sea un array sin duplicados
-    let allowedOrigins;
-    if (Array.isArray(config.corsOrigins)) {
-      allowedOrigins = Array.from(new Set(config.corsOrigins));
-    } else if (typeof config.corsOrigins === 'string') {
-      allowedOrigins = Array.from(new Set(config.corsOrigins.split(',').map(origin => origin.trim())));
-    } else {
-      allowedOrigins = [config.frontendUrl].filter(Boolean);
-    }
+    const allowedOrigins = Array.from(new Set([
+      'https://staging.present.attadia.com',
+      'https://api.staging.present.attadia.com'
+    ]));
     
     console.log('CORS: Solicitud de origen:', origin);
     
@@ -81,7 +77,6 @@ const corsOptions = {
     
     if (allowedOrigins.includes(origin)) {
       console.log(`CORS: Permitiendo origen ${origin}`);
-      // Importante: devolver solo el origen específico que hizo la solicitud
       callback(null, origin);
     } else {
       console.warn(`CORS: Origen bloqueado ${origin}`);
@@ -90,11 +85,23 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Access-Control-Allow-Origin'],
   optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
+
+// Middleware adicional para asegurar que no haya duplicados en Access-Control-Allow-Origin
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    // Asegurarse de que solo haya un valor en el encabezado
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  next();
+});
+
 app.use(cookieParser(config.sessionSecret));
 
 // Configuración de sesión
