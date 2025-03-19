@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Determinar el ambiente
-const environment = process.env.ENVIRONMENT || process.env.NODE_ENV || 'development';
+const environment = process.env.NODE_ENV || 'development';
 console.log('Ambiente detectado:', environment);
 
 // Cargar el archivo .env correspondiente
@@ -14,15 +14,7 @@ const envPath = path.resolve(__dirname, '../../.env.' + environment);
 console.log('Cargando configuración desde:', envPath);
 dotenv.config({ path: envPath });
 
-// Validar que estamos usando el ambiente correcto
-console.log('Variables de entorno cargadas:', {
-  NODE_ENV: process.env.NODE_ENV,
-  ENVIRONMENT: process.env.ENVIRONMENT,
-  FRONTEND_URL: process.env.FRONTEND_URL,
-  BACKEND_URL: process.env.BACKEND_URL
-});
-
-// Función para validar variables de entorno requeridas
+// Validar variables de entorno requeridas
 const validateRequiredEnvVars = () => {
   const requiredEnvVars = [
     'JWT_SECRET',
@@ -33,7 +25,8 @@ const validateRequiredEnvVars = () => {
     'GOOGLE_CLIENT_SECRET',
     'FRONTEND_URL',
     'BACKEND_URL',
-    'GOOGLE_CALLBACK_URL'
+    'GOOGLE_CALLBACK_URL',
+    'CORS_ORIGINS'
   ];
 
   for (const envVar of requiredEnvVars) {
@@ -71,7 +64,7 @@ const configs = {
   staging: {
     ...baseConfig,
     env: 'staging',
-    mongoUrl: process.env.MONGO_URL,
+    mongoUrl: process.env.MONGO_URL || process.env.MONGODB_URI || `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@mongodb:27017/${process.env.MONGO_DB}?authSource=admin`,
     frontendUrl: process.env.FRONTEND_URL,
     backendUrl: process.env.BACKEND_URL,
     corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [],
@@ -84,10 +77,10 @@ const configs = {
   production: {
     ...baseConfig,
     env: 'production',
-    mongoUrl: process.env.MONGO_URL,
+    mongoUrl: process.env.MONGO_URL || process.env.MONGODB_URI || `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@mongodb:27017/${process.env.MONGO_DB}?authSource=admin`,
     frontendUrl: process.env.FRONTEND_URL,
     backendUrl: process.env.BACKEND_URL,
-    corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [],
+    corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['https://present.attadia.com'],
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -95,6 +88,9 @@ const configs = {
     }
   }
 };
+
+// Validar variables de entorno
+validateRequiredEnvVars();
 
 // Exportar la configuración según el ambiente
 export default configs[environment] || configs.development;

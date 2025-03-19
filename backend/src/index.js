@@ -5,6 +5,7 @@ import session from 'express-session';
 import { passportConfig } from './config/passport.js';
 import { router } from './routes/index.js';
 import authRoutes from './routes/authRoutes.js';
+import webhookRoutes from './routes/webhookRoutes.js';
 import morgan from 'morgan';
 import connectDB from './config/database/mongodb.js';
 import { initializeMonedas } from './config/initData.js';
@@ -57,8 +58,20 @@ app.use((req, res, next) => {
       origin,
       method: req.method,
       path: req.path,
-      allowedOrigins: corsOrigins
+      allowedOrigins: corsOrigins,
+      headers: req.headers
     });
+  }
+
+  // Permitir peticiones de GitHub para el webhook
+  if (req.path === '/webhook') {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, X-Hub-Signature-256');
+    if (req.method === 'OPTIONS') {
+      return res.status(204).end();
+    }
+    return next();
   }
 
   // En desarrollo permitir cualquier origen, en otros ambientes solo los configurados
@@ -152,6 +165,7 @@ app.get('/health', (req, res) => {
 // Rutas
 app.use('/api/auth', authRoutes);
 app.use('/api', router);
+app.use('/webhook', webhookRoutes);
 
 // Manejo de errores global
 app.use((err, req, res, next) => {
