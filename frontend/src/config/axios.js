@@ -14,22 +14,16 @@ const getBaseUrl = () => {
     apiUrl
   });
   
-  // Usar la URL de la variable de entorno si está disponible
-  if (apiUrl) {
-    console.log('Usando URL de variable de entorno:', apiUrl);
-    return apiUrl;
-  }
-  
-  // Entorno de staging (fallback)
+  // Entorno de staging (prioridad más alta)
   if (hostname.includes('staging') || environment === 'staging') {
     console.log('Detectado entorno de staging');
     return 'https://api.staging.present.attadia.com/api';
   }
   
-  // Entorno de producción (fallback)
+  // Entorno de producción
   if (hostname === 'present.attadia.com' || environment === 'production') {
     console.log('Detectado entorno de producción');
-    return 'https://present.attadia.com/api';
+    return 'https://api.present.attadia.com/api';
   }
   
   // Entorno de desarrollo (fallback)

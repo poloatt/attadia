@@ -15,22 +15,28 @@ const useAuth = () => {
 // Configuración según el ambiente
 const config = {
   development: {
-    authPrefix: '/auth',
+    authPrefix: '/api/auth',
     apiPrefix: '/api',
     baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:5000',
     frontendUrl: import.meta.env.VITE_FRONTEND_URL || 'http://localhost:5173'
   },
   staging: {
-    authPrefix: '/auth',
+    authPrefix: '/api/auth',
     apiPrefix: '/api',
     baseUrl: import.meta.env.VITE_API_URL || 'https://api.staging.present.attadia.com',
     frontendUrl: import.meta.env.VITE_FRONTEND_URL || 'https://staging.present.attadia.com'
   },
   production: {
-    authPrefix: '/auth',
+    authPrefix: '/api/auth',
     apiPrefix: '/api',
-    baseUrl: import.meta.env.VITE_API_URL || 'https://present.attadia.com',
+    baseUrl: import.meta.env.VITE_API_URL || 'https://api.present.attadia.com',
     frontendUrl: import.meta.env.VITE_FRONTEND_URL || 'https://present.attadia.com'
+  },
+  staging: {
+    authPrefix: '/api/auth',
+    apiPrefix: '/api',
+    baseUrl: 'https://api.staging.present.attadia.com',
+    frontendUrl: 'https://staging.present.attadia.com'
   }
 };
 
