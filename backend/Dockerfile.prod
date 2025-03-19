@@ -18,13 +18,10 @@ RUN npm install --production
 
 # Copiar el código fuente
 COPY . .
-<<<<<<< HEAD
 
 # Copiar el archivo .env según el ambiente
 ARG BUILD_ENV=production
 COPY .env.${BUILD_ENV} .env
-=======
->>>>>>> staging
 
 # Copiar el script de inicialización
 COPY entrypoint.sh /entrypoint.sh
