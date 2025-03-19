@@ -5,7 +5,7 @@ const rutinaSchema = createSchema({
   fecha: {
     type: Date,
     default: Date.now,
-    unique: true
+    required: true
   },
   bodyCare: {
     bath: { type: Boolean, default: false },
@@ -50,6 +50,9 @@ const rutinaSchema = createSchema({
   },
   ...commonFields
 });
+
+// Crear un índice compuesto único para fecha y usuario
+rutinaSchema.index({ fecha: 1, usuario: 1 }, { unique: true });
 
 rutinaSchema.pre('save', function(next) {
   let totalTasks = 0;
