@@ -1,9 +1,26 @@
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Determinar el ambiente
 const environment = process.env.ENVIRONMENT || process.env.NODE_ENV || 'development';
+console.log('Ambiente detectado:', environment);
 
 // Cargar el archivo .env correspondiente
-dotenv.config({ path: `.env.${environment}` });
+const envPath = path.resolve(__dirname, '../../.env.' + environment);
+console.log('Cargando configuración desde:', envPath);
+dotenv.config({ path: envPath });
+
+// Validar que estamos usando el ambiente correcto
+console.log('Variables de entorno cargadas:', {
+  NODE_ENV: process.env.NODE_ENV,
+  ENVIRONMENT: process.env.ENVIRONMENT,
+  FRONTEND_URL: process.env.FRONTEND_URL,
+  BACKEND_URL: process.env.BACKEND_URL
+});
 
 // Función para validar variables de entorno requeridas
 const validateRequiredEnvVars = () => {
@@ -30,6 +47,8 @@ const validateRequiredEnvVars = () => {
 const baseConfig = {
   port: parseInt(process.env.PORT || '5000', 10),
   sessionSecret: process.env.SESSION_SECRET || 'fallback_session_secret',
+  jwtSecret: process.env.JWT_SECRET || 'fallback_jwt_secret',
+  refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET || 'fallback_refresh_token_secret',
   isDev: false
 };
 
@@ -52,27 +71,27 @@ const configs = {
   staging: {
     ...baseConfig,
     env: 'staging',
-    mongoUrl: 'mongodb://admin:MiContraseñaSegura123@mongodb:27017/present?authSource=admin',
-    frontendUrl: 'https://staging.present.attadia.com',
-    backendUrl: 'https://api.staging.present.attadia.com',
-    corsOrigins: ['https://staging.present.attadia.com'],
+    mongoUrl: process.env.MONGO_URL,
+    frontendUrl: process.env.FRONTEND_URL,
+    backendUrl: process.env.BACKEND_URL,
+    corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [],
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackUrl: 'https://api.staging.present.attadia.com/api/auth/google/callback'
+      callbackUrl: process.env.GOOGLE_CALLBACK_URL
     }
   },
   production: {
     ...baseConfig,
     env: 'production',
-    mongoUrl: 'mongodb://admin:MiContraseñaSegura123@mongodb:27017/present?authSource=admin',
-    frontendUrl: 'https://present.attadia.com',
-    backendUrl: 'https://api.present.attadia.com',
-    corsOrigins: ['https://present.attadia.com'],
+    mongoUrl: process.env.MONGO_URL,
+    frontendUrl: process.env.FRONTEND_URL,
+    backendUrl: process.env.BACKEND_URL,
+    corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [],
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackUrl: 'https://api.present.attadia.com/api/auth/google/callback'
+      callbackUrl: process.env.GOOGLE_CALLBACK_URL
     }
   }
 };
