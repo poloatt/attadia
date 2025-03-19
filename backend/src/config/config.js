@@ -58,14 +58,14 @@ const configs = {
     ...baseConfig,
     env: 'development',
     isDev: true,
-    mongoUrl: 'mongodb://localhost:27017/present',
-    frontendUrl: 'http://localhost:3000',
-    backendUrl: 'http://localhost:5000',
-    corsOrigins: ['http://localhost:3000'],
+    mongoUrl: process.env.MONGO_URL || 'mongodb://localhost:27017/present',
+    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+    backendUrl: process.env.BACKEND_URL || 'http://localhost:5000',
+    corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:3000'],
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackUrl: 'http://localhost:5000/api/auth/google/callback'
+      callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback'
     }
   },
   staging: {
