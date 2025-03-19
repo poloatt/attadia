@@ -53,3 +53,14 @@ docker-compose.override.yml
 temp/
 *.bak
 *.tmp
+
+# SSL Certificates
+ssl/certbot/conf/accounts/
+ssl/certbot/conf/archive/
+ssl/certbot/conf/live/
+ssl/certbot/conf/renewal/
+ssl/nginx/ssl/
+
+# Keep SSL example configs
+!ssl/certbot/conf/example/
+!ssl/nginx/ssl/example/
