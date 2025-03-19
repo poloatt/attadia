@@ -16,6 +16,7 @@ class RutinasController extends BaseController {
     this.getAll = this.getAll.bind(this);
     this.verifyDate = this.verifyDate.bind(this);
     this.getById = this.getById.bind(this);
+    this.getAllFechas = this.getAllFechas.bind(this);
   }
 
   async getAll(req, res) {
@@ -332,6 +333,15 @@ class RutinasController extends BaseController {
       
       // Normalizar la fecha a inicio del día en UTC
       const fechaInicio = new Date(fecha);
+      
+      // Comprobar si la fecha es válida
+      if (isNaN(fechaInicio.getTime())) {
+        return res.status(400).json({ 
+          error: 'Formato de fecha inválido', 
+          fecha 
+        });
+      }
+      
       fechaInicio.setUTCHours(0, 0, 0, 0);
       
       // Crear el rango del día completo
@@ -351,18 +361,20 @@ class RutinasController extends BaseController {
           $lte: fechaFin
         },
         usuario: req.user.id
-      });
+      }).lean();
       
       if (existingRutina) {
         console.log('Rutina existente encontrada para verificación:', existingRutina._id);
         return res.json({
           exists: true,
-          rutinaId: existingRutina._id
+          rutinaId: existingRutina._id,
+          fecha: existingRutina.fecha
         });
       }
       
       return res.json({
-        exists: false
+        exists: false,
+        fechaNormalizada: fechaInicio
       });
     } catch (error) {
       console.error('Error al verificar fecha:', error);
@@ -401,6 +413,30 @@ class RutinasController extends BaseController {
       console.error('Error al obtener rutina por ID:', error);
       res.status(500).json({ 
         error: 'Error al obtener rutina',
+        details: error.message 
+      });
+    }
+  }
+
+  async getAllFechas(req, res) {
+    try {
+      // Obtener todas las fechas de rutinas del usuario
+      const rutinas = await this.Model.find(
+        { usuario: req.user.id },
+        { fecha: 1 }
+      ).lean();
+      
+      // Extraer solo las fechas y formatearlas
+      const fechas = rutinas.map(rutina => rutina.fecha);
+      
+      return res.json({
+        fechas,
+        total: fechas.length
+      });
+    } catch (error) {
+      console.error('Error al obtener fechas con rutinas:', error);
+      res.status(500).json({ 
+        error: 'Error al obtener fechas con rutinas',
         details: error.message 
       });
     }

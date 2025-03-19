@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Paper,
   Table,
@@ -10,220 +10,18 @@ import {
   Typography,
   Box,
   IconButton,
-  Chip,
-  Stack,
-  Tooltip,
-  styled,
-  TextField
+  TextField,
+  Button,
+  Tooltip
 } from '@mui/material';
-import { EntityActions } from '../EntityViews/EntityActions';
-import AccessAlarmOutlinedIcon from '@mui/icons-material/AccessAlarmOutlined';
-import AccessAlarmIcon from '@mui/icons-material/AccessAlarm';
-import BrushOutlinedIcon from '@mui/icons-material/BrushOutlined';
-import BrushIcon from '@mui/icons-material/Brush';
-import MedicationOutlinedIcon from '@mui/icons-material/MedicationOutlined';
-import MedicationIcon from '@mui/icons-material/Medication';
-import FaceRetouchingNaturalOutlinedIcon from '@mui/icons-material/FaceRetouchingNaturalOutlined';
-import FaceRetouchingNaturalIcon from '@mui/icons-material/FaceRetouchingNatural';
-import BedOutlinedIcon from '@mui/icons-material/BedOutlined';
-import BedIcon from '@mui/icons-material/Bed';
-import LocalDiningOutlinedIcon from '@mui/icons-material/LocalDiningOutlined';
-import LocalDiningIcon from '@mui/icons-material/LocalDining';
-import CleaningServicesOutlinedIcon from '@mui/icons-material/CleaningServicesOutlined';
-import CleaningServicesIcon from '@mui/icons-material/CleaningServices';
-import LocalLaundryServiceOutlinedIcon from '@mui/icons-material/LocalLaundryServiceOutlined';
-import LocalLaundryServiceIcon from '@mui/icons-material/LocalLaundryService';
-import DirectionsRunOutlinedIcon from '@mui/icons-material/DirectionsRunOutlined';
-import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
-import SelfImprovementOutlinedIcon from '@mui/icons-material/SelfImprovementOutlined';
-import SelfImprovementIcon from '@mui/icons-material/SelfImprovement';
-import FitnessCenterOutlinedIcon from '@mui/icons-material/FitnessCenterOutlined';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import BlenderOutlinedIcon from '@mui/icons-material/BlenderOutlined';
-import BlenderIcon from '@mui/icons-material/Blender';
-import SpaOutlinedIcon from '@mui/icons-material/SpaOutlined';
-import SpaIcon from '@mui/icons-material/Spa';
-import LocalFireDepartmentOutlinedIcon from '@mui/icons-material/LocalFireDepartmentOutlined';
-import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
-import WaterDropOutlinedIcon from '@mui/icons-material/WaterDropOutlined';
-import WaterDropIcon from '@mui/icons-material/WaterDrop';
-import RestaurantOutlinedIcon from '@mui/icons-material/RestaurantOutlined';
-import RestaurantIcon from '@mui/icons-material/Restaurant';
-import BathtubOutlinedIcon from '@mui/icons-material/BathtubOutlined';
-import BathtubIcon from '@mui/icons-material/Bathtub';
-import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
-import ScienceIcon from '@mui/icons-material/Science';
-import RestaurantMenuOutlinedIcon from '@mui/icons-material/RestaurantMenuOutlined';
-import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
-import LocalPharmacyOutlinedIcon from '@mui/icons-material/LocalPharmacyOutlined';
-import LocalPharmacyIcon from '@mui/icons-material/LocalPharmacy';
-import NightlightOutlinedIcon from '@mui/icons-material/NightlightOutlined';
-import NightlightIcon from '@mui/icons-material/Nightlight';
-import Face3OutlinedIcon from '@mui/icons-material/Face3Outlined';
-import Face3Icon from '@mui/icons-material/Face3';
-import DirectionsBikeOutlinedIcon from '@mui/icons-material/DirectionsBikeOutlined';
-import DirectionsBikeIcon from '@mui/icons-material/DirectionsBike';
-import Face4OutlinedIcon from '@mui/icons-material/Face4Outlined';
-import Face4Icon from '@mui/icons-material/Face4';
-import SanitizerOutlinedIcon from '@mui/icons-material/SanitizerOutlined';
-import SanitizerIcon from '@mui/icons-material/Sanitizer';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
-
-const CustomTooltip = styled(({ className, ...props }) => (
-  <Tooltip {...props} classes={{ popper: className }} />
-))(({ theme }) => ({
-  '& .MuiTooltip-tooltip': {
-    backgroundColor: theme.palette.background.paper,
-    color: theme.palette.text.primary,
-    boxShadow: theme.shadows[1],
-    fontSize: '0.75rem',
-    padding: '4px 8px',
-    border: `1px solid ${theme.palette.divider}`
-  },
-}));
-
-const formatDate = (date) => {
-  const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-  const d = new Date(date);
-  const dia = d.getDate().toString().padStart(2, '0');
-  const mes = meses[d.getMonth()];
-  const año = d.getFullYear();
-  return `${dia} ${mes} ${año}`;
-};
-
-const iconConfig = {
-  bodyCare: {
-    bath: { outlined: BathtubOutlinedIcon, filled: BathtubIcon, tooltip: 'Baño' },
-    skinCareDay: { outlined: Face4OutlinedIcon, filled: Face4Icon, tooltip: 'Skin Care Día' },
-    skinCareNight: { outlined: NightlightOutlinedIcon, filled: NightlightIcon, tooltip: 'Skin Care Noche' },
-    bodyCream: { outlined: SanitizerOutlinedIcon, filled: SanitizerIcon, tooltip: 'Crema Corporal' }
-  },
-  nutricion: {
-    cocinar: { outlined: RestaurantMenuOutlinedIcon, filled: RestaurantMenuIcon, tooltip: 'Cocinar' },
-    agua: { outlined: WaterDropOutlinedIcon, filled: WaterDropIcon, tooltip: 'Agua' },
-    protein: { outlined: BlenderOutlinedIcon, filled: BlenderIcon, tooltip: 'Proteína' },
-    meds: { outlined: MedicationOutlinedIcon, filled: MedicationIcon, tooltip: 'Medicamentos' }
-  },
-  ejercicio: {
-    meditate: { outlined: SelfImprovementOutlinedIcon, filled: SelfImprovementIcon, tooltip: 'Meditar' },
-    stretching: { outlined: DirectionsRunOutlinedIcon, filled: DirectionsRunIcon, tooltip: 'Stretching' },
-    gym: { outlined: FitnessCenterOutlinedIcon, filled: FitnessCenterIcon, tooltip: 'Gym' },
-    cardio: { outlined: DirectionsBikeOutlinedIcon, filled: DirectionsBikeIcon, tooltip: 'Cardio' }
-  },
-  cleaning: {
-    bed: { outlined: BedOutlinedIcon, filled: BedIcon, tooltip: 'Hacer la Cama' },
-    platos: { outlined: LocalDiningOutlinedIcon, filled: LocalDiningIcon, tooltip: 'Lavar los Platos' },
-    piso: { outlined: CleaningServicesOutlinedIcon, filled: CleaningServicesIcon, tooltip: 'Limpiar el Piso' },
-    ropa: { outlined: LocalLaundryServiceOutlinedIcon, filled: LocalLaundryServiceIcon, tooltip: 'Lavar la Ropa' }
-  }
-};
-
-const ChecklistSection = ({ title, items = {}, onChange, section, completitud }) => {
-  // Filtrar solo los items que tienen iconos configurados
-  const validItems = Object.entries(items).filter(([key]) => 
-    iconConfig[section] && iconConfig[section][key]
-  );
-
-  return (
-    <TableRow sx={{ 
-      '&:last-child td, &:last-child th': { border: 0 },
-      backgroundColor: 'transparent'
-    }}>
-      <TableCell 
-        colSpan={2}
-        sx={{ 
-          position: 'relative',
-          pt: 1.5,
-          pb: 0.5,
-          px: 2,
-          backgroundColor: 'transparent'
-        }}
-      >
-        <Box sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          mb: 0.5
-        }}>
-          <Typography 
-            variant="subtitle2" 
-            color="text.secondary"
-            sx={{
-              fontSize: '0.75rem',
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase'
-            }}
-          >
-            {title}
-          </Typography>
-          <Typography 
-            variant="subtitle2"
-            sx={{
-              fontSize: '0.75rem',
-              color: completitud >= 0.8 ? 'success.main' : 
-                     completitud >= 0.5 ? 'warning.main' : 
-                     'error.main',
-              fontWeight: 500
-            }}
-          >
-            {`${(completitud * 100).toFixed(0)}%`}
-          </Typography>
-        </Box>
-        <Stack 
-          direction="row" 
-          spacing={0.5}
-          flexWrap="wrap" 
-          useFlexGap 
-          justifyContent="flex-start"
-          sx={{ 
-            gap: 0.5,
-            '& > *': { 
-              minWidth: 28,
-              height: 28
-            }
-          }}
-        >
-          {validItems.map(([key, value]) => {
-            const IconOutlined = iconConfig[section][key].outlined;
-            const IconFilled = iconConfig[section][key].filled;
-            const tooltip = iconConfig[section][key].tooltip;
-
-            return (
-              <CustomTooltip 
-                key={key}
-                title={tooltip}
-                placement="top"
-                arrow
-              >
-                <IconButton
-                  onClick={() => onChange(section, key, !value)}
-                  color={value ? 'primary' : 'default'}
-                  size="small"
-                  sx={{ 
-                    p: 0.5,
-                    color: value ? 'primary.main' : 'text.disabled',
-                    '& .MuiSvgIcon-root': {
-                      fontSize: '1.25rem'
-                    },
-                    '&:hover': {
-                      backgroundColor: 'transparent',
-                      color: value ? 'primary.dark' : 'text.primary'
-                    }
-                  }}
-                >
-                  {value ? <IconFilled /> : <IconOutlined />}
-                </IconButton>
-              </CustomTooltip>
-            );
-          })}
-        </Stack>
-      </TableCell>
-    </TableRow>
-  );
-};
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import AddIcon from '@mui/icons-material/Add';
+import { formatDate } from './utils/iconConfig';
+import ChecklistSection from './ChecklistSection';
 
 export const RutinaTable = ({ 
   rutina, 
@@ -236,19 +34,81 @@ export const RutinaTable = ({
   hasNext 
 }) => {
   // Agregar useEffect para debugging
-  React.useEffect(() => {
+  useEffect(() => {
     console.log('RutinaTable recibió nueva rutina:', rutina);
   }, [rutina]);
 
-  if (!rutina) {
+  // Forzar re-renderizado cuando cambia la rutina
+  const [, forceRender] = useState({});
+  useEffect(() => {
+    forceRender({});
+  }, [rutina]);
+
+  if (!rutina || !rutina._id) {
     console.log('No hay rutina para mostrar');
     return (
       <TableContainer>
         <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Fecha</TableCell>
+              <TableCell>Rutina diaria</TableCell>
+              <TableCell>Completitud</TableCell>
+              <TableCell align="right">
+                <IconButton
+                  size="small"
+                  onClick={onPrevious}
+                  disabled={!hasPrevious}
+                  sx={{ 
+                    color: hasPrevious ? 'primary.main' : 'text.disabled',
+                    '&:hover': {
+                      backgroundColor: 'transparent'
+                    }
+                  }}
+                >
+                  <NavigateNextIcon sx={{ transform: 'rotate(180deg)' }} />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={onNext}
+                  disabled={!hasNext}
+                  sx={{ 
+                    color: hasNext ? 'primary.main' : 'text.disabled',
+                    '&:hover': {
+                      backgroundColor: 'transparent'
+                    }
+                  }}
+                >
+                  <NavigateNextIcon />
+                </IconButton>
+              </TableCell>
+            </TableRow>
+          </TableHead>
           <TableBody>
             <TableRow>
-              <TableCell colSpan={6} align="center">
-                No hay rutina para mostrar
+              <TableCell colSpan={4} align="center">
+                <Box sx={{ 
+                  py: 4, 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center',
+                  gap: 2 
+                }}>
+                  <Typography variant="body1" color="text.secondary">
+                    No hay rutinas registradas
+                  </Typography>
+                  <Button 
+                    variant="outlined" 
+                    startIcon={<AddIcon />}
+                    onClick={() => {
+                      if (typeof onEdit === 'function') {
+                        onEdit();
+                      }
+                    }}
+                  >
+                    Crear primera rutina
+                  </Button>
+                </Box>
               </TableCell>
             </TableRow>
           </TableBody>
@@ -467,10 +327,25 @@ export const RutinaTable = ({
                     transition: 'all 0.2s ease-in-out'
                   }
                 }}>
-                  <CustomTooltip 
+                  <Tooltip 
                     title="Registro anterior"
-                    placement="top"
                     arrow
+                    placement="top"
+                    componentsProps={{
+                      tooltip: {
+                        sx: {
+                          bgcolor: 'background.paper',
+                          color: 'text.primary',
+                          '& .MuiTooltip-arrow': {
+                            color: 'background.paper',
+                          },
+                          boxShadow: 1,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          fontSize: '0.75rem'
+                        }
+                      }
+                    }}
                   >
                     <span>
                       <IconButton
@@ -495,11 +370,26 @@ export const RutinaTable = ({
                         <ChevronLeftIcon />
                       </IconButton>
                     </span>
-                  </CustomTooltip>
-                  <CustomTooltip 
+                  </Tooltip>
+                  <Tooltip 
                     title="Registro siguiente"
-                    placement="top"
                     arrow
+                    placement="top"
+                    componentsProps={{
+                      tooltip: {
+                        sx: {
+                          bgcolor: 'background.paper',
+                          color: 'text.primary',
+                          '& .MuiTooltip-arrow': {
+                            color: 'background.paper',
+                          },
+                          boxShadow: 1,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          fontSize: '0.75rem'
+                        }
+                      }
+                    }}
                   >
                     <span>
                       <IconButton
@@ -524,11 +414,26 @@ export const RutinaTable = ({
                         <ChevronRightIcon />
                       </IconButton>
                     </span>
-                  </CustomTooltip>
-                  <CustomTooltip 
+                  </Tooltip>
+                  <Tooltip 
                     title="Eliminar rutina"
-                    placement="top"
                     arrow
+                    placement="top"
+                    componentsProps={{
+                      tooltip: {
+                        sx: {
+                          bgcolor: 'background.paper',
+                          color: 'text.primary',
+                          '& .MuiTooltip-arrow': {
+                            color: 'background.paper',
+                          },
+                          boxShadow: 1,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          fontSize: '0.75rem'
+                        }
+                      }
+                    }}
                   >
                     <IconButton
                       onClick={onDelete}
@@ -547,7 +452,7 @@ export const RutinaTable = ({
                     >
                       <DeleteIcon />
                     </IconButton>
-                  </CustomTooltip>
+                  </Tooltip>
                 </Box>
               </Box>
             </TableCell>

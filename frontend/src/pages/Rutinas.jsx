@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Container } from '@mui/material';
+import { Container, Dialog, Alert, IconButton } from '@mui/material';
 import EntityToolbar from '../components/EntityToolbar';
 import { 
   ScienceOutlined as LabIcon,
   RestaurantOutlined as DietaIcon,
   MonitorWeightOutlined as WeightIcon,
   HealthAndSafety as HealthIcon,
-  CalendarMonth as DateIcon
+  CalendarMonth as DateIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
 import { Button } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -23,6 +24,7 @@ function Rutinas() {
   const { enqueueSnackbar } = useSnackbar();
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchRutina(currentPage);
@@ -39,12 +41,28 @@ function Rutinas() {
       }
     };
 
+    // Escuchar eventos de cambio para actualizar la vista
+    const handleEntityUpdated = (event) => {
+      console.log('Evento de actualización recibido:', event.detail);
+      
+      // Si el evento es de rutinas, actualizar la vista
+      if (event.detail.type === 'rutinas') {
+        // Esperar un breve momento para que la base de datos se actualice
+        setTimeout(() => {
+          console.log('Recargando rutina después de evento de actualización');
+          fetchRutina(currentPage);
+        }, 500);
+      }
+    };
+
     window.addEventListener('editRutina', handleEditRutinaEvent);
+    window.addEventListener('entityUpdated', handleEntityUpdated);
     
     return () => {
       window.removeEventListener('editRutina', handleEditRutinaEvent);
+      window.removeEventListener('entityUpdated', handleEntityUpdated);
     };
-  }, []);
+  }, [currentPage]);
 
   const fetchRutina = async (page) => {
     try {
@@ -94,8 +112,13 @@ function Rutinas() {
     }
   };
 
-  const handleOpenDialog = (rutinaToEdit = null) => {
-    setEditingRutina(rutinaToEdit);
+  const handleOpenDialog = (rutina = null) => {
+    console.log('Abriendo diálogo con rutina:', rutina);
+    // Limpiar cualquier error previo
+    setError(null);
+    // Establecer la rutina que se está editando
+    setEditingRutina(rutina);
+    // Abrir el diálogo
     setOpenDialog(true);
   };
 
@@ -106,37 +129,103 @@ function Rutinas() {
 
   const handleSubmit = async (formData) => {
     try {
-      let response;
-      if (editingRutina?._id) {
-        response = await clienteAxios.put(`/api/rutinas/${editingRutina._id}`, formData);
-        enqueueSnackbar('Rutina actualizada exitosamente', { variant: 'success' });
-        handleCloseDialog();
-      } else {
-        response = await clienteAxios.post('/api/rutinas', formData);
-        console.log('Rutina creada:', response.data);
-        setRutina(response.data);
-        setCurrentPage(1);
-        setTotalPages(prev => Math.max(1, prev));
-        enqueueSnackbar('Rutina creada exitosamente', { variant: 'success' });
-        handleCloseDialog();
-      }
+      console.log('Rutinas: handleSubmit recibió formData:', formData);
       
-      if (editingRutina?._id) {
-        await fetchRutina(1);
-        setCurrentPage(1);
+      // Si ya tenemos el ID, es una actualización, sino es crear
+      if (formData._id) {
+        // Es una actualización de rutina existente
+        const response = await clienteAxios.put(`/api/rutinas/${formData._id}`, formData);
+        console.log('Rutina actualizada:', response.data);
+        
+        // Mostrar mensaje de éxito
+        enqueueSnackbar('Rutina actualizada exitosamente', { variant: 'success' });
+        
+        // Actualizar el estado
+        setRutina(response.data);
+        
+        // Disparar evento de actualización
+        window.dispatchEvent(new CustomEvent('entityUpdated', {
+          detail: { 
+            type: 'rutinas', 
+            action: 'update', 
+            id: response.data._id 
+          }
+        }));
+        
+        // Cerrar el diálogo
+        handleCloseDialog();
+        
+        // Recargar datos
+        setTimeout(() => {
+          fetchRutina(currentPage);
+        }, 300);
+      } else {
+        // Es crear una nueva rutina
+        try {
+          // Si ya estamos en proceso de crear, evitar crear duplicados
+          const response = await clienteAxios.post('/api/rutinas', formData);
+          console.log('Rutina creada:', response.data);
+          
+          // Mostrar mensaje de éxito
+          enqueueSnackbar('Rutina creada exitosamente', { variant: 'success' });
+          
+          // Actualizar el estado
+          setRutina(response.data);
+          setCurrentPage(1);
+          
+          // Disparar evento de actualización
+          window.dispatchEvent(new CustomEvent('entityUpdated', {
+            detail: { 
+              type: 'rutinas', 
+              action: 'create', 
+              id: response.data._id 
+            }
+          }));
+          
+          // Cerrar el diálogo
+          handleCloseDialog();
+          
+          // Recargar datos
+          setTimeout(() => {
+            fetchRutina(1);
+          }, 300);
+        } catch (error) {
+          if (error.response?.status === 409) {
+            console.log('Error 409: Conflicto - Ya existe una rutina para esta fecha');
+            enqueueSnackbar('Ya existe una rutina para esta fecha', { variant: 'error' });
+            
+            // No cerrar el diálogo para permitir al usuario elegir otra fecha
+            // Intentar cargar la rutina existente para mostrarla
+            if (error.response?.data?.rutina?.id) {
+              try {
+                const existingRutina = await clienteAxios.get(`/api/rutinas/${error.response.data.rutina.id}`);
+                setRutina(existingRutina.data);
+                setCurrentPage(1);
+                
+                // Cerrar el diálogo después de cargar la rutina existente
+                handleCloseDialog();
+                
+                // Notificar que se está mostrando una rutina existente
+                enqueueSnackbar('Mostrando la rutina existente para la fecha seleccionada', { 
+                  variant: 'info',
+                  autoHideDuration: 5000
+                });
+              } catch (fetchError) {
+                console.error('Error al obtener la rutina existente:', fetchError);
+              }
+            }
+          } else {
+            throw error; // Propagar otros errores
+          }
+        }
       }
     } catch (error) {
       console.error('Error al guardar rutina:', error);
-      if (error.response?.status === 409) {
-        enqueueSnackbar('Ya existe una rutina para esta fecha', { variant: 'error' });
-        return;
-      } else {
-        enqueueSnackbar(
-          error.response?.data?.error || 'Error al guardar la rutina', 
-          { variant: 'error' }
-        );
-        handleCloseDialog();
-      }
+      
+      enqueueSnackbar(
+        error.response?.data?.error || 'Error al guardar la rutina', 
+        { variant: 'error' }
+      );
     }
   };
 
@@ -144,6 +233,12 @@ function Rutinas() {
     try {
       await clienteAxios.delete(`/api/rutinas/${id}`);
       enqueueSnackbar('Rutina eliminada exitosamente', { variant: 'success' });
+      
+      // Disparar evento de actualización
+      window.dispatchEvent(new CustomEvent('entityUpdated', {
+        detail: { type: 'rutinas', action: 'delete' }
+      }));
+      
       fetchRutina(currentPage);
     } catch (error) {
       console.error('Error al eliminar rutina:', error);
@@ -225,12 +320,32 @@ function Rutinas() {
         />
       </EntityDetails>
 
-      <RutinaForm
+      <Dialog
         open={openDialog}
         onClose={handleCloseDialog}
-        onSubmit={handleSubmit}
-        initialData={editingRutina || undefined}
-      />
+        fullWidth
+        maxWidth="sm"
+      >
+        {error && (
+          <Alert severity="error" sx={{ m: 2 }}>
+            {error}
+            <IconButton 
+              size="small" 
+              onClick={() => setError(null)}
+              sx={{ ml: 1 }}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Alert>
+        )}
+        <RutinaForm
+          key={`rutina-form-${Date.now()}`}
+          open={openDialog}
+          onClose={handleCloseDialog}
+          onSubmit={handleSubmit}
+          initialData={editingRutina}
+        />
+      </Dialog>
     </Container>
   );
 }
