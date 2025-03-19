@@ -85,15 +85,9 @@ class RutinasController extends BaseController {
       const fechaInicio = new Date(fecha);
       fechaInicio.setHours(0, 0, 0, 0);
       
-      const fechaFin = new Date(fecha);
-      fechaFin.setHours(23, 59, 59, 999);
-
       // Verificar si ya existe una rutina para este día
       const existingRutina = await this.Model.findOne({
-        fecha: {
-          $gte: fechaInicio,
-          $lte: fechaFin
-        },
+        fecha: fechaInicio,
         usuario: req.user.id
       });
 
@@ -103,49 +97,34 @@ class RutinasController extends BaseController {
         });
       }
 
-      // Asegurar que todos los campos de checklist estén presentes
-      const checklistData = {
-        morning: {
-          wakeUp: false,
+      // Crear la nueva rutina con la estructura correcta
+      const newDoc = new this.Model({
+        fecha: fechaInicio,
+        usuario: req.user.id,
+        bodyCare: {
+          bath: false,
           skinCareDay: false,
-          meds: false,
-          teeth: false,
-          ...req.body.morning
+          skinCareNight: false,
+          bodyCream: false
         },
-        cleaning: {
-          platos: false,
-          piso: false,
-          ropa: false,
-          ...req.body.cleaning
-        },
-        ejercicio: {
-          cardio: false,
-          stretching: false,
-          gym: false,
-          protein: false,
-          meditate: false,
-          ...req.body.ejercicio
-        },
-        cooking: {
+        nutricion: {
           cocinar: false,
           agua: false,
-          food: false,
-          ...req.body.cooking
+          protein: false,
+          meds: false
         },
-        night: {
-          skinCareNight: false,
-          bath: false,
-          bodyCream: false,
-          ...req.body.night
+        ejercicio: {
+          meditate: false,
+          stretching: false,
+          gym: false,
+          cardio: false
+        },
+        cleaning: {
+          bed: false,
+          platos: false,
+          piso: false,
+          ropa: false
         }
-      };
-
-      // Crear la nueva rutina
-      const newDoc = new this.Model({
-        ...req.body,
-        ...checklistData,
-        usuario: req.user.id,
-        fecha: fechaInicio
       });
 
       const savedDoc = await newDoc.save();
