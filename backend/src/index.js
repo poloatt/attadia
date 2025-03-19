@@ -13,28 +13,15 @@ import MongoStore from 'connect-mongo';
 // Importar configuración según el entorno
 let config;
 try {
-  switch (process.env.NODE_ENV) {
-    case 'production':
-      config = (await import('./config/config.js')).default;
-      break;
-    case 'staging':
-      config = (await import('./config/config.js')).default;
-      break;
-    case 'development':
-    default:
-      config = (await import('./config/config.js')).default;
-      break;
-  }
+  config = (await import('./config/config.js')).default;
 } catch (error) {
   console.error('Error al cargar la configuración, usando configuración básica:', error.message);
-  // Configuración básica por defecto
-  const defaultCorsOrigins = 'https://staging.present.attadia.com,https://api.staging.present.attadia.com';
   config = {
     env: process.env.NODE_ENV || 'development',
     port: parseInt(process.env.PORT || '5000', 10),
-    mongoUrl: process.env.MONGO_URL || process.env.MONGODB_URI || 'mongodb://mongodb-staging:27017/present?authSource=admin',
-    frontendUrl: process.env.FRONTEND_URL || 'https://staging.present.attadia.com',
-    corsOrigins: Array.from(new Set((process.env.CORS_ORIGINS || defaultCorsOrigins).split(',').map(origin => origin.trim()))),
+    mongoUrl: process.env.MONGO_URL || 'mongodb://mongodb:27017/present?authSource=admin',
+    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+    corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:3000'],
     sessionSecret: process.env.SESSION_SECRET || 'fallback_session_secret'
   };
 }
@@ -58,18 +45,10 @@ process.on('uncaughtException', (error) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Configuración manual de CORS
+// Configuración de CORS
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-
-  // Definir orígenes permitidos según el ambiente
-  const allowedOrigins = {
-    development: ['http://localhost:3000'],
-    staging: ['https://staging.present.attadia.com'],
-    production: ['https://present.attadia.com']
-  };
-
-  const currentAllowedOrigins = allowedOrigins[config.env] || allowedOrigins.staging;
+  const corsOrigins = Array.isArray(config.corsOrigins) ? config.corsOrigins : [config.frontendUrl];
 
   // Log solo en staging/producción
   if (config.env !== 'development') {
@@ -78,31 +57,20 @@ app.use((req, res, next) => {
       origin,
       method: req.method,
       path: req.path,
-      currentAllowedOrigins
+      allowedOrigins: corsOrigins
     });
   }
 
-  // Verificar y establecer el origen
-  if (config.env === 'development') {
-    // En desarrollo, permitir cualquier origen
-    if (origin) {
-      res.header('Access-Control-Allow-Origin', origin);
-      res.header('Access-Control-Allow-Credentials', 'true');
-    }
-  } else if (origin && currentAllowedOrigins.includes(origin)) {
-    // En staging/producción, solo permitir orígenes específicos
+  // En desarrollo permitir cualquier origen, en otros ambientes solo los configurados
+  if (config.env === 'development' || (origin && corsOrigins.includes(origin))) {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Access-Control-Allow-Credentials', 'true');
-  }
-
-  // Si se estableció un origen, agregar los headers adicionales
-  if (res.getHeader('Access-Control-Allow-Origin')) {
     res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
     res.header('Vary', 'Origin');
   }
 
-  // Para requests OPTIONS (preflight)
+  // Manejar preflight requests
   if (req.method === 'OPTIONS') {
     return res.status(204).end();
   }
