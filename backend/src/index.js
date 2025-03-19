@@ -61,28 +61,58 @@ app.use(express.urlencoded({ extended: true }));
 // Configuración manual de CORS
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  const allowedOrigins = [
-    'https://staging.present.attadia.com',
-    'https://api.staging.present.attadia.com'
-  ];
+  const allowedOrigins = config.env === 'development' 
+    ? [origin] // En desarrollo, permitir cualquier origen
+    : [ // En staging/producción, solo orígenes específicos
+        'https://staging.present.attadia.com',
+        'https://api.staging.present.attadia.com'
+      ];
 
-  console.log('CORS: Solicitud de origen:', origin);
-
-  if (origin && allowedOrigins.includes(origin)) {
-    console.log(`CORS: Permitiendo origen ${origin}`);
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  // Log detallado para debugging solo en staging/producción
+  if (config.env !== 'development') {
+    console.log('CORS Request:', {
+      origin,
+      method: req.method,
+      path: req.path,
+      headers: req.headers
+    });
   }
 
-  // Manejar preflight requests
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  // En desarrollo, permitir cualquier origen. En staging/producción, verificar la lista
+  if (config.env === 'development' || (origin && allowedOrigins.includes(origin))) {
+    if (config.env !== 'development') {
+      console.log(`CORS: Permitiendo origen ${origin}`);
+    }
+    
+    // Establecer headers CORS
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Vary', 'Origin');
+
+    // Para requests OPTIONS (preflight)
+    if (req.method === 'OPTIONS') {
+      return res.status(204).end();
+    }
+  } else if (config.env !== 'development') {
+    console.log(`CORS: Origen no permitido ${origin}`);
   }
 
   next();
 });
+
+// Middleware para verificar headers de respuesta solo en staging/producción
+if (config.env !== 'development') {
+  app.use((req, res, next) => {
+    const oldJson = res.json;
+    res.json = function(...args) {
+      console.log('Response Headers:', res.getHeaders());
+      return oldJson.apply(res, args);
+    };
+    next();
+  });
+}
 
 app.use(cookieParser(config.sessionSecret));
 

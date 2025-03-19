@@ -99,12 +99,17 @@ router.get('/google/url', (req, res) => {
     });
   }
 
-  console.log('Configuración de Google OAuth para ambiente:', {
-    env: config.env,
-    clientId: config.google.clientId ? 'configurado' : 'no configurado',
-    callbackUrl: config.google.callbackUrl,
-    frontendUrl: config.frontendUrl
-  });
+  // Solo loggear en staging/producción
+  if (config.env !== 'development') {
+    console.log('Configuración de Google OAuth para ambiente:', {
+      env: config.env,
+      clientId: config.google.clientId ? 'configurado' : 'no configurado',
+      callbackUrl: config.google.callbackUrl,
+      frontendUrl: config.frontendUrl,
+      headers: req.headers,
+      origin: req.headers.origin
+    });
+  }
 
   const scopes = [
     'openid',
@@ -120,11 +125,29 @@ router.get('/google/url', (req, res) => {
     `access_type=offline&` +
     `prompt=consent`;
   
-  console.log('URL de autenticación generada para ambiente:', {
-    env: config.env,
-    redirectUri: config.google.callbackUrl,
-    scopes
-  });
+  // Solo loggear en staging/producción
+  if (config.env !== 'development') {
+    console.log('URL de autenticación generada para ambiente:', {
+      env: config.env,
+      redirectUri: config.google.callbackUrl,
+      scopes,
+      responseHeaders: res.getHeaders()
+    });
+  }
+  
+  // En desarrollo, permitir cualquier origen
+  if (config.env === 'development') {
+    const origin = req.headers.origin;
+    if (origin) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Vary', 'Origin');
+    }
+  } else if (req.headers.origin === 'https://staging.present.attadia.com') {
+    res.header('Access-Control-Allow-Origin', req.headers.origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Vary', 'Origin');
+  }
   
   res.json({ url: authUrl });
 });
