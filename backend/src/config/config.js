@@ -11,7 +11,7 @@ const validateRequiredEnvVars = () => {
     'JWT_SECRET',
     'REFRESH_TOKEN_SECRET',
     'SESSION_SECRET',
-    'MONGODB_URI',
+    'MONGO_URL',
     'GOOGLE_CLIENT_ID',
     'GOOGLE_CLIENT_SECRET',
     'FRONTEND_URL',
@@ -30,15 +30,14 @@ const validateRequiredEnvVars = () => {
 const baseConfig = {
   env: environment,
   port: parseInt(process.env.PORT || '5000', 10),
-  mongoUrl: process.env.MONGODB_URI || `mongodb://mongodb-${environment}:27017/present`,
+  mongoUrl: process.env.MONGO_URL || process.env.MONGODB_URI || `mongodb://mongodb-${environment}:27017/present`,
   jwtSecret: process.env.JWT_SECRET,
   refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET,
   apiUrl: process.env.BACKEND_URL,
   frontendUrl: process.env.FRONTEND_URL,
-  corsOrigins: [
-    process.env.FRONTEND_URL,
-    process.env.BACKEND_URL
-  ].filter(Boolean),
+  corsOrigins: process.env.CORS_ORIGINS ? 
+    process.env.CORS_ORIGINS.split(',') : 
+    [process.env.FRONTEND_URL, process.env.BACKEND_URL].filter(Boolean),
   sessionSecret: process.env.SESSION_SECRET,
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID,
@@ -54,6 +53,9 @@ let config;
 if (environment === 'development') {
   const devConfig = await import('./config.dev.js');
   config = devConfig.default;
+} else if (environment === 'staging') {
+  const stagingConfig = await import('./config.staging.js');
+  config = stagingConfig.default;
 } else {
   validateRequiredEnvVars();
   config = baseConfig;

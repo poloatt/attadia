@@ -4,6 +4,9 @@ FROM node:18-alpine
 # Argumentos de construcción
 ARG BUILD_ENV=production
 
+# Instalar curl para health checks
+RUN apk add --no-cache curl
+
 # Directorio de trabajo
 WORKDIR /app
 
