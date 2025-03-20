@@ -28,7 +28,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 const app = express();
 const port = process.env.PORT || 9000;
-const webhookSecret = process.env.WEBHOOK_SECRET || 'ProductionSecret_ATTADIA99';
+const webhookSecret = process.env.WEBHOOK_PRODUCTION_SECRET || process.env.WEBHOOK_SECRET || 'ProductionSecret_ATTADIA99';
 
 // Middleware para parsear JSON
 app.use(bodyParser.json());
@@ -50,26 +50,41 @@ function verifySignature(payload, signature) {
         const hmac = crypto.createHmac('sha256', webhookSecret);
         const digest = 'sha256=' + hmac.update(payload).digest('hex');
         
+        logger.info(`Verificando firma: ${signature} con secreto: ${webhookSecret.substring(0, 3)}...`);
+        
         // Comparación segura: vulnerable a timing attacks pero más segura que una comparación directa
         return crypto.timingSafeEqual(
             Buffer.from(digest, 'utf8'),
             Buffer.from(signature, 'utf8')
         );
     } catch (error) {
-        logger.error('Error al verificar firma', { error: error.message });
+        logger.error('Error al verificar firma', { 
+            error: error.message,
+            stack: error.stack,
+            secret_length: webhookSecret ? webhookSecret.length : 0,
+            signature_length: signature ? signature.length : 0
+        });
         return false;
     }
 }
 
 // Endpoint del webhook - manejar tanto '/webhook' como '/'
 app.post(['/', '/webhook'], (req, res) => {
-    logger.info('Recibida solicitud webhook en la ruta: ' + req.path);
+    logger.info('Recibida solicitud webhook en la ruta: ' + req.path, {
+        headers: req.headers,
+        body_keys: Object.keys(req.body),
+        method: req.method
+    });
     
     const signature = req.headers['x-hub-signature-256'];
     const payload = JSON.stringify(req.body);
     
     if (!verifySignature(payload, signature)) {
-        logger.error('Firma inválida o error en verificación');
+        logger.error('Firma inválida o error en verificación', {
+            signature: signature,
+            body_sample: payload.substring(0, 100) + '...',
+            secret_used: webhookSecret.substring(0, 3) + '...'
+        });
         return res.status(401).send('Invalid signature');
     }
 
