@@ -116,7 +116,6 @@ services:
       - ENVIRONMENT=production
       - PORT=9000
       - WEBHOOK_SECRET=ProductionSecret_ATTADIA99
-      - WEBHOOK_PRODUCTION_SECRET=ProductionSecret_ATTADIA99
       - LOG_FILE=/var/log/webhook-server/webhook-production.log
     volumes:
       - /var/log/webhook-server:/var/log/webhook-server
