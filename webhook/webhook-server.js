@@ -184,45 +184,49 @@ app.post(['/', '/webhook'], (req, res) => {
 
     logger.info(`[${requestId}] Recibido push a ${req.body.ref}, iniciando actualización para ${environment}`);
     
-    // Ejecutar script de actualización
-    logger.info(`[${requestId}] Ejecutando: cd /home/poloatt/present && git pull origin ${req.body.ref}`);
-    exec(`cd /home/poloatt/present && git pull origin ${req.body.ref}`, (error, stdout, stderr) => {
+    // Ejecutar git pull
+    const gitCommand = `cd /home/poloatt/present && git pull origin ${req.body.ref}`;
+    logger.info(`[${requestId}] Ejecutando: ${gitCommand}`);
+    
+    exec(gitCommand, (error, stdout, stderr) => {
         if (error) {
-            logger.error(`[${requestId}] Error al ejecutar git pull para ${environment}`, { 
+            logger.error(`[${requestId}] Error al ejecutar git pull:`, { 
                 error: error.message,
                 stdout,
                 stderr,
-                command: `git pull origin ${req.body.ref}`,
-                cwd: '/home/poloatt/present'
+                command: gitCommand
             });
-            return res.status(500).send('Error updating repository');
+            return res.status(500).send(`Error updating repository: ${error.message}`);
         }
         
-        // Registrar la salida del comando git pull
-        logger.info(`[${requestId}] Git pull completado exitosamente para ${environment}`, { stdout, stderr });
+        logger.info(`[${requestId}] Git pull completado con éxito:`, { 
+            stdout,
+            stderr
+        });
         
-        // Reconstruir y reiniciar los contenedores según el ambiente
+        // Reconstruir contenedores
         const composeFile = environment === 'production' ? 'docker-compose.prod.yml' : 'docker-compose.staging.yml';
         const dockerCommand = `cd /home/poloatt/present && docker-compose -f ${composeFile} up -d --build`;
         
         logger.info(`[${requestId}] Ejecutando: ${dockerCommand}`);
+        
         exec(dockerCommand, (error, stdout, stderr) => {
             if (error) {
-                logger.error(`[${requestId}] Error al reconstruir contenedores para ${environment}`, {
+                logger.error(`[${requestId}] Error al reconstruir contenedores:`, { 
                     error: error.message,
                     stdout,
                     stderr,
-                    command: dockerCommand,
-                    cwd: '/home/poloatt/present'
+                    command: dockerCommand
                 });
-                return res.status(500).send('Error rebuilding containers');
+                return res.status(500).send(`Error rebuilding containers: ${error.message}`);
             }
             
-            logger.info(`[${requestId}] Actualización completada exitosamente para ${environment}`, { 
+            logger.info(`[${requestId}] Contenedores reconstruidos con éxito:`, { 
                 stdout,
                 stderr,
                 fecha: new Date().toISOString()
             });
+            
             res.status(200).send(`Update completed successfully for ${environment}`);
         });
     });
