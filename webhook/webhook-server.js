@@ -35,8 +35,27 @@ logger.info('Configuración del webhook:', {
     port,
     environment: process.env.NODE_ENV,
     webhookSecretLength: webhookSecret ? webhookSecret.length : 0,
-    webhookSecretStart: webhookSecret ? webhookSecret.substring(0, 3) : null
+    webhookSecretStart: webhookSecret ? webhookSecret.substring(0, 3) : null,
+    nodePath: process.execPath,
+    nodeVersion: process.version,
+    platform: process.platform,
+    arch: process.arch,
+    pid: process.pid
 });
+
+// Registrar todas las variables de entorno disponibles (sin valores sensibles)
+const sanitizedEnv = Object.keys(process.env).reduce((acc, key) => {
+    // Evitar registrar valores sensibles
+    if (key.toLowerCase().includes('secret') || key.toLowerCase().includes('password') || key.toLowerCase().includes('token')) {
+        acc[key] = '[REDACTED]';
+    } else {
+        acc[key] = typeof process.env[key] === 'string' && process.env[key].length > 50 
+            ? process.env[key].substring(0, 50) + '...' 
+            : process.env[key];
+    }
+    return acc;
+}, {});
+logger.info('Variables de entorno disponibles:', sanitizedEnv);
 
 // Middleware para parsear JSON
 app.use(bodyParser.json());
@@ -48,27 +67,46 @@ app.get('/health', (req, res) => {
 });
 
 // Función para verificar la firma de GitHub
-function verifySignature(payload, signature) {
+function verifySignature(payload, signature, signatureType = 'sha256') {
     if (!signature) {
         logger.error('No se proporcionó firma');
         return false;
     }
     
     try {
-        const hmac = crypto.createHmac('sha256', webhookSecret);
-        const digest = 'sha256=' + hmac.update(payload).digest('hex');
+        let digest;
+        if (signatureType === 'sha1') {
+            const hmac = crypto.createHmac('sha1', webhookSecret);
+            digest = 'sha1-' + hmac.update(payload).digest('hex');
+        } else {
+            const hmac = crypto.createHmac('sha256', webhookSecret);
+            digest = 'sha256=' + hmac.update(payload).digest('hex');
+        }
         
-        logger.info(`Verificando firma: ${signature} con secreto: ${webhookSecret.substring(0, 3)}...`);
+        logger.info(`Verificando firma ${signatureType}: ${signature} con secreto: ${webhookSecret.substring(0, 3)}...`);
         
-        // Comparación segura: vulnerable a timing attacks pero más segura que una comparación directa
-        return crypto.timingSafeEqual(
-            Buffer.from(digest, 'utf8'),
-            Buffer.from(signature, 'utf8')
-        );
+        try {
+            // Comparación segura usando timingSafeEqual
+            return crypto.timingSafeEqual(
+                Buffer.from(digest, 'utf8'),
+                Buffer.from(signature, 'utf8')
+            );
+        } catch (compareError) {
+            // Si la comparación falla (posiblemente por longitudes diferentes), registra el error
+            logger.error('Error en la comparación de firmas', {
+                error: compareError.message,
+                digestLength: digest.length,
+                signatureLength: signature.length,
+                digest: digest.substring(0, 10) + '...',
+                signature: signature.substring(0, 10) + '...'
+            });
+            return false;
+        }
     } catch (error) {
         logger.error('Error al verificar firma', { 
             error: error.message,
             stack: error.stack,
+            signatureType,
             secret_length: webhookSecret ? webhookSecret.length : 0,
             signature_length: signature ? signature.length : 0
         });
@@ -78,20 +116,53 @@ function verifySignature(payload, signature) {
 
 // Endpoint del webhook - manejar tanto '/webhook' como '/'
 app.post(['/', '/webhook'], (req, res) => {
-    logger.info('Recibida solicitud webhook en la ruta: ' + req.path, {
-        headers: req.headers,
+    const requestId = Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
+    
+    logger.info(`[${requestId}] Recibida solicitud webhook en la ruta: ${req.path}`, {
+        headers: Object.keys(req.headers),
         body_keys: Object.keys(req.body),
-        method: req.method
+        method: req.method,
+        ip: req.ip,
+        body_sample: JSON.stringify(req.body).substring(0, 100) + '...'
     });
     
-    const signature = req.headers['x-hub-signature-256'];
+    // Añadir un log de las cabeceras importantes
+    const importantHeaders = [
+        'x-hub-signature', 'x-hub-signature-256', 'x-github-event', 
+        'x-github-delivery', 'content-type', 'user-agent'
+    ];
+    
+    const headerValues = {};
+    importantHeaders.forEach(header => {
+        headerValues[header] = req.headers[header] || 'no proporcionado';
+    });
+    
+    logger.info(`[${requestId}] Cabeceras importantes:`, headerValues);
+    
+    let isVerified = false;
     const payload = JSON.stringify(req.body);
     
-    if (!verifySignature(payload, signature)) {
+    // Intentar verificar usando SHA-256
+    const signatureSha256 = req.headers['x-hub-signature-256'];
+    if (signatureSha256) {
+        isVerified = verifySignature(payload, signatureSha256, 'sha256');
+    }
+    
+    // Si SHA-256 falla, intentar con SHA-1
+    if (!isVerified) {
+        const signatureSha1 = req.headers['x-hub-signature'];
+        if (signatureSha1) {
+            isVerified = verifySignature(payload, signatureSha1, 'sha1');
+        }
+    }
+    
+    if (!isVerified) {
         logger.error('Firma inválida o error en verificación', {
-            signature: signature,
+            signatureSha256: signatureSha256 ? signatureSha256.substring(0, 10) + '...' : 'no proporcionada',
+            signatureSha1: req.headers['x-hub-signature'] ? req.headers['x-hub-signature'].substring(0, 10) + '...' : 'no proporcionada',
             body_sample: payload.substring(0, 100) + '...',
-            secret_used: webhookSecret.substring(0, 3) + '...'
+            secret_used: webhookSecret.substring(0, 3) + '...',
+            headers: JSON.stringify(req.headers).substring(0, 200) + '...'
         });
         return res.status(401).send('Invalid signature');
     }
@@ -107,36 +178,51 @@ app.post(['/', '/webhook'], (req, res) => {
     }
 
     if (!environment) {
-        logger.info(`Push recibido en una rama diferente (${req.body.ref}), ignorando`);
+        logger.info(`[${requestId}] Push recibido en una rama diferente (${req.body.ref}), ignorando`);
         return res.status(200).send('Ignored non-deployment branch push');
     }
 
-    logger.info(`Recibido push a ${req.body.ref}, iniciando actualización para ${environment}`);
+    logger.info(`[${requestId}] Recibido push a ${req.body.ref}, iniciando actualización para ${environment}`);
     
     // Ejecutar script de actualización
+    logger.info(`[${requestId}] Ejecutando: cd /home/poloatt/present && git pull origin ${req.body.ref}`);
     exec(`cd /home/poloatt/present && git pull origin ${req.body.ref}`, (error, stdout, stderr) => {
         if (error) {
-            logger.error(`Error al ejecutar git pull para ${environment}`, { 
+            logger.error(`[${requestId}] Error al ejecutar git pull para ${environment}`, { 
                 error: error.message,
                 stdout,
-                stderr
+                stderr,
+                command: `git pull origin ${req.body.ref}`,
+                cwd: '/home/poloatt/present'
             });
             return res.status(500).send('Error updating repository');
         }
         
+        // Registrar la salida del comando git pull
+        logger.info(`[${requestId}] Git pull completado exitosamente para ${environment}`, { stdout, stderr });
+        
         // Reconstruir y reiniciar los contenedores según el ambiente
         const composeFile = environment === 'production' ? 'docker-compose.prod.yml' : 'docker-compose.staging.yml';
-        exec(`cd /home/poloatt/present && docker-compose -f ${composeFile} up -d --build`, (error, stdout, stderr) => {
+        const dockerCommand = `cd /home/poloatt/present && docker-compose -f ${composeFile} up -d --build`;
+        
+        logger.info(`[${requestId}] Ejecutando: ${dockerCommand}`);
+        exec(dockerCommand, (error, stdout, stderr) => {
             if (error) {
-                logger.error(`Error al reconstruir contenedores para ${environment}`, {
+                logger.error(`[${requestId}] Error al reconstruir contenedores para ${environment}`, {
                     error: error.message,
                     stdout,
-                    stderr
+                    stderr,
+                    command: dockerCommand,
+                    cwd: '/home/poloatt/present'
                 });
                 return res.status(500).send('Error rebuilding containers');
             }
             
-            logger.info(`Actualización completada exitosamente para ${environment}`, { stdout });
+            logger.info(`[${requestId}] Actualización completada exitosamente para ${environment}`, { 
+                stdout,
+                stderr,
+                fecha: new Date().toISOString()
+            });
             res.status(200).send(`Update completed successfully for ${environment}`);
         });
     });
