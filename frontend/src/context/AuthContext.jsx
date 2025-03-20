@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import clienteAxios from '../config/axios';
+import currentConfig, { logEnvironment } from '../config/envConfig';
 
 const AuthContext = createContext();
 
@@ -12,40 +13,8 @@ const useAuth = () => {
   return context;
 };
 
-// Configuración según el ambiente
-const config = {
-  development: {
-    authPrefix: '/api/auth',
-    apiPrefix: '/api',
-    baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:5000',
-    frontendUrl: import.meta.env.VITE_FRONTEND_URL || 'http://localhost:5173'
-  },
-  staging: {
-    authPrefix: '/api/auth',
-    apiPrefix: '/api',
-    baseUrl: import.meta.env.VITE_API_URL || 'https://api.staging.present.attadia.com',
-    frontendUrl: import.meta.env.VITE_FRONTEND_URL || 'https://staging.present.attadia.com'
-  },
-  production: {
-    authPrefix: '/api/auth',
-    apiPrefix: '/api',
-    baseUrl: import.meta.env.VITE_API_URL || 'https://api.present.attadia.com',
-    frontendUrl: import.meta.env.VITE_FRONTEND_URL || 'https://present.attadia.com'
-  },
-  staging: {
-    authPrefix: '/api/auth',
-    apiPrefix: '/api',
-    baseUrl: 'https://api.staging.present.attadia.com',
-    frontendUrl: 'https://staging.present.attadia.com'
-  }
-};
-
-const env = import.meta.env.MODE || 'development';
-const isStaging = typeof window !== 'undefined' && window.location.hostname.includes('staging');
-const currentConfig = isStaging ? config.staging : config[env];
-
-console.log('Ambiente de autenticación:', { env, baseUrl: currentConfig.baseUrl, mode: env, viteApiUrl: import.meta.env.VITE_API_URL, isStaging });
-console.log('Configuración:', currentConfig);
+// Registrar la configuración en la consola para depuración
+logEnvironment();
 
 // Configurar axios con la URL base y credenciales
 clienteAxios.defaults.baseURL = currentConfig.baseUrl;
