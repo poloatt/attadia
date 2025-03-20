@@ -35,6 +35,7 @@ app.use(bodyParser.json());
 
 // Health check endpoint
 app.get('/health', (req, res) => {
+    logger.info('Health check solicitado');
     res.status(200).send('healthy');
 });
 
@@ -60,8 +61,10 @@ function verifySignature(payload, signature) {
     }
 }
 
-// Endpoint del webhook
-app.post('/webhook', (req, res) => {
+// Endpoint del webhook - manejar tanto '/webhook' como '/'
+app.post(['/', '/webhook'], (req, res) => {
+    logger.info('Recibida solicitud webhook en la ruta: ' + req.path);
+    
     const signature = req.headers['x-hub-signature-256'];
     const payload = JSON.stringify(req.body);
     
@@ -116,6 +119,17 @@ app.post('/webhook', (req, res) => {
     });
 });
 
+// Ruta de depuración
+app.get('/debug', (req, res) => {
+    logger.info('Solicitud de debug recibida');
+    res.status(200).json({
+        message: 'Webhook server funcionando correctamente',
+        environment: process.env.NODE_ENV,
+        port: port,
+        timestamp: new Date().toISOString()
+    });
+});
+
 // Manejo de errores
 app.use((err, req, res, next) => {
     logger.error('Error en el servidor', { error: err.message });
@@ -125,4 +139,4 @@ app.use((err, req, res, next) => {
 // Iniciar servidor
 app.listen(port, () => {
     logger.info(`Servidor webhook iniciado en puerto ${port}`);
-}); 
+});

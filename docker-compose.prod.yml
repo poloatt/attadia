@@ -123,7 +123,7 @@ services:
     networks:
       - app_network_prod
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
