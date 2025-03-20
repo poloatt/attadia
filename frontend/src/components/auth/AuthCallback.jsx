@@ -3,39 +3,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import clienteAxios from '../../config/axios';
+import { logEnvironment } from '../../config/envConfig';
 
-// Configuración según el ambiente
-const config = {
-  development: {
-    authPrefix: '/api/auth',
-    apiPrefix: '/api',
-    baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:5000'
-  },
-  staging: {
-    authPrefix: '/api/auth',
-    apiPrefix: '/api',
-    baseUrl: 'https://api.staging.present.attadia.com'
-  },
-  production: {
-    authPrefix: '/api/auth',
-    apiPrefix: '/api',
-    baseUrl: import.meta.env.VITE_API_URL || 'https://api.present.attadia.com'
-  }
-};
-
-// Determinar el ambiente actual
-const env = import.meta.env.MODE || 'development';
-const isStaging = typeof window !== 'undefined' && window.location.hostname.includes('staging');
-const currentConfig = isStaging ? config.staging : config[env] || config.development;
-
-console.log('Ambiente de autenticación:', {
-  env,
-  baseUrl: currentConfig.baseUrl,
-  mode: import.meta.env.MODE,
-  viteApiUrl: import.meta.env.VITE_API_URL,
-  isStaging
-});
-console.log('Configuración:', currentConfig);
+// Registrar información del entorno para depuración
+logEnvironment();
 
 const ERROR_MESSAGES = {
   'auth_failed': 'La autenticación con Google falló',
