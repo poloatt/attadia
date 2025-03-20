@@ -3,6 +3,9 @@ FROM node:18-alpine
 # Crear usuario no root
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
+# Instalar wget para health checks
+RUN apk add --no-cache wget
+
 WORKDIR /app
 
 # Copiar archivos de dependencias
@@ -25,9 +28,9 @@ USER appuser
 # Exponer puerto
 EXPOSE 9000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+# Health check con wget
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
     CMD wget -q --spider http://localhost:9000/health || exit 1
 
 # Comando para iniciar el servidor
-CMD ["node", "webhook-server.js"] 
+CMD ["node", "webhook-server.js"]
