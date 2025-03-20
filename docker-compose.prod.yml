@@ -120,6 +120,8 @@ services:
     volumes:
       - /var/log/webhook-server:/var/log/webhook-server
       - .:/home/poloatt/present
+      - /var/run/docker.sock:/var/run/docker.sock
+      - webhook_backups:/data/backups
     networks:
       - app_network_prod
     healthcheck:
@@ -138,6 +140,8 @@ services:
 volumes:
   mongodb_prod_data:
     name: present_mongodb_prod_data
+  webhook_backups:
+    name: present_webhook_backups
 
 networks:
   app_network_prod:
