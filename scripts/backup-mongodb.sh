@@ -36,7 +36,7 @@ BACKUP_DIR="/data/backups/$ENVIRONMENT"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 
 # Verificar si el contenedor de MongoDB está en ejecución
-if ! docker ps | grep -q $MONGO_CONTAINER; then
+if ! docker ps | grep -q "$MONGO_CONTAINER"; then
     echo -e "${RED}Error: El contenedor $MONGO_CONTAINER no está en ejecución.${NC}"
     echo -e "${BLUE}Contenedores en ejecución:${NC}"
     docker ps

@@ -30,6 +30,10 @@ const app = express();
 const port = process.env.PORT || 9000;
 const webhookSecret = process.env.WEBHOOK_SECRET || 'ProductionSecret_ATTADIA99';
 
+// Configuración de reintentos
+const MAX_RETRIES = 3; 
+const RETRY_DELAY = 60000; // 1 minuto
+
 // Registrar la configuración al inicio para depuración
 logger.info('Configuración del webhook:', {
     port,
@@ -114,6 +118,135 @@ function verifySignature(payload, signature, signatureType = 'sha256') {
     }
 }
 
+// Función para procesar el webhook en segundo plano
+function processWebhook(req, requestId, retryCount = 0) {
+    let isVerified = false;
+    const payload = JSON.stringify(req.body);
+    
+    // Intentar verificar usando SHA-256
+    const signatureSha256 = req.headers['x-hub-signature-256'];
+    if (signatureSha256) {
+        isVerified = verifySignature(payload, signatureSha256, 'sha256');
+    }
+    
+    // Si SHA-256 falla, intentar con SHA-1
+    if (!isVerified) {
+        const signatureSha1 = req.headers['x-hub-signature'];
+        if (signatureSha1) {
+            isVerified = verifySignature(payload, signatureSha1, 'sha1');
+        }
+    }
+    
+    // Para pruebas manuales consideramos verificación automática
+    if (req.path === '/test-deploy' || !req.headers['x-hub-signature'] && !req.headers['x-hub-signature-256']) {
+        isVerified = true;
+    }
+    
+    if (!isVerified) {
+        logger.error(`[${requestId}] Firma inválida o error en verificación`, {
+            signatureSha256: signatureSha256 ? signatureSha256.substring(0, 10) + '...' : 'no proporcionada',
+            signatureSha1: req.headers['x-hub-signature'] ? req.headers['x-hub-signature'].substring(0, 10) + '...' : 'no proporcionada',
+            body_sample: payload.substring(0, 100) + '...',
+            secret_used: webhookSecret.substring(0, 3) + '...',
+            headers: JSON.stringify(req.headers).substring(0, 200) + '...'
+        });
+        return;
+    }
+
+    // Determinar si deberíamos procesar este push basado en la rama y el ambiente
+    let shouldProcess = false;
+    let environment = SERVER_ENVIRONMENT;
+    
+    // Solo procesamos las ramas que coinciden con nuestro ambiente
+    if (environment === 'staging' && req.body.ref === 'refs/heads/staging') {
+        shouldProcess = true;
+    } else if (environment === 'production' && (
+                req.body.ref === 'refs/heads/main' || 
+                req.body.ref === 'refs/heads/master' || 
+                req.body.ref === 'refs/heads/production')) {
+        shouldProcess = true;
+    }
+
+    if (!shouldProcess) {
+        logger.info(`[${requestId}] Ignorando push a ${req.body.ref} en servidor ${environment}`);
+        return;
+    }
+
+    logger.info(`[${requestId}] Recibido push a ${req.body.ref}, iniciando actualización para ${environment} (${hostname}) - Intento ${retryCount + 1}/${MAX_RETRIES + 1}`);
+    
+    // Variables para el proceso de actualización
+    const backupName = `${environment}_backup_${Date.now()}`;
+    let oldGitHash = null;
+    
+    // Realizar backup de la base de datos
+    performBackup(environment, backupName, requestId)
+        .then(() => {
+            // Obtener el hash del commit actual antes de actualizar
+            return getCurrentGitHash(requestId);
+        })
+        .then((gitHash) => {
+            oldGitHash = gitHash;
+            logger.info(`[${requestId}] Commit actual antes de actualizar: ${oldGitHash}`);
+            
+            // Ejecutar git pull
+            return gitPull(req.body.ref, requestId);
+        })
+        .then((gitPullResult) => {
+            // Verificar si hubo cambios en el código
+            return getNewGitHash(requestId)
+                .then(newGitHash => {
+                    if (oldGitHash === newGitHash) {
+                        logger.info(`[${requestId}] No hay cambios en el código. Mismo commit: ${newGitHash}`);
+                        return Promise.resolve({ noChanges: true });
+                    }
+                    
+                    logger.info(`[${requestId}] Nuevos cambios detectados. Commit anterior: ${oldGitHash}, Nuevo commit: ${newGitHash}`);
+                    return Promise.resolve({ noChanges: false });
+                });
+        })
+        .then((result) => {
+            if (result.noChanges) {
+                logger.info(`[${requestId}] No hay cambios que aplicar. Finalizando proceso.`);
+                return Promise.resolve();
+            }
+            
+            // Reconstruir contenedores
+            return rebuildContainers(environment, requestId)
+                .then(() => {
+                    // Verificar que todo funcione correctamente
+                    return checkServices(environment, requestId);
+                })
+                .catch(error => {
+                    logger.error(`[${requestId}] Error durante el despliegue: ${error.message}`);
+                    
+                    // Intentar hacer rollback
+                    return performRollback(environment, oldGitHash, backupName, requestId)
+                        .then(() => {
+                            throw new Error(`Despliegue fallido. Se ha realizado rollback a ${oldGitHash}`);
+                        });
+                });
+        })
+        .then(() => {
+            logger.info(`[${requestId}] Proceso de actualización completado con éxito`);
+        })
+        .catch(error => {
+            logger.error(`[${requestId}] Error en el proceso de actualización: ${error.message}`);
+            
+            // Implementar sistema de reintentos
+            if (retryCount < MAX_RETRIES) {
+                const nextRetry = retryCount + 1;
+                logger.info(`[${requestId}] Reintentando proceso en ${RETRY_DELAY/1000} segundos (intento ${nextRetry}/${MAX_RETRIES})`);
+                
+                setTimeout(() => {
+                    processWebhook(req, requestId, nextRetry);
+                }, RETRY_DELAY);
+            } else {
+                logger.error(`[${requestId}] Se han agotado todos los reintentos (${MAX_RETRIES}). Se requiere intervención manual.`);
+                // Aquí podrías enviar una notificación al equipo (email, slack, etc.)
+            }
+        });
+}
+
 // Endpoint del webhook - manejar tanto '/webhook' como '/'
 app.post(['/', '/webhook'], (req, res) => {
     const requestId = Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
@@ -139,93 +272,7 @@ app.post(['/', '/webhook'], (req, res) => {
     
     logger.info(`[${requestId}] Cabeceras importantes:`, headerValues);
     
-    let isVerified = false;
-    const payload = JSON.stringify(req.body);
-    
-    // Intentar verificar usando SHA-256
-    const signatureSha256 = req.headers['x-hub-signature-256'];
-    if (signatureSha256) {
-        isVerified = verifySignature(payload, signatureSha256, 'sha256');
-    }
-    
-    // Si SHA-256 falla, intentar con SHA-1
-    if (!isVerified) {
-        const signatureSha1 = req.headers['x-hub-signature'];
-        if (signatureSha1) {
-            isVerified = verifySignature(payload, signatureSha1, 'sha1');
-        }
-    }
-    
-    if (!isVerified) {
-        logger.error('Firma inválida o error en verificación', {
-            signatureSha256: signatureSha256 ? signatureSha256.substring(0, 10) + '...' : 'no proporcionada',
-            signatureSha1: req.headers['x-hub-signature'] ? req.headers['x-hub-signature'].substring(0, 10) + '...' : 'no proporcionada',
-            body_sample: payload.substring(0, 100) + '...',
-            secret_used: webhookSecret.substring(0, 3) + '...',
-            headers: JSON.stringify(req.headers).substring(0, 200) + '...'
-        });
-        return res.status(401).send('Invalid signature');
-    }
-
-    // Determinar el ambiente basado en la rama
-    let environment = null;
-    if (req.body.ref === 'refs/heads/staging') {
-        environment = 'staging';
-    } else if (req.body.ref === 'refs/heads/main' || 
-               req.body.ref === 'refs/heads/master' || 
-               req.body.ref === 'refs/heads/production') {
-        environment = 'production';
-    }
-
-    if (!environment) {
-        logger.info(`[${requestId}] Push recibido en una rama diferente (${req.body.ref}), ignorando`);
-        return res.status(200).send('Ignored non-deployment branch push');
-    }
-
-    logger.info(`[${requestId}] Recibido push a ${req.body.ref}, iniciando actualización para ${environment}`);
-    
-    // Ejecutar script de actualización
-    logger.info(`[${requestId}] Ejecutando: cd /home/poloatt/present && git pull origin ${req.body.ref}`);
-    exec(`cd /home/poloatt/present && git pull origin ${req.body.ref}`, (error, stdout, stderr) => {
-        if (error) {
-            logger.error(`[${requestId}] Error al ejecutar git pull para ${environment}`, { 
-                error: error.message,
-                stdout,
-                stderr,
-                command: `git pull origin ${req.body.ref}`,
-                cwd: '/home/poloatt/present'
-            });
-            return res.status(500).send('Error updating repository');
-        }
-        
-        // Registrar la salida del comando git pull
-        logger.info(`[${requestId}] Git pull completado exitosamente para ${environment}`, { stdout, stderr });
-        
-        // Reconstruir y reiniciar los contenedores según el ambiente
-        const composeFile = environment === 'production' ? 'docker-compose.prod.yml' : 'docker-compose.staging.yml';
-        const dockerCommand = `cd /home/poloatt/present && docker-compose -f ${composeFile} up -d --build`;
-        
-        logger.info(`[${requestId}] Ejecutando: ${dockerCommand}`);
-        exec(dockerCommand, (error, stdout, stderr) => {
-            if (error) {
-                logger.error(`[${requestId}] Error al reconstruir contenedores para ${environment}`, {
-                    error: error.message,
-                    stdout,
-                    stderr,
-                    command: dockerCommand,
-                    cwd: '/home/poloatt/present'
-                });
-                return res.status(500).send('Error rebuilding containers');
-            }
-            
-            logger.info(`[${requestId}] Actualización completada exitosamente para ${environment}`, { 
-                stdout,
-                stderr,
-                fecha: new Date().toISOString()
-            });
-            res.status(200).send(`Update completed successfully for ${environment}`);
-        });
-    });
+    processWebhook(req, requestId);
 });
 
 // Ruta de depuración

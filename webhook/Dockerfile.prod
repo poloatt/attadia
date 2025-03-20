@@ -1,10 +1,7 @@
 FROM node:18-alpine
 
-# Crear usuario no root
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-
-# Instalar wget para health checks
-RUN apk add --no-cache wget
+# Instalar requisitos
+RUN apk add --no-cache wget git docker-cli bash
 
 WORKDIR /app
 
@@ -14,16 +11,47 @@ COPY package*.json ./
 # Instalar dependencias
 RUN npm install --production
 
+# Crear script de inicialización
+RUN echo '#!/bin/bash\n\
+# Detectar ambiente basado en hostname\n\
+HOSTNAME=$(hostname)\n\
+if [[ "$HOSTNAME" == *"staging"* ]] || [[ "$HOSTNAME" == *"foco-staging"* ]]; then\n\
+  ENVIRONMENT="staging"\n\
+else\n\
+  ENVIRONMENT="production"\n\
+fi\n\
+\n\
+echo "Detectado ambiente: $ENVIRONMENT en host: $HOSTNAME"\n\
+\n\
+echo "Verificando directorios de backup..."\n\
+mkdir -p /data/backups/production\n\
+mkdir -p /data/backups/staging\n\
+chmod -R 777 /data/backups\n\
+\n\
+echo "Verificando directorio de logs..."\n\
+mkdir -p /var/log/webhook-server\n\
+chmod -R 777 /var/log/webhook-server\n\
+\n\
+echo "Verificando directorio del repositorio..."\n\
+if [ ! -d "/home/poloatt/present" ]; then\n\
+  echo "Error: Directorio del repositorio no encontrado. Creando enlace simbólico..."\n\
+  ln -sf /app /home/poloatt/present\n\
+fi\n\
+\n\
+echo "Iniciando servidor webhook..."\n\
+exec node webhook-server.js\n\
+' > /app/start.sh
+
+RUN chmod +x /app/start.sh
+
 # Copiar código fuente específicamente
 COPY webhook-server.js ./
 COPY .env* ./
 
-# Crear directorio para logs y dar permisos
-RUN mkdir -p /var/log/webhook-server && \
-    chown -R appuser:appgroup /var/log/webhook-server
+# Crear directorio para logs
+RUN mkdir -p /var/log/webhook-server
 
-# Cambiar al usuario no root
-USER appuser
+# No cambiar a usuario no root, necesitamos permisos para docker y git
 
 # Exponer puerto
 EXPOSE 9000
@@ -33,4 +61,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
     CMD wget -q --spider http://localhost:9000/health || exit 1
 
 # Comando para iniciar el servidor
-CMD ["node", "webhook-server.js"]
+CMD ["/app/start.sh"]
