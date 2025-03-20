@@ -28,7 +28,15 @@ if (process.env.NODE_ENV !== 'production') {
 
 const app = express();
 const port = process.env.PORT || 9000;
-const webhookSecret = process.env.WEBHOOK_PRODUCTION_SECRET || process.env.WEBHOOK_SECRET || 'ProductionSecret_ATTADIA99';
+const webhookSecret = process.env.WEBHOOK_SECRET || 'ProductionSecret_ATTADIA99';
+
+// Registrar la configuración al inicio para depuración
+logger.info('Configuración del webhook:', {
+    port,
+    environment: process.env.NODE_ENV,
+    webhookSecretLength: webhookSecret ? webhookSecret.length : 0,
+    webhookSecretStart: webhookSecret ? webhookSecret.substring(0, 3) : null
+});
 
 // Middleware para parsear JSON
 app.use(bodyParser.json());
