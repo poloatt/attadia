@@ -1,0 +1,64 @@
+FROM node:18-alpine
+
+# Instalar requisitos
+RUN apk add --no-cache wget git docker-cli bash
+
+WORKDIR /app
+
+# Copiar archivos de dependencias
+COPY package*.json ./
+
+# Instalar dependencias
+RUN npm install --production
+
+# Crear script de inicialización
+RUN echo '#!/bin/bash\n\
+# Detectar ambiente basado en hostname\n\
+HOSTNAME=$(hostname)\n\
+if [[ "$HOSTNAME" == *"staging"* ]] || [[ "$HOSTNAME" == *"foco-staging"* ]]; then\n\
+  ENVIRONMENT="staging"\n\
+else\n\
+  ENVIRONMENT="production"\n\
+fi\n\
+\n\
+echo "Detectado ambiente: $ENVIRONMENT en host: $HOSTNAME"\n\
+\n\
+echo "Verificando directorios de backup..."\n\
+mkdir -p /data/backups/production\n\
+mkdir -p /data/backups/staging\n\
+chmod -R 777 /data/backups\n\
+\n\
+echo "Verificando directorio de logs..."\n\
+mkdir -p /var/log/webhook-server\n\
+chmod -R 777 /var/log/webhook-server\n\
+\n\
+echo "Verificando directorio del repositorio..."\n\
+if [ ! -d "/home/poloatt/present" ]; then\n\
+  echo "Error: Directorio del repositorio no encontrado. Creando enlace simbólico..."\n\
+  ln -sf /app /home/poloatt/present\n\
+fi\n\
+\n\
+echo "Iniciando servidor webhook..."\n\
+exec node webhook-server.js\n\
+' > /app/start.sh
+
+RUN chmod +x /app/start.sh
+
+# Copiar código fuente específicamente
+COPY webhook-server.js ./
+COPY .env* ./
+
+# Crear directorio para logs
+RUN mkdir -p /var/log/webhook-server
+
+# No cambiar a usuario no root, necesitamos permisos para docker y git
+
+# Exponer puerto
+EXPOSE 9000
+
+# Health check con wget
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD wget -q --spider http://localhost:9000/health || exit 1
+
+# Comando para iniciar el servidor
+CMD ["/app/start.sh"]
