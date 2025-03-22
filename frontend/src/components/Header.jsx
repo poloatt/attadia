@@ -36,7 +36,9 @@ export default function Header() {
     '/monedas',
     '/proyectos',
     '/tareas',
-    '/archivo'
+    '/archivo',
+    '/propiedades',
+    '/contratos'
   ].includes(location.pathname);
 
   return (
