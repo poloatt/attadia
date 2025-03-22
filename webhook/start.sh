@@ -3,9 +3,11 @@
 # Detectar ambiente basado en hostname
 HOSTNAME=$(hostname)
 if [[ "$HOSTNAME" == *"staging"* ]] || [[ "$HOSTNAME" == *"foco-staging"* ]]; then
-  ENVIRONMENT="staging"
+  export ENVIRONMENT="staging"
+  export NODE_ENV="staging"
 else
-  ENVIRONMENT="production"
+  export ENVIRONMENT="production"
+  export NODE_ENV="production"
 fi
 
 echo "Detectado ambiente: $ENVIRONMENT en host: $HOSTNAME"
@@ -25,5 +27,5 @@ if [ ! -d "/home/poloatt/present" ]; then
   ln -sf /app /home/poloatt/present
 fi
 
-echo "Iniciando servidor webhook..."
+echo "Iniciando servidor webhook en ambiente $ENVIRONMENT..."
 exec node webhook-server.js 
