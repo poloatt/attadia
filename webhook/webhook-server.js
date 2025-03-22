@@ -72,8 +72,22 @@ app.use(bodyParser.json());
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-    logger.info('Health check solicitado');
-    res.status(200).send('healthy');
+    try {
+        // Verificar que el servidor esté funcionando correctamente
+        const healthStatus = {
+            status: 'healthy',
+            timestamp: new Date().toISOString(),
+            environment: SERVER_ENVIRONMENT,
+            uptime: process.uptime(),
+            memory: process.memoryUsage()
+        };
+        
+        logger.info('Health check exitoso', healthStatus);
+        res.status(200).json(healthStatus);
+    } catch (error) {
+        logger.error('Error en health check', { error: error.message });
+        res.status(500).json({ status: 'unhealthy', error: error.message });
+    }
 });
 
 // Función para verificar la firma de GitHub
