@@ -8,6 +8,12 @@ export const maskText = (text) => {
   return remainingLength > 0 ? `${visibleChars}${'*'.repeat(remainingLength)}` : text;
 };
 
+// Función para enmascarar valores numéricos
+export const maskNumber = (number, symbol = '') => {
+  if (number === undefined || number === null) return '0';
+  return symbol ? `${symbol} ****` : '****';
+};
+
 const ValuesVisibilityContext = createContext();
 
 export function ValuesVisibilityProvider({ children }) {
@@ -21,7 +27,8 @@ export function ValuesVisibilityProvider({ children }) {
     <ValuesVisibilityContext.Provider value={{ 
       showValues, 
       toggleValuesVisibility,
-      maskText
+      maskText,
+      maskNumber
     }}>
       {children}
     </ValuesVisibilityContext.Provider>

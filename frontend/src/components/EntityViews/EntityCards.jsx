@@ -72,7 +72,7 @@ const EntityCards = ({
                   {/* Lista de Detalles */}
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                     {config.getDetails(item).map((detail, index) => (
-                      <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box key={`${itemId}-detail-${index}`} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         {detail.icon && React.cloneElement(detail.icon, { 
                           sx: { fontSize: 16, color: 'text.secondary' }
                         })}

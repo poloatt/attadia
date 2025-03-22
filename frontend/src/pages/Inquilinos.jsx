@@ -1,181 +1,119 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Container, 
-  Button,
-  Box,
-  Grid,
-  Paper,
-  Chip,
-  Avatar,
-  Typography,
-  IconButton,
-  Tooltip
+import React, { useState, useEffect } from 'react';
+import {
+  Container,
+  Box
 } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
-import { 
+import { useSnackbar } from 'notistack';
+import { InquilinoList, InquilinoForm } from '../components/inquilinos';
+import EntityDetails from '../components/EntityViews/EntityDetails';
+import EntityToolbar from '../components/EntityToolbar';
+import {
   ApartmentOutlined as BuildingIcon,
   BedOutlined as BedIcon,
-  DescriptionOutlined as DescriptionIcon,
-  Inventory2Outlined as InventoryIcon,
-  EmailOutlined as EmailIcon,
-  PhoneOutlined as PhoneIcon,
-  BadgeOutlined as BadgeIcon
+  DescriptionOutlined as ContratosIcon,
+  Inventory2Outlined as InventoryIcon
 } from '@mui/icons-material';
-import EntityToolbar from '../components/EntityToolbar';
-import EntityDetails from '../components/EntityViews/EntityDetails';
-import EntityForm from '../components/EntityViews/EntityForm';
-import { useSnackbar } from 'notistack';
 import clienteAxios from '../config/axios';
-import EmptyState from '../components/EmptyState';
-import { EntityActions } from '../components/EntityViews/EntityActions';
-import EntityCards from '../components/EntityViews/EntityCards';
 
 export function Inquilinos() {
   const [inquilinos, setInquilinos] = useState([]);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingInquilino, setEditingInquilino] = useState(null);
+  const [propiedades, setPropiedades] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [openForm, setOpenForm] = useState(false);
+  const [selectedInquilino, setSelectedInquilino] = useState(null);
+  const [expandedGroups, setExpandedGroups] = useState({
+    activos: true,
+    reservados: true,
+    pendientes: true,
+    inactivos: true
+  });
   const { enqueueSnackbar } = useSnackbar();
 
-  const fetchInquilinos = useCallback(async () => {
+  // Cargar inquilinos
+  const fetchInquilinos = async (propiedadId = null) => {
+    setIsLoading(true);
     try {
-      const response = await clienteAxios.get('/api/inquilinos');
-      setInquilinos(response.data.docs || []);
+      const url = propiedadId 
+        ? `/api/inquilinos?propiedad=${propiedadId}`
+        : '/api/inquilinos';
+      const response = await clienteAxios.get(url);
+      console.log('Inquilinos obtenidos:', response.data.docs);
+      setInquilinos(response.data.docs);
     } catch (error) {
       console.error('Error al cargar inquilinos:', error);
       enqueueSnackbar('Error al cargar inquilinos', { variant: 'error' });
-    }
-  }, [enqueueSnackbar]);
-
-  useEffect(() => {
-    fetchInquilinos();
-  }, [fetchInquilinos]);
-
-  const handleFormSubmit = async (formData) => {
-    try {
-      let response;
-      if (editingInquilino) {
-        response = await clienteAxios.put(`/inquilinos/${editingInquilino.id}`, formData);
-        enqueueSnackbar('Inquilino actualizado exitosamente', { variant: 'success' });
-      } else {
-        response = await clienteAxios.post('/api/inquilinos', formData);
-        enqueueSnackbar('Inquilino creado exitosamente', { variant: 'success' });
-      }
-      setIsFormOpen(false);
-      setEditingInquilino(null);
-      await fetchInquilinos();
-    } catch (error) {
-      console.error('Error:', error);
-      enqueueSnackbar(
-        error.response?.data?.error || 'Error al guardar el inquilino', 
-        { variant: 'error' }
-      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleEdit = useCallback((inquilino) => {
-    setEditingInquilino(inquilino);
-    setIsFormOpen(true);
+  // Cargar propiedades
+  const fetchPropiedades = async () => {
+    try {
+      const response = await clienteAxios.get('/api/propiedades');
+      setPropiedades(response.data.docs);
+    } catch (error) {
+      console.error('Error al cargar propiedades:', error);
+      enqueueSnackbar('Error al cargar propiedades', { variant: 'error' });
+    }
+  };
+
+  useEffect(() => {
+    fetchInquilinos();
+    fetchPropiedades();
   }, []);
 
-  const handleDelete = useCallback(async (id) => {
+  const handleSubmit = async (formData) => {
     try {
-      await clienteAxios.delete(`/inquilinos/${id}`);
-      enqueueSnackbar('Inquilino eliminado exitosamente', { variant: 'success' });
-      await fetchInquilinos();
+      if (selectedInquilino) {
+        await clienteAxios.put(`/api/inquilinos/${selectedInquilino._id}`, formData);
+        enqueueSnackbar('Inquilino actualizado correctamente', { variant: 'success' });
+      } else {
+        await clienteAxios.post('/api/inquilinos', formData);
+        enqueueSnackbar('Inquilino creado correctamente', { variant: 'success' });
+      }
+      fetchInquilinos();
+      handleCloseForm();
+    } catch (error) {
+      console.error('Error al guardar inquilino:', error);
+      throw error;
+    }
+  };
+
+  const handleEdit = (inquilino) => {
+    setSelectedInquilino(inquilino);
+    setOpenForm(true);
+  };
+
+  const handleDelete = async (inquilino) => {
+    if (!window.confirm('¿Estás seguro de eliminar este inquilino?')) return;
+    
+    try {
+      await clienteAxios.delete(`/api/inquilinos/${inquilino._id}`);
+      enqueueSnackbar('Inquilino eliminado correctamente', { variant: 'success' });
+      fetchInquilinos();
     } catch (error) {
       console.error('Error al eliminar inquilino:', error);
       enqueueSnackbar('Error al eliminar el inquilino', { variant: 'error' });
     }
-  }, [enqueueSnackbar, fetchInquilinos]);
+  };
 
-  const formFields = [
-    {
-      name: 'nombre',
-      label: 'Nombre',
-      required: true
-    },
-    {
-      name: 'apellido',
-      label: 'Apellido',
-      required: true
-    },
-    {
-      name: 'email',
-      label: 'Email',
-      type: 'email',
-      required: true
-    },
-    {
-      name: 'telefono',
-      label: 'Teléfono',
-      required: true
-    },
-    {
-      name: 'dni',
-      label: 'DNI/Pasaporte',
-      required: true
-    },
-    {
-      name: 'nacionalidad',
-      label: 'Nacionalidad',
-      required: true
-    },
-    {
-      name: 'ocupacion',
-      label: 'Ocupación'
-    },
-    {
-      name: 'estado',
-      label: 'Estado',
-      type: 'select',
-      required: true,
-      options: [
-        { value: 'ACTIVO', label: 'Activo' },
-        { value: 'INACTIVO', label: 'Inactivo' },
-        { value: 'PENDIENTE', label: 'Pendiente' }
-      ]
-    }
-  ];
+  const handleCloseForm = () => {
+    setSelectedInquilino(null);
+    setOpenForm(false);
+  };
 
-  const cardConfig = {
-    getAvatarText: (inquilino) => 
-      `${inquilino.nombre?.charAt(0) || ''}${inquilino.apellido?.charAt(0) || ''}`,
-    getTitle: (inquilino) => `${inquilino.nombre} ${inquilino.apellido}`,
-    getDetails: (inquilino) => [
-      {
-        icon: <EmailIcon />,
-        text: inquilino.email,
-        noWrap: true
-      },
-      {
-        icon: <PhoneIcon />,
-        text: inquilino.telefono
-      },
-      {
-        icon: <BadgeIcon />,
-        text: inquilino.dni
-      }
-    ],
-    getStatus: (inquilino) => ({
-      label: inquilino.estado,
-      color: inquilino.estado === 'ACTIVO' ? 'success' :
-             inquilino.estado === 'INACTIVO' ? 'error' : 'warning'
-    }),
-    getActions: (inquilino) => ({
-      onEdit: () => handleEdit(inquilino),
-      onDelete: () => handleDelete(inquilino.id),
-      itemName: `el inquilino ${inquilino.nombre} ${inquilino.apellido}`
-    })
+  const handleToggleGroup = (groupId) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [groupId]: !prev[groupId]
+    }));
   };
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth={false}>
       <EntityToolbar
-        onAdd={() => {
-          setEditingInquilino(null);
-          setIsFormOpen(true);
-        }}
-        searchPlaceholder="Buscar inquilinos..."
+        onAdd={() => setOpenForm(true)}
         navigationItems={[
           {
             icon: <BuildingIcon sx={{ fontSize: 20 }} />,
@@ -188,7 +126,7 @@ export function Inquilinos() {
             to: '/habitaciones'
           },
           {
-            icon: <DescriptionIcon sx={{ fontSize: 20 }} />,
+            icon: <ContratosIcon sx={{ fontSize: 20 }} />,
             label: 'Contratos',
             to: '/contratos'
           },
@@ -200,44 +138,24 @@ export function Inquilinos() {
         ]}
       />
 
-      <EntityDetails
-        title="Inquilinos"
-        action={
-          <Button 
-            variant="contained" 
-            startIcon={<AddIcon />} 
-            size="small"
-            onClick={() => {
-              setEditingInquilino(null);
-              setIsFormOpen(true);
-            }}
-            sx={{ borderRadius: 0 }}
-          >
-            Nuevo Inquilino
-          </Button>
-        }
-      >
-        {inquilinos.length === 0 ? (
-          <EmptyState onAdd={() => setIsFormOpen(true)} />
-        ) : (
-          <EntityCards 
-            data={inquilinos}
-            config={cardConfig}
+      <Box sx={{ py: 2 }}>
+        <EntityDetails>
+          <InquilinoList
+            inquilinos={inquilinos}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            expandedGroups={expandedGroups}
+            onToggleGroup={handleToggleGroup}
           />
-        )}
-      </EntityDetails>
+        </EntityDetails>
+      </Box>
 
-      <EntityForm
-        open={isFormOpen}
-        onClose={() => {
-          setIsFormOpen(false);
-          setEditingInquilino(null);
-        }}
-        onSubmit={handleFormSubmit}
-        title={editingInquilino ? 'Editar Inquilino' : 'Nuevo Inquilino'}
-        fields={formFields}
-        initialData={editingInquilino || {}}
-        isEditing={!!editingInquilino}
+      <InquilinoForm
+        open={openForm}
+        onClose={handleCloseForm}
+        onSubmit={handleSubmit}
+        initialData={selectedInquilino}
+        propiedades={propiedades}
       />
     </Container>
   );

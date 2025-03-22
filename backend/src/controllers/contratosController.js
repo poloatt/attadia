@@ -1,5 +1,5 @@
 import { BaseController } from './BaseController.js';
-import { Contratos } from '../models/index.js';
+import { Contratos, Inquilinos, Propiedades } from '../models/index.js';
 import mongoose from 'mongoose';
 
 class ContratosController extends BaseController {
@@ -14,6 +14,15 @@ class ContratosController extends BaseController {
     this.create = this.create.bind(this);
     this.getAll = this.getAll.bind(this);
     this.getAllByPropiedad = this.getAllByPropiedad.bind(this);
+    this.getByEstado = this.getByEstado.bind(this);
+    this.finalizarContrato = this.finalizarContrato.bind(this);
+    this.getByPropiedad = this.getByPropiedad.bind(this);
+    this.getActivosByPropiedad = this.getActivosByPropiedad.bind(this);
+    this.getMantenimientoByPropiedad = this.getMantenimientoByPropiedad.bind(this);
+    this.getByInquilino = this.getByInquilino.bind(this);
+    this.getActivoByInquilino = this.getActivoByInquilino.bind(this);
+    this.getHistorialByInquilino = this.getHistorialByInquilino.bind(this);
+    this.update = this.update.bind(this);
   }
 
   // Método auxiliar para formatear la respuesta
@@ -170,8 +179,25 @@ class ContratosController extends BaseController {
   // GET /api/contratos/activos
   async getActivos(req, res) {
     try {
+      const now = new Date();
       const result = await this.Model.paginate(
-        { estado: 'ACTIVO' },
+        {
+          $or: [
+            // Contratos de alquiler activos
+            {
+              tipoContrato: 'ALQUILER',
+              fechaInicio: { $lte: now },
+              fechaFin: { $gt: now },
+              estado: 'ACTIVO'
+            },
+            // Contratos de mantenimiento activos
+            {
+              tipoContrato: 'MANTENIMIENTO',
+              fechaInicio: { $lte: now },
+              fechaFin: { $gt: now }
+            }
+          ]
+        },
         {
           populate: ['propiedad', 'inquilino', 'habitacion', 'moneda'],
           sort: { createdAt: 'desc' }
@@ -269,82 +295,256 @@ class ContratosController extends BaseController {
     }
   }
 
-  // Sobreescribimos el método update para manejar los campos correctamente
-  async update(req, res) {
+  // GET /api/contratos/estado/:estado
+  async getByEstado(req, res) {
+    try {
+      const { estado } = req.params;
+      const result = await this.Model.paginate(
+        { 
+          usuario: req.user._id,
+          estado: estado.toUpperCase()
+        },
+        {
+          populate: ['propiedad', 'inquilino'],
+          sort: { fechaInicio: 'desc' }
+        }
+      );
+
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...result, docs });
+    } catch (error) {
+      console.error('Error al obtener contratos por estado:', error);
+      res.status(500).json({ error: 'Error al obtener contratos por estado' });
+    }
+  }
+
+  // PUT /api/contratos/:id/finalizar
+  async finalizarContrato(req, res) {
     try {
       const { id } = req.params;
-      console.log('Actualizando contrato:', id);
-      console.log('Datos recibidos:', req.body);
+      const contrato = await this.Model.findById(id);
       
-      // Buscar el contrato existente primero
-      const existingContrato = await this.Model.findById(id)
-        .populate(['propiedad', 'inquilino', 'habitacion', 'cuenta', 'moneda']);
-      
-      if (!existingContrato) {
+      if (!contrato) {
         return res.status(404).json({ error: 'Contrato no encontrado' });
       }
       
-      console.log('Contrato existente:', {
-        _id: existingContrato._id,
-        propiedad: existingContrato.propiedad?._id,
-        inquilino: existingContrato.inquilino,
-        habitacion: existingContrato.habitacion?._id,
-        cuenta: existingContrato.cuenta?._id,
-        moneda: existingContrato.moneda?._id
-      });
+      contrato.estado = 'FINALIZADO';
+      contrato.fechaFin = new Date();
+      await contrato.save();
+
+      const updated = await contrato.populate(['propiedad', 'inquilino']);
+      res.json(this.formatResponse(updated));
+    } catch (error) {
+      console.error('Error al finalizar contrato:', error);
+      res.status(500).json({ error: 'Error al finalizar contrato' });
+    }
+  }
+
+  // GET /api/contratos/propiedad/:propiedadId
+  async getByPropiedad(req, res) {
+    try {
+      const { propiedadId } = req.params;
+      const result = await this.Model.paginate(
+        {
+          usuario: req.user._id,
+          propiedad: propiedadId
+        },
+        {
+          populate: ['inquilino'],
+          sort: { fechaInicio: 'desc' }
+        }
+      );
+
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...result, docs });
+    } catch (error) {
+      console.error('Error al obtener contratos por propiedad:', error);
+      res.status(500).json({ error: 'Error al obtener contratos por propiedad' });
+    }
+  }
+
+  // GET /api/contratos/propiedad/:propiedadId/activos
+  async getActivosByPropiedad(req, res) {
+    try {
+      const { propiedadId } = req.params;
+      const now = new Date();
       
-      // Procesar los datos recibidos
-      const data = {
+      const result = await this.Model.paginate(
+        {
+          usuario: req.user._id,
+          propiedad: propiedadId,
+          estado: 'ACTIVO',
+          fechaInicio: { $lte: now },
+          fechaFin: { $gt: now }
+        },
+        {
+          populate: ['inquilino'],
+          sort: { fechaInicio: 'desc' }
+        }
+      );
+
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...result, docs });
+    } catch (error) {
+      console.error('Error al obtener contratos activos por propiedad:', error);
+      res.status(500).json({ error: 'Error al obtener contratos activos por propiedad' });
+    }
+  }
+
+  // GET /api/contratos/propiedad/:propiedadId/mantenimiento
+  async getMantenimientoByPropiedad(req, res) {
+    try {
+      const { propiedadId } = req.params;
+      const now = new Date();
+      
+      const result = await this.Model.paginate(
+        {
+          usuario: req.user._id,
+          propiedad: propiedadId,
+          esMantenimiento: true,
+          estado: 'MANTENIMIENTO',
+          fechaInicio: { $lte: now },
+          fechaFin: { $gt: now }
+        },
+        {
+          sort: { fechaInicio: 'desc' }
+        }
+      );
+
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...result, docs });
+    } catch (error) {
+      console.error('Error al obtener contratos de mantenimiento:', error);
+      res.status(500).json({ error: 'Error al obtener contratos de mantenimiento' });
+    }
+  }
+
+  // GET /api/contratos/inquilino/:inquilinoId
+  async getByInquilino(req, res) {
+    try {
+      const { inquilinoId } = req.params;
+      const result = await this.Model.paginate(
+        {
+          usuario: req.user._id,
+          inquilino: inquilinoId
+        },
+        {
+          populate: ['propiedad'],
+          sort: { fechaInicio: 'desc' }
+        }
+      );
+
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...result, docs });
+    } catch (error) {
+      console.error('Error al obtener contratos por inquilino:', error);
+      res.status(500).json({ error: 'Error al obtener contratos por inquilino' });
+    }
+  }
+
+  // GET /api/contratos/inquilino/:inquilinoId/activo
+  async getActivoByInquilino(req, res) {
+    try {
+      const { inquilinoId } = req.params;
+      const now = new Date();
+      
+      const contrato = await this.Model.findOne({
+        usuario: req.user._id,
+        inquilino: inquilinoId,
+        estado: 'ACTIVO',
+        fechaInicio: { $lte: now },
+        fechaFin: { $gt: now }
+      }).populate(['propiedad']);
+
+      if (!contrato) {
+        return res.status(404).json({ error: 'No se encontró contrato activo' });
+      }
+
+      res.json(this.formatResponse(contrato));
+    } catch (error) {
+      console.error('Error al obtener contrato activo:', error);
+      res.status(500).json({ error: 'Error al obtener contrato activo' });
+    }
+  }
+
+  // GET /api/contratos/inquilino/:inquilinoId/historial
+  async getHistorialByInquilino(req, res) {
+    try {
+      const { inquilinoId } = req.params;
+      const result = await this.Model.paginate(
+        {
+          usuario: req.user._id,
+          inquilino: inquilinoId,
+          estado: { $in: ['FINALIZADO', 'ACTIVO'] }
+        },
+        {
+          populate: ['propiedad'],
+          sort: { fechaInicio: 'desc' }
+        }
+      );
+
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...result, docs });
+    } catch (error) {
+      console.error('Error al obtener historial de contratos:', error);
+      res.status(500).json({ error: 'Error al obtener historial de contratos' });
+    }
+  }
+
+  // Sobreescribimos el método update
+  async update(req, res) {
+    try {
+      const { id } = req.params;
+      const contrato = await this.Model.findById(id);
+      
+      if (!contrato) {
+        return res.status(404).json({ error: 'Contrato no encontrado' });
+      }
+
+      // Si se están actualizando los inquilinos, validar que existan
+      if (req.body.inquilino && !contrato.esMantenimiento) {
+        for (const inquilinoId of req.body.inquilino) {
+          const inquilinoDoc = await Inquilinos.findById(inquilinoId);
+          if (!inquilinoDoc) {
+            return res.status(400).json({ error: `El inquilino ${inquilinoId} no existe` });
+          }
+          // Actualizar la propiedad del inquilino
+          inquilinoDoc.propiedad = contrato.propiedad;
+          await inquilinoDoc.save();
+        }
+      }
+
+      // Preservar campos existentes si no se envían en la actualización
+      const updateData = {
+        ...contrato.toObject(),
         ...req.body,
-        fechaInicio: req.body.fechaInicio ? new Date(req.body.fechaInicio) : undefined,
-        fechaFin: req.body.fechaFin ? new Date(req.body.fechaFin) : undefined,
-        montoMensual: req.body.montoMensual !== undefined ? parseFloat(req.body.montoMensual) : undefined,
-        deposito: req.body.deposito !== undefined ? parseFloat(req.body.deposito) : undefined,
-        propiedad: req.body.propiedad || req.body.propiedadId || existingContrato.propiedad?._id,
-        inquilino: req.body.inquilino || req.body.inquilinoId || existingContrato.inquilino,
-        habitacion: req.body.habitacion || req.body.habitacionId || existingContrato.habitacion?._id,
-        cuenta: req.body.cuenta || req.body.cuentaId || existingContrato.cuenta?._id,
-        moneda: req.body.moneda || req.body.monedaId || existingContrato.moneda?._id
+        usuario: req.user._id || contrato.usuario, // Preservar el usuario o usar el autenticado
+        montoMensual: req.body.montoMensual || contrato.montoMensual,
+        deposito: req.body.deposito || contrato.deposito,
+        cuenta: req.body.cuenta || contrato.cuenta,
+        moneda: req.body.moneda || contrato.moneda
       };
 
-      // Solo agregar el usuario si está disponible
-      if (req.user && req.user.id) {
-        data.usuario = req.user.id;
-      } else if (existingContrato.usuario) {
-        data.usuario = existingContrato.usuario;
-      }
-
-      // Si no es un contrato de mantenimiento, asegurarse de que tenga cuenta y moneda
-      if (!data.esMantenimiento) {
-        if (!data.cuenta && existingContrato.cuenta) {
-          data.cuenta = existingContrato.cuenta._id;
+      // Si el contrato no es de mantenimiento, asegurarse que los campos requeridos existan
+      if (!updateData.esMantenimiento && updateData.tipoContrato !== 'MANTENIMIENTO') {
+        if (!updateData.montoMensual) {
+          return res.status(400).json({ error: 'El monto mensual es requerido para contratos de alquiler' });
         }
-        
-        // Si tiene cuenta pero no moneda, obtener la moneda de la cuenta
-        if (data.cuenta && !data.moneda) {
-          try {
-            const Cuentas = mongoose.model('Cuentas');
-            const cuenta = await Cuentas.findById(data.cuenta).populate('moneda');
-            if (cuenta && cuenta.moneda) {
-              data.moneda = cuenta.moneda._id;
-            }
-          } catch (error) {
-            console.error('Error al obtener moneda de la cuenta:', error);
-          }
+        if (!updateData.cuenta) {
+          return res.status(400).json({ error: 'La cuenta es requerida para contratos de alquiler' });
         }
       }
 
-      console.log('Datos procesados para actualización:', data);
+      // Asegurarse de que el usuario esté presente
+      if (!updateData.usuario && req.user) {
+        updateData.usuario = req.user._id;
+      }
 
-      // Actualizar el contrato
-      const contrato = await this.Model.findByIdAndUpdate(
-        id,
-        data,
-        { new: true, runValidators: true }
-      ).populate(['propiedad', 'inquilino', 'habitacion', 'cuenta', 'moneda']);
+      Object.assign(contrato, updateData);
+      await contrato.save();
 
-      console.log('Contrato actualizado:', contrato);
-      res.json(this.formatResponse(contrato));
+      const updated = await contrato.populate(['propiedad', 'inquilino', 'cuenta']);
+      res.json(this.formatResponse(updated));
     } catch (error) {
       console.error('Error al actualizar contrato:', error);
       res.status(400).json({ 

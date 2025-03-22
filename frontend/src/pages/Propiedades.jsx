@@ -49,6 +49,7 @@ import EntityCards from '../components/EntityViews/EntityCards';
 import EmptyState from '../components/EmptyState';
 import { EntityActions } from '../components/EntityViews/EntityActions';
 import PropiedadForm from '../components/propiedades/PropiedadForm';
+import PropiedadList from '../components/propiedades/PropiedadList';
 
 // Cambiamos a exportación nombrada para coincidir con App.jsx
 export function Propiedades() {
@@ -82,7 +83,6 @@ export function Propiedades() {
   const [cuentas, setCuentas] = useState([]);
   const [loadingRelated, setLoadingRelated] = useState(true);
   const [editingPropiedad, setEditingPropiedad] = useState(null);
-  const [expandedCards, setExpandedCards] = useState({});
 
   // Función para cargar propiedades
   const fetchPropiedades = useCallback(async () => {
@@ -92,8 +92,78 @@ export function Propiedades() {
       
       const response = await clienteAxios.get('/api/propiedades');
       console.log('Respuesta recibida:', response.data);
-      setPropiedades(response.data.docs || []);
-      setFilteredPropiedades(response.data.docs || []);
+      
+      // Ahora necesitamos obtener datos relacionados para cada propiedad
+      const propiedadesData = response.data.docs || [];
+      
+      // Enriquecer cada propiedad con datos relacionados
+      const propiedadesEnriquecidas = await Promise.all(
+        propiedadesData.map(async (propiedad) => {
+          try {
+            const propiedadId = propiedad._id || propiedad.id;
+            
+            console.log(`Obteniendo datos relacionados para propiedad ${propiedadId} (${propiedad.titulo})`);
+            
+            // Obtener inquilinos relacionados (usando la nueva ruta)
+            const inquilinosResponse = await clienteAxios.get(`/api/inquilinos/propiedad/${propiedadId}`);
+            console.log(`Inquilinos para propiedad ${propiedadId}:`, inquilinosResponse.data);
+            
+            // Obtener habitaciones relacionadas
+            const habitacionesResponse = await clienteAxios.get(`/api/habitaciones/propiedad/${propiedadId}`);
+            console.log(`Habitaciones para propiedad ${propiedadId}:`, habitacionesResponse.data);
+            
+            // Obtener contratos relacionados
+            const contratosResponse = await clienteAxios.get(`/api/contratos/propiedad/${propiedadId}`);
+            console.log(`Contratos para propiedad ${propiedadId}:`, contratosResponse.data);
+            
+            // Obtener inventario relacionado
+            const inventarioResponse = await clienteAxios.get(`/api/inventarios/propiedad/${propiedadId}`);
+            console.log(`Inventario para propiedad ${propiedadId}:`, inventarioResponse.data);
+            
+            // Extraer los datos de cada respuesta y verificar que sean arrays válidos
+            const habitaciones = habitacionesResponse.data.docs || [];
+            // Asegurarse de que los inquilinos sean un array válido y tengan datos completos
+            const inquilinos = Array.isArray(inquilinosResponse.data.docs) 
+              ? inquilinosResponse.data.docs 
+              : [];
+            const contratos = contratosResponse.data.docs || [];
+            const inventario = inventarioResponse.data.docs || [];
+            
+            // Verificar que los datos de inquilinos sean válidos
+            if (inquilinos.length > 0) {
+              console.log(`Datos de inquilinos para propiedad ${propiedadId}:`, 
+                inquilinos.map(i => ({
+                  id: i._id || i.id,
+                  nombre: i.nombre,
+                  apellido: i.apellido
+                }))
+              );
+            }
+            
+            // Devolver la propiedad enriquecida
+            return {
+              ...propiedad,
+              inquilinos,
+              habitaciones,
+              contratos,
+              inventario
+            };
+          } catch (error) {
+            console.error(`Error al cargar datos relacionados para propiedad ${propiedad._id || propiedad.id}:`, error);
+            return {
+              ...propiedad,
+              inquilinos: [],
+              habitaciones: [],
+              contratos: [],
+              inventario: []
+            };
+          }
+        })
+      );
+      
+      console.log('Propiedades enriquecidas:', propiedadesEnriquecidas);
+      setPropiedades(propiedadesEnriquecidas);
+      setFilteredPropiedades(propiedadesEnriquecidas);
       
     } catch (error) {
       console.error('Error al cargar propiedades:', error);
@@ -127,7 +197,51 @@ export function Propiedades() {
   useEffect(() => {
     fetchPropiedades();
     fetchRelatedData();
-  }, [fetchPropiedades, fetchRelatedData]);
+    
+    // Función de prueba para verificar la obtención de inquilinos
+    const testInquilinosEndpoint = async () => {
+      try {
+        console.log('=== PRUEBA DE ENDPOINT DE INQUILINOS ===');
+        const propiedadesResponse = await clienteAxios.get('/api/propiedades');
+        const propiedades = propiedadesResponse.data.docs || [];
+        
+        if (propiedades.length > 0) {
+          const primeraPropiedad = propiedades[0];
+          const propiedadId = primeraPropiedad._id || primeraPropiedad.id;
+          
+          console.log(`Probando ruta de inquilinos para propiedad ${propiedadId} (${primeraPropiedad.titulo})`);
+          
+          // Probar el endpoint directamente
+          const inquilinosResponse = await clienteAxios.get(`/api/inquilinos/propiedad/${propiedadId}`);
+          
+          console.log('RESULTADO DE PRUEBA:', {
+            status: inquilinosResponse.status,
+            totalDocs: inquilinosResponse.data.totalDocs,
+            docs: inquilinosResponse.data.docs
+          });
+          
+          if (Array.isArray(inquilinosResponse.data.docs)) {
+            console.log('DATOS DE INQUILINOS:', 
+              inquilinosResponse.data.docs.map(inq => ({
+                id: inq._id || inq.id,
+                nombre: inq.nombre || 'Sin nombre',
+                apellido: inq.apellido || 'Sin apellido',
+                propiedad: inq.propiedad
+              }))
+            );
+          } else {
+            console.error('La respuesta no contiene un array de inquilinos:', inquilinosResponse.data);
+          }
+        }
+      } catch (error) {
+        console.error('Error en prueba de endpoint de inquilinos:', error.response || error);
+      }
+    };
+    
+    // Ejecutar la prueba después de un breve retraso
+    setTimeout(testInquilinosEndpoint, 2000);
+    
+  }, [fetchPropiedades, fetchRelatedData, clienteAxios]);
 
   // Efecto para escuchar eventos de actualización
   useEffect(() => {
@@ -268,226 +382,12 @@ export function Propiedades() {
     return response.data;
   };
 
-  const handleExpandClick = (propiedadId) => {
-    setExpandedCards(prev => ({
-      ...prev,
-      [propiedadId]: !prev[propiedadId]
-    }));
-  };
-
-  const formFields = [
-    {
-      name: 'titulo',
-      label: 'Título',
-      required: true,
-      onChange: (value) => setFormData({...formData, titulo: value})
-    },
-    {
-      name: 'descripcion',
-      label: 'Descripción',
-      multiline: true,
-      rows: 3,
-      required: true,
-      onChange: (value) => setFormData({...formData, descripcion: value})
-    },
-    {
-      name: 'precio',
-      label: 'Precio',
-      type: 'number',
-      required: true,
-      onChange: (value) => setFormData({...formData, precio: value})
-    },
-    {
-      name: 'direccion',
-      label: 'Dirección',
-      required: true,
-      onChange: (value) => setFormData({...formData, direccion: value})
-    },
-    {
-      name: 'ciudad',
-      label: 'Ciudad',
-      required: true,
-      onChange: (value) => setFormData({...formData, ciudad: value})
-    },
-    {
-      name: 'estado',
-      label: 'Estado',
-      required: true,
-      onChange: (value) => setFormData({...formData, estado: value})
-    },
-    {
-      name: 'tipo',
-      label: 'Tipo',
-      type: 'select',
-      required: true,
-      value: formData.tipo || 'CASA',
-      options: ['CASA', 'DEPARTAMENTO', 'OFICINA', 'LOCAL', 'TERRENO'].map(t => ({
-        value: t,
-        label: t
-      }))
-    },
-    {
-      name: 'numDormitorios',
-      label: 'Número de Dormitorios',
-      type: 'number',
-      required: true,
-      onChange: (value) => setFormData({...formData, numDormitorios: value})
-    },
-    {
-      name: 'banos',
-      label: 'Número de Baños',
-      type: 'number',
-      required: true,
-      onChange: (value) => setFormData({...formData, banos: value})
-    },
-    {
-      name: 'metrosCuadrados',
-      label: 'Metros Cuadrados',
-      type: 'number',
-      required: true,
-      onChange: (value) => setFormData({...formData, metrosCuadrados: value})
-    },
-    {
-      name: 'imagen',
-      label: 'Imagen',
-      onChange: (value) => setFormData({...formData, imagen: value})
-    },
-    {
-      name: 'monedaId',
-      label: 'Moneda',
-      type: 'select',
-      required: true,
-      options: monedas.map(m => ({
-        value: m.id,
-        label: `${m.nombre} (${m.simbolo})`
-      }))
-    },
-    {
-      name: 'cuentaId',
-      label: 'Cuenta',
-      type: 'select',
-      required: true,
-      options: cuentas.map(c => ({
-        value: c.id,
-        label: c.nombre
-      }))
-    }
-  ];
-
-  const cardConfig = {
-    getTitle: (propiedad) => propiedad.nombre || propiedad.titulo,
-    getDetails: (propiedad) => [
-      {
-        icon: <LocationOnIcon />,
-        text: `${propiedad.direccion}, ${propiedad.ciudad}`,
-        noWrap: true
-      },
-      {
-        icon: <SquareFootIcon />,
-        text: `${propiedad.metrosCuadrados} m²`
-      },
-      {
-        icon: <HomeWork />,
-        text: (
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 0.5,
-              cursor: 'pointer',
-              '&:hover': {
-                color: 'primary.main'
-              }
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleExpandClick(propiedad._id);
-            }}
-          >
-            {`${(propiedad.habitaciones || []).length} habitaciones`}
-            {expandedCards[propiedad._id] ? 
-              <ExpandLessIcon sx={{ fontSize: 18 }} /> : 
-              <ExpandMoreIcon sx={{ fontSize: 18 }} />
-            }
-          </Box>
-        )
-      },
-      {
-        icon: <AttachMoneyIcon />,
-        text: `${propiedad.precio?.toLocaleString()} ${propiedad.moneda?.simbolo || ''}`
-      }
-    ],
-    getActions: (propiedad) => ({
-      onEdit: () => handleEdit(propiedad),
-      onDelete: () => handleDelete(propiedad._id || propiedad.id),
-      itemName: `la propiedad ${propiedad.nombre || propiedad.titulo}`,
-      entity: propiedad,
-      extraContent: (
-        <Collapse in={expandedCards[propiedad._id]} timeout="auto" unmountOnExit>
-          <Box 
-            sx={{ 
-              p: 2, 
-              bgcolor: 'background.paper', 
-              borderTop: '1px solid',
-              borderColor: 'divider',
-              mt: 1 
-            }}
-          >
-            <Typography 
-              variant="subtitle2" 
-              color="text.secondary" 
-              gutterBottom
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1 
-              }}
-            >
-              <BedIcon fontSize="small" />
-              Detalle de Habitaciones
-            </Typography>
-            <Grid container spacing={1}>
-              <Grid item xs={6}>
-                <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <BedIcon fontSize="small" />
-                  Dormitorios ({propiedad.totalDormitorios || 0}):
-                </Typography>
-                <Box sx={{ pl: 3 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    • Simples: {propiedad.dormitoriosSimples || 0}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    • Dobles: {propiedad.dormitoriosDobles || 0}
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <BathtubOutlinedIcon fontSize="small" />
-                  Baños ({propiedad.banos || 0}):
-                </Typography>
-                <Box sx={{ pl: 3 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    • Baños: {propiedad.habitaciones?.filter(h => h.tipo === 'BAÑO').length || 0}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    • Toilettes: {propiedad.habitaciones?.filter(h => h.tipo === 'TOILETTE').length || 0}
-                  </Typography>
-                </Box>
-              </Grid>
-            </Grid>
-          </Box>
-        </Collapse>
-      )
-    })
-  };
-
   if (loading) {
     return (
       <Container sx={{ py: 4 }}>
         <Grid container spacing={4}>
           {[1, 2, 3, 4].map((item) => (
-            <Grid item key={item} xs={12} sm={6} md={4}>
+            <Grid item key={item} xs={12} sm={6} md={4} lg={3}>
               <Skeleton variant="rectangular" height={200} />
               <Skeleton />
               <Skeleton width="60%" />
@@ -514,6 +414,7 @@ export function Propiedades() {
           setIsFormOpen(true);
         }}
         searchPlaceholder="Buscar propiedades..."
+        onSearch={handleSearch}
         navigationItems={[
           {
             icon: <BedIcon sx={{ fontSize: 21.6 }} />,
@@ -555,20 +456,13 @@ export function Propiedades() {
           </Button>
         }
       >
-        {propiedades.length === 0 ? (
-          <EmptyState onAdd={() => setIsFormOpen(true)} />
-        ) : (
-          <EntityCards
-            data={filteredPropiedades.length > 0 ? filteredPropiedades : propiedades}
-            config={cardConfig}
-            gridProps={{
-              xs: 12,
-              sm: 6,
-              md: 4,
-              lg: 3
-            }}
-          />
-        )}
+        <PropiedadList
+          propiedades={propiedades}
+          filteredPropiedades={filteredPropiedades}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onAdd={() => setIsFormOpen(true)}
+        />
       </EntityDetails>
 
       <PropiedadForm

@@ -220,7 +220,8 @@ const ContratoForm = ({
     observaciones: initialData.observaciones || '',
     documentoUrl: initialData.documentoUrl || '',
     esMantenimiento: initialData.esMantenimiento || false,
-    estado: initialData.estado || 'PLANEADO'
+    estado: initialData.estado || 'PLANEADO',
+    tipoContrato: initialData.tipoContrato || 'ALQUILER'
   });
 
   const [errors, setErrors] = useState({});
@@ -397,7 +398,8 @@ const ContratoForm = ({
         esMantenimiento: Boolean(formData.esMantenimiento),
         estado: formData.estado || 'PLANEADO',
         observaciones: formData.observaciones || '',
-        documentoUrl: formData.documentoUrl || ''
+        documentoUrl: formData.documentoUrl || '',
+        tipoContrato: formData.tipoContrato
       };
 
       // Validar fechas antes de enviar
@@ -434,45 +436,51 @@ const ContratoForm = ({
   };
 
   const validateForm = () => {
-    console.log('Validando formulario con datos:', formData);
     const newErrors = {};
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
 
-    // Validaciones básicas
-    if (!formData.propiedad) newErrors.propiedad = 'La propiedad es requerida';
-    if (!formData.fechaInicio) newErrors.fechaInicio = 'La fecha de inicio es requerida';
-    if (!formData.fechaFin) newErrors.fechaFin = 'La fecha de fin es requerida';
-    
-    // Validar que las fechas sean instancias válidas de Date
-    if (formData.fechaInicio && !(formData.fechaInicio instanceof Date && !isNaN(formData.fechaInicio))) {
-      newErrors.fechaInicio = 'Fecha de inicio inválida';
+    // Validar fechas
+    if (!formData.fechaInicio) {
+      newErrors.fechaInicio = 'La fecha de inicio es requerida';
     }
-    if (formData.fechaFin && !(formData.fechaFin instanceof Date && !isNaN(formData.fechaFin))) {
-      newErrors.fechaFin = 'Fecha de fin inválida';
+    if (!formData.fechaFin) {
+      newErrors.fechaFin = 'La fecha de fin es requerida';
+    }
+    if (formData.fechaInicio && formData.fechaFin && formData.fechaInicio > formData.fechaFin) {
+      newErrors.fechaFin = 'La fecha de fin debe ser posterior a la fecha de inicio';
     }
 
-    // Validaciones específicas para contratos no de mantenimiento
+    // Validar propiedad o habitación
+    if (!formData.propiedad) {
+      newErrors.propiedad = 'La propiedad es requerida';
+    }
+    if (formData.esPorHabitacion && !formData.habitacion) {
+      newErrors.habitacion = 'La habitación es requerida';
+    }
+
+    // Validar inquilinos
+    if (!formData.esMantenimiento && (!formData.inquilino || formData.inquilino.length === 0)) {
+      newErrors.inquilino = 'Debe seleccionar al menos un inquilino';
+    }
+
+    // Validar montos
     if (!formData.esMantenimiento) {
-      if (!formData.cuenta) newErrors.cuenta = 'La cuenta es requerida';
-      if (!formData.inquilino || formData.inquilino.length === 0) {
-        newErrors.inquilino = 'El inquilino es requerido';
-      }
-      const montoMensual = parseFloat(formData.montoMensual);
-      if (isNaN(montoMensual) || montoMensual <= 0) {
+      if (!formData.montoMensual || parseFloat(formData.montoMensual) <= 0) {
         newErrors.montoMensual = 'El monto mensual debe ser mayor a 0';
       }
-    }
-
-    // Validación de fechas
-    if (formData.fechaInicio && formData.fechaFin) {
-      const inicio = new Date(formData.fechaInicio);
-      const fin = new Date(formData.fechaFin);
-      if (inicio >= fin) {
-        newErrors.fechaFin = 'La fecha de fin debe ser posterior a la fecha de inicio';
+      if (!formData.deposito || parseFloat(formData.deposito) <= 0) {
+        newErrors.deposito = 'El depósito debe ser mayor a 0';
       }
     }
 
-    console.log('Errores de validación:', newErrors);
-    return newErrors;
+    // Validar cuenta
+    if (!formData.cuenta) {
+      newErrors.cuenta = 'La cuenta es requerida';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   return (
@@ -546,6 +554,35 @@ const ContratoForm = ({
             id="contrato-form"
             sx={{ display: 'flex', flexDirection: 'column' }}
           >
+            {/* Tipo de Contrato */}
+            <FormSection>
+              <StyledSectionTitle>
+                <Description />
+                Tipo de Contrato
+              </StyledSectionTitle>
+              <ToggleButtonGroup
+                value={formData.tipoContrato}
+                exclusive
+                onChange={(e, value) => handleChange('tipoContrato', value)}
+                sx={{ width: '100%', mb: 2 }}
+              >
+                <StyledToggleButton 
+                  value="ALQUILER" 
+                  customcolor="#4caf50"
+                >
+                  <Home />
+                  <Typography>Alquiler</Typography>
+                </StyledToggleButton>
+                <StyledToggleButton 
+                  value="MANTENIMIENTO" 
+                  customcolor="#ff9800"
+                >
+                  <Engineering />
+                  <Typography>Mantenimiento</Typography>
+                </StyledToggleButton>
+              </ToggleButtonGroup>
+            </FormSection>
+
             <ContratoMantenimientoSection
               formData={formData}
               onChange={handleMantenimientoChange}
