@@ -46,7 +46,6 @@ RUN chmod +x /app/start.sh
 
 # Copiar código fuente específicamente
 COPY webhook-server.js ./
-COPY .env* ./
 
 # Crear directorio para logs
 RUN mkdir -p /var/log/webhook-server
