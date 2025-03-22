@@ -1,5 +1,5 @@
 import { BaseController } from './BaseController.js';
-import { Propiedades, Habitaciones } from '../models/index.js';
+import { Propiedades, Habitaciones, Inquilinos, Contratos, Inventarios } from '../models/index.js';
 
 class PropiedadesController extends BaseController {
   constructor() {
@@ -14,6 +14,17 @@ class PropiedadesController extends BaseController {
     this.create = this.create.bind(this);
     this.getAll = this.getAll.bind(this);
     this.getResumenHabitaciones = this.getResumenHabitaciones.bind(this);
+    this.getByEstado = this.getByEstado.bind(this);
+    this.getDisponibles = this.getDisponibles.bind(this);
+    this.getOcupadas = this.getOcupadas.bind(this);
+    this.getEnMantenimiento = this.getEnMantenimiento.bind(this);
+    this.getInquilinos = this.getInquilinos.bind(this);
+    this.getInquilinosActivos = this.getInquilinosActivos.bind(this);
+    this.getInquilinosPendientes = this.getInquilinosPendientes.bind(this);
+    this.getContratos = this.getContratos.bind(this);
+    this.getContratosActivos = this.getContratosActivos.bind(this);
+    this.getContratosMantenimiento = this.getContratosMantenimiento.bind(this);
+    this.getAdminStats = this.getAdminStats.bind(this);
   }
 
   // Método para obtener el resumen de habitaciones
@@ -51,41 +62,124 @@ class PropiedadesController extends BaseController {
   // GET /api/propiedades
   async getAll(req, res) {
     try {
-      console.log('Usuario actual:', req.user);
+      console.log('Obteniendo propiedades...');
       
-      // Asegurarnos de que tenemos un usuario válido
-      if (!req.user || !req.user.id) {
+      // Verificar si hay un usuario autenticado
+      if (!req.user) {
+        console.log('No hay usuario autenticado');
         return res.status(401).json({ error: 'Usuario no autenticado' });
       }
-
-      const query = { usuario: req.user.id };
-      console.log('Query de búsqueda:', query);
-
+      
+      const { usuario } = req.query;
+      
+      // Si no se proporciona un usuario en la query, usar el ID del usuario autenticado
+      const filtros = {
+        usuario: usuario || req.user.id
+      };
+      
+      console.log('Filtros aplicados:', filtros);
+      
+      // Obtener propiedades con paginación
       const result = await this.Model.paginate(
-        query,
+        filtros,
         {
           populate: [
             'moneda', 
             'cuenta',
             {
               path: 'habitaciones',
-              populate: ['inventarios']
+              select: 'tipo nombrePersonalizado activo'
             }
           ],
           sort: { createdAt: 'desc' }
         }
       );
 
-      console.log('Resultado de la búsqueda:', result);
+      console.log('Propiedades obtenidas:', result.docs.length);
 
-      // Formatear cada documento con el resumen de habitaciones
-      const docs = await Promise.all(result.docs.map(doc => this.formatResponse(doc)));
-      console.log('Documentos formateados:', docs);
+      // Enriquecer cada propiedad con sus contratos activos e inquilinos
+      const propiedadesEnriquecidas = await Promise.all(
+        result.docs.map(async (propiedad) => {
+          try {
+            console.log(`Procesando propiedad ${propiedad._id}...`);
+            
+            // Obtener contratos activos con sus inquilinos
+            const contratos = await Contratos.find({
+              propiedad: propiedad._id,
+              activo: true,
+              estado: 'ACTIVO',
+              fechaInicio: { $lte: new Date() },
+              fechaFin: { $gt: new Date() }
+            })
+            .populate('inquilino', 'nombre apellido email telefono activo')
+            .lean();
 
-      res.json({ ...result, docs });
+            console.log(`Contratos activos encontrados para propiedad ${propiedad._id}:`, contratos.length);
+
+            // Obtener inquilinos únicos de los contratos activos
+            const inquilinosSet = new Set();
+            const inquilinos = contratos
+              .filter(c => c.inquilino)
+              .map(c => c.inquilino)
+              .filter(inquilino => {
+                const key = inquilino._id.toString();
+                if (!inquilinosSet.has(key)) {
+                  inquilinosSet.add(key);
+                  return true;
+                }
+                return false;
+              });
+
+            console.log(`Inquilinos activos encontrados para propiedad ${propiedad._id}:`, inquilinos.length);
+
+            // Obtener inventarios activos
+            const inventarios = await Inventarios.find({
+              propiedad: propiedad._id,
+              activo: true
+            }).lean();
+
+            // Convertir a objeto plano y agregar las relaciones
+            const propiedadObj = propiedad.toObject();
+            return {
+              ...propiedadObj,
+              contratos: contratos.map(contrato => ({
+                ...contrato,
+                inquilinoNombre: contrato.inquilino ? 
+                  `${contrato.inquilino.nombre || ''} ${contrato.inquilino.apellido || ''}`.trim() : 
+                  'Sin inquilino',
+                periodo: {
+                  inicio: contrato.fechaInicio,
+                  fin: contrato.fechaFin
+                }
+              })),
+              inquilinos,
+              inventarios,
+              resumen: {
+                inquilinosActivos: inquilinos.length,
+                contratosActivos: contratos.length,
+                inventariosActivos: inventarios.length
+              }
+            };
+          } catch (error) {
+            console.error(`Error procesando propiedad ${propiedad._id}:`, error);
+            return propiedad.toObject();
+          }
+        })
+      );
+      
+      console.log('Total de propiedades enriquecidas:', propiedadesEnriquecidas.length);
+      
+      res.json({ 
+        ...result, 
+        docs: propiedadesEnriquecidas
+      });
     } catch (error) {
       console.error('Error al obtener propiedades:', error);
-      res.status(500).json({ error: 'Error al obtener propiedades' });
+      res.status(500).json({ 
+        error: 'Error al obtener propiedades',
+        details: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     }
   }
 
@@ -219,6 +313,256 @@ class PropiedadesController extends BaseController {
     } catch (error) {
       console.error('Error al actualizar estado:', error);
       res.status(500).json({ error: 'Error al actualizar estado' });
+    }
+  }
+
+  // GET /api/propiedades/estado/:estado
+  async getByEstado(req, res) {
+    try {
+      const { estado } = req.params;
+      const result = await this.Model.paginate(
+        { 
+          usuario: req.user._id,
+          estado: estado.toUpperCase()
+        },
+        {
+          sort: { createdAt: 'desc' }
+        }
+      );
+
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...result, docs });
+    } catch (error) {
+      console.error('Error al obtener propiedades por estado:', error);
+      res.status(500).json({ error: 'Error al obtener propiedades por estado' });
+    }
+  }
+
+  // GET /api/propiedades/disponibles
+  async getDisponibles(req, res) {
+    try {
+      const result = await this.Model.paginate(
+        {
+          usuario: req.user._id,
+          estado: 'DISPONIBLE'
+        },
+        {
+          sort: { createdAt: 'desc' }
+        }
+      );
+
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...result, docs });
+    } catch (error) {
+      console.error('Error al obtener propiedades disponibles:', error);
+      res.status(500).json({ error: 'Error al obtener propiedades disponibles' });
+    }
+  }
+
+  // GET /api/propiedades/ocupadas
+  async getOcupadas(req, res) {
+    try {
+      const result = await this.Model.paginate(
+        {
+          usuario: req.user._id,
+          estado: 'OCUPADA'
+        },
+        {
+          sort: { createdAt: 'desc' }
+        }
+      );
+
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...result, docs });
+    } catch (error) {
+      console.error('Error al obtener propiedades ocupadas:', error);
+      res.status(500).json({ error: 'Error al obtener propiedades ocupadas' });
+    }
+  }
+
+  // GET /api/propiedades/mantenimiento
+  async getEnMantenimiento(req, res) {
+    try {
+      const result = await this.Model.paginate(
+        {
+          usuario: req.user._id,
+          estado: 'MANTENIMIENTO'
+        },
+        {
+          sort: { createdAt: 'desc' }
+        }
+      );
+
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...result, docs });
+    } catch (error) {
+      console.error('Error al obtener propiedades en mantenimiento:', error);
+      res.status(500).json({ error: 'Error al obtener propiedades en mantenimiento' });
+    }
+  }
+
+  // GET /api/propiedades/:id/inquilinos
+  async getInquilinos(req, res) {
+    try {
+      const { id } = req.params;
+      const result = await Inquilinos.paginate(
+        {
+          usuario: req.user._id,
+          propiedad: id
+        },
+        {
+          sort: { createdAt: 'desc' }
+        }
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error('Error al obtener inquilinos de la propiedad:', error);
+      res.status(500).json({ error: 'Error al obtener inquilinos de la propiedad' });
+    }
+  }
+
+  // GET /api/propiedades/:id/inquilinos/activos
+  async getInquilinosActivos(req, res) {
+    try {
+      const { id } = req.params;
+      const result = await Inquilinos.paginate(
+        {
+          usuario: req.user._id,
+          propiedad: id,
+          estado: 'ACTIVO'
+        },
+        {
+          sort: { createdAt: 'desc' }
+        }
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error('Error al obtener inquilinos activos:', error);
+      res.status(500).json({ error: 'Error al obtener inquilinos activos' });
+    }
+  }
+
+  // GET /api/propiedades/:id/inquilinos/pendientes
+  async getInquilinosPendientes(req, res) {
+    try {
+      const { id } = req.params;
+      const result = await Inquilinos.paginate(
+        {
+          usuario: req.user._id,
+          propiedad: id,
+          estado: 'PENDIENTE'
+        },
+        {
+          sort: { createdAt: 'desc' }
+        }
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error('Error al obtener inquilinos pendientes:', error);
+      res.status(500).json({ error: 'Error al obtener inquilinos pendientes' });
+    }
+  }
+
+  // GET /api/propiedades/:id/contratos
+  async getContratos(req, res) {
+    try {
+      const { id } = req.params;
+      const result = await Contratos.paginate(
+        {
+          usuario: req.user._id,
+          propiedad: id
+        },
+        {
+          populate: ['inquilino'],
+          sort: { fechaInicio: 'desc' }
+        }
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error('Error al obtener contratos de la propiedad:', error);
+      res.status(500).json({ error: 'Error al obtener contratos de la propiedad' });
+    }
+  }
+
+  // GET /api/propiedades/:id/contratos/activos
+  async getContratosActivos(req, res) {
+    try {
+      const { id } = req.params;
+      const now = new Date();
+      
+      const result = await Contratos.paginate(
+        {
+          usuario: req.user._id,
+          propiedad: id,
+          estado: 'ACTIVO',
+          fechaInicio: { $lte: now },
+          fechaFin: { $gt: now }
+        },
+        {
+          populate: ['inquilino'],
+          sort: { fechaInicio: 'desc' }
+        }
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error('Error al obtener contratos activos:', error);
+      res.status(500).json({ error: 'Error al obtener contratos activos' });
+    }
+  }
+
+  // GET /api/propiedades/:id/contratos/mantenimiento
+  async getContratosMantenimiento(req, res) {
+    try {
+      const { id } = req.params;
+      const now = new Date();
+      
+      const result = await Contratos.paginate(
+        {
+          usuario: req.user._id,
+          propiedad: id,
+          esMantenimiento: true,
+          estado: 'MANTENIMIENTO',
+          fechaInicio: { $lte: now },
+          fechaFin: { $gt: now }
+        },
+        {
+          sort: { fechaInicio: 'desc' }
+        }
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error('Error al obtener contratos de mantenimiento:', error);
+      res.status(500).json({ error: 'Error al obtener contratos de mantenimiento' });
+    }
+  }
+
+  // GET /api/propiedades/admin/stats
+  async getAdminStats(req, res) {
+    try {
+      const stats = await Promise.all([
+        this.Model.countDocuments(),
+        this.Model.countDocuments({ estado: 'DISPONIBLE' }),
+        this.Model.countDocuments({ estado: 'OCUPADA' }),
+        this.Model.countDocuments({ estado: 'MANTENIMIENTO' }),
+        this.Model.countDocuments({ estado: 'RESERVADA' })
+      ]);
+      
+      res.json({
+        total: stats[0],
+        disponibles: stats[1],
+        ocupadas: stats[2],
+        mantenimiento: stats[3],
+        reservadas: stats[4]
+      });
+    } catch (error) {
+      console.error('Error al obtener estadísticas:', error);
+      res.status(500).json({ error: 'Error al obtener estadísticas' });
     }
   }
 }

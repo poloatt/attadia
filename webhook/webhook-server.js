@@ -3,7 +3,13 @@ const bodyParser = require('body-parser');
 const winston = require('winston');
 const { exec } = require('child_process');
 const crypto = require('crypto');
+const os = require('os');
 require('dotenv').config();
+
+// Detectar automáticamente el ambiente basado en el hostname
+const hostname = os.hostname();
+const isStaging = hostname.includes('staging') || hostname.includes('foco-staging');
+const SERVER_ENVIRONMENT = isStaging ? 'staging' : 'production';
 
 // Configuración del logger
 const logger = winston.createLogger({
@@ -251,6 +257,7 @@ function processWebhook(req, requestId, retryCount = 0) {
 app.post(['/', '/webhook'], (req, res) => {
     const requestId = Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
     
+    // Log detallado de la solicitud
     logger.info(`[${requestId}] Recibida solicitud webhook en la ruta: ${req.path}`, {
         headers: Object.keys(req.headers),
         body_keys: Object.keys(req.body),
@@ -272,7 +279,47 @@ app.post(['/', '/webhook'], (req, res) => {
     
     logger.info(`[${requestId}] Cabeceras importantes:`, headerValues);
     
-    processWebhook(req, requestId);
+    // Responder inmediatamente con éxito para evitar timeouts en GitHub
+    res.status(200).send(`Webhook received and processing - ID: ${requestId}`);
+    
+    // Procesar el webhook en segundo plano
+    setTimeout(() => {
+        processWebhook(req, requestId);
+    }, 100);
+});
+
+// Ruta para prueba manual del webhook
+app.get('/test-deploy', (req, res) => {
+    const requestId = Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
+    logger.info(`[${requestId}] Solicitud de prueba manual recibida`);
+    
+    // Verificar autorización
+    if (req.query.token !== 'secreto123') {
+        logger.warn(`[${requestId}] Intento de prueba manual sin token válido`);
+        return res.status(401).send('Unauthorized - Invalid token');
+    }
+    
+    // Usar el ambiente del servidor actual o el especificado en la consulta
+    const environment = req.query.env || SERVER_ENVIRONMENT;
+    const ref = environment === 'production' ? 'refs/heads/main' : 'refs/heads/staging';
+    
+    const mockReq = {
+        path: '/test-deploy',
+        headers: {},
+        body: {
+            ref: ref
+        },
+        ip: req.ip
+    };
+    
+    // Iniciar actualización
+    logger.info(`[${requestId}] Iniciando prueba manual para ${environment} en servidor ${hostname}`);
+    res.status(200).send(`Prueba manual iniciada - ID: ${requestId} - Ambiente: ${environment} - Servidor: ${hostname}`);
+    
+    // Procesar en segundo plano
+    setTimeout(() => {
+        processWebhook(mockReq, requestId);
+    }, 100);
 });
 
 // Ruta de depuración
@@ -281,8 +328,10 @@ app.get('/debug', (req, res) => {
     res.status(200).json({
         message: 'Webhook server funcionando correctamente',
         environment: process.env.NODE_ENV,
+        serverEnvironment: SERVER_ENVIRONMENT,
         port: port,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        hostname: hostname
     });
 });
 

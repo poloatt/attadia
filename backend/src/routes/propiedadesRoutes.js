@@ -11,19 +11,31 @@ const router = express.Router();
 // Todas las rutas requieren autenticación
 router.use(checkAuth);
 
-router.route('/')
-  .get(propiedadesController.getAll)
-  .post(propiedadesController.create);
+// Rutas básicas
+router.get('/', propiedadesController.getAll);
+router.post('/', propiedadesController.create);
+router.get('/:id', propiedadesController.getById);
+router.put('/:id', propiedadesController.update);
+router.delete('/:id', propiedadesController.delete);
 
-router.get('/stats', propiedadesController.getStats);
+// Rutas por estado
+router.get('/estado/:estado', propiedadesController.getByEstado);
+router.get('/disponibles', propiedadesController.getDisponibles);
+router.get('/ocupadas', propiedadesController.getOcupadas);
+router.get('/mantenimiento', propiedadesController.getEnMantenimiento);
 
-router.route('/:id')
-  .get([checkOwnership(Propiedades)], propiedadesController.getById)
-  .put([checkOwnership(Propiedades)], propiedadesController.update)
-  .delete([checkOwnership(Propiedades)], propiedadesController.delete);
+// Rutas de inquilinos
+router.get('/:id/inquilinos', propiedadesController.getInquilinos);
+router.get('/:id/inquilinos/activos', propiedadesController.getInquilinosActivos);
+router.get('/:id/inquilinos/pendientes', propiedadesController.getInquilinosPendientes);
 
-// Rutas admin
+// Rutas de contratos
+router.get('/:id/contratos', propiedadesController.getContratos);
+router.get('/:id/contratos/activos', propiedadesController.getContratosActivos);
+router.get('/:id/contratos/mantenimiento', propiedadesController.getContratosMantenimiento);
+
+// Rutas administrativas
 router.get('/admin/all', [checkRole([ROLES.ADMIN])], propiedadesController.getAllAdmin);
-router.put('/:id/status', [checkRole([ROLES.ADMIN])], propiedadesController.updateStatus);
+router.get('/admin/stats', [checkRole([ROLES.ADMIN])], propiedadesController.getAdminStats);
 
 export default router; 

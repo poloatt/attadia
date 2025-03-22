@@ -87,6 +87,11 @@ const contratoSchema = createSchema({
     type: Boolean,
     default: false
   },
+  tipoContrato: {
+    type: String,
+    enum: ['ALQUILER', 'MANTENIMIENTO'],
+    default: 'ALQUILER'
+  },
   montoMensual: {
     type: Number,
     required: true,
@@ -104,38 +109,159 @@ const contratoSchema = createSchema({
   timestamps: true
 });
 
-// Middleware para validar fechas
-contratoSchema.pre('save', function(next) {
-  if (this.fechaFin && this.fechaInicio > this.fechaFin) {
-    next(new Error('La fecha de fin debe ser posterior a la fecha de inicio'));
-  }
-  next();
-});
-
-// Middleware para calcular estado automáticamente
+// Middleware para validar y actualizar estados
 contratoSchema.pre('save', async function(next) {
-  const now = new Date();
-  
-  // Si es un contrato de mantenimiento, el estado siempre será MANTENIMIENTO
-  if (this.esMantenimiento) {
-    this.estado = 'MANTENIMIENTO';
-    this.montoMensual = 0; // Forzar monto 0 para contratos de mantenimiento
-    next();
-    return;
-  }
+  try {
+    const now = new Date();
+    
+    // Validar fechas
+    if (this.fechaFin && this.fechaInicio > this.fechaFin) {
+      throw new Error('La fecha de fin debe ser posterior a la fecha de inicio');
+    }
 
-  // Calcular estado basado en fechas
-  if (this.fechaInicio && this.fechaFin) {
+    // Si es un contrato de mantenimiento
+    if (this.esMantenimiento || this.tipoContrato === 'MANTENIMIENTO') {
+      this.estado = 'MANTENIMIENTO';
+      this.montoMensual = 0;
+      this.inquilino = [];
+      this.esMantenimiento = true;
+      this.tipoContrato = 'MANTENIMIENTO';
+
+      // Actualizar estado de la propiedad a MANTENIMIENTO
+      const Propiedades = mongoose.model('Propiedades');
+      const propiedad = await Propiedades.findById(this.propiedad);
+      if (propiedad) {
+        propiedad.estado = ['MANTENIMIENTO'];
+        await propiedad.save();
+      }
+      
+      next();
+      return;
+    }
+
+    // Para contratos de alquiler
+    this.tipoContrato = 'ALQUILER';
+    this.esMantenimiento = false;
+
+    // Validar que los inquilinos existan y estén asignados a la propiedad
+    const Inquilinos = mongoose.model('Inquilinos');
+    for (const inquilinoId of this.inquilino) {
+      const inquilino = await Inquilinos.findById(inquilinoId);
+      if (!inquilino) {
+        throw new Error(`El inquilino ${inquilinoId} no existe`);
+      }
+    }
+
+    // Calcular estado basado en fechas
     if (this.fechaInicio <= now && this.fechaFin > now) {
       this.estado = 'ACTIVO';
+      // Actualizar estado de inquilinos a ACTIVO
+      for (const inquilinoId of this.inquilino) {
+        const inquilino = await Inquilinos.findById(inquilinoId);
+        if (inquilino) {
+          inquilino.estado = 'ACTIVO';
+          await inquilino.save();
+        }
+      }
+      // Actualizar estado de la propiedad a OCUPADA
+      const Propiedades = mongoose.model('Propiedades');
+      const propiedad = await Propiedades.findById(this.propiedad);
+      if (propiedad) {
+        propiedad.estado = ['OCUPADA'];
+        await propiedad.save();
+      }
     } else if (this.fechaInicio > now) {
       this.estado = 'PLANEADO';
+      // Actualizar estado de inquilinos a RESERVADO
+      for (const inquilinoId of this.inquilino) {
+        const inquilino = await Inquilinos.findById(inquilinoId);
+        if (inquilino) {
+          inquilino.estado = 'RESERVADO';
+          await inquilino.save();
+        }
+      }
+      // Actualizar estado de la propiedad a RESERVADA
+      const Propiedades = mongoose.model('Propiedades');
+      const propiedad = await Propiedades.findById(this.propiedad);
+      if (propiedad) {
+        propiedad.estado = ['RESERVADA'];
+        await propiedad.save();
+      }
     } else if (this.fechaFin <= now) {
       this.estado = 'FINALIZADO';
+      // Actualizar estado de inquilinos a INACTIVO
+      for (const inquilinoId of this.inquilino) {
+        const inquilino = await Inquilinos.findById(inquilinoId);
+        if (inquilino) {
+          inquilino.estado = 'INACTIVO';
+          await inquilino.save();
+        }
+      }
+      // Actualizar estado de la propiedad a DISPONIBLE
+      const Propiedades = mongoose.model('Propiedades');
+      const propiedad = await Propiedades.findById(this.propiedad);
+      if (propiedad) {
+        propiedad.estado = ['DISPONIBLE'];
+        await propiedad.save();
+      }
     }
-  }
 
-  next();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Middleware para actualizar estados al finalizar un contrato
+contratoSchema.pre('updateOne', async function(next) {
+  try {
+    const update = this.getUpdate();
+    const contrato = await this.model.findOne(this.getQuery());
+    if (!contrato) return next();
+
+    const now = new Date();
+
+    // Para contratos regulares
+    if (update.estado === 'FINALIZADO') {
+      // Actualizar estados de inquilinos a INACTIVO
+      for (const inquilinoId of contrato.inquilino) {
+        const inquilino = await mongoose.model('Inquilinos').findById(inquilinoId);
+        if (inquilino) {
+          inquilino.estado = 'INACTIVO';
+          await inquilino.save();
+        }
+      }
+
+      // Actualizar estado de la propiedad a DISPONIBLE
+      const propiedad = await mongoose.model('Propiedades').findById(contrato.propiedad);
+      if (propiedad) {
+        propiedad.estado = ['DISPONIBLE'];
+        await propiedad.save();
+      }
+    } else if (update.estado === 'ACTIVO') {
+      // Si el contrato se activa
+      if (contrato.fechaInicio <= now && contrato.fechaFin > now) {
+        // Actualizar estados de inquilinos a ACTIVO
+        for (const inquilinoId of contrato.inquilino) {
+          const inquilino = await mongoose.model('Inquilinos').findById(inquilinoId);
+          if (inquilino) {
+            inquilino.estado = 'ACTIVO';
+            await inquilino.save();
+          }
+        }
+
+        // Actualizar estado de la propiedad a OCUPADA
+        const propiedad = await mongoose.model('Propiedades').findById(contrato.propiedad);
+        if (propiedad) {
+          propiedad.estado = ['OCUPADA'];
+          await propiedad.save();
+        }
+      }
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
 // Middleware para generar transacciones automáticamente

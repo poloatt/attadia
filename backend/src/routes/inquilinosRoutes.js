@@ -17,9 +17,17 @@ router.get('/:id', inquilinosController.getById);
 router.put('/:id', inquilinosController.update);
 router.delete('/:id', inquilinosController.delete);
 
+// Rutas de check-in y estado
+router.post('/:id/check-in/:propiedadId', inquilinosController.checkIn);
+router.get('/:id/full-info', inquilinosController.getFullInfo);
+router.get('/estado/:estado', inquilinosController.getByEstado);
+
+// Rutas por propiedad
+router.get('/propiedad/:propiedadId', inquilinosController.getAllByPropiedad);
+router.get('/propiedad/:propiedadId/activos', inquilinosController.getActivosByPropiedad);
+router.get('/propiedad/:propiedadId/pendientes', inquilinosController.getPendientesByPropiedad);
+
 // Rutas administrativas
-router.get('/admin/all', [checkRole([ROLES.ADMIN])], inquilinosController.getAllAdmin);
 router.get('/admin/stats', [checkRole([ROLES.ADMIN])], inquilinosController.getAdminStats);
-router.put('/admin/:id/status', [checkRole([ROLES.ADMIN])], inquilinosController.updateStatus);
 
 export default router; 

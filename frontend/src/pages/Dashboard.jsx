@@ -76,14 +76,63 @@ export function Dashboard() {
       setLoading(true);
       console.log('Iniciando fetchStats...');
       
-      // Primero obtenemos las estadísticas de propiedades
-      const propiedadesStats = await clienteAxios.get('/api/propiedades/stats');
-      console.log('Estadísticas de propiedades:', propiedadesStats.data);
+      // Obtener propiedades y calcular estadísticas
+      const propiedadesRes = await clienteAxios.get('/api/propiedades');
+      const propiedades = propiedadesRes.data.docs || [];
       
-      const propiedadesData = propiedadesStats.data;
-      const porcentajeOcupacion = propiedadesData.total > 0 
-        ? Math.round((propiedadesData.ocupadas / propiedadesData.total) * 100)
+      // Calcular estadísticas de propiedades
+      const propiedadesStats = propiedades.reduce((stats, propiedad) => {
+        stats.total++;
+        
+        // Determinar estado actual
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        
+        // Verificar contratos activos
+        const tieneContratoActivo = (propiedad.contratos || []).some(contrato => {
+          const inicio = new Date(contrato.fechaInicio);
+          const fin = new Date(contrato.fechaFin);
+          return inicio <= hoy && fin >= hoy;
+        });
+
+        // Verificar contratos reservados
+        const tieneContratoReservado = (propiedad.contratos || []).some(contrato => {
+          const inicio = new Date(contrato.fechaInicio);
+          return inicio > hoy && contrato.estado === 'RESERVADO';
+        });
+
+        // Determinar estado
+        if (tieneContratoActivo) {
+          stats.ocupadas++;
+          stats.disponibles = Math.max(0, stats.disponibles - 1);
+        } else if (propiedad.estado === 'MANTENIMIENTO') {
+          stats.mantenimiento++;
+          stats.disponibles = Math.max(0, stats.disponibles - 1);
+        } else if (tieneContratoReservado || propiedad.estado === 'RESERVADA') {
+          stats.reservadas++;
+          stats.disponibles = Math.max(0, stats.disponibles - 1);
+        } else {
+          stats.disponibles++;
+        }
+        
+        return stats;
+      }, {
+        total: 0,
+        ocupadas: 0,
+        disponibles: 0,
+        mantenimiento: 0,
+        reservadas: 0
+      });
+
+      // Calcular porcentaje de ocupación
+      const porcentajeOcupacion = propiedadesStats.total > 0 
+        ? Math.round((propiedadesStats.ocupadas / (propiedadesStats.total - propiedadesStats.mantenimiento)) * 100)
         : 0;
+
+      console.log('Estadísticas calculadas:', {
+        ...propiedadesStats,
+        porcentajeOcupacion
+      });
 
       // Intentamos obtener las estadísticas de transacciones
       let transaccionesData = {
@@ -105,7 +154,7 @@ export function Dashboard() {
       setStats(prevStats => ({
         ...prevStats,
         propiedades: {
-          ...propiedadesData,
+          ...propiedadesStats,
           porcentajeOcupacion
         },
         finanzas: {
