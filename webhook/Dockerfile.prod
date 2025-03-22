@@ -1,7 +1,7 @@
 FROM node:18-alpine
 
 # Instalar requisitos
-RUN apk add --no-cache wget git docker-cli bash
+RUN apk add --no-cache wget git docker-cli bash curl
 
 WORKDIR /app
 
@@ -24,9 +24,9 @@ RUN mkdir -p /var/log/webhook-server
 # Exponer puerto
 EXPOSE 9000
 
-# Health check con wget
+# Health check con wget y fallback a curl
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
-    CMD wget -q --spider http://localhost:9000/health || exit 1
+    CMD wget -q --spider http://localhost:9000/health || curl -f http://localhost:9000/health || exit 1
 
 # Comando para iniciar el servidor
 CMD ["/app/start.sh"]
