@@ -33,21 +33,53 @@ const jwtOptions = {
   passReqToCallback: true
 };
 
+// Reducir el número de logs para evitar saturar el servidor
+const logFrequencyLimit = {
+  lastLog: Date.now(),
+  count: 0,
+  threshold: 50, // Número máximo de logs por minuto
+  reset: 60000    // Resetear contador cada minuto
+};
+
+// Función para gestionar el ratio de logs
+const shouldLog = () => {
+  const now = Date.now();
+  
+  // Si ha pasado el periodo de reset, reiniciar conteo
+  if (now - logFrequencyLimit.lastLog > logFrequencyLimit.reset) {
+    logFrequencyLimit.lastLog = now;
+    logFrequencyLimit.count = 0;
+    return true;
+  }
+  
+  // Incrementar contador
+  logFrequencyLimit.count++;
+  
+  // Solo permitir logs si estamos por debajo del umbral
+  return logFrequencyLimit.count <= logFrequencyLimit.threshold;
+};
+
 passport.use(new JwtStrategy(jwtOptions, async (req, jwt_payload, done) => {
   try {
-    console.log('Verificando token JWT:', {
-      payload: jwt_payload,
-      user: jwt_payload.user,
-      exp: new Date(jwt_payload.exp * 1000).toISOString()
-    });
+    // Reducir logs excesivos
+    if (shouldLog()) {
+      console.log('Verificando token JWT:', {
+        userId: jwt_payload.user?.id,
+        type: jwt_payload.type
+      });
+    }
 
     const user = await Users.findById(jwt_payload.user.id);
     if (!user) {
-      console.log('Usuario no encontrado en la base de datos');
+      if (shouldLog()) {
+        console.log('Usuario no encontrado en la base de datos');
+      }
       return done(null, false, { message: 'Usuario no encontrado' });
     }
     if (!user.activo) {
-      console.log('Usuario inactivo');
+      if (shouldLog()) {
+        console.log('Usuario inactivo');
+      }
       return done(null, false, { message: 'Usuario inactivo' });
     }
     return done(null, user);

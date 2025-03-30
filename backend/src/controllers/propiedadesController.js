@@ -122,6 +122,8 @@ class PropiedadesController extends BaseController {
               .filter(c => c.inquilino)
               .map(c => c.inquilino)
               .filter(inquilino => {
+                if (!inquilino || !inquilino._id) return false;
+                
                 const key = inquilino._id.toString();
                 if (!inquilinosSet.has(key)) {
                   inquilinosSet.add(key);

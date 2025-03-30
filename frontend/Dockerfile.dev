@@ -1,44 +1,31 @@
-# Usar una imagen base de Node.js
-FROM node:18-alpine
+# Imagen base
+FROM node:20-alpine
 
-# Directorio de trabajo
+# Establecer directorio de trabajo y variables de entorno
 WORKDIR /app
+ENV NODE_ENV=development
+ENV VITE_MODE=development
 
-# Instalar dependencias necesarias
-RUN apk add --no-cache wget curl git
-
-# Configurar npm
-RUN npm config set registry https://registry.npmjs.org/
-
-# Copiar package.json y package-lock.json
+# Copiar solo los archivos necesarios para instalar dependencias
 COPY package*.json ./
 
-# Instalar dependencias
-RUN npm cache clean --force && \
-    rm -rf node_modules && \
-    npm install --no-audit
+# Instalar dependencias con cache optimizado
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --prefer-offline --no-audit --no-fund
 
-# Asegurarse de que el usuario node tenga permisos en el directorio de trabajo
-RUN mkdir -p /app/node_modules/.vite && \
-    chown -R node:node /app
+# Copiar el código fuente
+COPY . .
+
+# Configurar permisos solo en los directorios necesarios
+RUN chown -R node:node /app/node_modules \
+    && chown -R node:node /app/src \
+    && chown -R node:node /app/public
 
 # Cambiar al usuario node
 USER node
 
-# Variables de entorno para desarrollo
-ENV VITE_HOST=0.0.0.0
-ENV VITE_PORT=5173
-ENV HOST=0.0.0.0
-ENV PORT=5173
-ENV VITE_API_URL=http://localhost:5000
-ENV VITE_GOOGLE_CLIENT_ID=21564026422-0ncvsjsea468s3o4qrmlaljos0d2cumk.apps.googleusercontent.com
-
-# Exponer el puerto de Vite
+# Puerto para Vite
 EXPOSE 5173
 
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=30s --start-period=30s --retries=3 \
-    CMD wget -q --spider http://localhost:5173 || exit 1
-
-# Comando para desarrollo
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"] 
+# Iniciar en modo desarrollo con cache
+CMD ["sh", "-c", "npm run dev -- --host --force"] 

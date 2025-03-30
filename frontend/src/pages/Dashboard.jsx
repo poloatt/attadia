@@ -163,6 +163,12 @@ export function Dashboard() {
         }
       }));
     } catch (error) {
+      // Ignorar errores por cancelación, son parte del control de flujo
+      if (error.cancelado) {
+        console.log('Petición de estadísticas cancelada para evitar múltiples solicitudes');
+        return;
+      }
+      
       console.error('Error al cargar estadísticas:', error);
       console.error('Detalles del error:', error.response?.data);
       toast.error('Error al cargar estadísticas');
@@ -198,100 +204,65 @@ export function Dashboard() {
             const monto = parseFloat(trans.monto) || 0;
             return trans.tipo === 'INGRESO' ? acc + monto : acc - monto;
           }, 0);
-
-          console.log(`Balance calculado para ${cuenta.nombre}:`, balance);
-
-          // Asegurarnos de que la moneda tenga la información correcta
-          const monedaInfo = cuenta.moneda || {};
           
           return {
             ...cuenta,
-            saldo: balance,
-            moneda: {
-              ...monedaInfo,
-              simbolo: monedaInfo.simbolo || '$',
-              nombre: monedaInfo.nombre || 'USD',
-              color: monedaInfo.color || '#75AADB' // Celeste Argentina por defecto
-            },
-            tipo: cuenta.tipo || 'OTRO'
+            saldo: balance.toFixed(2)
           };
-        } catch (error) {
-          console.error(`Error al obtener balance de cuenta ${cuenta._id}:`, error);
-          console.error('Detalles del error:', error.response?.data);
-          return {
-            ...cuenta,
-            saldo: 0,
-            moneda: {
-              ...cuenta.moneda,
-              simbolo: cuenta.moneda?.simbolo || '$',
-              nombre: cuenta.moneda?.nombre || 'USD',
-              color: cuenta.moneda?.color || '#75AADB'
-            },
-            tipo: cuenta.tipo || 'OTRO'
-          };
+        } catch (err) {
+          // Si hay error obteniendo las transacciones, devolver la cuenta sin modificar
+          console.error(`Error al obtener transacciones para cuenta ${cuenta.nombre}:`, err);
+          return cuenta;
         }
       }));
-
-      console.log('Cuentas procesadas con balance:', cuentasConBalance);
+      
       setAccounts(cuentasConBalance);
     } catch (error) {
+      // Ignorar errores por cancelación, son parte del control de flujo
+      if (error.cancelado) {
+        console.log('Petición de cuentas cancelada para evitar múltiples solicitudes');
+        return;
+      }
+      
       console.error('Error al cargar cuentas:', error);
       console.error('Detalles del error:', error.response?.data);
+      toast.error('Error al cargar cuentas');
     }
   }, []);
 
   const fetchInquilinosYContratos = useCallback(async () => {
     try {
       console.log('Iniciando fetchInquilinosYContratos...');
-      const [inquilinosRes, contratosRes] = await Promise.all([
+      const [inquilinosResponse, contratosResponse] = await Promise.all([
         clienteAxios.get('/api/inquilinos/activos'),
         clienteAxios.get('/api/contratos/activos')
       ]);
-
-      console.log('Respuesta de inquilinos:', inquilinosRes.data);
-      console.log('Respuesta de contratos:', contratosRes.data);
-
-      // Obtener inquilinos activos
-      const inquilinosActivos = (inquilinosRes.data.docs || []).filter(inquilino => {
-        console.log('Procesando inquilino:', inquilino);
-        const esActivo = inquilino.estado === 'ACTIVO';
-        console.log(`¿El inquilino ${inquilino.nombre} está activo?:`, esActivo);
-        return esActivo;
-      });
-
-      // Obtener contratos activos
-      const contratosActivos = (contratosRes.data.docs || []).filter(contrato => {
-        console.log('Procesando contrato:', contrato);
-        const esActivo = contrato.estado === 'ACTIVO';
-        console.log(`¿El contrato ${contrato._id} está activo?:`, esActivo);
-        return esActivo;
-      });
-
-      console.log('Inquilinos activos filtrados:', inquilinosActivos);
-      console.log('Contratos activos filtrados:', contratosActivos);
-
-      setInquilinos(inquilinosActivos);
-      setContratos(contratosActivos);
-
+      
+      const inquilinosData = inquilinosResponse.data.docs || [];
+      const contratosData = contratosResponse.data.docs || [];
+      
+      setInquilinos(inquilinosData);
+      setContratos(contratosData);
     } catch (error) {
+      // Ignorar errores por cancelación, son parte del control de flujo
+      if (error.cancelado) {
+        console.log('Petición de inquilinos/contratos cancelada para evitar múltiples solicitudes');
+        return;
+      }
+      
       console.error('Error al cargar inquilinos y contratos:', error);
       console.error('Detalles del error:', error.response?.data);
-      toast.error('Error al cargar inquilinos y contratos');
+      toast.error('Error al cargar datos de inquilinos y contratos');
     }
   }, []);
 
   const fetchTasksAndProjects = useCallback(async () => {
     try {
       console.log('Obteniendo estadísticas de tareas y proyectos...');
-      
-      // Obtener todas las tareas y proyectos
       const [tareasRes, proyectosRes] = await Promise.all([
         clienteAxios.get('/api/tareas'),
         clienteAxios.get('/api/proyectos')
       ]);
-
-      console.log('Tareas obtenidas:', tareasRes.data);
-      console.log('Proyectos obtenidos:', proyectosRes.data);
       
       // Calcular estadísticas de tareas
       const tareasList = tareasRes.data.docs || [];
@@ -320,6 +291,12 @@ export function Dashboard() {
         proyectos
       }));
     } catch (error) {
+      // Ignorar errores por cancelación, son parte del control de flujo
+      if (error.cancelado) {
+        console.log('Petición de tareas/proyectos cancelada para evitar múltiples solicitudes');
+        return;
+      }
+      
       console.error('Error al obtener estadísticas de tareas y proyectos:', error);
       console.error('Detalles del error:', error.response?.data);
       toast.error('Error al cargar estadísticas de tareas y proyectos');
@@ -336,7 +313,10 @@ export function Dashboard() {
         fetchTasksAndProjects()
       ]);
     } catch (error) {
-      console.error('Error al cargar datos:', error);
+      // Ignorar errores por cancelación
+      if (!error.cancelado) {
+        console.error('Error al cargar datos:', error);
+      }
     } finally {
       setLoading(false);
     }
@@ -353,8 +333,11 @@ export function Dashboard() {
           fetchTasksAndProjects()
         ]);
       } catch (error) {
-        console.error('Error al cargar datos:', error);
-        toast.error('Error al cargar datos del dashboard');
+        // Ignorar errores por cancelación
+        if (!error.cancelado) {
+          console.error('Error al cargar datos:', error);
+          toast.error('Error al cargar datos del dashboard');
+        }
       } finally {
         setLoading(false);
       }

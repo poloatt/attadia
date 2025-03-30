@@ -33,6 +33,8 @@ import { Archivo } from './pages/Archivo';
 import { NavigationBarProvider } from './context/NavigationBarContext';
 import { useAuth } from './context/AuthContext';
 import AuthError from './components/auth/AuthError';
+import { RutinasProvider } from './components/rutinas/context/RutinasContext.jsx';
+import { RutinasHistoricalProvider } from './components/rutinas/context/rutinasHistoricalContext.jsx';
 
 function App() {
   const { user, loading } = useAuth();
@@ -65,7 +67,20 @@ function App() {
                   <Route path="/propiedades" element={<Propiedades />} />
                   <Route path="/transacciones" element={<Transacciones />} />
                   <Route path="/recurrente" element={<Recurrente />} />
-                  <Route path="/rutinas" element={<Rutinas />} />
+                  <Route path="/rutinas" element={
+                    <RutinasProvider>
+                      <RutinasHistoricalProvider>
+                        <Rutinas />
+                      </RutinasHistoricalProvider>
+                    </RutinasProvider>
+                  } />
+                  <Route path="/rutinas/:id" element={
+                    <RutinasProvider>
+                      <RutinasHistoricalProvider>
+                        <Rutinas />
+                      </RutinasHistoricalProvider>
+                    </RutinasProvider>
+                  } />
                   <Route path="/lab" element={<Lab />} />
                   <Route path="/proyectos" element={<Proyectos />} />
                   <Route path="/perfil" element={<Perfil />} />
