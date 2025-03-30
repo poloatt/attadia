@@ -6,13 +6,15 @@ services:
     container_name: mongodb-staging
     restart: always
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-MiContraseñaSegura123}
-      MONGO_INITDB_DATABASE: ${MONGO_DB:-present_staging}
-      ENVIRONMENT: staging
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: MiContraseñaSegura123
+      MONGO_INITDB_DATABASE: present_staging
+    ports:
+      - "27017:27017"
     volumes:
       - mongodb_staging_data:/data/db
       - ./mongodb_backup:/mongodb_backup
+      - ./config/mongodb/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
     networks:
       - app_network_staging
     healthcheck:
@@ -44,7 +46,7 @@ services:
     environment:
       - NODE_ENV=staging
       - ENVIRONMENT=staging
-      - MONGODB_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-MiContraseñaSegura123}@mongodb-staging:27017/${MONGO_DB:-present_staging}?authSource=admin
+      - MONGODB_URI=mongodb://admin:MiContraseñaSegura123@mongodb-staging:27017/present_staging?authSource=admin
     depends_on:
       mongodb:
         condition: service_healthy
