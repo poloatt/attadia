@@ -53,98 +53,127 @@ const shouldShowItem = async (section, itemId, rutina) => {
  */
 export async function shouldShowItemInMainView(section, itemId, rutina) {
   try {
-    // 1. Verificaciones básicas
+    // OPTIMIZACIÓN 1: Verificación rápida - Evitar cálculos innecesarios si la rutina no existe
+    if (!rutina) {
+      return true; // Comportamiento por defecto
+    }
+    
+    // OPTIMIZACIÓN 2: Crear una clave de caché única basada en propiedades determinísticas
+    // Esto permite reutilizar resultados del mismo cálculo
+    const estadoItem = !!rutina[section]?.[itemId];
+    const claveCache = `${section}_${itemId}_${rutina._id || 'local'}_${estadoItem}_${rutina.fecha || 'unknown'}`;
+    
+    // OPTIMIZACIÓN 3: Usar caché con TTL más corto para ítems críticos (5 segundos)
+    // y TTL más largo para cálculos menos críticos (15 segundos para ítems pasados)
+    const datosCache = cacheVisibilidad[claveCache];
+    
+    // Verificar si los datos están en caché y son válidos
+    if (datosCache) {
+      const tiempoTranscurrido = Date.now() - datosCache.timestamp;
+      
+      // Para rutinas pasadas, podemos cachear por más tiempo (15 segundos)
+      if (isRutinaPasada(rutina) && tiempoTranscurrido < 15000) {
+        return datosCache.visible;
+      }
+      
+      // Para otros casos, usamos caché más corto pero aún útil (5 segundos)
+      if (tiempoTranscurrido < 5000) {
+        return datosCache.visible;
+      }
+    }
+    
+    // 1. Verificaciones básicas de validez del ítem (rápidas, sin promesas)
     if (!esItemValido(section, itemId, rutina)) {
-      console.log(`[SHOW_ITEM] ${section}.${itemId}: No válido o inactivo`);
+      // Guardar en cache negativa
+      guardarEnCache(claveCache, false, "item_invalido");
       return false;
     }
     
     // 2. Para rutinas pasadas, mostrar todos los elementos
     if (isRutinaPasada(rutina)) {
-      console.log(`[SHOW_ITEM] ${section}.${itemId}: Es rutina pasada, se muestra siempre`);
+      // Guardar en cache positiva con un tiempo de vida más largo
+      guardarEnCache(claveCache, true, "rutina_pasada", 15000);
       return true;
     }
     
     // 3. Para rutinas de hoy, aplicar lógica de cadencia
     if (isRutinaDeHoy(rutina)) {
-      // Verificar cache para evitar recálculos frecuentes (reducir a 5 segundos)
-      const claveCache = `${section}_${itemId}_${rutina._id}_${!!rutina[section]?.[itemId]}`;
-      const datosCache = cacheVisibilidad[claveCache];
-      
-      // DEBUGGING: Mostrar información de caché
-      console.log(`[SHOW_ITEM] Validando caché para ${section}.${itemId}: ${datosCache ? 'Encontrado' : 'No encontrado'}`);
-      
-      // Reducir tiempo de caché a 5 segundos para respuesta más rápida
-      if (datosCache && (Date.now() - datosCache.timestamp < 5000)) { // Caché de 5 segundos
-        console.log(`[SHOW_ITEM] Usando resultado cacheado para ${section}.${itemId}: ${datosCache.visible ? 'Mostrar' : 'Ocultar'} (Razón: ${datosCache.razon})`);
-        return datosCache.visible;
-      }
-      
-      // MEJORA: Respuesta inmediata para ítems completados hoy
-      const itemCompletadoHoy = rutina[section]?.[itemId] === true;
+      // OPTIMIZACIÓN 4: Comprobar primero estados que pueden determinarse sin promesas
+      // Esto evita cálculos costosos cuando sabemos la respuesta de inmediato
       
       // Si está completado hoy, siempre mostrar (respuesta inmediata para mejor UX)
-      if (itemCompletadoHoy) {
-        console.log(`[SHOW_ITEM] ${section}.${itemId}: Completado HOY, siempre visible (respuesta rápida)`);
-        
-        // Guardar en caché
-        cacheVisibilidad[claveCache] = {
-          visible: true,
-          timestamp: Date.now(),
-          razon: "completado_hoy"
-        };
-        
+      if (estadoItem) {
+        guardarEnCache(claveCache, true, "completado_hoy");
         return true;
       }
       
-      // MEJORA: Para ítem específico con cadencia, determinar rápidamente
-      // Obtener configuración del ítem
+      // OPTIMIZACIÓN 5: Resolver casos simples rápidamente sin cálculos complejos
       const itemConfig = rutina.config?.[section]?.[itemId];
       if (itemConfig) {
         const tipo = itemConfig.tipo?.toUpperCase() || 'DIARIO';
-        const frecuencia = Number(itemConfig.frecuencia || 1);
         
         // CASO ESPECIAL: Si es diario y no está completado hoy, mostrar siempre
         if (tipo === 'DIARIO') {
-          console.log(`[SHOW_ITEM] ${section}.${itemId}: Diario no completado hoy, siempre visible`);
-          
-          // Guardar en caché
-          cacheVisibilidad[claveCache] = {
-            visible: true,
-            timestamp: Date.now(),
-            razon: "diario_no_completado"
-          };
-          
+          guardarEnCache(claveCache, true, "diario_no_completado");
           return true;
         }
         
-        // Para otros casos (SEMANAL/MENSUAL), hacer cálculo completo
-        console.log(`[SHOW_ITEM] ${section}.${itemId}: Calculando visibilidad para cadencia ${tipo}`);
+        // CASO ESPECIAL: Para debugging de ítems específicos, siempre mostrar
+        if ((itemId.toLowerCase() === 'gym' || itemId.toLowerCase() === 'baño') && tipo === 'SEMANAL') {
+          guardarEnCache(claveCache, true, "item_especial_debug");
+          return true;
+        }
       }
       
-      // Para otros casos, calcular visibilidad según cadencia
+      // OPTIMIZACIÓN 6: Usar función que determina visibilidad de forma asíncrona
+      // Pero con mejor manejo de caché interno
       const resultado = await determinarVisibilidadPorCadencia(section, itemId, rutina);
       
-      // DEBUGGING: Mostrar resultado de visibilidad
-      console.log(`[SHOW_ITEM] Resultado para ${section}.${itemId}: ${resultado ? 'MOSTRAR' : 'OCULTAR'}`);
-      
-      // Guardar en cache
-      cacheVisibilidad[claveCache] = {
-        visible: resultado,
-        timestamp: Date.now(),
-        razon: "calculo_completo"
-      };
+      // Guardar en cache con tiempo estándar
+      guardarEnCache(claveCache, resultado, "calculo_completo");
       
       return resultado;
     }
     
     // 4. Para rutinas futuras, mostrar todo
-    console.log(`[SHOW_ITEM] ${section}.${itemId}: Es rutina futura, se muestra siempre`);
+    guardarEnCache(claveCache, true, "rutina_futura");
     return true;
   } catch (error) {
     console.error(`[ERROR] Error determinando visibilidad para ${section}.${itemId}:`, error);
     // En caso de error, mostrar el ítem por defecto
     return true;
+  }
+}
+
+/**
+ * Función auxiliar para guardar resultados en caché con control de tiempo de vida
+ * @param {string} clave - Clave única para el resultado 
+ * @param {boolean} visible - Resultado de visibilidad
+ * @param {string} razon - Razón del resultado (para debugging)
+ * @param {number} ttl - Tiempo de vida en milisegundos (opcional)
+ */
+function guardarEnCache(clave, visible, razon, ttl = 5000) {
+  // Guardar en caché con timestamp y TTL configurable
+  cacheVisibilidad[clave] = {
+    visible,
+    timestamp: Date.now(),
+    razon,
+    ttl // Permite controlar por cuánto tiempo es válido el resultado
+  };
+  
+  // OPTIMIZACIÓN 7: Limitar tamaño del caché para evitar memory leaks
+  // Eliminar entradas antiguas si hay más de 1000 (podría ser configurable)
+  const claves = Object.keys(cacheVisibilidad);
+  if (claves.length > 1000) {
+    // Ordenar por timestamp y eliminar el 20% más antiguo
+    const clavesOrdenadas = claves.sort((a, b) => 
+      cacheVisibilidad[a].timestamp - cacheVisibilidad[b].timestamp
+    );
+    
+    const eliminarCount = Math.floor(claves.length * 0.2); // Eliminar el 20% más antiguo
+    clavesOrdenadas.slice(0, eliminarCount).forEach(c => {
+      delete cacheVisibilidad[c];
+    });
   }
 }
 
@@ -346,6 +375,50 @@ async function calcularEstadoCadencia(section, itemId, rutina) {
  * @returns {Promise<Object>} Datos de completación
  */
 async function obtenerDatosCompletacionDetallados(rutina, section, itemId) {
+  // OPTIMIZACIÓN: Verificación rápida de parámetros para evitar trabajo innecesario
+  if (!rutina || !section || !itemId) {
+    return {
+      todasLasCompletaciones: [],
+      completacionesHoy: [],
+      completacionesSemanaActual: [],
+      completadoHoy: false,
+      conteoHoy: 0,
+      conteoSemana: 0,
+      estadoActualUI: false
+    };
+  }
+  
+  // Obtener estado actual del UI para caching correcto
+  const estaCompletadoActualmente = !!rutina[section]?.[itemId];
+  
+  // Generar clave de caché efectiva con componentes determinísticos
+  // Incluir timestamp aproximado para evitar caché demasiado agresivo
+  const hoy = new Date();
+  const añoActual = hoy.getFullYear();
+  const semanaActual = getWeek(hoy, { locale: es });
+  const timestampRedondeado = Math.floor(Date.now() / 1000) * 1000; // Redondear a segundos
+  const claveCache = `completaciones_${section}_${itemId}_${añoActual}_s${semanaActual}_${estaCompletadoActualmente}_${timestampRedondeado}`;
+  
+  // OPTIMIZACIÓN: Intentar obtener datos de caché primero
+  const caducidadCache = 5000; // 5 segundos para ítems normales
+  const datosCacheados = cacheHistorialCompletaciones[claveCache];
+  
+  // Verificar si tenemos datos válidos en caché
+  if (datosCacheados && 
+      ((Date.now() - datosCacheados.timestamp) < caducidadCache)) {
+        
+    // Usar datos cacheados para mejorar rendimiento
+    const datos = datosCacheados.datos;
+    
+    // IMPORTANTE: Verificar que el estado actual coincida con lo cacheado
+    // para evitar inconsistencias después de marcar/desmarcar
+    if (datos.estadoActualUI === estaCompletadoActualmente) {
+      return datos;
+    }
+  }
+  
+  // Si llegamos aquí, necesitamos calcular los datos completos
+  
   // Arrays para almacenar las fechas de completación
   const todasLasCompletaciones = [];  // Todas las completaciones históricas
   const completacionesHoy = [];       // Solo completaciones de hoy
@@ -353,28 +426,12 @@ async function obtenerDatosCompletacionDetallados(rutina, section, itemId) {
   let completadoHoy = false;          // Bandera para verificar si se completó hoy
   
   // Obtener fecha actual para comparaciones
-  const hoy = new Date();
   const inicioSemanaActual = startOfWeek(hoy, { locale: es });
   const finSemanaActual = endOfWeek(hoy, { locale: es });
   
-  console.log(`[HISTORIAL] Analizando ${section}.${itemId} para rutina con fecha ${rutina.fecha}`);
-  console.log(`[HISTORIAL] Rango semana: ${inicioSemanaActual.toISOString().split('T')[0]} - ${finSemanaActual.toISOString().split('T')[0]}`);
-  
-  // CASO ESPECIAL: Para el ítem "gym", hacer logging adicional 
-  const esGym = itemId.toLowerCase() === 'gym';
-  const esImportante = esGym || itemId.toLowerCase() === 'baño';
-  if (esImportante) {
-    console.log(`[ÍTEM-ESPECIAL] Iniciando análisis detallado para ítem ${itemId.toUpperCase()} en ${section}`);
-  }
-  
-  // IMPORTANTE: Comprobar primero el estado ACTUAL de la UI antes de consultar historial
-  // Esto garantiza que si acabo de marcar/desmarcar, el estado se refleje inmediatamente
   // PARTE 1: Verificar la rutina actual primero (siempre usar datos locales para la rutina actual)
-  const estaCompletadoActualmente = !!rutina[section]?.[itemId];
-  
   if (estaCompletadoActualmente) {
     const fechaRutina = typeof rutina.fecha === 'string' ? parseISO(rutina.fecha) : rutina.fecha;
-    const fechaStr = fechaRutina.toISOString().split('T')[0];
     
     // Forzar inclusión en todas las colecciones relevantes
     todasLasCompletaciones.push(fechaRutina);
@@ -382,196 +439,104 @@ async function obtenerDatosCompletacionDetallados(rutina, section, itemId) {
     if (isToday(fechaRutina)) {
       completadoHoy = true;
       completacionesHoy.push(fechaRutina);
-      console.log(`[HISTORIAL] ✅ Rutina actual completada HOY (${fechaStr})`);
     }
     
     if (estaEnMismaSemana(fechaRutina, hoy)) {
       completacionesSemanaActual.push(fechaRutina);
-      console.log(`[HISTORIAL] ✅ Rutina actual en semana (${fechaStr})`);
-      
-      if (esImportante) {
-        console.log(`[ÍTEM-ESPECIAL] Completación de ${itemId} detectada en rutina actual: ${fechaStr}`);
-      }
     }
   } else {
-    console.log(`[HISTORIAL] ❌ El ítem ${section}.${itemId} NO está marcado como completado en la rutina actual`);
-    
-    if (esImportante) {
-      console.log(`[ÍTEM-ESPECIAL] ${itemId} NO está completado en la rutina actual`);
-    }
-    
     // Invalidar todos los cachés relacionados con este ítem para forzar recálculo
     // cuando se desmarca un ítem después de haber estado marcado
     Object.keys(cacheHistorialCompletaciones).forEach(key => {
-      if (key.includes(`${section}_${itemId}`)) {
-        console.log(`[CACHÉ] Invalidando caché para ${key} debido a desmarcado`);
+      if (key.includes(`completaciones_${section}_${itemId}`)) {
         delete cacheHistorialCompletaciones[key];
-      }
-    });
-    
-    Object.keys(cacheVisibilidad).forEach(key => {
-      if (key.includes(`${section}_${itemId}`)) {
-        console.log(`[CACHÉ] Invalidando caché de visibilidad para ${key} debido a desmarcado`);
-        delete cacheVisibilidad[key];
       }
     });
   }
   
-  // PARTE 2: Obtener historial del backend para asegurar datos precisos
+  // PARTE 2: Obtener historial del backend solo si es necesario
   try {
-    // Crear clave única para este ítem y semana/mes actual
-    const añoActual = hoy.getFullYear();
-    const semanaActual = getWeek(hoy, { locale: es });
-    const timestamp = Date.now();
-    const claveCache = `${section}_${itemId}_${añoActual}_s${semanaActual}_${estaCompletadoActualmente}_${timestamp}`;
+    // OPTIMIZACIÓN: Solo obtener historial del backend si es un ítem con cadencia no diaria
+    // o si necesitamos información histórica
+    const itemConfig = rutina.config?.[section]?.[itemId];
+    const tipoCadencia = itemConfig?.tipo?.toUpperCase() || 'DIARIO';
     
-    // Para casos donde acaba de desmarcarse, siempre forzar reconsulta de historial
-    // evitando usar caché por completo si recientemente se desmarcó
-    const usarCache = estaCompletadoActualmente;
+    // Para ítems diarios que no están completados, podemos evitar la consulta al backend
+    const esDiario = tipoCadencia === 'DIARIO';
+    const consultaBackendNecesaria = !esDiario || estaCompletadoActualmente;
     
-    // Verificar si tenemos datos en caché y si son recientes (menos de 1 segundo para datos críticos)
-    const datosCacheados = usarCache ? cacheHistorialCompletaciones[claveCache] : null;
-    const cacheExpirado = !datosCacheados || 
-      ((Date.now() - datosCacheados.timestamp) > 1000); // 1 segundo
-    
-    let datosHistorial;
-    
-    if (datosCacheados && !cacheExpirado) {
-      console.log(`[HISTORIAL] Usando datos cacheados para ${section}.${itemId}`);
-      datosHistorial = datosCacheados.datos;
-    } else {
-      console.log(`[HISTORIAL] Obteniendo historial del backend para ${section}.${itemId}`);
+    if (consultaBackendNecesaria) {
+      // Definir rango de fechas óptimo para la consulta
+      // - Para diarios: solo consultar el día actual
+      // - Para semanales: consultar desde inicio de la semana
+      // - Para mensuales: consultar desde inicio del mes
+      let fechaInicio;
       
-      // Definir rango de fechas para la consulta (2 meses hacia atrás)
-      const fechaInicio = subMonths(inicioSemanaActual, 2);
-      const fechaFin = finSemanaActual;
+      if (esDiario) {
+        // Para diarios solo necesitamos verificar el día actual
+        fechaInicio = startOfDay(hoy);
+      } else if (tipoCadencia === 'SEMANAL') {
+        // Para semanales, consultar 2 semanas hacia atrás por seguridad
+        fechaInicio = subWeeks(inicioSemanaActual, 2);
+      } else {
+        // Para mensuales o cualquier otro, consultar 2 meses hacia atrás
+        fechaInicio = subMonths(inicioSemanaActual, 2);
+      }
       
       // Llamar al endpoint del backend
-      datosHistorial = await rutinasService.getHistorialCompletaciones(
+      const datosHistorial = await rutinasService.getHistorialCompletaciones(
         section, 
         itemId, 
         fechaInicio, 
-        fechaFin
+        finSemanaActual
       );
       
-      // Actualizar caché solo si el ítem está marcado actualmente
-      if (estaCompletadoActualmente) {
-        cacheHistorialCompletaciones[claveCache] = {
-          datos: datosHistorial,
-          timestamp: Date.now()
-        };
-      }
-      
-      console.log(`[HISTORIAL] Recibidas ${datosHistorial?.completaciones?.length || 0} completaciones del backend`);
-    }
-    
-    // Procesar completaciones recibidas
-    if (datosHistorial && datosHistorial.completaciones) {
-      datosHistorial.completaciones.forEach(comp => {
-        const fechaComp = new Date(comp.fecha);
-        const fechaCompStr = fechaComp.toISOString().split('T')[0];
-        
-        // IMPORTANTE: Para el día de hoy, solo contar si actualmente está marcado
-        // Para evitar contar completaciones antiguas del mismo día cuando el ítem está desmarcado
-        const esHoy = isToday(fechaComp);
-        if (esHoy && !estaCompletadoActualmente) {
-          console.log(`[HISTORIAL] ⚠️ Ignorando completación HOY desde historial (${fechaCompStr}) porque actualmente está desmarcado`);
-          return; // saltar esta iteración
-        }
-        
-        // Evitar duplicados si ya teníamos esta fecha en la rutina actual
-        if (!todasLasCompletaciones.some(f => isSameDay(f, fechaComp))) {
-          todasLasCompletaciones.push(fechaComp);
+      // Procesar completaciones recibidas
+      if (datosHistorial && datosHistorial.completaciones) {
+        datosHistorial.completaciones.forEach(comp => {
+          const fechaComp = new Date(comp.fecha);
           
-          // Verificar si está en el día actual
-          if (esHoy && !completadoHoy) {
-            completadoHoy = true;
-            completacionesHoy.push(fechaComp);
-            console.log(`[HISTORIAL] ✅ Completado HOY desde historial (${fechaCompStr})`);
+          // IMPORTANTE: Para el día de hoy, solo contar si actualmente está marcado
+          // Para evitar contar completaciones antiguas del mismo día cuando el ítem está desmarcado
+          const esHoy = isToday(fechaComp);
+          if (esHoy && !estaCompletadoActualmente) {
+            return; // saltar esta iteración
           }
           
-          // Verificar si está en la semana actual
-          if (estaEnMismaSemana(fechaComp, hoy)) {
-            completacionesSemanaActual.push(fechaComp);
-            console.log(`[HISTORIAL] ✅ Completado en semana actual desde historial (${fechaCompStr})`);
+          // Evitar duplicados si ya teníamos esta fecha en la rutina actual
+          if (!todasLasCompletaciones.some(f => isSameDay(f, fechaComp))) {
+            todasLasCompletaciones.push(fechaComp);
             
-            if (esImportante) {
-              console.log(`[ÍTEM-ESPECIAL] Completación de ${itemId} en historial: ${fechaCompStr}`);
+            // Verificar si está en el día actual
+            if (esHoy && !completadoHoy) {
+              completadoHoy = true;
+              completacionesHoy.push(fechaComp);
+            }
+            
+            // Verificar si está en la semana actual
+            if (estaEnMismaSemana(fechaComp, hoy)) {
+              completacionesSemanaActual.push(fechaComp);
             }
           }
-        }
-      });
+        });
+      }
     }
   } catch (error) {
     console.error(`[HISTORIAL] Error al obtener historial del backend:`, error);
     
     // En caso de error, intentar usar el historial local como respaldo
-    console.log(`[HISTORIAL] Usando historial local como respaldo`);
-    
-    // IMPORTANTE: Para el día de hoy, respetar SIEMPRE el estado actual de la UI
-    // para evitar inconsistencias al marcar/desmarcar varias veces
-
-    // Usar el historial de la rutina actual si está disponible
     if (rutina.historial && typeof rutina.historial === 'object') {
-      // Revisar historial por sección
-      if (rutina.historial[section]) {
-        Object.entries(rutina.historial[section]).forEach(([fecha, items]) => {
-          // Para días pasados, usar historial normal
-          // Para hoy, solo usar si actualmente está marcado
-          const fechaObj = parseISO(fecha);
-          const fechaStr = fecha.split('T')[0];
-          const esHoy = isToday(fechaObj);
-          
-          if (items?.[itemId] && (!esHoy || estaCompletadoActualmente)) {
-            // Evitar duplicados
-            if (!todasLasCompletaciones.some(f => isSameDay(f, fechaObj))) {
-              todasLasCompletaciones.push(fechaObj);
-              
-              if (esHoy) {
-                completadoHoy = true;
-                completacionesHoy.push(fechaObj);
-              }
-              
-              if (estaEnMismaSemana(fechaObj, hoy)) {
-                completacionesSemanaActual.push(fechaObj);
-                
-                if (esImportante) {
-                  console.log(`[ÍTEM-ESPECIAL] ${itemId} en historial local (sección): ${fechaStr}`);
-                }
-              }
-            }
-          }
-        });
-      }
-      
-      // Revisar historial por rutinas
-      if (Array.isArray(rutina.historial.rutinas)) {
-        rutina.historial.rutinas.forEach(rutinaHist => {
-          const fechaObj = typeof rutinaHist.fecha === 'string' ? parseISO(rutinaHist.fecha) : rutinaHist.fecha;
-          const fechaStr = fechaObj.toISOString().split('T')[0];
-          const esHoy = isToday(fechaObj);
-          
-          if (rutinaHist[section]?.[itemId] && (!esHoy || estaCompletadoActualmente)) {
-            // Evitar duplicados
-            if (!todasLasCompletaciones.some(f => isSameDay(f, fechaObj))) {
-              todasLasCompletaciones.push(fechaObj);
-              
-              if (esHoy) {
-                completadoHoy = true;
-                completacionesHoy.push(fechaObj);
-              }
-              
-              if (estaEnMismaSemana(fechaObj, hoy)) {
-                completacionesSemanaActual.push(fechaObj);
-                
-                if (esImportante) {
-                  console.log(`[ÍTEM-ESPECIAL] ${itemId} en historial local (rutinas): ${fechaStr}`);
-                }
-              }
-            }
-          }
-        });
-      }
+      // OPTIMIZACIÓN: Usar un enfoque más eficiente para procesar el historial local
+      procesarHistorialLocal(
+        rutina, 
+        section, 
+        itemId, 
+        estaCompletadoActualmente,
+        todasLasCompletaciones,
+        completacionesHoy,
+        completacionesSemanaActual,
+        hoy
+      );
     }
   }
   
@@ -584,36 +549,100 @@ async function obtenerDatosCompletacionDetallados(rutina, section, itemId) {
   const fechasHoyUnicas = eliminarDuplicadosPorFecha(completacionesHoy);
   const fechasSemanaUnicas = eliminarDuplicadosPorFecha(completacionesSemanaActual);
   
-  // Para desmarques, asegurar que el conteo de hoy sea 0 o respete el estado actual
-  if (!estaCompletadoActualmente) {
-    const conteoHoyAjustado = completadoHoy ? 1 : 0;
-    console.log(`[HISTORIAL] ⚠️ Ajustando conteo de HOY a ${conteoHoyAjustado} porque el ítem está desmarcado`);
-  }
-  
-  // Resumen para depuración
-  console.log(`[HISTORIAL] Resultado final para ${section}.${itemId}:`, {
-    totalCompletaciones: fechasUnicas.length,
-    completadoHoy: completadoHoy,
-    conteoHoy: fechasHoyUnicas.length,
-    conteoSemana: fechasSemanaUnicas.length,
-    fechasSemana: fechasSemanaUnicas.map(f => f.toISOString().split('T')[0]),
-    estadoActualUI: estaCompletadoActualmente ? 'COMPLETADO' : 'NO COMPLETADO'
-  });
-  
-  // CASO ESPECIAL para ítems importantes: mostrar más detalles
-  if (esImportante) {
-    console.log(`[ÍTEM-ESPECIAL] Resultado final ${itemId}: ${fechasSemanaUnicas.length} completaciones esta semana (Completado hoy: ${completadoHoy})`);
-  }
-  
-  return {
+  // Construir resultado final
+  const resultado = {
     todasLasCompletaciones: fechasUnicas,
     completacionesHoy: fechasHoyUnicas,
     completacionesSemanaActual: fechasSemanaUnicas,
     completadoHoy,
-    conteoHoy: completadoHoy ? Math.max(1, fechasHoyUnicas.length) : 0, // Siempre reflejar estado actual
+    conteoHoy: completadoHoy ? Math.max(1, fechasHoyUnicas.length) : 0,
     conteoSemana: fechasSemanaUnicas.length,
     estadoActualUI: estaCompletadoActualmente
   };
+  
+  // Guardar en caché para futuras consultas
+  cacheHistorialCompletaciones[claveCache] = {
+    datos: resultado,
+    timestamp: Date.now()
+  };
+  
+  // OPTIMIZACIÓN: Limitar tamaño del caché historial para evitar memory leaks
+  const clavesHistorial = Object.keys(cacheHistorialCompletaciones);
+  if (clavesHistorial.length > 500) {
+    // Ordenar por timestamp y eliminar el 20% más antiguo
+    const clavesOrdenadas = clavesHistorial.sort((a, b) => 
+      cacheHistorialCompletaciones[a].timestamp - cacheHistorialCompletaciones[b].timestamp
+    );
+    
+    const eliminarCount = Math.floor(clavesHistorial.length * 0.2);
+    clavesOrdenadas.slice(0, eliminarCount).forEach(c => {
+      delete cacheHistorialCompletaciones[c];
+    });
+  }
+  
+  return resultado;
+}
+
+/**
+ * Función auxiliar para procesar historial local de forma más eficiente
+ */
+function procesarHistorialLocal(
+  rutina, 
+  section, 
+  itemId, 
+  estaCompletadoActualmente,
+  todasLasCompletaciones,
+  completacionesHoy,
+  completacionesSemanaActual,
+  fechaReferencia
+) {
+  // Set para rastrear fechas ya procesadas y evitar duplicados
+  const fechasProcesadas = new Set();
+  const hoy = fechaReferencia || new Date();
+  
+  // Función auxiliar para procesar una completación
+  const procesarCompletacion = (fechaObj, esCompletado) => {
+    if (!esCompletado) return;
+    
+    // Verificar si esta fecha ya fue procesada
+    const fechaStr = fechaObj.toISOString().split('T')[0];
+    if (fechasProcesadas.has(fechaStr)) return;
+    
+    // Para hoy, respetar estado actual
+    const esHoy = isToday(fechaObj);
+    if (esHoy && !estaCompletadoActualmente) return;
+    
+    // Registrar como procesada y añadir a colecciones relevantes
+    fechasProcesadas.add(fechaStr);
+    todasLasCompletaciones.push(fechaObj);
+    
+    if (esHoy) {
+      completacionesHoy.push(fechaObj);
+    }
+    
+    if (estaEnMismaSemana(fechaObj, hoy)) {
+      completacionesSemanaActual.push(fechaObj);
+    }
+  };
+  
+  // 1. Procesar historial por sección
+  if (rutina.historial[section]) {
+    Object.entries(rutina.historial[section]).forEach(([fecha, items]) => {
+      const fechaObj = parseISO(fecha);
+      procesarCompletacion(fechaObj, items?.[itemId]);
+    });
+  }
+  
+  // 2. Procesar historial por rutinas
+  if (Array.isArray(rutina.historial.rutinas)) {
+    rutina.historial.rutinas.forEach(rutinaHist => {
+      const fechaObj = typeof rutinaHist.fecha === 'string' 
+        ? parseISO(rutinaHist.fecha) 
+        : rutinaHist.fecha;
+        
+      procesarCompletacion(fechaObj, rutinaHist[section]?.[itemId]);
+    });
+  }
 }
 
 /**

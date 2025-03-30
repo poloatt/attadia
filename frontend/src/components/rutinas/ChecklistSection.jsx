@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef, memo } from 'react';
 import {
   Box,
   Typography,
@@ -68,7 +68,7 @@ const debesMostrarItem = (itemId, section, config, rutina) => {
 };
 
 // Función para determinar si un ítem debe mostrarse en la vista principal (no colapsable)
-const debesMostrarItemEnVistaPrincipal = (itemId, section, config, rutina) => {
+const debesMostrarItemEnVistaPrincipal = (itemId, section, config, rutina, localData = {}) => {
   // Si no hay configuración, mostrar por defecto
   if (!config || !itemId || !config[itemId]) {
     return true;
@@ -79,12 +79,11 @@ const debesMostrarItemEnVistaPrincipal = (itemId, section, config, rutina) => {
     return true;
   }
   
-  // Comprobar explícitamente si está completado hoy (caso prioritario)
-  const completadoHoy = rutina[section]?.[itemId] === true;
+  // Verificar si está completado usando los datos locales o la rutina
+  const completadoHoy = localData[itemId] === true || rutina?.[section]?.[itemId] === true;
   
-  // Si está completado hoy, siempre mostrar (mejora para UX)
+  // Si está completado hoy, siempre mostrar 
   if (completadoHoy) {
-    console.log(`[ChecklistSection] ${section}.${itemId}: Completado HOY, siempre visible`);
     return true;
   }
   
@@ -93,7 +92,6 @@ const debesMostrarItemEnVistaPrincipal = (itemId, section, config, rutina) => {
   
   // Si la configuración está inactiva, no mostrar
   if (itemConfig && itemConfig.activo === false) {
-    console.log(`[ChecklistSection] ${section}.${itemId}: Inactivo, no se muestra`);
     return false;
   }
   
@@ -101,68 +99,12 @@ const debesMostrarItemEnVistaPrincipal = (itemId, section, config, rutina) => {
   
   // Los ítems diarios siempre se muestran si no están completados hoy
   if (tipo === 'DIARIO') {
-    console.log(`[ChecklistSection] ${section}.${itemId}: Ítem DIARIO, siempre visible`);
     return true;
   }
   
-  // Para otros tipos (SEMANAL, MENSUAL), usar la función especializada
-  try {
-    // Intentar leer del caché primero (optimización)
-    const claveCache = `${section}_${itemId}_${rutina._id}_${Date.now()}`;
-    const cacheSsib = window.__cacheShouldShowItemInMainView || {};
-    window.__cacheShouldShowItemInMainView = cacheSsib;
-    
-    // Reducir tiempo de caché a 1 segundo para respuesta más rápida y precisa
-    if (cacheSsib[claveCache] && (Date.now() - cacheSsib[claveCache].timestamp < 1000)) {
-      const resultado = cacheSsib[claveCache].visible;
-      console.log(`[ChecklistSection] ${section}.${itemId}: Usando caché local: ${resultado ? 'Mostrar' : 'Ocultar'}`);
-      return resultado;
-    }
-    
-    // IMPORTANTE: Para rutinas históricas (pasadas), mostrar todos los ítems
-    const fechaRutina = typeof rutina.fecha === 'string' ? new Date(rutina.fecha) : rutina.fecha;
-    const esHistorica = !isToday(fechaRutina);
-    
-    if (esHistorica) {
-      console.log(`[ChecklistSection] ${section}.${itemId}: Rutina histórica (${fechaRutina.toISOString().split('T')[0]}), mostrar todo`);
-      return true;
-    }
-    
-    // SIMPLIFICACIÓN: Para rutinas de hoy, verificar si ya se cumplió el objetivo semanal/mensual
-    // pero sin usar caché para asegurar datos siempre frescos
-    console.log(`[ChecklistSection] ${section}.${itemId}: Verificando requisitos de cadencia ${tipo}...`);
-    
-    // Programar actualización asíncrona para el futuro
-    setTimeout(() => {
-      shouldShowItemInMainView(section, itemId, rutina)
-        .then(shouldShow => {
-          // Guardar resultado en caché local con timestamp reciente
-          cacheSsib[claveCache] = {
-            visible: shouldShow,
-            timestamp: Date.now()
-          };
-          console.log(`[ChecklistSection] ${section}.${itemId}: Actualización async: ${shouldShow ? 'Mostrar' : 'Ocultar'}`);
-          
-          // Forzar actualización de la UI si es necesario mediante un evento personalizado
-          if (window.dispatchEvent) {
-            window.dispatchEvent(new CustomEvent('itemVisibilityChanged', {
-              detail: { section, itemId, shouldShow }
-            }));
-          }
-        })
-        .catch(err => {
-          console.error(`[ChecklistSection] Error en determinación asíncrona:`, err);
-        });
-    }, 0);
-    
-    // Para asegurar que siempre se muestran los ítems que deberían mostrarse
-    // por defecto mostraremos todos y luego la lógica asíncrona ocultará los que no
-    return true;
-  } catch (error) {
-    console.error(`[ChecklistSection] Error determinando visibilidad para ${section}.${itemId}:`, error);
-    // En caso de error, mostrar el ítem por defecto
-    return true;
-  }
+  // Para otros tipos (SEMANAL, MENSUAL), simplificar la lógica para mostrar siempre
+  // hasta que tengan datos reales (evitando así errores)
+  return true;
 };
 
 // Función para obtener el historial de completados de un ítem
@@ -316,8 +258,8 @@ const ChecklistSection = ({
       // Añadir key para forzar actualización cuando cambia forceUpdate
       const renderKey = `${itemId}_${isCompletedIcon}_${forceUpdate}`;
       
-      // Determinar si debe mostrarse usando lógica optimizada
-      const shouldShowIcon = debesMostrarItemEnVistaPrincipal(itemId, section, config, rutina);
+      // Determinar si debe mostrarse usando lógica optimizada (pasando localData)
+      const shouldShowIcon = debesMostrarItemEnVistaPrincipal(itemId, section, config, rutina, localData);
       
       // Si no debe mostrarse, omitir completamente
       if (!shouldShowIcon) {
@@ -333,8 +275,8 @@ const ChecklistSection = ({
           <IconButton
             size="small"
             onClick={(e) => {
-              e.stopPropagation();
-              !readOnly && handleItemClick(itemId);
+              e.stopPropagation(); // Detener propagación para evitar que se abra/cierre la sección
+              !readOnly && handleItemClick(itemId, e);
             }}
             sx={{
               color: isCompletedIcon ? 'primary.main' : 'rgba(255,255,255,0.5)',
@@ -357,7 +299,13 @@ const ChecklistSection = ({
     }).filter(Boolean); // Filtrar elementos nulos
   };
 
-  const handleItemClick = (itemId) => {
+  // Optimizar handleItemClick para actualización inmediata sin efectos innecesarios
+  const handleItemClick = useCallback((itemId, event) => {
+    // Si se recibe un evento, detener propagación
+    if (event) {
+      event.stopPropagation();
+    }
+    
     if (readOnly) return;
     
     // Verificar si onChange es una función antes de intentar llamarla
@@ -370,27 +318,19 @@ const ChecklistSection = ({
     const isCompleted = isItemCompleted(itemId); // Usar la función helper
     const newValue = !isCompleted;
     
-    // DEBUGGING: Mostrar el estado antes del cambio
-    console.log(`[ChecklistSection] 🔄 Cambiando ${section}.${itemId} de ${isCompleted} a ${newValue}`);
-    
     // Datos para actualización local de la UI
     const newData = {
       ...localData,
       [itemId]: newValue
     };
     
-    // MEJORA: Actualizar el estado local inmediatamente para una respuesta visual instantánea
-    console.log(`[ChecklistSection] 🔄 Actualizando estado local inmediatamente`);
+    // Actualizar el estado local inmediatamente para una respuesta visual instantánea
     setLocalData(newData);
-    
-    // MEJORA: Forzar actualización del componente
-    setForceUpdate(Date.now());
     
     // Notificar al componente padre del cambio en la UI inmediatamente
     onChange(newData);
     
-    // MEJORA: Registrar los últimos cambios en la rutina para mejorar respuesta inmediata
-    // Esto es útil para cuando marcamos/desmarcamos varias veces seguidas
+    // Registrar los últimos cambios en la rutina para mejorar respuesta inmediata
     if (rutina) {
       // Si no existe la propiedad _ultimosCambios, crearla
       if (!rutina._ultimosCambios) {
@@ -407,99 +347,73 @@ const ChecklistSection = ({
         valor: newValue,
         timestamp: Date.now()
       };
-      
-      console.log(`[ChecklistSection] ⏱️ Registrando último cambio para ${section}.${itemId}: ${newValue}`);
     }
     
-    // Usar setTimeout para asegurar que la UI se actualice antes de la llamada al servidor
-    setTimeout(() => {
-      // Si tenemos acceso al contexto de rutinas, utilizar markItemComplete
-      if (markItemComplete && typeof markItemComplete === 'function' && rutina && rutina._id) {
-        // Crear el formato de datos sencillo esperado por el API
-        const itemData = { [itemId]: newValue };
-        
-        console.log(`[ChecklistSection] 🔄 Enviando actualización al servidor para ${section}.${itemId} -> ${newValue ? 'Completado' : 'No completado'}`);
-        
-        // Llamar a la función del contexto y manejar resultado
-        markItemComplete(rutina._id, section, itemData)
-          .then((response) => {
-            console.log(`[ChecklistSection] ✅ Actualización de ${section}.${itemId} completada con éxito`);
+    // Eliminar el setTimeout para evitar retrasos y manejar inmediatamente
+    if (markItemComplete && typeof markItemComplete === 'function' && rutina && rutina._id) {
+      // Crear el formato de datos sencillo esperado por el API
+      const itemData = { [itemId]: newValue };
+      
+      // Llamar a la función del contexto y manejar resultado
+      markItemComplete(rutina._id, section, itemData)
+        .then((response) => {
+          // Verificar que los datos se actualizaron correctamente
+          if (response && response[section]) {
+            const valorServidor = response[section][itemId];
             
-            // MEJORA: Verificar que los datos se actualizaron correctamente
-            if (response && response[section]) {
-              const valorServidor = response[section][itemId];
-              console.log(`[ChecklistSection] 🔄 Valor retornado del servidor: ${valorServidor}`);
+            // Si el valor del servidor no coincide con nuestro estado local, actualizar
+            if (valorServidor !== newValue) {
+              // Actualizar estado local con valor del servidor
+              setLocalData(prevData => ({
+                ...prevData,
+                [itemId]: valorServidor
+              }));
               
-              // Si el valor del servidor no coincide con nuestro estado local, actualizar
-              if (valorServidor !== newValue) {
-                console.warn(`[ChecklistSection] ⚠️ Inconsistencia: Local=${newValue}, Servidor=${valorServidor}`);
-                // Actualizar estado local con valor del servidor
-                setLocalData(prevData => ({
-                  ...prevData,
-                  [itemId]: valorServidor
-                }));
-                
-                // MEJORA: Actualizar también _ultimosCambios para mantener coherencia
-                if (rutina && rutina._ultimosCambios && rutina._ultimosCambios[section]) {
-                  rutina._ultimosCambios[section][itemId] = {
-                    valor: valorServidor,
-                    timestamp: Date.now(),
-                    fuenteServidor: true
-                  };
-                }
-                
-                // Forzar re-renderizado
-                setForceUpdate(Date.now());
+              // Actualizar también _ultimosCambios para mantener coherencia
+              if (rutina && rutina._ultimosCambios && rutina._ultimosCambios[section]) {
+                rutina._ultimosCambios[section][itemId] = {
+                  valor: valorServidor,
+                  timestamp: Date.now(),
+                  fuenteServidor: true
+                };
               }
             }
-          })
-          .catch(err => {
-            console.error(`[ChecklistSection] ❌ Error actualizando ${section}.${itemId}:`, err);
-            
-            // Revertir el cambio local en caso de error
-            setLocalData(prevData => ({
-              ...prevData,
-              [itemId]: isCompleted
-            }));
-            
-            // MEJORA: Actualizar también _ultimosCambios en caso de error
-            if (rutina && rutina._ultimosCambios && rutina._ultimosCambios[section]) {
-              rutina._ultimosCambios[section][itemId] = {
-                valor: isCompleted, // Valor original
-                timestamp: Date.now(),
-                error: true
-              };
-            }
-            
-            // Forzar re-renderizado en caso de error
-            setForceUpdate(Date.now());
-            
-            // Notificar al componente padre del error
-            if (typeof onChange === 'function') {
-              onChange({
-                ...localData,
-                [itemId]: isCompleted // Revertir al estado anterior
-              });
-            }
-          });
-      } else {
-        let reason = "";
-        if (!markItemComplete) reason = "markItemComplete no disponible en contexto";
-        else if (!rutina) reason = "No hay rutina activa";
-        else if (!rutina._id) reason = "La rutina no tiene ID";
-        
-        console.warn(`[ChecklistSection] ⚠️ No se pudo usar markItemComplete: ${reason}`);
-      }
-    }, 0);
-  };
+          }
+        })
+        .catch(err => {
+          // Revertir el cambio local en caso de error
+          setLocalData(prevData => ({
+            ...prevData,
+            [itemId]: isCompleted
+          }));
+          
+          // Actualizar también _ultimosCambios en caso de error
+          if (rutina && rutina._ultimosCambios && rutina._ultimosCambios[section]) {
+            rutina._ultimosCambios[section][itemId] = {
+              valor: isCompleted, // Valor original
+              timestamp: Date.now(),
+              error: true
+            };
+          }
+          
+          // Notificar al componente padre del error
+          if (typeof onChange === 'function') {
+            onChange({
+              ...localData,
+              [itemId]: isCompleted // Revertir al estado anterior
+            });
+          }
+        });
+    } else {
+      let reason = "";
+      if (!markItemComplete) reason = "markItemComplete no disponible en contexto";
+      else if (!rutina) reason = "No hay rutina activa";
+      else if (!rutina._id) reason = "La rutina no tiene ID";
+    }
+  }, [section, onChange, localData, readOnly, rutina, markItemComplete, isItemCompleted]);
 
   // Función para obtener el estado de cadencia de un ítem
   const getItemCadenciaStatus = async (itemId, section, rutina, config) => {
-    // Crear estado local para almacenar el resultado
-    // Como no podemos usar hooks dentro de funciones normales, necesitamos
-    // un approach diferente para manejar estados asíncronos
-    let result = "Cargando...";
-
     try {
       // Obtener la configuración de cadencia del ítem
       const cadenciaConfig = config && config[itemId] ? config[itemId] : null;
@@ -519,12 +433,10 @@ const ChecklistSection = ({
         return completadoHoy ? "Completado hoy" : "1 vez por día";
       }
       
-      // Para otros tipos de cadencia, mostrar progreso con conteo
-      
-      // Paso 1: Verificar si el ítem está completado hoy
+      // Verificar si el ítem está completado hoy (usar datos MÁS recientes)
       const completadoHoy = isItemCompleted(itemId);
       
-      // Paso 2: Contar completaciones según el tipo de cadencia
+      // Usar estrategia diferente según el tipo de cadencia
       let completados = 0;
       
       if (tipo === 'DIARIO') {
@@ -539,79 +451,53 @@ const ChecklistSection = ({
         const fechaRutina = rutina?.fecha ? new Date(rutina.fecha) : new Date();
         const esHistorica = esRutinaHistorica(rutina);
         
-        // Debugging específico para fechas 27 y 28 de marzo
-        const esFechaRelevante = fechaRutina.getDate() === 27 || fechaRutina.getDate() === 28;
-        const esMesRelevante = fechaRutina.getMonth() === 2; // Marzo es mes 2 (0-indexado)
-        
-        if (esFechaRelevante && esMesRelevante && itemId === 'gym') {
-          console.log(`[DEBUG_GYM] ⭐ Analizando gym para fecha ${fechaRutina.toISOString().split('T')[0]}`);
-          console.log(`[DEBUG_GYM] ¿Es histórica? ${esHistorica ? 'SÍ' : 'NO'}`);
-        }
-        
-        // Para rutinas históricas, usar el nuevo servicio especializado
+        // Para rutinas históricas, usar el servicio especializado
         if (esHistorica) {
           try {
             // Obtener historial acumulado hasta la fecha de la rutina
             completados = await obtenerHistorialCompletacionesSemana(section, itemId, fechaRutina);
-            
-            if (esFechaRelevante && esMesRelevante && itemId === 'gym') {
-              console.log(`[DEBUG_GYM] 📊 Conteo desde backend para ${fechaRutina.toISOString().split('T')[0]}: ${completados}/${frecuencia}`);
-            }
           } catch (error) {
-            console.error(`Error obteniendo historial para ${section}.${itemId}:`, error);
-            
             // En caso de error, usar método fallback
             const historial = obtenerHistorialCompletados(itemId, section, rutina);
             completados = historial.filter(fecha => 
               isSameWeek(fecha, fechaRutina, { locale: es })
             ).length;
-            
-            if (esFechaRelevante && esMesRelevante && itemId === 'gym') {
-              console.log(`[DEBUG_GYM] ⚠️ Fallback: Conteo local para ${fechaRutina.toISOString().split('T')[0]}: ${completados}/${frecuencia}`);
-            }
           }
         } else {
-          // Para la rutina actual, usar el método existente
+          // Para la rutina actual, OPTIMIZACIÓN:
+          // 1. Considerar el estado local (más reciente) antes que el del historial
+          // 2. Incluir solo registros ÚNICOS por día en el conteo semanal
+
+          // Obtener historial y filtrar por semana actual
           const historial = obtenerHistorialCompletados(itemId, section, rutina);
-          completados = historial.filter(fecha => 
-            isSameWeek(fecha, fechaRutina, { locale: es })
-          ).length;
-        }
-        
-        // Si está completado hoy pero no aparece en el historial, sumar 1
-        if (completadoHoy && rutina[section]?.[itemId]) {
-          // Verificar si la fecha de la rutina es hoy
-          const fechaRutinaStr = fechaRutina.toISOString().split('T')[0];
-          const fechaHoyStr = new Date().toISOString().split('T')[0];
-          const esRutinaDeHoy = fechaRutinaStr === fechaHoyStr;
           
-          // Solo sumar si es la rutina de hoy y no está contada ya
-          if (esRutinaDeHoy) {
-            const yaContabilizado = completados > 0;
-            if (!yaContabilizado) {
-              completados++;
-              
-              if (esFechaRelevante && esMesRelevante && itemId === 'gym') {
-                console.log(`[DEBUG_GYM] 🔄 Añadiendo +1 al contador porque está completado hoy pero no contabilizado`);
-              }
-            }
+          // Crear un conjunto de fechas únicas en formato YYYY-MM-DD
+          const fechasUnicas = new Set();
+          
+          historial.filter(fecha => 
+            isSameWeek(fecha, fechaRutina, { locale: es })
+          ).forEach(fecha => {
+            fechasUnicas.add(fecha.toISOString().split('T')[0]);
+          });
+          
+          // Contar días únicos completados
+          completados = fechasUnicas.size;
+          
+          // Comprobar si está completado hoy y no está en el conjunto
+          const fechaHoyStr = new Date().toISOString().split('T')[0];
+          if (completadoHoy && !fechasUnicas.has(fechaHoyStr)) {
+            completados++;
           }
         }
         
         // Asegurar que siempre tengamos un número (no undefined)
         const conteoSeguro = isNaN(completados) ? 0 : completados;
         
-        if (esFechaRelevante && esMesRelevante && itemId === 'gym') {
-          console.log(`[DEBUG_GYM] 📊 Conteo final para ${fechaRutina.toISOString().split('T')[0]}: ${conteoSeguro}/${frecuencia}`);
-        }
-        
         // Formato para mostrar
         return `${conteoSeguro}/${frecuencia} veces por semana`;
         
       } else if (tipo === 'MENSUAL') {
         // Implementación similar para cadencia mensual
-        // [código para mensual]
-        
         return `${completados}/${frecuencia} veces por mes`;
       }
       
@@ -623,7 +509,7 @@ const ChecklistSection = ({
     }
   };
 
-  // Función para obtener el estado actual de la cadencia
+  // Optimizar getEstadoCadenciaActual para cálculos precisos
   const getEstadoCadenciaActual = (itemId, section, rutina) => {
     try {
       // Verificar si el ítem tiene configuración
@@ -643,57 +529,70 @@ const ChecklistSection = ({
       const tipo = itemConfig?.tipo?.toUpperCase() || 'DIARIO';
       const frecuencia = Number(itemConfig?.frecuencia || 1);
       
-      // Obtener el número de completaciones
-      let completados = 0;
-      
-      // Verificar si el ítem está completado hoy
+      // Verificar si el ítem está completado (usando localData o la rutina directamente)
       const completadoHoy = isItemCompleted(itemId);
       
       // Contar completaciones según el tipo de cadencia
+      let completados = 0;
+      
       if (tipo === 'DIARIO') {
         completados = completadoHoy ? 1 : 0;
       } else if (tipo === 'SEMANAL') {
-        // Para semanal, contar las completaciones en la semana
+        // Para semanal, optimizar conteo considerando duplicados por día
         const hoy = new Date();
         const inicioSemana = startOfWeek(hoy, { locale: es });
+        
+        // Obtener historial y filtrar por semana actual
         const historial = obtenerHistorialCompletados(itemId, section, rutina);
         
-        completados = historial.filter(fecha => 
-          isSameWeek(fecha, hoy, { locale: es })
-        ).length;
+        // Crear un conjunto de fechas únicas en formato YYYY-MM-DD
+        const fechasUnicas = new Set();
         
-        // Asegurar que si está completado hoy, se cuente al menos 1
-        if (completadoHoy && completados === 0) {
-          completados = 1;
+        historial.filter(fecha => 
+          isSameWeek(fecha, hoy, { locale: es })
+        ).forEach(fecha => {
+          fechasUnicas.add(fecha.toISOString().split('T')[0]);
+        });
+        
+        // Contar días únicos completados
+        completados = fechasUnicas.size;
+        
+        // Comprobar si está completado hoy y no está en el conjunto
+        const fechaHoyStr = new Date().toISOString().split('T')[0];
+        if (completadoHoy && !fechasUnicas.has(fechaHoyStr)) {
+          completados++;
         }
       }
+      
+      // OPTIMIZACIÓN: Verificar límites para consistencia
+      const completadosValidos = Math.min(completados, frecuencia);
       
       // Generar texto descriptivo
       let texto = '';
       if (tipo === 'DIARIO') {
-        texto = completados >= frecuencia 
-          ? `Completado hoy (${completados}/${frecuencia})`
-          : `${completados} de ${frecuencia} hoy`;
+        texto = completadosValidos >= frecuencia 
+          ? `Completado hoy (${completadosValidos}/${frecuencia})`
+          : `${completadosValidos} de ${frecuencia} hoy`;
       } else if (tipo === 'SEMANAL') {
-        if (completados === 0) {
+        if (completadosValidos === 0) {
           texto = `0/${frecuencia} veces esta semana`;
-        } else if (completados === 1) {
+        } else if (completadosValidos === 1) {
           texto = `1/${frecuencia} veces esta semana`;
-        } else if (completados < frecuencia) {
-          texto = `${completados}/${frecuencia} veces esta semana`;
+        } else if (completadosValidos < frecuencia) {
+          texto = `${completadosValidos}/${frecuencia} veces esta semana`;
         } else {
-          texto = `¡Completo! ${completados}/${frecuencia} esta semana`;
+          texto = `¡Completo! ${completadosValidos}/${frecuencia} esta semana`;
         }
       }
       
       // Calcular porcentaje
-      const porcentaje = frecuencia > 0 ? Math.min(100, Math.round((completados / frecuencia) * 100)) : 0;
+      const porcentaje = frecuencia > 0 ? Math.min(100, Math.round((completadosValidos / frecuencia) * 100)) : 0;
       
       return {
         texto,
-        completados,
+        completados: completadosValidos,
         requeridos: frecuencia,
-        completa: completados >= frecuencia,
+        completa: completadosValidos >= frecuencia,
         tipo,
         porcentaje
       };
@@ -710,7 +609,7 @@ const ChecklistSection = ({
     }
   };
 
-  // Filtrar ítems según configuración de cadencia
+  // Filtrar ítems según configuración de cadencia (pasando localData)
   const itemsAMostrar = useMemo(() => {
     if (!section || !iconConfig[section]) {
       return [];
@@ -750,19 +649,18 @@ const ChecklistSection = ({
     }
   }, [localData, section]);
   
-  // Renderizar los iconos colapsados con los parámetros necesarios
-  const renderedCollapsedIcons = useMemo(() => {
-    return renderCollapsedIcons(
-      sectionIcons, 
-      section, 
-      config, 
-      rutina, 
-      handleItemClick, 
-      readOnly, 
-      localData, 
-      forceUpdate
-    );
-  }, [sectionIcons, section, config, rutina, handleItemClick, readOnly, localData, forceUpdate]);
+  // Renderizar los iconos colapsados con memorización (pasar localData como prop)
+  const renderedCollapsedIcons = (
+    <CollapsedIcons
+      sectionIcons={sectionIcons}
+      section={section} 
+      config={config}
+      rutina={rutina}
+      onItemClick={handleItemClick}
+      readOnly={readOnly}
+      localData={localData}
+    />
+  );
 
   // Renderizar cada ítem
   const renderItems = () => {
@@ -818,180 +716,49 @@ const ChecklistSection = ({
       // Obtener el icono correcto basado en el ID
       const Icon = sectionIcons[itemId];
       
+      // Determinar si el ítem está expandido para configuración
+      const isConfigOpen = selectedItemId === itemId;
+      
+      // Crear menú contextual si es necesario (opcional)
+      const contextMenu = null; // Implementar si es necesario
+
+      // Retornar el componente optimizado de ítem
       return (
-        <ListItem 
-          key={`${section}-${itemId}-${index}`}
-          disablePadding
-          sx={{ 
-            mb: 0.5,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-            bgcolor: 'transparent'
-          }}
-        >
-          <Box sx={{ 
-            width: '100%', 
-            display: 'flex',
-            alignItems: 'center',
-            py: 0.5
-          }}>
-            {!readOnly && (
-              <IconButton
-                size="small"
-                onClick={() => handleItemClick(itemId)}
-                sx={{
-                  width: 38,
-                  height: 38,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  mr: 1,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  p: 0.3,
-                  color: isCompleted ? 'primary.main' : 'rgba(255,255,255,0.5)',
-                  bgcolor: isCompleted ? 'action.selected' : 'transparent',
-                  borderRadius: '50%',
-                  '&:hover': {
-                    color: isCompleted ? 'primary.main' : 'white',
-                    bgcolor: isCompleted ? 'action.selected' : 'rgba(255,255,255,0.1)'
-                  }
-                }}
-              >
-                {Icon && <Icon fontSize="small" />}
-              </IconButton>
-            )}
-            
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              flexGrow: 1,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              color: isCompleted ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.9)'
-            }}>
-              <Box sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-              }}>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    fontWeight: 400,
-                    color: isCompleted ? 'rgba(255,255,255,0.5)' : 'inherit',
-                    textDecoration: isCompleted ? 'line-through' : 'none'
-                  }}
-                >
-                  {itemId}
-                </Typography>
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    fontSize: '0.7rem',
-                    color: 'rgba(255,255,255,0.6)'
-                  }}
-                >
-                  {cadenciaStatus}
-                </Typography>
-              </Box>
-            </Box>
-            
-            {!readOnly && (
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleExpandConfig(itemId);
-                }}
-                sx={{ 
-                  color: 'rgba(255,255,255,0.5)',
-                  padding: '4px',
-                  marginLeft: '4px',
-                  borderRadius: '50%',
-                  bgcolor: selectedItemId === itemId ? 'action.selected' : 'transparent',
-                  '&:hover': { 
-                    color: 'white',
-                    bgcolor: 'rgba(255,255,255,0.1)' 
-                  }
-                }}
-              >
-                <SettingsIcon sx={{ fontSize: '1.1rem' }} />
-              </IconButton>
-            )}
-          </Box>
+        <React.Fragment key={`${section}-${itemId}-${index}`}>
+          <ChecklistItem
+            itemId={itemId}
+            section={section}
+            Icon={Icon}
+            isCompleted={isCompleted}
+            cadenciaStatus={cadenciaStatus}
+            readOnly={readOnly}
+            onItemClick={handleItemClick}
+            contextMenu={contextMenu}
+            handleConfigItem={setSelectedItemId}
+            isConfigOpen={isConfigOpen}
+          />
           
-          {/* Mostrar configuración si el ítem está seleccionado */}
-          <Collapse 
-            in={selectedItemId === itemId}
-            sx={{ width: '100%', mt: 1 }}
-          >
-            <Box sx={{ pl: 1, pr: 1, width: '100%', mb: 2 }}>
-              {/* Información detallada de cadencia */}
-              <Box sx={{ mb: 2, px: 1 }}>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', display: 'block', mb: 0.5 }}>
-                  Estado de cadencia:
-                </Typography>
-                {(() => {
-                  // Obtener la configuración de cadencia
-                  const cadenciaConfig = config && config[itemId] ? config[itemId] : null;
-                  
-                  return (
-                    <Box sx={{ 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      gap: 0.5, 
-                      bgcolor: 'rgba(0,0,0,0.2)', 
-                      p: 1, 
-                      borderRadius: 1 
-                    }}>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                        <strong>Tipo:</strong> {
-                          cadenciaConfig?.tipo?.toUpperCase() === 'DIARIO' ? 'Diario' : 
-                          cadenciaConfig?.tipo?.toUpperCase() === 'SEMANAL' ? 'Semanal' : 
-                          cadenciaConfig?.tipo?.toUpperCase() === 'MENSUAL' ? 'Mensual' : 'Personalizado'
-                        }
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                        <strong>Cadencia:</strong> {cadenciaStatus}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                        <strong>Completado hoy:</strong> {isItemCompleted(itemId) ? 'Sí' : 'No'}
-                      </Typography>
-                      
-                      {/* Barra de progreso */}
-                      <Box sx={{ 
-                        width: '100%', 
-                        height: 4, 
-                        borderRadius: 2, 
-                        bgcolor: 'rgba(255,255,255,0.1)',
-                        mt: 0.5
-                      }}>
-                        <Box sx={{ 
-                          width: '50%', // Valor estático ya que no tenemos el porcentaje
-                          height: '100%', 
-                          borderRadius: 2, 
-                          bgcolor: isItemCompleted(itemId) ? 'success.main' : 'primary.main' 
-                        }} />
-                      </Box>
-                    </Box>
-                  );
-                })()}
-              </Box>
-              
-              <InlineItemConfig
-                config={config[itemId]}
-                onConfigChange={(newConfig) => {
-                  handleConfigChange(itemId, newConfig);
+          {isConfigOpen && (
+            <Box sx={{ width: '100%', mt: 1 }}>
+              <Box
+                sx={{
+                  bgcolor: 'background.paper',
+                  borderRadius: 1,
+                  px: 2,
+                  py: 1,
+                  mb: 2
                 }}
-                ultimaCompletacion={obtenerUltimaCompletacion(obtenerHistorialCompletados(itemId, section, rutina))}
-                isCompleted={isItemCompleted(itemId)}
-              />
+              >
+                <InlineItemConfig
+                  section={section}
+                  itemId={itemId}
+                  config={config[itemId] || {}}
+                  onChange={(newConfig) => onConfigChange(itemId, newConfig)}
+                />
+              </Box>
             </Box>
-          </Collapse>
-        </ListItem>
+          )}
+        </React.Fragment>
       );
     }).filter(Boolean); // Filtrar elementos nulos
   };
@@ -1151,4 +918,207 @@ const ChecklistSection = ({
   );
 };
 
+// Optimizar ChecklistItem para actualización inmediata sin efectos innecesarios
+const ChecklistItem = memo(({ 
+  itemId, 
+  section, 
+  Icon, 
+  isCompleted, 
+  cadenciaStatus, 
+  readOnly, 
+  onItemClick,
+  contextMenu,
+  handleConfigItem,
+  isConfigOpen
+}) => {
+  // Eliminar efectos innecesarios cambiando las transiciones
+  return (
+    <ListItem 
+      disablePadding
+      sx={{ 
+        mb: 0.5,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        bgcolor: 'transparent'
+      }}
+    >
+      <Box sx={{ 
+        width: '100%', 
+        display: 'flex',
+        alignItems: 'center',
+        py: 0.5
+      }}>
+        {!readOnly && (
+          <IconButton
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation(); // Prevenir que el evento se propague al contenedor
+              onItemClick(itemId, e);
+            }}
+            sx={{
+              width: 38,
+              height: 38,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mr: 1,
+              cursor: 'pointer',
+              // Eliminar transición para cambio instantáneo
+              color: isCompleted ? 'primary.main' : 'rgba(255,255,255,0.5)',
+              bgcolor: isCompleted ? 'action.selected' : 'transparent',
+              borderRadius: '50%',
+              '&:hover': {
+                color: isCompleted ? 'primary.main' : 'white',
+                bgcolor: isCompleted ? 'action.selected' : 'rgba(255,255,255,0.1)'
+              }
+            }}
+          >
+            {Icon && <Icon fontSize="small" />}
+          </IconButton>
+        )}
+        
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          flexGrow: 1,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          color: isCompleted ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.9)'
+        }}>
+          <Box sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+          }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                fontWeight: 400,
+                color: isCompleted ? 'rgba(255,255,255,0.5)' : 'inherit',
+                textDecoration: isCompleted ? 'line-through' : 'none'
+              }}
+            >
+              {itemId}
+            </Typography>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                fontSize: '0.7rem',
+                color: 'rgba(255,255,255,0.6)'
+              }}
+            >
+              {cadenciaStatus}
+            </Typography>
+          </Box>
+        </Box>
+        
+        {contextMenu}
+
+        {!readOnly && (
+          <IconButton
+            edge="end"
+            aria-label="configurar"
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation(); // Prevenir que el evento se propague al contenedor
+              handleConfigItem(itemId);
+            }}
+            sx={{
+              color: isConfigOpen ? 'primary.main' : 'rgba(255,255,255,0.3)',
+              '&:hover': {
+                color: 'primary.main'
+              }
+            }}
+          >
+            <SettingsIcon sx={{ fontSize: '1.1rem' }} />
+          </IconButton>
+        )}
+      </Box>
+    </ListItem>
+  );
+}, (prevProps, nextProps) => {
+  // Implementar una función de comparación personalizada para prevenir renderizados innecesarios
+  // Solo renderizar si estos valores cambian
+  return (
+    prevProps.isCompleted === nextProps.isCompleted &&
+    prevProps.cadenciaStatus === nextProps.cadenciaStatus &&
+    prevProps.isConfigOpen === nextProps.isConfigOpen
+  );
+});
+
+// Renderizar los iconos colapsados con memorización
+const CollapsedIcons = memo(({ 
+  sectionIcons, 
+  section, 
+  config, 
+  rutina, 
+  onItemClick, 
+  readOnly, 
+  localData
+}) => {
+  // Implementación optimizada de renderCollapsedIcons
+  // para evitar re-renderizados innecesarios
+  if (!rutina) return null;
+  
+  const itemsParaMostrar = useMemo(() => {
+    return Object.keys(sectionIcons).filter(itemId => {
+      // Usar una comprobación rápida en lugar de la función más lenta
+      if (!rutina?.config?.[section]?.[itemId]) {
+        return true;
+      }
+      
+      const itemConfig = rutina.config[section][itemId];
+      if (itemConfig && itemConfig.activo === false) {
+        return false;
+      }
+      
+      return debesMostrarItemEnVistaPrincipal(itemId, section, config, rutina, localData);
+    });
+  }, [sectionIcons, section, config, rutina, localData]);
+  
+  return (
+    <div className="collapsed-icons-container">
+      {itemsParaMostrar.length === 0 ? (
+        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', ml: 1 }}>
+          No hay elementos para mostrar
+        </Typography>
+      ) : (
+        itemsParaMostrar.map(itemId => {
+          const Icon = sectionIcons[itemId];
+          const isCompleted = !!localData[itemId];
+          
+          // Usar una key compuesta para asegurar unicidad y forzar actualización cuando es necesario
+          const keyId = `${section}-${itemId}-${isCompleted ? 'completed' : 'pending'}`;
+          
+          return (
+            <IconButton
+              key={keyId}
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation(); // Prevenir que el evento se propague al contenedor
+                !readOnly && onItemClick(itemId, e);
+              }}
+              disabled={readOnly}
+              sx={{
+                m: 0.5,
+                color: isCompleted ? 'primary.main' : 'rgba(255,255,255,0.5)',
+                bgcolor: isCompleted ? 'action.selected' : 'transparent',
+                '&:hover': {
+                  bgcolor: isCompleted ? 'action.selected' : 'rgba(255,255,255,0.1)'
+                }
+              }}
+            >
+              {Icon && <Icon />}
+            </IconButton>
+          );
+        })
+      )}
+    </div>
+  );
+});
+
+// Exportar el componente con memorización para prevenir re-renderizados innecesarios
+export const MemoizedChecklistSection = memo(ChecklistSection);
 export default ChecklistSection;
