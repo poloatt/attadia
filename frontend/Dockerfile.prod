@@ -1,29 +1,24 @@
 # Etapa de dependencias
 FROM node:20-alpine AS deps
-RUN --mount=type=cache,target=/root/.npm \
-    npm install -g pnpm
 
 WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
+COPY package.json ./
 
-# Usar cache mount para pnpm store
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --prod
+# Instalar dependencias usando npm
+RUN npm install --production
 
 # Etapa de build
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY package.json pnpm-lock.yaml ./
+COPY package.json ./
 COPY vite.config.js ./
 COPY index.html ./
 COPY public ./public
 COPY src ./src
 
-# Construir con cache para TypeScript/SWC
-RUN --mount=type=cache,target=/app/node_modules/.vite \
-    --mount=type=cache,target=/app/node_modules/.swc \
-    NODE_ENV=production pnpm run build
+# Construir con npm
+RUN NODE_ENV=production npm run build
 
 # Etapa de producción - usar nginx:alpine-slim para imagen más pequeña
 FROM nginx:alpine-slim AS runner
@@ -65,6 +60,11 @@ http {\n\
         location /assets/ {\n\
             expires 1y;\n\
             add_header Cache-Control "public, no-transform";\n\
+        }\n\
+        location /health {\n\
+            access_log off;\n\
+            add_header Content-Type text/plain;\n\
+            return 200 "OK";\n\
         }\n\
     }\n\
 }' > /etc/nginx/nginx.conf
