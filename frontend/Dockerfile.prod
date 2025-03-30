@@ -4,8 +4,8 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package.json ./
 
-# Instalar dependencias usando npm
-RUN npm install --production
+# Instalar todas las dependencias, incluyendo las de desarrollo
+RUN npm install
 
 # Etapa de build
 FROM node:20-alpine AS builder
