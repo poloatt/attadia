@@ -8,7 +8,8 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: MiContraseñaSegura123
-      MONGO_INITDB_DATABASE: present_staging
+      MONGO_INITDB_DATABASE: present
+      ENVIRONMENT: staging
     ports:
       - "27017:27017"
     volumes:
@@ -46,7 +47,7 @@ services:
     environment:
       - NODE_ENV=staging
       - ENVIRONMENT=staging
-      - MONGODB_URI=mongodb://admin:MiContraseñaSegura123@mongodb-staging:27017/present_staging?authSource=admin
+      - MONGODB_URI=mongodb://admin:MiContraseñaSegura123@mongodb-staging:27017/present?authSource=admin
     depends_on:
       mongodb:
         condition: service_healthy
