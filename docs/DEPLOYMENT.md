@@ -324,4 +324,64 @@ Cuando estés listo para migrar de staging a producción:
    git checkout main
    git pull
    ./scripts/auto-deploy.sh production
-   ``` 
+   ```
+
+## Gestión de Certificados SSL
+
+Los certificados SSL son esenciales para proporcionar una conexión segura a la aplicación. A continuación se detallan los pasos para gestionar estos certificados:
+
+### Generación de certificados autofirmados
+
+Para entornos de desarrollo o pruebas, puedes usar certificados autofirmados:
+
+```bash
+# Para staging
+sudo mkdir -p /etc/nginx/ssl
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /etc/nginx/ssl/staging-key.pem \
+    -out /etc/nginx/ssl/staging-cert.pem \
+    -subj "/CN=staging.present.attadia.com" \
+    -addext "subjectAltName = DNS:staging.present.attadia.com,DNS:api.staging.present.attadia.com"
+
+# Para producción
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /etc/nginx/ssl/production-key.pem \
+    -out /etc/nginx/ssl/production-cert.pem \
+    -subj "/CN=present.attadia.com" \
+    -addext "subjectAltName = DNS:present.attadia.com,DNS:api.present.attadia.com"
+```
+
+Configura los permisos adecuados:
+```bash
+sudo chown root:root /etc/nginx/ssl/*.pem
+sudo chmod 600 /etc/nginx/ssl/*-key.pem
+sudo chmod 644 /etc/nginx/ssl/*-cert.pem
+```
+
+### Uso de Let's Encrypt (recomendado para producción)
+
+Para producción, recomendamos usar certificados de Let's Encrypt:
+
+1. Instala Certbot:
+```bash
+sudo apt update
+sudo apt install certbot python3-certbot-nginx
+```
+
+2. Genera los certificados:
+```bash
+# Para staging
+sudo certbot --nginx -d staging.present.attadia.com -d api.staging.present.attadia.com
+
+# Para producción
+sudo certbot --nginx -d present.attadia.com -d api.present.attadia.com
+```
+
+3. Configura la renovación automática:
+```bash
+sudo systemctl status certbot.timer  # Verifica que el timer esté activo
+```
+
+### Solución de problemas con certificados
+
+Si encuentras problemas con los certificados SSL, consulta la guía de solución de problemas en [TROUBLESHOOTING.md](./TROUBLESHOOTING.md). 
