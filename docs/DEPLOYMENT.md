@@ -202,6 +202,86 @@ sudo journalctl -u present-webhook.service -f
    # Nota: usar localhost:puerto en lugar de nombres de contenedores
    ```
 
+### Configuración de Nginx en el Host para Acceso Externo
+
+Para que se pueda acceder a la aplicación desde el exterior usando dominios como `staging.present.attadia.com`, es necesario configurar correctamente el servidor Nginx en el sistema host:
+
+1. Copiar la configuración de ejemplo para el sistema host:
+   ```bash
+   sudo cp nginx/staging-nginx.conf /etc/nginx/sites-available/staging.conf
+   ```
+
+2. Crear un enlace simbólico para activar la configuración:
+   ```bash
+   sudo ln -sf /etc/nginx/sites-available/staging.conf /etc/nginx/sites-enabled/
+   ```
+
+3. Asegurarse de que existan los certificados SSL:
+   ```bash
+   sudo mkdir -p /etc/nginx/ssl
+   sudo cp ssl/nginx/ssl/fullchain.pem /etc/nginx/ssl/
+   sudo cp ssl/nginx/ssl/privkey.pem /etc/nginx/ssl/
+   ```
+
+4. Verificar la configuración:
+   ```bash
+   sudo nginx -t
+   ```
+
+5. Reiniciar Nginx:
+   ```bash
+   sudo systemctl restart nginx
+   ```
+
+6. Verificar el estado del servicio:
+   ```bash
+   sudo systemctl status nginx
+   ```
+
+**Importante**: La configuración de Nginx en el host debe utilizar `localhost:puerto` (por ejemplo, `localhost:8080` y `localhost:5000`) en lugar de los nombres de contenedores Docker, ya que el sistema host no puede resolver estos nombres de red internos de Docker.
+
+### Configuración específica para producción
+
+Al igual que con el entorno de staging, el entorno de producción requiere una configuración específica:
+
+1. Asegurarse de que el archivo `frontend/nginx.conf.prod` tenga la estructura correcta:
+   ```bash
+   cat frontend/nginx.conf.prod
+   ```
+   El archivo debe comenzar con estas secciones:
+   ```
+   worker_processes auto;
+   events { worker_connections 1024; }
+   http { ... }
+   ```
+
+2. Configurar el archivo Nginx del host para producción:
+   ```bash
+   sudo cp nginx/production-nginx.conf /etc/nginx/sites-available/production.conf
+   sudo ln -sf /etc/nginx/sites-available/production.conf /etc/nginx/sites-enabled/
+   ```
+
+3. Verificar la configuración:
+   ```bash
+   sudo nginx -t
+   ```
+
+4. Reiniciar Nginx:
+   ```bash
+   sudo systemctl restart nginx
+   ```
+
+5. En el archivo `docker-compose.prod.yml`, es importante exponer los puertos correctos:
+   - Backend: puerto 5000
+   - Frontend: puertos 80 y 443
+   - Webhook: puerto 9000
+
+6. El archivo `nginx/conf.d/production.conf` debe usar `localhost:puerto` en lugar de nombres de contenedores para las referencias desde el host:
+   ```
+   proxy_pass http://localhost:5000/api/;  # En lugar de backend-prod:5000
+   proxy_pass http://localhost:9000;       # En lugar de webhook-prod:9000
+   ```
+
 ## Migración de Staging a Producción
 
 Cuando estés listo para migrar de staging a producción:
