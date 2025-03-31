@@ -6,13 +6,16 @@ services:
     container_name: mongodb-staging
     restart: always
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-MiContraseñaSegura123}
-      MONGO_INITDB_DATABASE: ${MONGO_DB:-present_staging}
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: MiContraseñaSegura123
+      MONGO_INITDB_DATABASE: present
       ENVIRONMENT: staging
+    ports:
+      - "27017:27017"
     volumes:
       - mongodb_staging_data:/data/db
       - ./mongodb_backup:/mongodb_backup
+      - ./config/mongodb/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
     networks:
       - app_network_staging
     healthcheck:
@@ -31,7 +34,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile.staging
+      dockerfile: Dockerfile.prod
       args:
         - BUILD_ENV=staging
     image: present/backend:staging
@@ -44,7 +47,7 @@ services:
     environment:
       - NODE_ENV=staging
       - ENVIRONMENT=staging
-      - MONGODB_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-MiContraseñaSegura123}@mongodb-staging:27017/${MONGO_DB:-present_staging}?authSource=admin
+      - MONGODB_URI=mongodb://admin:MiContraseñaSegura123@mongodb-staging:27017/present?authSource=admin
     depends_on:
       mongodb:
         condition: service_healthy
@@ -66,7 +69,7 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.staging
+      dockerfile: Dockerfile.prod
       args:
         - BUILD_ENV=staging
     image: present/frontend:staging
@@ -101,27 +104,24 @@ services:
         tag: "frontend-staging"
 
   webhook:
+    container_name: webhook-staging
     build:
       context: ./webhook
-      dockerfile: Dockerfile.staging
-      args:
-        - BUILD_ENV=staging
+      dockerfile: Dockerfile
     image: present/webhook:staging
-    container_name: webhook-staging
     restart: always
-    expose:
-      - "9000"
-    environment:
-      - NODE_ENV=staging
-      - ENVIRONMENT=staging
-      - PORT=9000
-      - WEBHOOK_SECRET=StagingSecret_ATTADIA99
-      - LOG_FILE=/var/log/webhook-server/webhook-staging.log
     volumes:
-      - /var/log/webhook-server:/var/log/webhook-server
-      - .:/home/poloatt/present
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/app/repo
+    ports:
+      - "9001:9000"
     networks:
       - app_network_staging
+    environment:
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+      - REPO_PATH=/app/repo
+      - BRANCH=staging
+      - COMPOSE_FILE=docker-compose.staging.yml
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
       interval: 30s

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
 // Función de utilidad para ocultar texto
 export const maskText = (text) => {
@@ -8,30 +8,49 @@ export const maskText = (text) => {
   return remainingLength > 0 ? `${visibleChars}${'*'.repeat(remainingLength)}` : text;
 };
 
+// Función para enmascarar valores numéricos
+export const maskNumber = (number, symbol = '') => {
+  if (number === undefined || number === null) return '0';
+  return symbol ? `${symbol} ****` : '****';
+};
+
 const ValuesVisibilityContext = createContext();
 
-export function ValuesVisibilityProvider({ children }) {
-  const [showValues, setShowValues] = useState(true);
+export const ValuesVisibilityProvider = ({ children }) => {
+  const [maskValues, setMaskValues] = useState(true);
 
-  const toggleValuesVisibility = () => {
-    setShowValues(prev => !prev);
-  };
+  const toggleMaskValues = useCallback(() => {
+    setMaskValues(prev => !prev);
+  }, []);
+
+  const maskText = useCallback((text) => {
+    if (!text || !maskValues) return text;
+    return typeof text === 'string' ? '••••••' : text;
+  }, [maskValues]);
+
+  const maskNumber = useCallback((number) => {
+    if (number === undefined || number === null || !maskValues) return number;
+    return typeof number === 'number' ? 0 : number;
+  }, [maskValues]);
+
+  const value = useMemo(() => ({
+    maskValues,
+    toggleMaskValues,
+    maskText,
+    maskNumber
+  }), [maskValues, toggleMaskValues, maskText, maskNumber]);
 
   return (
-    <ValuesVisibilityContext.Provider value={{ 
-      showValues, 
-      toggleValuesVisibility,
-      maskText
-    }}>
+    <ValuesVisibilityContext.Provider value={value}>
       {children}
     </ValuesVisibilityContext.Provider>
   );
-}
+};
 
-export function useValuesVisibility() {
+export const useValuesVisibility = () => {
   const context = useContext(ValuesVisibilityContext);
   if (!context) {
-    throw new Error('useValuesVisibility must be used within a ValuesVisibilityProvider');
+    throw new Error('useValuesVisibility debe usarse dentro de ValuesVisibilityProvider');
   }
   return context;
-} 
+}; 

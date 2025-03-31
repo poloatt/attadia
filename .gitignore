@@ -19,6 +19,8 @@ out/
 .env.test.local
 .env.production.local
 .env.production
+!backend/.env.staging
+!backend/.env.example
 
 # Config files (usar .example.js como templates)
 **/config.dev.js

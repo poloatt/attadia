@@ -1,99 +1,83 @@
-# Present - Sistema de Gestión
+# Present App - Documentación
 
-## Estructura de Ramas
+Este repositorio contiene la documentación necesaria para el desarrollo, despliegue y mantenimiento de Present App.
 
-El proyecto utiliza el siguiente flujo de trabajo con Git:
+## Índice
 
-- `main`: Rama principal, contiene el código estable
-- `develop`: Rama de desarrollo, donde se integran las nuevas características
-- `produccion`: Rama de producción, conectada al sistema de despliegue automático
-- `feature/*`: Ramas para nuevas características
+1. [Estructura del Proyecto](#estructura-del-proyecto)
+2. [Entornos](#entornos)
+3. [Despliegue](#despliegue)
+4. [Configuración de OAuth](#configuración-de-oauth)
+5. [Configuración de Nginx](#configuración-de-nginx)
+6. [Backups y Mantenimiento](#backups-y-mantenimiento)
 
-## Flujo de Trabajo
+## Estructura del Proyecto
 
-1. **Desarrollo de Nuevas Características**:
-   ```bash
-   # Crear nueva rama feature desde develop
-   git checkout develop
-   git pull origin develop
-   git checkout -b feature/nueva-funcionalidad
+El proyecto está estructurado en los siguientes componentes:
 
-   # Desarrollar y hacer commits
-   git add .
-   git commit -m "feat: descripción del cambio"
-   git push origin feature/nueva-funcionalidad
-   ```
+- **frontend**: Aplicación React con Vite
+- **backend**: API REST con Node.js y Express
+- **webhook**: Servicio para automatizar despliegues
+- **nginx**: Configuraciones para el servidor web
+- **scripts**: Scripts de automatización para diferentes tareas
+- **docs**: Documentación del proyecto
 
-2. **Integración a Develop**:
-   ```bash
-   # Cuando la feature está lista
-   git checkout develop
-   git pull origin develop
-   git merge feature/nueva-funcionalidad
-   git push origin develop
-   ```
+## Entornos
 
-3. **Despliegue a Producción**:
-   ```bash
-   # Cuando develop está estable
-   git checkout produccion
-   git pull origin produccion
-   git merge develop
-   git push origin produccion  # Esto activará el despliegue automático
-   ```
+La aplicación está configurada para funcionar en tres entornos:
 
-## Configuración del Proyecto
+- **Desarrollo**: Entorno local para desarrollo
+- **Staging**: Entorno de pruebas preproducción
+- **Producción**: Entorno de producción
 
-1. **Configuración Inicial**:
-   ```bash
-   # Clonar el repositorio
-   git clone https://github.com/poloatt/present.git
-   cd present
-
-   # Instalar dependencias
-   cd frontend && npm install
-   cd ../backend && npm install
-   ```
-
-2. **Archivos de Configuración**:
-   - Copiar los archivos de ejemplo:
-     ```bash
-     cp backend/src/config/config.example.js backend/src/config/config.js
-     cp frontend/src/config.example.js frontend/src/config.js
-     ```
-   - Editar los archivos con las configuraciones necesarias
-
-3. **Variables de Entorno**:
-   - Crear archivos `.env` basados en `.env.example`
-   - Configurar las variables necesarias para cada entorno
+Cada entorno tiene su propia configuración, que se maneja mediante archivos `.env` específicos.
 
 ## Despliegue
 
-El sistema utiliza despliegue automático a través de webhooks:
+Para información detallada sobre el proceso de despliegue, consulta [DEPLOYMENT.md](./DEPLOYMENT.md).
 
-1. Los pushes a la rama `produccion` activan el webhook
-2. El sistema ejecuta automáticamente:
-   - Pull de los últimos cambios
-   - Reconstrucción de contenedores Docker
-   - Reinicio de servicios
+## Configuración de OAuth
 
-## Desarrollo Local
+Para configurar la autenticación con Google OAuth, consulta [OAUTH_CONFIG.md](./OAUTH_CONFIG.md).
 
-1. **Entorno de Desarrollo**:
-   ```bash
-   # Iniciar servicios en modo desarrollo
-   docker-compose up -d
-   ```
+## Configuración de Nginx
 
-2. **Pruebas**:
-   ```bash
-   # Ejecutar pruebas
-   cd backend && npm test
-   cd frontend && npm test
-   ```
+### Estructura del archivo nginx.conf
 
-## Mantenimiento
+El archivo `nginx.conf` para el contenedor frontend debe seguir esta estructura:
 
-- Los logs se encuentran en `/var/log/`
-- Monitoreo del webhook: `tail -f /home/poloatt/presentprod/webhook/webhook.log`
-- Estado de los servicios: `docker-compose ps`
+```nginx
+worker_processes auto;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    server {
+        listen 80;
+        server_name localhost;
+        # Resto de la configuración...
+    }
+}
+```
+
+Es importante mantener esta estructura para evitar errores como "unknown directive" que pueden causar que el contenedor se reinicie continuamente.
+
+### Configuraciones específicas por entorno
+
+- Staging: `nginx/conf.d/staging.conf`
+- Producción: `nginx/conf.d/production.conf`
+
+Estas configuraciones son utilizadas por el servidor Nginx del host, no por el contenedor.
+
+### Resolución de nombres en Nginx del host
+
+Al configurar el proxy en el host hacia los contenedores, usa `localhost:puerto` en lugar de nombres de contenedores, ya que el host no puede resolver los nombres internos de Docker.
+
+## Backups y Mantenimiento
+
+Para información sobre backups y mantenimiento de la base de datos MongoDB, consulta la sección correspondiente en [DEPLOYMENT.md](./DEPLOYMENT.md#backups-de-la-base-de-datos).

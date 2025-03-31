@@ -211,13 +211,13 @@ export const FormField = memo(({
           label={field.label}
           disabled={isLoading}
         >
-          {options.map(option => {
+          {options.map((option, index) => {
             if (option.divider) {
-              return <Divider key="divider" />;
+              return <Divider key={`divider-${index}`} />;
             }
             return (
               <MenuItem 
-                key={option.value} 
+                key={option.value || `option-${index}`} 
                 value={option.value}
               >
                 {option.label}
@@ -225,7 +225,7 @@ export const FormField = memo(({
             );
           })}
           {field.onCreateNew && (
-            <MenuItem value="__create_new__">
+            <MenuItem key="__create_new__" value="__create_new__">
               <AddIcon sx={{ mr: 1 }} />
               {field.createButtonText || 'Crear Nuevo'}
             </MenuItem>

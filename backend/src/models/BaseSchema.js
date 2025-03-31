@@ -54,10 +54,6 @@ export const createSchema = (definition, options = {}) => {
 
 // Plugin para añadir campos comunes a todos los esquemas
 export const commonFields = {
-  activo: {
-    type: Boolean,
-    default: true
-  },
   orden: {
     type: Number,
     default: 0
@@ -67,4 +63,11 @@ export const commonFields = {
     of: mongoose.Schema.Types.Mixed,
     default: () => new Map()
   }
+};
+
+// Función para excluir campos comunes específicos
+export const excludeCommonFields = (fieldsToExclude = []) => {
+  const fields = { ...commonFields };
+  fieldsToExclude.forEach(field => delete fields[field]);
+  return fields;
 }; 

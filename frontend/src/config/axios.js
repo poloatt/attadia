@@ -28,41 +28,101 @@ const getBaseUrl = () => {
   
   // Entorno de desarrollo (fallback)
   console.log('Detectado entorno de desarrollo');
-  return 'http://localhost:5000';
+  return apiUrl || 'http://localhost:5000';
 };
 
 const baseURL = getBaseUrl();
 console.log('URL base de Axios:', baseURL);
 
-// Crear la instancia de Axios
 const clienteAxios = axios.create({
   baseURL,
-  withCredentials: true,
   headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'X-Requested-With': 'XMLHttpRequest'
-  },
-  timeout: 30000,
-  maxRedirects: 5
+    'Content-Type': 'application/json'
+  }
 });
 
 // Interceptor para agregar el token a las peticiones
+let pendingRequests = {};
+
 clienteAxios.interceptors.request.use(
-  config => {
+  (config) => {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Evitar solicitudes duplicadas en intervalos cortos
+    const requestId = `${config.method}:${config.url}`;
+    
+    // Excluir rutas específicas que necesitan ser llamadas con frecuencia
+    const frecuentEndpoints = [
+      '/api/auth/check',
+      '/api/health',
+      '/api/rutinas',
+      '/api/propiedades',
+      '/api/cuentas',
+      '/api/inquilinos',
+      '/api/contratos',
+      '/api/tareas',
+      '/api/proyectos',
+      '/api/transacciones',
+      '/api/users',
+      '/api/users/rutinas-config'
+    ];
+    
+    const isFrecuentEndpoint = frecuentEndpoints.some(endpoint => config.url.includes(endpoint));
+    
+    // Si es una solicitud GET de API (no afectar a POST, PUT, DELETE) y no es un endpoint frecuente
+    if (config.method === 'get' && config.url.includes('/api/') && !isFrecuentEndpoint) {
+      // Si la misma solicitud está pendiente, cancelarla
+      if (pendingRequests[requestId]) {
+        const now = Date.now();
+        const lastTime = pendingRequests[requestId];
+        
+        // Si hay una solicitud reciente (menos de 300ms), cancelar
+        if (now - lastTime < 300) {
+          console.log(`Solicitud cancelada (demasiado frecuente): ${requestId}`);
+          return Promise.reject({ 
+            cancelado: true, 
+            message: 'Solicitud cancelada por repetirse demasiado rápido'
+          });
+        }
+      }
+      
+      // Registrar esta solicitud
+      pendingRequests[requestId] = Date.now();
+      
+      // Limpiar el registro después de 2 segundos
+      setTimeout(() => {
+        delete pendingRequests[requestId];
+      }, 2000);
+    }
+    
     return config;
   },
-  error => Promise.reject(error)
+  (error) => {
+    return Promise.reject(error);
+  }
 );
 
-// Interceptor para manejar respuestas y errores
+// Interceptor para manejar errores de respuesta
 clienteAxios.interceptors.response.use(
-  response => response,
-  async error => {
+  (response) => response,
+  async (error) => {
+    // Si el error es de cancelación por demasiadas solicitudes, manejarlo de forma silenciosa
+    if (error.cancelado) {
+      console.log('Solicitud cancelada por control de frecuencia:', error.message);
+      
+      // Asegurarse de que el error mantiene la propiedad cancelado para que
+      // los componentes puedan detectarla y manejarla adecuadamente
+      const cancelError = new Error(error.message || 'Solicitud cancelada por repetirse demasiado rápido');
+      cancelError.cancelado = true;
+      cancelError.name = 'CanceledError';
+      cancelError.code = 'ERR_CANCELED';
+      
+      return Promise.reject(cancelError);
+    }
+    
     if (error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
       console.error('Error de conexión:', error);
       throw new Error('Error de conexión con el servidor. Por favor, verifica tu conexión a internet.');
@@ -86,6 +146,12 @@ clienteAxios.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem('refreshToken');
         if (!refreshToken) {
+          console.warn('No hay refresh token disponible. Redirigiendo a login...');
+          // Solo redirigir si es una ruta protegida y no estamos ya en login
+          if (!window.location.pathname.includes('/login') && 
+              !window.location.pathname.includes('/auth')) {
+            window.location.href = '/login';
+          }
           throw new Error('No refresh token available');
         }
 
@@ -106,8 +172,10 @@ clienteAxios.interceptors.response.use(
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
         
-        // Solo redirigir si es un error de autenticación real
-        if (refreshError.response?.status === 401) {
+        // Solo redirigir si es un error de autenticación real y no estamos ya en login
+        if (refreshError.response?.status === 401 && 
+            !window.location.pathname.includes('/login') &&
+            !window.location.pathname.includes('/auth')) {
           window.location.href = '/login';
         }
         
