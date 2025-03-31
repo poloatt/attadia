@@ -46,7 +46,7 @@ else
     PROJECT_DIR="/home/poloatt/present"
     BACKUP_DIR="/data/backups/production"
     LOG_FILE="$BACKUP_DIR/deploy-production.log"
-    BRANCH="production"
+    BRANCH="main"
     COMPOSE_FILE="docker-compose.prod.yml"
     MONGODB_CONTAINER="mongodb-prod"
     BACKEND_CONTAINER="backend-prod"
