@@ -206,6 +206,35 @@ sudo journalctl -u present-webhook.service -f
 
 Para que se pueda acceder a la aplicación desde el exterior usando dominios como `staging.present.attadia.com`, es necesario configurar correctamente el servidor Nginx en el sistema host:
 
+#### Método automatizado (recomendado)
+
+Usar el script de configuración que automatiza todo el proceso:
+
+1. Asegurar que el script tenga permisos de ejecución:
+   ```bash
+   chmod +x scripts/setup-nginx.sh
+   ```
+
+2. Ejecutar el script para el entorno deseado:
+   ```bash
+   # Para staging
+   sudo ./scripts/setup-nginx.sh staging
+   
+   # Para producción
+   sudo ./scripts/setup-nginx.sh production
+   ```
+
+El script se encargará de:
+- Crear los directorios necesarios
+- Copiar los certificados SSL
+- Configurar los archivos de Nginx
+- Reiniciar el servicio
+- Verificar la configuración
+
+#### Método manual
+
+Si prefieres configurar manualmente:
+
 1. Copiar la configuración de ejemplo para el sistema host:
    ```bash
    sudo cp nginx/staging-nginx.conf /etc/nginx/sites-available/staging.conf
@@ -221,6 +250,7 @@ Para que se pueda acceder a la aplicación desde el exterior usando dominios com
    sudo mkdir -p /etc/nginx/ssl
    sudo cp ssl/nginx/ssl/fullchain.pem /etc/nginx/ssl/
    sudo cp ssl/nginx/ssl/privkey.pem /etc/nginx/ssl/
+   sudo chmod 600 /etc/nginx/ssl/*.pem
    ```
 
 4. Verificar la configuración:
