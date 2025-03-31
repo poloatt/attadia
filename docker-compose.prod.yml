@@ -37,8 +37,8 @@ services:
     image: present/backend:production
     container_name: backend-prod
     restart: always
-    ports:
-      - "5000:5000"
+    expose:
+      - "5000"
     env_file:
       - ./backend/.env.prod
     environment:
@@ -81,7 +81,6 @@ services:
       - NODE_ENV=production
       - ENVIRONMENT=production
     volumes:
-      - ./frontend/nginx.conf.prod:/etc/nginx/nginx.conf
       - ./nginx/conf.d/production.conf:/etc/nginx/conf.d/default.conf
       - ./ssl/nginx/ssl:/etc/nginx/ssl
     depends_on:
@@ -110,8 +109,8 @@ services:
     image: present/webhook:production
     container_name: webhook-prod
     restart: always
-    ports:
-      - "9000:9000"
+    expose:
+      - "9000"
     environment:
       - NODE_ENV=production
       - ENVIRONMENT=production
