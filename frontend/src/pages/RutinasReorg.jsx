@@ -14,7 +14,7 @@ import EntityDetails from '../components/EntityViews/EntityDetails';
 import { RutinaProvider } from '../components/rutinas/context/RutinasContext';
 import { RutinaTable } from '../components/rutinas/RutinaTable';
 import { RutinaForm } from '../components/rutinas/RutinaForm';
-import RutinaNavigation from '../components/rutinas/RutinaNavigation';
+import { MemoizedRutinaNavigation as RutinaNavigation } from '../components/rutinas/RutinaNavigation';
 import RutinaActionsBar from '../components/rutinas/RutinaActionsBar';
 import { useRutinas } from '../components/rutinas/context/RutinasContext';
 
@@ -120,7 +120,14 @@ const RutinasContent = () => {
         }
       >
         {/* Componente de navegación */}
-        <RutinaNavigation />
+        <RutinaNavigation 
+          onAdd={() => handleOpenDialog()} 
+          onEdit={() => handleOpenDialog(rutina)}
+          rutina={rutina}
+          loading={false}
+          currentPage={currentPage}
+          totalPages={totalPages}
+        />
         
         {/* Tabla de rutinas */}
         <RutinaTable

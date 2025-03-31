@@ -3,6 +3,7 @@ import { Container, Box, Typography, CircularProgress, Snackbar, Alert, Grid } f
 import RutinaTable from '../components/rutinas/RutinaTable';
 import { RutinasProvider, useRutinas } from '../components/rutinas/context/RutinasContext';
 import { RutinaForm } from '../components/rutinas';
+import { MemoizedRutinaNavigation as RutinaNavigation } from '../components/rutinas/RutinaNavigation';
 import EntityToolbar from '../components/EntityToolbar';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -21,10 +22,33 @@ const RutinasWithContext = () => {
   const rutinaId = params.id;
   const navigate = useNavigate();
   const rutinasContext = useRutinas();
-  const { rutina, rutinas, loading, error, fetchRutinas, getRutinaById } = rutinasContext;
+  const { 
+    rutina, 
+    rutinas, 
+    loading, 
+    error, 
+    fetchRutinas, 
+    getRutinaById,
+    handlePrevious,
+    handleNext,
+    deleteRutina
+  } = rutinasContext;
   const [editMode, setEditMode] = useState(false);
   const [rutinaToEdit, setRutinaToEdit] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const initialFetchDone = useRef(false);
+  
+  // Actualizar la página actual cuando cambia la rutina
+  useEffect(() => {
+    if (rutina) {
+      const index = rutinas.findIndex(r => r._id === rutina._id);
+      if (index !== -1) {
+        setCurrentPage(index + 1);
+        setTotalPages(rutinas.length);
+      }
+    }
+  }, [rutina, rutinas]);
   
   // Cargar todas las rutinas solo una vez al inicio
   useEffect(() => {
@@ -149,10 +173,24 @@ const RutinasWithContext = () => {
           
           {/* Vista principal de rutinas */}
           {!loading && !editMode && rutina && (
-            <RutinaTable 
-              rutina={rutina}
-              onEdit={handleEditRutina}
-            />
+            <>
+              <RutinaNavigation 
+                onAdd={handleAddRutina}
+                onEdit={handleEditRutina}
+                rutina={rutina}
+                loading={loading}
+                currentPage={currentPage}
+                totalPages={totalPages}
+              />
+              <RutinaTable 
+                rutina={{
+                  ...rutina,
+                  _page: currentPage,
+                  _totalPages: totalPages
+                }}
+                onEdit={handleEditRutina}
+              />
+            </>
           )}
           
           {/* Formulario de edición */}

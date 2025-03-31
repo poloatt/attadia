@@ -19,7 +19,7 @@ const ValuesVisibilityContext = createContext();
 export const ValuesVisibilityProvider = ({ children }) => {
   const [maskValues, setMaskValues] = useState(true);
 
-  const toggleMaskValues = useCallback(() => {
+  const toggleValuesVisibility = useCallback(() => {
     setMaskValues(prev => !prev);
   }, []);
 
@@ -35,10 +35,11 @@ export const ValuesVisibilityProvider = ({ children }) => {
 
   const value = useMemo(() => ({
     maskValues,
-    toggleMaskValues,
+    showValues: !maskValues,
+    toggleValuesVisibility,
     maskText,
     maskNumber
-  }), [maskValues, toggleMaskValues, maskText, maskNumber]);
+  }), [maskValues, toggleValuesVisibility, maskText, maskNumber]);
 
   return (
     <ValuesVisibilityContext.Provider value={value}>

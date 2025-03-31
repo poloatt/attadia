@@ -1,144 +1,93 @@
 # Guía de Solución de Problemas - Present App
 
-Este documento proporciona soluciones para problemas comunes que pueden ocurrir en los entornos de staging y producción.
+Este documento proporciona soluciones para problemas comunes que pueden ocurrir en el entorno de producción.
 
 ## Problemas con Certificados SSL
 
-### Error: NET::ERR_CERT_COMMON_NAME_INVALID
+### Error: ERR_SSL_PROTOCOL_ERROR o ERR_CONNECTION_REFUSED
 
-Este error ocurre cuando el nombre de dominio al que intentas acceder no está incluido en el certificado SSL.
+Este error ocurre cuando hay problemas con la configuración SSL o los certificados.
 
 **Solución:**
-1. Genera un nuevo certificado autofirmado que incluya todos los subdominios necesarios:
 
+1. Verifica que los certificados existan y sean válidos:
 ```bash
-# Crear certificados autofirmados para staging
-sudo mkdir -p /tmp/ssl
-sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout /tmp/ssl/staging-key.pem \
-    -out /tmp/ssl/staging-cert.pem \
-    -subj "/CN=staging.present.attadia.com" \
-    -addext "subjectAltName = DNS:staging.present.attadia.com,DNS:api.staging.present.attadia.com"
+# Verificar certificados en el sistema
+sudo certbot certificates
 
-# Copiar a la ubicación de Nginx
-sudo cp /tmp/ssl/staging-cert.pem /tmp/ssl/staging-key.pem /etc/nginx/ssl/
-sudo chown root:root /etc/nginx/ssl/staging-*.pem
-sudo chmod 600 /etc/nginx/ssl/staging-key.pem
-sudo chmod 644 /etc/nginx/ssl/staging-cert.pem
+# Verificar certificados en el proyecto
+ls -l /home/poloatt/present/ssl/nginx/ssl/
 ```
 
-2. Actualiza la configuración de Nginx para usar estos certificados:
-
+2. Verifica que los certificados estén actualizados:
 ```bash
-sudo cp /etc/nginx/sites-available/staging.conf /etc/nginx/sites-available/staging.conf.bak
-sudo sed -i 's|ssl_certificate /etc/nginx/ssl/fullchain.pem;|ssl_certificate /etc/nginx/ssl/staging-cert.pem;|g' /etc/nginx/sites-available/staging.conf
-sudo sed -i 's|ssl_certificate_key /etc/nginx/ssl/privkey.pem;|ssl_certificate_key /etc/nginx/ssl/staging-key.pem;|g' /etc/nginx/sites-available/staging.conf
-sudo systemctl restart nginx
+# Renovar certificados manualmente
+cd /home/poloatt/present
+./ssl/renew_certs.sh
 ```
 
-3. Para una solución permanente, considera obtener un certificado válido de Let's Encrypt.
+3. Verifica los permisos de los certificados:
+```bash
+sudo chown -R poloatt:poloatt /home/poloatt/present/ssl/nginx/ssl/
+sudo chmod 644 /home/poloatt/present/ssl/nginx/ssl/*.pem
+```
+
+4. Reinicia el contenedor frontend:
+```bash
+docker restart frontend-prod
+```
+
+### Error: NET::ERR_CERT_AUTHORITY_INVALID
+
+Este error ocurre cuando el certificado no es reconocido por el navegador.
+
+**Solución:**
+
+1. Verifica que estés usando los certificados de Let's Encrypt:
+```bash
+sudo certbot certificates | grep "Domains"
+```
+
+2. Si es necesario, genera nuevos certificados:
+```bash
+# Detener contenedores primero
+docker-compose -f docker-compose.prod.yml down
+
+# Generar nuevos certificados
+sudo certbot certonly --standalone -d present.attadia.com -d api.present.attadia.com
+
+# Copiar nuevos certificados
+sudo cp /etc/letsencrypt/live/present.attadia.com/fullchain.pem /home/poloatt/present/ssl/nginx/ssl/
+sudo cp /etc/letsencrypt/live/present.attadia.com/privkey.pem /home/poloatt/present/ssl/nginx/ssl/
+sudo chown -R poloatt:poloatt /home/poloatt/present/ssl/nginx/ssl/
+
+# Reiniciar contenedores
+docker-compose -f docker-compose.prod.yml up -d
+```
 
 ## Problemas con el Contenedor Frontend
 
-### Error: "unknown directive "<<<<<<<" in /etc/nginx/nginx.conf"
+### Error: "no such file or directory" en los certificados SSL
 
-Este error indica conflictos de Git no resueltos en el archivo nginx.conf.
-
-**Solución:**
-
-1. Edita el archivo nginx.conf para eliminar los marcadores de conflicto (<<<<<<< HEAD, =======, >>>>>>> branch):
-
-```bash
-# Crear una versión limpia del archivo
-cat > frontend/nginx.conf << 'EOL'
-worker_processes auto;
-events { worker_connections 1024; }
-http {
-    include /etc/nginx/mime.types;
-    default_type application/octet-stream;
-
-    server {
-        listen 80;
-        server_name localhost;
-        root /usr/share/nginx/html;
-        index index.html;
-
-        # Configuración para el frontend
-        location / {
-            try_files $uri $uri/ /index.html;
-            add_header Cache-Control "no-cache, no-store, must-revalidate";
-        }
-
-        # Proxy inverso para la API (usar backend-staging o backend-prod según el entorno)
-        location /api/ {
-            proxy_pass http://backend-prod:5000/api/;
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection 'upgrade';
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-            proxy_set_header X-Forwarded-Host $host;
-            proxy_cache_bypass $http_upgrade;
-            proxy_read_timeout 90s;
-        }
-
-        # Configuración para archivos estáticos
-        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
-            expires 1y;
-            add_header Cache-Control "public, no-transform";
-        }
-
-        # Health check endpoint
-        location /health {
-            access_log off;
-            add_header Content-Type text/plain;
-            return 200 "OK";
-        }
-    }
-}
-EOL
-```
-
-2. Reconstruye y reinicia el contenedor:
-
-```bash
-# Para producción
-docker-compose -f docker-compose.production.yml down frontend-prod
-docker-compose -f docker-compose.production.yml build frontend
-docker-compose -f docker-compose.production.yml up -d
-
-# Para staging
-docker-compose -f docker-compose.staging.yml down frontend-staging
-docker-compose -f docker-compose.staging.yml build frontend
-docker-compose -f docker-compose.staging.yml up -d
-```
-
-## Problemas con el Webhook
-
-### El webhook no responde o no despliega automáticamente
+Este error ocurre cuando nginx no puede encontrar los certificados SSL.
 
 **Solución:**
 
-1. Verifica el estado del servicio:
+1. Verifica la estructura de directorios:
 ```bash
-sudo systemctl status present-webhook.service
+ls -R /home/poloatt/present/ssl/
 ```
 
-2. Revisa los logs:
+2. Verifica que los certificados estén montados correctamente:
 ```bash
-sudo journalctl -u present-webhook.service -f
+docker exec frontend-prod ls -l /etc/nginx/ssl/
 ```
 
-3. Si es necesario, reinicia el servicio:
+3. Si es necesario, recrea el volumen:
 ```bash
-sudo systemctl restart present-webhook.service
-```
-
-4. Verifica la configuración del secret:
-```bash
-sudo nano /etc/systemd/system/present-webhook.service
+docker-compose -f docker-compose.prod.yml down
+docker volume rm $(docker volume ls -q | grep ssl)
+docker-compose -f docker-compose.prod.yml up -d
 ```
 
 ## Problemas con la API (Backend)
@@ -159,17 +108,73 @@ docker ps | grep backend
 
 2. Revisa los logs del backend:
 ```bash
-docker logs backend-prod  # o backend-staging para staging
+docker logs backend-prod
 ```
 
-3. Prueba la conectividad dentro del servidor:
+3. Verifica la configuración del proxy en nginx.conf:
 ```bash
-curl localhost:5000/api/health
+docker exec frontend-prod cat /etc/nginx/nginx.conf
 ```
 
-4. Verifica la configuración del proxy en nginx.conf:
+4. Prueba la conectividad directamente:
 ```bash
-# Asegúrate de que el nombre del backend sea correcto:
-# Para producción: backend-prod
-# Para staging: backend-staging
+curl -k https://api.present.attadia.com/health
+```
+
+## Problemas con el Webhook
+
+### El webhook no responde a eventos de GitHub
+
+**Solución:**
+
+1. Verifica que la URL del webhook use HTTPS:
+   - En GitHub: Settings > Webhooks
+   - La URL debe ser: `https://api.present.attadia.com/webhook`
+
+2. Verifica el estado del servicio:
+```bash
+sudo systemctl status present-webhook.service
+```
+
+3. Revisa los logs:
+```bash
+sudo journalctl -u present-webhook.service -f
+```
+
+4. Verifica la conectividad:
+```bash
+curl -k https://api.present.attadia.com/webhook
+```
+
+## Problemas de Red
+
+### Error al acceder a la aplicación
+
+1. Verifica que los puertos estén abiertos:
+```bash
+# En el contenedor
+docker exec frontend-prod netstat -tulpn
+
+# En el host
+sudo netstat -tulpn | grep -E ':80|:443'
+```
+
+2. Verifica las reglas de firewall:
+```bash
+# UFW
+sudo ufw status
+
+# Google Cloud Platform
+# Verifica las reglas en VPC Network > Firewall
+```
+
+3. Verifica los DNS:
+```bash
+dig present.attadia.com
+dig api.present.attadia.com
+```
+
+4. Prueba la conectividad SSL:
+```bash
+openssl s_client -connect present.attadia.com:443 -servername present.attadia.com
 ``` 

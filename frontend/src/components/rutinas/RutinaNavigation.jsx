@@ -17,14 +17,17 @@ import { useSnackbar } from 'notistack';
  * Componente para la navegación entre rutinas
  * Muestra controles para moverse entre rutinas y la fecha actual
  */
-const RutinaNavigation = ({ onEdit, onAdd }) => {
+const RutinaNavigation = ({ 
+  onEdit, 
+  onAdd,
+  rutina,
+  loading = false,
+  currentPage,
+  totalPages
+}) => {
   const { 
-    rutina, 
-    currentPage, 
-    totalPages, 
     handlePrevious, 
     handleNext,
-    loading,
     deleteRutina
   } = useRutinas();
   

@@ -1,3 +1,134 @@
+# Configuración de Nginx y SSL en Present App
+
+Este documento describe la configuración de Nginx y SSL para la aplicación Present.
+
+## Estructura de Certificados SSL
+
+Los certificados SSL se manejan en las siguientes ubicaciones:
+
+1. Certificados del sistema (Let's Encrypt):
+   ```bash
+   /etc/letsencrypt/live/present.attadia.com/
+   ```
+
+2. Certificados en el proyecto:
+   ```bash
+   /home/poloatt/present/ssl/nginx/ssl/
+   ```
+
+## Configuración Inicial
+
+1. Asegúrate de que todos los contenedores estén detenidos:
+   ```bash
+   docker-compose -f docker-compose.prod.yml down
+   ```
+
+2. Genera los certificados SSL con Let's Encrypt:
+   ```bash
+   sudo certbot certonly --standalone -d present.attadia.com -d api.present.attadia.com
+   ```
+
+3. Copia los certificados al directorio del proyecto:
+   ```bash
+   sudo cp /etc/letsencrypt/live/present.attadia.com/fullchain.pem /home/poloatt/present/ssl/nginx/ssl/
+   sudo cp /etc/letsencrypt/live/present.attadia.com/privkey.pem /home/poloatt/present/ssl/nginx/ssl/
+   sudo chown -R poloatt:poloatt /home/poloatt/present/ssl/nginx/ssl/
+   ```
+
+4. Inicia los contenedores:
+   ```bash
+   docker-compose -f docker-compose.prod.yml up -d
+   ```
+
+## Renovación de Certificados
+
+Los certificados se renuevan automáticamente usando el script `renew_certs.sh`:
+
+1. El script está ubicado en:
+   ```bash
+   /home/poloatt/present/ssl/renew_certs.sh
+   ```
+
+2. Para ejecutar la renovación manualmente:
+   ```bash
+   cd /home/poloatt/present
+   ./ssl/renew_certs.sh
+   ```
+
+3. El script:
+   - Renueva los certificados usando certbot
+   - Copia los certificados renovados al directorio del proyecto
+   - Ajusta los permisos
+   - Reinicia el contenedor frontend
+
+## Verificación
+
+Para verificar que todo está funcionando correctamente:
+
+1. Verifica el estado de los certificados:
+   ```bash
+   sudo certbot certificates
+   ```
+
+2. Prueba la configuración de Nginx:
+   ```bash
+   docker exec frontend-prod nginx -t
+   ```
+
+3. Verifica la conectividad HTTPS:
+   ```bash
+   curl -k https://present.attadia.com/health
+   ```
+
+## Solución de Problemas
+
+### Error de certificado no válido
+
+1. Verifica que los certificados estén presentes:
+   ```bash
+   ls -l /home/poloatt/present/ssl/nginx/ssl/
+   ```
+
+2. Verifica los permisos:
+   ```bash
+   sudo chown -R poloatt:poloatt /home/poloatt/present/ssl/nginx/ssl/
+   sudo chmod 644 /home/poloatt/present/ssl/nginx/ssl/*.pem
+   ```
+
+3. Reinicia el contenedor frontend:
+   ```bash
+   docker restart frontend-prod
+   ```
+
+### Error de conexión rechazada
+
+1. Verifica que Nginx esté escuchando en los puertos correctos:
+   ```bash
+   docker exec frontend-prod netstat -tulpn
+   ```
+
+2. Verifica las reglas del firewall:
+   ```bash
+   sudo ufw status
+   ```
+
+3. Verifica las reglas de firewall en Google Cloud Platform:
+   - Ve a la consola de GCP
+   - Navega a VPC Network > Firewall
+   - Asegúrate de que haya reglas que permitan el tráfico en los puertos 80 y 443
+
+## Mantenimiento
+
+1. Backup de certificados:
+   ```bash
+   sudo cp -r /etc/letsencrypt/live/present.attadia.com/* /home/poloatt/present/ssl/ssl_backup/
+   ```
+
+2. Restauración de certificados:
+   ```bash
+   sudo cp /home/poloatt/present/ssl/ssl_backup/* /etc/letsencrypt/live/present.attadia.com/
+   ```
+
 # Solución al problema de acceso a staging.present.attadia.com
 
 El problema actual es que el servidor Nginx del sistema host no está configurado correctamente para permitir el acceso al sitio web. Específicamente, hay un error porque el archivo de configuración está haciendo referencia a un host `backend` que no existe en la red del host (este nombre solo es válido dentro de la red de Docker).
