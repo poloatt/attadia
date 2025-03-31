@@ -153,6 +153,55 @@ sudo journalctl -u present-webhook.service -f
    docker-compose -f docker-compose.staging.yml up -d --build
    ```
 
+### Problemas con la configuración de Nginx
+
+1. Si el contenedor `frontend-staging` se reinicia continuamente, verifica los logs:
+   ```bash
+   docker logs frontend-staging
+   ```
+
+2. Si aparece el error "unknown directive" en nginx.conf, revisa la estructura del archivo:
+   ```bash
+   # Estructura correcta debe comenzar con:
+   worker_processes auto;
+   events { worker_connections 1024; }
+   http {
+     # Resto de la configuración
+   }
+   ```
+
+3. Para corregir problemas con el archivo nginx.conf:
+   ```bash
+   # Crear un nuevo archivo con la configuración correcta
+   echo "worker_processes auto;
+   events { worker_connections 1024; }
+   http {
+       include /etc/nginx/mime.types;
+       default_type application/octet-stream;
+       # Resto de la configuración del servidor
+   }" > nginx.conf.fix
+   
+   # Reemplazar el archivo existente
+   cp nginx.conf.fix frontend/nginx.conf
+   
+   # Reconstruir y reiniciar el contenedor
+   docker-compose -f docker-compose.staging.yml down
+   docker-compose -f docker-compose.staging.yml build frontend
+   docker-compose -f docker-compose.staging.yml up -d
+   ```
+
+4. Para problemas con Nginx del sistema (no el contenedor):
+   ```bash
+   # Revisar configuración
+   sudo nginx -t
+   
+   # Ver logs de errores
+   sudo journalctl -xeu nginx.service
+   
+   # Configurar correctamente nombres de upstream
+   # Nota: usar localhost:puerto en lugar de nombres de contenedores
+   ```
+
 ## Migración de Staging a Producción
 
 Cuando estés listo para migrar de staging a producción:
