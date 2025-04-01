@@ -13,6 +13,7 @@ import {
   MonitorWeightOutlined as WeightIcon,
   HealthAndSafety as HealthIcon
 } from '@mui/icons-material';
+import { FooterNavigation } from '../navigation/navigationbar';
 
 /**
  * Componente envoltorio que expone el contexto de rutinas
@@ -134,7 +135,12 @@ const RutinasWithContext = () => {
         ]}
       />
       
-      <Container maxWidth="lg" sx={{ mt: 0, mb: 4 }}>
+      <Container maxWidth="lg" sx={{ 
+        mt: 0, 
+        mb: 4,
+        pb: '104px', // Ajustado para el footer elevado (80px + 24px)
+        minHeight: 'calc(100vh - 104px)' // Ajustado para considerar el nuevo espacio del footer
+      }}>
         <Box sx={{ 
           position: 'relative', 
           maxHeight: 'calc(100vh - 180px)', 
@@ -202,6 +208,7 @@ const RutinasWithContext = () => {
           )}
         </Box>
       </Container>
+      <FooterNavigation />
     </>
   );
 };

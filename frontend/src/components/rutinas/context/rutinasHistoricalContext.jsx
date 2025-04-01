@@ -18,202 +18,36 @@ export const RutinasHistoricalProvider = ({ children }) => {
   const [datosSimulados, setDatosSimulados] = useState(false);
   
   // Función para generar datos simulados cuando el servidor falla
-  const simulateHistorical = useCallback((dias = 30) => {
+  const simulateHistorical = useCallback((dias = 30, fechaBase = new Date()) => {
     console.log(`[RutinasHistoricalContext] ⚠️ Generando datos simulados para los últimos ${dias} días`);
     
-    // Crear fechas para el rango
-    const hoy = new Date();
+    // Normalizar fecha base
+    const fechaReferencia = new Date(fechaBase);
+    fechaReferencia.setHours(12, 0, 0, 0);
+    
     const rutinasSimuladas = [];
     
     // Rutinas para los últimos días
     for (let i = 0; i < dias; i++) {
-      const fecha = new Date();
-      fecha.setDate(hoy.getDate() - i);
+      const fecha = new Date(fechaReferencia);
+      fecha.setDate(fechaReferencia.getDate() - i);
       
-      // Crear una rutina simulada
+      // Crear una rutina simulada con datos más realistas
       const rutina = {
         _id: `simulado_${fecha.toISOString().split('T')[0]}`,
-        fecha: fecha.toISOString().split('T')[0] + 'T00:00:00.000Z',
+        fecha: fecha.toISOString(),
         usuario: 'usuario_simulado',
-        bodyCare: {
-          bath: Math.random() > 0.3,
-          skinCareDay: Math.random() > 0.3,
-          skinCareNight: Math.random() > 0.3,
-          bodyCream: Math.random() > 0.3
-        },
-        nutricion: {
-          cocinar: Math.random() > 0.3,
-          agua: Math.random() > 0.3,
-          protein: Math.random() > 0.3,
-          meds: Math.random() > 0.3
-        },
-        ejercicio: {
-          meditate: Math.random() > 0.5,
-          stretching: Math.random() > 0.5,
-          gym: Math.random() > 0.7,
-          cardio: Math.random() > 0.6
-        },
-        cleaning: {
-          bed: Math.random() > 0.4,
-          platos: Math.random() > 0.4,
-          piso: Math.random() > 0.7,
-          ropa: Math.random() > 0.7
-        },
+        completitud: Math.random(),
         config: {
-          bodyCare: {
-            bath: {
-              tipo: 'SEMANAL',
-              periodo: 'CADA_SEMANA',
-              diasSemana: [],
-              diasMes: [],
-              frecuencia: 1,
-              activo: true,
-              ultimaCompletacion: Math.random() > 0.5 ? fecha.toISOString() : null
-            },
-            skinCareDay: {
-              tipo: 'DIARIO',
-              periodo: 'CADA_DIA',
-              diasSemana: [],
-              diasMes: [],
-              frecuencia: 1,
-              activo: true,
-              ultimaCompletacion: Math.random() > 0.5 ? fecha.toISOString() : null
-            },
-            skinCareNight: {
-              tipo: 'DIARIO',
-              periodo: 'CADA_DIA',
-              diasSemana: [],
-              diasMes: [],
-              frecuencia: 1,
-              activo: true,
-              ultimaCompletacion: Math.random() > 0.5 ? fecha.toISOString() : null
-            },
-            bodyCream: {
-              tipo: 'DIARIO',
-              periodo: 'CADA_DIA',
-              diasSemana: [],
-              diasMes: [],
-              frecuencia: 1,
-              activo: true,
-              ultimaCompletacion: Math.random() > 0.5 ? fecha.toISOString() : null
-            }
-          },
-          nutricion: {
-            cocinar: {
-              tipo: 'DIARIO',
-              periodo: 'CADA_DIA',
-              diasSemana: [],
-              diasMes: [],
-              frecuencia: 1,
-              activo: true,
-              ultimaCompletacion: Math.random() > 0.5 ? fecha.toISOString() : null
-            },
-            agua: {
-              tipo: 'DIARIO',
-              periodo: 'CADA_DIA',
-              diasSemana: [],
-              diasMes: [],
-              frecuencia: 1,
-              activo: true,
-              ultimaCompletacion: Math.random() > 0.5 ? fecha.toISOString() : null
-            },
-            protein: {
-              tipo: 'DIARIO',
-              periodo: 'CADA_DIA',
-              diasSemana: [],
-              diasMes: [],
-              frecuencia: 1,
-              activo: true,
-              ultimaCompletacion: Math.random() > 0.5 ? fecha.toISOString() : null
-            },
-            meds: {
-              tipo: 'DIARIO',
-              periodo: 'CADA_DIA',
-              diasSemana: [],
-              diasMes: [],
-              frecuencia: 1,
-              activo: true,
-              ultimaCompletacion: Math.random() > 0.5 ? fecha.toISOString() : null
-            }
-          },
-          ejercicio: {
-            meditate: {
-              tipo: 'DIARIO',
-              periodo: 'CADA_DIA',
-              diasSemana: [],
-              diasMes: [],
-              frecuencia: 1,
-              activo: true,
-              ultimaCompletacion: Math.random() > 0.5 ? fecha.toISOString() : null
-            },
-            stretching: {
-              tipo: 'DIARIO',
-              periodo: 'CADA_DIA',
-              diasSemana: [],
-              diasMes: [],
-              frecuencia: 1,
-              activo: true,
-              ultimaCompletacion: Math.random() > 0.5 ? fecha.toISOString() : null
-            },
-            gym: {
-              tipo: 'SEMANAL',
-              periodo: 'CADA_SEMANA',
-              diasSemana: [],
-              diasMes: [],
-              frecuencia: 3,
-              activo: true,
-              ultimaCompletacion: Math.random() > 0.5 ? fecha.toISOString() : null
-            },
-            cardio: {
-              tipo: 'DIARIO',
-              periodo: 'CADA_DIA',
-              diasSemana: [],
-              diasMes: [],
-              frecuencia: 1,
-              activo: true,
-              ultimaCompletacion: Math.random() > 0.5 ? fecha.toISOString() : null
-            }
-          },
-          cleaning: {
-            bed: {
-              tipo: 'DIARIO',
-              periodo: 'CADA_DIA',
-              diasSemana: [],
-              diasMes: [],
-              frecuencia: 1,
-              activo: true,
-              ultimaCompletacion: Math.random() > 0.5 ? fecha.toISOString() : null
-            },
-            platos: {
-              tipo: 'DIARIO',
-              periodo: 'CADA_DIA',
-              diasSemana: [],
-              diasMes: [],
-              frecuencia: 1,
-              activo: true,
-              ultimaCompletacion: Math.random() > 0.5 ? fecha.toISOString() : null
-            },
-            piso: {
-              tipo: 'SEMANAL',
-              periodo: 'CADA_SEMANA',
-              diasSemana: [],
-              diasMes: [],
-              frecuencia: 1,
-              activo: true,
-              ultimaCompletacion: Math.random() > 0.5 ? fecha.toISOString() : null
-            },
-            ropa: {
-              tipo: 'SEMANAL',
-              periodo: 'CADA_SEMANA',
-              diasSemana: [],
-              diasMes: [],
-              frecuencia: 1,
-              activo: true,
-              ultimaCompletacion: Math.random() > 0.5 ? fecha.toISOString() : null
-            }
-          }
+          bodyCare: generarConfigSimulada('DIARIO'),
+          nutricion: generarConfigSimulada('DIARIO'),
+          ejercicio: generarConfigSimulada('SEMANAL'),
+          cleaning: generarConfigSimulada('SEMANAL')
         },
-        completitud: Math.random()
+        bodyCare: generarCompletacionesSimuladas(),
+        nutricion: generarCompletacionesSimuladas(),
+        ejercicio: generarCompletacionesSimuladas(),
+        cleaning: generarCompletacionesSimuladas()
       };
       
       rutinasSimuladas.push(rutina);
@@ -224,6 +58,29 @@ export const RutinasHistoricalProvider = ({ children }) => {
     return rutinasSimuladas;
   }, []);
 
+  // Función auxiliar para generar configuración simulada
+  const generarConfigSimulada = (tipo = 'DIARIO') => {
+    return {
+      tipo,
+      frecuencia: tipo === 'DIARIO' ? 1 : 3,
+      periodo: tipo === 'DIARIO' ? 'CADA_DIA' : 'CADA_SEMANA',
+      diasSemana: [],
+      diasMes: [],
+      activo: true,
+      ultimaActualizacion: new Date().toISOString()
+    };
+  };
+
+  // Función auxiliar para generar completaciones simuladas
+  const generarCompletacionesSimuladas = () => {
+    return {
+      bath: Math.random() > 0.3,
+      skinCareDay: Math.random() > 0.3,
+      skinCareNight: Math.random() > 0.3,
+      bodyCream: Math.random() > 0.3
+    };
+  };
+
   // Función para cargar el historial
   const cargarHistorial = useCallback(async (dias = 30) => {
     try {
@@ -232,8 +89,31 @@ export const RutinasHistoricalProvider = ({ children }) => {
       
       console.log(`[RutinasHistoricalContext] Cargando historial de los últimos ${dias} días`);
       
+      // Obtener fecha actual y normalizarla
+      const ahora = new Date();
+      ahora.setHours(12, 0, 0, 0);
+      
+      // Corregir año futuro si es necesario
+      const añoActual = ahora.getFullYear();
+      const añoMaximo = 2024; // Año máximo permitido
+      const requiereCorreccion = añoActual > añoMaximo;
+      
+      if (requiereCorreccion) {
+        console.log(`[RutinasHistoricalContext] ⚠️ Corrigiendo año futuro ${añoActual} a ${añoMaximo}`);
+        ahora.setFullYear(añoMaximo);
+      }
+      
+      // Calcular fecha de inicio
+      const fechaInicio = new Date(ahora);
+      fechaInicio.setDate(ahora.getDate() - dias);
+      
       // Usar el servicio para obtener el historial
-      const historial = await rutinasService.getRutinasHistoricas(dias);
+      const historial = await rutinasService.obtenerHistorialCompletaciones(
+        null, 
+        null,
+        fechaInicio,
+        ahora
+      );
       
       // Verificar si tenemos datos válidos
       if (Array.isArray(historial) && historial.length > 0) {
@@ -247,7 +127,7 @@ export const RutinasHistoricalProvider = ({ children }) => {
         console.warn('[RutinasHistoricalContext] No se obtuvieron datos históricos reales, usando simulados');
         
         // Si no hay datos, generar datos simulados
-        const simulados = simulateHistorical(dias);
+        const simulados = simulateHistorical(dias, ahora);
         setHistorialRutinas(simulados);
         
         // Procesar historial simulado
@@ -257,7 +137,7 @@ export const RutinasHistoricalProvider = ({ children }) => {
       console.error('[RutinasHistoricalContext] Error al cargar historial:', error);
       setError('Error al cargar historial de rutinas');
       
-      // En caso de error, generar datos simulados para que la app siga funcionando
+      // En caso de error, generar datos simulados
       const simulados = simulateHistorical(dias);
       setHistorialRutinas(simulados);
       

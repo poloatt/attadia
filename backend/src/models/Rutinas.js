@@ -42,6 +42,19 @@ const cadenciaSchema = {
       return typeof v === 'number' ? Math.max(1, v) : 1;
     }
   },
+  progresoActual: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  ultimoPeriodo: {
+    inicio: Date,
+    fin: Date
+  },
+  completacionesPeriodo: [{
+    fecha: Date,
+    valor: Number
+  }],
   ultimaCompletacion: {
     type: Date
   },
@@ -321,5 +334,82 @@ rutinaSchema.pre('save', function(next) {
   }
   next();
 });
+
+// Añadir métodos de utilidad al schema
+rutinaSchema.methods.resetearProgresoPeriodo = function(section, item) {
+  if (this.config[section]?.[item]) {
+    this.config[section][item].progresoActual = 0;
+    this.config[section][item].completacionesPeriodo = [];
+  }
+};
+
+rutinaSchema.methods.actualizarProgreso = function(section, item, fecha = new Date()) {
+  const config = this.config[section]?.[item];
+  if (!config) return;
+
+  const ahora = new Date(fecha);
+  const ultimoPeriodo = config.ultimoPeriodo || {};
+  
+  // Determinar si necesitamos resetear el progreso
+  const necesitaReset = this.necesitaResetearProgreso(config, ahora);
+  
+  if (necesitaReset) {
+    this.resetearProgresoPeriodo(section, item);
+    // Actualizar período
+    config.ultimoPeriodo = {
+      inicio: this.obtenerInicioPeriodo(config, ahora),
+      fin: this.obtenerFinPeriodo(config, ahora)
+    };
+  }
+
+  // Incrementar progreso
+  config.progresoActual = (config.progresoActual || 0) + 1;
+  config.completacionesPeriodo.push({
+    fecha: ahora,
+    valor: config.progresoActual
+  });
+};
+
+rutinaSchema.methods.necesitaResetearProgreso = function(config, fecha) {
+  if (!config.ultimoPeriodo?.inicio) return true;
+
+  const inicioPeriodoActual = this.obtenerInicioPeriodo(config, fecha);
+  return new Date(config.ultimoPeriodo.inicio) < inicioPeriodoActual;
+};
+
+rutinaSchema.methods.obtenerInicioPeriodo = function(config, fecha) {
+  const fechaBase = new Date(fecha);
+  
+  switch (config.tipo) {
+    case 'SEMANAL':
+      fechaBase.setDate(fechaBase.getDate() - fechaBase.getDay());
+      break;
+    case 'MENSUAL':
+      fechaBase.setDate(1);
+      break;
+    default:
+      fechaBase.setHours(0, 0, 0, 0);
+  }
+  
+  return fechaBase;
+};
+
+rutinaSchema.methods.obtenerFinPeriodo = function(config, fecha) {
+  const fechaBase = new Date(fecha);
+  
+  switch (config.tipo) {
+    case 'SEMANAL':
+      fechaBase.setDate(fechaBase.getDate() - fechaBase.getDay() + 6);
+      break;
+    case 'MENSUAL':
+      fechaBase.setMonth(fechaBase.getMonth() + 1);
+      fechaBase.setDate(0);
+      break;
+    default:
+      fechaBase.setHours(23, 59, 59, 999);
+  }
+  
+  return fechaBase;
+};
 
 export const Rutinas = mongoose.model('Rutinas', rutinaSchema); 

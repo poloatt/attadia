@@ -384,40 +384,13 @@ async function obtenerDatosCompletacionDetallados(rutina, section, itemId) {
       completadoHoy: false,
       conteoHoy: 0,
       conteoSemana: 0,
-      estadoActualUI: false
+      estadoActualUI: false,
+      completacionesPorDia: new Map()
     };
   }
   
   // Obtener estado actual del UI para caching correcto
   const estaCompletadoActualmente = !!rutina[section]?.[itemId];
-  
-  // Generar clave de caché efectiva con componentes determinísticos
-  // Incluir timestamp aproximado para evitar caché demasiado agresivo
-  const hoy = new Date();
-  const añoActual = hoy.getFullYear();
-  const semanaActual = getWeek(hoy, { locale: es });
-  const timestampRedondeado = Math.floor(Date.now() / 1000) * 1000; // Redondear a segundos
-  const claveCache = `completaciones_${section}_${itemId}_${añoActual}_s${semanaActual}_${estaCompletadoActualmente}_${timestampRedondeado}`;
-  
-  // OPTIMIZACIÓN: Intentar obtener datos de caché primero
-  const caducidadCache = 5000; // 5 segundos para ítems normales
-  const datosCacheados = cacheHistorialCompletaciones[claveCache];
-  
-  // Verificar si tenemos datos válidos en caché
-  if (datosCacheados && 
-      ((Date.now() - datosCacheados.timestamp) < caducidadCache)) {
-        
-    // Usar datos cacheados para mejorar rendimiento
-    const datos = datosCacheados.datos;
-    
-    // IMPORTANTE: Verificar que el estado actual coincida con lo cacheado
-    // para evitar inconsistencias después de marcar/desmarcar
-    if (datos.estadoActualUI === estaCompletadoActualmente) {
-      return datos;
-    }
-  }
-  
-  // Si llegamos aquí, necesitamos calcular los datos completos
   
   // Arrays para almacenar las fechas de completación
   const todasLasCompletaciones = [];  // Todas las completaciones históricas
@@ -425,269 +398,150 @@ async function obtenerDatosCompletacionDetallados(rutina, section, itemId) {
   const completacionesSemanaActual = []; // Completaciones de esta semana
   let completadoHoy = false;          // Bandera para verificar si se completó hoy
   
+  // Mapa para contar completaciones por día
+  const completacionesPorDia = new Map();
+  
   // Obtener fecha actual para comparaciones
+  const hoy = new Date();
   const inicioSemanaActual = startOfWeek(hoy, { locale: es });
   const finSemanaActual = endOfWeek(hoy, { locale: es });
   
-  // PARTE 1: Verificar la rutina actual primero (siempre usar datos locales para la rutina actual)
-  if (estaCompletadoActualmente) {
-    const fechaRutina = typeof rutina.fecha === 'string' ? parseISO(rutina.fecha) : rutina.fecha;
-    
-    // Forzar inclusión en todas las colecciones relevantes
-    todasLasCompletaciones.push(fechaRutina);
-    
-    if (isToday(fechaRutina)) {
-      completadoHoy = true;
-      completacionesHoy.push(fechaRutina);
-    }
-    
-    if (estaEnMismaSemana(fechaRutina, hoy)) {
-      completacionesSemanaActual.push(fechaRutina);
-    }
-  } else {
-    // Invalidar todos los cachés relacionados con este ítem para forzar recálculo
-    // cuando se desmarca un ítem después de haber estado marcado
-    Object.keys(cacheHistorialCompletaciones).forEach(key => {
-      if (key.includes(`completaciones_${section}_${itemId}`)) {
-        delete cacheHistorialCompletaciones[key];
-      }
-    });
-  }
-  
-  // PARTE 2: Obtener historial del backend solo si es necesario
   try {
-    // OPTIMIZACIÓN: Solo obtener historial del backend si es un ítem con cadencia no diaria
-    // o si necesitamos información histórica
-    const itemConfig = rutina.config?.[section]?.[itemId];
-    const tipoCadencia = itemConfig?.tipo?.toUpperCase() || 'DIARIO';
-    
-    // Para ítems diarios que no están completados, podemos evitar la consulta al backend
-    const esDiario = tipoCadencia === 'DIARIO';
-    const consultaBackendNecesaria = !esDiario || estaCompletadoActualmente;
-    
-    if (consultaBackendNecesaria) {
-      // Definir rango de fechas óptimo para la consulta
-      // - Para diarios: solo consultar el día actual
-      // - Para semanales: consultar desde inicio de la semana
-      // - Para mensuales: consultar desde inicio del mes
-      let fechaInicio;
-      
-      if (esDiario) {
-        // Para diarios solo necesitamos verificar el día actual
-        fechaInicio = startOfDay(hoy);
-      } else if (tipoCadencia === 'SEMANAL') {
-        // Para semanales, consultar 2 semanas hacia atrás por seguridad
-        fechaInicio = subWeeks(inicioSemanaActual, 2);
-      } else {
-        // Para mensuales o cualquier otro, consultar 2 meses hacia atrás
-        fechaInicio = subMonths(inicioSemanaActual, 2);
-      }
-      
-      // Llamar al endpoint del backend
-      const datosHistorial = await rutinasService.getHistorialCompletaciones(
-        section, 
-        itemId, 
-        fechaInicio, 
-        finSemanaActual
-      );
-      
-      // Procesar completaciones recibidas
-      if (datosHistorial && datosHistorial.completaciones) {
-        datosHistorial.completaciones.forEach(comp => {
-          const fechaComp = new Date(comp.fecha);
-          
-          // IMPORTANTE: Para el día de hoy, solo contar si actualmente está marcado
-          // Para evitar contar completaciones antiguas del mismo día cuando el ítem está desmarcado
-          const esHoy = isToday(fechaComp);
-          if (esHoy && !estaCompletadoActualmente) {
-            return; // saltar esta iteración
-          }
-          
-          // Evitar duplicados si ya teníamos esta fecha en la rutina actual
-          if (!todasLasCompletaciones.some(f => isSameDay(f, fechaComp))) {
-            todasLasCompletaciones.push(fechaComp);
+    // PARTE 1: Procesar el historial local primero
+    if (rutina.historial) {
+      // Procesar historial por sección
+      if (rutina.historial[section]) {
+        Object.entries(rutina.historial[section]).forEach(([fecha, items]) => {
+          if (items?.[itemId]) {
+            const fechaObj = parseISO(fecha);
+            const fechaStr = fechaObj.toISOString().split('T')[0];
             
-            // Verificar si está en el día actual
-            if (esHoy && !completadoHoy) {
+            // Incrementar contador para este día
+            completacionesPorDia.set(fechaStr, (completacionesPorDia.get(fechaStr) || 0) + 1);
+            
+            todasLasCompletaciones.push(fechaObj);
+            
+            if (isToday(fechaObj)) {
               completadoHoy = true;
-              completacionesHoy.push(fechaComp);
+              completacionesHoy.push(fechaObj);
             }
             
-            // Verificar si está en la semana actual
-            if (estaEnMismaSemana(fechaComp, hoy)) {
-              completacionesSemanaActual.push(fechaComp);
+            if (isSameWeek(fechaObj, hoy, { locale: es })) {
+              completacionesSemanaActual.push(fechaObj);
+            }
+          }
+        });
+      }
+      
+      // Procesar historial de rutinas
+      if (Array.isArray(rutina.historial.rutinas)) {
+        rutina.historial.rutinas.forEach(rutinaHist => {
+          if (rutinaHist[section]?.[itemId]) {
+            const fechaObj = parseISO(rutinaHist.fecha);
+            const fechaStr = fechaObj.toISOString().split('T')[0];
+            
+            // Incrementar contador para este día
+            completacionesPorDia.set(fechaStr, (completacionesPorDia.get(fechaStr) || 0) + 1);
+            
+            todasLasCompletaciones.push(fechaObj);
+            
+            if (isToday(fechaObj)) {
+              completadoHoy = true;
+              completacionesHoy.push(fechaObj);
+            }
+            
+            if (isSameWeek(fechaObj, hoy, { locale: es })) {
+              completacionesSemanaActual.push(fechaObj);
             }
           }
         });
       }
     }
-  } catch (error) {
-    console.error(`[HISTORIAL] Error al obtener historial del backend:`, error);
     
-    // En caso de error, intentar usar el historial local como respaldo
-    if (rutina.historial && typeof rutina.historial === 'object') {
-      // OPTIMIZACIÓN: Usar un enfoque más eficiente para procesar el historial local
-      procesarHistorialLocal(
-        rutina, 
+    // PARTE 2: Si está completado actualmente, agregar la fecha actual
+    if (estaCompletadoActualmente) {
+      const fechaActual = new Date();
+      const fechaStr = fechaActual.toISOString().split('T')[0];
+      
+      // Incrementar contador para hoy
+      completacionesPorDia.set(fechaStr, (completacionesPorDia.get(fechaStr) || 0) + 1);
+      
+      todasLasCompletaciones.push(fechaActual);
+      completadoHoy = true;
+      completacionesHoy.push(fechaActual);
+      completacionesSemanaActual.push(fechaActual);
+    }
+    
+    // PARTE 3: Obtener historial del backend
+    const itemConfig = rutina.config?.[section]?.[itemId];
+    const tipoCadencia = itemConfig?.tipo?.toUpperCase() || 'DIARIO';
+    
+    if (tipoCadencia !== 'DIARIO' || estaCompletadoActualmente) {
+      const datosHistorial = await rutinasService.getHistorialCompletaciones(
         section, 
         itemId, 
-        estaCompletadoActualmente,
-        todasLasCompletaciones,
-        completacionesHoy,
-        completacionesSemanaActual,
-        hoy
+        subWeeks(inicioSemanaActual, 2), // Obtener 2 semanas de historial
+        finSemanaActual
       );
-    }
-  }
-  
-  // IMPORTANTE: Actualizar el estado de completadoHoy basado en el estado actual de la UI
-  // para el caso donde se ha desmarcado y remarcado varias veces
-  completadoHoy = estaCompletadoActualmente && isToday(new Date(rutina.fecha));
-  
-  // Eliminar duplicados por fecha y ordenar
-  const fechasUnicas = eliminarDuplicadosPorFecha(todasLasCompletaciones);
-  const fechasHoyUnicas = eliminarDuplicadosPorFecha(completacionesHoy);
-  const fechasSemanaUnicas = eliminarDuplicadosPorFecha(completacionesSemanaActual);
-  
-  // Construir resultado final
-  const resultado = {
-    todasLasCompletaciones: fechasUnicas,
-    completacionesHoy: fechasHoyUnicas,
-    completacionesSemanaActual: fechasSemanaUnicas,
-    completadoHoy,
-    conteoHoy: completadoHoy ? Math.max(1, fechasHoyUnicas.length) : 0,
-    conteoSemana: fechasSemanaUnicas.length,
-    estadoActualUI: estaCompletadoActualmente
-  };
-  
-  // Guardar en caché para futuras consultas
-  cacheHistorialCompletaciones[claveCache] = {
-    datos: resultado,
-    timestamp: Date.now()
-  };
-  
-  // OPTIMIZACIÓN: Limitar tamaño del caché historial para evitar memory leaks
-  const clavesHistorial = Object.keys(cacheHistorialCompletaciones);
-  if (clavesHistorial.length > 500) {
-    // Ordenar por timestamp y eliminar el 20% más antiguo
-    const clavesOrdenadas = clavesHistorial.sort((a, b) => 
-      cacheHistorialCompletaciones[a].timestamp - cacheHistorialCompletaciones[b].timestamp
-    );
-    
-    const eliminarCount = Math.floor(clavesHistorial.length * 0.2);
-    clavesOrdenadas.slice(0, eliminarCount).forEach(c => {
-      delete cacheHistorialCompletaciones[c];
-    });
-  }
-  
-  return resultado;
-}
-
-/**
- * Función auxiliar para procesar historial local de forma más eficiente
- */
-function procesarHistorialLocal(
-  rutina, 
-  section, 
-  itemId, 
-  estaCompletadoActualmente,
-  todasLasCompletaciones,
-  completacionesHoy,
-  completacionesSemanaActual,
-  fechaReferencia
-) {
-  // Set para rastrear fechas ya procesadas y evitar duplicados
-  const fechasProcesadas = new Set();
-  const hoy = fechaReferencia || new Date();
-  
-  // Función auxiliar para procesar una completación
-  const procesarCompletacion = (fechaObj, esCompletado) => {
-    if (!esCompletado) return;
-    
-    // Verificar si esta fecha ya fue procesada
-    const fechaStr = fechaObj.toISOString().split('T')[0];
-    if (fechasProcesadas.has(fechaStr)) return;
-    
-    // Para hoy, respetar estado actual
-    const esHoy = isToday(fechaObj);
-    if (esHoy && !estaCompletadoActualmente) return;
-    
-    // Registrar como procesada y añadir a colecciones relevantes
-    fechasProcesadas.add(fechaStr);
-    todasLasCompletaciones.push(fechaObj);
-    
-    if (esHoy) {
-      completacionesHoy.push(fechaObj);
+      
+      if (datosHistorial?.completaciones) {
+        datosHistorial.completaciones.forEach(comp => {
+          const fechaComp = new Date(comp.fecha);
+          const fechaStr = fechaComp.toISOString().split('T')[0];
+          
+          // Incrementar contador para este día
+          completacionesPorDia.set(fechaStr, (completacionesPorDia.get(fechaStr) || 0) + 1);
+          
+          todasLasCompletaciones.push(fechaComp);
+          
+          if (isToday(fechaComp)) {
+            completadoHoy = true;
+            completacionesHoy.push(fechaComp);
+          }
+          
+          if (isSameWeek(fechaComp, hoy, { locale: es })) {
+            completacionesSemanaActual.push(fechaComp);
+          }
+        });
+      }
     }
     
-    if (estaEnMismaSemana(fechaObj, hoy)) {
-      completacionesSemanaActual.push(fechaObj);
+    // PARTE 4: Calcular conteos finales usando el mapa de completaciones por día
+    const fechaHoyStr = hoy.toISOString().split('T')[0];
+    const conteoHoy = completacionesPorDia.get(fechaHoyStr) || 0;
+    
+    // Para el conteo semanal, sumar todas las completaciones de la semana
+    let conteoSemana = 0;
+    for (const [fecha, conteo] of completacionesPorDia.entries()) {
+      const fechaObj = new Date(fecha);
+      if (isSameWeek(fechaObj, hoy, { locale: es })) {
+        conteoSemana += conteo;
+      }
     }
-  };
-  
-  // 1. Procesar historial por sección
-  if (rutina.historial[section]) {
-    Object.entries(rutina.historial[section]).forEach(([fecha, items]) => {
-      const fechaObj = parseISO(fecha);
-      procesarCompletacion(fechaObj, items?.[itemId]);
-    });
+    
+    return {
+      todasLasCompletaciones,
+      completacionesHoy,
+      completacionesSemanaActual,
+      completadoHoy,
+      conteoHoy,
+      conteoSemana,
+      estadoActualUI: estaCompletadoActualmente,
+      completacionesPorDia
+    };
+  } catch (error) {
+    console.error('Error obteniendo datos de completación:', error);
+    return {
+      todasLasCompletaciones: [],
+      completacionesHoy: [],
+      completacionesSemanaActual: [],
+      completadoHoy: estaCompletadoActualmente,
+      conteoHoy: estaCompletadoActualmente ? 1 : 0,
+      conteoSemana: estaCompletadoActualmente ? 1 : 0,
+      estadoActualUI: estaCompletadoActualmente,
+      completacionesPorDia: new Map()
+    };
   }
-  
-  // 2. Procesar historial por rutinas
-  if (Array.isArray(rutina.historial.rutinas)) {
-    rutina.historial.rutinas.forEach(rutinaHist => {
-      const fechaObj = typeof rutinaHist.fecha === 'string' 
-        ? parseISO(rutinaHist.fecha) 
-        : rutinaHist.fecha;
-        
-      procesarCompletacion(fechaObj, rutinaHist[section]?.[itemId]);
-    });
-  }
-}
-
-/**
- * Auxiliar: Verifica si una fecha está en la misma semana que otra, 
- * usando lógica inclusiva para inicio y fin de semana
- */
-function estaEnMismaSemana(fecha1, fecha2) {
-  // Asegurar que las fechas sean objetos Date
-  const fechaObj1 = typeof fecha1 === 'string' ? parseISO(fecha1) : fecha1;
-  const fechaObj2 = typeof fecha2 === 'string' ? parseISO(fecha2) : fecha2;
-  
-  // Verificar si los años son diferentes
-  const año1 = fechaObj1.getFullYear();
-  const año2 = fechaObj2.getFullYear();
-  
-  // Si los años son muy diferentes, definitivamente no es la misma semana
-  if (Math.abs(año1 - año2) > 1) {
-    return false;
-  }
-  
-  // Para fechas cercanas al cambio de año, usamos lógica especial
-  const inicioSemana = startOfDay(startOfWeek(fechaObj2, { locale: es }));
-  const finSemana = endOfDay(endOfWeek(fechaObj2, { locale: es }));
-  
-  // Conversión a tiempo Unix para comparación más precisa
-  const tiempoFecha1 = fechaObj1.getTime();
-  const tiempoInicioSemana = inicioSemana.getTime();
-  const tiempoFinSemana = finSemana.getTime();
-  
-  // Debugging especial para detectar problemas con fechas
-  const esInicioOFinSemana = isSameDay(fechaObj1, inicioSemana) || isSameDay(fechaObj1, finSemana);
-  
-  if (esInicioOFinSemana) {
-    console.log(`[SEMANA-ESPECIAL] Fecha ${fechaObj1.toISOString().split('T')[0]} es inicio o fin de semana`);
-  }
-  
-  // Comprobar si la fecha está entre el inicio y fin de semana, inclusive
-  const dentroDeRango = tiempoFecha1 >= tiempoInicioSemana && tiempoFecha1 <= tiempoFinSemana;
-  
-  // Debugging adicional para GYM
-  if (dentroDeRango) {
-    console.log(`[SEMANA] Fecha ${fechaObj1.toISOString().split('T')[0]} está en la semana de ${fechaObj2.toISOString().split('T')[0]}`);
-  }
-  
-  return dentroDeRango;
 }
 
 /**

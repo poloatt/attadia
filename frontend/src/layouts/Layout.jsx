@@ -3,9 +3,11 @@ import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/Header';
-import Footer from '../components/Footer';
-import { SettingsOutlined as SettingsIcon } from '@mui/icons-material';
-import PersonIcon from '@mui/icons-material/Person';
+import { FooterNavigation } from '../navigation/navigationbar';
+import { 
+  SettingsOutlined as SettingsIcon,
+  Person as PersonIcon
+} from '@mui/icons-material';
 
 const menuItems = [
   { text: 'Configuración', icon: <SettingsIcon />, path: '/configuracion' },
@@ -55,7 +57,7 @@ export function Layout() {
           },
         }}
       >
-        <Box sx={{ height: '40px' }} /> {/* Ajustado a 40px para coincidir con el header */}
+        <Box sx={{ height: '40px' }} />
         <List sx={{ p: 1 }}>
           {menuItems.map((item) => (
             <ListItem key={item.text} disablePadding>
@@ -98,7 +100,7 @@ export function Layout() {
         sx={{
           flexGrow: 1,
           pt: '48px',
-          pb: '24px',
+          pb: '120px',
           pr: {
             xs: 0,
             sm: isOpen ? '240px' : 0
@@ -109,7 +111,8 @@ export function Layout() {
           display: 'flex',
           flexDirection: 'column',
           bgcolor: 'background.default',
-          overflow: 'auto'
+          overflow: 'auto',
+          position: 'relative'
         }}
       >
         <Box sx={{ 
@@ -129,7 +132,22 @@ export function Layout() {
         }}>
           <Outlet />
         </Box>
-        <Footer />
+        <Box
+          sx={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: theme.zIndex.appBar,
+            bgcolor: 'background.paper',
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
+          <FooterNavigation />
+        </Box>
       </Box>
     </Box>
   );

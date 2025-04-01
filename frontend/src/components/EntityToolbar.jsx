@@ -35,6 +35,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import EntityForm from './EntityViews/EntityForm';
 import PropiedadForm from './propiedades/PropiedadForm';
 import clienteAxios from '../config/axios';
+import { Link } from 'react-router-dom';
 
 const EntityToolbar = ({ 
   onAdd,
@@ -331,26 +332,22 @@ const EntityToolbar = ({
               {/* Íconos de navegación a la izquierda */}
               {finalNavigationItems.length > 0 && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  {finalNavigationItems.slice(0, Math.ceil(finalNavigationItems.length / 2)).map((item) => (
-                    <Tooltip key={item.to} title={item.label}>
+                  {finalNavigationItems.slice(0, Math.ceil(finalNavigationItems.length / 2)).map((item, index) => (
+                    <Tooltip
+                      key={`left-nav-${item.to}-${index}`}
+                      title={item.label}
+                      placement="bottom"
+                    >
                       <IconButton
-                        onClick={() => navigate(item.to)}
+                        component={Link}
+                        to={item.to}
                         size="small"
                         sx={{
-                          color: item.current ? 'primary.main' : 'text.secondary',
-                          bgcolor: item.current ? 'action.selected' : 'transparent',
-                          borderRadius: '50%',
-                          width: 38,
-                          height: 38,
-                          '&:hover': { 
-                            color: item.current ? 'primary.main' : 'text.primary',
-                            bgcolor: item.current ? 'action.selected' : 'action.hover'
-                          }
+                          p: 0.5,
+                          color: location.pathname === item.to ? 'primary.main' : 'text.secondary'
                         }}
                       >
-                        {React.cloneElement(item.icon, { 
-                          sx: { fontSize: item.current ? 24 : 21.6 }
-                        })}
+                        {item.icon}
                       </IconButton>
                     </Tooltip>
                   ))}
@@ -395,26 +392,22 @@ const EntityToolbar = ({
               {/* Íconos de navegación a la derecha */}
               {finalNavigationItems.length > 0 && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  {finalNavigationItems.slice(Math.ceil(finalNavigationItems.length / 2)).map((item) => (
-                    <Tooltip key={item.to} title={item.label}>
+                  {finalNavigationItems.slice(Math.ceil(finalNavigationItems.length / 2)).map((item, index) => (
+                    <Tooltip
+                      key={`right-nav-${item.to}-${index}`}
+                      title={item.label}
+                      placement="bottom"
+                    >
                       <IconButton
-                        onClick={() => navigate(item.to)}
+                        component={Link}
+                        to={item.to}
                         size="small"
                         sx={{
-                          color: item.current ? 'primary.main' : 'text.secondary',
-                          bgcolor: item.current ? 'action.selected' : 'transparent',
-                          borderRadius: '50%',
-                          width: 38,
-                          height: 38,
-                          '&:hover': { 
-                            color: item.current ? 'primary.main' : 'text.primary',
-                            bgcolor: item.current ? 'action.selected' : 'action.hover'
-                          }
+                          p: 0.5,
+                          color: location.pathname === item.to ? 'primary.main' : 'text.secondary'
                         }}
                       >
-                        {React.cloneElement(item.icon, { 
-                          sx: { fontSize: item.current ? 24 : 21.6 }
-                        })}
+                        {item.icon}
                       </IconButton>
                     </Tooltip>
                   ))}

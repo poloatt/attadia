@@ -924,7 +924,10 @@ class RutinasController extends BaseController {
       const { section, itemId } = req.params;
       const { fechaInicio, fechaFin } = req.query;
       
-      console.log(`[rutinasController] Buscando historial de completaciones para ${section}.${itemId}`);
+      console.log(`[rutinasController] Buscando historial de completaciones para ${section}.${itemId}`, {
+        fechaInicio,
+        fechaFin
+      });
       
       // Validar parámetros
       if (!section || !itemId) {
@@ -941,18 +944,28 @@ class RutinasController extends BaseController {
           params: { fechaInicio, fechaFin }
         });
       }
-      
-      // Procesar y normalizar fechas
+
+      // Procesar y normalizar fechas con manejo de errores mejorado
       let inicio, fin;
       try {
+        // Intentar crear objetos Date
         inicio = new Date(fechaInicio);
         fin = new Date(fechaFin);
         
         // Verificar si las fechas son válidas
-        if (isNaN(inicio.getTime()) || isNaN(fin.getTime())) {
+        if (isNaN(inicio.getTime())) {
+          console.error(`[rutinasController] Fecha inicio inválida: ${fechaInicio}`);
           return res.status(400).json({ 
-            error: 'Fechas inválidas', 
-            details: 'Las fechas proporcionadas no son válidas'
+            error: 'Fecha de inicio inválida',
+            fechaRecibida: fechaInicio
+          });
+        }
+        
+        if (isNaN(fin.getTime())) {
+          console.error(`[rutinasController] Fecha fin inválida: ${fechaFin}`);
+          return res.status(400).json({ 
+            error: 'Fecha de fin inválida',
+            fechaRecibida: fechaFin
           });
         }
         
@@ -960,11 +973,27 @@ class RutinasController extends BaseController {
         inicio.setUTCHours(0, 0, 0, 0);
         fin.setUTCHours(23, 59, 59, 999);
         
+        // Verificar que inicio no sea posterior a fin
+        if (inicio > fin) {
+          return res.status(400).json({
+            error: 'Rango de fechas inválido',
+            details: 'La fecha de inicio no puede ser posterior a la fecha de fin',
+            fechas: { inicio: inicio.toISOString(), fin: fin.toISOString() }
+          });
+        }
+        
+        // Log de fechas normalizadas
+        console.log('[rutinasController] Fechas normalizadas:', {
+          inicio: inicio.toISOString(),
+          fin: fin.toISOString()
+        });
+        
       } catch (fechaError) {
         console.error(`[rutinasController] Error al procesar fechas:`, fechaError);
         return res.status(400).json({ 
           error: 'Error al procesar fechas', 
-          details: fechaError.message
+          details: fechaError.message,
+          fechasRecibidas: { fechaInicio, fechaFin }
         });
       }
       

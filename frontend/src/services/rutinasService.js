@@ -1,9 +1,33 @@
 import clienteAxios from '../config/axios';
+import axios from 'axios';
+
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000;
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * Servicio para manejar operaciones relacionadas con rutinas
  */
 class RutinasService {
+  constructor() {
+    this.cache = new Map();
+    this.cacheTimeout = 5 * 60 * 1000;
+    this.pendingRequests = new Map();
+  }
+
+  async retryOperation(operation, retries = MAX_RETRIES) {
+    for (let i = 0; i < retries; i++) {
+      try {
+        return await operation();
+      } catch (error) {
+        if (i === retries - 1) throw error;
+        console.warn(`Intento ${i + 1} fallido, reintentando en ${RETRY_DELAY}ms...`);
+        await sleep(RETRY_DELAY * (i + 1));
+      }
+    }
+  }
+
   /**
    * Obtener todas las rutinas
    * @param {Object} options - Opciones de consulta
@@ -88,52 +112,189 @@ class RutinasService {
   }
 
   /**
-   * Marcar un ítem como completado/no completado
-   * @param {string} id - ID de la rutina
-   * @param {string} section - Sección del ítem (bodyCare, mental, etc.)
-   * @param {Object} data - Datos del ítem (ejemplo: {meditate: true})
-   * @returns {Promise} Respuesta con la rutina actualizada
+   * Obtiene el progreso actual de un ítem para el período actual
+   * @param {Object} rutina - Rutina actual
+   * @param {string} section - Sección del ítem
+   * @param {string} itemId - ID del ítem
+   * @returns {Object} Objeto con el progreso actual
+   */
+  obtenerProgresoItem(rutina, section, itemId) {
+    try {
+      const config = rutina?.config?.[section]?.[itemId];
+      if (!config) return null;
+
+      const ahora = new Date();
+      const tipo = config.tipo || 'DIARIO';
+      const frecuencia = config.frecuencia || 1;
+      const progresoActual = config.progresoActual || 0;
+      const ultimoPeriodo = config.ultimoPeriodo || {};
+
+      // Verificar si estamos en un nuevo período
+      const inicioPeriodo = this.calcularInicioPeriodo(tipo, ahora);
+      const finPeriodo = this.calcularFinPeriodo(tipo, ahora);
+      const enNuevoPeriodo = !ultimoPeriodo.inicio || new Date(ultimoPeriodo.inicio) < inicioPeriodo;
+
+      // Obtener completaciones del período actual
+      const completacionesPeriodo = config.completacionesPeriodo || [];
+      const completacionesValidas = completacionesPeriodo.filter(c => 
+        new Date(c.fecha) >= inicioPeriodo && new Date(c.fecha) <= finPeriodo
+      );
+
+      return {
+        tipo,
+        frecuencia,
+        progresoActual: enNuevoPeriodo ? 0 : progresoActual,
+        completacionesPeriodo: completacionesValidas,
+        periodo: {
+          inicio: inicioPeriodo,
+          fin: finPeriodo
+        },
+        cumplido: progresoActual >= frecuencia,
+        porcentaje: Math.min(100, (progresoActual / frecuencia) * 100)
+      };
+    } catch (error) {
+      console.error('[RutinasService] Error al obtener progreso:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Calcula el inicio del período actual según el tipo
+   * @param {string} tipo - Tipo de período (DIARIO, SEMANAL, MENSUAL)
+   * @param {Date} fecha - Fecha de referencia
+   * @returns {Date} Fecha de inicio del período
+   */
+  calcularInicioPeriodo(tipo, fecha) {
+    const inicio = new Date(fecha);
+    
+    switch (tipo) {
+      case 'SEMANAL':
+        inicio.setDate(inicio.getDate() - inicio.getDay());
+        break;
+      case 'MENSUAL':
+        inicio.setDate(1);
+        break;
+      default: // DIARIO
+        inicio.setHours(0, 0, 0, 0);
+    }
+    
+    return inicio;
+  }
+
+  /**
+   * Calcula el fin del período actual según el tipo
+   * @param {string} tipo - Tipo de período (DIARIO, SEMANAL, MENSUAL)
+   * @param {Date} fecha - Fecha de referencia
+   * @returns {Date} Fecha de fin del período
+   */
+  calcularFinPeriodo(tipo, fecha) {
+    const fin = new Date(fecha);
+    
+    switch (tipo) {
+      case 'SEMANAL':
+        fin.setDate(fin.getDate() - fin.getDay() + 6);
+        fin.setHours(23, 59, 59, 999);
+        break;
+      case 'MENSUAL':
+        fin.setMonth(fin.getMonth() + 1);
+        fin.setDate(0);
+        fin.setHours(23, 59, 59, 999);
+        break;
+      default: // DIARIO
+        fin.setHours(23, 59, 59, 999);
+    }
+    
+    return fin;
+  }
+
+  /**
+   * Verifica si un ítem está completado actualmente
+   * @param {string} section - Sección del ítem
+   * @param {string} itemId - ID del ítem
+   * @returns {boolean} - true si el ítem está completado
+   */
+  isItemCompletado(section, itemId) {
+    // Verificar en el caché local si el ítem está marcado como completado
+    const cacheKey = `${section}_${itemId}_completado`;
+    const estadoCache = this.cache.get(cacheKey);
+    
+    if (estadoCache !== undefined) {
+      return estadoCache;
+    }
+    
+    return false;
+  }
+
+  /**
+   * Versión mejorada de markComplete que maneja el progreso
    */
   async markComplete(id, section, data) {
     try {
-      // Validación básica
-      if (!id || typeof id !== 'string') throw new Error('ID de rutina inválido');
-      if (!section || typeof section !== 'string') throw new Error('Sección inválida');
-      if (!data || typeof data !== 'object') throw new Error('Datos inválidos');
-      
-      // Extraer el itemId y verificar que existe
+      if (!id || !section || !data) {
+        throw new Error('Parámetros inválidos');
+      }
+
       const itemId = Object.keys(data)[0];
       if (!itemId) throw new Error('No se proporcionó ID de ítem');
       
-      // Obtener el valor booleano explícito
       const isCompleted = data[itemId] === true;
       
-      // Estructura mínima para enviar - simplificada al máximo (sin anidación de objetos)
-      const payload = {};
-      payload[section] = {};
-      payload[section][itemId] = isCompleted;
+      // Actualizar caché local inmediatamente
+      const cacheKey = `${section}_${itemId}_completado`;
+      this.cache.set(cacheKey, isCompleted);
       
-      console.log(`[rutinasService] 🔄 PUT /api/rutinas/${id}:`, JSON.stringify(payload));
-      
-      // Petición simple con manejo de errores
-      try {
-        const response = await clienteAxios.put(`/api/rutinas/${id}`, payload);
-        console.log(`[rutinasService] ✅ Actualización exitosa de ${section}.${itemId}`);
-        return response.data;
-      } catch (error) {
-        // Logging detallado del error
-        console.error(`[rutinasService] ❌ Error HTTP (${error.response?.status || 'desconocido'}):`);
-        if (error.response?.data) {
-          console.error(`- Mensaje del servidor: ${error.response.data.error || 'No disponible'}`);
-          console.error(`- Detalles: ${error.response.data.details || 'No disponible'}`);
+      // Estructura para actualizar
+      const payload = {
+        [section]: {
+          [itemId]: isCompleted
+        },
+        historial: {
+          [section]: {
+            [new Date().toISOString()]: {
+              [itemId]: isCompleted
+            }
+          }
+        },
+        _metadata: {
+          timestamp: new Date().toISOString(),
+          action: isCompleted ? 'COMPLETE' : 'UNCOMPLETE'
         }
-        throw error;
+      };
+
+      console.log(`[RutinasService] 🔄 Actualizando ${section}.${itemId} a ${isCompleted}`);
+      
+      const response = await clienteAxios.put(`/api/rutinas/${id}`, payload);
+      
+      if (response.data) {
+        // Invalidar caché de historial
+        this.invalidateCache(section, itemId);
+        
+        console.log(`[RutinasService] ✅ Actualización exitosa de ${section}.${itemId}`);
+        return response.data;
       }
+
+      throw new Error('No se recibió respuesta del servidor');
     } catch (error) {
-      // Propagar el error para manejo en componentes
-      console.error(`[rutinasService] ⚠️ Error general: ${error.message}`);
+      // En caso de error, revertir el caché local
+      const cacheKey = `${section}_${itemId}_completado`;
+      this.cache.delete(cacheKey);
+      
+      console.error(`[RutinasService] ❌ Error al marcar completación:`, error);
       throw error;
     }
+  }
+
+  /**
+   * Invalida la caché para una sección y ítem específicos
+   */
+  invalidateCache(section, itemId) {
+    const keysToRemove = [];
+    for (const key of this.cache.keys()) {
+      if (key.startsWith(`${section}_${itemId}_`)) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => this.cache.delete(key));
   }
 
   /**
@@ -144,77 +305,125 @@ class RutinasService {
    * @param {Date|string} fechaFin - Fecha de fin para la consulta
    * @returns {Promise} Promesa con el resultado de la consulta
    */
-  async getHistorialCompletaciones(section, itemId, fechaInicio, fechaFin) {
+  async obtenerHistorialCompletaciones(section, itemId, fechaInicio, fechaFin) {
     try {
-      console.log(`[rutinasService] Obteniendo historial para ${section}.${itemId}`);
-      
-      // Usar una fecha de inicio muy anterior para asegurar capturar todas las completaciones
-      // Si no se especifica fecha de inicio, usar 3 meses atrás 
-      const defaultFechaInicio = new Date();
-      defaultFechaInicio.setMonth(defaultFechaInicio.getMonth() - 3);
-      
-      // Convertir fechas a formato ISO si son objetos Date
-      const inicio = fechaInicio instanceof Date 
-        ? fechaInicio.toISOString() 
-        : (fechaInicio || defaultFechaInicio.toISOString());
-        
-      const fin = fechaFin instanceof Date 
-        ? fechaFin.toISOString() 
-        : (fechaFin || new Date().toISOString());
-      
-      // Debugging: Mostrar fechas que estamos usando
-      console.log(`[rutinasService] Rango de fechas para consulta:`, {
-        inicio: new Date(inicio).toLocaleDateString(),
-        fin: new Date(fin).toLocaleDateString()
-      });
-      
-      // Construir URL con parámetros
-      const url = `/api/rutinas/historial-completaciones/${section}/${itemId}?fechaInicio=${inicio}&fechaFin=${fin}`;
-      
-      console.log(`[rutinasService] URL de consulta: ${url}`);
-      
-      // Realizar la petición al backend
-      const response = await clienteAxios.get(url);
-      
-      // Mostrar información de fechas para depuración
-      if (response.data && response.data.completaciones) {
-        console.log(`[rutinasService] Recibidas ${response.data.total} completaciones`);
-        
-        // Ordenar completaciones por fecha para mejor visualización
-        const completacionesOrdenadas = [...response.data.completaciones].sort((a, b) => 
-          new Date(a.fecha) - new Date(b.fecha)
-        );
-        
-        console.log('[rutinasService] Fechas encontradas (ordenadas):');
-        completacionesOrdenadas.forEach((comp, idx) => {
-          const fecha = new Date(comp.fecha);
-          const fechaStr = fecha.toISOString().split('T')[0];
-          console.log(`  ${idx+1}. ${fechaStr} [${comp.rutinaId}]`);
-        });
-        
-        // Mostrar completaciones agrupadas por semana
-        if (response.data.completacionesPorSemana) {
-          console.log('[rutinasService] Completaciones por semana:');
-          Object.entries(response.data.completacionesPorSemana).forEach(([semana, comps]) => {
-            const completacionesFechas = comps.map(c => 
-              new Date(c.fecha).toISOString().split('T')[0]
-            ).join(', ');
-            console.log(`  - Semana ${semana}: ${comps.length} completaciones (${completacionesFechas})`);
-          });
-        }
-        
-        // Añadir las completaciones a la caché global para debugging
-        if (!window.completacionesCache) {
-          window.completacionesCache = {};
-        }
-        window.completacionesCache[`${section}_${itemId}`] = completacionesOrdenadas;
+      // Validación básica de parámetros
+      if (!section || !itemId) {
+        console.error('[RutinasService] ❌ Sección o itemId no proporcionados');
+        return [];
       }
+
+      // Normalizar fechas con manejo de errores mejorado
+      let inicio, fin;
+      try {
+        // Obtener fecha actual y año máximo permitido
+        const ahora = new Date();
+        const añoMaximo = 2024; // Año máximo permitido
+
+        // Procesar fecha de inicio
+        if (!fechaInicio) {
+          inicio = new Date(ahora);
+          inicio.setDate(inicio.getDate() - 30); // Por defecto, últimos 30 días
+        } else {
+          inicio = fechaInicio instanceof Date ? new Date(fechaInicio) : new Date(fechaInicio);
+        }
+
+        // Procesar fecha de fin
+        if (!fechaFin) {
+          fin = new Date(ahora);
+        } else {
+          fin = fechaFin instanceof Date ? new Date(fechaFin) : new Date(fechaFin);
+        }
+
+        // Corregir años futuros
+        if (inicio.getFullYear() > añoMaximo) {
+          console.log(`[RutinasService] ⚠️ Corrigiendo año futuro ${inicio.getFullYear()} a ${añoMaximo} en fecha inicio`);
+          inicio.setFullYear(añoMaximo);
+        }
+        if (fin.getFullYear() > añoMaximo) {
+          console.log(`[RutinasService] ⚠️ Corrigiendo año futuro ${fin.getFullYear()} a ${añoMaximo} en fecha fin`);
+          fin.setFullYear(añoMaximo);
+        }
+
+        // Verificar que las fechas sean válidas
+        if (isNaN(inicio.getTime())) {
+          console.error('[RutinasService] ❌ Fecha de inicio inválida:', fechaInicio);
+          throw new Error(`Fecha de inicio inválida: ${fechaInicio}`);
+        }
+
+        if (isNaN(fin.getTime())) {
+          console.error('[RutinasService] ❌ Fecha de fin inválida:', fechaFin);
+          throw new Error(`Fecha de fin inválida: ${fechaFin}`);
+        }
+
+        // Normalizar horas
+        inicio.setUTCHours(0, 0, 0, 0);
+        fin.setUTCHours(23, 59, 59, 999);
+
+        // Verificar que inicio no sea posterior a fin
+        if (inicio > fin) {
+          console.error('[RutinasService] ❌ Fecha de inicio posterior a fecha fin');
+          throw new Error('La fecha de inicio no puede ser posterior a la fecha fin');
+        }
+
+        // Log detallado del rango de fechas
+        console.log('[RutinasService] 📅 Rango de fechas procesado:', {
+          inicio: inicio.toISOString(),
+          fin: fin.toISOString(),
+          section,
+          itemId
+        });
+
+      } catch (error) {
+        console.error('[RutinasService] ❌ Error al procesar fechas:', error);
+        return [];
+      }
+
+      // Generar clave de caché
+      const cacheKey = `${section}_${itemId}_${inicio.toISOString()}_${fin.toISOString()}`;
       
-      return response.data;
+      // Verificar caché
+      const cachedData = this.getFromCache(cacheKey);
+      if (cachedData) {
+        console.log(`[RutinasService] ✅ Usando datos en caché para ${cacheKey}`);
+        return cachedData;
+      }
+
+      // Configurar parámetros para la consulta
+      const params = { 
+        fechaInicio: inicio.toISOString(),
+        fechaFin: fin.toISOString()
+      };
+
+      // Realizar la petición al backend
+      const response = await clienteAxios.get(`/api/rutinas/historial-completaciones/${section}/${itemId}`, { params });
+      
+      if (response.data) {
+        this.setInCache(cacheKey, response.data);
+        console.log(`[RutinasService] ✅ Datos obtenidos y guardados en caché para ${section}.${itemId}`);
+        return response.data;
+      }
+
+      return [];
     } catch (error) {
-      console.error('[rutinasService] Error al obtener historial de completaciones:', error);
-      throw new Error(`Error al obtener historial: ${error.message}`);
+      console.error(`[RutinasService] ❌ Error al obtener historial de completaciones:`, error);
+      return [];
     }
+  }
+
+  getCacheKey(section, itemId, fechaInicio, fechaFin) {
+    // Implementa la lógica para generar una clave única para la caché basada en los parámetros
+    return `${section}_${itemId}_${fechaInicio}_${fechaFin}`;
+  }
+
+  getFromCache(key) {
+    // Implementa la lógica para obtener datos de la caché
+    return this.cache.get(key);
+  }
+
+  setInCache(key, data) {
+    // Implementa la lógica para almacenar datos en la caché
+    this.cache.set(key, data);
   }
 }
 

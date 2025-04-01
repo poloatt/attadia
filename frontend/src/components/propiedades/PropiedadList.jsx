@@ -1,5 +1,6 @@
-import React from 'react';
-import { Grid, Box, Typography } from '@mui/material';
+import React, { useState } from 'react';
+import { Grid, Box, Typography, IconButton } from '@mui/material';
+import { ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon } from '@mui/icons-material';
 import PropiedadCard from './PropiedadCard';
 import EmptyState from '../EmptyState';
 
@@ -8,70 +9,66 @@ const PropiedadList = ({
   onEdit, 
   onDelete, 
   onAdd,
-  filteredPropiedades = []
+  filteredPropiedades = [],
+  isDashboard = false,
+  contratos = []
 }) => {
+  // Inicializar todas las propiedades como colapsadas
+  const [expandedProperties, setExpandedProperties] = useState({});
+
   // Usar propiedades filtradas si existen, sino usar todas las propiedades
   const propiedadesToRender = filteredPropiedades.length > 0 ? filteredPropiedades : propiedades;
   
-  // Log para depuración
-  console.log('PropiedadList - propiedades a renderizar:', propiedadesToRender);
-  
   // Si no hay propiedades, mostrar estado vacío
-  if (!propiedadesToRender || propiedadesToRender.length === 0) {
+  if (!propiedadesToRender?.length) {
     return <EmptyState onAdd={onAdd} />;
   }
+
+  const handleToggleExpand = (propiedadId) => {
+    setExpandedProperties(prev => ({
+      ...prev,
+      [propiedadId]: !prev[propiedadId]
+    }));
+  };
   
   return (
-    <Grid container spacing={2}>
+    <Box sx={{ mt: isDashboard ? 0 : 2 }}>
       {propiedadesToRender.map((propiedad) => {
         // Verificar si hay datos relacionados disponibles
-        // Utilizamos un enfoque más seguro para inicializar los arreglos relacionados
         const propiedadConDatos = {
           ...propiedad,
           inquilinos: Array.isArray(propiedad.inquilinos) ? propiedad.inquilinos : [],
           habitaciones: Array.isArray(propiedad.habitaciones) ? propiedad.habitaciones : [],
-          contratos: Array.isArray(propiedad.contratos) ? propiedad.contratos : [],
+          contratos: Array.isArray(propiedad.contratos) ? propiedad.contratos : 
+                    contratos.filter(c => c.propiedad?._id === propiedad._id),
           inventario: Array.isArray(propiedad.inventario) ? propiedad.inventario : []
         };
         
-        // Log de depuración para inquilinos
-        if (propiedadConDatos.inquilinos.length > 0) {
-          console.log(`Inquilinos para ${propiedad.titulo}:`, 
-            propiedadConDatos.inquilinos.map(inq => ({
-              id: inq._id || inq.id,
-              nombre: inq.nombre || 'Sin nombre',
-              apellido: inq.apellido || 'Sin apellido'
-            }))
-          );
-        } else {
-          console.log(`No hay inquilinos para ${propiedad.titulo}`);
-        }
-        
-        console.log(`PropiedadCard para ${propiedad.titulo}:`, {
-          inquilinos: propiedadConDatos.inquilinos.length,
-          habitaciones: propiedadConDatos.habitaciones.length,
-          contratos: propiedadConDatos.contratos.length,
-          inventario: propiedadConDatos.inventario.length
-        });
-        
         return (
-          <Grid 
-            item 
-            key={propiedad._id || propiedad.id} 
-            xs={12} 
-            sm={6} 
-            md={4} 
-            lg={3}
+          <Box 
+            key={propiedad._id || propiedad.id}
+            sx={{ 
+              mb: 1,
+              pb: 1,
+              bgcolor: 'background.default',
+              '&:last-child': {
+                mb: 0,
+                pb: 0
+              }
+            }}
           >
             <PropiedadCard
               propiedad={propiedadConDatos}
               onEdit={onEdit}
               onDelete={onDelete}
+              isDashboard={isDashboard}
+              isExpanded={expandedProperties[propiedad._id || propiedad.id] || false}
+              onToggleExpand={() => handleToggleExpand(propiedad._id || propiedad.id)}
             />
-          </Grid>
+          </Box>
         );
       })}
-    </Grid>
+    </Box>
   );
 };
 

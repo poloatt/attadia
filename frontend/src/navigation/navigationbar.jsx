@@ -1,7 +1,15 @@
 import React from 'react';
 import { useNavigationBar } from '../context/NavigationBarContext';
 import { styled } from '@mui/material/styles';
-import { AppBar, Toolbar, Typography, Box } from '@mui/material';
+import { AppBar, Toolbar, Typography, Box, BottomNavigation, BottomNavigationAction, Paper } from '@mui/material';
+import { 
+  DashboardOutlined as DashboardIcon,
+  FitnessCenterOutlined as RutinasIcon,
+  TaskAltOutlined as TareasIcon,
+  AccountBalanceWalletOutlined as WalletIcon,
+  CalendarMonthOutlined as CalendarIcon
+} from '@mui/icons-material';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const StyledAppBar = styled(AppBar)(({ theme }) => ({
   backgroundColor: '#000000',
@@ -46,6 +54,98 @@ const MinimalNavigationBar = () => {
         </Box>
       </StyledToolbar>
     </StyledAppBar>
+  );
+};
+
+export const FooterNavigation = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const navigationItems = [
+    {
+      path: '/',
+      icon: <WalletIcon />,
+      label: 'Assets'
+    },
+    {
+      path: '/rutinas',
+      icon: <CalendarIcon />,
+      label: 'Rutinas'
+    },
+    {
+      path: '/tareas',
+      icon: <TareasIcon />,
+      label: 'Tareas'
+    }
+  ];
+
+  return (
+    <Paper
+      sx={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        borderRadius: 0,
+        bgcolor: 'background.paper',
+        borderTop: '1px solid',
+        borderColor: 'divider',
+        zIndex: 1000,
+        filter: 'brightness(1.15)',
+        '& .MuiBottomNavigation-root': {
+          bgcolor: 'transparent'
+        }
+      }}
+      elevation={0}
+    >
+      <BottomNavigation
+        showLabels={false}
+        value={navigationItems.findIndex(item => item.path === location.pathname)}
+        sx={{
+          bgcolor: 'transparent',
+          height: 83,
+          '& .MuiBottomNavigationAction-root': {
+            padding: 1.75,
+            minWidth: 'auto',
+            '&.Mui-selected': {
+              '& .MuiSvgIcon-root': {
+                transform: 'scale(1.2)',
+                color: 'primary.main',
+                filter: 'brightness(1.15)',
+                transition: 'all 0.2s ease'
+              }
+            }
+          }
+        }}
+      >
+        {navigationItems.map((item, index) => (
+          <BottomNavigationAction
+            key={item.path}
+            icon={item.icon}
+            onClick={() => navigate(item.path)}
+            sx={{
+              minWidth: 'auto',
+              padding: 1.15,
+              '& .MuiSvgIcon-root': {
+                fontSize: '2rem',
+                transition: 'all 0.2s ease',
+                color: location.pathname === item.path ? 'primary.main' : 'text.secondary',
+                opacity: location.pathname === item.path ? 1 : 0.85,
+                filter: location.pathname === item.path ? 'brightness(1.15)' : 'brightness(1.05)'
+              },
+              '&:hover': {
+                '& .MuiSvgIcon-root': {
+                  color: 'primary.main',
+                  transform: 'scale(1.15)',
+                  opacity: 1,
+                  filter: 'brightness(1.15)'
+                }
+              }
+            }}
+          />
+        ))}
+      </BottomNavigation>
+    </Paper>
   );
 };
 

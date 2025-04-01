@@ -17,6 +17,109 @@ const getAuthConfig = () => {
  * Servicio para manejar operaciones relacionadas con rutinas
  */
 class RutinasService {
+  constructor() {
+    this.cache = new Map();
+    this.cacheTimeout = 5 * 60 * 1000; // 5 minutos
+  }
+
+  getCacheKey(section, itemId, fechaInicio, fechaFin) {
+    return `${section}_${itemId}_${fechaInicio}_${fechaFin}`;
+  }
+
+  getFromCache(cacheKey) {
+    const cached = this.cache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+      console.log(`[RutinasService] ✅ Usando datos en caché para ${cacheKey}`);
+      return cached.data;
+    }
+    return null;
+  }
+
+  setInCache(cacheKey, data) {
+    this.cache.set(cacheKey, {
+      data,
+      timestamp: Date.now()
+    });
+  }
+
+  isItemCompletado(section, itemId) {
+    // Verificar en el caché local si el ítem está marcado como completado
+    const cacheKey = `${section}_${itemId}_completado`;
+    const estadoCache = this.cache.get(cacheKey);
+    
+    if (estadoCache !== undefined) {
+      return estadoCache;
+    }
+    
+    return false;
+  }
+
+  async obtenerHistorialCompletaciones(section, itemId, fechaInicio, fechaFin) {
+    try {
+      // Validar parámetros
+      if (!fechaInicio || !fechaFin) {
+        console.error('[RutinasService] ❌ Fechas requeridas:', { fechaInicio, fechaFin });
+        return [];
+      }
+
+      // Normalizar fechas
+      const fechaInicioObj = fechaInicio instanceof Date ? fechaInicio : new Date(fechaInicio);
+      const fechaFinObj = fechaFin instanceof Date ? fechaFin : new Date(fechaFin);
+
+      // Validar que las fechas son válidas
+      if (isNaN(fechaInicioObj.getTime()) || isNaN(fechaFinObj.getTime())) {
+        console.error('[RutinasService] ❌ Fechas inválidas:', { fechaInicio, fechaFin });
+        return [];
+      }
+
+      // Normalizar año si es necesario
+      const maxYear = 2024;
+      if (fechaInicioObj.getFullYear() > maxYear) {
+        console.warn(`[RutinasService] ⚠️ Corrigiendo año futuro ${fechaInicioObj.getFullYear()} a ${maxYear}`);
+        fechaInicioObj.setFullYear(maxYear);
+      }
+      if (fechaFinObj.getFullYear() > maxYear) {
+        console.warn(`[RutinasService] ⚠️ Corrigiendo año futuro ${fechaFinObj.getFullYear()} a ${maxYear}`);
+        fechaFinObj.setFullYear(maxYear);
+      }
+
+      // Verificar el orden de las fechas
+      if (fechaInicioObj > fechaFinObj) {
+        console.warn('[RutinasService] ⚠️ Fechas en orden incorrecto, intercambiando');
+        [fechaInicioObj, fechaFinObj] = [fechaFinObj, fechaInicioObj];
+      }
+
+      const cacheKey = this.getCacheKey(section, itemId, fechaInicioObj.toISOString(), fechaFinObj.toISOString());
+      const cachedData = this.getFromCache(cacheKey);
+      
+      if (cachedData) {
+        return cachedData;
+      }
+
+      console.log(`[RutinasService] Obteniendo historial para ${section}.${itemId}`);
+      
+      const params = { 
+        fechaInicio: fechaInicioObj.toISOString(),
+        fechaFin: fechaFinObj.toISOString()
+      };
+
+      const response = await clienteAxios.get(`/api/rutinas/historial-completaciones/${section}/${itemId}`, { params });
+      
+      if (response.data) {
+        const historial = Array.isArray(response.data) ? response.data : 
+                         Array.isArray(response.data.completaciones) ? response.data.completaciones : [];
+        
+        this.setInCache(cacheKey, historial);
+        return historial;
+      }
+
+      return [];
+    } catch (error) {
+      console.error(`[RutinasService] Error al obtener historial de completaciones:`, error);
+      return [];
+    }
+  }
+
   /**
    * Obtener todas las rutinas
    * @param {Object} options - Opciones de consulta
@@ -474,6 +577,63 @@ class RutinasService {
       return [];
     }
   }
+
+  /**
+   * Obtiene la configuración de un ítem específico
+   * @param {string} section - Sección del ítem
+   * @param {string} itemId - ID del ítem
+   * @returns {Promise<Object>} Configuración del ítem
+   */
+  async obtenerConfiguracionItem(section, itemId) {
+    try {
+      // Intentar obtener del caché primero
+      const cacheKey = `config_${section}_${itemId}`;
+      const cachedConfig = this.getFromCache(cacheKey);
+      
+      if (cachedConfig) {
+        return cachedConfig;
+      }
+
+      // Si no está en caché, obtener del servidor
+      const response = await clienteAxios.get(`/api/rutinas/config/${section}/${itemId}`);
+      
+      if (response.data) {
+        this.setInCache(cacheKey, response.data);
+        return response.data;
+      }
+
+      // Si no hay datos, retornar configuración por defecto
+      return {
+        tipo: 'DIARIO',
+        periodo: 'CADA_DIA',
+        frecuencia: 1,
+        diasSemana: [],
+        diasMes: [],
+        activo: true
+      };
+    } catch (error) {
+      console.error(`[RutinasService] Error al obtener configuración de ${section}.${itemId}:`, error);
+      // Retornar configuración por defecto en caso de error
+      return {
+        tipo: 'DIARIO',
+        periodo: 'CADA_DIA',
+        frecuencia: 1,
+        diasSemana: [],
+        diasMes: [],
+        activo: true
+      };
+    }
+  }
 }
 
-export default new RutinasService(); 
+// Exportar una instancia única del servicio
+const rutinasService = new RutinasService();
+
+// Asegurarnos de que todos los métodos necesarios estén disponibles
+Object.assign(rutinasService, {
+  obtenerConfiguracionItem: rutinasService.obtenerConfiguracionItem.bind(rutinasService),
+  obtenerHistorialCompletaciones: rutinasService.obtenerHistorialCompletaciones.bind(rutinasService),
+  // ... otros métodos que necesiten estar disponibles
+});
+
+export default rutinasService; 
