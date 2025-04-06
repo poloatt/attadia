@@ -79,27 +79,21 @@ export function DataCorporal() {
     }
   };
 
+  const handleBack = () => {
+    navigate('/rutinas');
+  };
+
   return (
     <Container maxWidth="lg">
       <EntityToolbar
         onAdd={() => handleOpenDialog()}
         showBackButton={true}
-        onBack={() => navigate('/dashboard')}
+        onBack={handleBack}
         navigationItems={[
           {
             icon: <LabIcon sx={{ fontSize: 21.6 }} />,
             label: 'Lab',
             to: '/lab'
-          },
-          {
-            icon: <HealthIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Salud',
-            to: '/salud'
-          },
-          {
-            icon: <DateIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Rutinas',
-            to: '/rutinas'
           },
           {
             icon: <DietaIcon sx={{ fontSize: 21.6 }} />,

@@ -107,11 +107,10 @@ export const formatDate = (fecha) => {
       return new Date().toISOString().split('T')[0];
     }
     
-    // Normalizar la fecha para evitar problemas con zonas horarias
-    // Al usar UTC, aseguramos que la fecha se mantiene constante independientemente de la zona horaria
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(date.getUTCDate()).padStart(2, '0');
+    // Usar la fecha local en lugar de UTC para evitar problemas de zona horaria
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
     
     console.log(`[iconConfig] Formato de fecha: ${fecha} -> ${year}-${month}-${day}`);
     

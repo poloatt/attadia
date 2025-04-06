@@ -21,7 +21,7 @@ import {
   Fab,
   Tooltip
 } from '@mui/material';
-import { StaticDatePicker } from '@mui/x-date-pickers/StaticDatePicker';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { es } from 'date-fns/locale';
@@ -31,21 +31,15 @@ import DateRangeIcon from '@mui/icons-material/DateRange';
 import EventIcon from '@mui/icons-material/Event';
 import SettingsIcon from '@mui/icons-material/Settings';
 import clienteAxios from '../../config/axios';
-import { useSnackbar } from 'notistack';
+import useCustomSnackbar from '../common/CustomSnackbar.jsx';
 import { useDebounce } from './utils/hooks';
 import { defaultFormData, formatDate, iconConfig } from './utils/iconConfig';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useRutinasCRUD } from '../../hooks/useRutinasCRUD';
 import { useAuth } from '../../hooks/useAuth';
 import ChecklistSection from './ChecklistSection';
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import TextField from "@mui/material/TextField";
-import { format } from 'date-fns';
-import SyncIcon from '@mui/icons-material/Sync';
-import PublishIcon from '@mui/icons-material/Publish';
 import SaveIcon from '@mui/icons-material/Save';
-import UserHabitsPreferences from './UserHabitsPreferences';
-import TuneIcon from '@mui/icons-material/Tune';
 
 export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => {
   const theme = useTheme();
@@ -57,7 +51,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
   const [isLoadingDates, setIsLoadingDates] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { enqueueSnackbar } = useSnackbar();
+  const { enqueueSnackbar } = useCustomSnackbar();
   const { user } = useAuth();
   const submitButtonRef = useRef(null);
   const submitInProgress = useRef(false);
@@ -79,14 +73,23 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
   });
 
   const [formData, setFormData] = useState(() => {
-    if (!initialData) return { 
-      fecha: defaultFormData.fecha,
-      useGlobalConfig: true // Siempre usar configuración global por defecto
-    };
+    // Si estamos editando, usar la fecha de la rutina existente
+    if (initialData && initialData.fecha) {
+      return {
+        fecha: new Date(initialData.fecha).toISOString().split('T')[0],
+        useGlobalConfig: true
+      };
+    }
     
-    return {
-      fecha: initialData.fecha ? new Date(initialData.fecha).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-      useGlobalConfig: true // Siempre usar configuración global por defecto
+    // Si no, siempre usar la fecha actual (hoy) usando la hora local
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    
+    return { 
+      fecha: `${year}-${month}-${day}`,
+      useGlobalConfig: true
     };
   });
 
@@ -147,9 +150,15 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
   }, [debouncedFecha, initialData]);
 
   const handleDateChange = (newDate) => {
+    if (!newDate) return;
+    
+    const year = newDate.getFullYear();
+    const month = String(newDate.getMonth() + 1).padStart(2, '0');
+    const day = String(newDate.getDate()).padStart(2, '0');
+    
     setFormData(prev => ({
       ...prev,
-      fecha: newDate.toISOString().split('T')[0]
+      fecha: `${year}-${month}-${day}`
     }));
   };
 
@@ -406,16 +415,6 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
     }
   };
 
-  const [preferencesDialogOpen, setPreferencesDialogOpen] = useState(false);
-
-  const handleOpenPreferencesDialog = () => {
-    setPreferencesDialogOpen(true);
-  };
-
-  const handleClosePreferencesDialog = () => {
-    setPreferencesDialogOpen(false);
-  };
-
   return (
     <Dialog
       open={open}
@@ -432,61 +431,97 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
     >
       <DialogTitle 
         sx={{ 
-          p: 2,
-          bgcolor: 'primary.main',
-          color: 'primary.contrastText',
+          p: 1.5,
+          bgcolor: theme.palette.background.default,
+          color: 'text.primary',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          borderBottom: `1px solid ${theme.palette.divider}`
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <EventIcon />
-          <Typography variant="h6">
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: 'action.selected',
+            borderRadius: '50%',
+            width: 38,
+            height: 38,
+          }}>
+            <EventIcon sx={{ fontSize: 24, color: 'primary.main' }} />
+          </Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
             {isEditing ? 'Editar Rutina' : 'Nueva Rutina'}
           </Typography>
         </Box>
         <IconButton
           size="small"
           onClick={onClose}
-          sx={{ color: 'white' }}
+          sx={{ 
+            color: 'text.secondary',
+            '&:hover': { 
+              color: 'text.primary',
+              bgcolor: 'action.hover',
+            },
+            borderRadius: '50%',
+          }}
         >
-          <CloseIcon />
+          <CloseIcon sx={{ fontSize: 21.6 }} />
         </IconButton>
       </DialogTitle>
       
-      <DialogContent dividers sx={{ p: 3 }}>
+      <DialogContent dividers sx={{ p: 3, bgcolor: theme.palette.background.default }}>
         <Grid container spacing={3}>
           <Grid item xs={12} md={5}>
-            <Card variant="outlined" sx={{ mb: 3 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <DateRangeIcon fontSize="small" />
-                  Fecha
-                </Typography>
-                
-                <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-                  <StaticDatePicker
-                    displayStaticWrapperAs="desktop"
-                    value={formData.fecha ? new Date(formData.fecha) : null}
-                    onChange={handleDateChange}
-                    renderInput={(params) => <TextField {...params} fullWidth />}
-                    maxDate={new Date(new Date().setMonth(new Date().getMonth() + 12))}
-                    minDate={new Date(new Date().setMonth(new Date().getMonth() - 12))}
-                  />
-                </LocalizationProvider>
-                
-                {fechaError && (
-                  <Alert severity="warning" sx={{ mt: 2 }}>
-                    {fechaError}
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="body1" gutterBottom fontWeight={500}>
+                Fecha
+              </Typography>
+              
+              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+                <DatePicker
+                  label="Selecciona una fecha"
+                  value={formData.fecha ? new Date(formData.fecha) : new Date()}
+                  onChange={handleDateChange}
+                  renderInput={(params) => <TextField {...params} fullWidth />}
+                  disablePast={false}
+                  maxDate={new Date(new Date().setMonth(new Date().getMonth() + 6))}
+                  minDate={new Date(new Date().setMonth(new Date().getMonth() - 6))}
+                  inputFormat="dd/MM/yyyy"
+                  views={['day', 'month', 'year']}
+                  showToolbar={false}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 0,
+                      '&.Mui-focused fieldset': {
+                        borderColor: 'primary.main',
+                        borderWidth: 1
+                      }
+                    }
+                  }}
+                />
+              </LocalizationProvider>
+              
+              {fechaError && (
+                <Alert 
+                  severity="warning" 
+                  sx={{ 
+                    mt: 2, 
+                    borderRadius: 0,
+                    bgcolor: 'warning.light', 
+                    color: 'warning.dark'
+                  }}
+                >
+                  {fechaError}
+                </Alert>
+              )}
+            </Box>
           </Grid>
           
           <Grid item xs={12} md={7}>
-            <Typography variant="h6" gutterBottom>
+            <Typography variant="body1" gutterBottom fontWeight={500}>
               Configuración de la rutina
             </Typography>
             
@@ -540,7 +575,6 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
                 <Button
                   variant="outlined"
                   color="primary"
-                  startIcon={<SyncIcon />}
                   onClick={() => {
                     syncRutinaWithGlobal(initialData._id)
                       .then(response => {
@@ -556,6 +590,15 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
                         enqueueSnackbar("Error al sincronizar configuración", { variant: "error" });
                       });
                   }}
+                  sx={{ 
+                    borderRadius: 19.2, 
+                    textTransform: 'none',
+                    borderColor: 'primary.main',
+                    '&:hover': {
+                      borderColor: 'primary.dark',
+                      bgcolor: 'action.hover',
+                    }
+                  }}
                 >
                   Sincronizar desde global
                 </Button>
@@ -563,7 +606,6 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
                 <Button
                   variant="outlined"
                   color="primary"
-                  startIcon={<PublishIcon />}
                   onClick={() => {
                     updateGlobalFromRutina(initialData._id)
                       .then(() => {
@@ -574,6 +616,15 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
                         enqueueSnackbar("Error al actualizar configuración global", { variant: "error" });
                       });
                   }}
+                  sx={{ 
+                    borderRadius: 19.2, 
+                    textTransform: 'none',
+                    borderColor: 'primary.main',
+                    '&:hover': {
+                      borderColor: 'primary.dark',
+                      bgcolor: 'action.hover',
+                    }
+                  }}
                 >
                   Guardar como global
                 </Button>
@@ -583,44 +634,41 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
         </Grid>
       </DialogContent>
       
-      <DialogActions sx={{ p: 2, bgcolor: 'background.paper' }}>
-        <Button onClick={onClose} color="inherit">
+      <DialogActions sx={{ p: 2, bgcolor: theme.palette.background.default, borderTop: `1px solid ${theme.palette.divider}` }}>
+        <Button 
+          onClick={onClose} 
+          color="inherit"
+          sx={{ 
+            borderRadius: 19.2, 
+            textTransform: 'none',
+            color: 'text.secondary',
+            '&:hover': {
+              bgcolor: 'action.hover',
+            }
+          }}
+        >
           Cancelar
         </Button>
         <Button 
           onClick={handleSubmit} 
           color="primary" 
-          variant="contained"
+          variant="outlined"
           disabled={isSubmitting || isValidating || !!fechaError}
-          startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+          startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <SaveIcon sx={{ fontSize: 20 }} />}
           ref={submitButtonRef}
+          sx={{ 
+            borderRadius: 19.2, 
+            textTransform: 'none',
+            borderColor: 'primary.main',
+            '&:hover': {
+              borderColor: 'primary.dark',
+              bgcolor: 'action.hover',
+            }
+          }}
         >
           {isEditing ? 'Guardar Cambios' : 'Crear Rutina'}
         </Button>
       </DialogActions>
-
-      {/* Botón de configuración de preferencias */}
-      <Tooltip title="Configurar preferencias de hábitos" arrow>
-        <Fab
-          color="primary"
-          size="small"
-          onClick={handleOpenPreferencesDialog}
-          sx={{
-            position: 'fixed',
-            bottom: '2rem',
-            right: '2rem',
-            zIndex: 1000
-          }}
-        >
-          <TuneIcon />
-        </Fab>
-      </Tooltip>
-
-      {/* Diálogo de preferencias de usuario */}
-      <UserHabitsPreferences 
-        open={preferencesDialogOpen}
-        onClose={handleClosePreferencesDialog}
-      />
     </Dialog>
   );
 }; 

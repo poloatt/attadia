@@ -18,6 +18,7 @@ import {
   RadioButtonUnchecked as PendingIcon,
   Visibility as ShowValuesIcon,
   VisibilityOff as HideValuesIcon,
+  AccessTimeOutlined as TimeIcon,
 } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
 import TareasTable from '../components/proyectos/TareasTable';
@@ -144,6 +145,7 @@ export function Archivo() {
         title="Archivo"
         icon={<ArchiveIcon sx={{ fontSize: 20 }} />}
         showAddButton={false}
+        showBackButton={true}
         navigationItems={[
           { 
             icon: <ProjectIcon sx={{ fontSize: 20 }} />, 
@@ -158,12 +160,13 @@ export function Archivo() {
             current: location.pathname === '/tareas'
           }
         ]}
+        entityName="archivo"
       />
 
       <Box 
         sx={{ 
           py: 2,
-          height: 'calc(100vh - 140px)', // Altura calculada restando el espacio del toolbar y otros elementos
+          height: 'calc(100vh - 190px)', // Aumentado para evitar que pase por debajo de BottomNavigation
           overflowY: 'auto',
           '&::-webkit-scrollbar': {
             width: '8px',

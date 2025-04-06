@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Paper, IconButton, Typography } from '@mui/material';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { 
   AccountBalanceWalletOutlined as WalletIcon,
   HealthAndSafety as HealthIcon,
@@ -17,11 +17,14 @@ export default function BottomNavigation() {
   
   // Navegación directa a las páginas
   const navigateTo = (path) => {
-    navigate(path);
+    console.log('Navegando a:', path);
+    // Intentar usar un enfoque alternativo de navegación
+    window.location.href = path;
   };
 
   // Verificar si estamos en una ruta específica
   const isActive = (path) => {
+    console.log('Verificando ruta activa:', path, 'actual:', location.pathname);
     return location.pathname === path || (path === '/dashboard' && location.pathname === '/');
   };
 
@@ -29,7 +32,7 @@ export default function BottomNavigation() {
   const navItems = [
     { icon: <WalletIcon />, label: 'Assets', path: '/dashboard' },
     { icon: <HealthIcon />, label: 'Health', path: '/rutinas' },
-    { icon: <TimeIcon />, label: 'Time', path: '/tareas' }
+    { icon: <TimeIcon />, label: 'Time', path: '/tiempo' }
   ];
 
   return (
@@ -85,7 +88,9 @@ export default function BottomNavigation() {
             }}
           >
             <IconButton
-              onClick={() => navigateTo(item.path)}
+              component={Link}
+              to={item.path}
+              onClick={() => console.log('Clic en:', item.path)}
               sx={{
                 color: isActive(item.path) ? 'primary.main' : 'text.secondary',
                 p: 0.5,

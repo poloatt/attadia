@@ -4,8 +4,7 @@ import { Add as AddIcon } from '@mui/icons-material';
 import { 
   ScienceOutlined as LabIcon,
   RestaurantOutlined as DietaIcon,
-  MonitorWeightOutlined as WeightIcon,
-  CalendarMonth as DateIcon
+  MonitorWeightOutlined as WeightIcon
 } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
@@ -25,11 +24,6 @@ export function Salud() {
             icon: <DietaIcon sx={{ fontSize: 21.6 }} />,
             label: 'Dieta',
             to: '/dieta'
-          },
-          {
-            icon: <DateIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Rutinas',
-            to: '/rutinas'
           },
           {
             icon: <WeightIcon sx={{ fontSize: 21.6 }} />,

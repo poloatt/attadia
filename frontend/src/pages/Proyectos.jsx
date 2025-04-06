@@ -18,6 +18,7 @@ import {
   ArchiveOutlined as ArchiveIcon,
   Visibility as ShowValuesIcon,
   VisibilityOff as HideValuesIcon,
+  AccessTimeOutlined as TimeIcon,
 } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
 import clienteAxios from '../config/axios';
@@ -187,6 +188,7 @@ export function Proyectos() {
           setEditingProyecto(null);
           setIsFormOpen(true);
         }}
+        showBackButton={true}
         actions={
           <>
             <Tooltip title={showValues ? "Ocultar valores" : "Mostrar valores"}>
@@ -224,12 +226,13 @@ export function Proyectos() {
             current: location.pathname === '/archivo'
           }
         ]}
+        entityName="proyecto"
       />
 
       <Box 
         sx={{ 
           py: 2,
-          height: 'calc(100vh - 140px)', // Altura calculada restando el espacio del toolbar y otros elementos
+          height: 'calc(100vh - 190px)', // Aumentado para evitar que pase por debajo de BottomNavigation
           overflowY: 'auto',
           '&::-webkit-scrollbar': {
             width: '8px',

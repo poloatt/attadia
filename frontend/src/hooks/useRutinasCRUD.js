@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import clienteAxios from '../config/axios';
-import { useSnackbar } from 'notistack';
+import useCustomSnackbar from '../components/common/CustomSnackbar.jsx';
 
 /**
  * Hook para operaciones básicas CRUD de rutinas
@@ -8,7 +8,7 @@ import { useSnackbar } from 'notistack';
  * conflictos con el hook useRutinas del contexto en components/rutinas/context/RutinasContext.jsx
  */
 export const useRutinasCRUD = () => {
-  const { enqueueSnackbar } = useSnackbar();
+  const { enqueueSnackbar } = useCustomSnackbar();
   const [loading, setLoading] = useState(false);
 
   const createRutina = async (rutinaData) => {

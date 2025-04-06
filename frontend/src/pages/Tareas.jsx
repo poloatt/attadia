@@ -16,6 +16,7 @@ import {
   ArchiveOutlined as ArchiveIcon,
   Visibility as ShowValuesIcon,
   VisibilityOff as HideValuesIcon,
+  AccessTimeOutlined as TimeIcon,
 } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
 import TareasTable from '../components/proyectos/TareasTable';
@@ -159,45 +160,33 @@ export function Tareas() {
     <Container maxWidth="xl">
       <EntityToolbar 
         title="Tareas"
-        icon={<TaskIcon />}
+        icon={<TaskIcon sx={{ fontSize: 20 }} />}
         onAdd={() => {
           setEditingTarea(null);
           setIsFormOpen(true);
         }}
-        showBackButton={false}
-        actions={
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => {
-              setEditingTarea(null);
-              setIsFormOpen(true);
-            }}
-            sx={{ borderRadius: 0 }}
-          >
-            Nueva Tarea
-          </Button>
-        }
+        showBackButton={true}
         navigationItems={[
           { 
-            icon: <ProjectIcon sx={{ fontSize: 21.6 }} />, 
+            icon: <ProjectIcon sx={{ fontSize: 20 }} />, 
             label: 'Proyectos', 
             to: '/proyectos',
             current: location.pathname === '/proyectos'
           },
           {
-            icon: <ArchiveIcon sx={{ fontSize: 21.6 }} />,
+            icon: <ArchiveIcon sx={{ fontSize: 20 }} />,
             label: 'Archivo',
             to: '/archivo',
             current: location.pathname === '/archivo'
           }
         ]}
+        entityName="tarea"
       />
 
       <Box 
         sx={{ 
           py: 2,
-          height: 'calc(100vh - 140px)', // Altura calculada restando el espacio del toolbar y otros elementos
+          height: 'calc(100vh - 190px)', // Aumentado para evitar que pase por debajo de BottomNavigation
           overflowY: 'auto',
           '&::-webkit-scrollbar': {
             width: '8px',

@@ -28,12 +28,14 @@ import { useSnackbar } from 'notistack';
 import clienteAxios from '../config/axios';
 import EmptyState from '../components/EmptyState';
 import { EntityActions } from '../components/EntityViews/EntityActions';
+import { useNavigate } from 'react-router-dom';
 
 export function Dieta() {
   const [comidas, setComidas] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingComida, setEditingComida] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
+  const navigate = useNavigate();
 
   const fetchComidas = useCallback(async () => {
     try {
@@ -86,6 +88,10 @@ export function Dieta() {
       enqueueSnackbar('Error al eliminar la comida', { variant: 'error' });
     }
   }, [enqueueSnackbar, fetchComidas]);
+
+  const handleBack = () => {
+    navigate('/rutinas');
+  };
 
   const formFields = [
     {
@@ -152,21 +158,13 @@ export function Dieta() {
           setEditingComida(null);
           setIsFormOpen(true);
         }}
+        showBackButton={true}
+        onBack={handleBack}
         navigationItems={[
           {
             icon: <LabIcon sx={{ fontSize: 21.6 }} />,
             label: 'Lab',
             to: '/lab'
-          },
-          {
-            icon: <HealthIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Salud',
-            to: '/salud'
-          },
-          {
-            icon: <DateIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Rutinas',
-            to: '/rutinas'
           },
           {
             icon: <WeightIcon sx={{ fontSize: 21.6 }} />,

@@ -27,12 +27,14 @@ import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import UnderConstruction from '../components/UnderConstruction';
 import { EntityActions } from '../components/EntityViews/EntityActions';
+import { useNavigate } from 'react-router-dom';
 
 export function Lab() {
   const [mediciones, setMediciones] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMedicion, setEditingMedicion] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
+  const navigate = useNavigate();
 
   const fetchMediciones = useCallback(async () => {
     try {
@@ -78,6 +80,10 @@ export function Lab() {
       console.error('Error al eliminar medición:', error);
     }
   }, [enqueueSnackbar, fetchMediciones]);
+
+  const handleBack = () => {
+    navigate('/rutinas');
+  };
 
   const formFields = [
     {
@@ -137,17 +143,9 @@ export function Lab() {
           setEditingMedicion(null);
           setIsFormOpen(true);
         }}
+        showBackButton={true}
+        onBack={handleBack}
         navigationItems={[
-          {
-            icon: <HealthIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Salud',
-            to: '/salud'
-          },
-          {
-            icon: <DateIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Rutinas',
-            to: '/rutinas'
-          },
           {
             icon: <DietaIcon sx={{ fontSize: 21.6 }} />,
             label: 'Dieta',

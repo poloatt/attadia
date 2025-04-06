@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Container, Box, Typography, CircularProgress, Snackbar, Alert, Grid } from '@mui/material';
+import { Container, Box, Typography, CircularProgress, Snackbar, Alert, Grid, Paper, Button } from '@mui/material';
 import RutinaTable from '../components/rutinas/RutinaTable';
 import { RutinasProvider, useRutinas } from '../components/rutinas/context/RutinasContext';
 import { RutinaForm } from '../components/rutinas';
@@ -11,7 +11,8 @@ import {
   ScienceOutlined as LabIcon,
   RestaurantOutlined as DietaIcon,
   MonitorWeightOutlined as WeightIcon,
-  HealthAndSafety as HealthIcon
+  Info as InfoIcon,
+  Add as AddIcon
 } from '@mui/icons-material';
 
 /**
@@ -102,6 +103,69 @@ const RutinasWithContext = () => {
     setRutinaToEdit(null);
   };
 
+  // Esta parte del código es nueva o modificada
+  const EmptyStateMessage = () => {
+    if (loading) return null;
+    
+    if (error) {
+      return (
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2,
+            mb: 2,
+            backgroundColor: 'error.light',
+            color: 'error.contrastText',
+            borderRadius: 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}
+        >
+          <InfoIcon color="error" />
+          <Typography variant="body2">{error}</Typography>
+        </Paper>
+      );
+    }
+    
+    if (!rutina) {
+      return (
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2,
+            mb: 2,
+            bgcolor: 'background.paper',
+            borderRadius: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 1,
+            textAlign: 'center'
+          }}
+        >
+          <DateIcon sx={{ fontSize: 40, color: 'primary.main', opacity: 0.7 }} />
+          <Typography variant="h6">No hay rutinas disponibles</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Puedes crear una nueva rutina usando el botón de agregar.
+          </Typography>
+          <Box mt={2}>
+            <Button 
+              variant="contained" 
+              color="primary" 
+              startIcon={<AddIcon />}
+              onClick={handleAddRutina}
+            >
+              Crear Rutina
+            </Button>
+          </Box>
+        </Paper>
+      );
+    }
+    
+    return null;
+  };
+
   return (
     <>
       {/* EntityToolbar para navegación y acciones */}
@@ -109,18 +173,14 @@ const RutinasWithContext = () => {
         entityName="rutina"
         icon={<DateIcon />}
         title="Rutinas"
-        showAddButton={false}
+        showAddButton={true}
         showBackButton={false}
+        onAdd={handleAddRutina}
         navigationItems={[
           {
             icon: <LabIcon sx={{ fontSize: 21.6 }} />,
             label: 'Lab',
             to: '/lab'
-          },
-          {
-            icon: <HealthIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Salud',
-            to: '/salud'
           },
           {
             icon: <DietaIcon sx={{ fontSize: 21.6 }} />,
@@ -138,7 +198,7 @@ const RutinasWithContext = () => {
       <Container maxWidth="lg" sx={{ mt: 0, mb: 4 }}>
         <Box sx={{ 
           position: 'relative', 
-          maxHeight: 'calc(100vh - 180px)', 
+          maxHeight: 'calc(100vh - 190px)',
           overflow: 'auto',
           '&::-webkit-scrollbar': {
             width: '8px',
@@ -163,26 +223,12 @@ const RutinasWithContext = () => {
             </Box>
           )}
           
-          {/* Mensajes de error */}
-          {error && (
-            <Snackbar open={!!error} autoHideDuration={6000}>
-              <Alert severity="error" sx={{ width: '100%' }}>
-                {error}
-              </Alert>
-            </Snackbar>
-          )}
+          {/* Mensaje de estado vacío */}
+          <EmptyStateMessage />
           
           {/* Vista principal de rutinas */}
           {!loading && !editMode && rutina && (
             <>
-              <RutinaNavigation 
-                onAdd={handleAddRutina}
-                onEdit={handleEditRutina}
-                rutina={rutina}
-                loading={loading}
-                currentPage={currentPage}
-                totalPages={totalPages}
-              />
               <RutinaTable 
                 rutina={{
                   ...rutina,
@@ -197,8 +243,10 @@ const RutinasWithContext = () => {
           {/* Formulario de edición */}
           {editMode && (
             <RutinaForm 
-              rutina={rutinaToEdit} 
+              open={true}
               onClose={handleCloseForm}
+              initialData={rutinaToEdit}
+              isEditing={!!rutinaToEdit}
             />
           )}
         </Box>

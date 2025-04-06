@@ -37,6 +37,8 @@ import { useLocalPreservationState } from './utils/hooks';
 import { RutinaNavigation } from './RutinaNavigation';
 import ItemCadenciaConfig from './ItemCadenciaConfig';
 import shouldShowItemUtil from './utils/shouldShowItem';
+import HistoricalAlert from './HistoricalAlert';
+import { useRutinasHistorical } from './context/rutinasHistoricalContext.jsx';
 
 // Exportación nombrada para compatibilidad
 export const RutinaTable = ({ 
@@ -53,6 +55,7 @@ export const RutinaTable = ({
   const [today, setToday] = useState(new Date());
   const [globalConfig, setGlobalConfig] = useState(null); // Para almacenar la configuración global
   const { enqueueSnackbar } = useSnackbar();
+  const historical = useRutinasHistorical();
   
   // Estos valores ahora se obtienen como props del componente padre
   const [currentPage, setCurrentPage] = useState(1);
@@ -725,9 +728,12 @@ export const RutinaTable = ({
   }
 
   return (
-    <>
+    <Container maxWidth="lg" sx={{ p: 0 }}>
       {/* Navegación y acciones */}
-      <Box sx={{ 
+      <Box sx={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         mb: 0,
         borderBottom: '1px solid rgba(224, 224, 224, 0.1)',
         paddingBottom: 0
@@ -737,6 +743,13 @@ export const RutinaTable = ({
           onAdd={onAdd}
         />
       </Box>
+
+      {/* Mostrar alerta de datos históricos si es necesario */}
+      {historical?.noHistoryAvailable && (
+        <Box sx={{ mt: 2, mx: 'auto', maxWidth: '100%' }}>
+          <HistoricalAlert />
+        </Box>
+      )}
 
       {/* Contenido principal */}
       <Grid container spacing={1.5} sx={{ mt: 0 }}>
@@ -816,7 +829,7 @@ export const RutinaTable = ({
           </Card>
         </Grid>
       </Grid>
-    </>
+    </Container>
   );
 };
 

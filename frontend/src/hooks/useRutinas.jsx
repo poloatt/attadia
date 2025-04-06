@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import clienteAxios from '../config/axios';
-import { useSnackbar } from 'notistack';
+import useCustomSnackbar from '../components/common/CustomSnackbar.jsx';
 
 export function useRutinas() {
   const [rutinas, setRutinas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { enqueueSnackbar } = useSnackbar();
+  const { enqueueSnackbar } = useCustomSnackbar();
 
   const fetchRutinas = useCallback(async (page = 1, limit = 10) => {
     try {

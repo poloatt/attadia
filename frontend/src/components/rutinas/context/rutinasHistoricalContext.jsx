@@ -17,6 +17,7 @@ export const RutinasHistoricalProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [datosSimulados, setDatosSimulados] = useState(false);
+  const [noHistoryAvailable, setNoHistoryAvailable] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   
   // Función para cargar el historial
@@ -24,6 +25,7 @@ export const RutinasHistoricalProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
+      setNoHistoryAvailable(false);
       
       console.log(`[RutinasHistoricalContext] Cargando historial de los últimos ${dias} días`);
       
@@ -55,11 +57,14 @@ export const RutinasHistoricalProvider = ({ children }) => {
         console.warn('[RutinasHistoricalContext] No se obtuvieron datos históricos');
         setHistorialRutinas([]);
         setHistoricosPorItem({});
-        enqueueSnackbar('No hay datos históricos disponibles', { variant: 'info' });
+        setNoHistoryAvailable(true);
+        // Ya no usamos notificaciones para mensajes informativos
+        // enqueueSnackbar('No hay datos históricos disponibles', { variant: 'info' });
       }
     } catch (error) {
       console.error('[RutinasHistoricalContext] Error al cargar historial:', error);
       setError('Error al cargar historial de rutinas');
+      setNoHistoryAvailable(true);
       enqueueSnackbar('Error al cargar historial de rutinas', { variant: 'error' });
       setHistorialRutinas([]);
       setHistoricosPorItem({});
@@ -231,6 +236,7 @@ export const RutinasHistoricalProvider = ({ children }) => {
     loading,
     error,
     datosSimulados,
+    noHistoryAvailable,
     cargarHistorial,
     obtenerCompletadosItem,
     obtenerConfiguracionesItem,

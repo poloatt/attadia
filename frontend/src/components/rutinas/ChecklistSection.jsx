@@ -37,6 +37,7 @@ import shouldShowItem, { shouldShowItemInMainView, calcularEstadoCadencia } from
 import { startOfWeek, isSameWeek, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { obtenerHistorialCompletacionesSemana, esRutinaHistorica } from './utils/historialUtils';
+import HistoricalAlert from './HistoricalAlert';
 
 // Función para capitalizar solo la primera letra
 const capitalizeFirstLetter = (string) => {
