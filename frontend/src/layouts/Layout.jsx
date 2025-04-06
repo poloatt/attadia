@@ -4,6 +4,7 @@ import { useSidebar } from '../context/SidebarContext';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import BottomNavigation from '../components/BottomNavigation';
 import { SettingsOutlined as SettingsIcon } from '@mui/icons-material';
 import PersonIcon from '@mui/icons-material/Person';
 
@@ -98,7 +99,7 @@ export function Layout() {
         sx={{
           flexGrow: 1,
           pt: '48px',
-          pb: '24px',
+          pb: '120px', // Aumentar padding inferior para acomodar la navegación inferior y mensajes de error
           pr: {
             xs: 0,
             sm: isOpen ? '240px' : 0
@@ -109,7 +110,8 @@ export function Layout() {
           display: 'flex',
           flexDirection: 'column',
           bgcolor: 'background.default',
-          overflow: 'auto'
+          overflow: 'auto',
+          position: 'relative' // Añadido para posicionar correctamente elementos hijos
         }}
       >
         <Box sx={{ 
@@ -129,6 +131,9 @@ export function Layout() {
         }}>
           <Outlet />
         </Box>
+        {/* Añadir un espacio extra para mensajes de error */}
+        <Box sx={{ height: '16px' }} />
+        <BottomNavigation />
         <Footer />
       </Box>
     </Box>

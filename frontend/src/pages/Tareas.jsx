@@ -164,6 +164,7 @@ export function Tareas() {
           setEditingTarea(null);
           setIsFormOpen(true);
         }}
+        showBackButton={false}
         actions={
           <Button
             variant="contained"

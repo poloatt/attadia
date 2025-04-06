@@ -35,7 +35,7 @@ import { useSnackbar } from 'notistack';
 import { useDebounce } from './utils/hooks';
 import { defaultFormData, formatDate, iconConfig } from './utils/iconConfig';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useRutinas } from '../../hooks/useRutinas';
+import { useRutinasCRUD } from '../../hooks/useRutinasCRUD';
 import { useAuth } from '../../hooks/useAuth';
 import ChecklistSection from './ChecklistSection';
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
@@ -61,7 +61,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
   const { user } = useAuth();
   const submitButtonRef = useRef(null);
   const submitInProgress = useRef(false);
-  const { syncRutinaWithGlobal, updateGlobalFromRutina } = useRutinas();
+  const { syncRutinaWithGlobal, updateGlobalFromRutina } = useRutinasCRUD();
   const navigate = useNavigate();
   const autoSaveTimeout = useRef(null);
   
@@ -325,29 +325,52 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
           response = await clienteAxios.put(`/api/rutinas/${initialData._id}`, rutinaToSubmit);
           console.log('[RutinaForm] Respuesta exitosa al actualizar rutina:', response.status, response.statusText);
           enqueueSnackbar('Rutina actualizada con éxito', { variant: 'success' });
+          
+          // Disparar evento para actualizar la lista
+          window.dispatchEvent(new CustomEvent('rutina-updated', { 
+            detail: { 
+              rutina: response.data,
+              action: 'update'
+            } 
+          }));
+          
+          // Cerrar el formulario
+          onClose();
         } else {
           console.log('[RutinaForm] Enviando petición de creación a /api/rutinas');
           response = await clienteAxios.post('/api/rutinas', rutinaToSubmit);
           console.log('[RutinaForm] Respuesta exitosa al crear rutina:', response.status, response.statusText);
+          console.log('[RutinaForm] Datos de respuesta:', response.data);
+          
+          // Asegurar que tenemos un ID válido
+          const rutinaId = response.data?._id;
+          
+          if (!rutinaId) {
+            console.error('[RutinaForm] No se pudo obtener un ID válido de la rutina creada:', response.data);
+            enqueueSnackbar('Rutina creada, pero hubo un problema al redirigir', { variant: 'warning' });
+            onClose();
+            return;
+          }
+          
           enqueueSnackbar('Rutina creada con éxito', { variant: 'success' });
           
-          // Redireccionar a la página de la nueva rutina
+          // Disparar evento para actualizar la lista
+          window.dispatchEvent(new CustomEvent('rutina-updated', { 
+            detail: { 
+              rutina: response.data,
+              action: 'create'
+            } 
+          }));
+          
+          // Cerrar el formulario y luego redireccionar
+          onClose();
+          
+          // Esperar un breve momento para asegurar que el cierre del formulario se complete
           setTimeout(() => {
-            console.log('[RutinaForm] Redireccionando a la rutina recién creada:', response.data._id);
-            navigate(`/rutinas/${response.data._id}`);
-          }, 500);
+            console.log('[RutinaForm] Redireccionando a la rutina recién creada:', rutinaId);
+            navigate(`/rutinas/${rutinaId}`);
+          }, 50);
         }
-        
-        // Disparar evento para actualizar la lista
-        window.dispatchEvent(new CustomEvent('rutina-updated', { 
-          detail: { 
-            rutina: response.data,
-            action: isEditing ? 'update' : 'create'
-          } 
-        }));
-        
-        // Cerrar el formulario
-        onClose();
       } catch (httpError) {
         console.error('[RutinaForm] Error HTTP al guardar rutina:', {
           status: httpError.response?.status,

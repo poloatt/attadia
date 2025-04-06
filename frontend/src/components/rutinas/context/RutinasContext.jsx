@@ -12,7 +12,12 @@ import { RutinasStatisticsProvider } from './RutinasStatisticsContext.jsx';
 // Crear el contexto
 const RutinasContext = createContext();
 
-// Hook personalizado para usar el contexto
+/**
+ * Hook personalizado para usar el contexto de rutinas
+ * NOTA: Este hook es el principal para la gestión de rutinas en la aplicación
+ * y es diferente del hook useRutinasCRUD en src/hooks/useRutinas.js que maneja
+ * solo operaciones CRUD básicas
+ */
 export const useRutinas = () => {
   const context = useContext(RutinasContext);
   if (!context) {
@@ -498,114 +503,147 @@ export const RutinasProvider = ({ children }) => {
     }
   }, [currentPage, totalPages, loading, rutinas, enqueueSnackbar]);
 
-  // Marcar un ítem como completado o no completado en una rutina
-  const markItemComplete = useCallback(async (rutinaId, section, data) => {
-    try {
-      // Validaciones básicas
-      if (!rutinaId || !section || !data) {
-        console.error('[RutinasContext] Faltan parámetros requeridos:', { rutinaId, section, data });
-        enqueueSnackbar('Error: parámetros incompletos', { variant: 'error' });
-        return;
-      }
+  // Actualizar la completitud de una rutina después de marcar un ítem
+  const actualizarCompletitudRutina = (rutinaId, responseData) => {
+    // Buscar la rutina en el array
+    const index = rutinas.findIndex(r => r._id === rutinaId);
+    if (index === -1) return;
+
+    // Si el backend proporciona un valor de completitud, usarlo
+    if (responseData && typeof responseData.completitud === 'number') {
+      const completitudDecimal = responseData.completitud;
+      const completitudPorcentaje = Math.round(completitudDecimal * 100);
       
+      console.log(`[RutinasContext] Actualizando completitud con valor del servidor: ${completitudDecimal} (${completitudPorcentaje}%)`);
+      
+      // Actualizar la rutina con la completitud proporcionada por el servidor
+      setRutinas(prev => {
+        const nuevasRutinas = [...prev];
+        nuevasRutinas[index] = {
+          ...nuevasRutinas[index],
+          completitud: completitudDecimal
+        };
+        return nuevasRutinas;
+      });
+      
+      // Actualizar la rutina actual si es la misma
+      if (rutina && rutina._id === rutinaId) {
+        setRutina(prev => ({
+          ...prev,
+          completitud: completitudDecimal
+        }));
+      }
+    } else {
+      // Si no hay valor del servidor, recalcular
+      import('../utils/rutinaCalculations.jsx').then(({ calculateCompletionPercentage }) => {
+        const rutinaActual = rutinas[index];
+        const porcentaje = calculateCompletionPercentage(rutinaActual);
+        const completitudDecimal = porcentaje / 100;
+        
+        console.log(`[RutinasContext] Recalculando completitud localmente: ${completitudDecimal} (${porcentaje}%)`);
+        
+        // Actualizar la rutina con el valor calculado
+        setRutinas(prev => {
+          const nuevasRutinas = [...prev];
+          nuevasRutinas[index] = {
+            ...nuevasRutinas[index],
+            completitud: completitudDecimal
+          };
+          return nuevasRutinas;
+        });
+        
+        // Actualizar la rutina actual si es la misma
+        if (rutina && rutina._id === rutinaId) {
+          setRutina(prev => ({
+            ...prev,
+            completitud: completitudDecimal
+          }));
+        }
+      });
+    }
+  };
+
+  /**
+   * Actualiza localmente una rutina (optimistic update)
+   * @param {string} rutinaId - ID de la rutina
+   * @param {string} section - Sección del ítem
+   * @param {object} data - Datos a actualizar
+   */
+  const updateLocalRutina = useCallback((rutinaId, section, data) => {
+    // Actualizar en el array de rutinas
+    setRutinas(prev => {
+      return prev.map(r => {
+        if (r._id === rutinaId) {
+          return {
+            ...r,
+            [section]: {
+              ...r[section],
+              ...data
+            }
+          };
+        }
+        return r;
+      });
+    });
+    
+    // Actualizar la rutina actual si es la misma
+    if (rutina && rutina._id === rutinaId) {
+      setRutina(prev => ({
+        ...prev,
+        [section]: {
+          ...prev[section],
+          ...data
+        }
+      }));
+    }
+  }, [rutina]);
+
+  /**
+   * Marca un ítem como completado o no completado en la rutina
+   * @param {string} rutinaId - ID de la rutina
+   * @param {string} section - Sección del ítem (bodyCare, ejercicio, etc)
+   * @param {object} data - Objeto con el estado de completado (ej: {gym: true})
+   * @returns {Promise<any>} - Promesa con el resultado
+   */
+  const markItemComplete = useCallback(async (rutinaId, section, data) => {
+    // Validación básica
+    if (!rutinaId || !section || !data) {
+      console.error('[RutinasContext] Datos incompletos para marcar ítem');
+      return;
+    }
+    
+    try {
       console.log(`[RutinasContext] Marcando ítem en rutina ${rutinaId}, sección ${section}:`, data);
       
-      // Obtener el ID del ítem y si está completado
-      const itemId = Object.keys(data)[0];
-      const isCompleted = Boolean(data[itemId]);
-      
+      // Extraer el primer ítem del objeto (solo actualizamos uno a la vez)
+      const [itemId, isCompleted] = Object.entries(data)[0];
       console.log(`[RutinasContext] Item: ${itemId}, Completado: ${isCompleted}`);
       
-      try {
-        // Actualizar en el servidor con el servicio especializado
-        const updatedRutina = await rutinasService.markComplete(rutinaId, section, data);
-        console.log(`[RutinasContext] ✅ Actualización exitosa para ${section}.${itemId}`);
+      // Optimistic update: actualizar UI inmediatamente
+      updateLocalRutina(rutinaId, section, data);
+      
+      // Actualizar en el servidor
+      const response = await rutinasService.markComplete(rutinaId, section, data);
+      console.log(`[RutinasContext] ✅ Actualización exitosa para ${section}.${itemId}`);
+      
+      // Actualizar UI con los datos del servidor
+      const index = rutinas.findIndex(r => r._id === rutinaId);
+      if (index !== -1) {
+        console.log(`[RutinasContext] Actualizando UI para rutina ${rutinaId} en posición ${index + 1}`);
         
-        // Marcar la rutina como modificada
-        markRutinaAsDirty(rutinaId);
+        // Usar la nueva función para actualizar la completitud
+        actualizarCompletitudRutina(rutinaId, response);
         
-        // Actualizar UI solo si seguimos en la misma rutina
-        if (rutina && rutina._id === rutinaId) {
-          console.log(`[RutinasContext] Actualizando UI para rutina ${rutinaId} en posición ${currentPage}`);
-          
-          // Actualizar la rutina con los datos completos devueltos por el servidor
-          if (updatedRutina) {
-            // Preservar datos de navegación y calcular completitud manualmente
-            const updatedRutinaWithNav = {
-              ...updatedRutina,
-              _page: currentPage,
-              _totalPages: totalPages
-            };
-            
-            // Calcular completitud manualmente para asegurar actualización de UI
-            let totalItems = 0;
-            let completedItems = 0;
-            ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'].forEach(sectionKey => {
-              if (updatedRutina[sectionKey]) {
-                Object.entries(updatedRutina[sectionKey]).forEach(([key, value]) => {
-                  if (typeof value === 'boolean') {
-                    totalItems++;
-                    if (value === true) {
-                      completedItems++;
-                    }
-                  }
-                });
-              }
-            });
-            
-            // Actualizar el valor de completitud si el backend no lo ha hecho
-            if (typeof updatedRutina.completitud !== 'number' || updatedRutina.completitud === 0) {
-              updatedRutinaWithNav.completitud = totalItems > 0 ? completedItems / totalItems : 0;
-              console.log(`[RutinasContext] Actualizando completitud manualmente: ${updatedRutinaWithNav.completitud} (${Math.round(updatedRutinaWithNav.completitud * 100)}%)`);
-            }
-                        
-            setRutina(updatedRutinaWithNav);
-            console.log(`[RutinasContext] UI actualizada con datos del servidor para rutina ${rutinaId}`);
-          } else {
-            console.warn(`[RutinasContext] No se recibieron datos de rutina del servidor para actualizar UI`);
-          }
-        }
-        
-        return updatedRutina;
-      } catch (error) {
-        // Error en la petición HTTP
-        console.error(`[RutinasContext] ❌ Error del servidor (${error.response?.status || 'desconocido'}):`, error.message);
-        console.error(`[RutinasContext] Detalles:`, error.response?.data);
-        
-        // Notificar al usuario solo una vez
-        enqueueSnackbar(`Error: ${error.response?.data?.error || 'Error de comunicación'}`, {
-          variant: 'error',
-          preventDuplicate: true
-        });
-        
-        // Recargar datos del servidor para sincronizar estado
-        if (rutina && rutina._id === rutinaId) {
-          console.log('[RutinasContext] 🔄 Recargando rutina para sincronizar estado');
-          getRutinaById(rutina._id);
-        }
-        
-        throw error;
+        console.log(`[RutinasContext] UI actualizada con datos del servidor para rutina ${rutinaId}`);
       }
+      
+      return response;
     } catch (error) {
-      // Error general de procesamiento
-      console.error(`[RutinasContext] 🛑 Error general: ${error.message}`);
-      
-      // Notificar al usuario si no es un error de petición HTTP (ya notificado)
-      if (!error.response) {
-        enqueueSnackbar('Error al actualizar el ítem', { 
-          variant: 'error',
-          preventDuplicate: true 
-        });
-      }
-      
-      // Recargar rutina para sincronizar estado
-      if (rutina && rutina._id === rutinaId) {
-        getRutinaById(rutina._id);
-      }
-      
+      console.error('[RutinasContext] Error al marcar ítem:', error);
+      enqueueSnackbar('Error al marcar ítem', { variant: 'error' });
       throw error;
     }
-  }, [rutina, currentPage, enqueueSnackbar, getRutinaById, markRutinaAsDirty]);
+  }, [rutinas, enqueueSnackbar, updateLocalRutina]);
 
   // Guardar cambios locales para una rutina
   const saveLocalChangesForRutina = useCallback((rutinaId, section, itemId, config) => {

@@ -110,6 +110,7 @@ const RutinasWithContext = () => {
         icon={<DateIcon />}
         title="Rutinas"
         showAddButton={false}
+        showBackButton={false}
         navigationItems={[
           {
             icon: <LabIcon sx={{ fontSize: 21.6 }} />,
