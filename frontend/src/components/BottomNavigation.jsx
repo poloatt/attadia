@@ -24,8 +24,29 @@ export default function BottomNavigation() {
 
   // Verificar si estamos en una ruta específica
   const isActive = (path) => {
-    console.log('Verificando ruta activa:', path, 'actual:', location.pathname);
-    return location.pathname === path || (path === '/dashboard' && location.pathname === '/');
+    // Eliminar el log que está causando demasiadas salidas
+    // console.log('Verificando ruta activa:', path, 'actual:', location.pathname);
+    
+    // Mejorar la lógica de comparación
+    if (path === '/dashboard' && (location.pathname === '/' || location.pathname === '/dashboard')) {
+      return true;
+    }
+    
+    if (path === '/rutinas') {
+      // Considerar como activo para rutinas y páginas relacionadas
+      return location.pathname === '/rutinas' || 
+             location.pathname.startsWith('/rutinas/') ||
+             location.pathname === '/lab' || 
+             location.pathname === '/dieta' || 
+             location.pathname === '/datacorporal';
+    }
+    
+    if (path === '/tiempo') {
+      return location.pathname === '/tiempo' ||
+             location.pathname.startsWith('/tiempo/');
+    }
+    
+    return location.pathname === path;
   };
 
   // Lista de elementos de navegación con nuevos nombres

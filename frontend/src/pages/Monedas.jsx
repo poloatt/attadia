@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Container, 
   Button,
@@ -31,6 +31,7 @@ import {
   CheckOutlined as CheckIcon,
   CloseOutlined as CloseIcon,
   AddOutlined as AddIcon,
+  RefreshOutlined as RefreshIcon,
   AutorenewOutlined as RecurrentIcon,
   PersonOutlineOutlined
 } from '@mui/icons-material';
@@ -38,6 +39,7 @@ import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import EmptyState from '../components/EmptyState';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
+import { useAPI } from '../hooks/useAPI';
 
 const COLORES_MONEDA = {
   CELESTE_ARGENTINA: { value: '#75AADB', label: 'Celeste Argentina' },
@@ -48,35 +50,46 @@ const COLORES_MONEDA = {
   VIOLETA_OSCURO: { value: '#4B0082', label: 'Violeta Oscuro' }
 };
 
-const MonedaCard = ({ moneda, onEdit, onDelete, onToggleActive, onColorChange, showValues }) => {
+const MonedaCard = React.memo(({ moneda, onEdit, onDelete, onToggleActive, onColorChange, showValues }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [isEditingColor, setIsEditingColor] = useState(false);
-  const [balance, setBalance] = useState(null);
+  const [balance, setBalance] = useState(0);
   const [loadingBalance, setLoadingBalance] = useState(true);
   const open = Boolean(anchorEl);
+  
+  // Garantizar que tenemos un ID válido
+  const monedaId = moneda.id || moneda._id;
 
+  // Usar useAPI para obtener el balance de forma segura - optimizado
+  const { 
+    data: balanceData, 
+    loading: balanceLoading, 
+    error: balanceError 
+  } = useAPI(monedaId ? `/api/monedas/${monedaId}/balance` : null, {
+    params: {
+      fechaFin: new Date().toISOString().split('T')[0],
+      estado: 'PAGADO'
+    },
+    dependencies: [monedaId], // Solo depender del ID de moneda
+    enableCache: true, // Activar caché para reducir solicitudes
+    cacheDuration: 120000, // Caché de 2 minutos
+    forceRevalidate: false // No forzar revalidación en cada render
+  });
+
+  // Actualizar el balance cuando cambian los datos
   useEffect(() => {
-    const fetchBalance = async () => {
-      try {
-        setLoadingBalance(true);
-        const today = new Date().toISOString().split('T')[0];
-        const response = await clienteAxios.get(`/api/monedas/${moneda.id}/balance`, {
-          params: {
-            fechaFin: today,
-            estado: 'PAGADO'
-          }
-        });
-        setBalance(response.data.balance || 0);
-      } catch (error) {
-        console.error('Error al obtener balance:', error);
-        setBalance(0);
-      } finally {
-        setLoadingBalance(false);
-      }
-    };
+    if (balanceData) {
+      setBalance(balanceData.balance || 0);
+      setLoadingBalance(false);
+    }
+  }, [balanceData]);
 
-    fetchBalance();
-  }, [moneda.id]);
+  // Manejar errores de balance
+  useEffect(() => {
+    if (balanceError) {
+      setLoadingBalance(false);
+    }
+  }, [balanceError]);
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -87,8 +100,10 @@ const MonedaCard = ({ moneda, onEdit, onDelete, onToggleActive, onColorChange, s
   };
 
   const handleColorClick = (color) => {
-    onColorChange(moneda.id, color);
-    setIsEditingColor(false);
+    if (monedaId) {
+      onColorChange(monedaId, color);
+      setIsEditingColor(false);
+    }
   };
 
   return (
@@ -153,7 +168,7 @@ const MonedaCard = ({ moneda, onEdit, onDelete, onToggleActive, onColorChange, s
             <Switch
               size="small"
               checked={moneda.activa}
-              onChange={() => onToggleActive(moneda.id)}
+              onChange={() => onToggleActive(monedaId)}
               sx={{ mr: -1 }}
             />
             <IconButton
@@ -211,7 +226,7 @@ const MonedaCard = ({ moneda, onEdit, onDelete, onToggleActive, onColorChange, s
               gap: 0.5
             }}>
               Balance actual:
-              {loadingBalance && (
+              {balanceLoading && (
                 <CircularProgress size={12} thickness={4} sx={{ ml: 1 }} />
               )}
             </Typography>
@@ -223,11 +238,11 @@ const MonedaCard = ({ moneda, onEdit, onDelete, onToggleActive, onColorChange, s
                   'error.main',
                 fontWeight: 500,
                 mt: 0.5,
-                opacity: loadingBalance ? 0.5 : 1,
+                opacity: balanceLoading ? 0.5 : 1,
                 transition: 'opacity 0.2s'
               }}
             >
-              {moneda.simbolo} {loadingBalance ? '...' : 
+              {moneda.simbolo} {balanceLoading ? '...' : 
                 showValues ? balance.toLocaleString('es-AR', {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2
@@ -257,7 +272,7 @@ const MonedaCard = ({ moneda, onEdit, onDelete, onToggleActive, onColorChange, s
           Editar
         </MenuItem>
         <MenuItem 
-          onClick={() => { handleClose(); onDelete(moneda.id); }}
+          onClick={() => { handleClose(); onDelete(monedaId); }}
           sx={{ color: 'error.main' }}
         >
           <DeleteIcon sx={{ fontSize: 18, mr: 1 }} />
@@ -266,98 +281,281 @@ const MonedaCard = ({ moneda, onEdit, onDelete, onToggleActive, onColorChange, s
       </Menu>
     </Card>
   );
-};
+});
 
 export function Monedas() {
-  const [monedas, setMonedas] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMoneda, setEditingMoneda] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const { enqueueSnackbar } = useSnackbar();
+  const { enqueueSnackbar, closeSnackbar } = useSnackbar();
   const { showValues } = useValuesVisibility();
 
-  const fetchMonedas = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const response = await clienteAxios.get('/api/monedas');
-      setMonedas(response.data.docs || []);
-    } catch (error) {
-      console.error('Error al cargar monedas:', error);
-      enqueueSnackbar('Error al cargar monedas', { variant: 'error' });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [enqueueSnackbar]);
+  // Usar nuestro hook personalizado para cargar monedas - Optimizaciones
+  const { 
+    data: monedasData, 
+    loading: isLoading, 
+    error: monedasError,
+    refetch: refetchMonedas
+  } = useAPI('/api/monedas', {
+    enableCache: true, // Activar caché para reducir solicitudes
+    cacheDuration: 30000, // 30 segundos de caché
+    dependencies: [], // Quitar dependencia a window.location.href
+    forceRevalidate: false, // No forzar revalidación en cada render
+    params: {} // Quitar timestamp para evitar renderizados continuos
+  });
 
+  // Extraer las monedas del resultado paginado con useMemo para evitar renderizados innecesarios
+  const monedas = useMemo(() => {
+    if (Array.isArray(monedasData?.docs)) return monedasData.docs;
+    if (Array.isArray(monedasData)) return monedasData;
+    return [];
+  }, [monedasData]);
+
+  // Elementos de navegación con useMemo para evitar recrear el array en cada renderizado
+  const navigationItems = useMemo(() => [
+    {
+      icon: <BankIcon sx={{ fontSize: 21.6 }} />,
+      label: 'Cuentas',
+      to: '/cuentas'
+    },
+    {
+      icon: <WalletIcon sx={{ fontSize: 21.6 }} />,
+      label: 'Transacciones',
+      to: '/transacciones'
+    },
+    {
+      icon: <RecurrentIcon sx={{ fontSize: 21.6 }} />,
+      label: 'Recurrentes',
+      to: '/recurrente'
+    },
+    {
+      icon: <PersonOutlineOutlined sx={{ fontSize: 21.6 }} />,
+      label: 'Deudores',
+      to: '/deudores'
+    }
+  ], []);
+
+  // Agregar log para debug
   useEffect(() => {
-    fetchMonedas();
-  }, [fetchMonedas]);
+    // Eliminar logs innecesarios que pueden estar causando problemas
+  }, [monedasData, monedas]);
+
+  // Manejar errores de la API
+  useEffect(() => {
+    if (monedasError) {
+      console.error('Error al cargar monedas:', monedasError);
+      enqueueSnackbar('Error al cargar monedas: ' + monedasError.message, { variant: 'error' });
+    }
+  }, [monedasError, enqueueSnackbar]);
+
+  // Recargar datos periódicamente para mantener la información actualizada - reducir frecuencia
+  useEffect(() => {
+    // Solo si no estamos en modo de carga y tenemos la página activa
+    if (!isLoading && document.visibilityState === 'visible') {
+      const interval = setInterval(() => {
+        // Recargar datos silenciosamente sin logs
+        refetchMonedas();
+      }, 60000); // Recargar cada 60 segundos en lugar de 30
+      
+      // Limpiar el intervalo cuando el componente se desmonte
+      return () => clearInterval(interval);
+    }
+  }, [isLoading, refetchMonedas]);
+  
+  // Recargar datos cuando la pestaña vuelve a estar activa
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Recargar sin logs
+        refetchMonedas();
+      }
+    };
+    
+    // Registrar el listener para el evento visibilitychange
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Limpiar el listener cuando el componente se desmonte
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refetchMonedas]);
 
   const handleFormSubmit = useCallback(async (formData) => {
     try {
+      // Mostrar mensaje de carga
+      const loadingMsg = enqueueSnackbar('Guardando moneda...', { 
+        variant: 'info',
+        persist: true 
+      });
+      
       let response;
+      let monedaId = null;
+      
       if (editingMoneda) {
-        response = await clienteAxios.put(`/api/monedas/${editingMoneda.id}`, formData);
+        // Usar siempre el ID normalizado
+        monedaId = editingMoneda.id || editingMoneda._id;
+        
+        if (!monedaId) {
+          closeSnackbar(loadingMsg);
+          enqueueSnackbar('Error: ID de moneda no válido', { variant: 'error' });
+          return;
+        }
+        
+        // Normalizar datos antes de enviar
+        const datosActualizados = {
+          codigo: formData.codigo?.trim() || '',
+          nombre: formData.nombre?.trim() || '',
+          simbolo: formData.simbolo?.trim() || '',
+          color: formData.color || COLORES_MONEDA.CELESTE_ARGENTINA.value,
+          activa: typeof formData.activa === 'boolean' ? formData.activa : true
+        };
+        
+        response = await clienteAxios.put(`/api/monedas/${monedaId}`, datosActualizados);
+        closeSnackbar(loadingMsg);
         enqueueSnackbar('Moneda actualizada exitosamente', { variant: 'success' });
-        setMonedas(prev => prev.map(m => 
-          m.id === editingMoneda.id ? { ...m, ...formData } : m
-        ));
       } else {
-        response = await clienteAxios.post('/api/monedas', formData);
+        // Normalizar datos para nueva moneda
+        const nuevaMoneda = {
+          codigo: formData.codigo?.trim() || '',
+          nombre: formData.nombre?.trim() || '',
+          simbolo: formData.simbolo?.trim() || '',
+          color: formData.color || COLORES_MONEDA.CELESTE_ARGENTINA.value,
+          activa: true
+        };
+        
+        response = await clienteAxios.post('/api/monedas', nuevaMoneda);
+        closeSnackbar(loadingMsg);
         enqueueSnackbar('Moneda creada exitosamente', { variant: 'success' });
-        setMonedas(prev => [...prev, response.data]);
       }
+      
       setIsFormOpen(false);
       setEditingMoneda(null);
+      await refetchMonedas();
     } catch (error) {
       console.error('Error al guardar moneda:', error);
-      enqueueSnackbar('Error al guardar moneda', { variant: 'error' });
+      enqueueSnackbar('Error al guardar moneda: ' + (error.response?.data?.message || error.message), { variant: 'error' });
     }
-  }, [editingMoneda, enqueueSnackbar]);
+  }, [editingMoneda, enqueueSnackbar, closeSnackbar, refetchMonedas]);
 
   const handleEdit = useCallback((moneda) => {
-    setEditingMoneda(moneda);
-    setIsFormOpen(true);
-  }, []);
-
-  const handleDelete = useCallback(async (id) => {
-    try {
-      await clienteAxios.delete(`/api/monedas/${id}`);
-      setMonedas(prev => prev.filter(m => m.id !== id));
-      enqueueSnackbar('Moneda eliminada exitosamente', { variant: 'success' });
-    } catch (error) {
-      console.error('Error al eliminar moneda:', error);
-      enqueueSnackbar('Error al eliminar la moneda', { variant: 'error' });
+    if (!moneda || (!moneda.id && !moneda._id)) {
+      enqueueSnackbar('Error: No se puede editar la moneda', { variant: 'error' });
+      return;
     }
+    
+    // Normalizar el objeto para edición
+    const monedaEditada = {
+      id: moneda.id || moneda._id,
+      _id: moneda.id || moneda._id,
+      codigo: moneda.codigo || '',
+      nombre: moneda.nombre || '',
+      simbolo: moneda.simbolo || '',
+      color: moneda.color || COLORES_MONEDA.CELESTE_ARGENTINA.value,
+      activa: typeof moneda.activa === 'boolean' ? moneda.activa : true
+    };
+    
+    setEditingMoneda(monedaEditada);
+    setIsFormOpen(true);
   }, [enqueueSnackbar]);
 
-  const handleToggleActive = useCallback(async (id) => {
+  const handleDelete = useCallback(async (id) => {
+    if (!id) {
+      enqueueSnackbar('Error: ID de moneda no válido', { variant: 'error' });
+      return;
+    }
+    
     try {
-      const moneda = monedas.find(m => m.id === id);
+      // Mostrar mensaje de carga
+      const loadingMsg = enqueueSnackbar('Eliminando moneda...', { 
+        variant: 'info',
+        persist: true 
+      });
+      
+      await clienteAxios.delete(`/api/monedas/${id}`);
+      
+      // Cerrar mensaje de carga
+      closeSnackbar(loadingMsg);
+      enqueueSnackbar('Moneda eliminada exitosamente', { variant: 'success' });
+      await refetchMonedas();
+    } catch (error) {
+      enqueueSnackbar('Error al eliminar la moneda: ' + (error.response?.data?.message || error.message), { variant: 'error' });
+    }
+  }, [enqueueSnackbar, closeSnackbar, refetchMonedas]);
+
+  const handleToggleActive = useCallback(async (id) => {
+    if (!id) {
+      enqueueSnackbar('Error: ID de moneda no válido', { variant: 'error' });
+      return;
+    }
+    
+    try {
+      // Mostrar mensaje de carga
+      const loadingMsg = enqueueSnackbar('Actualizando estado...', { 
+        variant: 'info',
+        persist: true 
+      });
+      
+      // Buscar la moneda existente
+      const moneda = monedas.find(m => m.id === id || m._id === id);
+      
+      if (!moneda) {
+        closeSnackbar(loadingMsg);
+        enqueueSnackbar('Error: No se pudo encontrar la moneda', { variant: 'error' });
+        return;
+      }
+      
+      // Realizar la operación
       await clienteAxios.patch(`/api/monedas/${id}/toggle-active`);
-      setMonedas(prev => prev.map(m => 
-        m.id === id ? { ...m, activa: !m.activa } : m
-      ));
+      
+      // Cerrar mensaje de carga
+      closeSnackbar(loadingMsg);
+      
       enqueueSnackbar(
         `Moneda ${moneda.codigo} ${!moneda.activa ? 'activada' : 'desactivada'} exitosamente`, 
         { variant: 'success' }
       );
+      
+      // Recargar datos
+      await refetchMonedas();
     } catch (error) {
-      console.error('Error al cambiar estado de la moneda:', error);
-      enqueueSnackbar('Error al cambiar el estado de la moneda', { variant: 'error' });
+      enqueueSnackbar('Error al cambiar el estado de la moneda: ' + (error.response?.data?.message || error.message), { variant: 'error' });
     }
-  }, [monedas, enqueueSnackbar]);
+  }, [monedas, enqueueSnackbar, closeSnackbar, refetchMonedas]);
 
   const handleColorChange = useCallback(async (id, color) => {
-    try {
-      const response = await clienteAxios.put(`/api/monedas/${id}`, { color });
-      setMonedas(prev => prev.map(m => m.id === id ? response.data : m));
-      enqueueSnackbar('Color actualizado exitosamente', { variant: 'success' });
-    } catch (error) {
-      console.error('Error al actualizar color:', error);
-      enqueueSnackbar('Error al actualizar el color', { variant: 'error' });
+    if (!id) {
+      enqueueSnackbar('Error: ID de moneda no válido', { variant: 'error' });
+      return;
     }
-  }, [enqueueSnackbar]);
+    
+    try {
+      // Mostrar mensaje de carga
+      const loadingMsg = enqueueSnackbar('Actualizando color...', { 
+        variant: 'info',
+        persist: true 
+      });
+      
+      // Buscar la moneda para verificar que existe
+      const moneda = monedas.find(m => m.id === id || m._id === id);
+      
+      if (!moneda) {
+        closeSnackbar(loadingMsg);
+        enqueueSnackbar('Error: No se pudo encontrar la moneda', { variant: 'error' });
+        return;
+      }
+      
+      // Realizar la operación
+      await clienteAxios.put(`/api/monedas/${id}`, { color });
+      
+      // Cerrar mensaje de carga
+      closeSnackbar(loadingMsg);
+      enqueueSnackbar('Color actualizado exitosamente', { variant: 'success' });
+      
+      // Recargar datos
+      await refetchMonedas();
+    } catch (error) {
+      enqueueSnackbar('Error al actualizar el color: ' + (error.response?.data?.message || error.message), { variant: 'error' });
+    }
+  }, [monedas, enqueueSnackbar, closeSnackbar, refetchMonedas]);
 
   const formFields = [
     {
@@ -401,28 +599,9 @@ export function Monedas() {
           setEditingMoneda(null);
           setIsFormOpen(true);
         }}
-        navigationItems={[
-          {
-            icon: <BankIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Cuentas',
-            to: '/cuentas'
-          },
-          {
-            icon: <WalletIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Transacciones',
-            to: '/transacciones'
-          },
-          {
-            icon: <RecurrentIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Recurrentes',
-            to: '/recurrente'
-          },
-          {
-            icon: <PersonOutlineOutlined sx={{ fontSize: 21.6 }} />,
-            label: 'Deudores',
-            to: '/deudores'
-          }
-        ]}
+        showBackButton={true}
+        onBack={() => window.location.href = '/dashboard'}
+        navigationItems={navigationItems}
       />
       
       <EntityDetails 
@@ -430,21 +609,41 @@ export function Monedas() {
         subtitle="Gestiona las monedas disponibles en el sistema"
         icon={<CurrencyIcon />}
         action={
-          <Button 
-            variant="contained" 
-            startIcon={<AddIcon />} 
-            size="small"
-            onClick={() => {
-              setEditingMoneda(null);
-              setIsFormOpen(true);
-            }}
-            sx={{
-              borderRadius: 1,
-              textTransform: 'none'
-            }}
-          >
-            Nueva Moneda
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Tooltip title="Recargar datos">
+              <IconButton 
+                size="small"
+                onClick={() => {
+                  const loadingMsg = enqueueSnackbar('Recargando datos...', { 
+                    variant: 'info',
+                    persist: true 
+                  });
+                  refetchMonedas().then(() => {
+                    closeSnackbar(loadingMsg);
+                    enqueueSnackbar('Datos actualizados', { variant: 'success' });
+                  });
+                }}
+                sx={{ bgcolor: 'background.paper', borderRadius: 1 }}
+              >
+                <RefreshIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Button 
+              variant="contained" 
+              startIcon={<AddIcon />} 
+              size="small"
+              onClick={() => {
+                setEditingMoneda(null);
+                setIsFormOpen(true);
+              }}
+              sx={{
+                borderRadius: 1,
+                textTransform: 'none'
+              }}
+            >
+              Nueva Moneda
+            </Button>
+          </Box>
         }
       >
         {isLoading ? (
@@ -464,18 +663,31 @@ export function Monedas() {
           />
         ) : (
           <Grid container spacing={2}>
-            {monedas.map((moneda) => (
-              <Grid item xs={12} sm={6} md={4} key={moneda.id}>
-                <MonedaCard
-                  moneda={moneda}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onToggleActive={handleToggleActive}
-                  onColorChange={handleColorChange}
-                  showValues={showValues}
-                />
-              </Grid>
-            ))}
+            {monedas.map((moneda) => {
+              // Normalizar los datos de la moneda para asegurar consistencia
+              const normalizedMoneda = {
+                id: moneda.id || moneda._id,
+                _id: moneda.id || moneda._id, // Para compatibilidad con API
+                codigo: moneda.codigo || 'Sin código',
+                nombre: moneda.nombre || 'Sin nombre',
+                simbolo: moneda.simbolo || '$',
+                color: moneda.color || COLORES_MONEDA.CELESTE_ARGENTINA.value,
+                activa: typeof moneda.activa === 'boolean' ? moneda.activa : true
+              };
+              
+              return (
+                <Grid item xs={12} sm={6} md={4} key={normalizedMoneda.id}>
+                  <MonedaCard
+                    moneda={normalizedMoneda}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onToggleActive={handleToggleActive}
+                    onColorChange={handleColorChange}
+                    showValues={showValues}
+                  />
+                </Grid>
+              );
+            })}
           </Grid>
         )}
       </EntityDetails>

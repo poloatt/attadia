@@ -24,7 +24,16 @@ export default function Header() {
 
   const getRouteTitle = () => {
     const path = location.pathname.split('/')[1];
-    return path.charAt(0).toUpperCase() + path.slice(1) || 'inicio';
+    
+    // Mapeo personalizado de rutas
+    const customRouteTitles = {
+      '': 'mis assets',          // ruta raíz (Dashboard)
+      'dashboard': 'mis assets', // También para la ruta /dashboard
+      'rutinas': 'mi salud',
+      'tiempo': 'mi tiempo'
+    };
+    
+    return customRouteTitles[path] || path.charAt(0).toUpperCase() + path.slice(1);
   };
 
   // Rutas donde se debe mostrar el botón de visibilidad
@@ -85,7 +94,7 @@ export default function Header() {
               fontSize: '0.875rem'
             }}
           >
-            Present / {getRouteTitle()}
+            Foco &lt; {getRouteTitle()}
           </Typography>
         </Box>
 

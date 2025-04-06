@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   IconButton,
@@ -127,16 +127,12 @@ const EntityToolbar = ({
     // Obtener ruta actual
     const currentPathFull = location.pathname;
     
-    // Log para depuración
-    console.log(`Filtrando navegación. Path actual: ${currentPathFull}, Base: ${currentBase}`);
-    
     return items.filter(item => {
       // Normalizar la ruta del ítem (asegurarnos que comienza con /)
       const itemPath = item.to.startsWith('/') ? item.to : `/${item.to}`;
       
       // Verificar si se trata de la página de rutinas
       if (currentBase === '/rutinas' && itemPath === '/rutinas') {
-        console.log(`Eliminando ítem de navegación: ${itemPath}`);
         return false;
       }
       
@@ -149,16 +145,14 @@ const EntityToolbar = ({
         (currentBase === itemPath && currentBase !== '/rutinas') ||
         (itemPath === '/tiempo' && currentBase === '/tiempo');
       
-      if (isCurrentRoute) {
-        console.log(`Eliminando ítem de navegación: ${itemPath}`);
-      }
-      
       return !isCurrentRoute;
     });
   };
 
   // Aplicar el filtro a los elementos de navegación
-  const finalNavigationItems = filterNavigationItems(navigationItems);
+  const finalNavigationItems = useMemo(() => {
+    return filterNavigationItems(navigationItems);
+  }, [navigationItems, location.pathname, currentBase]);
 
   const handleBack = () => {
     if (typeof onBack === 'function') {
