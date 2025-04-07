@@ -229,6 +229,14 @@ const RutinasWithContext = () => {
           {/* Vista principal de rutinas */}
           {!loading && !editMode && rutina && (
             <>
+              <RutinaNavigation 
+                rutina={rutina}
+                loading={loading}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onEdit={handleEditRutina}
+                onAdd={handleAddRutina}
+              />
               <RutinaTable 
                 rutina={{
                   ...rutina,

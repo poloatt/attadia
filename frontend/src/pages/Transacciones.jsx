@@ -356,7 +356,8 @@ export function Transacciones() {
         navigationItems={[
           { icon: <BankIcon sx={{ fontSize: 21.6 }} />, label: 'Cuentas', to: '/cuentas' },
           { icon: <MoneyIcon sx={{ fontSize: 21.6 }} />, label: 'Monedas', to: '/monedas' },
-          { icon: <RecurrentIcon sx={{ fontSize: 21.6 }} />, label: 'Recurrentes', to: '/transaccionesrecurrentes' }
+          { icon: <RecurrentIcon sx={{ fontSize: 21.6 }} />, label: 'Recurrentes', to: '/recurrente' },
+          { icon: <PersonOutlineOutlined sx={{ fontSize: 21.6 }} />, label: 'Deudores', to: '/deudores' }
         ]}
       />
 

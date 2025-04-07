@@ -26,7 +26,7 @@ import TareaForm from '../components/proyectos/TareaForm';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import { useNavigationBar } from '../context/NavigationBarContext';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 
 export function Archivo() {
@@ -40,6 +40,7 @@ export function Archivo() {
   const { setTitle, setActions } = useNavigationBar();
   const location = useLocation();
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
+  const navigate = useNavigate();
 
   useEffect(() => {
     setTitle('Archivo de Tareas');
@@ -139,6 +140,10 @@ export function Archivo() {
     }
   };
 
+  const handleBack = () => {
+    navigate('/tiempo');
+  };
+
   return (
     <Container maxWidth="xl">
       <EntityToolbar 
@@ -146,6 +151,7 @@ export function Archivo() {
         icon={<ArchiveIcon sx={{ fontSize: 20 }} />}
         showAddButton={false}
         showBackButton={true}
+        onBack={handleBack}
         navigationItems={[
           { 
             icon: <ProjectIcon sx={{ fontSize: 20 }} />, 

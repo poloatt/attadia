@@ -27,6 +27,7 @@ import {
 import EmptyState from '../components/EmptyState';
 import { EntityActions } from '../components/EntityViews/EntityActions';
 import UnderConstruction from '../components/UnderConstruction';
+import { useNavigate } from 'react-router-dom';
 
 export function Inventario() {
   const [items, setItems] = useState([]);
@@ -38,11 +39,20 @@ export function Inventario() {
   const [habitacionesDisponibles, setHabitacionesDisponibles] = useState([]);
   const [formData, setFormData] = useState({});
   const [editingItem, setEditingItem] = useState(null);
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    navigate('/');
+  };
 
   useEffect(() => {
-    fetchInventario();
-    fetchHabitaciones();
-    fetchPropiedades();
+    const timer = setTimeout(() => {
+      fetchInventario();
+      fetchHabitaciones();
+      fetchPropiedades();
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const fetchInventario = async () => {
@@ -59,9 +69,9 @@ export function Inventario() {
 
   const fetchHabitaciones = async (propiedadId = null) => {
     try {
-      let url = '/habitaciones';
+      let url = '/api/habitaciones';
       if (propiedadId) {
-        url = `/habitaciones/propiedad/${propiedadId}`;
+        url = `/api/habitaciones/propiedad/${propiedadId}`;
       }
       const response = await clienteAxios.get(url);
       const habitacionesData = propiedadId ? response.data.docs : (response.data.docs || []);
@@ -216,6 +226,7 @@ export function Inventario() {
           setEditingItem(null);
           setIsFormOpen(true);
         }}
+        onBack={handleBack}
         searchPlaceholder="Buscar items..."
         navigationItems={[
           {

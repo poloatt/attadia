@@ -9,12 +9,6 @@ import {
   CreditCardOutlined as CardIcon,
   AttachMoneyOutlined as MoneyIcon,
   AccountBalanceWalletOutlined as WalletIcon,
-  FitnessCenterOutlined as RutinasIcon,
-  AssignmentOutlined as TaskIcon,
-  AssignmentOutlined as ProjectIcon,
-  TimerOutlined as PeriodIcon,
-  TrendingDownOutlined as GastosIcon,
-  TrendingUpOutlined as IngresosIcon,
   ExpandMore as ExpandMoreIcon,
   Visibility as ShowValuesIcon,
   VisibilityOff as HideValuesIcon,
@@ -22,11 +16,13 @@ import {
   PercentOutlined as PercentIcon,
   CheckCircleOutline as OccupiedIcon,
   PeopleOutline as InquilinosIcon,
-  TaskAltOutlined as TaskAltOutlined,
   HandymanOutlined as MaintenanceIcon,
   BookmarkOutlined as ReservedIcon,
   HealthAndSafety as HealthIcon,
   Inventory2Outlined as InventoryIcon,
+  TrendingDownOutlined as GastosIcon,
+  TrendingUpOutlined as IngresosIcon,
+  TimerOutlined as PeriodIcon
 } from '@mui/icons-material';
 import { toast } from 'react-hot-toast';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
@@ -48,19 +44,7 @@ export function Dashboard() {
       balanceTotal: 0,
       monedaPrincipal: 'USD',
       monedaColor: '#75AADB'
-    },
-    tareas: {
-      pendientes: 0,
-      total: 0,
-      completadas: 0,
-      enProgreso: 0
-    },
-    proyectos: {
-      activos: 0,
-      total: 0,
-      completados: 0,
-      enPausa: 0
-    },
+    }
   });
   const [selectedPeriod, setSelectedPeriod] = useState(30);
   const { showValues } = useValuesVisibility();
@@ -70,7 +54,6 @@ export function Dashboard() {
   const [inquilinos, setInquilinos] = useState([]);
   const [contratos, setContratos] = useState([]);
   const [isDaylistOpen, setIsDaylistOpen] = useState(false);
-  const [isProjectsOpen, setIsProjectsOpen] = useState(false);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -257,61 +240,13 @@ export function Dashboard() {
     }
   }, []);
 
-  const fetchTasksAndProjects = useCallback(async () => {
-    try {
-      console.log('Obteniendo estadísticas de tareas y proyectos...');
-      const [tareasRes, proyectosRes] = await Promise.all([
-        clienteAxios.get('/api/tareas'),
-        clienteAxios.get('/api/proyectos')
-      ]);
-      
-      // Calcular estadísticas de tareas
-      const tareasList = tareasRes.data.docs || [];
-      const tareas = {
-        pendientes: tareasList.filter(t => t.estado === 'PENDIENTE').length,
-        enProgreso: tareasList.filter(t => t.estado === 'EN_PROGRESO').length,
-        completadas: tareasList.filter(t => t.estado === 'COMPLETADA').length,
-        total: tareasList.length
-      };
-
-      // Calcular estadísticas de proyectos
-      const proyectosList = proyectosRes.data.docs || [];
-      const proyectos = {
-        activos: proyectosList.filter(p => p.estado === 'EN_PROGRESO').length,
-        completados: proyectosList.filter(p => p.estado === 'COMPLETADO').length,
-        enPausa: proyectosList.filter(p => p.estado === 'PENDIENTE').length,
-        total: proyectosList.length
-      };
-
-      console.log('Estadísticas calculadas de tareas:', tareas);
-      console.log('Estadísticas calculadas de proyectos:', proyectos);
-
-      setStats(prevStats => ({
-        ...prevStats,
-        tareas,
-        proyectos
-      }));
-    } catch (error) {
-      // Ignorar errores por cancelación, son parte del control de flujo
-      if (error.cancelado) {
-        console.log('Petición de tareas/proyectos cancelada para evitar múltiples solicitudes');
-        return;
-      }
-      
-      console.error('Error al obtener estadísticas de tareas y proyectos:', error);
-      console.error('Detalles del error:', error.response?.data);
-      toast.error('Error al cargar estadísticas de tareas y proyectos');
-    }
-  }, []);
-
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       await Promise.all([
         fetchStats(),
         fetchAccounts(),
-        fetchInquilinosYContratos(),
-        fetchTasksAndProjects()
+        fetchInquilinosYContratos()
       ]);
     } catch (error) {
       // Ignorar errores por cancelación
@@ -321,7 +256,7 @@ export function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [fetchStats, fetchAccounts, fetchInquilinosYContratos, fetchTasksAndProjects]);
+  }, [fetchStats, fetchAccounts, fetchInquilinosYContratos]);
 
   useEffect(() => {
     const loadAllData = async () => {
@@ -330,8 +265,7 @@ export function Dashboard() {
         await Promise.all([
           fetchStats(),
           fetchAccounts(),
-          fetchInquilinosYContratos(),
-          fetchTasksAndProjects()
+          fetchInquilinosYContratos()
         ]);
       } catch (error) {
         // Ignorar errores por cancelación
@@ -348,7 +282,7 @@ export function Dashboard() {
     
     const interval = setInterval(loadAllData, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [fetchStats, fetchAccounts, fetchInquilinosYContratos, fetchTasksAndProjects]);
+  }, [fetchStats, fetchAccounts, fetchInquilinosYContratos]);
 
   const handlePeriodClick = () => {
     const periods = [7, 30, 90];
@@ -597,7 +531,7 @@ export function Dashboard() {
               {/* Contratos activos */}
               <Box sx={{ flex: 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <ProjectIcon sx={{ fontSize: 18 }} />
+                  <PeriodIcon sx={{ fontSize: 18 }} />
                   <Typography variant="body2" color="text.secondary">
                     {contratos.length > 0 
                       ? `${pluralize(contratos.length, 'contrato activo', 'contratos activos')}: ${contratos.map(contrato => contrato.propiedad?.titulo || 'Sin título').join(', ')}`
@@ -616,196 +550,6 @@ export function Dashboard() {
                       ? `${pluralize(inquilinos.length, 'inquilino activo', 'inquilinos activos')}: ${inquilinos.map(inquilino => inquilino.nombre).join(', ')}`
                       : 'Sin inquilinos activos'
                     }
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-          </Box>
-        </Collapse>
-      </Box>
-    );
-  };
-
-  const TasksAndProjectsSection = () => {
-    // Función auxiliar para formatear el texto de conteo
-    const formatCountText = (count, type) => {
-      if (count === 0) {
-        return `Sin ${type}`;
-      }
-      return `${count} ${type}`;
-    };
-
-    // Calcular tareas activas (pendientes + en progreso)
-    const tareasActivas = stats.tareas.pendientes + stats.tareas.enProgreso;
-
-    return (
-      <Box>
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          {/* Métricas principales */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {/* Tareas */}
-            <Box 
-              component={Link} 
-              to="/tareas"
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 0.5,
-                textDecoration: 'none',
-                color: 'text.secondary',
-                '&:hover': { textDecoration: 'underline' }
-              }}
-            >
-              <TaskAltOutlined sx={{ fontSize: 18, color: 'inherit' }} />
-              <Typography variant="body2" color="inherit">
-                {formatCountText(tareasActivas, 'tareas activas')}
-              </Typography>
-            </Box>
-
-            {/* Proyectos */}
-            <Box 
-              component={Link}
-              to="/proyectos"
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 0.5,
-                textDecoration: 'none',
-                color: 'text.secondary',
-                '&:hover': { textDecoration: 'underline' }
-              }}
-            >
-              <ProjectIcon sx={{ fontSize: 18, color: 'inherit' }} />
-              <Typography variant="body2" color="inherit">
-                {formatCountText(stats.proyectos.activos, 'proyectos activos')}
-              </Typography>
-            </Box>
-          </Box>
-
-          {/* Control de expansión */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <IconButton 
-              size="small" 
-              onClick={() => setIsProjectsOpen(!isProjectsOpen)}
-              sx={{
-                p: 0.5,
-                transform: isProjectsOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.2s',
-                color: 'text.secondary'
-              }}
-            >
-              <ExpandMoreIcon sx={{ fontSize: 18 }} />
-            </IconButton>
-          </Box>
-        </Box>
-
-        {/* Sección colapsable */}
-        <Collapse in={isProjectsOpen}>
-          <Box sx={{ 
-            mt: 0.5,
-            pt: 0.5,
-            borderTop: 1,
-            borderColor: 'divider'
-          }}>
-            <Box sx={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(2, 1fr)', 
-              gap: 2
-            }}>
-              {/* Sección de Tareas */}
-              <Box>
-                <Box sx={{ 
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 0.5
-                }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 0.5,
-                    height: 24
-                  }}>
-                    <span style={{ color: '#f44336', fontSize: '8px' }}>●</span> Pendientes: {stats.tareas.pendientes}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 0.5,
-                    height: 24
-                  }}>
-                    <span style={{ color: '#2196f3', fontSize: '8px' }}>●</span> En Progreso: {stats.tareas.enProgreso}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 0.5,
-                    height: 24
-                  }}>
-                    <span style={{ color: '#4caf50', fontSize: '8px' }}>●</span> Completadas: {stats.tareas.completadas}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 0.5,
-                    height: 24,
-                    fontWeight: 500,
-                    mt: 0.5,
-                    pt: 0.5,
-                    borderTop: '1px dashed',
-                    borderColor: 'divider'
-                  }}>
-                    <span style={{ color: '#757575', fontSize: '8px' }}>●</span> Total: {stats.tareas.total}
-                  </Typography>
-                </Box>
-              </Box>
-
-              {/* Sección de Proyectos */}
-              <Box>
-                <Box sx={{ 
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 0.5
-                }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 0.5,
-                    height: 24
-                  }}>
-                    <span style={{ color: '#2196f3', fontSize: '8px' }}>●</span> Activos: {stats.proyectos.activos}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 0.5,
-                    height: 24
-                  }}>
-                    <span style={{ color: '#ff9800', fontSize: '8px' }}>●</span> En Pausa: {stats.proyectos.enPausa}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 0.5,
-                    height: 24
-                  }}>
-                    <span style={{ color: '#4caf50', fontSize: '8px' }}>●</span> Completados: {stats.proyectos.completados}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 0.5,
-                    height: 24,
-                    fontWeight: 500,
-                    mt: 0.5,
-                    pt: 0.5,
-                    borderTop: '1px dashed',
-                    borderColor: 'divider'
-                  }}>
-                    <span style={{ color: '#757575', fontSize: '8px' }}>●</span> Total: {stats.proyectos.total}
                   </Typography>
                 </Box>
               </Box>
@@ -874,13 +618,6 @@ export function Dashboard() {
             }}>
               <FinanceSection />
             </Box>
-          </Paper>
-        </Grid>
-
-        {/* Tasks and Projects Section */}
-        <Grid item xs={12}>
-          <Paper sx={{ p: 2 }}>
-            <TasksAndProjectsSection />
           </Paper>
         </Grid>
       </Grid>

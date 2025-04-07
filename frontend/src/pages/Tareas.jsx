@@ -23,7 +23,7 @@ import TareasTable from '../components/proyectos/TareasTable';
 import TareaForm from '../components/proyectos/TareaForm';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useNavigationBar } from '../context/NavigationBarContext';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 
@@ -38,6 +38,7 @@ export function Tareas() {
   const location = useLocation();
   const { setTitle, setActions } = useNavigationBar();
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
+  const navigate = useNavigate();
 
   useEffect(() => {
     setTitle('Tareas');
@@ -156,6 +157,10 @@ export function Tareas() {
     }
   };
 
+  const handleBack = () => {
+    navigate('/tiempo');
+  };
+
   return (
     <Container maxWidth="xl">
       <EntityToolbar 
@@ -166,6 +171,7 @@ export function Tareas() {
           setIsFormOpen(true);
         }}
         showBackButton={true}
+        onBack={handleBack}
         navigationItems={[
           { 
             icon: <ProjectIcon sx={{ fontSize: 20 }} />, 

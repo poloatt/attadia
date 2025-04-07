@@ -32,21 +32,31 @@ import {
 import EmptyState from '../components/EmptyState';
 import { EntityActions } from '../components/EntityViews/EntityActions';
 import EntityGroupedCards from '../components/EntityViews/EntityGroupedCards';
+import { useNavigate } from 'react-router-dom';
 
 export function Habitaciones() {
   const [habitaciones, setHabitaciones] = useState([]);
   const [propiedades, setPropiedades] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingHabitacion, setEditingHabitacion] = useState(null);
+  const [loading, setLoading] = useState(true);
   const { enqueueSnackbar } = useSnackbar();
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    navigate('/');
+  };
 
   const fetchHabitaciones = useCallback(async () => {
     try {
+      setLoading(true);
       const response = await clienteAxios.get('/api/habitaciones');
       setHabitaciones(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar habitaciones:', error);
       enqueueSnackbar('Error al cargar habitaciones', { variant: 'error' });
+    } finally {
+      setLoading(false);
     }
   }, [enqueueSnackbar]);
 
@@ -61,8 +71,12 @@ export function Habitaciones() {
   }, [enqueueSnackbar]);
 
   useEffect(() => {
-    fetchHabitaciones();
-    fetchPropiedades();
+    const timer = setTimeout(() => {
+      fetchHabitaciones();
+      fetchPropiedades();
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, [fetchHabitaciones, fetchPropiedades]);
 
   const handleCreatePropiedad = async (data) => {
@@ -83,7 +97,7 @@ export function Habitaciones() {
       console.log('Enviando datos:', formData);
       let response;
       if (editingHabitacion) {
-        response = await clienteAxios.put(`/habitaciones/${editingHabitacion.id}`, formData);
+        response = await clienteAxios.put(`/api/habitaciones/${editingHabitacion.id}`, formData);
         setHabitaciones(prev => prev.map(h => h.id === editingHabitacion.id ? response.data : h));
       } else {
         response = await clienteAxios.post('/api/habitaciones', formData);
@@ -114,7 +128,7 @@ export function Habitaciones() {
 
   const handleDelete = useCallback(async (id) => {
     try {
-      await clienteAxios.delete(`/habitaciones/${id}`);
+      await clienteAxios.delete(`/api/habitaciones/${id}`);
       setHabitaciones(prev => prev.filter(h => h.id !== id));
       enqueueSnackbar('Habitación eliminada exitosamente', { variant: 'success' });
     } catch (error) {
@@ -311,6 +325,7 @@ export function Habitaciones() {
           setEditingHabitacion(null);
           setIsFormOpen(true);
         }}
+        onBack={handleBack}
         searchPlaceholder="Buscar habitaciones..."
         navigationItems={[
           {

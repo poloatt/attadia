@@ -28,6 +28,7 @@ import ProyectoForm from '../components/proyectos/ProyectoForm';
 import { useNavigationBar } from '../context/NavigationBarContext';
 import TareaForm from '../components/proyectos/TareaForm';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
+import { useNavigate } from 'react-router-dom';
 
 export function Proyectos() {
   const [proyectos, setProyectos] = useState([]);
@@ -41,6 +42,11 @@ export function Proyectos() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { setTitle, setActions } = useNavigationBar();
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    navigate('/tiempo');
+  };
 
   useEffect(() => {
     setTitle('Proyectos');
@@ -189,6 +195,7 @@ export function Proyectos() {
           setIsFormOpen(true);
         }}
         showBackButton={true}
+        onBack={handleBack}
         actions={
           <>
             <Tooltip title={showValues ? "Ocultar valores" : "Mostrar valores"}>

@@ -61,14 +61,14 @@ export default function BottomNavigation() {
       elevation={2} 
       sx={{
         position: 'fixed',
-        bottom: 44, // Espacio para el footer
+        bottom: 44,
         left: '50%',
         transform: 'translateX(-50%)',
-        zIndex: 1300, // Aumentado para estar por encima de los mensajes de error
-        width: 'auto',
+        zIndex: 1300,
+        width: '100%',
+        maxWidth: '600px',
         borderRadius: 1,
         overflow: 'hidden',
-        // Diseño geométrico - siguiendo el estilo de EntityToolbar
         clipPath: 'polygon(2% 0%, 98% 0%, 100% 100%, 0% 100%)',
         bgcolor: 'background.paper',
         boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
@@ -78,69 +78,83 @@ export default function BottomNavigation() {
     >
       <Box 
         sx={{ 
-          display: 'flex', 
+          display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
           height: '48px',
-          px: 2,
+          width: '100%',
         }}
       >
-        {navItems.map((item, index) => (
-          <Box
-            key={item.path}
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              mx: 2,
-              position: 'relative',
-              '&::after': index < navItems.length - 1 ? {
-                content: '""',
-                position: 'absolute',
-                top: '50%',
-                right: -16,
-                transform: 'translateY(-50%)',
-                height: '60%',
-                width: '1px',
-                backgroundColor: 'divider',
-                // Diseño geométrico para el separador
-                clipPath: 'polygon(0% 0%, 100% 10%, 100% 90%, 0% 100%)'
-              } : {}
-            }}
-          >
-            <IconButton
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: 4,
+            width: 'auto',
+            minWidth: '300px',
+            maxWidth: '400px'
+          }}
+        >
+          {navItems.map((item, index) => (
+            <Box
+              key={item.path}
               component={Link}
               to={item.path}
               onClick={() => console.log('Clic en:', item.path)}
               sx={{
-                color: isActive(item.path) ? 'primary.main' : 'text.secondary',
-                p: 0.5,
-                // Diseño geométrico para el botón
-                clipPath: 'polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%)',
-                bgcolor: isActive(item.path) ? 'action.selected' : 'transparent',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative',
+                textDecoration: 'none',
+                py: 1,
+                px: 2,
                 '&:hover': {
                   bgcolor: 'action.hover',
                 },
-                transition: 'all 0.2s ease-in-out',
+                '&::after': index < navItems.length - 1 ? {
+                  content: '""',
+                  position: 'absolute',
+                  top: '50%',
+                  right: -16,
+                  transform: 'translateY(-50%)',
+                  height: '60%',
+                  width: '1px',
+                  backgroundColor: 'divider',
+                  clipPath: 'polygon(0% 0%, 100% 10%, 100% 90%, 0% 100%)'
+                } : {}
               }}
             >
-              {React.cloneElement(item.icon, { 
-                sx: { fontSize: 18 } 
-              })}
-            </IconButton>
-            <Typography
-              variant="caption"
-              sx={{
-                color: isActive(item.path) ? 'primary.main' : 'text.secondary',
-                fontSize: '0.65rem',
-                fontWeight: isActive(item.path) ? 500 : 400,
-                mt: 0.2
-              }}
-            >
-              {item.label}
-            </Typography>
-          </Box>
-        ))}
+              <Box
+                sx={{
+                  color: isActive(item.path) ? 'primary.main' : 'text.secondary',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  clipPath: 'polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%)',
+                  bgcolor: isActive(item.path) ? 'action.selected' : 'transparent',
+                  p: 0.5,
+                }}
+              >
+                {React.cloneElement(item.icon, { 
+                  sx: { fontSize: 18 } 
+                })}
+              </Box>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: isActive(item.path) ? 'primary.main' : 'text.secondary',
+                  fontSize: '0.65rem',
+                  fontWeight: isActive(item.path) ? 500 : 400,
+                  mt: 0.2
+                }}
+              >
+                {item.label}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
       </Box>
     </Paper>
   );

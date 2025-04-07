@@ -84,6 +84,10 @@ export function Propiedades() {
   const [loadingRelated, setLoadingRelated] = useState(true);
   const [editingPropiedad, setEditingPropiedad] = useState(null);
 
+  const handleBack = () => {
+    navigate('/');
+  };
+
   // Función para cargar propiedades
   const fetchPropiedades = useCallback(async () => {
     try {
@@ -93,78 +97,75 @@ export function Propiedades() {
       const response = await clienteAxios.get('/api/propiedades');
       console.log('Respuesta recibida:', response.data);
       
-      // Ahora necesitamos obtener datos relacionados para cada propiedad
       const propiedadesData = response.data.docs || [];
-      
-      // Enriquecer cada propiedad con datos relacionados
-      const propiedadesEnriquecidas = await Promise.all(
-        propiedadesData.map(async (propiedad) => {
-          try {
-            const propiedadId = propiedad._id || propiedad.id;
-            
-            console.log(`Obteniendo datos relacionados para propiedad ${propiedadId} (${propiedad.titulo})`);
-            
-            // Obtener inquilinos relacionados (usando la nueva ruta)
-            const inquilinosResponse = await clienteAxios.get(`/api/inquilinos/propiedad/${propiedadId}`);
-            console.log(`Inquilinos para propiedad ${propiedadId}:`, inquilinosResponse.data);
-            
-            // Obtener habitaciones relacionadas
-            const habitacionesResponse = await clienteAxios.get(`/api/habitaciones/propiedad/${propiedadId}`);
-            console.log(`Habitaciones para propiedad ${propiedadId}:`, habitacionesResponse.data);
-            
-            // Obtener contratos relacionados
-            const contratosResponse = await clienteAxios.get(`/api/contratos/propiedad/${propiedadId}`);
-            console.log(`Contratos para propiedad ${propiedadId}:`, contratosResponse.data);
-            
-            // Obtener inventario relacionado
-            const inventarioResponse = await clienteAxios.get(`/api/inventarios/propiedad/${propiedadId}`);
-            console.log(`Inventario para propiedad ${propiedadId}:`, inventarioResponse.data);
-            
-            // Extraer los datos de cada respuesta y verificar que sean arrays válidos
-            const habitaciones = habitacionesResponse.data.docs || [];
-            // Asegurarse de que los inquilinos sean un array válido y tengan datos completos
-            const inquilinos = Array.isArray(inquilinosResponse.data.docs) 
-              ? inquilinosResponse.data.docs 
-              : [];
-            const contratos = contratosResponse.data.docs || [];
-            const inventario = inventarioResponse.data.docs || [];
-            
-            // Verificar que los datos de inquilinos sean válidos
-            if (inquilinos.length > 0) {
-              console.log(`Datos de inquilinos para propiedad ${propiedadId}:`, 
-                inquilinos.map(i => ({
-                  id: i._id || i.id,
-                  nombre: i.nombre,
-                  apellido: i.apellido
-                }))
-              );
-            }
-            
-            // Devolver la propiedad enriquecida
-            return {
-              ...propiedad,
-              inquilinos,
-              habitaciones,
-              contratos,
-              inventario
-            };
-          } catch (error) {
-            console.error(`Error al cargar datos relacionados para propiedad ${propiedad._id || propiedad.id}:`, error);
-            return {
-              ...propiedad,
-              inquilinos: [],
-              habitaciones: [],
-              contratos: [],
-              inventario: []
-            };
+      const propiedadesEnriquecidas = [];
+
+      // Procesar las propiedades en serie en lugar de en paralelo
+      for (const propiedad of propiedadesData) {
+        try {
+          const propiedadId = propiedad._id || propiedad.id;
+          console.log(`Obteniendo datos relacionados para propiedad ${propiedadId} (${propiedad.titulo})`);
+
+          // Obtener datos en grupos con delays entre ellos
+          const [inquilinosResponse] = await Promise.all([
+            clienteAxios.get(`/api/inquilinos/propiedad/${propiedadId}`)
+          ]);
+          
+          await new Promise(resolve => setTimeout(resolve, 100));
+
+          const [habitacionesResponse] = await Promise.all([
+            clienteAxios.get(`/api/habitaciones/propiedad/${propiedadId}`)
+          ]);
+
+          await new Promise(resolve => setTimeout(resolve, 100));
+
+          const [contratosResponse, inventarioResponse] = await Promise.all([
+            clienteAxios.get(`/api/contratos/propiedad/${propiedadId}`),
+            clienteAxios.get(`/api/inventarios/propiedad/${propiedadId}`)
+          ]);
+
+          const habitaciones = habitacionesResponse.data.docs || [];
+          const inquilinos = Array.isArray(inquilinosResponse.data.docs) 
+            ? inquilinosResponse.data.docs 
+            : [];
+          const contratos = contratosResponse.data.docs || [];
+          const inventario = inventarioResponse.data.docs || [];
+
+          if (inquilinos.length > 0) {
+            console.log(`Datos de inquilinos para propiedad ${propiedadId}:`, 
+              inquilinos.map(i => ({
+                id: i._id || i.id,
+                nombre: i.nombre,
+                apellido: i.apellido
+              }))
+            );
           }
-        })
-      );
-      
+
+          propiedadesEnriquecidas.push({
+            ...propiedad,
+            inquilinos,
+            habitaciones,
+            contratos,
+            inventario
+          });
+
+        } catch (error) {
+          console.error(`Error al cargar datos relacionados para propiedad ${propiedad._id || propiedad.id}:`, error);
+          // Si hay error, agregamos la propiedad con arrays vacíos
+          propiedadesEnriquecidas.push({
+            ...propiedad,
+            inquilinos: [],
+            habitaciones: [],
+            contratos: [],
+            inventario: []
+          });
+        }
+      }
+
       console.log('Propiedades enriquecidas:', propiedadesEnriquecidas);
       setPropiedades(propiedadesEnriquecidas);
       setFilteredPropiedades(propiedadesEnriquecidas);
-      
+
     } catch (error) {
       console.error('Error al cargar propiedades:', error);
       setError(error.message || 'Error al cargar propiedades');
@@ -193,55 +194,15 @@ export function Propiedades() {
     }
   }, [enqueueSnackbar]);
 
-  // Efecto para cargar datos iniciales
+  // Modificar el useEffect para agregar un delay inicial
   useEffect(() => {
-    fetchPropiedades();
-    fetchRelatedData();
-    
-    // Función de prueba para verificar la obtención de inquilinos
-    const testInquilinosEndpoint = async () => {
-      try {
-        console.log('=== PRUEBA DE ENDPOINT DE INQUILINOS ===');
-        const propiedadesResponse = await clienteAxios.get('/api/propiedades');
-        const propiedades = propiedadesResponse.data.docs || [];
-        
-        if (propiedades.length > 0) {
-          const primeraPropiedad = propiedades[0];
-          const propiedadId = primeraPropiedad._id || primeraPropiedad.id;
-          
-          console.log(`Probando ruta de inquilinos para propiedad ${propiedadId} (${primeraPropiedad.titulo})`);
-          
-          // Probar el endpoint directamente
-          const inquilinosResponse = await clienteAxios.get(`/api/inquilinos/propiedad/${propiedadId}`);
-          
-          console.log('RESULTADO DE PRUEBA:', {
-            status: inquilinosResponse.status,
-            totalDocs: inquilinosResponse.data.totalDocs,
-            docs: inquilinosResponse.data.docs
-          });
-          
-          if (Array.isArray(inquilinosResponse.data.docs)) {
-            console.log('DATOS DE INQUILINOS:', 
-              inquilinosResponse.data.docs.map(inq => ({
-                id: inq._id || inq.id,
-                nombre: inq.nombre || 'Sin nombre',
-                apellido: inq.apellido || 'Sin apellido',
-                propiedad: inq.propiedad
-              }))
-            );
-          } else {
-            console.error('La respuesta no contiene un array de inquilinos:', inquilinosResponse.data);
-          }
-        }
-      } catch (error) {
-        console.error('Error en prueba de endpoint de inquilinos:', error.response || error);
-      }
-    };
-    
-    // Ejecutar la prueba después de un breve retraso
-    setTimeout(testInquilinosEndpoint, 2000);
-    
-  }, [fetchPropiedades, fetchRelatedData, clienteAxios]);
+    const timer = setTimeout(() => {
+      fetchPropiedades();
+      fetchRelatedData();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [fetchPropiedades, fetchRelatedData]);
 
   // Efecto para escuchar eventos de actualización
   useEffect(() => {
@@ -413,6 +374,7 @@ export function Propiedades() {
           setEditingPropiedad(null);
           setIsFormOpen(true);
         }}
+        onBack={handleBack}
         searchPlaceholder="Buscar propiedades..."
         onSearch={handleSearch}
         navigationItems={[
