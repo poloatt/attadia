@@ -1,44 +1,14 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { 
-  Container, 
-  Grid, 
-  Box, 
-  Typography, 
-  Skeleton, 
-  Paper, 
-  IconButton, 
-  Menu, 
-  MenuItem, 
-  Collapse,
-  Card,
-  CardContent,
-  CardActions,
-  CardMedia,
-  Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField
-} from '@mui/material';
+import { Container, Grid, Box, Typography, Skeleton, Paper, IconButton, Menu, MenuItem, Collapse } from '@mui/material';
 import { Link } from 'react-router-dom';
 import EntityToolbar from '../components/EntityToolbar';
-import { FooterNavigation } from '../navigation/navigationbar';
 import clienteAxios from '../config/axios';
 import { 
   ApartmentOutlined as BuildingIcon,
   AccountBalanceOutlined as BankIcon,
   CreditCardOutlined as CardIcon,
-  AttachMoneyOutlined as AttachMoneyIcon,
+  AttachMoneyOutlined as MoneyIcon,
   AccountBalanceWalletOutlined as WalletIcon,
-<<<<<<< HEAD
-  FitnessCenterOutlined as RutinasIcon,
-  AssignmentOutlined as TaskIcon,
-  TimerOutlined as PeriodIcon,
-  TrendingDownOutlined as GastosIcon,
-  TrendingUpOutlined as IngresosIcon,
-=======
->>>>>>> develop
   ExpandMore as ExpandMoreIcon,
   Visibility as ShowValuesIcon,
   VisibilityOff as HideValuesIcon,
@@ -49,40 +19,13 @@ import {
   HandymanOutlined as MaintenanceIcon,
   BookmarkOutlined as ReservedIcon,
   HealthAndSafety as HealthIcon,
-<<<<<<< HEAD
-  CalendarMonthOutlined as CalendarMonthIcon,
-  LocationOn as LocationOnIcon,
-  SquareFoot as SquareFootIcon,
-  Bed as BedIcon,
-  BathtubOutlined as BathtubOutlinedIcon,
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Description as DescriptionIcon,
-  Inventory2Outlined as InventoryIcon,
-  ExpandLess as ExpandLessIcon,
-  HomeWork
-=======
   Inventory2Outlined as InventoryIcon,
   TrendingDownOutlined as GastosIcon,
   TrendingUpOutlined as IngresosIcon,
   TimerOutlined as PeriodIcon
->>>>>>> develop
 } from '@mui/icons-material';
 import { toast } from 'react-hot-toast';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '@mui/material/styles';
-import { useNavigate } from 'react-router-dom';
-import EntityForm from '../components/EntityViews/EntityForm';
-import EntityDetails from '../components/EntityViews/EntityDetails';
-import EntityCards from '../components/EntityViews/EntityCards';
-import EmptyState from '../components/EmptyState';
-import { EntityActions } from '../components/EntityViews/EntityActions';
-import PropiedadForm from '../components/propiedades/PropiedadForm';
-import PropiedadList from '../components/propiedades/PropiedadList';
-import { useSnackbar } from 'notistack';
-import TransaccionForm from '../components/transacciones/TransaccionForm';
 
 export function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -111,43 +54,15 @@ export function Dashboard() {
   const [inquilinos, setInquilinos] = useState([]);
   const [contratos, setContratos] = useState([]);
   const [isDaylistOpen, setIsDaylistOpen] = useState(false);
-<<<<<<< HEAD
-  const [expandedProperties, setExpandedProperties] = useState({});
-  const [propiedades, setPropiedades] = useState([]);
-  const [isFinanceOpen, setIsFinanceOpen] = useState(true);
-  const [isPropiedadFormOpen, setIsPropiedadFormOpen] = useState(false);
-  const [isTransaccionFormOpen, setIsTransaccionFormOpen] = useState(false);
-  const navigate = useNavigate();
-  const { enqueueSnackbar } = useSnackbar();
-
-  const handlePropertyExpand = (propertyId) => {
-    setExpandedProperties(prev => ({
-      ...prev,
-      [propertyId]: !prev[propertyId]
-    }));
-  };
-=======
->>>>>>> develop
 
   const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
+      console.log('Iniciando fetchStats...');
       
-      // Obtener propiedades, contratos e inquilinos
-      const [propiedadesRes, contratosRes, inquilinosRes] = await Promise.all([
-        clienteAxios.get('/api/propiedades?populate=contratos,inquilinos'),
-        clienteAxios.get('/api/contratos/activos'),
-        clienteAxios.get('/api/inquilinos/activos')
-      ]);
-      
+      // Obtener propiedades y calcular estadísticas
+      const propiedadesRes = await clienteAxios.get('/api/propiedades');
       const propiedades = propiedadesRes.data.docs || [];
-      const contratosData = contratosRes.data.docs || [];
-      const inquilinosData = inquilinosRes.data.docs || [];
-      
-      // Guardar las propiedades en el estado
-      setPropiedades(propiedades);
-      setContratos(contratosData);
-      setInquilinos(inquilinosData);
       
       // Calcular estadísticas de propiedades
       const propiedadesStats = propiedades.reduce((stats, propiedad) => {
@@ -158,25 +73,28 @@ export function Dashboard() {
         hoy.setHours(0, 0, 0, 0);
         
         // Verificar contratos activos
-        const tieneContratoActivo = contratosData.some(contrato => {
+        const tieneContratoActivo = (propiedad.contratos || []).some(contrato => {
           const inicio = new Date(contrato.fechaInicio);
           const fin = new Date(contrato.fechaFin);
-          return inicio <= hoy && fin >= hoy && (contrato.propiedad?._id === propiedad._id || contrato.propiedad === propiedad._id);
+          return inicio <= hoy && fin >= hoy;
         });
 
         // Verificar contratos reservados
-        const tieneContratoReservado = contratosData.some(contrato => {
+        const tieneContratoReservado = (propiedad.contratos || []).some(contrato => {
           const inicio = new Date(contrato.fechaInicio);
-          return inicio > hoy && contrato.estado === 'RESERVADO' && (contrato.propiedad?._id === propiedad._id || contrato.propiedad === propiedad._id);
+          return inicio > hoy && contrato.estado === 'RESERVADO';
         });
 
         // Determinar estado
         if (tieneContratoActivo) {
           stats.ocupadas++;
+          stats.disponibles = Math.max(0, stats.disponibles - 1);
         } else if (propiedad.estado === 'MANTENIMIENTO') {
           stats.mantenimiento++;
+          stats.disponibles = Math.max(0, stats.disponibles - 1);
         } else if (tieneContratoReservado || propiedad.estado === 'RESERVADA') {
           stats.reservadas++;
+          stats.disponibles = Math.max(0, stats.disponibles - 1);
         } else {
           stats.disponibles++;
         }
@@ -195,17 +113,48 @@ export function Dashboard() {
         ? Math.round((propiedadesStats.ocupadas / (propiedadesStats.total - propiedadesStats.mantenimiento)) * 100)
         : 0;
 
-      // Actualizar el estado con las nuevas estadísticas
+      console.log('Estadísticas calculadas:', {
+        ...propiedadesStats,
+        porcentajeOcupacion
+      });
+
+      // Intentamos obtener las estadísticas de transacciones
+      let transaccionesData = {
+        ingresosMensuales: 0,
+        egresosMensuales: 0,
+        balanceTotal: 0,
+        monedaPrincipal: 'USD',
+        monedaColor: '#75AADB'
+      };
+
+      try {
+        const transaccionesStats = await clienteAxios.get('/api/transacciones/stats');
+        console.log('Estadísticas de transacciones:', transaccionesStats.data);
+        transaccionesData = transaccionesStats.data;
+      } catch (transaccionesError) {
+        console.error('Error al obtener estadísticas de transacciones:', transaccionesError);
+      }
+
       setStats(prevStats => ({
         ...prevStats,
         propiedades: {
           ...propiedadesStats,
           porcentajeOcupacion
+        },
+        finanzas: {
+          ...transaccionesData,
+          monedaColor: transaccionesData.monedaColor || '#75AADB'
         }
       }));
-
     } catch (error) {
+      // Ignorar errores por cancelación, son parte del control de flujo
+      if (error.cancelado) {
+        console.log('Petición de estadísticas cancelada para evitar múltiples solicitudes');
+        return;
+      }
+      
       console.error('Error al cargar estadísticas:', error);
+      console.error('Detalles del error:', error.response?.data);
       toast.error('Error al cargar estadísticas');
     } finally {
       setLoading(false);
@@ -214,13 +163,16 @@ export function Dashboard() {
 
   const fetchAccounts = useCallback(async () => {
     try {
+      console.log('Obteniendo cuentas...');
       const response = await clienteAxios.get('/api/cuentas');
       const cuentas = response.data.docs || [];
+      console.log('Cuentas obtenidas:', cuentas);
       
       // Obtener los balances de cada cuenta
       const cuentasConBalance = await Promise.all(cuentas.map(async (cuenta) => {
         try {
           const today = new Date().toISOString().split('T')[0];
+          console.log(`Obteniendo transacciones para cuenta ${cuenta.nombre} (${cuenta._id})`);
           
           const transaccionesResponse = await clienteAxios.get(`/api/transacciones/by-cuenta/${cuenta._id || cuenta.id}`, {
             params: {
@@ -230,6 +182,7 @@ export function Dashboard() {
           });
           
           const transacciones = transaccionesResponse.data.docs || [];
+          console.log(`Transacciones obtenidas para ${cuenta.nombre}:`, transacciones);
 
           const balance = transacciones.reduce((acc, trans) => {
             const monto = parseFloat(trans.monto) || 0;
@@ -241,21 +194,29 @@ export function Dashboard() {
             saldo: balance.toFixed(2)
           };
         } catch (err) {
+          // Si hay error obteniendo las transacciones, devolver la cuenta sin modificar
+          console.error(`Error al obtener transacciones para cuenta ${cuenta.nombre}:`, err);
           return cuenta;
         }
       }));
       
       setAccounts(cuentasConBalance);
     } catch (error) {
-      if (!error.cancelado) {
-      console.error('Error al cargar cuentas:', error);
-      toast.error('Error al cargar cuentas');
+      // Ignorar errores por cancelación, son parte del control de flujo
+      if (error.cancelado) {
+        console.log('Petición de cuentas cancelada para evitar múltiples solicitudes');
+        return;
       }
+      
+      console.error('Error al cargar cuentas:', error);
+      console.error('Detalles del error:', error.response?.data);
+      toast.error('Error al cargar cuentas');
     }
   }, []);
 
   const fetchInquilinosYContratos = useCallback(async () => {
     try {
+      console.log('Iniciando fetchInquilinosYContratos...');
       const [inquilinosResponse, contratosResponse] = await Promise.all([
         clienteAxios.get('/api/inquilinos/activos'),
         clienteAxios.get('/api/contratos/activos')
@@ -267,7 +228,9 @@ export function Dashboard() {
       setInquilinos(inquilinosData);
       setContratos(contratosData);
     } catch (error) {
+      // Ignorar errores por cancelación, son parte del control de flujo
       if (error.cancelado) {
+        console.log('Petición de inquilinos/contratos cancelada para evitar múltiples solicitudes');
         return;
       }
       
@@ -286,6 +249,7 @@ export function Dashboard() {
         fetchInquilinosYContratos()
       ]);
     } catch (error) {
+      // Ignorar errores por cancelación
       if (!error.cancelado) {
         console.error('Error al cargar datos:', error);
       }
@@ -304,6 +268,7 @@ export function Dashboard() {
           fetchInquilinosYContratos()
         ]);
       } catch (error) {
+        // Ignorar errores por cancelación
         if (!error.cancelado) {
           console.error('Error al cargar datos:', error);
           toast.error('Error al cargar datos del dashboard');
@@ -326,11 +291,8 @@ export function Dashboard() {
     setSelectedPeriod(periods[nextIndex]);
   };
 
-  const FinanceSection = ({ stats, isFinanceOpen, handleFinanceToggle }) => (
-    <Box sx={{ 
-      bgcolor: 'background.default',
-      borderRadius: 0
-    }}>
+  const FinanceSection = () => (
+    <Box>
       <Box sx={{ 
         display: 'flex', 
         alignItems: 'center',
@@ -404,7 +366,7 @@ export function Dashboard() {
                 case 'BANCO':
                   return <BankIcon sx={{ fontSize: 18 }} />;
                 case 'EFECTIVO':
-                  return <AttachMoneyIcon sx={{ fontSize: 18 }} />;
+                  return <MoneyIcon sx={{ fontSize: 18 }} />;
                 default:
                   return <CardIcon sx={{ fontSize: 18 }} />;
               }
@@ -447,31 +409,15 @@ export function Dashboard() {
     </Box>
   );
 
-  const PropertiesSection = ({ propiedades, stats, onEdit, onDelete }) => {
+  const PropertiesSection = () => {
+    // Función auxiliar para pluralizar
+    const pluralize = (count, singular, plural) => {
+      return count === 1 ? `${count} ${singular}` : `${count} ${plural}`;
+    };
+
     return (
+      <Box>
         <Box sx={{ 
-<<<<<<< HEAD
-        bgcolor: 'background.default',
-        borderRadius: 0,
-        '& .MuiBox-root': {
-          borderBottom: 'none'  // Elimina la línea divisoria entre propiedades
-        },
-        '& .MuiListItem-root': {  // Reduce el espacio entre elementos
-          py: 0.25  // Reduce el padding vertical
-        },
-        '& .MuiCollapse-root': {  // Reduce el espacio en los detalles expandidos
-          '& .MuiBox-root': {
-            py: 0.5
-          }
-        }
-      }}>
-        <PropiedadList 
-          propiedades={propiedades}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          isDashboard={true}
-        />
-=======
           display: 'flex', 
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -610,7 +556,6 @@ export function Dashboard() {
             </Box>
           </Box>
         </Collapse>
->>>>>>> develop
       </Box>
     );
   };
@@ -635,55 +580,7 @@ export function Dashboard() {
     </Box>
   );
 
-  // Función para manejar la edición de una propiedad
-  const handleEditPropiedad = (propiedad) => {
-    navigate(`/propiedades/${propiedad._id}/editar`);
-  };
-
-  // Función para manejar la eliminación de una propiedad
-  const handleDeletePropiedad = async (propiedadId) => {
-    try {
-      await clienteAxios.delete(`/api/propiedades/${propiedadId}`);
-      enqueueSnackbar('Propiedad eliminada con éxito', { variant: 'success' });
-      // Recargar los datos
-      fetchStats();
-    } catch (error) {
-      console.error('Error al eliminar la propiedad:', error);
-      enqueueSnackbar('Error al eliminar la propiedad', { variant: 'error' });
-    }
-  };
-
-  const handleFinanceToggle = () => {
-    setIsFinanceOpen(!isFinanceOpen);
-  };
-
   return (
-<<<<<<< HEAD
-    <Box sx={{ p: 3 }}>
-      {/* Sección de Propiedades */}
-      <Box sx={{ 
-        mb: 3,
-        p: 1.5,
-        bgcolor: 'background.paper',
-        borderRadius: '4px',
-        border: '1px solid',
-        borderColor: 'divider',
-        '& > .MuiTypography-h6': {
-          position: 'relative',
-          fontFamily: "'Roboto Condensed', sans-serif",
-          letterSpacing: '0.5px',
-          textTransform: 'capitalize',
-          fontSize: '0.875rem',
-          '&:after': {
-            content: '""',
-            position: 'absolute',
-            bottom: -8,
-            left: 0,
-            width: '40px',
-            height: '2px',
-            bgcolor: 'primary.main',
-            opacity: 0.7
-=======
     <Container maxWidth="lg" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
       <EntityToolbar
         showAddButton={false}
@@ -704,137 +601,27 @@ export function Dashboard() {
             icon: <InventoryIcon sx={{ fontSize: 21.6 }} />,
             label: 'Inventario',
             to: '/inventario'
->>>>>>> develop
           }
-        }
-      }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-          <Typography variant="h6" sx={{ fontWeight: 500, mb: 0 }}>
-            Propiedades
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <IconButton 
-              component={Link} 
-              to="/propiedades"
-              size="small"
-              sx={{ p: 0.5 }}
-            >
-              <HomeWork sx={{ fontSize: '1.1rem' }} />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={() => setIsPropiedadFormOpen(true)}
-              sx={{ p: 0.5 }}
-            >
-              <AddIcon sx={{ fontSize: '1.1rem' }} />
-            </IconButton>
-          </Box>
-        </Box>
-        <PropertiesSection 
-          propiedades={propiedades}
-          stats={stats}
-          onEdit={handleEditPropiedad}
-          onDelete={handleDeletePropiedad}
-        />
-      </Box>
-
-      {/* PropiedadForm Dialog */}
-      <PropiedadForm
-        open={isPropiedadFormOpen}
-        onClose={() => setIsPropiedadFormOpen(false)}
-        onSubmit={async (data) => {
-          try {
-            await clienteAxios.post('/api/propiedades', data);
-            enqueueSnackbar('Propiedad creada exitosamente', { variant: 'success' });
-            fetchStats();
-            setIsPropiedadFormOpen(false);
-          } catch (error) {
-            console.error('Error al crear propiedad:', error);
-            enqueueSnackbar('Error al crear la propiedad', { variant: 'error' });
-          }
-        }}
+        ]}
       />
 
-      {/* Sección de Finanzas */}
+      <Grid container spacing={2}>
+        {/* Assets Section */}
+        <Grid item xs={12}>
+          <Paper sx={{ p: 2 }}>
+            <PropertiesSection />
             <Box sx={{ 
-        mb: 3,
-        p: 1.5,
-        bgcolor: 'background.paper',
-        borderRadius: '4px',
-        border: '1px solid',
-        borderColor: 'divider',
-        '& > .MuiTypography-h6': {
-          position: 'relative',
-          fontFamily: "'Roboto Condensed', sans-serif",
-          letterSpacing: '0.5px',
-          textTransform: 'capitalize',
-          fontSize: '0.875rem',
-          '&:after': {
-            content: '""',
-            position: 'absolute',
-            bottom: -8,
-            left: 0,
-            width: '40px',
-            height: '2px',
-            bgcolor: 'primary.main',
-            opacity: 0.7
-          }
-        }
-      }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-          <Typography variant="h6" sx={{ fontWeight: 500, mb: 0 }}>
-            Finanzas
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <IconButton 
-              component={Link} 
-              to="/transacciones"
-              size="small"
-              sx={{ p: 0.5 }}
-            >
-              <WalletIcon sx={{ fontSize: '1.1rem' }} />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={() => setIsTransaccionFormOpen(true)}
-              sx={{ p: 0.5 }}
-            >
-              <AddIcon sx={{ fontSize: '1.1rem' }} />
-            </IconButton>
-          </Box>
-        </Box>
-        <FinanceSection 
-          stats={stats}
-          isFinanceOpen={isFinanceOpen}
-          handleFinanceToggle={handleFinanceToggle}
-        />
+              mt: 1,
+              pt: 1,
+              borderTop: 1,
+              borderColor: 'divider'
+            }}>
+              <FinanceSection />
             </Box>
-<<<<<<< HEAD
-
-      {/* TransaccionForm Dialog */}
-      <TransaccionForm
-        open={isTransaccionFormOpen}
-        onClose={() => setIsTransaccionFormOpen(false)}
-        onSubmit={async (data) => {
-          try {
-            await clienteAxios.post('/api/transacciones', data);
-            enqueueSnackbar('Transacción creada exitosamente', { variant: 'success' });
-            fetchStats();
-            fetchAccounts();
-            setIsTransaccionFormOpen(false);
-          } catch (error) {
-            console.error('Error al crear transacción:', error);
-            enqueueSnackbar('Error al crear la transacción', { variant: 'error' });
-          }
-        }}
-      />
-    </Box>
-=======
           </Paper>
         </Grid>
       </Grid>
     </Container>
->>>>>>> develop
   );
 }
 
