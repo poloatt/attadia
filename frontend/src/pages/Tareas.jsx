@@ -26,7 +26,6 @@ import { useSnackbar } from 'notistack';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useNavigationBar } from '../context/NavigationBarContext';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
-import { FooterNavigation } from '../navigation/navigationbar';
 
 export function Tareas() {
   const [tareas, setTareas] = useState([]);
@@ -163,14 +162,6 @@ export function Tareas() {
   };
 
   return (
-<<<<<<< HEAD
-    <>
-      <Container maxWidth="xl" sx={{ pb: '104px', minHeight: '100vh' }}>
-        <EntityToolbar 
-          title="Tareas"
-          icon={<TaskIcon />}
-          onAdd={() => {
-=======
     <Container maxWidth="xl">
       <EntityToolbar 
         title="Tareas"
@@ -232,85 +223,16 @@ export function Tareas() {
           open={isFormOpen}
           onClose={() => {
             setIsFormOpen(false);
->>>>>>> develop
             setEditingTarea(null);
-            setIsFormOpen(true);
           }}
-          actions={
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => {
-                setEditingTarea(null);
-                setIsFormOpen(true);
-              }}
-              sx={{ borderRadius: 0 }}
-            >
-              Nueva Tarea
-            </Button>
-          }
-          navigationItems={[
-            { 
-              icon: <ProjectIcon sx={{ fontSize: 21.6 }} />, 
-              label: 'Proyectos', 
-              to: '/proyectos',
-              current: location.pathname === '/proyectos'
-            },
-            {
-              icon: <ArchiveIcon sx={{ fontSize: 21.6 }} />,
-              label: 'Archivo',
-              to: '/archivo',
-              current: location.pathname === '/archivo'
-            }
-          ]}
+          onSubmit={handleFormSubmit}
+          initialData={editingTarea}
+          isEditing={!!editingTarea}
+          proyectos={proyectos}
+          onProyectosUpdate={fetchProyectos}
         />
-
-        <Box 
-          sx={{ 
-            py: 2,
-            height: 'calc(100vh - 228px)', // Ajustado para considerar el footer elevado (140px + 64px + 24px)
-            overflowY: 'auto',
-            '&::-webkit-scrollbar': {
-              width: '8px',
-            },
-            '&::-webkit-scrollbar-track': {
-              backgroundColor: 'rgba(0,0,0,0.1)',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              backgroundColor: 'rgba(0,0,0,0.2)',
-              borderRadius: '4px',
-            },
-            '&::-webkit-scrollbar-thumb:hover': {
-              backgroundColor: 'rgba(0,0,0,0.3)',
-            },
-          }}
-        >
-          <TareasTable
-            tareas={tareas}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onUpdateEstado={handleUpdateEstado}
-            showValues={showValues}
-          />
-        </Box>
-
-        {isFormOpen && (
-          <TareaForm
-            open={isFormOpen}
-            onClose={() => {
-              setIsFormOpen(false);
-              setEditingTarea(null);
-            }}
-            onSubmit={handleFormSubmit}
-            initialData={editingTarea}
-            isEditing={!!editingTarea}
-            proyectos={proyectos}
-            onProyectosUpdate={fetchProyectos}
-          />
-        )}
-      </Container>
-      <FooterNavigation />
-    </>
+      )}
+    </Container>
   );
 }
 
