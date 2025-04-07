@@ -36,21 +36,8 @@ import { debesMostrarHabitoEnFecha, generarMensajeCadencia, getFrecuenciaLabel, 
 import shouldShowItem, { shouldShowItemInMainView, calcularEstadoCadencia } from './utils/shouldShowItem';
 import { startOfWeek, isSameWeek, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
-<<<<<<< HEAD
-import { obtenerHistorialCompletaciones, esRutinaHistorica } from './utils/historialUtils';
-import rutinasService from './services/rutinasService';
-import { useRutinasHistorical } from './context/rutinasHistoricalContext';
-import ChecklistItem from './ChecklistItem';
-import { 
-  calcularDiasConsecutivos,
-  normalizarFecha,
-  obtenerRangoFechas,
-  calcularProgresoPeriodo
-} from './utils/historialUtils';
-=======
 import { obtenerHistorialCompletacionesSemana, esRutinaHistorica } from './utils/historialUtils';
 import HistoricalAlert from './HistoricalAlert';
->>>>>>> develop
 
 // Función para capitalizar solo la primera letra
 const capitalizeFirstLetter = (string) => {
@@ -144,106 +131,33 @@ const ChecklistSection = ({
   onConfigChange,
   readOnly = false
 }) => {
-  // Contexto de rutinas - DEBE IR PRIMERO
+  // Contexto de rutinas
   const { rutina, markItemComplete, updateItemConfig, updateUserHabitPreference } = useRutinas();
-  const { enqueueSnackbar } = useSnackbar();
-  const { obtenerHistorialCompletaciones: obtenerHistorialCompletacionesHistorical } = useRutinasHistorical();
-
-  // Referencias - SEGUNDO
+  
+  // Referencia para controlar la actualización de datos
   const dataRef = useRef(data);
   const configRef = useRef(config);
-  const historialCacheRef = useRef({});
-  const mountedRef = useRef(true);
-
-  // Estados - TERCERO
-  const [localData, setLocalData] = useState(data);
-  const [historialCache, setHistorialCache] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [selectedItemId, setSelectedItemId] = useState(null);
-  const [configOpen, setConfigOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [menuItemId, setMenuItemId] = useState(null);
-  const [forceUpdate, setForceUpdate] = useState(Date.now());
+  
+  // Determinar si está expandido basado en el estado persistente 
+  // almacenado en la rutina o iniciar colapsado por defecto
   const [isExpanded, setIsExpanded] = useState(() => {
+    // Comprobar si hay un estado guardado en la rutina
     if (rutina && rutina._expandedSections) {
       return !!rutina._expandedSections[section];
     }
-    return false;
+    return false; // Por defecto colapsado
   });
-  const [historialItems, setHistorialItems] = useState({});
-  const [error, setError] = useState(null);
-
-  // Cleanup effect
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  // Cargar historial para un ítem específico
-  const cargarHistorialItem = useCallback(async (itemId) => {
-    try {
-      if (!rutina?.fecha) return null;
-
-      // En lugar de usar obtenerConfigItem, usamos directamente el config que recibimos como prop
-      const itemConfig = config[itemId];
-      if (!itemConfig) return null;
-
-      const fechaRutina = normalizarFecha(rutina.fecha);
-      const { inicio, fin } = obtenerRangoFechas(itemConfig.tipo || 'DIARIO', fechaRutina);
-
-      const historial = await rutinasService.obtenerHistorialCompletaciones(
-        section,
-        itemId,
-        inicio,
-        fin
-      );
-
-      if (!Array.isArray(historial)) return null;
-
-      return {
-        completados: historial,
-        diasConsecutivos: calcularDiasConsecutivos(historial),
-        progreso: calcularProgresoPeriodo(historial, itemConfig)
-      };
-    } catch (error) {
-      console.error(`[ChecklistSection] Error al cargar historial para ${section}.${itemId}:`, error);
-      return null;
-    }
-  }, [rutina, section, config]);
-
-  // Cargar historial para todos los ítems
-  const cargarHistorialItems = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const promesas = Object.keys(config || {}).map(async itemId => {
-        const historial = await cargarHistorialItem(itemId);
-        return [itemId, historial];
-      });
-
-      const resultados = await Promise.all(promesas);
-      const nuevoHistorial = Object.fromEntries(
-        resultados.filter(([, historial]) => historial !== null)
-      );
-
-      setHistorialItems(nuevoHistorial);
-    } catch (error) {
-      console.error(`[ChecklistSection] Error al cargar historial:`, error);
-      setError(error.message || 'Error al cargar historial');
-    } finally {
-      setLoading(false);
-    }
-  }, [config, cargarHistorialItem]);
-
-  // Efecto para cargar historial inicial
-  useEffect(() => {
-    if (rutina?.fecha) {
-      cargarHistorialItems();
-    }
-  }, [rutina?.fecha, cargarHistorialItems]);
-
+  
+  const [localData, setLocalData] = useState(data);
+  const [configOpen, setConfigOpen] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [menuItemId, setMenuItemId] = useState(null);
+  const [forceUpdate, setForceUpdate] = useState(Date.now()); // Estado para forzar actualización
+  
+  // Importar el hook de snackbar
+  const { enqueueSnackbar } = useSnackbar();
+  
   // Actualizar los datos locales cuando cambian las props
   useEffect(() => {
     // Solo actualizar si los datos han cambiado
@@ -402,7 +316,7 @@ const ChecklistSection = ({
     }
     
     // Verificar si data existe y crear un nuevo objeto con el estado actualizado
-    const isCompleted = isItemCompleted(itemId);
+    const isCompleted = isItemCompleted(itemId); // Usar la función helper
     const newValue = !isCompleted;
     
     // Datos para actualización local de la UI
@@ -414,77 +328,49 @@ const ChecklistSection = ({
     // Actualizar el estado local inmediatamente para una respuesta visual instantánea
     setLocalData(newData);
     
-    // Actualizar el historial en el cache
-    const fechaActual = new Date().toISOString();
-    const fechaActualCorta = fechaActual.split('T')[0];
-    
-    if (newValue) {
-      const historialActual = historialCache[itemId] || {
-        total: 0,
-        completacionesPorDia: {},
-        periodoActual: {
-          tipo: config?.[itemId]?.tipo || 'DIARIO',
-          inicio: fechaActual,
-          fin: fechaActual
-        },
-        diasCompletados: 0,
-        diasConsecutivos: 0,
-        ultimaCompletacion: null
-      };
-
-      // Actualizar completaciones para el día actual
-      const completacionesDia = historialActual.completacionesPorDia[fechaActualCorta] || [];
-      completacionesDia.push(fechaActual);
-
-      const nuevoHistorial = {
-        ...historialActual,
-        total: historialActual.total + 1,
-        completacionesPorDia: {
-          ...historialActual.completacionesPorDia,
-          [fechaActualCorta]: completacionesDia
-        },
-        ultimaCompletacion: fechaActual
-      };
-
-      setHistorialCache(prev => ({
-        ...prev,
-        [itemId]: nuevoHistorial
-      }));
-    }
-    
     // Notificar al componente padre del cambio en la UI inmediatamente
     onChange(newData);
     
     // Registrar los últimos cambios en la rutina para mejorar respuesta inmediata
     if (rutina) {
+      // Si no existe la propiedad _ultimosCambios, crearla
       if (!rutina._ultimosCambios) {
         rutina._ultimosCambios = {};
       }
       
+      // Si no existe la propiedad para esta sección, crearla
       if (!rutina._ultimosCambios[section]) {
         rutina._ultimosCambios[section] = {};
       }
       
+      // Registrar el cambio con timestamp para saber cuándo ocurrió
       rutina._ultimosCambios[section][itemId] = {
         valor: newValue,
         timestamp: Date.now()
       };
     }
     
+    // Eliminar el setTimeout para evitar retrasos y manejar inmediatamente
     if (markItemComplete && typeof markItemComplete === 'function' && rutina && rutina._id) {
+      // Crear el formato de datos sencillo esperado por el API
       const itemData = { [itemId]: newValue };
       
+      // Llamar a la función del contexto y manejar resultado
       markItemComplete(rutina._id, section, itemData)
         .then((response) => {
+          // Verificar que los datos se actualizaron correctamente
           if (response && response[section]) {
             const valorServidor = response[section][itemId];
             
+            // Si el valor del servidor no coincide con nuestro estado local, actualizar
             if (valorServidor !== newValue) {
+              // Actualizar estado local con valor del servidor
               setLocalData(prevData => ({
                 ...prevData,
                 [itemId]: valorServidor
               }));
               
+              // Actualizar también _ultimosCambios para mantener coherencia
               if (rutina && rutina._ultimosCambios && rutina._ultimosCambios[section]) {
                 rutina._ultimosCambios[section][itemId] = {
                   valor: valorServidor,
@@ -496,28 +382,36 @@ const ChecklistSection = ({
           }
         })
         .catch(err => {
+          // Revertir el cambio local en caso de error
           setLocalData(prevData => ({
             ...prevData,
             [itemId]: isCompleted
           }));
           
+          // Actualizar también _ultimosCambios en caso de error
           if (rutina && rutina._ultimosCambios && rutina._ultimosCambios[section]) {
             rutina._ultimosCambios[section][itemId] = {
-              valor: isCompleted,
+              valor: isCompleted, // Valor original
               timestamp: Date.now(),
               error: true
             };
           }
           
+          // Notificar al componente padre del error
           if (typeof onChange === 'function') {
             onChange({
               ...localData,
-              [itemId]: isCompleted
+              [itemId]: isCompleted // Revertir al estado anterior
             });
           }
         });
+    } else {
+      let reason = "";
+      if (!markItemComplete) reason = "markItemComplete no disponible en contexto";
+      else if (!rutina) reason = "No hay rutina activa";
+      else if (!rutina._id) reason = "La rutina no tiene ID";
     }
-  }, [section, onChange, localData, readOnly, rutina, markItemComplete, isItemCompleted, historialCache, config]);
+  }, [section, onChange, localData, readOnly, rutina, markItemComplete, isItemCompleted]);
 
   // Función para obtener el estado de cadencia de un ítem
   const getItemCadenciaStatus = async (itemId, section, rutina, config) => {
@@ -562,14 +456,7 @@ const ChecklistSection = ({
         if (esHistorica) {
           try {
             // Obtener historial acumulado hasta la fecha de la rutina
-            const datosCompletacion = await obtenerHistorialCompletacionesHistorical(
-              section, 
-              itemId, 
-              fechaRutina, 
-              true,
-              cadenciaConfig // Pasar la configuración del ítem
-            );
-            completados = datosCompletacion.total;
+            completados = await obtenerHistorialCompletacionesSemana(section, itemId, fechaRutina);
           } catch (error) {
             // En caso de error, usar método fallback
             const historial = obtenerHistorialCompletados(itemId, section, rutina);
@@ -624,7 +511,7 @@ const ChecklistSection = ({
   };
 
   // Optimizar getEstadoCadenciaActual para cálculos precisos
-  const getEstadoCadenciaActual = async (itemId, section, rutina) => {
+  const getEstadoCadenciaActual = (itemId, section, rutina) => {
     try {
       // Verificar si el ítem tiene configuración
       if (!rutina?.config?.[section]?.[itemId]) {
@@ -634,97 +521,69 @@ const ChecklistSection = ({
           requeridos: 1,
           completa: false,
           tipo: 'DIARIO',
-          porcentaje: 0,
-          periodoActual: null
+          porcentaje: 0
         };
       }
 
       // Obtener la configuración de cadencia
       const itemConfig = rutina.config[section][itemId];
       const tipo = itemConfig?.tipo?.toUpperCase() || 'DIARIO';
-      const periodo = itemConfig?.periodo || 'CADA_DIA';
       const frecuencia = Number(itemConfig?.frecuencia || 1);
       
       // Verificar si el ítem está completado (usando localData o la rutina directamente)
       const completadoHoy = isItemCompleted(itemId);
       
-      // Obtener el historial completo con la nueva función
-      const esCompletacionHistorica = !isToday(new Date(rutina.fecha));
-      const datosCompletacion = await obtenerHistorialCompletaciones(
-        section, 
-        itemId, 
-        rutina.fecha,
-        esCompletacionHistorica,
-        itemConfig // Pasar la configuración del ítem
-      );
+      // Contar completaciones según el tipo de cadencia
+      let completados = 0;
       
-      const { total: completados, completacionesPorDia, periodoActual } = datosCompletacion;
-      
-      console.log(`[ChecklistSection] Completaciones para ${section}.${itemId}:`, {
-        total: completados,
-        porDia: completacionesPorDia,
-        periodo: periodoActual
-      });
+      if (tipo === 'DIARIO') {
+        completados = completadoHoy ? 1 : 0;
+      } else if (tipo === 'SEMANAL') {
+        // Para semanal, optimizar conteo considerando duplicados por día
+        const hoy = new Date();
+        const inicioSemana = startOfWeek(hoy, { locale: es });
+        
+        // Obtener historial y filtrar por semana actual
+        const historial = obtenerHistorialCompletados(itemId, section, rutina);
+        
+        // Crear un conjunto de fechas únicas en formato YYYY-MM-DD
+        const fechasUnicas = new Set();
+        
+        historial.filter(fecha => 
+          isSameWeek(fecha, hoy, { locale: es })
+        ).forEach(fecha => {
+          fechasUnicas.add(fecha.toISOString().split('T')[0]);
+        });
+        
+        // Contar días únicos completados
+        completados = fechasUnicas.size;
+        
+        // Comprobar si está completado hoy y no está en el conjunto
+        const fechaHoyStr = new Date().toISOString().split('T')[0];
+        if (completadoHoy && !fechasUnicas.has(fechaHoyStr)) {
+          completados++;
+        }
+      }
       
       // OPTIMIZACIÓN: Verificar límites para consistencia
       const completadosValidos = Math.min(completados, frecuencia);
       
-      // Generar texto descriptivo según el tipo de período
+      // Generar texto descriptivo
       let texto = '';
-      switch (periodo) {
-        case 'CADA_DIA':
-          texto = completadosValidos >= frecuencia 
-            ? `Completado hoy (${completadosValidos}/${frecuencia})`
-            : `${completadosValidos} de ${frecuencia} hoy`;
-          break;
-          
-        case 'CADA_SEMANA':
-          const fechasOrdenadas = Object.keys(completacionesPorDia).sort();
-          const detallesDias = fechasOrdenadas.map(fecha => {
-            const completacionesDia = completacionesPorDia[fecha];
-            return `${fecha}: ${completacionesDia.length}`;
-          }).join(', ');
-          
-          if (completadosValidos === 0) {
-            texto = `0/${frecuencia} veces esta semana`;
-          } else if (completadosValidos >= frecuencia) {
-            texto = `¡Completo! ${completadosValidos}/${frecuencia} veces esta semana (${detallesDias})`;
-          } else {
-            texto = `${completadosValidos}/${frecuencia} veces esta semana (${detallesDias})`;
-          }
-          break;
-          
-        case 'CADA_MES':
-          texto = completadosValidos >= frecuencia
-            ? `¡Completo! ${completadosValidos}/${frecuencia} veces este mes`
-            : `${completadosValidos}/${frecuencia} veces este mes`;
-          break;
-          
-        case 'DIAS_ESPECIFICOS_SEMANA':
-          const diasSemana = itemConfig.diasSemana || [];
-          const diasTexto = diasSemana.join(', ');
-          texto = completadosValidos >= frecuencia
-            ? `¡Completo! ${completadosValidos}/${frecuencia} veces (${diasTexto})`
-            : `${completadosValidos}/${frecuencia} veces (${diasTexto})`;
-          break;
-          
-        case 'DIAS_ESPECIFICOS_MES':
-          const diasMes = itemConfig.diasMes || [];
-          const diasMesTexto = diasMes.join(', ');
-          texto = completadosValidos >= frecuencia
-            ? `¡Completo! ${completadosValidos}/${frecuencia} veces (días ${diasMesTexto})`
-            : `${completadosValidos}/${frecuencia} veces (días ${diasMesTexto})`;
-          break;
-          
-        case 'PERSONALIZADO':
-          const { intervalo = 1 } = itemConfig;
-          texto = completadosValidos >= frecuencia
-            ? `¡Completo! ${completadosValidos}/${frecuencia} veces en ${intervalo} días`
-            : `${completadosValidos}/${frecuencia} veces en ${intervalo} días`;
-          break;
-          
-        default:
-          texto = `${completadosValidos}/${frecuencia}`;
+      if (tipo === 'DIARIO') {
+        texto = completadosValidos >= frecuencia 
+          ? `Completado hoy (${completadosValidos}/${frecuencia})`
+          : `${completadosValidos} de ${frecuencia} hoy`;
+      } else if (tipo === 'SEMANAL') {
+        if (completadosValidos === 0) {
+          texto = `0/${frecuencia} veces esta semana`;
+        } else if (completadosValidos === 1) {
+          texto = `1/${frecuencia} veces esta semana`;
+        } else if (completadosValidos < frecuencia) {
+          texto = `${completadosValidos}/${frecuencia} veces esta semana`;
+        } else {
+          texto = `¡Completo! ${completadosValidos}/${frecuencia} esta semana`;
+        }
       }
       
       // Calcular porcentaje
@@ -736,9 +595,7 @@ const ChecklistSection = ({
         requeridos: frecuencia,
         completa: completadosValidos >= frecuencia,
         tipo,
-        porcentaje,
-        completacionesPorDia,
-        periodoActual
+        porcentaje
       };
     } catch (error) {
       console.error(`Error al calcular estado de cadencia para ${section}.${itemId}:`, error);
@@ -748,9 +605,7 @@ const ChecklistSection = ({
         requeridos: 1,
         completa: false,
         tipo: 'DIARIO',
-        porcentaje: 0,
-        completacionesPorDia: {},
-        periodoActual: null
+        porcentaje: 0
       };
     }
   };
@@ -795,7 +650,7 @@ const ChecklistSection = ({
     }
   }, [localData, section]);
   
-  // Renderizar los iconos colapsados con memorización
+  // Renderizar los iconos colapsados con memorización (pasar localData como prop)
   const renderedCollapsedIcons = (
     <CollapsedIcons
       sectionIcons={sectionIcons}
@@ -805,7 +660,6 @@ const ChecklistSection = ({
       onItemClick={handleItemClick}
       readOnly={readOnly}
       localData={localData}
-      historialCache={historialCache}
     />
   );
 
@@ -832,6 +686,34 @@ const ChecklistSection = ({
       const iconData = icons[itemId] || {};
       const isCompleted = isItemCompleted(itemId);
       
+      // Usar estado local para manejar la cadencia asíncrona
+      const [cadenciaStatus, setCadenciaStatus] = useState("Cargando...");
+      
+      // Efecto para cargar la información de cadencia
+      useEffect(() => {
+        let isMounted = true;
+        
+        const cargarCadencia = async () => {
+          try {
+            const estado = await getItemCadenciaStatus(itemId, section, rutina, config);
+            if (isMounted) {
+              setCadenciaStatus(estado);
+            }
+          } catch (error) {
+            console.error(`Error cargando cadencia para ${section}.${itemId}:`, error);
+            if (isMounted) {
+              setCadenciaStatus("Error");
+            }
+          }
+        };
+        
+        cargarCadencia();
+        
+        return () => {
+          isMounted = false;
+        };
+      }, [itemId, section, rutina._id, isCompleted]);
+      
       // Obtener el icono correcto basado en el ID
       const Icon = sectionIcons[itemId];
       
@@ -849,26 +731,12 @@ const ChecklistSection = ({
             section={section}
             Icon={Icon}
             isCompleted={isCompleted}
+            cadenciaStatus={cadenciaStatus}
             readOnly={readOnly}
             onItemClick={handleItemClick}
             contextMenu={contextMenu}
-            handleConfigItem={handleExpandConfig}
+            handleConfigItem={setSelectedItemId}
             isConfigOpen={isConfigOpen}
-            historialData={historialCache[itemId] || {
-              total: 0,
-              completacionesPorDia: {},
-              periodoActual: {
-                tipo: config?.[itemId]?.tipo || 'DIARIO',
-                inicio: new Date().toISOString(),
-                fin: new Date().toISOString()
-              },
-              diasCompletados: 0,
-              diasConsecutivos: 0,
-              ultimaCompletacion: null
-            }}
-            config={config}
-            rutina={rutina}
-            getItemCadenciaStatus={getItemCadenciaStatus}
           />
           
           {isConfigOpen && (
@@ -886,10 +754,7 @@ const ChecklistSection = ({
                   section={section}
                   itemId={itemId}
                   config={config[itemId] || {}}
-                  onConfigChange={(newConfig) => handleConfigChange(itemId, newConfig)}
-                  ultimaCompletacion={obtenerUltimaCompletacion(obtenerHistorialCompletados(itemId, section, rutina))}
-                  isCompleted={localData[itemId] === true}
-                  historialData={historialCache[itemId]}
+                  onChange={(newConfig) => onConfigChange(itemId, newConfig)}
                 />
               </Box>
             </Box>
@@ -1003,92 +868,6 @@ const ChecklistSection = ({
     }
   };
 
-  useEffect(() => {
-    if (!itemsAMostrar?.length || !rutina) return;
-    
-    const cargarHistorialItems = async () => {
-      const promesas = itemsAMostrar.map(itemId => cargarHistorialItem(itemId));
-      await Promise.all(promesas);
-    };
-
-    cargarHistorialItems();
-  }, [itemsAMostrar, rutina, cargarHistorialItem]);
-
-  const renderItem = useCallback((itemId) => {
-    const defaultHistorial = {
-      total: 0,
-      completacionesPorDia: {},
-      periodoActual: {
-        tipo: config?.[itemId]?.tipo || 'DIARIO',
-        inicio: new Date().toISOString(),
-        fin: new Date().toISOString()
-      },
-      diasCompletados: 0,
-      diasConsecutivos: 0,
-      ultimaCompletacion: null
-    };
-
-    // Usar el historial del cache o el valor por defecto
-    const historialData = historialCache[itemId] || historialCacheRef.current[itemId] || defaultHistorial;
-
-    return (
-      <div key={itemId} className="checklist-item">
-        <ChecklistItem
-          itemId={itemId}
-          section={section}
-          Icon={sectionIcons[itemId]}
-          isCompleted={isItemCompleted(itemId)}
-          readOnly={readOnly}
-          onItemClick={handleItemClick}
-          handleConfigItem={handleExpandConfig}
-          isConfigOpen={selectedItemId === itemId}
-          historialData={historialData}
-          config={config}
-          rutina={rutina}
-          getItemCadenciaStatus={getItemCadenciaStatus}
-        />
-        
-        {selectedItemId === itemId && (
-          <Box sx={{ width: '100%', mt: 1 }}>
-            <Box
-              sx={{
-                bgcolor: 'background.paper',
-                borderRadius: 1,
-                px: 2,
-                py: 1,
-                mb: 2
-              }}
-            >
-              <InlineItemConfig
-                section={section}
-                itemId={itemId}
-                config={config[itemId] || {}}
-                onConfigChange={(newConfig) => handleConfigChange(itemId, newConfig)}
-                ultimaCompletacion={historialData.ultimaCompletacion}
-                isCompleted={localData[itemId] === true}
-                historialData={historialData}
-              />
-            </Box>
-          </Box>
-        )}
-      </div>
-    );
-  }, [
-    historialCache,
-    historialCacheRef,
-    sectionIcons,
-    isItemCompleted,
-    readOnly,
-    handleItemClick,
-    handleExpandConfig,
-    selectedItemId,
-    section,
-    config,
-    handleConfigChange,
-    localData,
-    rutina
-  ]);
-
   return (
     <Box sx={{ mb: 1, bgcolor: '#212121', borderRadius: 1, overflow: 'hidden' }}>
       {/* Encabezado de la sección */}
@@ -1132,17 +911,143 @@ const ChecklistSection = ({
       <Collapse in={isExpanded} unmountOnExit>
         <Box sx={{ p: 1, pt: 0 }}>
           <List dense disablePadding>
-            {loading ? (
-              <div className="checklist-section__loading">Cargando...</div>
-            ) : (
-              renderItems()
-            )}
+            {renderItems()}
           </List>
         </Box>
       </Collapse>
     </Box>
   );
 };
+
+// Optimizar ChecklistItem para actualización inmediata sin efectos innecesarios
+const ChecklistItem = memo(({ 
+  itemId, 
+  section, 
+  Icon, 
+  isCompleted, 
+  cadenciaStatus, 
+  readOnly, 
+  onItemClick,
+  contextMenu,
+  handleConfigItem,
+  isConfigOpen
+}) => {
+  // Eliminar efectos innecesarios cambiando las transiciones
+  return (
+    <ListItem 
+      disablePadding
+      sx={{ 
+        mb: 0.5,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        bgcolor: 'transparent'
+      }}
+    >
+      <Box sx={{ 
+        width: '100%', 
+        display: 'flex',
+        alignItems: 'center',
+        py: 0.5
+      }}>
+        {!readOnly && (
+          <IconButton
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation(); // Prevenir que el evento se propague al contenedor
+              onItemClick(itemId, e);
+            }}
+            sx={{
+              width: 38,
+              height: 38,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mr: 1,
+              cursor: 'pointer',
+              // Eliminar transición para cambio instantáneo
+              color: isCompleted ? 'primary.main' : 'rgba(255,255,255,0.5)',
+              bgcolor: isCompleted ? 'action.selected' : 'transparent',
+              borderRadius: '50%',
+              '&:hover': {
+                color: isCompleted ? 'primary.main' : 'white',
+                bgcolor: isCompleted ? 'action.selected' : 'rgba(255,255,255,0.1)'
+              }
+            }}
+          >
+            {Icon && <Icon fontSize="small" />}
+          </IconButton>
+        )}
+        
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          flexGrow: 1,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          color: isCompleted ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.9)'
+        }}>
+          <Box sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+          }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                fontWeight: 400,
+                color: isCompleted ? 'rgba(255,255,255,0.5)' : 'inherit',
+                textDecoration: isCompleted ? 'line-through' : 'none'
+              }}
+            >
+              {itemId}
+            </Typography>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                fontSize: '0.7rem',
+                color: 'rgba(255,255,255,0.6)'
+              }}
+            >
+              {cadenciaStatus}
+            </Typography>
+          </Box>
+        </Box>
+        
+        {contextMenu}
+
+        {!readOnly && (
+          <IconButton
+            edge="end"
+            aria-label="configurar"
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation(); // Prevenir que el evento se propague al contenedor
+              handleConfigItem(itemId);
+            }}
+            sx={{
+              color: isConfigOpen ? 'primary.main' : 'rgba(255,255,255,0.3)',
+              '&:hover': {
+                color: 'primary.main'
+              }
+            }}
+          >
+            <SettingsIcon sx={{ fontSize: '1.1rem' }} />
+          </IconButton>
+        )}
+      </Box>
+    </ListItem>
+  );
+}, (prevProps, nextProps) => {
+  // Implementar una función de comparación personalizada para prevenir renderizados innecesarios
+  // Solo renderizar si estos valores cambian
+  return (
+    prevProps.isCompleted === nextProps.isCompleted &&
+    prevProps.cadenciaStatus === nextProps.cadenciaStatus &&
+    prevProps.isConfigOpen === nextProps.isConfigOpen
+  );
+});
 
 // Renderizar los iconos colapsados con memorización
 const CollapsedIcons = memo(({ 
@@ -1152,8 +1057,7 @@ const CollapsedIcons = memo(({
   rutina, 
   onItemClick, 
   readOnly, 
-  localData,
-  historialCache = {} 
+  localData
 }) => {
   // Implementación optimizada de renderCollapsedIcons
   // para evitar re-renderizados innecesarios
@@ -1185,18 +1089,6 @@ const CollapsedIcons = memo(({
         itemsParaMostrar.map(itemId => {
           const Icon = sectionIcons[itemId];
           const isCompleted = !!localData[itemId];
-          const historialData = historialCache[itemId] || {
-            total: 0,
-            completacionesPorDia: {},
-            periodoActual: {
-              tipo: config?.[itemId]?.tipo || 'DIARIO',
-              inicio: new Date().toISOString(),
-              fin: new Date().toISOString()
-            },
-            diasCompletados: 0,
-            diasConsecutivos: 0,
-            ultimaCompletacion: null
-          };
           
           // Usar una key compuesta para asegurar unicidad y forzar actualización cuando es necesario
           const keyId = `${section}-${itemId}-${isCompleted ? 'completed' : 'pending'}`;
@@ -1225,13 +1117,6 @@ const CollapsedIcons = memo(({
         })
       )}
     </div>
-  );
-}, (prevProps, nextProps) => {
-  return (
-    prevProps.section === nextProps.section &&
-    JSON.stringify(prevProps.localData) === JSON.stringify(nextProps.localData) &&
-    JSON.stringify(prevProps.config) === JSON.stringify(nextProps.config) &&
-    JSON.stringify(prevProps.historialCache) === JSON.stringify(nextProps.historialCache)
   );
 });
 

@@ -3,18 +3,10 @@ import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/Header';
-<<<<<<< HEAD
-import { FooterNavigation } from '../navigation/navigationbar';
-import { 
-  SettingsOutlined as SettingsIcon,
-  Person as PersonIcon
-} from '@mui/icons-material';
-=======
 import Footer from '../components/Footer';
 import BottomNavigation from '../components/BottomNavigation';
 import { SettingsOutlined as SettingsIcon } from '@mui/icons-material';
 import PersonIcon from '@mui/icons-material/Person';
->>>>>>> develop
 
 const menuItems = [
   { text: 'Configuración', icon: <SettingsIcon />, path: '/configuracion' },
@@ -64,7 +56,7 @@ export function Layout() {
           },
         }}
       >
-        <Box sx={{ height: '40px' }} />
+        <Box sx={{ height: '40px' }} /> {/* Ajustado a 40px para coincidir con el header */}
         <List sx={{ p: 1 }}>
           {menuItems.map((item) => (
             <ListItem key={item.text} disablePadding>
@@ -107,11 +99,7 @@ export function Layout() {
         sx={{
           flexGrow: 1,
           pt: '48px',
-<<<<<<< HEAD
-          pb: '120px',
-=======
           pb: '120px', // Aumentar padding inferior para acomodar la navegación inferior y mensajes de error
->>>>>>> develop
           pr: {
             xs: 0,
             sm: isOpen ? '240px' : 0
@@ -123,11 +111,7 @@ export function Layout() {
           flexDirection: 'column',
           bgcolor: 'background.default',
           overflow: 'auto',
-<<<<<<< HEAD
-          position: 'relative'
-=======
           position: 'relative' // Añadido para posicionar correctamente elementos hijos
->>>>>>> develop
         }}
       >
         <Box sx={{ 
@@ -147,29 +131,10 @@ export function Layout() {
         }}>
           <Outlet />
         </Box>
-<<<<<<< HEAD
-        <Box
-          sx={{
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            zIndex: theme.zIndex.appBar,
-            bgcolor: 'background.paper',
-            borderTop: '1px solid',
-            borderColor: 'divider',
-            display: 'flex',
-            flexDirection: 'column'
-          }}
-        >
-          <FooterNavigation />
-        </Box>
-=======
         {/* Añadir un espacio extra para mensajes de error */}
         <Box sx={{ height: '16px' }} />
         <BottomNavigation />
         <Footer />
->>>>>>> develop
       </Box>
     </Box>
   );
