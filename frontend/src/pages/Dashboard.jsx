@@ -22,7 +22,9 @@ import {
   Inventory2Outlined as InventoryIcon,
   TrendingDownOutlined as GastosIcon,
   TrendingUpOutlined as IngresosIcon,
-  TimerOutlined as PeriodIcon
+  TimerOutlined as PeriodIcon,
+  FitnessCenterOutlined as RutinasIcon,
+  AssignmentOutlined as TaskIcon
 } from '@mui/icons-material';
 import { toast } from 'react-hot-toast';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';

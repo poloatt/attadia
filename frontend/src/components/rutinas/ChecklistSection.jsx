@@ -36,7 +36,7 @@ import { debesMostrarHabitoEnFecha, generarMensajeCadencia, getFrecuenciaLabel, 
 import shouldShowItem, { shouldShowItemInMainView, calcularEstadoCadencia } from './utils/shouldShowItem';
 import { startOfWeek, isSameWeek, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { obtenerHistorialCompletacionesSemana, esRutinaHistorica } from './utils/historialUtils';
+import { obtenerHistorialCompletaciones, esRutinaHistorica } from './utils/historialUtils';
 import HistoricalAlert from './HistoricalAlert';
 
 // Función para capitalizar solo la primera letra
@@ -456,7 +456,8 @@ const ChecklistSection = ({
         if (esHistorica) {
           try {
             // Obtener historial acumulado hasta la fecha de la rutina
-            completados = await obtenerHistorialCompletacionesSemana(section, itemId, fechaRutina);
+            const historialResult = await obtenerHistorialCompletaciones(section, itemId, fechaRutina);
+            completados = historialResult.total;
           } catch (error) {
             // En caso de error, usar método fallback
             const historial = obtenerHistorialCompletados(itemId, section, rutina);
