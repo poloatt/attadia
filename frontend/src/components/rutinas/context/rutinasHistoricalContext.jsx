@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import rutinasService from '../services/rutinasService';
+import { useSnackbar } from 'notistack';
 
 // Crear el contexto
 const RutinasHistoricalContext = createContext();
@@ -16,7 +17,10 @@ export const RutinasHistoricalProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [datosSimulados, setDatosSimulados] = useState(false);
+  const [noHistoryAvailable, setNoHistoryAvailable] = useState(false);
+  const { enqueueSnackbar } = useSnackbar();
   
+<<<<<<< HEAD
   // Función para generar datos simulados cuando el servidor falla
   const simulateHistorical = useCallback((dias = 30, fechaBase = new Date()) => {
     console.log(`[RutinasHistoricalContext] ⚠️ Generando datos simulados para los últimos ${dias} días`);
@@ -81,11 +85,14 @@ export const RutinasHistoricalProvider = ({ children }) => {
     };
   };
 
+=======
+>>>>>>> develop
   // Función para cargar el historial
   const cargarHistorial = useCallback(async (dias = 30) => {
     try {
       setLoading(true);
       setError(null);
+      setNoHistoryAvailable(false);
       
       console.log(`[RutinasHistoricalContext] Cargando historial de los últimos ${dias} días`);
       
@@ -93,6 +100,7 @@ export const RutinasHistoricalProvider = ({ children }) => {
       const ahora = new Date();
       ahora.setHours(12, 0, 0, 0);
       
+<<<<<<< HEAD
       // Corregir año futuro si es necesario
       const añoActual = ahora.getFullYear();
       const añoMaximo = 2024; // Año máximo permitido
@@ -103,12 +111,18 @@ export const RutinasHistoricalProvider = ({ children }) => {
         ahora.setFullYear(añoMaximo);
       }
       
+=======
+>>>>>>> develop
       // Calcular fecha de inicio
       const fechaInicio = new Date(ahora);
       fechaInicio.setDate(ahora.getDate() - dias);
       
       // Usar el servicio para obtener el historial
+<<<<<<< HEAD
       const historial = await rutinasService.obtenerHistorialCompletaciones(
+=======
+      const historial = await rutinasService.getHistorialCompletaciones(
+>>>>>>> develop
         null, 
         null,
         fechaInicio,
@@ -116,14 +130,15 @@ export const RutinasHistoricalProvider = ({ children }) => {
       );
       
       // Verificar si tenemos datos válidos
-      if (Array.isArray(historial) && historial.length > 0) {
-        setHistorialRutinas(historial);
+      if (historial && historial.completaciones && Array.isArray(historial.completaciones) && historial.completaciones.length > 0) {
+        setHistorialRutinas(historial.completaciones);
         setDatosSimulados(false);
-        console.log(`[RutinasHistoricalContext] Historial cargado: ${historial.length} registros`);
+        console.log(`[RutinasHistoricalContext] Historial cargado: ${historial.completaciones.length} registros`);
         
         // Procesar historial por ítem
-        procesarHistorialPorItem(historial);
+        procesarHistorialPorItem(historial.completaciones);
       } else {
+<<<<<<< HEAD
         console.warn('[RutinasHistoricalContext] No se obtuvieron datos históricos reales, usando simulados');
         
         // Si no hay datos, generar datos simulados
@@ -132,10 +147,19 @@ export const RutinasHistoricalProvider = ({ children }) => {
         
         // Procesar historial simulado
         procesarHistorialPorItem(simulados);
+=======
+        console.warn('[RutinasHistoricalContext] No se obtuvieron datos históricos');
+        setHistorialRutinas([]);
+        setHistoricosPorItem({});
+        setNoHistoryAvailable(true);
+        // Ya no usamos notificaciones para mensajes informativos
+        // enqueueSnackbar('No hay datos históricos disponibles', { variant: 'info' });
+>>>>>>> develop
       }
     } catch (error) {
       console.error('[RutinasHistoricalContext] Error al cargar historial:', error);
       setError('Error al cargar historial de rutinas');
+<<<<<<< HEAD
       
       // En caso de error, generar datos simulados
       const simulados = simulateHistorical(dias);
@@ -143,10 +167,16 @@ export const RutinasHistoricalProvider = ({ children }) => {
       
       // Procesar historial simulado
       procesarHistorialPorItem(simulados);
+=======
+      setNoHistoryAvailable(true);
+      enqueueSnackbar('Error al cargar historial de rutinas', { variant: 'error' });
+      setHistorialRutinas([]);
+      setHistoricosPorItem({});
+>>>>>>> develop
     } finally {
       setLoading(false);
     }
-  }, [simulateHistorical]);
+  }, [enqueueSnackbar]);
   
   // Procesar el historial para generar datos por ítem
   const procesarHistorialPorItem = useCallback((rutinas) => {
@@ -311,6 +341,7 @@ export const RutinasHistoricalProvider = ({ children }) => {
     loading,
     error,
     datosSimulados,
+    noHistoryAvailable,
     cargarHistorial,
     obtenerCompletadosItem,
     obtenerConfiguracionesItem,

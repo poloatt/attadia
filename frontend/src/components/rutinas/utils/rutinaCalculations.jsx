@@ -71,19 +71,7 @@ export const calculateVisibleItems = (rutina) => {
  * @returns {number} - Porcentaje de completitud (0-100)
  */
 export const calculateCompletionPercentage = (rutina) => {
-  // Si el backend ya calculó la completitud y estamos viendo una rutina histórica, usar ese valor
-  const esHoy = new Date(rutina?.fecha).toISOString().split('T')[0] === new Date().toISOString().split('T')[0];
-  
-  // Para rutinas históricas, calculamos siempre el valor en el frontend para permitir actualizaciones
-  // en tiempo real al marcar/desmarcar ítems
-  if (typeof rutina?.completitud === 'number' && !esHoy) {
-    // Calculamos el porcentaje para todos los casos para permitir actualizaciones en tiempo real
-    const { visibleItems, completedItems } = calculateVisibleItems(rutina);
-    const totalVisible = visibleItems.length;
-    const totalCompleted = completedItems.length;
-    
-    return Math.round((totalCompleted / totalVisible) * 100);
-  }
+  if (!rutina) return 0;
 
   try {
     // Calcular ítems visibles y completados
@@ -96,8 +84,20 @@ export const calculateCompletionPercentage = (rutina) => {
     // Si no hay ítems visibles, retornar 0%
     if (totalVisible === 0) return 0;
     
-    // Calcular y redondear el porcentaje
-    return Math.round((totalCompleted / totalVisible) * 100);
+    // Si ya tenemos un valor de completitud del backend, lo usamos como referencia
+    // pero recalculamos para asegurar consistencia
+    let percentage = Math.round((totalCompleted / totalVisible) * 100);
+    
+    // Log detallado para depuración
+    console.log(`[rutinaCalculations] Cálculo de completitud para rutina ${rutina._id}:`, {
+      totalVisible,
+      totalCompleted,
+      percentage,
+      completitudBackend: rutina.completitud,
+      percentageFromBackend: rutina.completitud ? Math.round(rutina.completitud * 100) : null
+    });
+    
+    return percentage;
   } catch (error) {
     console.error('Error calculando porcentaje de completitud:', error);
     return 0;

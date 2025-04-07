@@ -31,11 +31,14 @@ import {
   CreditCardOutlined as CardIcon,
   AttachMoneyOutlined as AttachMoneyIcon,
   AccountBalanceWalletOutlined as WalletIcon,
+<<<<<<< HEAD
   FitnessCenterOutlined as RutinasIcon,
   AssignmentOutlined as TaskIcon,
   TimerOutlined as PeriodIcon,
   TrendingDownOutlined as GastosIcon,
   TrendingUpOutlined as IngresosIcon,
+=======
+>>>>>>> develop
   ExpandMore as ExpandMoreIcon,
   Visibility as ShowValuesIcon,
   VisibilityOff as HideValuesIcon,
@@ -43,10 +46,10 @@ import {
   PercentOutlined as PercentIcon,
   CheckCircleOutline as OccupiedIcon,
   PeopleOutline as InquilinosIcon,
-  TaskAltOutlined as TaskAltOutlined,
   HandymanOutlined as MaintenanceIcon,
   BookmarkOutlined as ReservedIcon,
   HealthAndSafety as HealthIcon,
+<<<<<<< HEAD
   CalendarMonthOutlined as CalendarMonthIcon,
   LocationOn as LocationOnIcon,
   SquareFoot as SquareFootIcon,
@@ -59,6 +62,12 @@ import {
   Inventory2Outlined as InventoryIcon,
   ExpandLess as ExpandLessIcon,
   HomeWork
+=======
+  Inventory2Outlined as InventoryIcon,
+  TrendingDownOutlined as GastosIcon,
+  TrendingUpOutlined as IngresosIcon,
+  TimerOutlined as PeriodIcon
+>>>>>>> develop
 } from '@mui/icons-material';
 import { toast } from 'react-hot-toast';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
@@ -92,19 +101,7 @@ export function Dashboard() {
       balanceTotal: 0,
       monedaPrincipal: 'USD',
       monedaColor: '#75AADB'
-    },
-    tareas: {
-      pendientes: 0,
-      total: 0,
-      completadas: 0,
-      enProgreso: 0
-    },
-    proyectos: {
-      activos: 0,
-      total: 0,
-      completados: 0,
-      enPausa: 0
-    },
+    }
   });
   const [selectedPeriod, setSelectedPeriod] = useState(30);
   const { showValues } = useValuesVisibility();
@@ -114,6 +111,7 @@ export function Dashboard() {
   const [inquilinos, setInquilinos] = useState([]);
   const [contratos, setContratos] = useState([]);
   const [isDaylistOpen, setIsDaylistOpen] = useState(false);
+<<<<<<< HEAD
   const [expandedProperties, setExpandedProperties] = useState({});
   const [propiedades, setPropiedades] = useState([]);
   const [isFinanceOpen, setIsFinanceOpen] = useState(true);
@@ -128,6 +126,8 @@ export function Dashboard() {
       [propertyId]: !prev[propertyId]
     }));
   };
+=======
+>>>>>>> develop
 
   const fetchStats = useCallback(async () => {
     try {
@@ -450,6 +450,7 @@ export function Dashboard() {
   const PropertiesSection = ({ propiedades, stats, onEdit, onDelete }) => {
     return (
         <Box sx={{ 
+<<<<<<< HEAD
         bgcolor: 'background.default',
         borderRadius: 0,
         '& .MuiBox-root': {
@@ -470,6 +471,146 @@ export function Dashboard() {
           onDelete={onDelete}
           isDashboard={true}
         />
+=======
+          display: 'flex', 
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          {/* Métricas de propiedades */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <BuildingIcon sx={{ fontSize: 18 }} />
+              <Typography
+                component={Link}
+                to="/propiedades"
+                variant="body2"
+                sx={{
+                  color: 'text.secondary',
+                  textDecoration: 'underline',
+                  '&:hover': { cursor: 'pointer' }
+                }}
+              >
+                {pluralize(stats.propiedades.total, 'Propiedad', 'Propiedades')}
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <PercentIcon sx={{ fontSize: 18 }} />
+              <Typography variant="body2" color="text.secondary">
+                {`${stats.propiedades.porcentajeOcupacion}% Ocupación`}
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Controles */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <IconButton 
+              size="small" 
+              onClick={() => setIsPropertiesDetailOpen(!isPropertiesDetailOpen)}
+              sx={{
+                p: 0.5,
+                transform: isPropertiesDetailOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s'
+              }}
+            >
+              <ExpandMoreIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Box>
+        </Box>
+
+        {/* Sección colapsable */}
+        <Collapse in={isPropertiesDetailOpen}>
+          <Box sx={{ 
+            pt: 0.5,
+            mt: 0.5,
+            borderTop: 1,
+            borderColor: 'divider'
+          }}>
+            {/* Estados de propiedades */}
+            <Box sx={{ 
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: 2,
+              mb: 1
+            }}>
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: 'column',
+                gap: 1
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <OccupiedIcon sx={{ fontSize: 18 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {pluralize(stats.propiedades.ocupadas, 'Ocupada', 'Ocupadas')}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <MaintenanceIcon sx={{ fontSize: 18 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {`${stats.propiedades.mantenimiento} En Mantenimiento`}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: 'column',
+                gap: 1
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <HomeIcon sx={{ fontSize: 18 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {pluralize(stats.propiedades.disponibles, 'Disponible', 'Disponibles')}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <ReservedIcon sx={{ fontSize: 18 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {pluralize(stats.propiedades.reservadas, 'Reservada', 'Reservadas')}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+
+            {/* Contratos e inquilinos */}
+            <Box sx={{ 
+              display: 'flex',
+              gap: 2,
+              pt: 1,
+              borderTop: 1,
+              borderColor: 'divider'
+            }}>
+              {/* Contratos activos */}
+              <Box sx={{ flex: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <PeriodIcon sx={{ fontSize: 18 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {contratos.length > 0 
+                      ? `${pluralize(contratos.length, 'contrato activo', 'contratos activos')}: ${contratos.map(contrato => contrato.propiedad?.titulo || 'Sin título').join(', ')}`
+                      : 'Sin contratos activos'
+                    }
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Inquilinos activos */}
+              <Box sx={{ flex: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <InquilinosIcon sx={{ fontSize: 18 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {inquilinos.length > 0 
+                      ? `${pluralize(inquilinos.length, 'inquilino activo', 'inquilinos activos')}: ${inquilinos.map(inquilino => inquilino.nombre).join(', ')}`
+                      : 'Sin inquilinos activos'
+                    }
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+          </Box>
+        </Collapse>
+>>>>>>> develop
       </Box>
     );
   };
@@ -517,6 +658,7 @@ export function Dashboard() {
   };
 
   return (
+<<<<<<< HEAD
     <Box sx={{ p: 3 }}>
       {/* Sección de Propiedades */}
       <Box sx={{ 
@@ -541,6 +683,28 @@ export function Dashboard() {
             height: '2px',
             bgcolor: 'primary.main',
             opacity: 0.7
+=======
+    <Container maxWidth="lg" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
+      <EntityToolbar
+        showAddButton={false}
+        showBackButton={false}
+        showDivider={false}
+        navigationItems={[
+          {
+            icon: <WalletIcon sx={{ fontSize: 21.6 }} />,
+            label: 'Transacciones',
+            to: '/transacciones'
+          },
+          {
+            icon: <BuildingIcon sx={{ fontSize: 21.6 }} />,
+            label: 'Propiedades',
+            to: '/propiedades'
+          },
+          {
+            icon: <InventoryIcon sx={{ fontSize: 21.6 }} />,
+            label: 'Inventario',
+            to: '/inventario'
+>>>>>>> develop
           }
         }
       }}>
@@ -645,6 +809,7 @@ export function Dashboard() {
           handleFinanceToggle={handleFinanceToggle}
         />
             </Box>
+<<<<<<< HEAD
 
       {/* TransaccionForm Dialog */}
       <TransaccionForm
@@ -664,6 +829,12 @@ export function Dashboard() {
         }}
       />
     </Box>
+=======
+          </Paper>
+        </Grid>
+      </Grid>
+    </Container>
+>>>>>>> develop
   );
 }
 

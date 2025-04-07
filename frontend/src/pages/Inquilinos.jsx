@@ -14,6 +14,7 @@ import {
   Inventory2Outlined as InventoryIcon
 } from '@mui/icons-material';
 import clienteAxios from '../config/axios';
+import { useNavigate } from 'react-router-dom';
 
 export function Inquilinos() {
   const [inquilinos, setInquilinos] = useState([]);
@@ -28,6 +29,11 @@ export function Inquilinos() {
     inactivos: true
   });
   const { enqueueSnackbar } = useSnackbar();
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    navigate('/');
+  };
 
   // Cargar inquilinos
   const fetchInquilinos = async (propiedadId = null) => {
@@ -114,6 +120,7 @@ export function Inquilinos() {
     <Container maxWidth={false}>
       <EntityToolbar
         onAdd={() => setOpenForm(true)}
+        onBack={handleBack}
         navigationItems={[
           {
             icon: <BuildingIcon sx={{ fontSize: 20 }} />,

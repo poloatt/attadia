@@ -30,6 +30,7 @@ import AuthCallback from './components/auth/AuthCallback';
 import Tareas from './pages/Tareas';
 import { ValuesVisibilityProvider } from './context/ValuesVisibilityContext';
 import { Archivo } from './pages/Archivo';
+import Tiempo from './pages/Tiempo';
 import { NavigationBarProvider } from './context/NavigationBarContext';
 import { useAuth } from './context/AuthContext';
 import AuthError from './components/auth/AuthError';
@@ -96,6 +97,7 @@ function App() {
                   <Route path="/salud" element={<Salud />} />
                   <Route path="/tareas" element={<Tareas />} />
                   <Route path="/archivo" element={<Archivo />} />
+                  <Route path="/tiempo" element={<Tiempo />} />
                 </Route>
               </Route>
 

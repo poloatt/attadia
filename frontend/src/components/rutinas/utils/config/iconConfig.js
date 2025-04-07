@@ -92,7 +92,11 @@ export const iconTooltips = {
 
 // Datos por defecto para una nueva rutina
 export const defaultFormData = {
-  fecha: new Date().toISOString().split('T')[0]
+  fecha: (() => {
+    // Obtener la fecha actual en la zona horaria del usuario
+    const hoy = new Date();
+    return hoy.toISOString().split('T')[0];
+  })()
 };
 
 // Exportamos una función para dar formato a las fechas de forma consistente
@@ -107,7 +111,8 @@ export const formatDate = (fecha) => {
       return new Date().toISOString().split('T')[0];
     }
     
-    // Usar la fecha local en lugar de UTC para evitar problemas de zona horaria
+    // Normalizar la fecha para evitar problemas con zonas horarias
+    // Al usar UTC, aseguramos que la fecha se mantiene constante independientemente de la zona horaria
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');

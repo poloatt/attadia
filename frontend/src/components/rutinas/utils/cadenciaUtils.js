@@ -4,7 +4,8 @@
 
 import { addDays, isSameDay, isWithinInterval, getDay, getDate, setDate, 
          startOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, 
-         differenceInDays, isBefore, parseISO } from 'date-fns';
+         differenceInDays, isBefore, parseISO, endOfWeek } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 /**
  * Determina si un día específico debe mostrar un hábito según su configuración de cadencia
@@ -348,10 +349,38 @@ const DIAS_SEMANA = [
   { value: 6, label: 'Sábado' }
 ];
 
+/**
+ * Formatea correctamente una fecha para mostrar el nombre de la semana
+ * @param {Date} fecha - La fecha a formatear
+ * @returns {string} - Formato correcto de la semana
+ */
+export const formatearSemana = (fecha) => {
+  if (!fecha) return 'Semana desconocida';
+  
+  try {
+    // Obtener inicio y fin de semana
+    const inicio = startOfWeek(fecha, { locale: es });
+    const fin = endOfWeek(fecha, { locale: es });
+    
+    // Formatear como "Semana 23-29 Mar 2025"
+    const diaInicio = inicio.getDate();
+    const diaFin = fin.getDate();
+    const mes = fin.toLocaleDateString('es', { month: 'short' });
+    const año = fin.getFullYear();
+    
+    // Garantizar que el año solo aparezca una vez
+    return `Semana ${diaInicio}-${diaFin} ${mes} ${año}`;
+  } catch (error) {
+    console.error('Error al formatear semana:', error);
+    return 'Semana inválida';
+  }
+};
+
 export default {
   debesMostrarHabitoEnFecha,
   contarCompletadosEnPeriodo,
   obtenerUltimaCompletacion,
   generarMensajeCadencia,
-  getFrecuenciaLabel
+  getFrecuenciaLabel,
+  formatearSemana
 }; 

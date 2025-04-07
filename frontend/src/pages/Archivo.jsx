@@ -18,6 +18,7 @@ import {
   RadioButtonUnchecked as PendingIcon,
   Visibility as ShowValuesIcon,
   VisibilityOff as HideValuesIcon,
+  AccessTimeOutlined as TimeIcon,
 } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
 import TareasTable from '../components/proyectos/TareasTable';
@@ -25,7 +26,7 @@ import TareaForm from '../components/proyectos/TareaForm';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import { useNavigationBar } from '../context/NavigationBarContext';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 
 export function Archivo() {
@@ -39,6 +40,7 @@ export function Archivo() {
   const { setTitle, setActions } = useNavigationBar();
   const location = useLocation();
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
+  const navigate = useNavigate();
 
   useEffect(() => {
     setTitle('Archivo de Tareas');
@@ -138,12 +140,18 @@ export function Archivo() {
     }
   };
 
+  const handleBack = () => {
+    navigate('/tiempo');
+  };
+
   return (
     <Container maxWidth="xl">
       <EntityToolbar 
         title="Archivo"
         icon={<ArchiveIcon sx={{ fontSize: 20 }} />}
         showAddButton={false}
+        showBackButton={true}
+        onBack={handleBack}
         navigationItems={[
           { 
             icon: <ProjectIcon sx={{ fontSize: 20 }} />, 
@@ -158,12 +166,13 @@ export function Archivo() {
             current: location.pathname === '/tareas'
           }
         ]}
+        entityName="archivo"
       />
 
       <Box 
         sx={{ 
           py: 2,
-          height: 'calc(100vh - 140px)', // Altura calculada restando el espacio del toolbar y otros elementos
+          height: 'calc(100vh - 190px)', // Aumentado para evitar que pase por debajo de BottomNavigation
           overflowY: 'auto',
           '&::-webkit-scrollbar': {
             width: '8px',

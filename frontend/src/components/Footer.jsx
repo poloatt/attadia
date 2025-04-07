@@ -70,7 +70,7 @@ export default function Footer() {
         justifyContent: 'center',
         gap: 2,
         borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-        zIndex: 9999,
+        zIndex: 1200,
         left: 0,
         right: 0,
         transition: 'opacity 0.5s ease, transform 0.5s ease', // Mejorar la transición

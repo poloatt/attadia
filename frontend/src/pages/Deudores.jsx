@@ -19,7 +19,7 @@ export function Deudores() {
     <Container maxWidth="lg">
       <EntityToolbar
         showBackButton={true}
-        onBack={() => navigate('/dashboard')}
+        onBack={() => window.location.href = '/dashboard'}
         title="Deudores"
         icon={<DeudoresIcon />}
         navigationItems={[

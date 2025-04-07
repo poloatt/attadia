@@ -30,6 +30,7 @@ import EmptyState from '../components/EmptyState';
 import { EntityActions } from '../components/EntityViews/EntityActions';
 import EntityCards from '../components/EntityViews/EntityCards';
 import ContratosView from '../components/contratos/ContratosView';
+import { useNavigate } from 'react-router-dom';
 
 export function Contratos() {
   const [contratos, setContratos] = useState([]);
@@ -46,27 +47,36 @@ export function Contratos() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
+  const navigate = useNavigate();
 
-  const loadData = useCallback(async () => {
+  const handleBack = () => {
+    navigate('/');
+  };
+
+  // Función para cargar datos sin useCallback inicialmente
+  const fetchData = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
       console.log('Cargando datos relacionados...');
 
-      // Cargar todos los datos en paralelo
-      const [
-        contratosRes,
-        propiedadesRes,
-        inquilinosRes,
-        habitacionesRes,
-        cuentasRes,
-        monedasRes
-      ] = await Promise.all([
+      // Agregamos un pequeño delay entre cada grupo de llamadas
+      const [contratosRes, propiedadesRes] = await Promise.all([
         clienteAxios.get('/api/contratos'),
-        clienteAxios.get('/api/propiedades'),
+        clienteAxios.get('/api/propiedades')
+      ]);
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const [inquilinosRes, habitacionesRes] = await Promise.all([
         clienteAxios.get('/api/inquilinos'),
-        clienteAxios.get('/api/habitaciones'),
+        clienteAxios.get('/api/habitaciones')
+      ]);
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const [cuentasRes, monedasRes] = await Promise.all([
         clienteAxios.get('/api/cuentas'),
         clienteAxios.get('/api/monedas')
       ]);
@@ -87,15 +97,6 @@ export function Contratos() {
         monedas: monedas.length
       });
 
-      // Verificar que los contratos tengan la información de cuenta
-      contratos.forEach(contrato => {
-        if (contrato.cuenta) {
-          console.log(`Contrato ${contrato._id} tiene cuenta:`, contrato.cuenta);
-        } else {
-          console.log(`Contrato ${contrato._id} NO tiene cuenta`);
-        }
-      });
-
       setContratos(contratos);
       setRelatedData({
         propiedades,
@@ -106,41 +107,35 @@ export function Contratos() {
       });
     } catch (err) {
       console.error('Error al cargar datos:', err);
-      setError('Error al cargar los datos. Por favor, intente nuevamente.');
+      if (err.message !== 'Solicitud cancelada por repetirse demasiado rápido') {
+        setError('Error al cargar los datos. Por favor, intente nuevamente.');
+        enqueueSnackbar('Error al cargar los datos', { variant: 'error' });
+      }
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  };
 
+  // Ahora envolvemos fetchData en useCallback
+  const loadData = useCallback(fetchData, [enqueueSnackbar]);
+
+  // Efecto para cargar datos iniciales
   useEffect(() => {
-    loadData();
+    const timer = setTimeout(loadData, 500);
+    return () => clearTimeout(timer);
   }, [loadData]);
 
   const handleEdit = useCallback((contrato) => {
     console.log('Editando contrato:', contrato);
-    console.log('Cuenta del contrato:', contrato.cuenta);
     
-    // Asegurarse de que todos los datos relacionados estén cargados antes de abrir el formulario
     if (relatedData.propiedades.length === 0 || 
         relatedData.inquilinos.length === 0 || 
         relatedData.cuentas.length === 0) {
       loadData().then(() => {
-        console.log('Datos relacionados cargados:', {
-          propiedades: relatedData.propiedades.length,
-          inquilinos: relatedData.inquilinos.length,
-          cuentas: relatedData.cuentas.length,
-          monedas: relatedData.monedas.length
-        });
         setEditingContrato(contrato);
         setIsFormOpen(true);
       });
     } else {
-      console.log('Datos relacionados ya cargados:', {
-        propiedades: relatedData.propiedades.length,
-        inquilinos: relatedData.inquilinos.length,
-        cuentas: relatedData.cuentas.length,
-        monedas: relatedData.monedas.length
-      });
       setEditingContrato(contrato);
       setIsFormOpen(true);
     }
@@ -251,6 +246,7 @@ export function Contratos() {
           setEditingContrato(null);
           setIsFormOpen(true);
         }}
+        onBack={handleBack}
         searchPlaceholder="Buscar contratos..."
         navigationItems={[
           {

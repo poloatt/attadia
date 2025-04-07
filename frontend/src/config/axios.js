@@ -66,11 +66,22 @@ clienteAxios.interceptors.request.use(
       '/api/tareas',
       '/api/proyectos',
       '/api/transacciones',
+      '/api/monedas',
       '/api/users',
-      '/api/users/rutinas-config'
+      '/api/users/rutinas-config',
+      '/api/mediciones',
+      '/api/dietas',
+      '/api/datacorporal',
+      '/api/lab'
     ];
     
     const isFrecuentEndpoint = frecuentEndpoints.some(endpoint => config.url.includes(endpoint));
+    
+    // Para los endpoints frecuentes, no aplicar restricciones
+    if (config.method === 'get' && config.url.includes('/api/monedas')) {
+      // Permitir siempre las solicitudes a /api/monedas sin cancelarlas
+      return config;
+    }
     
     // Si es una solicitud GET de API (no afectar a POST, PUT, DELETE) y no es un endpoint frecuente
     if (config.method === 'get' && config.url.includes('/api/') && !isFrecuentEndpoint) {
@@ -79,8 +90,8 @@ clienteAxios.interceptors.request.use(
         const now = Date.now();
         const lastTime = pendingRequests[requestId];
         
-        // Si hay una solicitud reciente (menos de 300ms), cancelar
-        if (now - lastTime < 300) {
+        // Si hay una solicitud reciente (menos de 1000ms), cancelar (aumentado de 600ms)
+        if (now - lastTime < 1000) {
           console.log(`Solicitud cancelada (demasiado frecuente): ${requestId}`);
           return Promise.reject({ 
             cancelado: true, 

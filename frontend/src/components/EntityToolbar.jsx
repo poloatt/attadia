@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   IconButton,
@@ -47,7 +47,8 @@ const EntityToolbar = ({
   additionalActions = [],
   icon,
   title,
-  children
+  children,
+  onBack
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -55,6 +56,7 @@ const EntityToolbar = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const currentPath = location.pathname.slice(1);
+  const currentBase = '/' + location.pathname.split('/')[1];
 
   // Lista de rutas que deben volver al inicio
   const homeReturnRoutes = [
@@ -119,14 +121,46 @@ const EntityToolbar = ({
     return location.pathname === path;
   };
 
-  // Si estamos en la página de Rutinas, agregar el botón de DataCorporal
-  const finalNavigationItems = navigationItems.map(item => ({
-    ...item,
-    current: isCurrentPage(item.to)
-  }));
+  // Filtrar elementos de navegación para eliminar la página actual
+  const filterNavigationItems = (items) => {
+    if (!items || !Array.isArray(items)) return [];
+    
+    // Obtener ruta actual
+    const currentPathFull = location.pathname;
+    
+    return items.filter(item => {
+      // Normalizar la ruta del ítem (asegurarnos que comienza con /)
+      const itemPath = item.to.startsWith('/') ? item.to : `/${item.to}`;
+      
+      // Verificar si se trata de la página de rutinas
+      if (currentBase === '/rutinas' && itemPath === '/rutinas') {
+        return false;
+      }
+      
+      // Verificar si el item coincide con la página actual (para otras páginas que no sean rutinas)
+      // 1. Ruta exacta (/rutinas === /rutinas)
+      // 2. Ruta base (/rutinas === /rutinas/12345)
+      // 3. Rutas especiales como tiempo
+      const isCurrentRoute = 
+        currentPathFull === itemPath || 
+        (currentBase === itemPath && currentBase !== '/rutinas') ||
+        (itemPath === '/tiempo' && currentBase === '/tiempo');
+      
+      return !isCurrentRoute;
+    });
+  };
+
+  // Aplicar el filtro a los elementos de navegación
+  const finalNavigationItems = useMemo(() => {
+    return filterNavigationItems(navigationItems);
+  }, [navigationItems, location.pathname, currentBase]);
 
   const handleBack = () => {
-    navigate('/dashboard');
+    if (typeof onBack === 'function') {
+      onBack();
+    } else {
+      navigate('/tiempo');
+    }
   };
 
   // Obtener el ícono de la página actual
@@ -355,7 +389,7 @@ const EntityToolbar = ({
               )}
 
               {/* Ícono y título de la página actual */}
-              {getCurrentPageIcon() && (
+              {getCurrentPageIcon() && currentBase !== '/rutinas' && (
                 <Box sx={{ 
                   display: 'flex', 
                   alignItems: 'center',

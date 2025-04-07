@@ -16,114 +16,62 @@ import EmptyState from '../components/EmptyState';
 import TransaccionForm from '../components/transacciones/TransaccionForm';
 import TransaccionTable from '../components/transacciones/TransaccionTable';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
+import { useAPI } from '../hooks/useAPI';
 
 export function Transacciones() {
-  const [transacciones, setTransacciones] = useState([]);
-  const [monedas, setMonedas] = useState([]);
-  const [cuentas, setCuentas] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const { enqueueSnackbar } = useSnackbar();
   const [editingTransaccion, setEditingTransaccion] = useState(null);
   const { showValues } = useValuesVisibility();
 
-  const fetchTransacciones = useCallback(async () => {
-    try {
-      console.log('Solicitando transacciones...');
-      const response = await clienteAxios.get('/api/transacciones?limit=1000&sort=-fecha');
-      console.log('Transacciones recibidas:', response.data);
-      setTransacciones(response.data.docs || []);
-    } catch (error) {
-      console.error('Error al cargar transacciones:', error);
-      console.error('Detalles del error:', error.response?.data);
-      enqueueSnackbar('Error al cargar transacciones', { variant: 'error' });
-    }
-  }, [enqueueSnackbar]);
+  // Usar nuestro hook personalizado para cargar datos
+  const { 
+    data: monedasData, 
+    loading: monedasLoading, 
+    error: monedasError 
+  } = useAPI('/api/monedas');
 
-  const fetchMonedas = useCallback(async () => {
-    try {
-      console.log('Cargando monedas...');
-      const response = await clienteAxios.get('/api/monedas');
-      console.log('Respuesta completa de monedas:', response);
-      console.log('Monedas recibidas:', response.data);
-      
-      if (!response.data || !Array.isArray(response.data.docs)) {
-        console.error('Formato de respuesta inválido para monedas:', response.data);
-        enqueueSnackbar('Error en el formato de datos de monedas', { variant: 'error' });
-        return [];
-      }
+  const { 
+    data: cuentasData, 
+    loading: cuentasLoading, 
+    error: cuentasError 
+  } = useAPI('/api/cuentas');
 
-      const monedasData = response.data.docs.map(moneda => ({
-        ...moneda,
-        _id: moneda._id || moneda.id, // Aseguramos tener _id
-        nombre: moneda.nombre || 'Sin nombre', // Valor por defecto
-        simbolo: moneda.simbolo || '$' // Valor por defecto
-      }));
+  const { 
+    data: transaccionesData, 
+    loading: transaccionesLoading, 
+    error: transaccionesError,
+    refetch: refetchTransacciones 
+  } = useAPI('/api/transacciones', { 
+    params: { limit: 1000, sort: '-fecha' } 
+  });
 
-      console.log('Monedas procesadas:', monedasData);
-      setMonedas(monedasData);
-      return monedasData;
-    } catch (error) {
-      console.error('Error al cargar monedas:', error);
-      console.error('Detalles del error:', error.response?.data);
-      enqueueSnackbar('Error al cargar monedas', { variant: 'error' });
-      return [];
-    }
-  }, [enqueueSnackbar]);
+  // Extraer arrays de datos de las respuestas paginadas
+  const monedas = monedasData?.docs || [];
+  const cuentas = cuentasData?.docs || [];
+  const transacciones = transaccionesData?.docs || [];
 
-  const fetchCuentas = useCallback(async () => {
-    try {
-      console.log('Cargando cuentas...');
-      const response = await clienteAxios.get('/api/cuentas');
-      console.log('Respuesta completa de cuentas:', response);
-      console.log('Cuentas recibidas:', response.data);
-      
-      if (!response.data || !Array.isArray(response.data.docs)) {
-        console.error('Formato de respuesta inválido para cuentas:', response.data);
-        enqueueSnackbar('Error en el formato de datos de cuentas', { variant: 'error' });
-        return [];
-      }
+  // Estado de carga general
+  const isLoading = monedasLoading || cuentasLoading || transaccionesLoading;
 
-      const cuentasData = response.data.docs.map(cuenta => ({
-        ...cuenta,
-        _id: cuenta._id || cuenta.id, // Aseguramos tener _id
-        nombre: cuenta.nombre || 'Sin nombre' // Valor por defecto
-      }));
-
-      console.log('Cuentas procesadas:', cuentasData);
-      setCuentas(cuentasData);
-      return cuentasData;
-    } catch (error) {
-      console.error('Error al cargar cuentas:', error);
-      console.error('Detalles del error:', error.response?.data);
-      enqueueSnackbar('Error al cargar cuentas', { variant: 'error' });
-      return [];
-    }
-  }, [enqueueSnackbar]);
-
-  const fetchInitialData = useCallback(async () => {
-    try {
-      console.log('Iniciando carga de datos...');
-      const [monedasData, cuentasData] = await Promise.all([
-        fetchMonedas(),
-        fetchCuentas()
-      ]);
-      console.log('Datos cargados:', { monedas: monedasData, cuentas: cuentasData });
-      await fetchTransacciones();
-    } catch (error) {
-      console.error('Error al cargar datos iniciales:', error);
-    }
-  }, [fetchTransacciones, fetchMonedas, fetchCuentas]);
-
+  // Para errores
   useEffect(() => {
-    fetchInitialData();
-  }, [fetchInitialData]);
+    if (monedasError) {
+      enqueueSnackbar('Error al cargar monedas: ' + monedasError.message, { variant: 'error' });
+    }
+    if (cuentasError) {
+      enqueueSnackbar('Error al cargar cuentas: ' + cuentasError.message, { variant: 'error' });
+    }
+    if (transaccionesError) {
+      enqueueSnackbar('Error al cargar transacciones: ' + transaccionesError.message, { variant: 'error' });
+    }
+  }, [monedasError, cuentasError, transaccionesError, enqueueSnackbar]);
 
   const handleCreateMoneda = useCallback(async (data) => {
     try {
       const response = await clienteAxios.post('/api/monedas', data);
       const newMoneda = response.data;
-      setMonedas(prev => [...prev, newMoneda]);
       enqueueSnackbar('Moneda creada exitosamente', { variant: 'success' });
       return newMoneda;
     } catch (error) {
@@ -145,13 +93,8 @@ export function Transacciones() {
       const newCuenta = response.data;
       console.log('Cuenta creada:', newCuenta);
       
-      await setCuentas(prev => {
-        const updated = [...prev, newCuenta];
-        console.log('Estado de cuentas actualizado:', updated);
-        return updated;
-      });
-
-      await fetchCuentas();
+      // Refrescar los datos después de crear la cuenta
+      refetchTransacciones();
       
       enqueueSnackbar('Cuenta creada exitosamente', { variant: 'success' });
       return newCuenta;
@@ -165,12 +108,11 @@ export function Transacciones() {
       );
       throw error;
     }
-  }, [enqueueSnackbar, fetchCuentas]);
+  }, [enqueueSnackbar, refetchTransacciones]);
 
   const handleEdit = useCallback(async (transaccion) => {
     try {
       console.log('Editando transacción:', transaccion);
-      await Promise.all([fetchMonedas(), fetchCuentas()]);
       
       // Asegurarse de que la cuenta esté en el formato correcto
       const transaccionFormateada = {
@@ -187,7 +129,7 @@ export function Transacciones() {
       console.error('Error al preparar edición:', error);
       enqueueSnackbar('Error al cargar datos para edición', { variant: 'error' });
     }
-  }, [fetchMonedas, fetchCuentas, enqueueSnackbar]);
+  }, [enqueueSnackbar]);
 
   const handleFormSubmit = useCallback(async (formData) => {
     try {
@@ -241,7 +183,7 @@ export function Transacciones() {
       setIsFormOpen(false);
       setEditingTransaccion(null);
       setFormKey(prev => prev + 1);
-      await fetchTransacciones();
+      refetchTransacciones();
     } catch (error) {
       console.error('Error completo:', error);
       console.error('Detalles del error:', error.response?.data);
@@ -259,31 +201,24 @@ export function Transacciones() {
       const mensajeError = error.response?.data?.message || error.message || 'Error al guardar la transacción';
       enqueueSnackbar(mensajeError, { variant: 'error' });
     }
-  }, [enqueueSnackbar, fetchTransacciones, editingTransaccion, cuentas]);
+  }, [enqueueSnackbar, refetchTransacciones, editingTransaccion, cuentas]);
 
   const handleDelete = useCallback(async (id) => {
     try {
       await clienteAxios.delete(`/api/transacciones/${id}`);
       enqueueSnackbar('Transacción eliminada exitosamente', { variant: 'success' });
-      fetchTransacciones();
+      refetchTransacciones();
     } catch (error) {
       console.error('Error al eliminar transacción:', error);
       enqueueSnackbar('Error al eliminar la transacción', { variant: 'error' });
     }
-  }, [enqueueSnackbar, fetchTransacciones]);
+  }, [enqueueSnackbar, refetchTransacciones]);
 
-  const handleOpenForm = useCallback(async () => {
-    try {
-      console.log('Abriendo formulario...');
-      await Promise.all([fetchMonedas(), fetchCuentas()]);
-      setEditingTransaccion(null);
-      setFormKey(prev => prev + 1);
-      setIsFormOpen(true);
-    } catch (error) {
-      console.error('Error al abrir formulario:', error);
-      enqueueSnackbar('Error al cargar datos del formulario', { variant: 'error' });
-    }
-  }, [fetchMonedas, fetchCuentas, enqueueSnackbar]);
+  const handleOpenForm = useCallback(() => {
+    setEditingTransaccion(null);
+    setFormKey(prev => prev + 1);
+    setIsFormOpen(true);
+  }, []);
 
   // Campos del formulario
   const formFields = [
@@ -402,82 +337,70 @@ export function Transacciones() {
   ];
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="xl" sx={{ p: 0 }}>
       <EntityToolbar
-        onAdd={handleOpenForm}
-        navigationItems={[
-          {
-            icon: <RecurrentIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Transacciones Recurrentes',
-            to: '/recurrente'
-          },
-          {
-            icon: <BankIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Cuentas',
-            to: '/cuentas'
-          },
-          {
-            icon: <MoneyIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Monedas',
-            to: '/monedas'
-          },
-          {
-            icon: <PersonOutlineOutlined sx={{ fontSize: 21.6 }} />,
-            label: 'Deudores',
-            to: '/deudores'
-          }
-        ]}
-        showValues={showValues}
-        onToggleValues={() => {}}
-      />
-      <EntityDetails 
         title="Transacciones"
-        subtitle="Gestiona tus ingresos y gastos"
-        icon={<MoneyIcon />}
-        action={
-          <Button 
-            variant="contained" 
-            startIcon={<AddIcon />} 
+        onAdd={handleOpenForm}
+        showBackButton={true}
+        onBack={() => window.location.href = '/dashboard'}
+        actions={
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleOpenForm}
             size="small"
-            onClick={() => {
-              setEditingTransaccion(null);
-              setIsFormOpen(true);
-            }}
-            sx={{
-              borderRadius: 1,
-              textTransform: 'none'
-            }}
           >
             Nueva Transacción
           </Button>
         }
-      >
-        {transacciones.length === 0 ? (
-          <EmptyState 
-            onAdd={() => setIsFormOpen(true)}
-            message="No hay transacciones registradas"
-            submessage="Haz clic en el botón para agregar una nueva transacción"
+        navigationItems={[
+          { icon: <BankIcon sx={{ fontSize: 21.6 }} />, label: 'Cuentas', to: '/cuentas' },
+          { icon: <MoneyIcon sx={{ fontSize: 21.6 }} />, label: 'Monedas', to: '/monedas' },
+          { icon: <RecurrentIcon sx={{ fontSize: 21.6 }} />, label: 'Recurrentes', to: '/recurrente' },
+          { icon: <PersonOutlineOutlined sx={{ fontSize: 21.6 }} />, label: 'Deudores', to: '/deudores' }
+        ]}
+      />
+
+      {isLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+          <EmptyState
+            title="Cargando transacciones..."
+            description="Por favor espera mientras cargamos tus datos."
+            icon="loading"
           />
-        ) : (
-          <TransaccionTable 
+        </Box>
+      ) : transacciones.length === 0 ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+          <EmptyState
+            title="No hay transacciones"
+            description="Comienza creando tu primera transacción."
+            buttonText="Nueva Transacción"
+            onButtonClick={handleOpenForm}
+            icon="empty"
+          />
+        </Box>
+      ) : (
+        <Box sx={{ mt: 2 }}>
+          <TransaccionTable
             transacciones={transacciones}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            showVisibilityToggle={true}
             showValues={showValues}
           />
-        )}
-      </EntityDetails>
+        </Box>
+      )}
 
       {isFormOpen && (
-        <TransaccionForm
+        <EntityDetails
           open={isFormOpen}
-          onClose={() => {
-            setIsFormOpen(false);
-            setEditingTransaccion(null);
-          }}
+          onClose={() => setIsFormOpen(false)}
+          title={editingTransaccion ? 'Editar Transacción' : 'Nueva Transacción'}
+          initialValues={editingTransaccion || {}}
           onSubmit={handleFormSubmit}
-          initialData={editingTransaccion || {}}
-          isEditing={!!editingTransaccion}
+          fields={formFields}
+          key={formKey}
+          submitButtonText={editingTransaccion ? 'Actualizar' : 'Crear'}
         />
       )}
     </Container>

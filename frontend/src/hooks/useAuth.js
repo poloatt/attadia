@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import clienteAxios from '../config/axios';
-import { useSnackbar } from 'notistack';
+import useCustomSnackbar from '../components/common/CustomSnackbar.jsx';
 
 export const useAuth = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { enqueueSnackbar } = useSnackbar();
+  const { enqueueSnackbar } = useCustomSnackbar();
 
   useEffect(() => {
     checkAuth();

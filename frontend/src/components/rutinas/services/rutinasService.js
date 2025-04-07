@@ -1,4 +1,7 @@
 import clienteAxios from '../../../config/axios';
+import { startOfWeek, endOfWeek } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { formatearSemana } from '../utils/cadenciaUtils';
 
 /**
  * Función para obtener la configuración de autenticación
@@ -495,17 +498,12 @@ class RutinasService {
       // Obtener fecha actual
       const ahora = new Date();
       
-      // Verificar y corregir año futuro
+      // Ya no corregimos el año, usamos el año actual del sistema
       const añoActual = ahora.getFullYear();
-      const añoCorrecto = añoActual > 2024 ? 2024 : añoActual; // Corregir si es futuro (en 2024)
-      const requiereCorreccion = añoActual > 2024;
+      const requiereCorreccion = false;
       
-      // Crear fecha de fin (hoy, pero con año corregido si es necesario)
+      // Crear fecha de fin (hoy)
       const fechaFin = new Date(ahora);
-      if (requiereCorreccion) {
-        fechaFin.setFullYear(añoCorrecto);
-        console.log(`[RutinasService] ⚠️ Corrigiendo año futuro ${añoActual} a ${añoCorrecto}`);
-      }
       
       // Calcular fecha de inicio (días hacia atrás desde fecha fin)
       const fechaInicio = new Date(fechaFin);
@@ -520,14 +518,13 @@ class RutinasService {
       console.log('  - Desde:', fechaInicioStr);
       console.log('  - Hasta:', fechaFinStr);
       console.log('  - Fecha actual del sistema:', ahora.toISOString());
-      console.log('  - ¿Requirió corrección?:', requiereCorreccion ? 'SÍ' : 'NO');
+      console.log('  - Año actual:', añoActual);
       
       // Configurar parámetros para la consulta, evitando cacheo
       const params = { 
         fechaInicio: fechaInicioStr, 
         fechaFin: fechaFinStr,
-        _t: Date.now(), // Timestamp para evitar caché
-        corrected: requiereCorreccion ? 'true' : 'false' // Indicador de corrección para debug
+        _t: Date.now() // Timestamp para evitar caché
       };
       
       // Configurar opciones avanzadas para la petición
@@ -579,6 +576,7 @@ class RutinasService {
   }
 
   /**
+<<<<<<< HEAD
    * Obtiene la configuración de un ítem específico
    * @param {string} section - Sección del ítem
    * @param {string} itemId - ID del ítem
@@ -622,6 +620,107 @@ class RutinasService {
         diasMes: [],
         activo: true
       };
+=======
+   * Obtiene el historial de completaciones para un ítem específico
+   * @param {string} section - Sección del ítem (bodyCare, nutricion, etc)
+   * @param {string} itemId - ID del ítem dentro de la sección
+   * @param {Date} fechaInicio - Fecha de inicio para la consulta
+   * @param {Date} fechaFin - Fecha de fin para la consulta
+   * @returns {Promise<Object>} - Objeto con la información del historial de completaciones
+   */
+  async getHistorialCompletaciones(section, itemId, fechaInicio, fechaFin) {
+    try {
+      if (!section || !itemId) {
+        console.log(`[rutinasService] Obteniendo historial completo de todas las rutinas`);
+      } else {
+        console.log(`[rutinasService] Obteniendo historial para ${section}.${itemId}`);
+      }
+      
+      // Normalizar fechas
+      const inicio = fechaInicio ? new Date(fechaInicio) : new Date();
+      const fin = fechaFin ? new Date(fechaFin) : new Date();
+      
+      // Verificar que no sean fechas en el futuro
+      const ahora = new Date();
+      if (inicio > ahora) {
+        console.warn(`[rutinasService] Fecha de inicio en el futuro: ${inicio.toISOString()}. Ajustando al año actual.`);
+        inicio.setFullYear(ahora.getFullYear());
+      }
+      if (fin > ahora) {
+        console.warn(`[rutinasService] Fecha de fin en el futuro: ${fin.toISOString()}. Ajustando al año actual.`);
+        fin.setFullYear(ahora.getFullYear());
+      }
+      
+      // Formatear fechas para log
+      const inicioStr = inicio.toLocaleDateString('es-ES');
+      const finStr = fin.toLocaleDateString('es-ES');
+      
+      console.log(`[rutinasService] Rango de fechas para consulta: {inicio: '${inicioStr}', fin: '${finStr}'}`);
+      
+      // Convertir a formato ISO para la API
+      const fechaInicioISO = inicio.toISOString();
+      const fechaFinISO = fin.toISOString();
+      
+      // Construir URL con parámetros
+      let url;
+      if (!section || !itemId) {
+        // Si no se especifican section e itemId, obtener todas las rutinas en ese rango
+        url = `/api/rutinas?fechaInicio=${fechaInicioISO}&fechaFin=${fechaFinISO}`;
+      } else {
+        url = `/api/rutinas/historial-completaciones/${section}/${itemId}?fechaInicio=${fechaInicioISO}&fechaFin=${fechaFinISO}`;
+      }
+      
+      console.log(`[rutinasService] URL de consulta: ${url}`);
+      
+      const response = await clienteAxios.get(url);
+      
+      // Procesar respuesta
+      if (response.data && response.data.completaciones) {
+        const completaciones = response.data.completaciones;
+        console.log(`[rutinasService] Recibidas ${completaciones.length} completaciones`);
+        
+        // Log de fechas
+        if (completaciones.length > 0) {
+          console.log(`[rutinasService] Fechas encontradas (ordenadas):`);
+          completaciones.sort((a, b) => new Date(a.fecha) - new Date(b.fecha))
+            .forEach((comp, idx) => {
+              console.log(`[rutinasService]   ${idx + 1}. ${comp.fecha.split('T')[0]} [${comp.rutinaId}]`);
+            });
+          
+          // Agrupar por semana usando el nuevo formateador
+          console.log(`[rutinasService] Completaciones por semana:`);
+          
+          // Agrupar completaciones por semana
+          const completacionesPorSemana = completaciones.reduce((acc, comp) => {
+            const fechaComp = new Date(comp.fecha);
+            const keyDeSemana = formatearSemana(fechaComp);
+            
+            if (!acc[keyDeSemana]) {
+              acc[keyDeSemana] = {
+                fechas: [],
+                ids: []
+              };
+            }
+            
+            acc[keyDeSemana].fechas.push(comp.fecha.split('T')[0]);
+            acc[keyDeSemana].ids.push(comp.rutinaId);
+            
+            return acc;
+          }, {});
+          
+          // Registrar completaciones agrupadas
+          Object.entries(completacionesPorSemana).forEach(([semana, datos]) => {
+            console.log(`[rutinasService]   - ${semana}: ${datos.fechas.length} completaciones (${datos.fechas.join(', ')})`);
+          });
+        }
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error(`[rutinasService] Error obteniendo historial para ${section}.${itemId}:`, error);
+      // Devolver objeto vacío para evitar errores en cascada
+      return { completaciones: [] };
+>>>>>>> develop
     }
   }
 }

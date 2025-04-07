@@ -185,7 +185,16 @@ class RutinasController extends BaseController {
       
       console.log(`[rutinasController] Nueva rutina creada con ID: ${nuevaRutina._id}`);
       
-      res.status(201).json(nuevaRutina);
+      // Convertir el objeto a un objeto plano y asegurar que el _id sea un string
+      const rutinaResponse = nuevaRutina.toObject();
+      rutinaResponse._id = rutinaResponse._id.toString();
+      
+      // Añadir el id como propiedad adicional para compatibilidad
+      rutinaResponse.id = rutinaResponse._id;
+      
+      console.log(`[rutinasController] Enviando respuesta con ID: ${rutinaResponse._id} y id: ${rutinaResponse.id}`);
+      
+      res.status(201).json(rutinaResponse);
     } catch (error) {
       console.error('[rutinasController] Error al crear rutina:', error);
       res.status(500).json({ 
@@ -1129,7 +1138,8 @@ class RutinasController extends BaseController {
         const inicioSemana = new Date(fecha);
         inicioSemana.setDate(fecha.getDate() - fecha.getDay());
         inicioSemana.setHours(0, 0, 0, 0);
-        const claveSemana = `${año}-${inicioSemana.toISOString().split('T')[0]}`;
+        // Corregir el formato de clave para evitar la duplicación del año
+        const claveSemana = inicioSemana.toISOString().split('T')[0];
         
         if (!completacionesPorSemana[claveSemana]) {
           completacionesPorSemana[claveSemana] = [];

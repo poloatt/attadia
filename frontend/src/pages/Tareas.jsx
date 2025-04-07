@@ -16,13 +16,14 @@ import {
   ArchiveOutlined as ArchiveIcon,
   Visibility as ShowValuesIcon,
   VisibilityOff as HideValuesIcon,
+  AccessTimeOutlined as TimeIcon,
 } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
 import TareasTable from '../components/proyectos/TareasTable';
 import TareaForm from '../components/proyectos/TareaForm';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useNavigationBar } from '../context/NavigationBarContext';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 import { FooterNavigation } from '../navigation/navigationbar';
@@ -38,6 +39,7 @@ export function Tareas() {
   const location = useLocation();
   const { setTitle, setActions } = useNavigationBar();
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
+  const navigate = useNavigate();
 
   useEffect(() => {
     setTitle('Tareas');
@@ -156,13 +158,81 @@ export function Tareas() {
     }
   };
 
+  const handleBack = () => {
+    navigate('/tiempo');
+  };
+
   return (
+<<<<<<< HEAD
     <>
       <Container maxWidth="xl" sx={{ pb: '104px', minHeight: '100vh' }}>
         <EntityToolbar 
           title="Tareas"
           icon={<TaskIcon />}
           onAdd={() => {
+=======
+    <Container maxWidth="xl">
+      <EntityToolbar 
+        title="Tareas"
+        icon={<TaskIcon sx={{ fontSize: 20 }} />}
+        onAdd={() => {
+          setEditingTarea(null);
+          setIsFormOpen(true);
+        }}
+        showBackButton={true}
+        onBack={handleBack}
+        navigationItems={[
+          { 
+            icon: <ProjectIcon sx={{ fontSize: 20 }} />, 
+            label: 'Proyectos', 
+            to: '/proyectos',
+            current: location.pathname === '/proyectos'
+          },
+          {
+            icon: <ArchiveIcon sx={{ fontSize: 20 }} />,
+            label: 'Archivo',
+            to: '/archivo',
+            current: location.pathname === '/archivo'
+          }
+        ]}
+        entityName="tarea"
+      />
+
+      <Box 
+        sx={{ 
+          py: 2,
+          height: 'calc(100vh - 190px)', // Aumentado para evitar que pase por debajo de BottomNavigation
+          overflowY: 'auto',
+          '&::-webkit-scrollbar': {
+            width: '8px',
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: 'rgba(0,0,0,0.1)',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(0,0,0,0.2)',
+            borderRadius: '4px',
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            backgroundColor: 'rgba(0,0,0,0.3)',
+          },
+        }}
+      >
+        <TareasTable
+          tareas={tareas}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onUpdateEstado={handleUpdateEstado}
+          showValues={showValues}
+        />
+      </Box>
+
+      {isFormOpen && (
+        <TareaForm
+          open={isFormOpen}
+          onClose={() => {
+            setIsFormOpen(false);
+>>>>>>> develop
             setEditingTarea(null);
             setIsFormOpen(true);
           }}
