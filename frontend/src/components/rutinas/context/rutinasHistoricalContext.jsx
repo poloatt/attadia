@@ -20,73 +20,6 @@ export const RutinasHistoricalProvider = ({ children }) => {
   const [noHistoryAvailable, setNoHistoryAvailable] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   
-<<<<<<< HEAD
-  // Función para generar datos simulados cuando el servidor falla
-  const simulateHistorical = useCallback((dias = 30, fechaBase = new Date()) => {
-    console.log(`[RutinasHistoricalContext] ⚠️ Generando datos simulados para los últimos ${dias} días`);
-    
-    // Normalizar fecha base
-    const fechaReferencia = new Date(fechaBase);
-    fechaReferencia.setHours(12, 0, 0, 0);
-    
-    const rutinasSimuladas = [];
-    
-    // Rutinas para los últimos días
-    for (let i = 0; i < dias; i++) {
-      const fecha = new Date(fechaReferencia);
-      fecha.setDate(fechaReferencia.getDate() - i);
-      
-      // Crear una rutina simulada con datos más realistas
-      const rutina = {
-        _id: `simulado_${fecha.toISOString().split('T')[0]}`,
-        fecha: fecha.toISOString(),
-        usuario: 'usuario_simulado',
-        completitud: Math.random(),
-        config: {
-          bodyCare: generarConfigSimulada('DIARIO'),
-          nutricion: generarConfigSimulada('DIARIO'),
-          ejercicio: generarConfigSimulada('SEMANAL'),
-          cleaning: generarConfigSimulada('SEMANAL')
-        },
-        bodyCare: generarCompletacionesSimuladas(),
-        nutricion: generarCompletacionesSimuladas(),
-        ejercicio: generarCompletacionesSimuladas(),
-        cleaning: generarCompletacionesSimuladas()
-      };
-      
-      rutinasSimuladas.push(rutina);
-    }
-    
-    console.log(`[RutinasHistoricalContext] Datos simulados generados: ${rutinasSimuladas.length} registros`);
-    setDatosSimulados(true);
-    return rutinasSimuladas;
-  }, []);
-
-  // Función auxiliar para generar configuración simulada
-  const generarConfigSimulada = (tipo = 'DIARIO') => {
-    return {
-      tipo,
-      frecuencia: tipo === 'DIARIO' ? 1 : 3,
-      periodo: tipo === 'DIARIO' ? 'CADA_DIA' : 'CADA_SEMANA',
-      diasSemana: [],
-      diasMes: [],
-      activo: true,
-      ultimaActualizacion: new Date().toISOString()
-    };
-  };
-
-  // Función auxiliar para generar completaciones simuladas
-  const generarCompletacionesSimuladas = () => {
-    return {
-      bath: Math.random() > 0.3,
-      skinCareDay: Math.random() > 0.3,
-      skinCareNight: Math.random() > 0.3,
-      bodyCream: Math.random() > 0.3
-    };
-  };
-
-=======
->>>>>>> develop
   // Función para cargar el historial
   const cargarHistorial = useCallback(async (dias = 30) => {
     try {
@@ -100,29 +33,12 @@ export const RutinasHistoricalProvider = ({ children }) => {
       const ahora = new Date();
       ahora.setHours(12, 0, 0, 0);
       
-<<<<<<< HEAD
-      // Corregir año futuro si es necesario
-      const añoActual = ahora.getFullYear();
-      const añoMaximo = 2024; // Año máximo permitido
-      const requiereCorreccion = añoActual > añoMaximo;
-      
-      if (requiereCorreccion) {
-        console.log(`[RutinasHistoricalContext] ⚠️ Corrigiendo año futuro ${añoActual} a ${añoMaximo}`);
-        ahora.setFullYear(añoMaximo);
-      }
-      
-=======
->>>>>>> develop
       // Calcular fecha de inicio
       const fechaInicio = new Date(ahora);
       fechaInicio.setDate(ahora.getDate() - dias);
       
       // Usar el servicio para obtener el historial
-<<<<<<< HEAD
-      const historial = await rutinasService.obtenerHistorialCompletaciones(
-=======
       const historial = await rutinasService.getHistorialCompletaciones(
->>>>>>> develop
         null, 
         null,
         fechaInicio,
@@ -138,41 +54,20 @@ export const RutinasHistoricalProvider = ({ children }) => {
         // Procesar historial por ítem
         procesarHistorialPorItem(historial.completaciones);
       } else {
-<<<<<<< HEAD
-        console.warn('[RutinasHistoricalContext] No se obtuvieron datos históricos reales, usando simulados');
-        
-        // Si no hay datos, generar datos simulados
-        const simulados = simulateHistorical(dias, ahora);
-        setHistorialRutinas(simulados);
-        
-        // Procesar historial simulado
-        procesarHistorialPorItem(simulados);
-=======
         console.warn('[RutinasHistoricalContext] No se obtuvieron datos históricos');
         setHistorialRutinas([]);
         setHistoricosPorItem({});
         setNoHistoryAvailable(true);
         // Ya no usamos notificaciones para mensajes informativos
         // enqueueSnackbar('No hay datos históricos disponibles', { variant: 'info' });
->>>>>>> develop
       }
     } catch (error) {
       console.error('[RutinasHistoricalContext] Error al cargar historial:', error);
       setError('Error al cargar historial de rutinas');
-<<<<<<< HEAD
-      
-      // En caso de error, generar datos simulados
-      const simulados = simulateHistorical(dias);
-      setHistorialRutinas(simulados);
-      
-      // Procesar historial simulado
-      procesarHistorialPorItem(simulados);
-=======
       setNoHistoryAvailable(true);
       enqueueSnackbar('Error al cargar historial de rutinas', { variant: 'error' });
       setHistorialRutinas([]);
       setHistoricosPorItem({});
->>>>>>> develop
     } finally {
       setLoading(false);
     }
