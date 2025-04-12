@@ -5,21 +5,22 @@ FROM node:20-alpine
 WORKDIR /app
 ENV NODE_ENV=development
 ENV VITE_MODE=development
+ENV CHOKIDAR_USEPOLLING=true
 
-# Copiar solo los archivos necesarios para instalar dependencias
+# Instalar dependencias globales necesarias
+RUN apk add --no-cache git
+
+# Copiar archivos de configuración
 COPY package*.json ./
+COPY vite.config.js ./
 
 # Instalar dependencias con cache optimizado
-RUN --mount=type=cache,target=/root/.npm \
-    npm install --prefer-offline --no-audit --no-fund
+RUN npm install -g npm@latest && \
+    npm install --no-package-lock
 
-# Copiar el código fuente
-COPY . .
-
-# Configurar permisos solo en los directorios necesarios
-RUN chown -R node:node /app/node_modules \
-    && chown -R node:node /app/src \
-    && chown -R node:node /app/public
+# Configurar permisos
+RUN mkdir -p /app/node_modules/.vite && \
+    chown -R node:node /app
 
 # Cambiar al usuario node
 USER node
@@ -27,5 +28,5 @@ USER node
 # Puerto para Vite
 EXPOSE 5173
 
-# Iniciar en modo desarrollo con cache
-CMD ["sh", "-c", "npm run dev -- --host --force"] 
+# Iniciar en modo desarrollo con hot reload
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"] 

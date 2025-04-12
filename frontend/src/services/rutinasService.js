@@ -1,5 +1,7 @@
 import clienteAxios from '../config/axios';
 import axios from 'axios';
+import { getNormalizedToday, toISODateString, normalizeDate } from '../components/rutinas/utils/dateUtils';
+import { formatDateForAPI, getWeekRange, getMonthRange, parseAPIDate } from '../utils/dateUtils';
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
@@ -424,6 +426,110 @@ class RutinasService {
   setInCache(key, data) {
     // Implementa la lógica para almacenar datos en la caché
     this.cache.set(key, data);
+  }
+
+  async obtenerHistorial(dias = 7) {
+    try {
+      const ahora = getNormalizedToday();
+      const inicio = new Date(ahora);
+      inicio.setDate(inicio.getDate() - dias);
+      inicio.setHours(0, 0, 0, 0);
+
+      const response = await clienteAxios.get('/api/rutinas/historial', {
+        params: {
+          inicio: toISODateString(inicio),
+          fin: toISODateString(ahora)
+        }
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('[rutinasService] Error al obtener historial:', error);
+      throw error;
+    }
+  }
+
+  async registrarCompletacion(rutinaId, seccion, itemId, completado = true) {
+    try {
+      const response = await clienteAxios.post(`/api/rutinas/${rutinaId}/completar`, {
+        seccion,
+        itemId,
+        completado,
+        timestamp: toISODateString(getNormalizedToday())
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('[rutinasService] Error al registrar completación:', error);
+      throw error;
+    }
+  }
+
+  async getHistorialCompletaciones(section, itemId, fechaInicio, fechaFin) {
+    try {
+      if (!section || !itemId) {
+        console.log(`[rutinasService] Obteniendo historial completo de todas las rutinas`);
+      } else {
+        console.log(`[rutinasService] Obteniendo historial para ${section}.${itemId}`);
+      }
+      
+      // Formatear fechas para la API
+      const fechaInicioStr = formatDateForAPI(fechaInicio);
+      const fechaFinStr = formatDateForAPI(fechaFin);
+      
+      console.log(`[rutinasService] Rango de fechas para consulta:`, {
+        inicio: fechaInicioStr,
+        fin: fechaFinStr
+      });
+      
+      // Construir URL con parámetros
+      const params = new URLSearchParams({
+        fechaInicio: fechaInicioStr,
+        fechaFin: fechaFinStr
+      });
+
+      const response = await clienteAxios.get(`/api/rutinas/historial?${params}`);
+      return response.data;
+      
+    } catch (error) {
+      console.error('[rutinasService] Error al obtener historial:', error);
+      throw error;
+    }
+  }
+
+  async getRutinasHistoricas(days = 30) {
+    try {
+      console.log('[rutinasService] Obteniendo historial de rutinas para los últimos', days, 'días');
+      
+      // Calcular rango de fechas
+      const fechaFin = new Date();
+      const fechaInicio = new Date(fechaFin);
+      fechaInicio.setDate(fechaFin.getDate() - days);
+      
+      // Formatear fechas para la API
+      const params = new URLSearchParams({
+        fechaInicio: formatDateForAPI(fechaInicio),
+        fechaFin: formatDateForAPI(fechaFin),
+        _t: Date.now() // Evitar caché
+      });
+      
+      const response = await clienteAxios.get(`/api/rutinas?${params}`, {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+
+      // Parsear fechas en la respuesta
+      return response.data.map(rutina => ({
+        ...rutina,
+        fecha: parseAPIDate(rutina.fecha)
+      }));
+      
+    } catch (error) {
+      console.error('[rutinasService] Error al obtener rutinas históricas:', error);
+      throw error;
+    }
   }
 }
 

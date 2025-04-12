@@ -39,6 +39,7 @@ import ItemCadenciaConfig from './ItemCadenciaConfig';
 import shouldShowItemUtil from './utils/shouldShowItem';
 import HistoricalAlert from './HistoricalAlert';
 import { useRutinasHistorical } from './context/rutinasHistoricalContext.jsx';
+import { getNormalizedToday, toISODateString } from './utils/dateUtils';
 
 // Exportación nombrada para compatibilidad
 export const RutinaTable = ({ 
@@ -52,7 +53,7 @@ export const RutinaTable = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [rutinas, setRutinas] = useState([]);
-  const [today, setToday] = useState(new Date());
+  const today = useMemo(() => getNormalizedToday(), []);
   const [globalConfig, setGlobalConfig] = useState(null); // Para almacenar la configuración global
   const { enqueueSnackbar } = useSnackbar();
   const historical = useRutinasHistorical();
@@ -88,7 +89,6 @@ export const RutinaTable = ({
   useEffect(() => {
     // Formatear la fecha como "YYYY-MM-DD" para que coincida con las claves en el objeto historial
     const formattedToday = new Date().toISOString().split('T')[0];
-    setToday(new Date()); // Mantener today como objeto Date para otros usos
     
     // Loguear para debug
     // console.log('Fecha actual formateada:', formattedToday);
@@ -170,7 +170,7 @@ export const RutinaTable = ({
     const updateDay = () => {
       const now = new Date();
       if (isMounted.current) {
-        setToday(now);
+        // Mantener today como objeto Date para otros usos
       }
     };
     

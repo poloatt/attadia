@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import rutinasService from '../services/rutinasService';
 import { useSnackbar } from 'notistack';
+import clienteAxios from '../../../config/axios';
+import { getNormalizedToday, toISODateString } from '../utils/dateUtils';
 
 // Crear el contexto
 const RutinasHistoricalContext = createContext();
@@ -18,6 +20,7 @@ export const RutinasHistoricalProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [datosSimulados, setDatosSimulados] = useState(false);
   const [noHistoryAvailable, setNoHistoryAvailable] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
   
   // Función para cargar el historial
@@ -29,9 +32,7 @@ export const RutinasHistoricalProvider = ({ children }) => {
       
       console.log(`[RutinasHistoricalContext] Cargando historial de los últimos ${dias} días`);
       
-      // Obtener fecha actual y normalizarla
-      const ahora = new Date();
-      ahora.setHours(12, 0, 0, 0);
+      const ahora = getNormalizedToday();
       
       // Calcular fecha de inicio
       const fechaInicio = new Date(ahora);

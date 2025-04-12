@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogTitle,
@@ -18,28 +19,24 @@ import {
   Divider,
   Card,
   CardContent,
-  Fab,
-  Tooltip
+  TextField
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { es } from 'date-fns/locale';
-import InfoIcon from '@mui/icons-material/Info';
 import CloseIcon from '@mui/icons-material/Close';
-import DateRangeIcon from '@mui/icons-material/DateRange';
 import EventIcon from '@mui/icons-material/Event';
-import SettingsIcon from '@mui/icons-material/Settings';
+import SaveIcon from '@mui/icons-material/Save';
 import clienteAxios from '../../config/axios';
 import useCustomSnackbar from '../common/CustomSnackbar.jsx';
 import { useDebounce } from './utils/hooks';
-import { defaultFormData, formatDate, iconConfig } from './utils/iconConfig';
-import { useNavigate, useParams } from 'react-router-dom';
+import { formatDate, iconConfig } from './utils/iconConfig';
 import { useRutinasCRUD } from '../../hooks/useRutinasCRUD';
 import { useAuth } from '../../hooks/useAuth';
 import ChecklistSection from './ChecklistSection';
-import TextField from "@mui/material/TextField";
-import SaveIcon from '@mui/icons-material/Save';
+import EntityDateSelect from '../EntityViews/EntityDateSelect';
+import { formatDateForAPI, getNormalizedToday, parseAPIDate } from '../../utils/dateUtils';
 
 export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => {
   const theme = useTheme();
@@ -73,22 +70,13 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
   });
 
   const [formData, setFormData] = useState(() => {
-    // Si estamos editando, usar la fecha de la rutina existente
-    if (initialData && initialData.fecha) {
-      return {
-        fecha: new Date(initialData.fecha).toISOString().split('T')[0],
-        useGlobalConfig: true
-      };
-    }
-    
-    // Si no, siempre usar la fecha actual (hoy) usando la hora local
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    
-    return { 
-      fecha: `${year}-${month}-${day}`,
+    const today = getNormalizedToday();
+    const fecha = initialData?.fecha ? 
+      formatDateForAPI(parseAPIDate(initialData.fecha)) : 
+      formatDateForAPI(today);
+
+    return {
+      fecha,
       useGlobalConfig: true
     };
   });
@@ -100,15 +88,18 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
   useEffect(() => {
     if (initialData) {
       setRutinaData(initialData);
-      setFormData({ 
-        fecha: initialData.fecha ? new Date(initialData.fecha).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        useGlobalConfig: true // Siempre usar configuración global por defecto
-      });
+      setFormData(prev => ({ 
+        ...prev,
+        fecha: initialData.fecha ? 
+          formatDateForAPI(parseAPIDate(initialData.fecha)) : 
+          formatDateForAPI(getNormalizedToday())
+      }));
       
       // Añadir logs para depurar el valor de completitud
       console.log('[RutinaForm] Datos recibidos del backend:', {
         id: initialData._id,
         fecha: initialData.fecha,
+        fechaNormalizada: formatDateForAPI(parseAPIDate(initialData.fecha)),
         completitud: initialData.completitud, 
         completitudPorSeccion: initialData.completitudPorSeccion,
         completitudPorcentaje: initialData.completitud ? Math.round(initialData.completitud * 100) : 0
@@ -121,7 +112,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
     if (!debouncedFecha) return;
     
     if (initialData && initialData._id) {
-      const fechaOriginal = new Date(initialData.fecha).toISOString().split('T')[0];
+      const fechaOriginal = formatDateForAPI(parseAPIDate(initialData.fecha));
       if (fechaOriginal === debouncedFecha) {
         return;
       }
@@ -130,8 +121,14 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
     const validateDate = async () => {
       try {
         setIsValidating(true);
+        const fechaNormalizada = formatDateForAPI(parseAPIDate(debouncedFecha));
+        console.log('[RutinaForm] Validando fecha:', {
+          original: debouncedFecha,
+          normalizada: fechaNormalizada
+        });
+        
         const response = await clienteAxios.get('/api/rutinas/verify', {
-          params: { fecha: debouncedFecha }
+          params: { fecha: fechaNormalizada }
         });
         
         if (response.data.exists) {
@@ -141,6 +138,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
         }
       } catch (error) {
         console.error('Error al verificar fecha:', error);
+        setFechaError('Error al verificar la fecha');
       } finally {
         setIsValidating(false);
       }
@@ -152,13 +150,18 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
   const handleDateChange = (newDate) => {
     if (!newDate) return;
     
-    const year = newDate.getFullYear();
-    const month = String(newDate.getMonth() + 1).padStart(2, '0');
-    const day = String(newDate.getDate()).padStart(2, '0');
+    const normalizedDate = parseAPIDate(newDate);
+    const formattedDate = formatDateForAPI(normalizedDate);
+    
+    console.log('[RutinaForm] Cambio de fecha:', {
+      entrada: newDate,
+      normalizada: normalizedDate,
+      formateada: formattedDate
+    });
     
     setFormData(prev => ({
       ...prev,
-      fecha: `${year}-${month}-${day}`
+      fecha: formattedDate
     }));
   };
 
@@ -269,60 +272,11 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
     setError(null);
     
     try {
-      // Normalizar fecha utilizando la función formatDate para asegurar coherencia
-      const fechaISO = formatDate(formData.fecha);
-      
-      console.log(`[RutinaForm] Preparando datos para guardar rutina con fecha normalizada: ${fechaISO}`);
-      
-      // Crear objeto básico con datos mínimos necesarios
       const rutinaToSubmit = {
-        fecha: fechaISO,
-        useGlobalConfig: true
+        fecha: formData.fecha,
+        useGlobalConfig: true,
+        config: rutinaData.config
       };
-      
-      // Crear solo la configuración base sin objetos complejos que puedan causar problemas
-      if (rutinaData.config) {
-        rutinaToSubmit.config = {
-          bodyCare: {},
-          nutricion: {},
-          ejercicio: {},
-          cleaning: {}
-        };
-        
-        // Procesar cada sección manualmente para evitar referencias a objetos complejos
-        ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'].forEach(section => {
-          if (rutinaData.config[section]) {
-            Object.keys(rutinaData.config[section]).forEach(itemId => {
-              const itemConfig = rutinaData.config[section][itemId];
-              
-              // Verificar que sea un objeto válido y crear un objeto limpio con solo datos primitivos
-              if (itemConfig && typeof itemConfig === 'object') {
-                rutinaToSubmit.config[section][itemId] = {
-                  tipo: String(itemConfig.tipo || 'DIARIO').toUpperCase(),
-                  frecuencia: Number(itemConfig.frecuencia || 1),
-                  periodo: String(itemConfig.periodo || 'CADA_DIA'),
-                  diasSemana: Array.isArray(itemConfig.diasSemana) ? [...itemConfig.diasSemana] : [],
-                  diasMes: Array.isArray(itemConfig.diasMes) ? [...itemConfig.diasMes] : [],
-                  activo: Boolean(itemConfig.activo !== false)
-                };
-                
-                // Eliminar cualquier campo que no sea parte del esquema esperado
-                const cleanConfig = rutinaToSubmit.config[section][itemId];
-                Object.keys(cleanConfig).forEach(key => {
-                  // Si hay algún objeto anidado inesperado, convertirlo a string
-                  if (typeof cleanConfig[key] === 'object' && !Array.isArray(cleanConfig[key])) {
-                    delete cleanConfig[key];
-                  }
-                });
-              }
-            });
-          }
-        });
-      }
-      
-      if (isEditing && initialData?._id) {
-        rutinaToSubmit._id = initialData._id;
-      }
       
       console.log(`[RutinaForm] Enviando petición ${isEditing ? 'PUT' : 'POST'} para rutina:`);
       console.log(JSON.stringify(rutinaToSubmit, null, 2));
@@ -480,43 +434,15 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
                 Fecha
               </Typography>
               
-              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-                <DatePicker
-                  label="Selecciona una fecha"
-                  value={formData.fecha ? new Date(formData.fecha) : new Date()}
-                  onChange={handleDateChange}
-                  renderInput={(params) => <TextField {...params} fullWidth />}
-                  disablePast={false}
-                  maxDate={new Date(new Date().setMonth(new Date().getMonth() + 6))}
-                  minDate={new Date(new Date().setMonth(new Date().getMonth() - 6))}
-                  inputFormat="dd/MM/yyyy"
-                  views={['day', 'month', 'year']}
-                  showToolbar={false}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 0,
-                      '&.Mui-focused fieldset': {
-                        borderColor: 'primary.main',
-                        borderWidth: 1
-                      }
-                    }
-                  }}
-                />
-              </LocalizationProvider>
-              
-              {fechaError && (
-                <Alert 
-                  severity="warning" 
-                  sx={{ 
-                    mt: 2, 
-                    borderRadius: 0,
-                    bgcolor: 'warning.light', 
-                    color: 'warning.dark'
-                  }}
-                >
-                  {fechaError}
-                </Alert>
-              )}
+              <EntityDateSelect
+                label="Selecciona una fecha"
+                value={formData.fecha ? new Date(formData.fecha) : new Date()}
+                onChange={handleDateChange}
+                error={!!fechaError}
+                helperText={fechaError}
+                minDate={new Date(new Date().setMonth(new Date().getMonth() - 6))}
+                maxDate={new Date(new Date().setMonth(new Date().getMonth() + 6))}
+              />
             </Box>
           </Grid>
           

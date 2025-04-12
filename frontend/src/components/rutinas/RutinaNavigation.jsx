@@ -12,6 +12,7 @@ import { formatFechaDisplay } from './utils/iconConfig';
 import { useRutinas } from './context/RutinasContext';
 import { useRutinasStatistics } from './context/RutinasStatisticsContext';
 import { useSnackbar } from 'notistack';
+import { getNormalizedToday, toISODateString } from './utils/dateUtils';
 
 /**
  * Componente para la navegación entre rutinas
