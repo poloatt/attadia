@@ -92,11 +92,51 @@ class RutinasController extends BaseController {
     try {
       const { nombre, useGlobalConfig = true } = req.body;
       
-      let configInicial = {};
-      
-      // Obtener la fecha de la rutina, usando hoy por defecto
+      // Obtener y normalizar la fecha de la rutina
       const fechaRutina = req.body.fecha ? new Date(req.body.fecha) : new Date();
-      fechaRutina.setUTCHours(0, 0, 0, 0);  // Normalizar a inicio del día
+      
+      // Verificar si la fecha es válida
+      if (isNaN(fechaRutina.getTime())) {
+        console.error('[rutinasController] Fecha inválida al crear rutina:', req.body.fecha);
+        return res.status(400).json({
+          error: 'Fecha inválida',
+          detalles: 'La fecha proporcionada no es válida'
+        });
+      }
+      
+      // Normalizar a inicio del día en UTC
+      fechaRutina.setUTCHours(0, 0, 0, 0);
+      
+      // Verificar duplicados antes de crear
+      const fechaFin = new Date(fechaRutina);
+      fechaFin.setUTCHours(23, 59, 59, 999);
+      
+      console.log('[rutinasController] Verificando duplicados al crear:', {
+        fecha: fechaRutina.toISOString(),
+        usuario: req.user.id
+      });
+      
+      const existingRutina = await this.Model.findOne({
+        fecha: {
+          $gte: fechaRutina,
+          $lte: fechaFin
+        },
+        usuario: req.user.id
+      });
+      
+      if (existingRutina) {
+        console.log('[rutinasController] Se encontró rutina duplicada:', {
+          id: existingRutina._id,
+          fecha: existingRutina.fecha
+        });
+        return res.status(409).json({
+          error: 'Ya existe una rutina para esta fecha',
+          rutinaId: existingRutina._id,
+          fecha: existingRutina.fecha
+        });
+      }
+      
+      let configInicial = {};
       
       // Si se solicita usar la configuración global, obtenerla del usuario
       if (useGlobalConfig) {
@@ -282,20 +322,19 @@ class RutinasController extends BaseController {
           updateData.config = {};
         }
         
-        // Actualizar secciones de configuración mencionadas en la solicitud
+        // Solo procesar secciones válidas
+        const seccionesValidas = ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'];
         Object.keys(req.body.config).forEach(seccion => {
+          if (!seccionesValidas.includes(seccion)) return; // Ignora claves no válidas
           if (!updateData.config[seccion]) {
             updateData.config[seccion] = {};
           }
-          
           // Actualizar items de configuración mencionados en la solicitud
           Object.keys(req.body.config[seccion]).forEach(item => {
             const newItemConfig = req.body.config[seccion][item];
-            
             // Logs detallados para depuración
             console.log(`[rutinasController] Config recibida para ${seccion}.${item}:`, 
               JSON.stringify(newItemConfig));
-            
             // Preservar la configuración existente no mencionada en la solicitud
             updateData.config[seccion][item] = {
               ...updateData.config[seccion][item],
@@ -303,7 +342,6 @@ class RutinasController extends BaseController {
               // Asegurar que la frecuencia se guarde como número
               frecuencia: Number(newItemConfig.frecuencia || 1)
             };
-            
             console.log(`[rutinasController] Config actualizada para ${seccion}.${item}:`, 
               JSON.stringify(updateData.config[seccion][item]));
           });
@@ -517,30 +555,33 @@ class RutinasController extends BaseController {
         return res.status(400).json({ error: 'La fecha es requerida' });
       }
       
-      // Normalizar la fecha a inicio del día en UTC
+      // Normalizar la fecha a inicio del día en la zona horaria local
       const fechaInicio = new Date(fecha);
       
       // Comprobar si la fecha es válida
       if (isNaN(fechaInicio.getTime())) {
+        console.log('[rutinasController] Fecha inválida recibida:', fecha);
         return res.status(400).json({ 
           error: 'Formato de fecha inválido', 
-          fecha 
+          fecha,
+          detalles: 'La fecha proporcionada no es válida'
         });
       }
       
+      // Normalizar a inicio del día en UTC
       fechaInicio.setUTCHours(0, 0, 0, 0);
       
-      // Crear el rango del día completo
+      // Crear el rango del día completo en UTC
       const fechaFin = new Date(fechaInicio);
       fechaFin.setUTCHours(23, 59, 59, 999);
       
-      console.log('Verificando rutina existente:', {
-        fechaInicio,
-        fechaFin,
+      console.log('[rutinasController] Verificando rutina existente:', {
+        fechaInicio: fechaInicio.toISOString(),
+        fechaFin: fechaFin.toISOString(),
         usuario: req.user.id
       });
       
-      // Verificar si ya existe una rutina para este día
+      // Verificar si ya existe una rutina para este día usando un rango más preciso
       const existingRutina = await this.Model.findOne({
         fecha: {
           $gte: fechaInicio,
@@ -550,23 +591,30 @@ class RutinasController extends BaseController {
       }).lean();
       
       if (existingRutina) {
-        console.log('Rutina existente encontrada para verificación:', existingRutina._id);
+        console.log('[rutinasController] Rutina existente encontrada:', {
+          id: existingRutina._id,
+          fecha: existingRutina.fecha,
+          fechaISO: existingRutina.fecha.toISOString()
+        });
         return res.json({
           exists: true,
           rutinaId: existingRutina._id,
-          fecha: existingRutina.fecha
+          fecha: existingRutina.fecha,
+          mensaje: 'Ya existe una rutina para esta fecha'
         });
       }
       
       return res.json({
         exists: false,
-        fechaNormalizada: fechaInicio
+        fechaNormalizada: fechaInicio.toISOString(),
+        mensaje: 'Fecha disponible para crear rutina'
       });
     } catch (error) {
-      console.error('Error al verificar fecha:', error);
+      console.error('[rutinasController] Error al verificar fecha:', error);
       res.status(500).json({ 
         error: 'Error al verificar fecha',
-        details: error.message 
+        details: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       });
     }
   }

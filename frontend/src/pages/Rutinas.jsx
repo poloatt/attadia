@@ -265,7 +265,6 @@ const RutinasWithContext = () => {
           )}
         </Box>
       </Container>
-      <FooterNavigation />
     </>
   );
 };

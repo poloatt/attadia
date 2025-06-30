@@ -1,12 +1,12 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Box, TextField, IconButton } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { es } from 'date-fns/locale';
+import { startOfDay, parseISO, format } from 'date-fns';
 import TodayIcon from '@mui/icons-material/Today';
-import { formatDateForAPI, getNormalizedToday, parseAPIDate } from '../../utils/dateUtils';
 
 const StyledTextField = styled(TextField)(({ theme }) => ({
   '& .MuiOutlinedInput-root': {
@@ -25,16 +25,6 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
     '&.Mui-error fieldset': {
       borderColor: theme.palette.error.main
     }
-  },
-  '& .MuiInputLabel-root': {
-    transform: 'translate(14px, -9px) scale(0.75)',
-    '&.Mui-focused, &.MuiFormLabel-filled': {
-      transform: 'translate(14px, -9px) scale(0.75)',
-      color: theme.palette.primary.main
-    },
-    '&.Mui-error': {
-      color: theme.palette.error.main
-    }
   }
 }));
 
@@ -51,62 +41,40 @@ const EntityDateSelect = ({
   maxDate,
   ...props
 }) => {
+  // Obtener la fecha actual al inicio del día
+  const today = useMemo(() => startOfDay(new Date()), []);
+
+  // Función para formatear fecha a YYYY-MM-DD
+  const formatToAPI = useCallback((date) => {
+    return format(date, 'yyyy-MM-dd');
+  }, []);
+
   const handleToday = useCallback(() => {
-    const today = getNormalizedToday();
-    const formattedDate = formatDateForAPI(today);
-    console.debug('[EntityDateSelect] Seleccionando hoy:', {
-      today,
-      formattedDate,
-      error
-    });
-    onChange(formattedDate);
-  }, [onChange, error]);
+    onChange(today);
+  }, [onChange, today]);
 
   const handleDateChange = useCallback((newDate) => {
-    if (!newDate || isNaN(newDate.getTime())) {
-      console.debug('[EntityDateSelect] Fecha inválida o nula');
-      return;
-    }
-    
-    // Normalizar la fecha a medianoche en la zona horaria local
-    const localDate = new Date(
-      newDate.getFullYear(),
-      newDate.getMonth(),
-      newDate.getDate(),
-      0, 0, 0, 0
-    );
-    
-    const formattedDate = formatDateForAPI(localDate);
-    console.debug('[EntityDateSelect] Fecha seleccionada:', {
-      original: newDate,
-      normalized: localDate,
-      formatted: formattedDate,
-      error
-    });
-    
-    onChange(formattedDate);
-  }, [onChange, error]);
+    if (!newDate || isNaN(newDate.getTime())) return;
+    // Normalizar la fecha al inicio del día
+    const normalizedDate = startOfDay(newDate);
+    onChange(normalizedDate);
+  }, [onChange]);
 
-  // Parsear y validar el valor inicial
-  let parsedValue = null;
-  try {
-    if (value) {
-      parsedValue = parseAPIDate(value);
-      console.debug('[EntityDateSelect] Valor parseado:', {
-        input: value,
-        parsed: parsedValue,
-        error
-      });
-      
-      if (!parsedValue || isNaN(parsedValue.getTime())) {
-        console.warn('[EntityDateSelect] Valor inicial inválido:', value);
-        parsedValue = null;
-      }
+  const inputRef = useRef();
+
+  // Parsear el valor inicial
+  const parsedValue = useMemo(() => {
+    if (!value) return today;
+    if (value instanceof Date && !isNaN(value)) return value;
+    try {
+      const date = parseISO(value);
+      return isNaN(date.getTime()) ? today : startOfDay(date);
+    } catch {
+      return today;
     }
-  } catch (error) {
-    console.error('[EntityDateSelect] Error al parsear fecha:', error);
-    parsedValue = null;
-  }
+  }, [value, today]);
+
+  const [open, setOpen] = useState(false);
 
   return (
     <LocalizationProvider 
@@ -119,42 +87,52 @@ const EntityDateSelect = ({
           value={parsedValue}
           onChange={handleDateChange}
           disabled={disabled}
-          minDate={minDate}
-          maxDate={maxDate}
-          showToolbar={false}
-          views={['day']}
-          inputFormat="yyyy-MM-dd"
-          mask="____-__-__"
+          minDate={minDate ? startOfDay(parseISO(minDate)) : undefined}
+          maxDate={maxDate ? startOfDay(parseISO(maxDate)) : undefined}
+          inputFormat="dd/MM/yyyy"
+          mask="__/__/____"
+          open={open}
+          onOpen={() => setOpen(true)}
+          onClose={() => setOpen(false)}
+          PopperProps={{
+            anchorEl: inputRef.current || undefined,
+            sx: { zIndex: 1500 }
+          }}
           renderInput={(params) => (
             <StyledTextField
               {...params}
+              inputRef={inputRef}
               fullWidth={fullWidth}
               error={error}
               helperText={helperText}
               InputProps={{
                 ...params.InputProps,
-                startAdornment: startIcon,
-                error: error
+                startAdornment: null,
+                endAdornment: null,
+                sx: { borderRadius: 0 }
               }}
             />
           )}
           {...props}
         />
-        <IconButton 
-          onClick={handleToday}
+        <IconButton
+          onClick={() => setOpen(true)}
           disabled={disabled}
-          sx={{ 
-            borderRadius: 0,
-            padding: '8px',
+          sx={{
+            color: '#fff', // Blanco
+            backgroundColor: 'transparent',
+            p: 0.5,
             '&:hover': {
-              backgroundColor: 'action.hover'
+              backgroundColor: 'action.hover',
+              color: 'primary.main',
             },
-            '&.Mui-disabled': {
-              opacity: 0.5
+            '&:disabled': {
+              opacity: 0.5,
+              cursor: 'not-allowed'
             }
           }}
         >
-          <TodayIcon />
+          <TodayIcon sx={{ fontSize: 24 }} />
         </IconButton>
       </Box>
     </LocalizationProvider>

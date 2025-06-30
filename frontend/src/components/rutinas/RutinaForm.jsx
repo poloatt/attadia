@@ -70,36 +70,44 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
   });
 
   const [formData, setFormData] = useState(() => {
+    // Obtener la fecha actual normalizada
     const today = getNormalizedToday();
-    const fecha = initialData?.fecha ? 
-      formatDateForAPI(parseAPIDate(initialData.fecha)) : 
-      formatDateForAPI(today);
+    let initialDate;
+
+    if (initialData?.fecha) {
+      // Si hay fecha inicial, normalizarla
+      const parsedInitialDate = parseAPIDate(initialData.fecha);
+      initialDate = parsedInitialDate || today;
+    } else {
+      initialDate = today;
+    }
 
     return {
-      fecha,
+      fecha: initialDate, // Guardar como Date
       useGlobalConfig: true
     };
   });
 
   // Usar debounce para la validación de fechas
-  const debouncedFecha = useDebounce(formData.fecha, 500);
+  const debouncedFecha = useDebounce(formatDateForAPI(formData.fecha), 500);
 
   // Cargar datos de la rutina cuando se reciben como prop
   useEffect(() => {
     if (initialData) {
       setRutinaData(initialData);
+      
+      // Normalizar la fecha del initialData
+      const parsedDate = parseAPIDate(initialData.fecha);
       setFormData(prev => ({ 
         ...prev,
-        fecha: initialData.fecha ? 
-          formatDateForAPI(parseAPIDate(initialData.fecha)) : 
-          formatDateForAPI(getNormalizedToday())
+        fecha: parsedDate || getNormalizedToday()
       }));
       
       // Añadir logs para depurar el valor de completitud
-      console.log('[RutinaForm] Datos recibidos del backend:', {
+      console.debug('[RutinaForm] Datos recibidos del backend:', {
         id: initialData._id,
         fecha: initialData.fecha,
-        fechaNormalizada: formatDateForAPI(parseAPIDate(initialData.fecha)),
+        fechaNormalizada: parsedDate?.toISOString(),
         completitud: initialData.completitud, 
         completitudPorSeccion: initialData.completitudPorSeccion,
         completitudPorcentaje: initialData.completitud ? Math.round(initialData.completitud * 100) : 0
@@ -110,27 +118,21 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
   // Efecto para validar la fecha cuando cambia (con debounce)
   useEffect(() => {
     if (!debouncedFecha) return;
-    
     if (initialData && initialData._id) {
       const fechaOriginal = formatDateForAPI(parseAPIDate(initialData.fecha));
       if (fechaOriginal === debouncedFecha) {
         return;
       }
     }
-    
     const validateDate = async () => {
       try {
         setIsValidating(true);
-        const fechaNormalizada = formatDateForAPI(parseAPIDate(debouncedFecha));
         console.log('[RutinaForm] Validando fecha:', {
-          original: debouncedFecha,
-          normalizada: fechaNormalizada
+          original: debouncedFecha
         });
-        
         const response = await clienteAxios.get('/api/rutinas/verify', {
-          params: { fecha: fechaNormalizada }
+          params: { fecha: debouncedFecha }
         });
-        
         if (response.data.exists) {
           setFechaError(`Ya existe una rutina para esta fecha`);
         } else {
@@ -143,25 +145,14 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
         setIsValidating(false);
       }
     };
-    
     validateDate();
   }, [debouncedFecha, initialData]);
 
   const handleDateChange = (newDate) => {
-    if (!newDate) return;
-    
-    const normalizedDate = parseAPIDate(newDate);
-    const formattedDate = formatDateForAPI(normalizedDate);
-    
-    console.log('[RutinaForm] Cambio de fecha:', {
-      entrada: newDate,
-      normalizada: normalizedDate,
-      formateada: formattedDate
-    });
-    
+    if (!newDate || isNaN(newDate.getTime())) return;
     setFormData(prev => ({
       ...prev,
-      fecha: formattedDate
+      fecha: newDate
     }));
   };
 
@@ -273,7 +264,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
     
     try {
       const rutinaToSubmit = {
-        fecha: formData.fecha,
+        fecha: formData.fecha ? formData.fecha.toISOString() : undefined, // Enviar en formato ISO UTC
         useGlobalConfig: true,
         config: rutinaData.config
       };
@@ -404,7 +395,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
             width: 38,
             height: 38,
           }}>
-            <EventIcon sx={{ fontSize: 24, color: 'primary.main' }} />
+            {/* <EventIcon sx={{ fontSize: 24, color: 'primary.main' }} /> */}
           </Box>
           <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
             {isEditing ? 'Editar Rutina' : 'Nueva Rutina'}
@@ -436,7 +427,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
               
               <EntityDateSelect
                 label="Selecciona una fecha"
-                value={formData.fecha ? new Date(formData.fecha) : new Date()}
+                value={formData.fecha}
                 onChange={handleDateChange}
                 error={!!fechaError}
                 helperText={fechaError}

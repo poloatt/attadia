@@ -137,32 +137,20 @@ export const formatDateLong = (date) => {
 // Función para mostrar la fecha en la UI de navegación
 export const formatFechaDisplay = (fechaStr) => {
   if (!fechaStr) return 'Sin fecha';
-  
   try {
-    const fecha = new Date(fechaStr);
-    if (isNaN(fecha.getTime())) {
-      return 'Fecha inválida';
-    }
-    
-    // Determinar si es hoy, ayer o mostrar la fecha completa
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    
-    const fechaCompare = new Date(fecha);
-    fechaCompare.setHours(0, 0, 0, 0);
-    
-    const diffTime = hoy.getTime() - fechaCompare.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) {
-      return 'Hoy';
-    } else if (diffDays === 1) {
-      return 'Ayer';
-    } else if (diffDays === -1) {
-      return 'Mañana';
-    } else {
-      return format(fecha, "d 'de' MMMM", { locale: es });
-    }
+    // Obtener solo la parte de la fecha en UTC
+    const fechaUTC = new Date(fechaStr).toISOString().split('T')[0];
+    const hoyUTC = new Date().toISOString().split('T')[0];
+
+    // Calcular diferencia de días en UTC
+    const diffDays = (
+      new Date(hoyUTC).getTime() - new Date(fechaUTC).getTime()
+    ) / (1000 * 60 * 60 * 24);
+
+    if (diffDays === 0) return 'Hoy';
+    else if (diffDays === 1) return 'Ayer';
+    else if (diffDays === -1) return 'Mañana';
+    else return format(new Date(fechaStr), "d 'de' MMMM", { locale: es });
   } catch (error) {
     console.error('[iconConfig] Error al formatear fecha para mostrar:', error);
     return 'Fecha inválida';

@@ -473,19 +473,24 @@ class RutinasService {
         console.log(`[rutinasService] Obteniendo historial para ${section}.${itemId}`);
       }
       
-      // Formatear fechas para la API
-      const fechaInicioStr = formatDateForAPI(fechaInicio);
-      const fechaFinStr = formatDateForAPI(fechaFin);
+      // CORRECCIÓN: Usar UTC puro en lugar de formatDateForAPI
+      // Normalizar fechas y crear rangos UTC
+      const inicio = fechaInicio ? new Date(fechaInicio) : new Date();
+      const fin = fechaFin ? new Date(fechaFin) : new Date();
+      
+      // Crear fechas UTC para el rango completo del día
+      const fechaInicioUTC = new Date(Date.UTC(inicio.getFullYear(), inicio.getMonth(), inicio.getDate(), 0, 0, 0, 0));
+      const fechaFinUTC = new Date(Date.UTC(fin.getFullYear(), fin.getMonth(), fin.getDate(), 23, 59, 59, 999));
       
       console.log(`[rutinasService] Rango de fechas para consulta:`, {
-        inicio: fechaInicioStr,
-        fin: fechaFinStr
+        inicio: fechaInicioUTC.toISOString(),
+        fin: fechaFinUTC.toISOString()
       });
       
       // Construir URL con parámetros
       const params = new URLSearchParams({
-        fechaInicio: fechaInicioStr,
-        fechaFin: fechaFinStr
+        fechaInicio: fechaInicioUTC.toISOString(),
+        fechaFin: fechaFinUTC.toISOString()
       });
 
       const response = await clienteAxios.get(`/api/rutinas/historial?${params}`);
@@ -506,10 +511,15 @@ class RutinasService {
       const fechaInicio = new Date(fechaFin);
       fechaInicio.setDate(fechaFin.getDate() - days);
       
+      // CORRECCIÓN: Usar UTC puro en lugar de formatDateForAPI
+      // Crear fechas UTC para el rango completo del día
+      const fechaInicioUTC = new Date(Date.UTC(fechaInicio.getFullYear(), fechaInicio.getMonth(), fechaInicio.getDate(), 0, 0, 0, 0));
+      const fechaFinUTC = new Date(Date.UTC(fechaFin.getFullYear(), fechaFin.getMonth(), fechaFin.getDate(), 23, 59, 59, 999));
+      
       // Formatear fechas para la API
       const params = new URLSearchParams({
-        fechaInicio: formatDateForAPI(fechaInicio),
-        fechaFin: formatDateForAPI(fechaFin),
+        fechaInicio: fechaInicioUTC.toISOString(),
+        fechaFin: fechaFinUTC.toISOString(),
         _t: Date.now() // Evitar caché
       });
       

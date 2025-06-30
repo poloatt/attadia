@@ -11,25 +11,60 @@ import { es } from 'date-fns/locale';
 export const formatDateForAPI = (date) => {
   if (!date) return null;
   
-  // Crear una nueva fecha y ajustar a la zona horaria local
-  const d = new Date(date);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  
-  return `${year}-${month}-${day}`;
+  try {
+    // Asegurar que tenemos un objeto Date
+    const d = date instanceof Date ? date : new Date(date);
+    
+    // Verificar que la fecha es válida
+    if (isNaN(d.getTime())) {
+      console.warn('[dateUtils] Fecha inválida en formatDateForAPI:', date);
+      return null;
+    }
+    
+    // Usar getFullYear, getMonth y getDate para mantener la zona horaria local
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    
+    const formatted = `${year}-${month}-${day}`;
+    console.debug('[dateUtils] formatDateForAPI:', {
+      input: date,
+      inputType: typeof date,
+      result: formatted,
+      originalDate: d.toISOString()
+    });
+    
+    return formatted;
+  } catch (error) {
+    console.error('[dateUtils] Error en formatDateForAPI:', error);
+    return null;
+  }
 };
 
 /**
- * Obtiene la fecha actual normalizada (inicio del día)
+ * Obtiene la fecha actual normalizada (inicio del día en zona horaria local)
  * @returns {Date} Fecha actual normalizada
  */
 export const getNormalizedToday = () => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth();
-  const day = today.getDate();
-  return new Date(year, month, day);
+  try {
+    const now = new Date();
+    const normalized = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      0, 0, 0, 0
+    );
+    
+    console.debug('[dateUtils] getNormalizedToday:', {
+      original: now.toISOString(),
+      normalized: normalized.toISOString()
+    });
+    
+    return normalized;
+  } catch (error) {
+    console.error('[dateUtils] Error en getNormalizedToday:', error);
+    return new Date();
+  }
 };
 
 /**
@@ -41,60 +76,58 @@ export const parseAPIDate = (date) => {
   if (!date) return null;
   
   try {
-    // Si ya es un objeto Date, normalizarlo
+    let year, month, day;
+    
+    // Si ya es un objeto Date, extraer los componentes
     if (date instanceof Date) {
-      return new Date(
-        date.getFullYear(),
-        date.getMonth(),
-        date.getDate(),
-        12, // Usar mediodía para evitar problemas de DST
-        0,
-        0,
-        0
-      );
+      year = date.getFullYear();
+      month = date.getMonth();
+      day = date.getDate();
+    }
+    // Si es string, intentar parsear
+    else {
+      const dateStr = String(date);
+      
+      // Para formato YYYY-MM-DD
+      if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        year = y;
+        month = m - 1; // Ajustar mes (0-11)
+        day = d;
+      }
+      // Para formato ISO
+      else if (dateStr.includes('T')) {
+        const d = new Date(dateStr);
+        year = d.getFullYear();
+        month = d.getMonth();
+        day = d.getDate();
+      }
+      // Último recurso: parseo directo
+      else {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) {
+          console.warn('[dateUtils] Formato de fecha no reconocido:', dateStr);
+          return null;
+        }
+        year = d.getFullYear();
+        month = d.getMonth();
+        day = d.getDate();
+      }
     }
     
-    // Convertir a string si no lo es
-    const dateString = String(date);
+    // Crear nueva fecha a mediodía para evitar problemas con DST
+    const parsed = new Date(year, month, day, 12, 0, 0, 0);
     
-    // Si es una fecha ISO completa
-    if (dateString.includes('T')) {
-      const parsed = parseISO(dateString);
-      return new Date(
-        parsed.getFullYear(),
-        parsed.getMonth(),
-        parsed.getDate(),
-        12,
-        0,
-        0,
-        0
-      );
-    }
+    console.debug('[dateUtils] parseAPIDate:', {
+      input: date,
+      inputType: typeof date,
+      result: parsed.toISOString(),
+      components: { year, month, day }
+    });
     
-    // Si es YYYY-MM-DD
-    if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      const [year, month, day] = dateString.split('-').map(Number);
-      return new Date(year, month - 1, day, 12, 0, 0, 0);
-    }
-    
-    // Intentar parseo directo como último recurso
-    const fallbackDate = new Date(dateString);
-    if (!isNaN(fallbackDate.getTime())) {
-      return new Date(
-        fallbackDate.getFullYear(),
-        fallbackDate.getMonth(),
-        fallbackDate.getDate(),
-        12,
-        0,
-        0,
-        0
-      );
-    }
-    
-    console.warn('[dateUtils] Formato de fecha no reconocido:', dateString);
-    return null;
+    return parsed;
   } catch (error) {
-    console.error('[dateUtils] Error al parsear fecha:', error);
+    console.error('[dateUtils] Error en parseAPIDate:', error);
     return null;
   }
 };

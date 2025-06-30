@@ -85,7 +85,7 @@ export async function obtenerHistorialCompletaciones(section, itemId, fechaRutin
     }
 
     // Obtener historial del servicio
-    const historial = await rutinasService.obtenerHistorialCompletaciones(section, itemId, fechaInicio, fechaFin);
+    const historial = await rutinasService.getHistorialCompletaciones(section, itemId, fechaInicio, fechaFin);
 
     // Procesar el historial
     const completacionesPorDia = {};

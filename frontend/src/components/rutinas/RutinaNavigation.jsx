@@ -189,11 +189,11 @@ const RutinaNavigation = ({
                 onClick={onPrevious}
                 disabled={currentPage <= 1 || loading}
                 sx={{
-                  color: currentPage <= 1 || loading ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.6)',
+                  color: currentPage <= 1 || loading ? 'rgba(0,0,0,0.2) !important' : '#111 !important',
                   padding: '2px',
                   '&:hover': {
                     backgroundColor: 'transparent',
-                    color: 'rgba(255,255,255,0.9)'
+                    color: '#000 !important'
                   }
                 }}
                 data-testid="prev-button"
@@ -209,11 +209,11 @@ const RutinaNavigation = ({
               onClick={goToToday}
               disabled={loading}
               sx={{
-                color: loading ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.6)',
+                color: loading ? 'rgba(0,0,0,0.2) !important' : '#111 !important',
                 padding: '2px',
                 '&:hover': {
                   backgroundColor: 'transparent',
-                  color: 'rgba(255,255,255,0.9)'
+                  color: '#000 !important'
                 }
               }}
             >
@@ -227,11 +227,11 @@ const RutinaNavigation = ({
               onClick={onAdd}
               disabled={loading}
               sx={{
-                color: loading ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.6)',
+                color: loading ? 'rgba(0,0,0,0.2) !important' : '#111 !important',
                 padding: '2px',
                 '&:hover': {
                   backgroundColor: 'transparent',
-                  color: 'rgba(255,255,255,0.9)'
+                  color: '#000 !important'
                 }
               }}
             >
@@ -245,11 +245,11 @@ const RutinaNavigation = ({
               onClick={() => onEdit(rutina)}
               disabled={loading}
               sx={{
-                color: loading ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.6)',
+                color: loading ? 'rgba(0,0,0,0.2) !important' : '#111 !important',
                 padding: '2px',
                 '&:hover': {
                   backgroundColor: 'transparent',
-                  color: 'rgba(255,255,255,0.9)'
+                  color: '#000 !important'
                 }
               }}
             >
@@ -263,11 +263,11 @@ const RutinaNavigation = ({
               onClick={handleDelete}
               disabled={loading}
               sx={{
-                color: loading ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.4)',
+                color: loading ? 'rgba(0,0,0,0.2) !important' : 'rgba(0,0,0,0.7) !important',
                 padding: '2px',
                 '&:hover': {
                   backgroundColor: 'transparent',
-                  color: 'rgba(255,60,60,0.8)'
+                  color: '#000 !important'
                 }
               }}
             >
@@ -282,11 +282,11 @@ const RutinaNavigation = ({
                 onClick={onNext}
                 disabled={currentPage >= totalPages || loading}
                 sx={{
-                  color: currentPage >= totalPages || loading ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.6)',
+                  color: currentPage >= totalPages || loading ? 'rgba(255,255,255,0.2) !important' : 'rgba(255,255,255,0.6) !important',
                   padding: '2px',
                   '&:hover': {
                     backgroundColor: 'transparent',
-                    color: 'rgba(255,255,255,0.9)'
+                    color: 'rgba(255,255,255,0.9) !important'
                   }
                 }}
                 data-testid="next-button"

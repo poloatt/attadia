@@ -406,9 +406,14 @@ class RutinasService {
       const fechaInicio = new Date(fechaFin);
       fechaInicio.setDate(fechaFin.getDate() - days);
       
+      // CORRECCIÓN: Usar UTC puro para consistencia
+      // Crear fechas UTC para el rango completo del día
+      const fechaInicioUTC = new Date(Date.UTC(fechaInicio.getFullYear(), fechaInicio.getMonth(), fechaInicio.getDate(), 0, 0, 0, 0));
+      const fechaFinUTC = new Date(Date.UTC(fechaFin.getFullYear(), fechaFin.getMonth(), fechaFin.getDate(), 23, 59, 59, 999));
+      
       // Formatear fechas para la API (YYYY-MM-DD)
-      const fechaInicioStr = fechaInicio.toISOString().split('T')[0];
-      const fechaFinStr = fechaFin.toISOString().split('T')[0];
+      const fechaInicioStr = fechaInicioUTC.toISOString().split('T')[0];
+      const fechaFinStr = fechaFinUTC.toISOString().split('T')[0];
       
       // Agregar logs detallados
       console.log('[RutinasService] Rango de fechas para historial:');
@@ -509,17 +514,18 @@ class RutinasService {
       
       console.log(`[rutinasService] Rango de fechas para consulta: {inicio: '${inicioStr}', fin: '${finStr}'}`);
       
-      // Convertir a formato ISO para la API
-      const fechaInicioISO = inicio.toISOString();
-      const fechaFinISO = fin.toISOString();
+      // CORRECCIÓN: Usar UTC puro en lugar de zona horaria local
+      // Crear fechas UTC para el rango completo del día
+      const fechaInicioUTC = new Date(Date.UTC(inicio.getFullYear(), inicio.getMonth(), inicio.getDate(), 0, 0, 0, 0));
+      const fechaFinUTC = new Date(Date.UTC(fin.getFullYear(), fin.getMonth(), fin.getDate(), 23, 59, 59, 999));
       
       // Construir URL con parámetros
       let url;
       if (!section || !itemId) {
         // Si no se especifican section e itemId, obtener todas las rutinas en ese rango
-        url = `/api/rutinas?fechaInicio=${fechaInicioISO}&fechaFin=${fechaFinISO}`;
+        url = `/api/rutinas?fechaInicio=${fechaInicioUTC.toISOString()}&fechaFin=${fechaFinUTC.toISOString()}`;
       } else {
-        url = `/api/rutinas/historial-completaciones/${section}/${itemId}?fechaInicio=${fechaInicioISO}&fechaFin=${fechaFinISO}`;
+        url = `/api/rutinas/historial-completaciones/${section}/${itemId}?fechaInicio=${fechaInicioUTC.toISOString()}&fechaFin=${fechaFinUTC.toISOString()}`;
       }
       
       console.log(`[rutinasService] URL de consulta: ${url}`);
