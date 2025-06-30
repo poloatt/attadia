@@ -50,9 +50,9 @@ export function Dashboard() {
   });
   const [selectedPeriod, setSelectedPeriod] = useState(30);
   const { showValues } = useValuesVisibility();
-  const [isAccountsOpen, setIsAccountsOpen] = useState(false);
+  const [isAccountsOpen, setIsAccountsOpen] = useState(true);
   const [accounts, setAccounts] = useState([]);
-  const [isPropertiesDetailOpen, setIsPropertiesDetailOpen] = useState(false);
+  const [isPropertiesDetailOpen, setIsPropertiesDetailOpen] = useState(true);
   const [inquilinos, setInquilinos] = useState([]);
   const [contratos, setContratos] = useState([]);
   const [isDaylistOpen, setIsDaylistOpen] = useState(false);
@@ -590,17 +590,17 @@ export function Dashboard() {
         showDivider={false}
         navigationItems={[
           {
-            icon: <WalletIcon sx={{ fontSize: 21.6 }} />,
+            icon: <WalletIcon sx={{ fontSize: 21.6 }} />, 
             label: 'Transacciones',
             to: '/transacciones'
           },
           {
-            icon: <BuildingIcon sx={{ fontSize: 21.6 }} />,
+            icon: <BuildingIcon sx={{ fontSize: 21.6 }} />, 
             label: 'Propiedades',
             to: '/propiedades'
           },
           {
-            icon: <InventoryIcon sx={{ fontSize: 21.6 }} />,
+            icon: <InventoryIcon sx={{ fontSize: 21.6 }} />, 
             label: 'Inventario',
             to: '/inventario'
           }
@@ -608,18 +608,23 @@ export function Dashboard() {
       />
 
       <Grid container spacing={2}>
-        {/* Assets Section */}
-        <Grid item xs={12}>
-          <Paper sx={{ p: 2 }}>
+        {/* Sección de Propiedades */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 2, height: '100%' }}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
+              Propiedades
+            </Typography>
             <PropertiesSection />
-            <Box sx={{ 
-              mt: 1,
-              pt: 1,
-              borderTop: 1,
-              borderColor: 'divider'
-            }}>
-              <FinanceSection />
-            </Box>
+          </Paper>
+        </Grid>
+
+        {/* Sección de Cuentas */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 2, height: '100%' }}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
+              Cuentas
+            </Typography>
+            <FinanceSection />
           </Paper>
         </Grid>
       </Grid>

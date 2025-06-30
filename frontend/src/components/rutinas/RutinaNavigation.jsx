@@ -175,7 +175,7 @@ const RutinaNavigation = ({
       >
         {/* Lado izquierdo con fecha */}
         <Box sx={{ display: 'flex', alignItems: 'center', minWidth: '80px', justifyContent: 'flex-start' }}>
-          <Typography variant="body2" component="div" sx={{ fontWeight: 500, fontSize: '0.8rem' }}>
+          <Typography variant="body2" component="div" sx={{ fontWeight: 700, fontSize: '0.8rem', color: '#aaa', textShadow: '0 0 2px #000' }}>
             {formatFechaDisplay(rutina.fecha)}
           </Typography>
         </Box>
@@ -189,16 +189,19 @@ const RutinaNavigation = ({
                 onClick={onPrevious}
                 disabled={currentPage <= 1 || loading}
                 sx={{
-                  color: currentPage <= 1 || loading ? 'rgba(0,0,0,0.2) !important' : '#111 !important',
                   padding: '2px',
-                  '&:hover': {
-                    backgroundColor: 'transparent',
-                    color: '#000 !important'
-                  }
                 }}
                 data-testid="prev-button"
               >
-                <NavigateBefore />
+                <NavigateBefore 
+                  sx={{ 
+                    color: '#888 !important',
+                    fontSize: '1.5rem',
+                    textShadow: '0 0 2px #000',
+                    transition: 'color 0.2s',
+                    '&:hover': { color: '#fff !important', textShadow: '0 0 4px #000' }
+                  }} 
+                />
               </IconButton>
             </span>
           </Tooltip>
@@ -209,15 +212,10 @@ const RutinaNavigation = ({
               onClick={goToToday}
               disabled={loading}
               sx={{
-                color: loading ? 'rgba(0,0,0,0.2) !important' : '#111 !important',
                 padding: '2px',
-                '&:hover': {
-                  backgroundColor: 'transparent',
-                  color: '#000 !important'
-                }
               }}
             >
-              <TodayIcon />
+              <TodayIcon sx={{ color: loading ? 'rgba(136,136,136,0.3) !important' : '#888 !important', textShadow: '0 0 2px #000', transition: 'color 0.2s', '&:hover': { color: '#fff !important', textShadow: '0 0 4px #000' } }} />
             </IconButton>
           </Tooltip>
 
@@ -227,15 +225,10 @@ const RutinaNavigation = ({
               onClick={onAdd}
               disabled={loading}
               sx={{
-                color: loading ? 'rgba(0,0,0,0.2) !important' : '#111 !important',
                 padding: '2px',
-                '&:hover': {
-                  backgroundColor: 'transparent',
-                  color: '#000 !important'
-                }
               }}
             >
-              <AddIcon fontSize="small" />
+              <AddIcon fontSize="small" sx={{ color: loading ? 'rgba(136,136,136,0.3) !important' : '#888 !important', textShadow: '0 0 2px #000', transition: 'color 0.2s', '&:hover': { color: '#fff !important', textShadow: '0 0 4px #000' } }} />
             </IconButton>
           </Tooltip>
 
@@ -245,15 +238,10 @@ const RutinaNavigation = ({
               onClick={() => onEdit(rutina)}
               disabled={loading}
               sx={{
-                color: loading ? 'rgba(0,0,0,0.2) !important' : '#111 !important',
                 padding: '2px',
-                '&:hover': {
-                  backgroundColor: 'transparent',
-                  color: '#000 !important'
-                }
               }}
             >
-              <EditIcon fontSize="small" />
+              <EditIcon fontSize="small" sx={{ color: loading ? 'rgba(136,136,136,0.3) !important' : '#888 !important', textShadow: '0 0 2px #000', transition: 'color 0.2s', '&:hover': { color: '#fff !important', textShadow: '0 0 4px #000' } }} />
             </IconButton>
           </Tooltip>
           
@@ -263,15 +251,10 @@ const RutinaNavigation = ({
               onClick={handleDelete}
               disabled={loading}
               sx={{
-                color: loading ? 'rgba(0,0,0,0.2) !important' : 'rgba(0,0,0,0.7) !important',
                 padding: '2px',
-                '&:hover': {
-                  backgroundColor: 'transparent',
-                  color: '#000 !important'
-                }
               }}
             >
-              <DeleteIcon fontSize="small" />
+              <DeleteIcon fontSize="small" sx={{ color: loading ? 'rgba(136,136,136,0.3) !important' : '#888 !important', textShadow: '0 0 2px #000', transition: 'color 0.2s', '&:hover': { color: '#fff !important', textShadow: '0 0 4px #000' } }} />
             </IconButton>
           </Tooltip>
 
@@ -282,16 +265,19 @@ const RutinaNavigation = ({
                 onClick={onNext}
                 disabled={currentPage >= totalPages || loading}
                 sx={{
-                  color: currentPage >= totalPages || loading ? 'rgba(255,255,255,0.2) !important' : 'rgba(255,255,255,0.6) !important',
                   padding: '2px',
-                  '&:hover': {
-                    backgroundColor: 'transparent',
-                    color: 'rgba(255,255,255,0.9) !important'
-                  }
                 }}
                 data-testid="next-button"
               >
-                <NavigateNext />
+                <NavigateNext 
+                  sx={{ 
+                    color: '#888 !important',
+                    fontSize: '1.5rem',
+                    textShadow: '0 0 2px #000',
+                    transition: 'color 0.2s',
+                    '&:hover': { color: '#fff !important', textShadow: '0 0 4px #000' }
+                  }} 
+                />
               </IconButton>
             </span>
           </Tooltip>
