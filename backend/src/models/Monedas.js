@@ -14,7 +14,7 @@ const monedaSchema = createSchema({
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Users',
-    required: true
+    required: false // Permitir monedas globales sin usuario específico
   },
   codigo: {
     type: String,
@@ -41,6 +41,10 @@ const monedaSchema = createSchema({
     type: Boolean,
     default: true
   },
+  esGlobal: {
+    type: Boolean,
+    default: false // Indica si es una moneda global del sistema
+  },
   metadata: {
     type: Map,
     of: mongoose.Schema.Types.Mixed,
@@ -55,7 +59,7 @@ monedaSchema.pre(/^find/, function() {
     const userId = this._conditions.usuario;
     this._conditions.$or = [
       { usuario: userId },
-      { activa: true } // Permitir acceso a monedas activas (globales)
+      { esGlobal: true, activa: true } // Permitir acceso a monedas globales activas
     ];
   }
 });

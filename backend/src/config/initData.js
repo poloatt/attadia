@@ -8,14 +8,16 @@ export const initializeMonedas = async () => {
         nombre: 'Dólar Estadounidense',
         simbolo: '$',
         tasaCambio: 1,
-        activa: true
+        activa: true,
+        esGlobal: true
       },
       {
         codigo: 'EUR',
         nombre: 'Euro',
         simbolo: '€',
         tasaCambio: 0.85,
-        activa: true
+        activa: true,
+        esGlobal: true
       }
     ];
 
