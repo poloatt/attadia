@@ -334,20 +334,22 @@ const ChecklistSection = ({
     // Registrar los últimos cambios en la rutina para mejorar respuesta inmediata
     if (rutina) {
       // Si no existe la propiedad _ultimosCambios, crearla
-      if (!rutina._ultimosCambios) {
+      if (rutina && !rutina._ultimosCambios) {
         rutina._ultimosCambios = {};
       }
       
       // Si no existe la propiedad para esta sección, crearla
-      if (!rutina._ultimosCambios[section]) {
+      if (rutina && !rutina._ultimosCambios[section]) {
         rutina._ultimosCambios[section] = {};
       }
       
       // Registrar el cambio con timestamp para saber cuándo ocurrió
-      rutina._ultimosCambios[section][itemId] = {
-        valor: newValue,
-        timestamp: Date.now()
-      };
+      if (rutina && rutina._ultimosCambios) {
+        rutina._ultimosCambios[section][itemId] = {
+          valor: newValue,
+          timestamp: Date.now()
+        };
+      }
     }
     
     // Eliminar el setTimeout para evitar retrasos y manejar inmediatamente
@@ -713,7 +715,7 @@ const ChecklistSection = ({
         return () => {
           isMounted = false;
         };
-      }, [itemId, section, rutina._id, isCompleted]);
+      }, [itemId, section, rutina?._id, isCompleted]);
       
       // Obtener el icono correcto basado en el ID
       const Icon = sectionIcons[itemId];
