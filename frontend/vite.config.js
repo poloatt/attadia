@@ -90,9 +90,7 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_ENVIRONMENT': JSON.stringify(mode),
       'import.meta.env.MODE': JSON.stringify(mode),
       'import.meta.env.VITE_API_URL': JSON.stringify(
-        isStaging 
-          ? 'https://api.staging.present.attadia.com'
-          : (process.env.VITE_API_URL || 'https://api.present.attadia.com')
+        process.env.VITE_API_URL || 'https://api.admin.attadia.com'
       )
     }
   }
