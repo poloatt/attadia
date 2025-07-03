@@ -25,7 +25,7 @@ Los certificados SSL se manejan en las siguientes ubicaciones:
 
 2. Genera los certificados SSL con Let's Encrypt:
    ```bash
-   sudo certbot certonly --standalone -d present.attadia.com -d api.present.attadia.com
+   sudo certbot certonly --standalone -d present.attadia.com -d admin.attadia.com
    ```
 
 3. Copia los certificados al directorio del proyecto:

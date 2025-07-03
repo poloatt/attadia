@@ -19,7 +19,7 @@ try {
     : 'https://staging.present.attadia.com';
   
   const defaultBackendUrl = process.env.NODE_ENV === 'production'
-    ? 'https://api.present.attadia.com'
+    ? 'https://api.admin.attadia.com'
     : 'https://api.staging.present.attadia.com';
 
   config = {

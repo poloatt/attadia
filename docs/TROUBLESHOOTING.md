@@ -54,7 +54,7 @@ sudo certbot certificates | grep "Domains"
 docker-compose -f docker-compose.prod.yml down
 
 # Generar nuevos certificados
-sudo certbot certonly --standalone -d present.attadia.com -d api.present.attadia.com
+sudo certbot certonly --standalone -d present.attadia.com -d admin.attadia.com
 
 # Copiar nuevos certificados
 sudo cp /etc/letsencrypt/live/present.attadia.com/fullchain.pem /home/poloatt/present/ssl/nginx/ssl/
@@ -118,7 +118,7 @@ docker exec frontend-prod cat /etc/nginx/nginx.conf
 
 4. Prueba la conectividad directamente:
 ```bash
-curl -k https://api.present.attadia.com/health
+curl -k https://admin.attadia.com/health
 ```
 
 ## Problemas con el Webhook
@@ -129,7 +129,7 @@ curl -k https://api.present.attadia.com/health
 
 1. Verifica que la URL del webhook use HTTPS:
    - En GitHub: Settings > Webhooks
-   - La URL debe ser: `https://api.present.attadia.com/webhook`
+   - La URL debe ser: `https://admin.attadia.com/webhook`
 
 2. Verifica el estado del servicio:
 ```bash
@@ -143,7 +143,7 @@ sudo journalctl -u present-webhook.service -f
 
 4. Verifica la conectividad:
 ```bash
-curl -k https://api.present.attadia.com/webhook
+curl -k https://admin.attadia.com/webhook
 ```
 
 ## Problemas de Red
@@ -171,7 +171,7 @@ sudo ufw status
 3. Verifica los DNS:
 ```bash
 dig present.attadia.com
-dig api.present.attadia.com
+dig admin.attadia.com
 ```
 
 4. Prueba la conectividad SSL:

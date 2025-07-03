@@ -17,7 +17,7 @@ sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
     -keyout /etc/nginx/ssl/present-key.pem \
     -out /etc/nginx/ssl/present-cert.pem \
     -subj "/CN=present.attadia.com" \
-    -addext "subjectAltName = DNS:present.attadia.com,DNS:api.present.attadia.com"
+    -addext "subjectAltName = DNS:present.attadia.com,DNS:admin.attadia.com"
 
 # Establecer permisos correctos
 sudo chmod 600 /etc/nginx/ssl/present-key.pem

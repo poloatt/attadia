@@ -51,7 +51,7 @@ else
     MONGODB_CONTAINER="mongodb-prod"
     BACKEND_CONTAINER="backend-prod"
     FRONTEND_CONTAINER="frontend-prod"
-    API_URL="https://api.present.attadia.com"
+    API_URL="https://admin.attadia.com"
     FRONTEND_URL="https://present.attadia.com"
     # Definir variables MongoDB según lo que se usará en producción
     MONGO_USER="admin"

@@ -23,10 +23,10 @@ Este documento describe la configuración necesaria para la autenticación con G
 
 1. **Orígenes autorizados de JavaScript:**
    - `https://present.attadia.com`
-   - `https://api.present.attadia.com`
+   - `https://admin.attadia.com`
 
 2. **URIs de redirección autorizados:**
-   - `https://api.present.attadia.com/api/auth/google/callback`
+   - `https://admin.attadia.com/api/auth/google/callback`
 
 3. **Credenciales:**
    ```env
@@ -56,7 +56,7 @@ Este documento describe la configuración necesaria para la autenticación con G
    ```env
    GOOGLE_CLIENT_ID=21564026422-n684af8adp48dni8tuc2q2pqc8npb1r7.apps.googleusercontent.com
    GOOGLE_CLIENT_SECRET=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
-   GOOGLE_CALLBACK_URL=https://api.present.attadia.com/api/auth/google/callback
+   GOOGLE_CALLBACK_URL=https://admin.attadia.com/api/auth/google/callback
    ```
 
 2. En `frontend/.env.production`:

@@ -43,12 +43,12 @@ const configs = {
     env: 'production',
     mongoUrl: 'mongodb://admin:MiContraseñaSegura123@mongodb:27017/present?authSource=admin',
     frontendUrl: 'https://present.attadia.com',
-    backendUrl: 'https://api.present.attadia.com',
+    backendUrl: 'https://api.admin.attadia.com',
     corsOrigins: ['https://present.attadia.com'],
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackUrl: 'https://api.present.attadia.com/api/auth/google/callback'
+      callbackUrl: 'https://api.admin.attadia.com/api/auth/google/callback'
     }
   }
 };

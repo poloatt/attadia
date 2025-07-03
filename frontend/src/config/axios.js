@@ -23,7 +23,7 @@ const getBaseUrl = () => {
   // Entorno de producción
   if (hostname === 'present.attadia.com' || environment === 'production') {
     console.log('Detectado entorno de producción');
-    return 'https://api.present.attadia.com';
+    return 'https://admin.attadia.com';
   }
   
   // Entorno de desarrollo (fallback)

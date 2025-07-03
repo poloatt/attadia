@@ -1,7 +1,7 @@
 # Redirección de HTTP a HTTPS
 server {
     listen 80;
-    server_name present.attadia.com api.present.attadia.com;
+    server_name present.attadia.com admin.attadia.com;
 
     # Ruta para la validación de Let's Encrypt
     location /.well-known/acme-challenge/ {
@@ -47,7 +47,7 @@ server {
 # Servidor HTTPS para la API
 server {
     listen 443 ssl;
-    server_name api.present.attadia.com;
+    server_name admin.attadia.com;
 
     ssl_certificate /etc/nginx/ssl/present-cert.pem;
     ssl_certificate_key /etc/nginx/ssl/present-key.pem;

@@ -19,7 +19,7 @@ server {
 # Backend
 server {
     listen 80;
-    server_name api.present.attadia.com;
+    server_name admin.attadia.com;
 
     location / {
         proxy_pass http://localhost:5000;

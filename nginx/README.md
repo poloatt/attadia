@@ -81,7 +81,7 @@ Si ves errores de certificado en el navegador:
 1. Para entornos de producción, considera utilizar Let's Encrypt para obtener certificados válidos:
    ```bash
    sudo apt install certbot python3-certbot-nginx
-   sudo certbot --nginx -d present.attadia.com -d api.present.attadia.com
+   sudo certbot --nginx -d present.attadia.com -d admin.attadia.com
    ```
 
 2. Para staging, puedes usar certificados autofirmados, pero deberás aceptar la advertencia en el navegador. 

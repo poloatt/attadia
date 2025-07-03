@@ -44,7 +44,7 @@ docker-compose -f docker-compose.prod.yml down
 
 2. Genera los certificados SSL:
 ```bash
-sudo certbot certonly --standalone -d present.attadia.com -d api.present.attadia.com
+sudo certbot certonly --standalone -d present.attadia.com -d admin.attadia.com
 ```
 
 3. Copia los certificados al directorio del proyecto:
@@ -79,7 +79,7 @@ sudo systemctl restart present-webhook.service
 4. Configura el mismo secreto en GitHub:
    - Ve a tu repositorio en GitHub
    - Ve a Settings > Webhooks > Add webhook
-   - URL: `https://api.present.attadia.com/webhook`
+   - URL: `https://admin.attadia.com/webhook`
    - Content type: `application/json`
    - Secret: El mismo valor que configuraste en el servicio
    - Eventos: Selecciona "Just the push event"
@@ -226,7 +226,7 @@ sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
     -keyout /etc/nginx/ssl/production-key.pem \
     -out /etc/nginx/ssl/production-cert.pem \
     -subj "/CN=present.attadia.com" \
-    -addext "subjectAltName = DNS:present.attadia.com,DNS:api.present.attadia.com"
+    -addext "subjectAltName = DNS:present.attadia.com,DNS:admin.attadia.com"
 ```
 
 Configura los permisos adecuados:
@@ -252,7 +252,7 @@ sudo apt install certbot python3-certbot-nginx
 sudo certbot --nginx -d staging.present.attadia.com -d api.staging.present.attadia.com
 
 # Para producción
-sudo certbot --nginx -d present.attadia.com -d api.present.attadia.com
+sudo certbot --nginx -d present.attadia.com -d admin.attadia.com
 ```
 
 3. Configura la renovación automática:
