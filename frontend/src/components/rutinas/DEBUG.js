@@ -216,7 +216,7 @@ export const debugApiCall = async (url, method = 'GET', data = null) => {
     
     // Detectar base URL
     const baseURL = window.location.origin.includes('localhost') 
-      ? 'http://localhost:5000' 
+              ? 'http://localhost:8080' 
       : window.location.origin;
     
     // Crear cliente axios con timeout largo

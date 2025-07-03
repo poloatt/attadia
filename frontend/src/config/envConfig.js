@@ -3,7 +3,7 @@ export const config = {
   development: {
     authPrefix: '/api/auth',
     apiPrefix: '/api',
-    baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:5000',
+    baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:8080',
     frontendUrl: import.meta.env.VITE_FRONTEND_URL || 'http://localhost:5173'
   },
   staging: {

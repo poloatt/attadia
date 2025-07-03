@@ -208,7 +208,7 @@ export const forceServerUpdate = async (rutinaId, rutina) => {
     // Importar axios si es necesario (asumiendo que está disponible en clienteAxios)
     const axios = await import('axios').then(module => module.default);
     const BASE_URL = window.location.origin.includes('localhost') 
-      ? 'http://localhost:5000' 
+      ? 'http://localhost:8080' 
       : window.location.origin;
     
     const client = axios.create({

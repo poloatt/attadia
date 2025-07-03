@@ -15,15 +15,15 @@ const configs = {
     ...baseConfig,
     env: 'development',
     isDev: true,
-    port: parseInt(process.env.PORT || '5000', 10),
+    port: parseInt(process.env.PORT || '8080', 10),
     mongoUrl: 'mongodb://localhost:27017/present',
     frontendUrl: 'http://localhost:3000',
-    backendUrl: 'http://localhost:5000',
+    backendUrl: 'http://localhost:8080',
     corsOrigins: ['http://localhost:3000'],
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackUrl: 'http://localhost:5000/api/auth/google/callback'
+      callbackUrl: 'http://localhost:8080/api/auth/google/callback'
     }
   },
   staging: {

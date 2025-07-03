@@ -24,7 +24,7 @@ const getBaseUrl = () => {
   
   if (!apiUrl) {
     if (mode === 'development') {
-      return 'http://localhost:5000/api';
+      return 'http://localhost:8080/api';
     } else if (mode === 'staging') {
       return 'https://api.staging.present.attadia.com/api';
     }
