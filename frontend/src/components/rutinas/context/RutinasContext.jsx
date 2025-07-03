@@ -115,11 +115,11 @@ export const RutinasProvider = ({ children }) => {
       });
       
       console.log('[RutinasContext] Rutinas ordenadas por fecha:', 
-        rutinasOrdenadas.map(r => ({id: r._id, fecha: new Date(r.fecha).toISOString().split('T')[0]}))
+        rutinasOrdenadas.filter(r => r && r._id).map(r => ({id: r._id, fecha: new Date(r.fecha).toISOString().split('T')[0]}))
       );
       
       // Aplicar cambios locales a cada rutina antes de actualizar el estado
-      const rutinasConCambiosLocales = rutinasOrdenadas.map(r => applyLocalChanges(r, localChangesRef.current));
+      const rutinasConCambiosLocales = rutinasOrdenadas.filter(r => r && r._id).map(r => applyLocalChanges(r, localChangesRef.current));
       
       // Actualizar el total de páginas según la cantidad de rutinas
       const totalRutinas = rutinasConCambiosLocales.length;

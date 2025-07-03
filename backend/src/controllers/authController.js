@@ -2,6 +2,7 @@ import { Users } from '../models/index.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import config from '../config/config.js';
+import { initializeSampleData } from '../config/initData.js';
 
 const generateTokens = (user) => {
   const now = Math.floor(Date.now() / 1000);
@@ -93,6 +94,10 @@ export const authController = {
         password: hashedPassword,
         role: 'USER'
       });
+
+      // Inicializar datos de ejemplo para el nuevo usuario
+      console.log('Inicializando datos de ejemplo para nuevo usuario:', user._id);
+      await initializeSampleData(user._id);
 
       // Generar tokens
       const { token, refreshToken } = generateTokens(user);

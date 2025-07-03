@@ -4,6 +4,7 @@ import { Strategy as LocalStrategy } from 'passport-local';
 import { Users } from '../models/index.js';
 import bcrypt from 'bcrypt';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import { initializeSampleData } from './initData.js';
 
 // Importar configuración según el entorno
 let config;
@@ -169,6 +170,10 @@ if (config.google.clientId && config.google.clientSecret) {
             activo: true,
             lastLogin: new Date()
           });
+          
+          // Inicializar datos de ejemplo para el nuevo usuario
+          console.log('Inicializando datos de ejemplo para nuevo usuario:', user._id);
+          await initializeSampleData(user._id);
         } else {
           console.log('Actualizando usuario existente en ambiente:', config.env);
           user.lastLogin = new Date();
