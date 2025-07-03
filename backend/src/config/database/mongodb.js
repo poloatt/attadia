@@ -3,8 +3,8 @@ import config from '../config.js';
 
 const connectDB = async (retries = 5) => {
   try {
-    // Usar la variable de entorno MONGO_URL si está definida, si no usar config.mongoUrl
-    const mongoUrl = process.env.MONGO_URL || config.mongoUrl;
+    // Usar MONGO_PUBLIC_URL primero (para Railway), luego MONGO_URL, luego config.mongoUrl
+    const mongoUrl = process.env.MONGO_PUBLIC_URL || process.env.MONGO_URL || config.mongoUrl;
     console.log('Intentando conectar a MongoDB...');
     console.log('URL de conexión:', mongoUrl);
     console.log('Ambiente:', config.env);
@@ -32,7 +32,7 @@ const connectDB = async (retries = 5) => {
   } catch (error) {
     console.error('Error al conectar MongoDB:', error.message);
     console.error('Detalles de la conexión:', {
-      url: process.env.MONGO_URL || config.mongoUrl,
+      url: process.env.MONGO_PUBLIC_URL || process.env.MONGO_URL || config.mongoUrl,
       ambiente: config.env,
       error: error.stack
     });
