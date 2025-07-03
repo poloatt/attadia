@@ -81,10 +81,10 @@ propiedadSchema.virtual('contratos', {
   localField: '_id',
   foreignField: 'propiedad',
   match: { 
-    activo: true,
     $or: [
       { estado: 'ACTIVO' },
-      { estado: 'PLANEADO' }
+      { estado: 'PLANEADO' },
+      { estado: 'MANTENIMIENTO' }
     ]
   },
   options: { sort: { fechaInicio: 1 } }
@@ -178,9 +178,6 @@ propiedadSchema.methods.calcularEstados = async function() {
   // Verificar si hay un contrato de mantenimiento activo
   const mantenimientoActivo = await Contratos.findOne({
     propiedad: this._id,
-    esMantenimiento: true,
-    fechaInicio: { $lte: now },
-    fechaFin: { $gt: now },
     estado: 'MANTENIMIENTO'
   });
 
@@ -191,9 +188,6 @@ propiedadSchema.methods.calcularEstados = async function() {
   // Verificar si hay un contrato de alquiler activo
   const contratoActivo = await Contratos.findOne({
     propiedad: this._id,
-    esMantenimiento: false,
-    fechaInicio: { $lte: now },
-    fechaFin: { $gt: now },
     estado: 'ACTIVO'
   });
 
@@ -204,8 +198,6 @@ propiedadSchema.methods.calcularEstados = async function() {
   // Verificar si hay un contrato futuro
   const contratoFuturo = await Contratos.findOne({
     propiedad: this._id,
-    esMantenimiento: false,
-    fechaInicio: { $gt: now },
     estado: 'PLANEADO'
   });
 
@@ -255,11 +247,8 @@ propiedadSchema.methods.getDiasRestantes = async function() {
   
   const contratoActivo = await mongoose.model('Contratos').findOne({
     propiedad: this._id,
-    fechaInicio: { $lte: now },
-    fechaFin: { $gt: now },
     estado: 'ACTIVO',
-    esMantenimiento: false,
-    activo: true
+    esMantenimiento: false
   });
   
   if (!contratoActivo) return null;

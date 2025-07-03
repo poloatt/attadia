@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Container, 
   Button,
@@ -7,9 +7,11 @@ import {
   Paper,
   Chip,
   Typography,
-  Dialog
+  Dialog,
+  IconButton,
+  Tooltip
 } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+import { Add as AddIcon, Refresh as RefreshIcon, ViewList as ListIcon, GridView as GridIcon } from '@mui/icons-material';
 import { 
   ApartmentOutlined as BuildingIcon,
   BedOutlined as BedIcon,
@@ -30,7 +32,7 @@ import EmptyState from '../components/EmptyState';
 import { EntityActions } from '../components/EntityViews/EntityActions';
 import EntityCards from '../components/EntityViews/EntityCards';
 import ContratosView from '../components/contratos/ContratosView';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export function Contratos() {
   const [contratos, setContratos] = useState([]);
@@ -46,8 +48,11 @@ export function Contratos() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeFilter, setActiveFilter] = useState('activos'); // 'activos', 'finalizados' o 'todos'
+  const [viewMode, setViewMode] = useState('list'); // 'list' o 'grid'
   const { enqueueSnackbar } = useSnackbar();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleBack = () => {
     navigate('/');
@@ -97,6 +102,14 @@ export function Contratos() {
         monedas: monedas.length
       });
 
+      // Debug: Verificar si montoMensual está presente en los contratos
+      console.log('Debug montoMensual en contratos:', contratos.map(c => ({
+        id: c._id,
+        montoMensual: c.montoMensual,
+        tipo: typeof c.montoMensual,
+        esMantenimiento: c.esMantenimiento
+      })));
+
       setContratos(contratos);
       setRelatedData({
         propiedades,
@@ -124,6 +137,61 @@ export function Contratos() {
     const timer = setTimeout(loadData, 500);
     return () => clearTimeout(timer);
   }, [loadData]);
+
+  // Efecto para manejar la navegación desde inquilinos
+  useEffect(() => {
+    if (location.state?.createContract && location.state?.inquilinoData) {
+      const inquilinoData = location.state.inquilinoData;
+      
+      // Esperar a que se carguen los datos relacionados
+      const checkDataAndOpenForm = () => {
+        if (relatedData.propiedades.length > 0 && relatedData.cuentas.length > 0) {
+          // Configurar el contrato con el inquilino pre-seleccionado
+          setEditingContrato({
+            inquilino: [inquilinoData],
+            esMantenimiento: false,
+            tipoContrato: 'ALQUILER'
+          });
+          setIsFormOpen(true);
+          
+          // Limpiar el state de navegación para evitar que se abra nuevamente
+          navigate(location.pathname, { replace: true });
+        } else {
+          // Si los datos no están listos, esperar un poco más
+          setTimeout(checkDataAndOpenForm, 100);
+        }
+      };
+      
+      checkDataAndOpenForm();
+    }
+  }, [location.state, relatedData, navigate, location.pathname]);
+
+  // Efecto para manejar la navegación para editar un contrato específico
+  useEffect(() => {
+    if (location.state?.editContract && location.state?.contratoId) {
+      const contratoId = location.state.contratoId;
+      
+      // Esperar a que se carguen los datos relacionados
+      const checkDataAndOpenForm = () => {
+        if (contratos.length > 0 && relatedData.propiedades.length > 0) {
+          // Buscar el contrato específico
+          const contrato = contratos.find(c => c._id === contratoId);
+          if (contrato) {
+            setEditingContrato(contrato);
+            setIsFormOpen(true);
+          }
+          
+          // Limpiar el state de navegación para evitar que se abra nuevamente
+          navigate(location.pathname, { replace: true });
+        } else {
+          // Si los datos no están listos, esperar un poco más
+          setTimeout(checkDataAndOpenForm, 100);
+        }
+      };
+      
+      checkDataAndOpenForm();
+    }
+  }, [location.state, contratos, relatedData, navigate, location.pathname]);
 
   const handleEdit = useCallback((contrato) => {
     console.log('Editando contrato:', contrato);
@@ -166,8 +234,9 @@ export function Contratos() {
       }
       
       let response;
-      if (editingContrato) {
-        response = await clienteAxios.put(`/api/contratos/${editingContrato._id}`, formData);
+      if (editingContrato && (editingContrato._id || editingContrato.id)) {
+        const contratoId = editingContrato._id || editingContrato.id;
+        response = await clienteAxios.put(`/api/contratos/${contratoId}`, formData);
         enqueueSnackbar('Contrato actualizado exitosamente', { variant: 'success' });
       } else {
         response = await clienteAxios.post('/api/contratos', formData);
@@ -189,6 +258,44 @@ export function Contratos() {
       setIsSaving(false);
     }
   };
+
+  // Función para actualizar estados de contratos
+  const handleActualizarEstados = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await clienteAxios.post('/api/contratos/actualizar-estados');
+      
+      enqueueSnackbar(
+        `Estados actualizados: ${response.data.resultado.actualizados} de ${response.data.resultado.procesados} contratos`,
+        { variant: 'success' }
+      );
+      
+      // Recargar los datos después de la actualización
+      await loadData();
+    } catch (error) {
+      console.error('Error al actualizar estados:', error);
+      enqueueSnackbar('Error al actualizar estados de contratos', { variant: 'error' });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [enqueueSnackbar, loadData]);
+
+  // Filtrar contratos según el filtro activo
+  const contratosFiltrados = useMemo(() => {
+    if (activeFilter === 'activos') {
+      return contratos.filter(contrato => {
+        const estado = contrato.estadoActual || contrato.estado;
+        return ['ACTIVO', 'RESERVADO', 'PLANEADO', 'MANTENIMIENTO'].includes(estado);
+      });
+    } else if (activeFilter === 'finalizados') {
+      return contratos.filter(contrato => {
+        const estado = contrato.estadoActual || contrato.estado;
+        return estado === 'FINALIZADO';
+      });
+    } else {
+      return contratos; // 'todos'
+    }
+  }, [contratos, activeFilter]);
 
   const cardConfig = {
     renderIcon: () => <DescriptionIcon />,
@@ -229,7 +336,7 @@ export function Contratos() {
       color: (() => {
         switch (contrato.estado) {
           case 'ACTIVO': return 'success';
-          case 'FINALIZADO': return 'error';
+          case 'FINALIZADO': return 'default';
           case 'PLANEADO': return 'info';
           case 'MANTENIMIENTO': return 'warning';
           default: return 'default';
@@ -238,14 +345,14 @@ export function Contratos() {
     })
   };
 
+  const handleToggleView = () => {
+    setViewMode((prev) => (prev === 'list' ? 'grid' : 'list'));
+  };
+
   return (
     <Container maxWidth="xl">
       <EntityToolbar
         title="Contratos"
-        onAdd={() => {
-          setEditingContrato(null);
-          setIsFormOpen(true);
-        }}
         onBack={handleBack}
         searchPlaceholder="Buscar contratos..."
         navigationItems={[
@@ -272,18 +379,79 @@ export function Contratos() {
         ]}
       />
 
-      {contratos.length === 0 ? (
+      {/* Filtros de grupos y botones de acción */}
+      <Box sx={{ mt: 2, mb: 2, display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Chip
+            label={`Contratos Activos (${contratos.filter(c => ['ACTIVO', 'RESERVADO', 'PLANEADO', 'MANTENIMIENTO'].includes(c.estadoActual || c.estado)).length})`}
+            onClick={() => setActiveFilter('activos')}
+            color={activeFilter === 'activos' ? 'primary' : 'default'}
+            variant={activeFilter === 'activos' ? 'filled' : 'outlined'}
+            sx={{ 
+              borderRadius: 0,
+              clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)',
+              fontWeight: 500
+            }}
+          />
+          <Chip
+            label={`Contratos Finalizados (${contratos.filter(c => (c.estadoActual || c.estado) === 'FINALIZADO').length})`}
+            onClick={() => setActiveFilter('finalizados')}
+            color={activeFilter === 'finalizados' ? 'primary' : 'default'}
+            variant={activeFilter === 'finalizados' ? 'filled' : 'outlined'}
+            sx={{ 
+              borderRadius: 0,
+              clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)',
+              fontWeight: 500
+            }}
+          />
+          <Chip
+            label={`Todos los Contratos (${contratos.length})`}
+            onClick={() => setActiveFilter('todos')}
+            color={activeFilter === 'todos' ? 'primary' : 'default'}
+            variant={activeFilter === 'todos' ? 'filled' : 'outlined'}
+            sx={{ 
+              borderRadius: 0,
+              clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)',
+              fontWeight: 500
+            }}
+          />
+        </Box>
+        <Tooltip title="Nuevo Contrato">
+          <IconButton 
+            onClick={() => {
+              setEditingContrato(null);
+              setIsFormOpen(true);
+            }}
+            sx={{ 
+              color: 'text.secondary',
+              '&:hover': { color: 'primary.main' },
+              borderRadius: 0,
+              clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)'
+            }}
+          >
+            <AddIcon />
+          </IconButton>
+        </Tooltip>
+      </Box>
+
+      {contratosFiltrados.length === 0 ? (
         <EmptyState
           icon={DescriptionIcon}
-          title="No hay contratos"
-          description="Comienza creando un nuevo contrato"
+          title={`No hay contratos ${activeFilter === 'activos' ? 'activos' : activeFilter === 'finalizados' ? 'finalizados' : ''}`}
+          description={activeFilter === 'activos' ? 
+            "No hay contratos activos, reservados, planeados o en mantenimiento" : 
+            activeFilter === 'finalizados' ? "No hay contratos finalizados" :
+            "No hay contratos registrados"
+          }
         />
       ) : (
         <ContratosView
-          contratos={contratos}
+          contratos={contratosFiltrados}
           relatedData={relatedData}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          viewMode={viewMode}
+          onToggleView={handleToggleView}
         />
       )}
 

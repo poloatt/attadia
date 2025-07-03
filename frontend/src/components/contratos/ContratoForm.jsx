@@ -16,8 +16,6 @@ import {
   LinearProgress,
   Paper,
   Chip,
-  ToggleButtonGroup,
-  ToggleButton,
   useTheme
 } from '@mui/material';
 import { styled, alpha } from '@mui/material/styles';
@@ -108,43 +106,7 @@ const FormSection = styled(Box)(({ theme }) => ({
   marginBottom: theme.spacing(2)
 }));
 
-const StyledToggleButton = styled(ToggleButton)(({ theme, customcolor }) => ({
-  flex: 1,
-  height: 40,
-  borderRadius: 0,
-  border: 'none',
-  backgroundColor: 'transparent',
-  color: theme.palette.text.secondary,
-  transition: 'all 0.2s ease',
-  textTransform: 'none',
-  '&:hover': {
-    backgroundColor: 'transparent',
-    '& .MuiSvgIcon-root': {
-      color: customcolor
-    },
-    '& .MuiTypography-root': {
-      color: customcolor
-    }
-  },
-  '&.Mui-selected': {
-    backgroundColor: 'transparent',
-    '& .MuiSvgIcon-root': {
-      color: customcolor
-    },
-    '& .MuiTypography-root': {
-      color: customcolor
-    }
-  },
-  '& .MuiSvgIcon-root': {
-    fontSize: '1.2rem',
-    marginRight: theme.spacing(1),
-    transition: 'color 0.2s ease'
-  },
-  '& .MuiTypography-root': {
-    fontSize: '0.875rem',
-    transition: 'color 0.2s ease'
-  }
-}));
+
 
 const CategoryChip = styled(Chip)(({ theme, customcolor }) => ({
   borderRadius: 0,
@@ -207,21 +169,25 @@ const ContratoForm = ({
   isSaving = false
 }) => {
   const theme = useTheme();
+  
+  // Asegurar que initialData no sea null
+  const safeInitialData = initialData || {};
+  
   const [formData, setFormData] = useState({
-    inquilino: initialData.inquilino || [],
-    propiedad: initialData.propiedad?._id || initialData.propiedad || '',
-    esPorHabitacion: initialData.esPorHabitacion || false,
-    habitacion: initialData.habitacion?._id || initialData.habitacion || '',
-    fechaInicio: initialData.fechaInicio ? new Date(initialData.fechaInicio) : null,
-    fechaFin: initialData.fechaFin ? new Date(initialData.fechaFin) : null,
-    montoMensual: initialData.montoMensual?.toString() || '0',
-    cuenta: initialData.cuenta?._id || initialData.cuenta || '',
-    deposito: initialData.deposito?.toString() || '0',
-    observaciones: initialData.observaciones || '',
-    documentoUrl: initialData.documentoUrl || '',
-    esMantenimiento: initialData.esMantenimiento || false,
-    estado: initialData.estado || 'PLANEADO',
-    tipoContrato: initialData.tipoContrato || 'ALQUILER'
+    inquilino: safeInitialData.inquilino || [],
+    propiedad: safeInitialData.propiedad?._id || safeInitialData.propiedad || '',
+    esPorHabitacion: safeInitialData.esPorHabitacion || false,
+    habitacion: safeInitialData.habitacion?._id || safeInitialData.habitacion || '',
+    fechaInicio: safeInitialData.fechaInicio ? new Date(safeInitialData.fechaInicio) : null,
+    fechaFin: safeInitialData.fechaFin ? new Date(safeInitialData.fechaFin) : null,
+    montoMensual: safeInitialData.montoMensual?.toString() || '0',
+    cuenta: safeInitialData.cuenta?._id || safeInitialData.cuenta || '',
+    deposito: safeInitialData.deposito?.toString() || '0',
+    observaciones: safeInitialData.observaciones || '',
+    documentoUrl: safeInitialData.documentoUrl || '',
+    esMantenimiento: safeInitialData.esMantenimiento || false,
+    estado: safeInitialData.estado || 'PLANEADO',
+    tipoContrato: safeInitialData.tipoContrato || 'ALQUILER'
   });
 
   const [errors, setErrors] = useState({});
@@ -231,31 +197,31 @@ const ContratoForm = ({
   const [selectedCuenta, setSelectedCuenta] = useState(null);
 
   useEffect(() => {
-    console.log('initialData en ContratoForm:', initialData);
+    console.log('initialData en ContratoForm:', safeInitialData);
     console.log('relatedData en ContratoForm:', {
       propiedades: relatedData.propiedades?.length || 0,
       habitaciones: relatedData.habitaciones?.length || 0,
       inquilinos: relatedData.inquilinos?.length || 0,
       cuentas: relatedData.cuentas?.length || 0
     });
-    console.log('Cuenta en initialData:', initialData.cuenta);
+    console.log('Cuenta en initialData:', safeInitialData.cuenta);
     
-    if (relatedData.propiedades?.length > 0 && initialData.propiedad) {
+    if (relatedData.propiedades?.length > 0 && safeInitialData.propiedad) {
       const propiedad = relatedData.propiedades.find(p => 
-        p._id === (initialData.propiedad?._id || initialData.propiedad)
+        p._id === (safeInitialData.propiedad?._id || safeInitialData.propiedad)
       );
       setSelectedPropiedad(propiedad || null);
     }
 
-    if (relatedData.habitaciones?.length > 0 && initialData.habitacion) {
+    if (relatedData.habitaciones?.length > 0 && safeInitialData.habitacion) {
       const habitacion = relatedData.habitaciones.find(h => 
-        h._id === (initialData.habitacion?._id || initialData.habitacion)
+        h._id === (safeInitialData.habitacion?._id || safeInitialData.habitacion)
       );
       setSelectedHabitacion(habitacion || null);
     }
 
-    if (relatedData.inquilinos?.length > 0 && initialData.inquilino) {
-      const inquilinos = Array.isArray(initialData.inquilino) ? initialData.inquilino : [initialData.inquilino];
+    if (relatedData.inquilinos?.length > 0 && safeInitialData.inquilino) {
+      const inquilinos = Array.isArray(safeInitialData.inquilino) ? safeInitialData.inquilino : [safeInitialData.inquilino];
       const selectedInqs = inquilinos
         .map(inqId => relatedData.inquilinos.find(i => 
           i._id === (typeof inqId === 'object' ? inqId._id : inqId)
@@ -268,17 +234,17 @@ const ContratoForm = ({
       }));
     }
 
-    if (relatedData.cuentas?.length > 0 && initialData.cuenta) {
-      console.log('Buscando cuenta en relatedData:', initialData.cuenta);
+    if (relatedData.cuentas?.length > 0 && safeInitialData.cuenta) {
+      console.log('Buscando cuenta en relatedData:', safeInitialData.cuenta);
       
       // Obtener el ID de la cuenta de manera más robusta
       let cuentaId;
-      if (typeof initialData.cuenta === 'object' && initialData.cuenta?._id) {
-        cuentaId = initialData.cuenta._id;
-      } else if (typeof initialData.cuenta === 'string') {
-        cuentaId = initialData.cuenta;
-      } else if (initialData.cuenta?.id) {
-        cuentaId = initialData.cuenta.id;
+      if (typeof safeInitialData.cuenta === 'object' && safeInitialData.cuenta?._id) {
+        cuentaId = safeInitialData.cuenta._id;
+      } else if (typeof safeInitialData.cuenta === 'string') {
+        cuentaId = safeInitialData.cuenta;
+      } else if (safeInitialData.cuenta?.id) {
+        cuentaId = safeInitialData.cuenta.id;
       }
       
       console.log('ID de cuenta a buscar:', cuentaId);
@@ -303,9 +269,9 @@ const ContratoForm = ({
       } else {
         console.warn('No se encontró la cuenta con ID:', cuentaId);
         // Si no se encuentra la cuenta, intentar buscarla por nombre
-        if (typeof initialData.cuenta === 'object' && initialData.cuenta?.nombre) {
+        if (typeof safeInitialData.cuenta === 'object' && safeInitialData.cuenta?.nombre) {
           const cuentaPorNombre = relatedData.cuentas.find(c => 
-            c.nombre === initialData.cuenta.nombre
+            c.nombre === safeInitialData.cuenta.nombre
           );
           if (cuentaPorNombre) {
             console.log('Cuenta encontrada por nombre:', cuentaPorNombre);
@@ -318,7 +284,7 @@ const ContratoForm = ({
         }
       }
     }
-  }, [initialData, relatedData]);
+  }, [safeInitialData, relatedData]);
 
   const handleChange = (name, value) => {
     setFormData(prev => ({
@@ -335,6 +301,7 @@ const ContratoForm = ({
     setFormData(prev => ({
       ...prev,
       esMantenimiento,
+      tipoContrato: esMantenimiento ? 'MANTENIMIENTO' : 'ALQUILER',
       montoMensual: esMantenimiento ? '0' : prev.montoMensual,
       inquilino: esMantenimiento ? [] : prev.inquilino
     }));
@@ -396,11 +363,11 @@ const ContratoForm = ({
         fechaInicio: formData.fechaInicio?.toISOString(),
         fechaFin: formData.fechaFin?.toISOString(),
         esMantenimiento: Boolean(formData.esMantenimiento),
-        estado: formData.estado || 'PLANEADO',
         observaciones: formData.observaciones || '',
         documentoUrl: formData.documentoUrl || '',
         tipoContrato: formData.tipoContrato
       };
+      delete dataToSubmit.estado;
 
       // Validar fechas antes de enviar
       if (!dataToSubmit.fechaInicio || !dataToSubmit.fechaFin) {
@@ -554,34 +521,7 @@ const ContratoForm = ({
             id="contrato-form"
             sx={{ display: 'flex', flexDirection: 'column' }}
           >
-            {/* Tipo de Contrato */}
-            <FormSection>
-              <StyledSectionTitle>
-                <Description />
-                Tipo de Contrato
-              </StyledSectionTitle>
-              <ToggleButtonGroup
-                value={formData.tipoContrato}
-                exclusive
-                onChange={(e, value) => handleChange('tipoContrato', value)}
-                sx={{ width: '100%', mb: 2 }}
-              >
-                <StyledToggleButton 
-                  value="ALQUILER" 
-                  customcolor="#4caf50"
-                >
-                  <Home />
-                  <Typography>Alquiler</Typography>
-                </StyledToggleButton>
-                <StyledToggleButton 
-                  value="MANTENIMIENTO" 
-                  customcolor="#ff9800"
-                >
-                  <Engineering />
-                  <Typography>Mantenimiento</Typography>
-                </StyledToggleButton>
-              </ToggleButtonGroup>
-            </FormSection>
+
 
             <ContratoMantenimientoSection
               formData={formData}

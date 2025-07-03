@@ -485,8 +485,8 @@ const EntityToolbar = ({
                 </Tooltip>
               ))}
 
-              {/* Botón de agregar si está habilitado */}
-              {showAddButton && (
+              {/* Botón de agregar si está habilitado y no estamos en contratos */}
+              {showAddButton && currentPath !== 'contratos' && (
                 <Tooltip title={`Agregar ${entityConfig.name || ''}`}>
                   <IconButton
                     onClick={handleAdd}

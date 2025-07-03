@@ -6,8 +6,7 @@ import {
   Chip,
   Avatar,
   IconButton,
-  Tooltip,
-  Collapse
+  Tooltip
 } from '@mui/material';
 import {
   Email as EmailIcon,
@@ -16,17 +15,21 @@ import {
   Home as HomeIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  ExpandMore as ExpandMoreIcon,
+  Add as AddIcon,
+  OpenInNew as OpenIcon,
+  CalendarToday as CalendarIcon,
   Description as ContractIcon
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 
 const InquilinoCard = ({ 
   inquilino, 
   onEdit, 
   onDelete,
+  onCreateContract,
   showActions = true
 }) => {
-  const [expanded, setExpanded] = React.useState(false);
+  const navigate = useNavigate();
   const {
     _id,
     nombre,
@@ -42,8 +45,9 @@ const InquilinoCard = ({
     const statusColors = {
       'ACTIVO': 'success',
       'RESERVADO': 'warning',
-      'INACTIVO': 'error',
-      'PENDIENTE': 'info'
+      'INACTIVO': 'default',
+      'PENDIENTE': 'info',
+      'SIN_CONTRATO': 'info'
     };
     return statusColors[status] || 'default';
   };
@@ -62,6 +66,24 @@ const InquilinoCard = ({
     return `${nombre?.[0] || ''}${apellido?.[0] || ''}`.toUpperCase();
   };
 
+  // Función para formatear la duración del contrato
+  const formatContratoDuration = (fechaInicio, fechaFin) => {
+    const inicio = new Date(fechaInicio);
+    const fin = new Date(fechaFin);
+    const diffTime = Math.abs(fin - inicio);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffMonths = Math.floor(diffDays / 30);
+    const diffYears = Math.floor(diffMonths / 12);
+    
+    if (diffYears > 0) {
+      return `${diffYears} año${diffYears > 1 ? 's' : ''}`;
+    } else if (diffMonths > 0) {
+      return `${diffMonths} mes${diffMonths > 1 ? 'es' : ''}`;
+    } else {
+      return `${diffDays} día${diffDays > 1 ? 's' : ''}`;
+    }
+  };
+
   // Obtener el contrato activo o más reciente
   const getContratoActual = () => {
     if (contratosClasificados.activos?.length > 0) {
@@ -74,6 +96,16 @@ const InquilinoCard = ({
       return contratosClasificados.vencidos[0];
     }
     return null;
+  };
+
+  // Función para navegar al contrato
+  const handleContratoClick = (contrato) => {
+    navigate('/contratos', { 
+      state: { 
+        editContract: true, 
+        contratoId: contrato._id 
+      } 
+    });
   };
 
   const contratoActual = getContratoActual();
@@ -90,6 +122,9 @@ const InquilinoCard = ({
         transition: 'all 0.2s ease',
         position: 'relative',
         borderRadius: 0,
+        // Línea superior sutil verde para inquilinos activos
+        borderTop: estado === 'ACTIVO' ? '3px solid' : '1px solid',
+        borderTopColor: estado === 'ACTIVO' ? 'success.main' : 'divider',
         '&:hover': {
           borderColor: 'primary.main',
           transform: 'translateY(-2px)',
@@ -97,23 +132,67 @@ const InquilinoCard = ({
         }
       }}
     >
-      {/* Estado */}
-      <Chip
-        label={getStatusLabel(estado)}
-        color={getStatusColor(estado)}
-        size="small"
-        sx={{
+      {/* Action Items en la esquina superior derecha */}
+      {showActions && (
+        <Box sx={{
           position: 'absolute',
           top: 8,
           right: 8,
-          borderRadius: 0,
-          height: 20,
-          fontSize: '0.65rem'
-        }}
-      />
+          display: 'flex',
+          gap: 0.25
+        }}>
+          <Tooltip title="Editar">
+            <IconButton 
+              size="small" 
+              onClick={() => onEdit(inquilino)}
+              sx={{ 
+                color: 'text.secondary',
+                padding: 0.25,
+                '&:hover': { color: 'primary.main' }
+              }}
+            >
+              <EditIcon sx={{ fontSize: '1rem' }} />
+            </IconButton>
+          </Tooltip>
+          
+          {/* Botón de crear contrato - visible para todos */}
+          {onCreateContract && (
+            <Tooltip title="Crear contrato para este inquilino">
+              <IconButton 
+                size="small" 
+                onClick={() => onCreateContract(inquilino)}
+                sx={{ 
+                  color: 'success.main',
+                  padding: 0.25,
+                  '&:hover': { 
+                    backgroundColor: 'success.light',
+                    color: 'success.dark'
+                  }
+                }}
+              >
+                <AddIcon sx={{ fontSize: '1rem' }} />
+              </IconButton>
+            </Tooltip>
+          )}
+          
+          <Tooltip title="Eliminar">
+            <IconButton 
+              size="small" 
+              onClick={() => onDelete(inquilino)}
+              sx={{ 
+                color: 'error.light',
+                padding: 0.25,
+                '&:hover': { color: 'error.main' }
+              }}
+            >
+              <DeleteIcon sx={{ fontSize: '1rem' }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      )}
 
       {/* Contenido Principal */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+      <Box sx={{ display: 'flex', gap: 2, mb: 2, pr: showActions ? 6 : 0 }}>
         <Avatar 
           sx={{ 
             width: 48, 
@@ -156,111 +235,39 @@ const InquilinoCard = ({
                 </Typography>
               </Box>
             )}
-            {contratoActual && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <HomeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                <Typography variant="body2" color="text.secondary">
-                  {contratoActual.propiedad.nombre}
-                  <span style={{ marginLeft: '8px', fontSize: '0.8em', opacity: 0.8 }}>
-                    ({new Date(contratoActual.fechaInicio).toLocaleDateString()} - {new Date(contratoActual.fechaFin).toLocaleDateString()})
-                  </span>
-                </Typography>
-              </Box>
+            {/* Solo mostrar propiedad y duración si hay contrato actual y fechas válidas */}
+            {contratoActual && contratoActual.propiedad && contratoActual.fechaInicio && contratoActual.fechaFin && (
+              <>
+                <Box 
+                  onClick={() => handleContratoClick(contratoActual)}
+                  sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 1,
+                    cursor: 'pointer',
+                    '&:hover': { color: 'primary.main' }
+                  }}
+                >
+                  <ContractIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {contratoActual.propiedad?.titulo || contratoActual.propiedad?.nombre || 'Propiedad'}
+                  </Typography>
+                  <OpenIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {new Date(contratoActual.fechaInicio).toLocaleDateString()} - {new Date(contratoActual.fechaFin).toLocaleDateString()}
+                    {' • '}{formatContratoDuration(contratoActual.fechaInicio, contratoActual.fechaFin)}
+                  </Typography>
+                </Box>
+              </>
             )}
           </Box>
         </Box>
       </Box>
 
-      {/* Historial de Contratos */}
-      {(contratosClasificados.activos?.length > 0 || 
-        contratosClasificados.futuros?.length > 0 || 
-        contratosClasificados.vencidos?.length > 0) && (
-        <>
-          <Box
-            onClick={() => setExpanded(!expanded)}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              cursor: 'pointer',
-              userSelect: 'none',
-              color: 'text.secondary',
-              '&:hover': { color: 'primary.main' }
-            }}
-          >
-            <ContractIcon sx={{ fontSize: 16 }} />
-            <Typography variant="body2">
-              Historial de Contratos
-            </Typography>
-            <IconButton
-              size="small"
-              sx={{
-                p: 0.5,
-                ml: 'auto',
-                transform: expanded ? 'rotate(-180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.2s'
-              }}
-            >
-              <ExpandMoreIcon sx={{ fontSize: 16 }} />
-            </IconButton>
-          </Box>
 
-          <Collapse in={expanded}>
-            <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {contratosClasificados.activos?.map(contrato => (
-                <Typography key={contrato._id} variant="body2" color="success.main" sx={{ fontSize: '0.75rem' }}>
-                  {contrato.propiedad.nombre} (Activo)
-                </Typography>
-              ))}
-              {contratosClasificados.futuros?.map(contrato => (
-                <Typography key={contrato._id} variant="body2" color="warning.main" sx={{ fontSize: '0.75rem' }}>
-                  {contrato.propiedad.nombre} (Reservado)
-                </Typography>
-              ))}
-              {contratosClasificados.vencidos?.map(contrato => (
-                <Typography key={contrato._id} variant="body2" color="text.disabled" sx={{ fontSize: '0.75rem' }}>
-                  {contrato.propiedad.nombre} (Vencido)
-                </Typography>
-              ))}
-            </Box>
-          </Collapse>
-        </>
-      )}
-
-      {/* Acciones */}
-      {showActions && (
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'flex-end',
-          gap: 1,
-          mt: 2
-        }}>
-          <Tooltip title="Editar">
-            <IconButton 
-              size="small" 
-              onClick={() => onEdit(inquilino)}
-              sx={{ 
-                color: 'text.secondary',
-                '&:hover': { color: 'primary.main' }
-              }}
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Eliminar">
-            <IconButton 
-              size="small" 
-              onClick={() => onDelete(inquilino)}
-              sx={{ 
-                color: 'error.light',
-                '&:hover': { color: 'error.main' }
-              }}
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      )}
     </Paper>
   );
 };

@@ -31,7 +31,7 @@ export const useCustomSnackbar = () => {
         boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)'
       },
       anchorOrigin: { 
-        vertical: 'top', 
+        vertical: 'bottom', 
         horizontal: 'center' 
       },
       autoHideDuration: 4000

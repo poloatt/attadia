@@ -78,11 +78,6 @@ const contratoSchema = createSchema({
   fechaFin: {
     type: Date
   },
-  estado: {
-    type: String,
-    enum: ['ACTIVO', 'FINALIZADO', 'PLANEADO', 'MANTENIMIENTO'],
-    default: 'PLANEADO'
-  },
   esMantenimiento: {
     type: Boolean,
     default: false
@@ -91,6 +86,11 @@ const contratoSchema = createSchema({
     type: String,
     enum: ['ALQUILER', 'MANTENIMIENTO'],
     default: 'ALQUILER'
+  },
+  estado: {
+    type: String,
+    enum: ['ACTIVO', 'PLANEADO', 'FINALIZADO', 'MANTENIMIENTO'],
+    default: 'PLANEADO'
   },
   montoMensual: {
     type: Number,
@@ -113,36 +113,51 @@ const contratoSchema = createSchema({
 contratoSchema.pre('save', async function(next) {
   try {
     const now = new Date();
-    
     // Validar fechas
     if (this.fechaFin && this.fechaInicio > this.fechaFin) {
       throw new Error('La fecha de fin debe ser posterior a la fecha de inicio');
     }
-
+    
+    // Calcular el estado basado en fechas
+    const inicio = new Date(this.fechaInicio);
+    const fin = new Date(this.fechaFin);
+    inicio.setHours(0,0,0,0);
+    fin.setHours(0,0,0,0);
+    now.setHours(0,0,0,0);
+    
     // Si es un contrato de mantenimiento
     if (this.esMantenimiento || this.tipoContrato === 'MANTENIMIENTO') {
-      this.estado = 'MANTENIMIENTO';
       this.montoMensual = 0;
       this.inquilino = [];
       this.esMantenimiento = true;
       this.tipoContrato = 'MANTENIMIENTO';
-
-      // Actualizar estado de la propiedad a MANTENIMIENTO
-      const Propiedades = mongoose.model('Propiedades');
-      const propiedad = await Propiedades.findById(this.propiedad);
-      if (propiedad) {
-        propiedad.estado = ['MANTENIMIENTO'];
-        await propiedad.save();
+      
+      // Determinar estado del contrato de mantenimiento
+      if (inicio <= now && fin > now) {
+        this.estado = 'MANTENIMIENTO';
+      } else if (inicio > now) {
+        this.estado = 'PLANEADO';
+      } else {
+        this.estado = 'FINALIZADO';
       }
       
+      // Actualizar estado de la propiedad a MANTENIMIENTO si está activo
+      if (this.estado === 'MANTENIMIENTO') {
+        const Propiedades = mongoose.model('Propiedades');
+        const propiedad = await Propiedades.findById(this.propiedad);
+        if (propiedad) {
+          propiedad.estado = ['MANTENIMIENTO'];
+          await propiedad.save();
+        }
+      }
       next();
       return;
     }
-
+    
     // Para contratos de alquiler
     this.tipoContrato = 'ALQUILER';
     this.esMantenimiento = false;
-
+    
     // Validar que los inquilinos existan y estén asignados a la propiedad
     const Inquilinos = mongoose.model('Inquilinos');
     for (const inquilinoId of this.inquilino) {
@@ -151,9 +166,9 @@ contratoSchema.pre('save', async function(next) {
         throw new Error(`El inquilino ${inquilinoId} no existe`);
       }
     }
-
-    // Calcular estado basado en fechas
-    if (this.fechaInicio <= now && this.fechaFin > now) {
+    
+    // Determinar estado del contrato de alquiler
+    if (inicio <= now && fin > now) {
       this.estado = 'ACTIVO';
       // Actualizar estado de inquilinos a ACTIVO
       for (const inquilinoId of this.inquilino) {
@@ -170,7 +185,7 @@ contratoSchema.pre('save', async function(next) {
         propiedad.estado = ['OCUPADA'];
         await propiedad.save();
       }
-    } else if (this.fechaInicio > now) {
+    } else if (inicio > now) {
       this.estado = 'PLANEADO';
       // Actualizar estado de inquilinos a RESERVADO
       for (const inquilinoId of this.inquilino) {
@@ -187,7 +202,7 @@ contratoSchema.pre('save', async function(next) {
         propiedad.estado = ['RESERVADA'];
         await propiedad.save();
       }
-    } else if (this.fechaFin <= now) {
+    } else if (fin <= now) {
       this.estado = 'FINALIZADO';
       // Actualizar estado de inquilinos a INACTIVO
       for (const inquilinoId of this.inquilino) {
@@ -205,59 +220,6 @@ contratoSchema.pre('save', async function(next) {
         await propiedad.save();
       }
     }
-
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Middleware para actualizar estados al finalizar un contrato
-contratoSchema.pre('updateOne', async function(next) {
-  try {
-    const update = this.getUpdate();
-    const contrato = await this.model.findOne(this.getQuery());
-    if (!contrato) return next();
-
-    const now = new Date();
-
-    // Para contratos regulares
-    if (update.estado === 'FINALIZADO') {
-      // Actualizar estados de inquilinos a INACTIVO
-      for (const inquilinoId of contrato.inquilino) {
-        const inquilino = await mongoose.model('Inquilinos').findById(inquilinoId);
-        if (inquilino) {
-          inquilino.estado = 'INACTIVO';
-          await inquilino.save();
-        }
-      }
-
-      // Actualizar estado de la propiedad a DISPONIBLE
-      const propiedad = await mongoose.model('Propiedades').findById(contrato.propiedad);
-      if (propiedad) {
-        propiedad.estado = ['DISPONIBLE'];
-        await propiedad.save();
-      }
-    } else if (update.estado === 'ACTIVO') {
-      // Si el contrato se activa
-      if (contrato.fechaInicio <= now && contrato.fechaFin > now) {
-        // Actualizar estados de inquilinos a ACTIVO
-        for (const inquilinoId of contrato.inquilino) {
-          const inquilino = await mongoose.model('Inquilinos').findById(inquilinoId);
-          if (inquilino) {
-            inquilino.estado = 'ACTIVO';
-            await inquilino.save();
-          }
-        }
-
-        // Actualizar estado de la propiedad a OCUPADA
-        const propiedad = await mongoose.model('Propiedades').findById(contrato.propiedad);
-        if (propiedad) {
-          propiedad.estado = ['OCUPADA'];
-          await propiedad.save();
-        }
-      }
-    }
     next();
   } catch (error) {
     next(error);
@@ -266,7 +228,7 @@ contratoSchema.pre('updateOne', async function(next) {
 
 // Middleware para generar transacciones automáticamente
 contratoSchema.pre('save', async function(next) {
-  if ((this.isNew || this.isModified('transaccionesRecurrentes')) && this.estado === 'ACTIVO') {
+  if ((this.isNew || this.isModified('transaccionesRecurrentes')) && this.estadoActual === 'ACTIVO') {
     try {
       const Transacciones = mongoose.model('Transacciones');
       const fechaActual = new Date();
@@ -339,22 +301,244 @@ contratoSchema.statics.getContratosPropiedad = async function(propiedadId) {
       {
         fechaInicio: { $lte: now },
         fechaFin: { $gt: now },
-        estado: 'ACTIVO'
+        estadoActual: 'ACTIVO'
       },
       // Contratos planeados (futuros)
       {
         fechaInicio: { $gt: now },
-        estado: 'PLANEADO'
+        estadoActual: 'PLANEADO'
       },
       // Contratos de mantenimiento activos
       {
         fechaInicio: { $lte: now },
         fechaFin: { $gt: now },
         esMantenimiento: true,
-        estado: 'MANTENIMIENTO'
+        estadoActual: 'MANTENIMIENTO'
       }
     ]
   }).sort({ fechaInicio: 1 });
+};
+
+// Relación virtual para obtener inquilinos con información completa
+contratoSchema.virtual('inquilinosCompletos', {
+  ref: 'Inquilinos',
+  localField: 'inquilino',
+  foreignField: '_id',
+  justOne: false
+});
+
+// Relación virtual para obtener transacciones del contrato
+contratoSchema.virtual('transacciones', {
+  ref: 'Transacciones',
+  localField: '_id',
+  foreignField: 'contrato',
+  justOne: false
+});
+
+// Virtual para calcular el estado actual basado en fechas
+contratoSchema.virtual('estadoActual').get(function() {
+  // Normalizar fechas a medianoche
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const inicio = new Date(this.fechaInicio);
+  inicio.setHours(0, 0, 0, 0);
+  const fin = new Date(this.fechaFin);
+  fin.setHours(0, 0, 0, 0);
+
+  // LOG de depuración
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[estadoActual] Contrato:', this._id?.toString());
+    console.log('  fechaInicio:', inicio.toISOString());
+    console.log('  fechaFin:', fin.toISOString());
+    console.log('  now:', now.toISOString());
+    console.log('  esMantenimiento:', this.esMantenimiento, 'tipoContrato:', this.tipoContrato);
+    console.log('  Comparaciones:', {
+      inicioMenorIgualNow: inicio <= now,
+      finMayorNow: fin > now,
+      finMenorIgualNow: fin <= now
+    });
+  }
+
+  if (this.esMantenimiento || this.tipoContrato === 'MANTENIMIENTO') {
+    if (inicio <= now && fin > now) {
+      return 'MANTENIMIENTO';
+    } else if (inicio > now) {
+      return 'PLANEADO';
+    } else {
+      return 'FINALIZADO';
+    }
+  }
+  if (inicio <= now && fin > now) {
+    return 'ACTIVO';
+  } else if (inicio > now) {
+    return 'PLANEADO';
+  } else {
+    return 'FINALIZADO';
+  }
+});
+
+// Virtual para verificar si el contrato está activo actualmente
+contratoSchema.virtual('estaActivo').get(function() {
+  const now = new Date();
+  return this.fechaInicio <= now && this.fechaFin > now;
+});
+
+// Virtual para verificar si el contrato está planeado (futuro)
+contratoSchema.virtual('estaPlaneado').get(function() {
+  const now = new Date();
+  return this.fechaInicio > now;
+});
+
+// Virtual para verificar si el contrato está finalizado
+contratoSchema.virtual('estaFinalizado').get(function() {
+  const now = new Date();
+  return this.fechaFin <= now;
+});
+
+// Método para obtener información completa del contrato
+contratoSchema.methods.getFullInfo = async function() {
+  await this.populate([
+    'propiedad',
+    'inquilino',
+    'habitacion',
+    'cuenta',
+    'moneda',
+    'transacciones'
+  ]);
+  
+  return this.toObject();
+};
+
+// Método estático para actualizar estados de todos los contratos
+contratoSchema.statics.actualizarEstados = async function() {
+  try {
+    console.log('Iniciando actualización de estados de contratos...');
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
+    // Obtener todos los contratos que no están explícitamente inactivos
+    const contratos = await this.find({ 
+      $or: [
+        { activo: true },
+        { activo: { $exists: false } },
+        { activo: null },
+        { activo: undefined }
+      ]
+    }).populate(['propiedad', 'inquilino']);
+    console.log(`Procesando ${contratos.length} contratos...`);
+    
+    let actualizados = 0;
+    
+    for (const contrato of contratos) {
+      try {
+        // Calcular el estado actual basado en fechas
+        const inicio = new Date(contrato.fechaInicio);
+        const fin = new Date(contrato.fechaFin);
+        inicio.setHours(0, 0, 0, 0);
+        fin.setHours(0, 0, 0, 0);
+        
+        let nuevoEstado;
+        if (contrato.esMantenimiento || contrato.tipoContrato === 'MANTENIMIENTO') {
+          if (inicio <= now && fin > now) {
+            nuevoEstado = 'MANTENIMIENTO';
+          } else if (inicio > now) {
+            nuevoEstado = 'PLANEADO';
+          } else {
+            nuevoEstado = 'FINALIZADO';
+          }
+        } else {
+          if (inicio <= now && fin > now) {
+            nuevoEstado = 'ACTIVO';
+          } else if (inicio > now) {
+            nuevoEstado = 'PLANEADO';
+          } else {
+            nuevoEstado = 'FINALIZADO';
+          }
+        }
+        
+        // Solo actualizar si el estado cambió
+        if (contrato.estado !== nuevoEstado) {
+          console.log(`Actualizando contrato ${contrato._id}: ${contrato.estado} -> ${nuevoEstado}`);
+          
+          // Actualizar estado del contrato usando findByIdAndUpdate para evitar validaciones
+          await this.findByIdAndUpdate(contrato._id, { estado: nuevoEstado }, { new: true });
+          
+          // Actualizar estado de inquilinos
+          if (contrato.inquilino && contrato.inquilino.length > 0) {
+            for (const inquilinoId of contrato.inquilino) {
+              const Inquilinos = mongoose.model('Inquilinos');
+              const inquilino = await Inquilinos.findById(inquilinoId);
+              if (inquilino) {
+                let estadoInquilino;
+                if (nuevoEstado === 'ACTIVO') {
+                  estadoInquilino = 'ACTIVO';
+                } else if (nuevoEstado === 'PLANEADO') {
+                  estadoInquilino = 'RESERVADO';
+                } else {
+                  estadoInquilino = 'INACTIVO';
+                }
+                
+                if (inquilino.estado !== estadoInquilino) {
+                  inquilino.estado = estadoInquilino;
+                  await inquilino.save();
+                }
+              }
+            }
+          }
+          
+          // Actualizar estado de la propiedad
+          if (contrato.propiedad) {
+            const Propiedades = mongoose.model('Propiedades');
+            const propiedad = await Propiedades.findById(contrato.propiedad._id);
+            if (propiedad) {
+              let estadoPropiedad;
+              if (nuevoEstado === 'ACTIVO') {
+                estadoPropiedad = contrato.esMantenimiento ? ['MANTENIMIENTO'] : ['OCUPADA'];
+              } else if (nuevoEstado === 'PLANEADO') {
+                estadoPropiedad = ['RESERVADA'];
+              } else if (nuevoEstado === 'MANTENIMIENTO') {
+                estadoPropiedad = ['MANTENIMIENTO'];
+              } else {
+                // Verificar si hay otros contratos activos para esta propiedad
+                const otrosContratosActivos = await this.countDocuments({
+                  propiedad: propiedad._id,
+                  _id: { $ne: contrato._id },
+                  $or: [
+                    { estado: 'ACTIVO' },
+                    { estado: 'MANTENIMIENTO' },
+                    { estado: 'PLANEADO' }
+                  ]
+                });
+                
+                if (otrosContratosActivos === 0) {
+                  estadoPropiedad = ['DISPONIBLE'];
+                } else {
+                  // Mantener el estado actual si hay otros contratos
+                  estadoPropiedad = propiedad.estado;
+                }
+              }
+              
+              if (JSON.stringify(propiedad.estado) !== JSON.stringify(estadoPropiedad)) {
+                propiedad.estado = estadoPropiedad;
+                await propiedad.save();
+              }
+            }
+          }
+          
+          actualizados++;
+        }
+      } catch (error) {
+        console.error(`Error actualizando contrato ${contrato._id}:`, error);
+      }
+    }
+    
+    console.log(`Actualización completada. ${actualizados} contratos actualizados.`);
+    return { procesados: contratos.length, actualizados };
+    
+  } catch (error) {
+    console.error('Error en actualización de estados:', error);
+    throw error;
+  }
 };
 
 export const Contratos = mongoose.model('Contratos', contratoSchema); 

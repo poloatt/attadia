@@ -4,7 +4,13 @@ import { Cuentas } from '../models/index.js';
 class CuentasController extends BaseController {
   constructor() {
     super(Cuentas, {
-      searchFields: ['nombre', 'numero']
+      searchFields: ['nombre', 'numero'],
+      populate: [
+        {
+          path: 'moneda',
+          select: 'nombre simbolo codigo'
+        }
+      ]
     });
 
     // Bind de los métodos al contexto de la instancia

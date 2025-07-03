@@ -3,6 +3,7 @@ export class BaseController {
     this.Model = Model;
     this.options = {
       searchFields: ['nombre', 'descripcion'],
+      populate: [], // Array de configuraciones de populate
       ...options
     };
 
@@ -59,6 +60,11 @@ export class BaseController {
         select
       };
 
+      // Agregar populate si está configurado
+      if (this.options.populate && this.options.populate.length > 0) {
+        options.populate = this.options.populate;
+      }
+
       return this.Model.paginate(query, options)
         .then(result => res.json(result))
         .catch(error => {
@@ -78,7 +84,16 @@ export class BaseController {
       const { filter } = req.query;
       const query = filter ? JSON.parse(filter) : { activo: true };
       
-      return this.Model.find(query)
+      let queryExec = this.Model.find(query);
+      
+      // Agregar populate si está configurado
+      if (this.options.populate && this.options.populate.length > 0) {
+        this.options.populate.forEach(pop => {
+          queryExec = queryExec.populate(pop);
+        });
+      }
+      
+      return queryExec
         .then(items => {
           const options = items.map(item => item.toSelectOption());
           res.json(options);
@@ -96,7 +111,16 @@ export class BaseController {
   // GET /api/resource/:id
   getById(req, res) {
     console.log('BaseController.getById called');
-    return this.Model.findById(req.params.id)
+    let queryExec = this.Model.findById(req.params.id);
+    
+    // Agregar populate si está configurado
+    if (this.options.populate && this.options.populate.length > 0) {
+      this.options.populate.forEach(pop => {
+        queryExec = queryExec.populate(pop);
+      });
+    }
+    
+    return queryExec
       .then(item => {
         if (!item) {
           return res.status(404).json({ message: 'Recurso no encontrado' });

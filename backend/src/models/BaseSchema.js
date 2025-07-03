@@ -10,6 +10,15 @@ const baseOptions = {
       ret.value = ret._id; // Para compatibilidad con los selectores del frontend
       ret.label = doc.getLabel?.() || ret.nombre || ret.titulo || ret._id; // Método flexible para etiquetas
       ret.displayValue = doc.getDisplayValue?.() || ret.codigo || ret.nombre || ret.titulo; // Valor para mostrar
+      
+      // Para contratos, incluir el estado actual calculado
+      if (ret.fechaInicio && ret.fechaFin) {
+        ret.estadoActual = doc.estadoActual;
+        ret.estaActivo = doc.estaActivo;
+        ret.estaPlaneado = doc.estaPlaneado;
+        ret.estaFinalizado = doc.estaFinalizado;
+      }
+      
       delete ret._id;
       delete ret.__v;
       return ret;

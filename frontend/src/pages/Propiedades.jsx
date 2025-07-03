@@ -98,28 +98,21 @@ export function Propiedades() {
       console.log('Respuesta recibida:', response.data);
       
       const propiedadesData = response.data.docs || [];
-      const propiedadesEnriquecidas = [];
-
-      // Procesar las propiedades en serie en lugar de en paralelo
-      for (const propiedad of propiedadesData) {
+      // OPTIMIZACIÓN: Procesar todas las propiedades en paralelo
+      const propiedadesEnriquecidas = await Promise.all(propiedadesData.map(async (propiedad) => {
         try {
           const propiedadId = propiedad._id || propiedad.id;
           console.log(`Obteniendo datos relacionados para propiedad ${propiedadId} (${propiedad.titulo})`);
 
-          // Obtener datos en grupos con delays entre ellos
-          const [inquilinosResponse] = await Promise.all([
-            clienteAxios.get(`/api/inquilinos/propiedad/${propiedadId}`)
-          ]);
-          
-          await new Promise(resolve => setTimeout(resolve, 100));
-
-          const [habitacionesResponse] = await Promise.all([
-            clienteAxios.get(`/api/habitaciones/propiedad/${propiedadId}`)
-          ]);
-
-          await new Promise(resolve => setTimeout(resolve, 100));
-
-          const [contratosResponse, inventarioResponse] = await Promise.all([
+          // Todas las requests en paralelo
+          const [
+            inquilinosResponse,
+            habitacionesResponse,
+            contratosResponse,
+            inventarioResponse
+          ] = await Promise.all([
+            clienteAxios.get(`/api/inquilinos/propiedad/${propiedadId}`),
+            clienteAxios.get(`/api/habitaciones/propiedad/${propiedadId}`),
             clienteAxios.get(`/api/contratos/propiedad/${propiedadId}`),
             clienteAxios.get(`/api/inventarios/propiedad/${propiedadId}`)
           ]);
@@ -141,26 +134,25 @@ export function Propiedades() {
             );
           }
 
-          propiedadesEnriquecidas.push({
+          return {
             ...propiedad,
             inquilinos,
             habitaciones,
             contratos,
             inventario
-          });
-
+          };
         } catch (error) {
           console.error(`Error al cargar datos relacionados para propiedad ${propiedad._id || propiedad.id}:`, error);
           // Si hay error, agregamos la propiedad con arrays vacíos
-          propiedadesEnriquecidas.push({
+          return {
             ...propiedad,
             inquilinos: [],
             habitaciones: [],
             contratos: [],
             inventario: []
-          });
+          };
         }
-      }
+      }));
 
       console.log('Propiedades enriquecidas:', propiedadesEnriquecidas);
       setPropiedades(propiedadesEnriquecidas);

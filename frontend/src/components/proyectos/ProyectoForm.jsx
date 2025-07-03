@@ -214,7 +214,7 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
         </Box>
       </DialogTitle>
       
-      <DialogContent sx={{ bgcolor: 'grey.900' }}>
+      <DialogContent sx={{ bgcolor: 'grey.900', maxHeight: { xs: '60vh', sm: '70vh', md: '75vh' }, overflowY: 'auto' }}>
         <Stack spacing={2}>
           <TextField
             size="small"
@@ -488,17 +488,30 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
         </Stack>
       </DialogContent>
 
-      <DialogActions sx={{ p: 2, bgcolor: 'grey.900' }}>
+      <DialogActions sx={{
+        p: 2,
+        bgcolor: 'grey.900',
+        flexDirection: 'row',
+        gap: 2,
+        justifyContent: 'center',
+        alignItems: 'center',
+        position: 'sticky',
+        bottom: 0,
+        zIndex: 2
+      }}>
         <Button 
           onClick={onClose}
-          sx={{ color: 'grey.500' }}
+          variant="text"
+          sx={{ color: 'grey.500', fontWeight: 500, minWidth: 100 }}
         >
           Cancelar
         </Button>
         <Button 
           onClick={handleSubmit} 
           variant="contained"
-          sx={{ borderRadius: 0 }}
+          color="primary"
+          size="large"
+          sx={{ borderRadius: 1, fontWeight: 700, minWidth: 100, boxShadow: 2 }}
         >
           {isEditing ? 'Actualizar' : 'Guardar'}
         </Button>

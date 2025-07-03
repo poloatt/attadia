@@ -79,9 +79,9 @@ export const CustomSnackbarProvider = props => {
     <SnackbarProvider
       ref={notistackRef}
       maxSnack={3}
-      anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       autoHideDuration={4000}
-      style={{ marginBottom: '120px' }}
+      style={{ marginBottom: '72px' }}
       dense
       preventDuplicate
       classes={{

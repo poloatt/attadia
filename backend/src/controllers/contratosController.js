@@ -4,7 +4,34 @@ import mongoose from 'mongoose';
 
 class ContratosController extends BaseController {
   constructor() {
-    super(Contratos);
+    super(Contratos, {
+      searchFields: ['observaciones', 'tipoContrato'],
+      populate: [
+        { 
+          path: 'propiedad',
+          select: 'titulo direccion ciudad estado tipo metrosCuadrados precio'
+        },
+        {
+          path: 'inquilino',
+          select: 'nombre apellido email telefono estado'
+        },
+        {
+          path: 'habitacion',
+          select: 'nombre tipo'
+        },
+        { 
+          path: 'cuenta',
+          populate: { 
+            path: 'moneda',
+            select: 'nombre simbolo codigo'
+          }
+        },
+        {
+          path: 'moneda',
+          select: 'nombre simbolo codigo'
+        }
+      ]
+    });
 
     // Bind de los métodos al contexto de la instancia
     this.getActivos = this.getActivos.bind(this);
@@ -67,49 +94,89 @@ class ContratosController extends BaseController {
   async getAll(req, res) {
     try {
       console.log('Obteniendo contratos...');
-      const result = await this.Model.paginate(
-        {},
-        {
-          populate: [
-            { 
-              path: 'propiedad',
-              select: 'titulo direccion ciudad estado tipo'
-            },
-            {
-              path: 'inquilino',
-              select: 'nombre apellido email'
-            },
-            {
-              path: 'habitacion',
-              select: 'nombre tipo'
-            },
-            { 
-              path: 'cuenta',
-              populate: { 
-                path: 'moneda',
-                select: 'nombre simbolo'
-              }
-            },
-            {
-              path: 'moneda',
-              select: 'nombre simbolo codigo'
-            }
-          ],
-          sort: { createdAt: 'desc' }
-        }
-      );
-
-      console.log('Contratos sin formatear:', result.docs);
-      const docs = result.docs.map(doc => {
-        const formatted = this.formatResponse(doc);
-        console.log('Contrato formateado:', formatted);
-        return formatted;
-      });
       
-      console.log('Total contratos encontrados:', docs.length);
-      res.json({ ...result, docs });
+      // Verificar si hay un usuario autenticado
+      if (!req.user) {
+        console.log('No hay usuario autenticado');
+        return res.status(401).json({ error: 'Usuario no autenticado' });
+      }
+      
+      const { usuario } = req.query;
+      
+      // Si no se proporciona un usuario en la query, usar el ID del usuario autenticado
+      const filtros = {
+        usuario: usuario || req.user.id
+      };
+      
+      console.log('Filtros aplicados:', filtros);
+      
+      // Usar el método del BaseController con filtros personalizados
+      const originalQuery = req.query;
+      req.query = { ...originalQuery, filter: JSON.stringify(filtros) };
+      
+      // Llamar al método del BaseController
+      await super.getAll(req, res);
+      
+      // Debug: Verificar la respuesta antes de enviarla
+      const originalJson = res.json;
+      res.json = function(data) {
+        console.log('Debug montoMensual en respuesta API:', data.docs?.map(c => ({
+          id: c._id,
+          montoMensual: c.montoMensual,
+          tipo: typeof c.montoMensual,
+          esMantenimiento: c.esMantenimiento
+        })));
+        return originalJson.call(this, data);
+      };
+      
+      // Restaurar la query original
+      req.query = originalQuery;
+      
     } catch (error) {
       console.error('Error al obtener contratos:', error);
+      res.status(500).json({ error: 'Error al obtener contratos' });
+    }
+  }
+
+  // GET /api/contratos/estado-actual
+  async getConEstadoActual(req, res) {
+    try {
+      console.log('Obteniendo contratos con estado actual...');
+      
+      // Verificar si hay un usuario autenticado
+      if (!req.user) {
+        console.log('No hay usuario autenticado');
+        return res.status(401).json({ error: 'Usuario no autenticado' });
+      }
+      
+      const { usuario } = req.query;
+      
+      // Si no se proporciona un usuario en la query, usar el ID del usuario autenticado
+      const filtros = {
+        usuario: usuario || req.user.id
+      };
+      
+      console.log('Filtros aplicados:', filtros);
+      
+      // Obtener contratos con populate y virtuals
+      const contratos = await this.Model.find(filtros)
+        .populate(this.options.populate)
+        .lean({ virtuals: true });
+      
+      res.json({
+        docs: contratos,
+        totalDocs: contratos.length,
+        limit: contratos.length,
+        page: 1,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPrevPage: false,
+        nextPage: null,
+        prevPage: null
+      });
+      
+    } catch (error) {
+      console.error('Error al obtener contratos con estado actual:', error);
       res.status(500).json({ error: 'Error al obtener contratos' });
     }
   }
@@ -154,6 +221,12 @@ class ContratosController extends BaseController {
       console.log('Datos procesados:', data);
 
       const contrato = await this.Model.create(data);
+      // Sincronizar campo 'contrato' en cada inquilino asociado
+      if (Array.isArray(data.inquilino)) {
+        for (const inquilinoId of data.inquilino) {
+          await Inquilinos.findByIdAndUpdate(inquilinoId, { contrato: contrato._id });
+        }
+      }
       const populatedContrato = await this.Model.findById(contrato._id)
         .populate([
           'propiedad', 
@@ -187,8 +260,7 @@ class ContratosController extends BaseController {
             {
               tipoContrato: 'ALQUILER',
               fechaInicio: { $lte: now },
-              fechaFin: { $gt: now },
-              estado: 'ACTIVO'
+              fechaFin: { $gt: now }
             },
             // Contratos de mantenimiento activos
             {
@@ -368,26 +440,45 @@ class ContratosController extends BaseController {
     try {
       const { propiedadId } = req.params;
       const now = new Date();
-      
       const result = await this.Model.paginate(
         {
-          usuario: req.user._id,
           propiedad: propiedadId,
-          estado: 'ACTIVO',
           fechaInicio: { $lte: now },
           fechaFin: { $gt: now }
         },
         {
-          populate: ['inquilino'],
+          populate: ['inquilino', 'habitacion', 'moneda'],
           sort: { fechaInicio: 'desc' }
         }
       );
-
       const docs = result.docs.map(doc => this.formatResponse(doc));
       res.json({ ...result, docs });
     } catch (error) {
       console.error('Error al obtener contratos activos por propiedad:', error);
       res.status(500).json({ error: 'Error al obtener contratos activos por propiedad' });
+    }
+  }
+
+  // GET /api/contratos/propiedad/:propiedadId/finalizados
+  async getFinalizadosByPropiedad(req, res) {
+    try {
+      const { propiedadId } = req.params;
+      const now = new Date();
+      const result = await this.Model.paginate(
+        {
+          propiedad: propiedadId,
+          fechaFin: { $lte: now }
+        },
+        {
+          populate: ['inquilino', 'habitacion', 'moneda'],
+          sort: { fechaFin: 'desc' }
+        }
+      );
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...result, docs });
+    } catch (error) {
+      console.error('Error al obtener contratos finalizados por propiedad:', error);
+      res.status(500).json({ error: 'Error al obtener contratos finalizados por propiedad' });
     }
   }
 
@@ -402,7 +493,6 @@ class ContratosController extends BaseController {
           usuario: req.user._id,
           propiedad: propiedadId,
           esMantenimiento: true,
-          estado: 'MANTENIMIENTO',
           fechaInicio: { $lte: now },
           fechaFin: { $gt: now }
         },
@@ -451,7 +541,6 @@ class ContratosController extends BaseController {
       const contrato = await this.Model.findOne({
         usuario: req.user._id,
         inquilino: inquilinoId,
-        estado: 'ACTIVO',
         fechaInicio: { $lte: now },
         fechaFin: { $gt: now }
       }).populate(['propiedad']);
@@ -491,6 +580,53 @@ class ContratosController extends BaseController {
     }
   }
 
+  // GET /api/contratos/inquilino/:inquilinoId/activos
+  async getActivosByInquilino(req, res) {
+    try {
+      const { inquilinoId } = req.params;
+      const now = new Date();
+      const result = await this.Model.paginate(
+        {
+          inquilino: inquilinoId,
+          fechaInicio: { $lte: now },
+          fechaFin: { $gt: now }
+        },
+        {
+          populate: ['propiedad', 'habitacion', 'moneda'],
+          sort: { fechaInicio: 'desc' }
+        }
+      );
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...result, docs });
+    } catch (error) {
+      console.error('Error al obtener contratos activos por inquilino:', error);
+      res.status(500).json({ error: 'Error al obtener contratos activos por inquilino' });
+    }
+  }
+
+  // GET /api/contratos/inquilino/:inquilinoId/finalizados
+  async getFinalizadosByInquilino(req, res) {
+    try {
+      const { inquilinoId } = req.params;
+      const now = new Date();
+      const result = await this.Model.paginate(
+        {
+          inquilino: inquilinoId,
+          fechaFin: { $lte: now }
+        },
+        {
+          populate: ['propiedad', 'habitacion', 'moneda'],
+          sort: { fechaFin: 'desc' }
+        }
+      );
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...result, docs });
+    } catch (error) {
+      console.error('Error al obtener contratos finalizados por inquilino:', error);
+      res.status(500).json({ error: 'Error al obtener contratos finalizados por inquilino' });
+    }
+  }
+
   // Sobreescribimos el método update
   async update(req, res) {
     try {
@@ -519,10 +655,12 @@ class ContratosController extends BaseController {
         ...contrato.toObject(),
         ...req.body,
         usuario: req.user._id || contrato.usuario, // Preservar el usuario o usar el autenticado
-        montoMensual: req.body.montoMensual || contrato.montoMensual,
-        deposito: req.body.deposito || contrato.deposito,
-        cuenta: req.body.cuenta || contrato.cuenta,
-        moneda: req.body.moneda || contrato.moneda
+        fechaInicio: req.body.fechaInicio ? new Date(req.body.fechaInicio) : contrato.fechaInicio,
+        fechaFin: req.body.fechaFin ? new Date(req.body.fechaFin) : contrato.fechaFin,
+        montoMensual: req.body.montoMensual !== undefined ? parseFloat(req.body.montoMensual) : contrato.montoMensual,
+        deposito: req.body.deposito !== undefined ? parseFloat(req.body.deposito) : contrato.deposito,
+        cuenta: req.body.cuenta !== undefined ? req.body.cuenta : contrato.cuenta,
+        moneda: req.body.moneda !== undefined ? req.body.moneda : contrato.moneda
       };
 
       // Si el contrato no es de mantenimiento, asegurarse que los campos requeridos existan
@@ -542,7 +680,12 @@ class ContratosController extends BaseController {
 
       Object.assign(contrato, updateData);
       await contrato.save();
-
+      // Sincronizar campo 'contrato' en cada inquilino asociado tras update
+      if (Array.isArray(contrato.inquilino)) {
+        for (const inquilinoId of contrato.inquilino) {
+          await Inquilinos.findByIdAndUpdate(inquilinoId, { contrato: contrato._id });
+        }
+      }
       const updated = await contrato.populate(['propiedad', 'inquilino', 'cuenta']);
       res.json(this.formatResponse(updated));
     } catch (error) {
@@ -550,6 +693,25 @@ class ContratosController extends BaseController {
       res.status(400).json({ 
         error: 'Error al actualizar contrato',
         details: error.message 
+      });
+    }
+  }
+
+  // POST /api/contratos/actualizar-estados
+  async actualizarEstados(req, res) {
+    try {
+      console.log('Solicitud de actualización de estados recibida');
+      const resultado = await this.Model.actualizarEstados();
+      
+      res.json({
+        message: 'Estados de contratos actualizados exitosamente',
+        resultado
+      });
+    } catch (error) {
+      console.error('Error al actualizar estados de contratos:', error);
+      res.status(500).json({ 
+        error: 'Error al actualizar estados de contratos',
+        details: error.message
       });
     }
   }

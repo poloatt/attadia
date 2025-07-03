@@ -56,6 +56,7 @@ export function Dashboard() {
   const [inquilinos, setInquilinos] = useState([]);
   const [contratos, setContratos] = useState([]);
   const [isDaylistOpen, setIsDaylistOpen] = useState(false);
+  const [propiedades, setPropiedades] = useState([]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -65,6 +66,7 @@ export function Dashboard() {
       // Obtener propiedades y calcular estadísticas
       const propiedadesRes = await clienteAxios.get('/api/propiedades');
       const propiedades = propiedadesRes.data.docs || [];
+      setPropiedades(propiedades);
       
       // Calcular estadísticas de propiedades
       const propiedadesStats = propiedades.reduce((stats, propiedad) => {
@@ -76,15 +78,12 @@ export function Dashboard() {
         
         // Verificar contratos activos
         const tieneContratoActivo = (propiedad.contratos || []).some(contrato => {
-          const inicio = new Date(contrato.fechaInicio);
-          const fin = new Date(contrato.fechaFin);
-          return inicio <= hoy && fin >= hoy;
+          return contrato.estado === 'ACTIVO';
         });
 
         // Verificar contratos reservados
         const tieneContratoReservado = (propiedad.contratos || []).some(contrato => {
-          const inicio = new Date(contrato.fechaInicio);
-          return inicio > hoy && contrato.estado === 'RESERVADO';
+          return contrato.estado === 'PLANEADO';
         });
 
         // Determinar estado
@@ -468,94 +467,68 @@ export function Dashboard() {
 
         {/* Sección colapsable */}
         <Collapse in={isPropertiesDetailOpen}>
-          <Box sx={{ 
-            pt: 0.5,
-            mt: 0.5,
-            borderTop: 1,
-            borderColor: 'divider'
-          }}>
-            {/* Estados de propiedades */}
-            <Box sx={{ 
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: 2,
-              mb: 1
-            }}>
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column',
-                gap: 1
-              }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <OccupiedIcon sx={{ fontSize: 18 }} />
-                  <Typography variant="body2" color="text.secondary">
-                    {pluralize(stats.propiedades.ocupadas, 'Ocupada', 'Ocupadas')}
+          <Box sx={{ pt: 0.5, mt: 0.5, borderTop: 1, borderColor: 'divider' }}>
+            {/* Listado de propiedades detallado */}
+            {propiedades.length === 0 && (
+              <Typography variant="body2" color="text.secondary" sx={{ my: 2 }}>
+                No hay propiedades registradas.
+              </Typography>
+            )}
+            {propiedades.map((prop) => (
+              <Paper key={prop._id} sx={{ p: 2, mb: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                  <BuildingIcon sx={{ fontSize: 18 }} />
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{prop.titulo || 'Sin título'}</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
+                    Estado: <b>{prop.estado || 'N/A'}</b>
                   </Typography>
                 </Box>
-
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <MaintenanceIcon sx={{ fontSize: 18 }} />
-                  <Typography variant="body2" color="text.secondary">
-                    {`${stats.propiedades.mantenimiento} En Mantenimiento`}
-                  </Typography>
+                {/* Inquilinos */}
+                <Box sx={{ mb: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>Inquilinos:</Typography>
+                  {Array.isArray(prop.inquilinos) && prop.inquilinos.length > 0 ? (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {prop.inquilinos.map((inq) => (
+                        <Typography key={inq._id} variant="body2" color="primary.main">
+                          {inq.nombre} {inq.apellido}
+                        </Typography>
+                      ))}
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">Sin inquilinos</Typography>
+                  )}
                 </Box>
-              </Box>
-
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column',
-                gap: 1
-              }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <HomeIcon sx={{ fontSize: 18 }} />
-                  <Typography variant="body2" color="text.secondary">
-                    {pluralize(stats.propiedades.disponibles, 'Disponible', 'Disponibles')}
-                  </Typography>
+                {/* Contratos */}
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>Contratos:</Typography>
+                  {Array.isArray(prop.contratos) && prop.contratos.length > 0 ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                      {prop.contratos.map((contrato) => (
+                        <Box key={contrato._id} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Estado: <b>{contrato.estado}</b>
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {Array.isArray(contrato.inquilino) && contrato.inquilino.length > 0
+                              ? contrato.inquilino.map((inq, idx) => (
+                                  <span key={inq._id || idx}>
+                                    {inq.nombre} {inq.apellido}{idx < contrato.inquilino.length - 1 ? ', ' : ''}
+                                  </span>
+                                ))
+                              : 'Sin inquilino'}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {contrato.fechaInicio ? new Date(contrato.fechaInicio).toLocaleDateString() : 'Sin fecha'} - {contrato.fechaFin ? new Date(contrato.fechaFin).toLocaleDateString() : 'Sin fecha'}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">Sin contratos</Typography>
+                  )}
                 </Box>
-
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <ReservedIcon sx={{ fontSize: 18 }} />
-                  <Typography variant="body2" color="text.secondary">
-                    {pluralize(stats.propiedades.reservadas, 'Reservada', 'Reservadas')}
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-
-            {/* Contratos e inquilinos */}
-            <Box sx={{ 
-              display: 'flex',
-              gap: 2,
-              pt: 1,
-              borderTop: 1,
-              borderColor: 'divider'
-            }}>
-              {/* Contratos activos */}
-              <Box sx={{ flex: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <PeriodIcon sx={{ fontSize: 18 }} />
-                  <Typography variant="body2" color="text.secondary">
-                    {contratos.length > 0 
-                      ? `${pluralize(contratos.length, 'contrato activo', 'contratos activos')}: ${contratos.map(contrato => contrato.propiedad?.titulo || 'Sin título').join(', ')}`
-                      : 'Sin contratos activos'
-                    }
-                  </Typography>
-                </Box>
-              </Box>
-
-              {/* Inquilinos activos */}
-              <Box sx={{ flex: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <InquilinosIcon sx={{ fontSize: 18 }} />
-                  <Typography variant="body2" color="text.secondary">
-                    {inquilinos.length > 0 
-                      ? `${pluralize(inquilinos.length, 'inquilino activo', 'inquilinos activos')}: ${inquilinos.map(inquilino => inquilino.nombre).join(', ')}`
-                      : 'Sin inquilinos activos'
-                    }
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
+              </Paper>
+            ))}
           </Box>
         </Collapse>
       </Box>

@@ -4,7 +4,31 @@ import { Propiedades, Habitaciones, Inquilinos, Contratos, Inventarios } from '.
 class PropiedadesController extends BaseController {
   constructor() {
     super(Propiedades, {
-      searchFields: ['titulo', 'descripcion', 'direccion', 'ciudad']
+      searchFields: ['titulo', 'descripcion', 'direccion', 'ciudad'],
+      populate: [
+        'moneda', 
+        'cuenta',
+        {
+          path: 'habitaciones',
+          select: 'tipo nombrePersonalizado activo'
+        },
+        {
+          path: 'contratos',
+          populate: {
+            path: 'inquilino',
+            select: 'nombre apellido email telefono estado'
+          }
+        },
+        {
+          path: 'inquilinos',
+          select: 'nombre apellido email telefono estado'
+        },
+        {
+          path: 'inventarios',
+          match: { activo: true },
+          select: 'nombre descripcion activo'
+        }
+      ]
     });
 
     // Bind de los métodos al contexto de la instancia
@@ -79,102 +103,14 @@ class PropiedadesController extends BaseController {
       
       console.log('Filtros aplicados:', filtros);
       
-      // Obtener propiedades con paginación
-      const result = await this.Model.paginate(
-        filtros,
-        {
-          populate: [
-            'moneda', 
-            'cuenta',
-            {
-              path: 'habitaciones',
-              select: 'tipo nombrePersonalizado activo'
-            }
-          ],
-          sort: { createdAt: 'desc' }
-        }
-      );
-
-      console.log('Propiedades obtenidas:', result.docs.length);
-
-      // Enriquecer cada propiedad con sus contratos activos e inquilinos
-      const propiedadesEnriquecidas = await Promise.all(
-        result.docs.map(async (propiedad) => {
-          try {
-            console.log(`Procesando propiedad ${propiedad._id}...`);
-            
-            // Obtener contratos activos con sus inquilinos
-            const contratos = await Contratos.find({
-              propiedad: propiedad._id,
-              activo: true,
-              estado: 'ACTIVO',
-              fechaInicio: { $lte: new Date() },
-              fechaFin: { $gt: new Date() }
-            })
-            .populate('inquilino', 'nombre apellido email telefono activo')
-            .lean();
-
-            console.log(`Contratos activos encontrados para propiedad ${propiedad._id}:`, contratos.length);
-
-            // Obtener inquilinos únicos de los contratos activos
-            const inquilinosSet = new Set();
-            const inquilinos = contratos
-              .filter(c => c.inquilino)
-              .map(c => c.inquilino)
-              .filter(inquilino => {
-                if (!inquilino || !inquilino._id) return false;
-                
-                const key = inquilino._id.toString();
-                if (!inquilinosSet.has(key)) {
-                  inquilinosSet.add(key);
-                  return true;
-                }
-                return false;
-              });
-
-            console.log(`Inquilinos activos encontrados para propiedad ${propiedad._id}:`, inquilinos.length);
-
-            // Obtener inventarios activos
-            const inventarios = await Inventarios.find({
-              propiedad: propiedad._id,
-              activo: true
-            }).lean();
-
-            // Convertir a objeto plano y agregar las relaciones
-            const propiedadObj = propiedad.toObject();
-            return {
-              ...propiedadObj,
-              contratos: contratos.map(contrato => ({
-                ...contrato,
-                inquilinoNombre: contrato.inquilino ? 
-                  `${contrato.inquilino.nombre || ''} ${contrato.inquilino.apellido || ''}`.trim() : 
-                  'Sin inquilino',
-                periodo: {
-                  inicio: contrato.fechaInicio,
-                  fin: contrato.fechaFin
-                }
-              })),
-              inquilinos,
-              inventarios,
-              resumen: {
-                inquilinosActivos: inquilinos.length,
-                contratosActivos: contratos.length,
-                inventariosActivos: inventarios.length
-              }
-            };
-          } catch (error) {
-            console.error(`Error procesando propiedad ${propiedad._id}:`, error);
-            return propiedad.toObject();
-          }
-        })
-      );
+      // Obtener propiedades con populate
+      const propiedades = await this.Model.find(filtros)
+        .populate(this.options.populate || []);
       
-      console.log('Total de propiedades enriquecidas:', propiedadesEnriquecidas.length);
+      // Usar getFullInfo para asegurar estado como string
+      const propiedadesFull = await Promise.all(propiedades.map(p => p.getFullInfo()));
+      res.json({ docs: propiedadesFull });
       
-      res.json({ 
-        ...result, 
-        docs: propiedadesEnriquecidas
-      });
     } catch (error) {
       console.error('Error al obtener propiedades:', error);
       res.status(500).json({ 

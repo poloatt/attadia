@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Container,
-  Box
+  Box,
+  Chip
 } from '@mui/material';
 import { useSnackbar } from 'notistack';
 import { InquilinoList, InquilinoForm } from '../components/inquilinos';
@@ -22,12 +23,7 @@ export function Inquilinos() {
   const [isLoading, setIsLoading] = useState(false);
   const [openForm, setOpenForm] = useState(false);
   const [selectedInquilino, setSelectedInquilino] = useState(null);
-  const [expandedGroups, setExpandedGroups] = useState({
-    activos: true,
-    reservados: true,
-    pendientes: true,
-    inactivos: true
-  });
+  const [activeFilter, setActiveFilter] = useState('activos'); // 'activos', 'inactivos', 'todos'
   const { enqueueSnackbar } = useSnackbar();
   const navigate = useNavigate();
 
@@ -109,12 +105,32 @@ export function Inquilinos() {
     setOpenForm(false);
   };
 
-  const handleToggleGroup = (groupId) => {
-    setExpandedGroups(prev => ({
-      ...prev,
-      [groupId]: !prev[groupId]
-    }));
+  const handleCreateContract = (inquilino) => {
+    // Navegar a la página de contratos con los datos del inquilino pre-llenados
+    navigate('/contratos', {
+      state: {
+        createContract: true,
+        inquilinoData: inquilino
+      }
+    });
   };
+
+  // Filtrar inquilinos según el filtro activo
+  const inquilinosFiltrados = useMemo(() => {
+    if (activeFilter === 'activos') {
+      return inquilinos.filter(inquilino => {
+        const estado = inquilino.estado || 'PENDIENTE';
+        return ['ACTIVO', 'RESERVADO', 'PENDIENTE'].includes(estado);
+      });
+    } else if (activeFilter === 'inactivos') {
+      return inquilinos.filter(inquilino => {
+        const estado = inquilino.estado || 'PENDIENTE';
+        return ['INACTIVO', 'SIN_CONTRATO'].includes(estado);
+      });
+    } else {
+      return inquilinos; // 'todos'
+    }
+  }, [inquilinos, activeFilter]);
 
   return (
     <Container maxWidth={false}>
@@ -145,14 +161,50 @@ export function Inquilinos() {
         ]}
       />
 
+      {/* Filtros de grupos */}
+      <Box sx={{ mt: 2, mb: 2, display: 'flex', gap: 1 }}>
+        <Chip
+          label={`Inquilinos Activos (${inquilinos.filter(i => ['ACTIVO', 'RESERVADO', 'PENDIENTE'].includes(i.estado || 'PENDIENTE')).length})`}
+          onClick={() => setActiveFilter('activos')}
+          color={activeFilter === 'activos' ? 'primary' : 'default'}
+          variant={activeFilter === 'activos' ? 'filled' : 'outlined'}
+          sx={{ 
+            borderRadius: 0,
+            clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)',
+            fontWeight: 500
+          }}
+        />
+        <Chip
+          label={`Inquilinos Inactivos (${inquilinos.filter(i => ['INACTIVO', 'SIN_CONTRATO'].includes(i.estado || 'PENDIENTE')).length})`}
+          onClick={() => setActiveFilter('inactivos')}
+          color={activeFilter === 'inactivos' ? 'primary' : 'default'}
+          variant={activeFilter === 'inactivos' ? 'filled' : 'outlined'}
+          sx={{ 
+            borderRadius: 0,
+            clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)',
+            fontWeight: 500
+          }}
+        />
+        <Chip
+          label={`Todos los Inquilinos (${inquilinos.length})`}
+          onClick={() => setActiveFilter('todos')}
+          color={activeFilter === 'todos' ? 'primary' : 'default'}
+          variant={activeFilter === 'todos' ? 'filled' : 'outlined'}
+          sx={{ 
+            borderRadius: 0,
+            clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)',
+            fontWeight: 500
+          }}
+        />
+      </Box>
+
       <Box sx={{ py: 2 }}>
         <EntityDetails>
           <InquilinoList
-            inquilinos={inquilinos}
+            inquilinos={inquilinosFiltrados}
             onEdit={handleEdit}
             onDelete={handleDelete}
-            expandedGroups={expandedGroups}
-            onToggleGroup={handleToggleGroup}
+            onCreateContract={handleCreateContract}
           />
         </EntityDetails>
       </Box>

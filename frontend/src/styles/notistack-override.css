@@ -100,6 +100,25 @@ button[class*="MuiIconButton-root"] {
   z-index: 1500 !important;
 }
 
+/* Evitar que el snackbar bloquee clics en elementos debajo */
+.SnackbarItem-root,
+.SnackbarContent-root,
+.MuiSnackbarContent-root,
+.SnackbarItem-contentRoot {
+  pointer-events: none !important;
+}
+
+/* Permitir clics en elementos interactivos del snackbar */
+.SnackbarContent-root > div,
+.MuiSnackbarContent-root > div,
+.SnackbarItem-contentRoot > div,
+div[class*="MuiSnackbarContent-action"],
+div[class*="MuiAlert-icon"],
+button[class*="MuiButton-text"],
+button[class*="MuiIconButton-root"] {
+  pointer-events: auto !important;
+}
+
 /* Ajustar márgenes bottom para evitar que el snackbar tape botones en móvil */
 .SnackbarItem-root[class*="SnackbarItem-anchorOriginBottomCenter"],
 .SnackbarItem-root[class*="SnackbarItem-anchorOriginBottomLeft"],

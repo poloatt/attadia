@@ -5,7 +5,17 @@ import mongoose from 'mongoose';
 class InquilinosController extends BaseController {
   constructor() {
     super(Inquilinos, {
-      searchFields: ['nombre', 'apellido', 'dni', 'email', 'telefono']
+      searchFields: ['nombre', 'apellido', 'dni', 'email', 'telefono'],
+      populate: [
+        {
+          path: 'propiedad',
+          select: 'titulo direccion ciudad estado tipo'
+        },
+        {
+          path: 'contratos',
+          select: 'fechaInicio fechaFin tipoContrato esMantenimiento',
+        }
+      ]
     });
 
     // Bind de los métodos al contexto de la instancia
@@ -28,7 +38,8 @@ class InquilinosController extends BaseController {
     return {
       ...formatted,
       id: formatted._id,
-      propiedadId: formatted.propiedad?._id || formatted.propiedad
+      propiedadId: formatted.propiedad?._id || formatted.propiedad,
+      estado: formatted.estadoActual
     };
   }
 
@@ -36,72 +47,60 @@ class InquilinosController extends BaseController {
   async getAll(req, res) {
     try {
       console.log('Obteniendo inquilinos...');
-      console.log('Usuario autenticado:', req.user._id);
-
-      // Primero, contar todos los inquilinos sin filtros
-      const totalInquilinos = await this.Model.countDocuments();
-      console.log('Total de inquilinos en la base de datos:', totalInquilinos);
-
-      // Contar inquilinos del usuario
-      const totalInquilinosUsuario = await this.Model.countDocuments({ usuario: req.user._id });
-      console.log('Total de inquilinos del usuario:', totalInquilinosUsuario);
-
-      // Construir el filtro base - solo por usuario
-      const filter = { 
-        usuario: req.user._id
+      
+      // Verificar si hay un usuario autenticado
+      if (!req.user) {
+        console.log('No hay usuario autenticado');
+        return res.status(401).json({ error: 'Usuario no autenticado' });
+      }
+      
+      const { usuario } = req.query;
+      
+      // Si no se proporciona un usuario en la query, usar el ID del usuario autenticado
+      const filtros = {
+        usuario: usuario || req.user._id
       };
-
-      console.log('Filtro final:', JSON.stringify(filter));
-
-      // Obtener todos los inquilinos con el filtro
-      const inquilinos = await this.Model.find(filter);
-      console.log('Inquilinos encontrados (pre-población):', inquilinos.length);
       
-      // Log detallado de cada inquilino encontrado
-      inquilinos.forEach(inquilino => {
-        console.log('Detalles del inquilino:', {
-          id: inquilino._id,
-          nombre: inquilino.nombre,
-          apellido: inquilino.apellido,
-          estado: inquilino.estado,
-          propiedad: inquilino.propiedad || 'Sin propiedad asignada',
-          contratos: inquilino.contratos?.length || 0
-        });
-      });
+      console.log('Filtros aplicados:', filtros);
       
-      // Paginar resultados
+      // Obtener inquilinos con populate de propiedad y contratos
       const result = await this.Model.paginate(
-        filter,
+        filtros,
         {
           populate: [
             {
               path: 'propiedad',
-              select: 'titulo direccion ciudad'
+              select: 'titulo direccion ciudad estado tipo'
             },
             {
               path: 'contratos',
-              select: 'estado fechaInicio fechaFin propiedad'
+              select: 'fechaInicio fechaFin tipoContrato esMantenimiento estado propiedad',
+              populate: {
+                path: 'propiedad',
+                select: 'titulo nombre'
+              }
             }
           ],
-          sort: { createdAt: -1 },
-          limit: 1000
+          sort: { createdAt: 'desc' }
         }
       );
 
-      const docs = result.docs.map(doc => {
-        const formatted = this.formatResponse(doc);
-        console.log('Inquilino procesado:', {
-          id: formatted.id,
-          nombre: formatted.nombre,
-          estado: formatted.estado,
-          propiedad: formatted.propiedad?.titulo || 'Sin propiedad asignada',
-          contratos: formatted.contratos?.length || 0
-        });
-        return formatted;
-      });
+      // Procesar cada inquilino para clasificar sus contratos
+      const docs = await Promise.all(result.docs.map(async (inquilino) => {
+        const inquilinoObj = inquilino.toObject();
+        
+        // Obtener contratos clasificados usando el método del modelo
+        const contratosClasificados = await inquilino.getContratosClasificados();
 
-      console.log('Total de inquilinos encontrados:', docs.length);
+        return {
+          ...inquilinoObj,
+          contratosClasificados,
+          estado: inquilinoObj.estadoActual || inquilinoObj.estado
+        };
+      }));
+
       res.json({ ...result, docs });
+      
     } catch (error) {
       console.error('Error al obtener inquilinos:', error);
       res.status(500).json({ error: 'Error al obtener inquilinos' });
@@ -301,7 +300,7 @@ class InquilinosController extends BaseController {
           usuario: req.user._id
         },
         {
-          populate: ['propiedad', 'contratos'],
+          populate: ['propiedad'],
           sort: { createdAt: 'desc' }
         }
       );
@@ -333,7 +332,7 @@ class InquilinosController extends BaseController {
       // Actualizar campos permitidos
       const camposPermitidos = [
         'nombre', 'apellido', 'email', 'telefono', 'dni',
-        'nacionalidad', 'ocupacion', 'propiedad', 'estado'
+        'nacionalidad', 'ocupacion', 'propiedad'
       ];
 
       camposPermitidos.forEach(campo => {

@@ -11,8 +11,10 @@ router.use(checkAuth);
 
 // Rutas básicas que solo requieren autenticación
 router.get('/', contratosController.getAll);
+router.get('/estado-actual', contratosController.getConEstadoActual);
 router.get('/activos', contratosController.getActivos);
 router.post('/', contratosController.create);
+router.post('/actualizar-estados', contratosController.actualizarEstados);
 router.get('/:id', contratosController.getById);
 router.put('/:id', contratosController.update);
 router.delete('/:id', contratosController.delete);

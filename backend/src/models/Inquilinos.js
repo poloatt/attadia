@@ -45,8 +45,8 @@ const inquilinoSchema = createSchema({
   }],
   estado: {
     type: String,
-    enum: ['ACTIVO', 'INACTIVO', 'PENDIENTE', 'RESERVADO'],
-    default: 'PENDIENTE'
+    enum: ['ACTIVO', 'INACTIVO', 'PENDIENTE', 'RESERVADO', 'SIN_CONTRATO'],
+    default: 'SIN_CONTRATO'
   },
   propiedad: {
     type: mongoose.Schema.Types.ObjectId,
@@ -83,149 +83,6 @@ inquilinoSchema.pre('save', async function(next) {
     }
   }
   next();
-});
-
-// Middleware para actualizar el estado del inquilino basado en sus contratos
-inquilinoSchema.pre('save', async function(next) {
-  try {
-    console.log('Ejecutando middleware de actualización de estado para inquilino:', this.nombre);
-    
-    // No permitir modificación manual del estado
-    if (this.isModified('estado') && !this._forceStateUpdate) {
-      console.log('Intento de modificación manual del estado, ignorando...');
-      this.estado = this._original?.estado || 'PENDIENTE';
-      return next();
-    }
-
-    const Contratos = mongoose.model('Contratos');
-    const now = new Date();
-
-    // Buscar contratos activos
-    const contratoActivo = await Contratos.findOne({
-      inquilino: { $in: [this._id] },
-      estado: 'ACTIVO',
-      fechaInicio: { $lte: now },
-      fechaFin: { $gt: now },
-      esMantenimiento: false
-    });
-
-    console.log('Contrato activo encontrado:', contratoActivo?._id);
-
-    if (contratoActivo) {
-      this._forceStateUpdate = true;
-      this.estado = 'ACTIVO';
-      console.log('Estableciendo estado a ACTIVO por contrato activo');
-      return next();
-    }
-
-    // Buscar contratos futuros
-    const contratoFuturo = await Contratos.findOne({
-      inquilino: { $in: [this._id] },
-      estado: 'PLANEADO',
-      fechaInicio: { $gt: now },
-      esMantenimiento: false
-    });
-
-    console.log('Contrato futuro encontrado:', contratoFuturo?._id);
-
-    if (contratoFuturo) {
-      this._forceStateUpdate = true;
-      this.estado = 'RESERVADO';
-      console.log('Estableciendo estado a RESERVADO por contrato futuro');
-      return next();
-    }
-
-    // Si no hay contratos activos ni futuros, pero hay contratos finalizados
-    const contratoFinalizado = await Contratos.findOne({
-      inquilino: { $in: [this._id] },
-      estado: 'FINALIZADO',
-      esMantenimiento: false
-    });
-
-    console.log('Contrato finalizado encontrado:', contratoFinalizado?._id);
-
-    if (contratoFinalizado) {
-      this._forceStateUpdate = true;
-      this.estado = 'INACTIVO';
-      console.log('Estableciendo estado a INACTIVO por contrato finalizado');
-    } else if (this.isNew) {
-      this._forceStateUpdate = true;
-      this.estado = 'PENDIENTE';
-      console.log('Estableciendo estado a PENDIENTE por ser nuevo inquilino');
-    }
-
-    // Guardar el estado original para la próxima vez
-    this._original = this.toObject();
-    console.log('Estado final del inquilino:', this.estado);
-    next();
-  } catch (error) {
-    console.error('Error en middleware de actualización de estado:', error);
-    next(error);
-  }
-});
-
-// Middleware para actualizar el estado cuando se modifica un contrato
-inquilinoSchema.pre('findOneAndUpdate', async function(next) {
-  try {
-    const docToUpdate = await this.model.findOne(this.getQuery());
-    if (!docToUpdate) return next();
-
-    const Contratos = mongoose.model('Contratos');
-    const now = new Date();
-
-    // Buscar contratos activos
-    const contratoActivo = await Contratos.findOne({
-      inquilino: { $in: [docToUpdate._id] },
-      estado: 'ACTIVO',
-      fechaInicio: { $lte: now },
-      fechaFin: { $gt: now },
-      esMantenimiento: false
-    });
-
-    if (contratoActivo) {
-      this.set({ estado: 'ACTIVO' });
-      return next();
-    }
-
-    // Buscar contratos futuros
-    const contratoFuturo = await Contratos.findOne({
-      inquilino: { $in: [docToUpdate._id] },
-      estado: 'PLANEADO',
-      fechaInicio: { $gt: now },
-      esMantenimiento: false
-    });
-
-    if (contratoFuturo) {
-      this.set({ estado: 'RESERVADO' });
-      return next();
-    }
-
-    // Si no hay contratos activos ni futuros, pero hay contratos finalizados
-    const contratoFinalizado = await Contratos.findOne({
-      inquilino: { $in: [docToUpdate._id] },
-      estado: 'FINALIZADO',
-      esMantenimiento: false
-    });
-
-    if (contratoFinalizado) {
-      this.set({ estado: 'INACTIVO' });
-    } else {
-      this.set({ estado: 'PENDIENTE' });
-    }
-
-    next();
-  } catch (error) {
-    console.error('Error en middleware de actualización de estado:', error);
-    next(error);
-  }
-});
-
-// Agregar relación virtual con contratos
-inquilinoSchema.virtual('contratos', {
-  ref: 'Contratos',
-  localField: '_id',
-  foreignField: 'inquilino',
-  match: { estado: { $ne: 'FINALIZADO' } }
 });
 
 // Agregar relación virtual con propiedades a través de contratos
@@ -265,12 +122,87 @@ inquilinoSchema.methods.checkIn = async function(propiedadId) {
 // Método para obtener información completa del inquilino
 inquilinoSchema.methods.getFullInfo = async function() {
   await this.populate('propiedad contratos');
+  // Log de depuración para ver los contratos poblados
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[getFullInfo] Inquilino:', this._id?.toString());
+    console.log('  Contratos poblados:', Array.isArray(this.contratos) ? this.contratos.map(c => c._id?.toString()) : this.contratos);
+  }
   const inquilinoObj = this.toObject();
-  
   return {
     ...inquilinoObj,
     contratos: inquilinoObj.contratos || []
   };
 };
+
+// Virtual para obtener todos los contratos asociados a este inquilino
+inquilinoSchema.virtual('contratos', {
+  ref: 'Contratos',
+  localField: '_id',
+  foreignField: 'inquilino',
+  justOne: false,
+  options: { strictPopulate: false }
+});
+
+// Método para obtener contratos clasificados
+inquilinoSchema.methods.getContratosClasificados = async function() {
+  const Contratos = mongoose.model('Contratos');
+  const contratos = await Contratos.find({
+    inquilino: this._id
+  }).populate('propiedad');
+
+  const clasificados = {
+    activos: [],
+    futuros: [],
+    vencidos: []
+  };
+
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+
+  contratos.forEach(contrato => {
+    if (!contrato.fechaInicio || !contrato.fechaFin) return;
+    
+    const inicio = new Date(contrato.fechaInicio);
+    const fin = new Date(contrato.fechaFin);
+    inicio.setHours(0, 0, 0, 0);
+    fin.setHours(0, 0, 0, 0);
+
+    if (inicio <= now && fin > now) {
+      clasificados.activos.push(contrato);
+    } else if (inicio > now) {
+      clasificados.futuros.push(contrato);
+    } else {
+      clasificados.vencidos.push(contrato);
+    }
+  });
+
+  return clasificados;
+};
+
+// Virtual para calcular el estado actual del inquilino según sus contratos
+inquilinoSchema.virtual('estadoActual').get(function() {
+  if (!this.contratos || this.contratos.length === 0) {
+    return 'SIN_CONTRATO';
+  }
+  // Buscar contrato activo
+  const now = new Date();
+  now.setHours(0,0,0,0);
+  const contratoActivo = this.contratos.find(c => {
+    if (!c.fechaInicio || !c.fechaFin) return false;
+    const inicio = new Date(c.fechaInicio); inicio.setHours(0,0,0,0);
+    const fin = new Date(c.fechaFin); fin.setHours(0,0,0,0);
+    return inicio <= now && fin > now;
+  });
+  if (contratoActivo) return 'ACTIVO';
+  // Buscar contrato futuro
+  const contratoFuturo = this.contratos.find(c => {
+    if (!c.fechaInicio) return false;
+    const inicio = new Date(c.fechaInicio); inicio.setHours(0,0,0,0);
+    return inicio > now;
+  });
+  if (contratoFuturo) return 'RESERVADO';
+  // Si tiene contratos pero ninguno activo o futuro, está inactivo
+  return 'INACTIVO';
+});
 
 export const Inquilinos = mongoose.model('Inquilinos', inquilinoSchema);

@@ -58,22 +58,20 @@ export default function BottomNavigation() {
 
   return (
     <Paper 
-      elevation={2} 
+      elevation={3} 
       sx={{
         position: 'fixed',
-        bottom: 44,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 1300,
-        width: '100%',
-        maxWidth: '600px',
-        borderRadius: 1,
-        overflow: 'hidden',
-        clipPath: 'polygon(2% 0%, 98% 0%, 100% 100%, 0% 100%)',
+        bottom: 0,
+        left: 0,
+        width: '100vw',
+        zIndex: 1400,
+        borderRadius: 0,
         bgcolor: 'background.paper',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
-        border: '1px solid',
-        borderColor: 'divider'
+        boxShadow: '0 -2px 8px rgba(0,0,0,0.10)',
+        borderTop: '1px solid',
+        borderColor: 'divider',
+        m: 0,
+        p: 0,
       }}
     >
       <Box 
@@ -81,7 +79,7 @@ export default function BottomNavigation() {
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          height: '48px',
+          height: '56px',
           width: '100%',
         }}
       >
