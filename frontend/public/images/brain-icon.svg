@@ -1,0 +1,10 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" fill="#fff"/>
+  <!-- Cerebro geométrico: líneas y polígonos -->
+  <polygon points="128,256 192,128 320,128 384,256 320,384 192,384" fill="#fff" stroke="#000" stroke-width="16"/>
+  <polyline points="192,128 256,256 320,128" fill="none" stroke="#000" stroke-width="12"/>
+  <polyline points="192,384 256,256 320,384" fill="none" stroke="#000" stroke-width="12"/>
+  <line x1="128" y1="256" x2="384" y2="256" stroke="#000" stroke-width="10"/>
+  <line x1="192" y1="128" x2="192" y2="384" stroke="#000" stroke-width="8"/>
+  <line x1="320" y1="128" x2="320" y2="384" stroke="#000" stroke-width="8"/>
+</svg> 
