@@ -38,7 +38,7 @@ const validateRequiredEnvVars = () => {
 
 // Configuración base para todos los ambientes
 const baseConfig = {
-  port: parseInt(process.env.PORT || '5000', 10),
+  port: parseInt(process.env.PORT || '8080', 10),
   sessionSecret: process.env.SESSION_SECRET || 'fallback_session_secret',
   jwtSecret: process.env.JWT_SECRET || 'fallback_jwt_secret',
   refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET || 'fallback_refresh_token_secret',
@@ -51,6 +51,7 @@ const configs = {
     ...baseConfig,
     env: 'development',
     isDev: true,
+    port: parseInt(process.env.PORT || '5173', 10),
     mongoUrl: process.env.MONGO_URL || 'mongodb://localhost:27017/present',
     frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
     backendUrl: process.env.BACKEND_URL || 'http://localhost:5000',

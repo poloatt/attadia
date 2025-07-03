@@ -5,7 +5,8 @@
   "description": "",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index-simple.js",
+    "start": "node src/index.js",
+    "start-simple": "node src/index-simple.js",
     "dev": "NODE_ENV=development nodemon src/index.js",
     "staging": "NODE_ENV=staging nodemon src/index.js",
     "prod": "NODE_ENV=production node src/index.js",

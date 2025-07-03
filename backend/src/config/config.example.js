@@ -4,7 +4,7 @@ dotenv.config();
 
 // Configuración base para todos los ambientes
 const baseConfig = {
-  port: parseInt(process.env.PORT || '5000', 10),
+  port: parseInt(process.env.PORT || '8080', 10),
   sessionSecret: process.env.SESSION_SECRET || 'fallback_session_secret',
   isDev: false
 };
@@ -15,6 +15,7 @@ const configs = {
     ...baseConfig,
     env: 'development',
     isDev: true,
+    port: parseInt(process.env.PORT || '5000', 10),
     mongoUrl: 'mongodb://localhost:27017/present',
     frontendUrl: 'http://localhost:3000',
     backendUrl: 'http://localhost:5000',

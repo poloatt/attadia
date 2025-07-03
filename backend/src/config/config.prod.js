@@ -6,8 +6,8 @@ dotenv.config({ path: isStaging ? '.env.staging' : '.env.prod' });
 
 const config = {
   env: process.env.ENVIRONMENT || 'production',
-  port: parseInt(process.env.PORT || '5000', 10),
-  mongoUrl: process.env.MONGODB_URI,
+  port: parseInt(process.env.PORT || '8080', 10),
+  mongoUrl: process.env.MONGO_PUBLIC_URL || process.env.MONGO_URL || process.env.MONGODB_URI,
   jwtSecret: process.env.JWT_SECRET,
   refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET,
   apiUrl: process.env.BACKEND_URL,
@@ -30,7 +30,6 @@ const requiredEnvVars = [
   'JWT_SECRET',
   'REFRESH_TOKEN_SECRET',
   'SESSION_SECRET',
-  'MONGODB_URI',
   'GOOGLE_CLIENT_ID',
   'GOOGLE_CLIENT_SECRET',
   'FRONTEND_URL',
@@ -52,7 +51,8 @@ console.log(`Configuración de MongoDB en ${config.env}:`, {
 console.log(`Configuración de URLs en ${config.env}:`, {
   frontend: config.frontendUrl,
   backend: config.apiUrl,
-  corsOrigins: config.corsOrigins
+  corsOrigins: config.corsOrigins,
+  port: config.port
 });
 
 export default config;

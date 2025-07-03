@@ -2,7 +2,10 @@ import express from 'express';
 import cors from 'cors';
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 8080;
+
+console.log('Puerto detectado:', port);
+console.log('process.env.PORT:', process.env.PORT);
 
 // CORS básico
 app.use(cors({
@@ -18,7 +21,9 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok',
     timestamp: new Date().toISOString(),
-    message: 'Backend ultra simple funcionando'
+    message: 'Backend ultra simple funcionando',
+    port: port,
+    envPort: process.env.PORT
   });
 });
 
@@ -27,7 +32,8 @@ app.get('/test', (req, res) => {
   res.json({ 
     message: 'Test exitoso',
     env: process.env.NODE_ENV,
-    port: port
+    port: port,
+    envPort: process.env.PORT
   });
 });
 
@@ -37,6 +43,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Error interno' });
 });
 
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`Servidor ultra simple iniciado en puerto ${port}`);
+  console.log(`Escuchando en todas las interfaces: 0.0.0.0:${port}`);
 }); 

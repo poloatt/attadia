@@ -19,13 +19,16 @@ try {
   console.error('Error al cargar la configuración, usando configuración básica:', error.message);
   config = {
     env: process.env.NODE_ENV || 'development',
-    port: parseInt(process.env.PORT || '5000', 10),
+    port: parseInt(process.env.PORT || '8080', 10),
     mongoUrl: process.env.MONGO_PUBLIC_URL || process.env.MONGO_URL,
     frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
     corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:3000'],
     sessionSecret: process.env.SESSION_SECRET || 'fallback_session_secret'
   };
 }
+
+console.log('Puerto detectado en config:', config.port);
+console.log('process.env.PORT:', process.env.PORT);
 
 const app = express();
 
@@ -158,7 +161,9 @@ app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'ok',
     timestamp: new Date(),
-    env: config.env
+    env: config.env,
+    port: config.port,
+    envPort: process.env.PORT
   });
 });
 
@@ -185,7 +190,7 @@ const startServer = async () => {
     await initializeMonedas();
     console.log('Datos iniciales cargados');
     
-    app.listen(config.port, () => {
+    app.listen(config.port, '0.0.0.0', () => {
       // Asegurarse de que corsOrigins sea un array antes de usar join
       const corsOriginsStr = Array.isArray(config.corsOrigins) 
         ? config.corsOrigins.join(', ')
@@ -199,6 +204,7 @@ const startServer = async () => {
 🔧 Ambiente: ${config.env}
 🔗 Frontend URL: ${config.frontendUrl}
 🛡️ CORS: ${config.isDev ? 'Todos los orígenes (dev)' : corsOriginsStr}
+🔗 Escuchando en: 0.0.0.0:${config.port}
 =================================
       `);
     });
