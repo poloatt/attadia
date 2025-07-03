@@ -3,11 +3,13 @@ import config from '../config.js';
 
 const connectDB = async (retries = 5) => {
   try {
+    // Usar la variable de entorno MONGO_URL si está definida, si no usar config.mongoUrl
+    const mongoUrl = process.env.MONGO_URL || config.mongoUrl;
     console.log('Intentando conectar a MongoDB...');
-    console.log('URL de conexión:', config.mongoUrl);
+    console.log('URL de conexión:', mongoUrl);
     console.log('Ambiente:', config.env);
     
-    const conn = await mongoose.connect(config.mongoUrl, {
+    const conn = await mongoose.connect(mongoUrl, {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
       maxPoolSize: 10,
@@ -30,7 +32,7 @@ const connectDB = async (retries = 5) => {
   } catch (error) {
     console.error('Error al conectar MongoDB:', error.message);
     console.error('Detalles de la conexión:', {
-      url: config.mongoUrl,
+      url: process.env.MONGO_URL || config.mongoUrl,
       ambiente: config.env,
       error: error.stack
     });
