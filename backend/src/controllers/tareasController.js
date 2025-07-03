@@ -152,14 +152,16 @@ class TareasController extends BaseController {
         return res.status(401).json({ error: 'Usuario no autenticado' });
       }
 
-      // Validar que el proyecto exista y pertenezca al usuario
-      const proyecto = await Proyectos.findOne({
-        _id: req.body.proyecto,
-        usuario: req.user.id
-      });
+      // Validar que el proyecto exista y pertenezca al usuario (solo si se especifica proyecto)
+      if (req.body.proyecto) {
+        const proyecto = await Proyectos.findOne({
+          _id: req.body.proyecto,
+          usuario: req.user.id
+        });
 
-      if (!proyecto) {
-        return res.status(404).json({ error: 'El proyecto no existe o no pertenece al usuario' });
+        if (!proyecto) {
+          return res.status(404).json({ error: 'El proyecto no existe o no pertenece al usuario' });
+        }
       }
 
       const tarea = new this.Model({

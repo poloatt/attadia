@@ -62,7 +62,7 @@ const tareaSchema = createSchema({
   proyecto: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Proyectos',
-    required: true
+    required: false
   },
   usuario: {
     type: mongoose.Schema.Types.ObjectId,

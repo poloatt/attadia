@@ -29,11 +29,12 @@ const proyectoSchema = createSchema({
     default: 'MEDIA'
   },
   presupuesto: {
-    monto: Number,
-    moneda: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Monedas'
-    }
+    type: Number,
+    default: 0
+  },
+  moneda: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Monedas'
   },
   archivos: [{
     nombre: String,

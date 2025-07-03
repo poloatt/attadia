@@ -10,8 +10,11 @@ const cuentaSchema = createSchema({
   },
   numero: {
     type: String,
-    required: true,
-    trim: true
+    required: false,
+    trim: true,
+    default: function() {
+      return `ACC-${Date.now()}`;
+    }
   },
   tipo: {
     type: String,
