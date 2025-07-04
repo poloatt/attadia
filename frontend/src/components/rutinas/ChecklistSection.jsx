@@ -136,6 +136,19 @@ const ChecklistSection = ({
   onConfigChange,
   readOnly = false
 }) => {
+  // IMPORTANTE: Validar que la sección existe ANTES de cualquier hook
+  // para evitar el error "Rendered fewer hooks than expected"
+  if (!section || !iconConfig[section]) {
+    console.warn(`[ChecklistSection] Sección no válida o sin configuración de iconos: ${section}`);
+    return (
+      <Box sx={{ mb: 1, bgcolor: '#212121', p: 2 }}>
+        <Typography variant="subtitle1" sx={{ color: 'white' }}>
+          {capitalizeFirstLetter(title) || 'Sección sin título'} - Configuración no disponible
+        </Typography>
+      </Box>
+    );
+  }
+  
   // Contexto de rutinas
   const { rutina, markItemComplete, updateItemConfig, updateUserHabitPreference } = useRutinas();
   
@@ -226,18 +239,6 @@ const ChecklistSection = ({
   const handleToggle = () => {
     setIsExpanded(prev => !prev);
   };
-  
-  // Validar que la sección existe antes de intentar acceder a los iconos
-  if (!section || !iconConfig[section]) {
-    console.warn(`[ChecklistSection] Sección no válida o sin configuración de iconos: ${section}`);
-    return (
-      <Box sx={{ mb: 1, bgcolor: '#212121', p: 2 }}>
-        <Typography variant="subtitle1" sx={{ color: 'white' }}>
-          {capitalizeFirstLetter(title) || 'Sección sin título'} - Configuración no disponible
-        </Typography>
-      </Box>
-    );
-  }
   
   const sectionIcons = iconConfig[section] || {};
   
