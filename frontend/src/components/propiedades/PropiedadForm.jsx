@@ -168,9 +168,9 @@ const PropiedadForm = ({
     tipo: initialData.tipo || 'CASA',
     direccion: initialData.direccion || '',
     ciudad: initialData.ciudad || '',
-    estado: initialData.estado || 'DISPONIBLE',
-    precio: initialData.precio?.toString() || '1',
-    metrosCuadrados: initialData.metrosCuadrados?.toString() || '1',
+    estado: Array.isArray(initialData.estado) ? initialData.estado : (initialData.estado ? [initialData.estado] : ['DISPONIBLE']),
+    precio: initialData.precio?.toString() || '',
+    metrosCuadrados: initialData.metrosCuadrados?.toString() || '',
     caracteristicas: initialData.caracteristicas || [],
     descripcion: initialData.descripcion || '',
     moneda: initialData.moneda?._id || initialData.moneda?.id || initialData.moneda || '',
@@ -213,7 +213,7 @@ const PropiedadForm = ({
         tipo: initialData.tipo || 'CASA',
         direccion: initialData.direccion || '',
         ciudad: initialData.ciudad || '',
-        estado: initialData.estado || 'DISPONIBLE',
+        estado: Array.isArray(initialData.estado) ? initialData.estado : (initialData.estado ? [initialData.estado] : ['DISPONIBLE']),
         precio: initialData.precio?.toString() || '',
         metrosCuadrados: initialData.metrosCuadrados?.toString() || '',
         caracteristicas: initialData.caracteristicas || [],
@@ -313,10 +313,10 @@ const PropiedadForm = ({
 
     const dataToSubmit = {
       ...formData,
-      precio: Number(formData.precio) || 0,
-      metrosCuadrados: Number(formData.metrosCuadrados) || 0,
-      moneda: formData.moneda,
-      cuenta: formData.cuenta,
+      precio: formData.precio ? Number(formData.precio) : 0,
+      metrosCuadrados: formData.metrosCuadrados ? Number(formData.metrosCuadrados) : 0,
+      moneda: formData.moneda || null,
+      cuenta: formData.cuenta || null,
       usuario: user?._id || user?.id
     };
 
@@ -389,12 +389,12 @@ const PropiedadForm = ({
 
     Object.entries(numericFields).forEach(([field, label]) => {
       const value = parseFloat(formData[field]);
-      if (!formData[field] || formData[field].trim() === '' || isNaN(value) || value <= 0) {
-        newErrors[field] = `${label} debe ser mayor a 0`;
+      if (!formData[field] || formData[field].trim() === '' || isNaN(value) || value < 0) {
+        newErrors[field] = `${label} debe ser un número válido (mayor o igual a 0)`;
       }
     });
 
-    // Validación de moneda y cuenta - usar formData en lugar de selectedValues
+    // Validación de moneda y cuenta - Según el modelo, estos campos son opcionales
     console.log('Validando moneda:', { 
       selectedMoneda, 
       formDataMoneda: formData.moneda, 
@@ -406,12 +406,13 @@ const PropiedadForm = ({
       cuentas: relatedData?.cuenta?.length 
     });
 
-    // Usar formData directamente en lugar de selectedValues
-    if (!formData.moneda) {
-      newErrors.moneda = 'La moneda es requerida';
+    // Los campos moneda y cuenta son opcionales según el modelo
+    // Solo validar que si se proporciona un valor, sea válido
+    if (formData.moneda && !selectedMoneda) {
+      newErrors.moneda = 'Moneda no válida';
     }
-    if (!formData.cuenta) {
-      newErrors.cuenta = 'La cuenta es requerida';
+    if (formData.cuenta && !selectedCuenta) {
+      newErrors.cuenta = 'Cuenta no válida';
     }
 
     console.log('Errores de validación:', newErrors);

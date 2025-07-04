@@ -58,7 +58,7 @@ export default function Footer() {
       component="footer"
       sx={{
         position: 'fixed',
-        bottom: 0,
+        bottom: 0, // Posicionar en el espacio reservado del BottomNavigation
         width: '100%',
         height: '32px',
         backgroundColor: 'rgba(26, 27, 30, 0.8)',
@@ -70,7 +70,7 @@ export default function Footer() {
         justifyContent: 'center',
         gap: 2,
         borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-        zIndex: 1200,
+        zIndex: 1201, // Por encima del BottomNavigation (1200)
         left: 0,
         right: 0,
         transition: 'opacity 0.5s ease, transform 0.5s ease', // Mejorar la transición

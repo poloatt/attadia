@@ -72,25 +72,29 @@ export default function BottomNavigation() {
         borderColor: 'divider',
         m: 0,
         p: 0,
+
       }}
     >
       <Box 
         sx={{ 
           display: 'flex',
           justifyContent: 'center',
-          alignItems: 'center',
-          height: '56px',
+          alignItems: 'flex-start', // Alinear al top para dejar espacio abajo
+          height: '88px', // Altura total: 56px navegación + 32px Footer
           width: '100%',
+          pt: 0, // Sin padding top
         }}
       >
         <Box
           sx={{
             display: 'flex',
             justifyContent: 'center',
+            alignItems: 'center',
             gap: 4,
             width: 'auto',
             minWidth: '300px',
-            maxWidth: '400px'
+            maxWidth: '400px',
+            height: '56px', // Altura específica para el contenido de navegación
           }}
         >
           {navItems.map((item, index) => (

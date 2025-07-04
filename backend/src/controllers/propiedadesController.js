@@ -157,19 +157,19 @@ class PropiedadesController extends BaseController {
       const total = await this.Model.countDocuments({ usuario: req.user.id });
       const ocupadas = await this.Model.countDocuments({ 
         usuario: req.user.id,
-        estado: 'OCUPADA'
+        estado: { $in: ['OCUPADA'] }
       });
       const disponibles = await this.Model.countDocuments({ 
         usuario: req.user.id,
-        estado: 'DISPONIBLE'
+        estado: { $in: ['DISPONIBLE'] }
       });
       const mantenimiento = await this.Model.countDocuments({ 
         usuario: req.user.id,
-        estado: 'MANTENIMIENTO'
+        estado: { $in: ['MANTENIMIENTO'] }
       });
       const reservadas = await this.Model.countDocuments({ 
         usuario: req.user.id,
-        estado: 'RESERVADA'
+        estado: { $in: ['RESERVADA'] }
       });
 
       // Obtener estadísticas de habitaciones
@@ -261,7 +261,7 @@ class PropiedadesController extends BaseController {
       const result = await this.Model.paginate(
         { 
           usuario: req.user._id,
-          estado: estado.toUpperCase()
+          estado: { $in: [estado.toUpperCase()] }
         },
         {
           sort: { createdAt: 'desc' }
@@ -282,7 +282,7 @@ class PropiedadesController extends BaseController {
       const result = await this.Model.paginate(
         {
           usuario: req.user._id,
-          estado: 'DISPONIBLE'
+          estado: { $in: ['DISPONIBLE'] }
         },
         {
           sort: { createdAt: 'desc' }
@@ -303,7 +303,7 @@ class PropiedadesController extends BaseController {
       const result = await this.Model.paginate(
         {
           usuario: req.user._id,
-          estado: 'OCUPADA'
+          estado: { $in: ['OCUPADA'] }
         },
         {
           sort: { createdAt: 'desc' }
@@ -324,7 +324,7 @@ class PropiedadesController extends BaseController {
       const result = await this.Model.paginate(
         {
           usuario: req.user._id,
-          estado: 'MANTENIMIENTO'
+          estado: { $in: ['MANTENIMIENTO'] }
         },
         {
           sort: { createdAt: 'desc' }
@@ -485,10 +485,10 @@ class PropiedadesController extends BaseController {
     try {
       const stats = await Promise.all([
         this.Model.countDocuments(),
-        this.Model.countDocuments({ estado: 'DISPONIBLE' }),
-        this.Model.countDocuments({ estado: 'OCUPADA' }),
-        this.Model.countDocuments({ estado: 'MANTENIMIENTO' }),
-        this.Model.countDocuments({ estado: 'RESERVADA' })
+        this.Model.countDocuments({ estado: { $in: ['DISPONIBLE'] } }),
+        this.Model.countDocuments({ estado: { $in: ['OCUPADA'] } }),
+        this.Model.countDocuments({ estado: { $in: ['MANTENIMIENTO'] } }),
+        this.Model.countDocuments({ estado: { $in: ['RESERVADA'] } })
       ]);
       
       res.json({
