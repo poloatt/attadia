@@ -11,8 +11,8 @@ import {
 import {
   Add as AddIcon,
   FilterList as FilterListIcon,
-  TaskAltOutlined as TaskIcon,
-  AssignmentOutlined as ProjectIcon,
+  TaskOutlined as TaskIcon,
+  FolderOutlined as ProjectIcon,
   ArchiveOutlined as ArchiveIcon,
   Visibility as ShowValuesIcon,
   VisibilityOff as HideValuesIcon,
@@ -91,6 +91,21 @@ export function Tareas() {
     fetchProyectos();
   }, [fetchTareas, fetchProyectos]);
 
+  // Escuchar evento del Header para abrir formulario cuando EntityToolbar esté oculto
+  useEffect(() => {
+    const handleHeaderAddButton = (event) => {
+      if (event.detail.type === 'tarea') {
+        setEditingTarea(null);
+        setIsFormOpen(true);
+      }
+    };
+
+    window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
+    return () => {
+      window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
+    };
+  }, []);
+
   const handleFormSubmit = async (formData) => {
     try {
       let response;
@@ -162,7 +177,7 @@ export function Tareas() {
   };
 
   return (
-    <Container maxWidth="xl">
+    <Container maxWidth={isMobile ? "sm" : "xl"} sx={{ px: isMobile ? 1 : 3 }}>
       <EntityToolbar 
         title="Tareas"
         icon={<TaskIcon sx={{ fontSize: 20 }} />}
@@ -191,11 +206,12 @@ export function Tareas() {
 
       <Box 
         sx={{ 
-          py: 2,
-          height: 'calc(100vh - 190px)', // Aumentado para evitar que pase por debajo de BottomNavigation
+          py: isMobile ? 1 : 2,
+          px: isMobile ? 0 : 1,
+          height: isMobile ? 'calc(100vh - 180px)' : 'calc(100vh - 190px)', // Ajustado para móvil
           overflowY: 'auto',
           '&::-webkit-scrollbar': {
-            width: '8px',
+            width: isMobile ? '4px' : '8px',
           },
           '&::-webkit-scrollbar-track': {
             backgroundColor: 'rgba(0,0,0,0.1)',

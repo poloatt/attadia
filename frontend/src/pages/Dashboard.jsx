@@ -24,7 +24,7 @@ import {
   TrendingUpOutlined as IngresosIcon,
   TimerOutlined as PeriodIcon,
   FitnessCenterOutlined as RutinasIcon,
-  AssignmentOutlined as TaskIcon
+  FolderOutlined as TaskIcon
 } from '@mui/icons-material';
 import { toast } from 'react-hot-toast';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';

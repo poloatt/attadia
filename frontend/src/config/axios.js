@@ -28,7 +28,7 @@ const getBaseUrl = () => {
   
   // Entorno de desarrollo (fallback)
   console.log('Detectado entorno de desarrollo');
-  return apiUrl || 'http://localhost:8080';
+  return apiUrl || 'http://localhost:5000';
 };
 
 const baseURL = getBaseUrl();

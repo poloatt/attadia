@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Container, Box, Typography, CircularProgress, Snackbar, Alert, Grid, Paper, Button } from '@mui/material';
+import { Container, Box, Typography, CircularProgress, Snackbar, Alert, Grid, Paper, Button, useTheme, useMediaQuery } from '@mui/material';
 import RutinaTable from '../components/rutinas/RutinaTable';
 import { RutinasProvider, useRutinas } from '../components/rutinas/context/RutinasContext';
 import { RutinaForm } from '../components/rutinas';
@@ -25,6 +25,8 @@ const RutinasWithContext = () => {
   const rutinaId = params.id;
   const navigate = useNavigate();
   const { timezone } = useTimezone(); // Configurar timezone del usuario
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const rutinasContext = useRutinas();
   const { 
     rutina, 
@@ -198,18 +200,19 @@ const RutinasWithContext = () => {
         ]}
       />
       
-      <Container maxWidth="lg" sx={{ 
-        mt: 0, 
-        mb: 4,
-        pb: '104px', // Ajustado para el footer elevado (80px + 24px)
-        minHeight: 'calc(100vh - 104px)' // Ajustado para considerar el nuevo espacio del footer
+            <Container maxWidth={isMobile ? "sm" : "lg"} sx={{
+        mt: 0,
+        mb: isMobile ? 2 : 4,
+        pb: isMobile ? '90px' : '104px', // Ajustado para móvil
+        minHeight: isMobile ? 'calc(100vh - 90px)' : 'calc(100vh - 104px)',
+        px: isMobile ? 1 : 3
       }}>
-        <Box sx={{ 
-          position: 'relative', 
-          maxHeight: 'calc(100vh - 190px)',
+        <Box sx={{
+          position: 'relative',
+          maxHeight: isMobile ? 'calc(100vh - 180px)' : 'calc(100vh - 190px)',
           overflow: 'auto',
           '&::-webkit-scrollbar': {
-            width: '8px',
+            width: isMobile ? '4px' : '8px',
           },
           '&::-webkit-scrollbar-track': {
             backgroundColor: 'transparent',

@@ -20,14 +20,14 @@ import {
   CalendarMonth as DateIcon,
   ScienceOutlined as LabIcon,
   RestaurantOutlined as DietaIcon,
-  AssignmentOutlined as ProjectIcon,
+  FolderOutlined as ProjectIcon,
   CurrencyExchangeOutlined as MoneyIcon,
   AllInboxOutlined as InventoryIcon,
   BedOutlined as BedIcon,
   PeopleOutlined as PeopleIcon,
   DescriptionOutlined as ContratosIcon,
   AccountBalanceOutlined as CuentasIcon,
-  TaskAltOutlined as TaskIcon,
+  TaskOutlined as TaskIcon,
   MonitorWeightOutlined as WeightIcon,
   HealthAndSafety as HealthIcon,
   AutorenewOutlined
@@ -259,6 +259,11 @@ const EntityToolbar = ({
   const entityConfig = getEntityConfig();
 
   const renderForm = () => {
+    // No renderizar formulario si el EntityToolbar está oculto
+    if (!showEntityToolbarNavigation) {
+      return null;
+    }
+
     if (currentPath === 'propiedades') {
       return (
         <PropiedadForm

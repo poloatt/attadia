@@ -39,7 +39,7 @@ import { useRelationalData } from '../../hooks/useRelationalData';
 
 const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }) => {
   const theme = useTheme();
-  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   const [formData, setFormData] = useState({
     nombre: initialData?.nombre || '',
@@ -196,22 +196,40 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      fullScreen={fullScreen}
+      fullScreen={false} // Nunca usar fullScreen completo
       PaperProps={{
         sx: {
           borderRadius: 1,
-          bgcolor: 'grey.900'
+          bgcolor: 'grey.900',
+          // Ajustar height para móviles respetando el bottom navigation
+          ...(isMobile && {
+            position: 'fixed',
+            top: '10px',
+            bottom: '70px', // Espacio para el bottom navigation (56px) + padding
+            left: '8px',
+            right: '8px',
+            margin: 0,
+            maxHeight: 'calc(100vh - 80px)', // Altura máxima respetando header y bottom nav
+            height: 'auto',
+            display: 'flex',
+            flexDirection: 'column'
+          })
         }
       }}
       sx={{
-        zIndex: 1500 // Asegurar que esté por encima del BottomNavigation
+        zIndex: 1300, // Entre el BottomNavigation (1200) y otros elementos críticos
+        // Asegurar que el backdrop no interfiera con el bottom navigation
+        '& .MuiBackdrop-root': {
+          bottom: isMobile ? '56px' : 0 // Respetar el bottom navigation
+        }
       }}
     >
       <DialogTitle sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
-        bgcolor: 'grey.900'
+        bgcolor: 'grey.900',
+        flexShrink: 0 // Evitar que se comprima
       }}>
         <Typography component="div">
           {isEditing ? 'Editar Proyecto' : 'Nuevo Proyecto'}
@@ -249,7 +267,14 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
         </Box>
       </DialogTitle>
       
-      <DialogContent sx={{ bgcolor: 'grey.900', maxHeight: { xs: '60vh', sm: '70vh', md: '75vh' }, overflowY: 'auto' }}>
+      <DialogContent sx={{ 
+        bgcolor: 'grey.900',
+        flex: 1, // Permitir que el contenido se expanda
+        overflowY: 'auto',
+        // Ajustar padding para mejor uso del espacio
+        py: 2,
+        px: 3
+      }}>
         <Stack spacing={2}>
           <TextField
             size="small"
@@ -400,7 +425,7 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
                   displayEmpty: true
                 }}
               >
-                <MenuItem value="">
+                <MenuItem key="empty-moneda" value="">
                   <em>Seleccionar moneda</em>
                 </MenuItem>
                 {relatedData?.moneda?.map((moneda) => (
@@ -440,7 +465,7 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
                   )
                 }}
               >
-                <MenuItem value="">
+                <MenuItem key="empty-propiedad" value="">
                   <em>Sin propiedad asociada</em>
                 </MenuItem>
                 {relatedData?.propiedad?.map((propiedad) => (
@@ -546,7 +571,7 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
             <Stack spacing={1}>
               {formData.tareas.map((tarea, index) => (
                 <Box
-                  key={index}
+                  key={tarea._id || tarea.id || `tarea-${index}`}
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
@@ -604,7 +629,7 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                 {formData.archivos.map((archivo, index) => (
                   <Chip
-                    key={index}
+                    key={archivo.url || archivo.nombre || `archivo-${index}`}
                     label={archivo.nombre}
                     onDelete={() => {
                       setFormData(prev => ({
@@ -629,9 +654,9 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
         gap: 2,
         justifyContent: 'center',
         alignItems: 'center',
-        position: 'sticky',
-        bottom: 0,
-        zIndex: 2
+        borderTop: '1px solid',
+        borderColor: 'divider',
+        flexShrink: 0 // Evitar que se comprima
       }}>
         <Button 
           onClick={onClose}

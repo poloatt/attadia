@@ -13,8 +13,8 @@ import {
   ViewModule as ViewModuleIcon,
   ViewList as ViewListIcon,
   FilterList as FilterListIcon,
-  AssignmentOutlined as ProjectIcon,
-  TaskAltOutlined as TaskIcon,
+  FolderOutlined as ProjectIcon,
+  TaskOutlined as TaskIcon,
   ArchiveOutlined as ArchiveIcon,
   Visibility as ShowValuesIcon,
   VisibilityOff as HideValuesIcon,
@@ -86,6 +86,21 @@ export function Proyectos() {
   useEffect(() => {
     fetchProyectos();
   }, [fetchProyectos]);
+
+  // Escuchar evento del Header para abrir formulario cuando EntityToolbar esté oculto
+  useEffect(() => {
+    const handleHeaderAddButton = (event) => {
+      if (event.detail.type === 'proyecto') {
+        setEditingProyecto(null);
+        setIsFormOpen(true);
+      }
+    };
+
+    window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
+    return () => {
+      window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
+    };
+  }, []);
 
   const handleFormSubmit = async (formData) => {
     try {

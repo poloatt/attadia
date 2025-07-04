@@ -195,6 +195,21 @@ export function Propiedades() {
     return () => clearTimeout(timer);
   }, [fetchPropiedades, fetchRelatedData]);
 
+  // Escuchar evento del Header para abrir formulario cuando EntityToolbar esté oculto
+  useEffect(() => {
+    const handleHeaderAddButton = (event) => {
+      if (event.detail.type === 'propiedad') {
+        setEditingPropiedad(null);
+        setIsFormOpen(true);
+      }
+    };
+
+    window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
+    return () => {
+      window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
+    };
+  }, []);
+
   // Efecto para escuchar eventos de actualización
   useEffect(() => {
     const handleEntityUpdate = (event) => {

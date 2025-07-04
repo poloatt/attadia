@@ -5,7 +5,7 @@ import { AppBar, Toolbar, Typography, Box, BottomNavigation, BottomNavigationAct
 import { 
   DashboardOutlined as DashboardIcon,
   FitnessCenterOutlined as RutinasIcon,
-  TaskAltOutlined as TareasIcon,
+  TaskOutlined as TareasIcon,
   AccountBalanceWalletOutlined as WalletIcon,
   CalendarMonthOutlined as CalendarIcon
 } from '@mui/icons-material';

@@ -11,6 +11,7 @@ import {
   Box,
   Typography,
   useTheme,
+  useMediaQuery,
   Tooltip,
   LinearProgress,
   Stack,
@@ -84,6 +85,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
   const [subtareasLocal, setSubtareasLocal] = useState(tarea.subtareas || []);
   const [isUpdating, setIsUpdating] = useState(false);
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { enqueueSnackbar } = useSnackbar();
   const { maskText } = useValuesVisibility();
 
@@ -349,11 +351,11 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
         onClick={() => setOpen(!open)}
       >
         <TableCell sx={{ py: 0.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 0.5 : 1 }}>
             <IconButton
               size="small"
               sx={{
-                p: 0.25,
+                p: isMobile ? 0.125 : 0.25,
                 transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
                 transition: 'transform 0.2s',
                 color: 'text.secondary'
@@ -366,7 +368,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
                 color="error" 
                 sx={{ 
                   fontWeight: 'bold',
-                  fontSize: '1rem',
+                  fontSize: isMobile ? '0.8rem' : '1rem',
                   lineHeight: 1
                 }}
               >
@@ -380,12 +382,13 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
               justifyContent: 'space-between'
             }}>
               <Typography 
-                variant="body2" 
+                variant={isMobile ? "body2" : "body2"} 
                 sx={{ 
                   minWidth: 0,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
+                  whiteSpace: 'nowrap',
+                  fontSize: isMobile ? '0.8rem' : '0.875rem'
                 }}
               >
                 {showValues ? tarea.titulo : maskText(tarea.titulo)}
@@ -393,14 +396,15 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
             </Box>
           </Box>
         </TableCell>
-        <TableCell align="right" sx={{ width: 120, py: 0.5 }}>
+        <TableCell align="right" sx={{ width: isMobile ? 80 : 120, py: 0.5 }}>
           <Typography 
             variant="caption" 
             sx={{ 
-              color: 'text.secondary'
+              color: 'text.secondary',
+              fontSize: isMobile ? '0.65rem' : '0.75rem'
             }}
           >
-            {tarea.fechaVencimiento ? format(new Date(tarea.fechaVencimiento), 'dd MMM', { locale: es }).toUpperCase() : '---'}
+            {tarea.fechaVencimiento ? format(new Date(tarea.fechaVencimiento), isMobile ? 'dd/MM' : 'dd MMM', { locale: es }).toUpperCase() : '---'}
           </Typography>
         </TableCell>
       </TableRow>
@@ -408,12 +412,12 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
         <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ 
-              p: 2, 
+              p: isMobile ? 1 : 2, 
               bgcolor: theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.02)',
-              maxHeight: '300px', 
+              maxHeight: isMobile ? '250px' : '300px', 
               overflowY: 'auto',
               '&::-webkit-scrollbar': {
-                width: '8px',
+                width: isMobile ? '4px' : '8px',
               },
               '&::-webkit-scrollbar-track': {
                 backgroundColor: 'rgba(0,0,0,0.1)',
@@ -581,6 +585,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
 
 const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues }) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { maskText } = useValuesVisibility();
 
   // Filtrar tareas según si es archivo o no
@@ -611,26 +616,28 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
   );
 
   return (
-    <Stack spacing={2}>
+    <Stack spacing={isMobile ? 1 : 2}>
       {periodosOrdenados.map((periodo) => (
         <Paper 
           key={periodo} 
           sx={{ 
             bgcolor: 'background.paper', 
             borderRadius: 1,
-            overflow: 'hidden'
+            overflow: 'hidden',
+            mx: isMobile ? 0 : 'auto',
+            width: '100%'
           }}
         >
           <Box
             sx={{
-              px: 2,
-              py: 1,
+              px: isMobile ? 1 : 2,
+              py: isMobile ? 0.5 : 1,
               bgcolor: '#141414',
               borderBottom: '1px solid',
               borderColor: 'divider'
             }}
           >
-            <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
+            <Typography variant={isMobile ? "body2" : "subtitle2"} sx={{ fontWeight: 500 }}>
               {periodo} ({tareasAgrupadas[periodo].length})
             </Typography>
           </Box>

@@ -99,14 +99,14 @@ const menuItems = [
   {
     id: 'rutinas',
     title: 'Rutinas',
-    icon: <MonitorHeartOutlined />,
+    icon: <HealthAndSafetyOutlined />,
     path: '/rutinas', // Ruta principal para Rutinas
     hasSubItems: true,
     subItems: [
       {
         title: 'Salud',
         path: '/salud',
-        icon: <HealthAndSafetyOutlined />
+        icon: <MonitorHeartOutlined />
       },
       {
         title: 'Lab',

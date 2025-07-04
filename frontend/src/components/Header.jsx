@@ -9,7 +9,8 @@ import {
 import { 
   MenuOutlined as MenuIcon,
   Visibility as ShowValuesIcon,
-  VisibilityOff as HideValuesIcon
+  VisibilityOff as HideValuesIcon,
+  AddOutlined as AddIcon
 } from '@mui/icons-material';
 import { useSidebar } from '../context/SidebarContext';
 import { useUISettings } from '../context/UISettingsContext';
@@ -18,7 +19,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function Header() {
   const { toggleSidebar, isOpen, isDesktop } = useSidebar();
-  const { showSidebar } = useUISettings();
+  const { showSidebar, showEntityToolbarNavigation } = useUISettings();
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
   const location = useLocation();
   const navigate = useNavigate();
@@ -50,6 +51,130 @@ export default function Header() {
     '/propiedades',
     '/contratos'
   ].includes(location.pathname);
+
+  // Configuración para el botón de crear registros
+  const getEntityConfig = () => {
+    const path = location.pathname.slice(1); // Elimina el / inicial
+    
+    const configs = {
+      proyectos: {
+        name: 'proyecto',
+        action: () => {
+          // Disparar evento para que el componente de la página maneje la creación
+          window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
+            detail: { type: 'proyecto', path: '/proyectos' }
+          }));
+        }
+      },
+      tareas: {
+        name: 'tarea',
+        action: () => {
+          window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
+            detail: { type: 'tarea', path: '/tareas' }
+          }));
+        }
+      },
+      propiedades: {
+        name: 'propiedad',
+        action: () => {
+          window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
+            detail: { type: 'propiedad', path: '/propiedades' }
+          }));
+        }
+      },
+      transacciones: {
+        name: 'transacción',
+        action: () => {
+          window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
+            detail: { type: 'transaccion', path: '/transacciones' }
+          }));
+        }
+      },
+      cuentas: {
+        name: 'cuenta',
+        action: () => {
+          window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
+            detail: { type: 'cuenta', path: '/cuentas' }
+          }));
+        }
+      },
+      monedas: {
+        name: 'moneda',
+        action: () => {
+          window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
+            detail: { type: 'moneda', path: '/monedas' }
+          }));
+        }
+      },
+      rutinas: {
+        name: 'rutina',
+        action: () => {
+          window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
+            detail: { type: 'rutina', path: '/rutinas' }
+          }));
+        }
+      },
+      inquilinos: {
+        name: 'inquilino',
+        action: () => {
+          window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
+            detail: { type: 'inquilino', path: '/inquilinos' }
+          }));
+        }
+      },
+      contratos: {
+        name: 'contrato',
+        action: () => {
+          window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
+            detail: { type: 'contrato', path: '/contratos' }
+          }));
+        }
+      },
+      habitaciones: {
+        name: 'habitación',
+        action: () => {
+          window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
+            detail: { type: 'habitacion', path: '/habitaciones' }
+          }));
+        }
+      },
+      inventario: {
+        name: 'inventario',
+        action: () => {
+          window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
+            detail: { type: 'inventario', path: '/inventario' }
+          }));
+        }
+      },
+      recurrente: {
+        name: 'transacción recurrente',
+        action: () => {
+          window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
+            detail: { type: 'transaccion-recurrente', path: '/recurrente' }
+          }));
+        }
+      }
+    };
+
+    return configs[path] || null;
+  };
+
+  // Rutas donde se debe mostrar el botón de agregar cuando el EntityToolbar esté oculto
+  const showAddButton = !showEntityToolbarNavigation && [
+    '/proyectos',
+    '/tareas',
+    '/propiedades',
+    '/transacciones',
+    '/cuentas',
+    '/monedas',
+    '/rutinas',
+    '/inquilinos',
+    '/habitaciones',
+    '/inventario',
+    '/recurrente'
+  ].includes(location.pathname);
+
+  const entityConfig = getEntityConfig();
 
   return (
     <AppBar 
@@ -85,10 +210,10 @@ export default function Header() {
         }}>
           {showSidebar && (
             <Tooltip title="Menú">
-          <IconButton 
+              <IconButton 
                 onClick={toggleSidebar}
-            sx={{ 
-              color: 'inherit',
+                sx={{ 
+                  color: 'inherit',
                   width: 36,
                   height: 36,
                   minWidth: 0,
@@ -96,11 +221,11 @@ export default function Header() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-              '&:hover': { color: 'text.primary' }
-            }}
-          >
+                  '&:hover': { color: 'text.primary' }
+                }}
+              >
                 <MenuIcon sx={{ fontSize: 20 }} />
-          </IconButton>
+              </IconButton>
             </Tooltip>
           )}
           <Typography 
@@ -116,7 +241,7 @@ export default function Header() {
 
         <Box sx={{ flexGrow: 1 }} />
 
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
+        <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
           {showVisibilityButton && (
             <Tooltip title={showValues ? 'Ocultar valores' : 'Mostrar valores'}>
               <IconButton 
@@ -131,6 +256,22 @@ export default function Header() {
                   <HideValuesIcon sx={{ fontSize: 20 }} /> : 
                   <ShowValuesIcon sx={{ fontSize: 20 }} />
                 }
+              </IconButton>
+            </Tooltip>
+          )}
+
+          {/* Botón de agregar cuando EntityToolbar está oculto */}
+          {showAddButton && entityConfig && (
+            <Tooltip title={`Agregar ${entityConfig.name}`}>
+              <IconButton 
+                size="small"
+                onClick={entityConfig.action}
+                sx={{ 
+                  color: 'inherit',
+                  '&:hover': { color: 'text.primary' }
+                }}
+              >
+                <AddIcon sx={{ fontSize: 20 }} />
               </IconButton>
             </Tooltip>
           )}

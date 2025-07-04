@@ -15,8 +15,8 @@ import {
 import {
   Add as AddIcon,
   FilterList as FilterListIcon,
-  TaskAltOutlined as TaskIcon,
-  AssignmentOutlined as ProjectIcon,
+  TaskOutlined as TaskIcon,
+  FolderOutlined as ProjectIcon,
   ArchiveOutlined as ArchiveIcon,
   Visibility as ShowValuesIcon,
   VisibilityOff as HideValuesIcon,

@@ -50,7 +50,7 @@ const TareaForm = ({
   onProyectosUpdate
 }) => {
   const theme = useTheme();
-  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [isProyectoFormOpen, setIsProyectoFormOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   
@@ -340,22 +340,38 @@ const TareaForm = ({
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      fullScreen={fullScreen}
+      fullScreen={false}
       PaperProps={{
         sx: {
           borderRadius: 1,
-          bgcolor: 'grey.900'
+          bgcolor: 'grey.900',
+          ...(isMobile && {
+            position: 'fixed',
+            top: '10px',
+            bottom: '70px',
+            left: '8px',
+            right: '8px',
+            margin: 0,
+            maxHeight: 'calc(100vh - 80px)',
+            height: 'auto',
+            display: 'flex',
+            flexDirection: 'column'
+          })
         }
       }}
       sx={{
-        zIndex: 1500 // Asegurar que esté por encima del BottomNavigation
+        zIndex: 1300,
+        '& .MuiBackdrop-root': {
+          bottom: isMobile ? '56px' : 0
+        }
       }}
     >
       <DialogTitle sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
-        bgcolor: 'grey.900'
+        bgcolor: 'grey.900',
+        flexShrink: 0
       }}>
         <Typography component="div">
           {isEditing ? 'Editar Tarea' : 'Nueva Tarea'}
@@ -394,9 +410,11 @@ const TareaForm = ({
       </DialogTitle>
       
       <DialogContent sx={{ 
-        bgcolor: 'grey.900', 
-        maxHeight: { xs: '60vh', sm: '70vh', md: '75vh' }, 
-        overflowY: 'auto' 
+        bgcolor: 'grey.900',
+        flex: 1,
+        overflowY: 'auto',
+        py: 2,
+        px: 3
       }}>
         <Stack spacing={2}>
           <TextField
@@ -559,7 +577,7 @@ const TareaForm = ({
                     key={proyecto._id || `proyecto-${proyecto.id}`} 
                     value={proyecto._id || proyecto.id}
                   >
-                    {proyecto.titulo || proyecto.nombre}
+                    {proyecto.nombre || proyecto.titulo}
                   </MenuItem>
                 ))}
               </TextField>
@@ -746,11 +764,9 @@ const TareaForm = ({
         gap: 2,
         justifyContent: 'center',
         alignItems: 'center',
-        position: 'sticky',
-        bottom: 0,
-        zIndex: 2,
         borderTop: '1px solid',
-        borderColor: 'divider'
+        borderColor: 'divider',
+        flexShrink: 0
       }}>
         <Button 
           onClick={onClose}
