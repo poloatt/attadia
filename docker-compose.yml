@@ -13,6 +13,7 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
+      - ./data/backups:/mongodb_backup
     networks:
       - app_network
     healthcheck:
@@ -39,7 +40,7 @@ services:
       - ./backend/.env
     environment:
       - NODE_ENV=development
-      - MONGODB_URI=mongodb://admin:MiContraseñaSegura123@mongodb:27017/present?authSource=admin
+      - MONGO_URL=mongodb://admin:MiContraseñaSegura123@mongodb:27017/present?authSource=admin
       - PORT=5000
     volumes:
       - ./backend:/app

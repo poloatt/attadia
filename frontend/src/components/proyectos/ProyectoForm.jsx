@@ -203,6 +203,9 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
           bgcolor: 'grey.900'
         }
       }}
+      sx={{
+        zIndex: 1500 // Asegurar que esté por encima del BottomNavigation
+      }}
     >
       <DialogTitle sx={{ 
         display: 'flex', 
