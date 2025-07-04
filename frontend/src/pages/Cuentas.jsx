@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Container, 
   Box,
@@ -433,9 +433,8 @@ export function Cuentas() {
     }
   };
 
-  const getCuentasAgrupadasPorMoneda = () => {
-    console.log('Agrupando cuentas por moneda');
-    
+  // Memoizar la función para evitar recálculos innecesarios
+  const cuentasAgrupadasPorMoneda = useMemo(() => {
     // Preparar un objeto para almacenar las cuentas agrupadas por moneda
     const grupos = {};
     
@@ -513,7 +512,7 @@ export function Cuentas() {
     return Object.fromEntries(
       Object.entries(grupos).filter(([_, grupo]) => grupo.cuentas.length > 0)
     );
-  };
+  }, [monedas, cuentas, balances, balancesPorMoneda]);
 
   return (
     <Container maxWidth="lg" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
@@ -572,10 +571,8 @@ export function Cuentas() {
           </Box>
         ) : (
           <Box sx={{ mt: 3 }}>
-            {Object.entries(getCuentasAgrupadasPorMoneda()).map(([monedaId, grupo]) => {
-              console.log('Renderizando grupo:', { monedaId, grupo });
+            {Object.entries(cuentasAgrupadasPorMoneda).map(([monedaId, grupo]) => {
               if (!grupo.moneda) {
-                console.log('Moneda no encontrada para grupo:', monedaId);
                 return null;
               }
               

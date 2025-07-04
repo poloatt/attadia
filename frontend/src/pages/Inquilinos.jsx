@@ -173,7 +173,7 @@ export function Inquilinos() {
       {/* Filtros de grupos */}
       <Box sx={{ mt: 2, mb: 2, display: 'flex', gap: 1 }}>
         <Chip
-          label={`Inquilinos Activos (${inquilinos.filter(i => ['ACTIVO', 'RESERVADO', 'PENDIENTE'].includes(i.estado || 'PENDIENTE')).length})`}
+          label={`Inquilinos Activos (${conteoInquilinos.activos})`}
           onClick={() => setActiveFilter('activos')}
           color={activeFilter === 'activos' ? 'primary' : 'default'}
           variant={activeFilter === 'activos' ? 'filled' : 'outlined'}
@@ -184,7 +184,7 @@ export function Inquilinos() {
           }}
         />
         <Chip
-          label={`Inquilinos Inactivos (${inquilinos.filter(i => ['INACTIVO', 'SIN_CONTRATO'].includes(i.estado || 'PENDIENTE')).length})`}
+          label={`Inquilinos Inactivos (${conteoInquilinos.inactivos})`}
           onClick={() => setActiveFilter('inactivos')}
           color={activeFilter === 'inactivos' ? 'primary' : 'default'}
           variant={activeFilter === 'inactivos' ? 'filled' : 'outlined'}
