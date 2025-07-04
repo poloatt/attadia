@@ -12,6 +12,7 @@ export { default as SeleccionDias } from './SeleccionDias';
 export { default as FrecuenciaControl } from './FrecuenciaControl';
 export { RutinaNavigation } from './RutinaNavigation';
 export { default as InlineItemConfig } from './InlineItemConfig';
+export { default as InlineItemConfigImproved } from './InlineItemConfigImproved';
 
 // Contexto y Provider
 export { RutinasProvider, useRutinas } from './context/RutinasContext';

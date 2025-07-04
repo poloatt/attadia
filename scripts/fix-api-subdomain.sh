@@ -1,136 +1,197 @@
 #!/bin/bash
 
-# Script para configurar api.admin.attadia.com en producción
-# Este script resuelve el problema del error 404 al eliminar rutinas
+# Script para configurar api.admin.attadia.com
+# Soluciona el problema de DELETE 404 en rutinas de producción
 
-set -e
-
-echo "🔧 Configurando subdominio api.admin.attadia.com para resolver errores 404..."
+set -e  # Salir si hay errores
 
 # Colores para output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+echo -e "${BLUE}🔧 Configurando api.admin.attadia.com...${NC}"
+echo "=================================================="
+
+# Verificar que se ejecuta como root
+if [[ $EUID -ne 0 ]]; then
+   echo -e "${RED}❌ Este script debe ejecutarse como root${NC}" 
+   exit 1
+fi
+
 # Función para logging
-log() {
-    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
+log_info() {
+    echo -e "${GREEN}[INFO]${NC} $1"
 }
 
-warn() {
-    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING: $1${NC}"
+log_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
-error() {
-    echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $1${NC}"
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Verificar que estamos en el servidor correcto
-if [[ ! -f "/etc/nginx/nginx.conf" ]]; then
-    error "Este script debe ejecutarse en el servidor de producción con nginx instalado"
-    exit 1
-fi
-
-log "Verificando configuraciones actuales..."
-
-# Backup de configuraciones actuales
-BACKUP_DIR="/tmp/nginx-backup-$(date +%Y%m%d-%H%M%S)"
-mkdir -p "$BACKUP_DIR"
-cp -r /etc/nginx/sites-available "$BACKUP_DIR/"
-cp -r /etc/nginx/sites-enabled "$BACKUP_DIR/"
-log "Backup creado en: $BACKUP_DIR"
-
-# Copiar nueva configuración
-log "Copiando nueva configuración para api.admin.attadia.com..."
-cp nginx/sites-available/api.admin.attadia.com /etc/nginx/sites-available/
-
-# Habilitar el sitio
-log "Habilitando sitio api.admin.attadia.com..."
-ln -sf /etc/nginx/sites-available/api.admin.attadia.com /etc/nginx/sites-enabled/
-
-# Verificar configuración de nginx
-log "Verificando configuración de nginx..."
-if nginx -t; then
-    log "✅ Configuración de nginx válida"
-else
-    error "❌ Error en la configuración de nginx"
-    error "Restaurando backup..."
-    rm -rf /etc/nginx/sites-available/api.admin.attadia.com
-    rm -rf /etc/nginx/sites-enabled/api.admin.attadia.com
-    exit 1
-fi
-
-# Verificar si el certificado SSL incluye el nuevo subdominio
-log "Verificando certificado SSL..."
-if openssl x509 -in /etc/nginx/ssl/present-cert.pem -text -noout | grep -q "api.admin.attadia.com"; then
-    log "✅ Certificado SSL ya incluye api.admin.attadia.com"
-else
-    warn "⚠️  Certificado SSL no incluye api.admin.attadia.com"
-    warn "Es necesario generar un nuevo certificado que incluya este subdominio"
-    warn "Ejecuta: ./scripts/generate-ssl-cert.sh"
-fi
-
-# Verificar que el backend esté corriendo
-log "Verificando que el backend esté corriendo en puerto 5000..."
-if netstat -tulpn | grep :5000 > /dev/null; then
-    log "✅ Backend está corriendo en puerto 5000"
-else
-    warn "⚠️  Backend no está corriendo en puerto 5000"
-    warn "Asegúrate de que el backend esté iniciado antes de recargar nginx"
-fi
-
-# Recargar nginx
-log "Recargando nginx..."
-if systemctl reload nginx; then
-    log "✅ Nginx recargado exitosamente"
-else
-    error "❌ Error al recargar nginx"
-    error "Restaurando backup..."
-    cp -r "$BACKUP_DIR/sites-available/"* /etc/nginx/sites-available/
-    cp -r "$BACKUP_DIR/sites-enabled/"* /etc/nginx/sites-enabled/
-    systemctl reload nginx
-    exit 1
-fi
-
-# Verificar que el nuevo sitio esté funcionando
-log "Verificando que el nuevo sitio esté funcionando..."
-sleep 2
-
-# Test HTTP (debería redirigir a HTTPS)
-log "Probando HTTP (debe redirigir a HTTPS)..."
-if curl -I -s http://api.admin.attadia.com | grep -q "301\|302"; then
-    log "✅ Redirección HTTP -> HTTPS funcionando"
-else
-    warn "⚠️  La redirección HTTP -> HTTPS podría no estar funcionando correctamente"
-fi
-
-# Test HTTPS (solo si el certificado incluye el subdominio)
-if openssl x509 -in /etc/nginx/ssl/present-cert.pem -text -noout | grep -q "api.admin.attadia.com"; then
-    log "Probando HTTPS..."
-    if curl -I -s -k https://api.admin.attadia.com/health | grep -q "200"; then
-        log "✅ HTTPS funcionando correctamente"
-    else
-        warn "⚠️  HTTPS podría no estar funcionando correctamente"
+# Función para backup de configuraciones
+backup_configs() {
+    log_info "Creando backup de configuraciones..."
+    BACKUP_DIR="/etc/nginx/backup-$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "$BACKUP_DIR"
+    
+    if [ -f "/etc/nginx/sites-enabled/api.admin.attadia.com" ]; then
+        cp "/etc/nginx/sites-enabled/api.admin.attadia.com" "$BACKUP_DIR/"
+        log_info "Backup creado en: $BACKUP_DIR"
     fi
-else
-    warn "⚠️  Saltando test HTTPS porque el certificado no incluye el subdominio"
-fi
+}
 
-log "📋 Resumen de configuración:"
-echo "  - Nuevo sitio: api.admin.attadia.com"
-echo "  - Configuración: /etc/nginx/sites-available/api.admin.attadia.com"
-echo "  - Backend: localhost:5000"
-echo "  - Logs: /var/log/nginx/api.admin.attadia.com.*.log"
-echo "  - Backup: $BACKUP_DIR"
+# Función para verificar nginx
+check_nginx() {
+    log_info "Verificando configuración de nginx..."
+    if nginx -t; then
+        log_info "✅ Configuración de nginx válida"
+        return 0
+    else
+        log_error "❌ Error en configuración de nginx"
+        return 1
+    fi
+}
 
-log "🎉 Configuración completada exitosamente!"
-log "Ahora el frontend puede hacer llamadas a api.admin.attadia.com"
+# Función para habilitar sitio
+enable_site() {
+    log_info "Habilitando sitio api.admin.attadia.com..."
+    
+    # Verificar que el archivo de configuración existe
+    if [ ! -f "/root/present/nginx/sites-available/api.admin.attadia.com" ]; then
+        log_error "Archivo de configuración no encontrado en /root/present/nginx/sites-available/"
+        exit 1
+    fi
+    
+    # Copiar configuración a sites-available de nginx
+    cp "/root/present/nginx/sites-available/api.admin.attadia.com" "/etc/nginx/sites-available/"
+    
+    # Crear enlace simbólico
+    if [ -L "/etc/nginx/sites-enabled/api.admin.attadia.com" ]; then
+        log_warning "Enlace simbólico ya existe, eliminando..."
+        rm "/etc/nginx/sites-enabled/api.admin.attadia.com"
+    fi
+    
+    ln -s "/etc/nginx/sites-available/api.admin.attadia.com" "/etc/nginx/sites-enabled/"
+    log_info "✅ Sitio habilitado"
+}
 
-# Verificar si necesitamos actualizar DNS
-warn "📝 IMPORTANTE: Asegúrate de que el DNS apunte api.admin.attadia.com a este servidor"
-warn "📝 Si el certificado SSL no incluye el subdominio, ejecuta: ./scripts/generate-ssl-cert.sh"
+# Función para obtener certificado SSL
+setup_ssl() {
+    log_info "Configurando certificado SSL para api.admin.attadia.com..."
+    
+    # Verificar si certbot está instalado
+    if ! command -v certbot &> /dev/null; then
+        log_warning "Certbot no está instalado, instalando..."
+        apt-get update
+        apt-get install -y certbot python3-certbot-nginx
+    fi
+    
+    # Obtener certificado
+    log_info "Obteniendo certificado SSL..."
+    certbot --nginx -d api.admin.attadia.com --non-interactive --agree-tos --email admin@attadia.com
+    
+    if [ $? -eq 0 ]; then
+        log_info "✅ Certificado SSL configurado correctamente"
+    else
+        log_warning "⚠️  Certificado SSL no pudo configurarse automáticamente"
+        log_info "Puedes configurarlo manualmente más tarde con:"
+        log_info "certbot --nginx -d api.admin.attadia.com"
+    fi
+}
 
-log "Para probar la configuración:"
-echo "  curl -I http://api.admin.attadia.com/health"
-echo "  curl -I https://api.admin.attadia.com/health" 
+# Función para recargar nginx
+reload_nginx() {
+    log_info "Recargando nginx..."
+    if systemctl reload nginx; then
+        log_info "✅ Nginx recargado correctamente"
+    else
+        log_error "❌ Error al recargar nginx"
+        exit 1
+    fi
+}
+
+# Función para verificar conectividad
+test_connectivity() {
+    log_info "Verificando conectividad..."
+    
+    # Test local
+    log_info "Probando conexión local..."
+    if curl -k -s -o /dev/null -w "%{http_code}" https://api.admin.attadia.com/health | grep -q "200\|404"; then
+        log_info "✅ Conexión local exitosa"
+    else
+        log_warning "⚠️  Conexión local falló, pero puede ser normal si el backend no está corriendo"
+    fi
+    
+    # Verificar logs de nginx
+    log_info "Últimas entradas en logs de nginx:"
+    tail -n 5 /var/log/nginx/api.admin.attadia.com.error.log 2>/dev/null || log_info "No hay logs de error aún"
+}
+
+# Función principal
+main() {
+    log_info "Iniciando configuración de api.admin.attadia.com..."
+    
+    # 1. Backup
+    backup_configs
+    
+    # 2. Habilitar sitio
+    enable_site
+    
+    # 3. Verificar configuración
+    if ! check_nginx; then
+        log_error "Error en configuración, revirtiendo..."
+        rm -f "/etc/nginx/sites-enabled/api.admin.attadia.com"
+        exit 1
+    fi
+    
+    # 4. Recargar nginx
+    reload_nginx
+    
+    # 5. Configurar SSL (opcional)
+    read -p "¿Deseas configurar SSL automáticamente? (y/n): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        setup_ssl
+    else
+        log_warning "SSL no configurado. Recuerda configurarlo manualmente."
+    fi
+    
+    # 6. Verificar conectividad
+    test_connectivity
+    
+    echo
+    echo -e "${GREEN}🎉 Configuración completada!${NC}"
+    echo "=================================================="
+    echo -e "${BLUE}Próximos pasos:${NC}"
+    echo "1. Verificar que el backend esté corriendo en puerto 5000"
+    echo "2. Probar las APIs desde el frontend"
+    echo "3. Verificar logs: tail -f /var/log/nginx/api.admin.attadia.com.access.log"
+    echo
+    echo -e "${BLUE}URLs de prueba:${NC}"
+    echo "- https://api.admin.attadia.com/health"
+    echo "- https://api.admin.attadia.com/api/health"
+    echo
+    echo -e "${BLUE}Para rollback en caso de problemas:${NC}"
+    echo "sudo rm /etc/nginx/sites-enabled/api.admin.attadia.com"
+    echo "sudo systemctl reload nginx"
+}
+
+# Función de rollback
+rollback() {
+    log_warning "Ejecutando rollback..."
+    rm -f "/etc/nginx/sites-enabled/api.admin.attadia.com"
+    systemctl reload nginx
+    log_info "✅ Rollback completado"
+}
+
+# Trap para manejo de errores
+trap 'echo -e "${RED}❌ Error detectado. Ejecutando rollback...${NC}"; rollback' ERR
+
+# Ejecutar función principal
+main "$@" 

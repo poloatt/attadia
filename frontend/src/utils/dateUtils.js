@@ -14,6 +14,7 @@ let userTimezone = 'America/Santiago'; // Timezone por defecto
 export const setUserTimezone = (timezone) => {
   if (timezone) {
     userTimezone = timezone;
+    console.log('[dateUtils] Timezone configurado:', timezone);
   }
 };
 
@@ -25,6 +26,7 @@ export const getUserTimezone = () => userTimezone;
 
 /**
  * Formatea una fecha para la API usando el timezone del usuario
+ * Maneja específicamente el caso donde el usuario selecciona una fecha en el date picker
  * @param {Date|string} date - Fecha a formatear
  * @returns {string} Fecha en formato YYYY-MM-DD
  */
@@ -32,30 +34,44 @@ export const formatDateForAPI = (date) => {
   if (!date) return null;
   
   try {
-    // Asegurar que tenemos un objeto Date
-    const d = date instanceof Date ? date : new Date(date);
+    let inputDate;
     
-    // Verificar que la fecha es válida
-    if (isNaN(d.getTime())) {
-      console.warn('[dateUtils] Fecha inválida en formatDateForAPI:', date);
+    // Manejar diferentes tipos de entrada
+    if (typeof date === 'string') {
+      // Si ya es formato YYYY-MM-DD, devolverlo tal como está
+      if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        console.debug('[dateUtils] formatDateForAPI - String en formato YYYY-MM-DD:', date);
+        return date;
+      }
+      inputDate = new Date(date);
+    } else if (date instanceof Date) {
+      inputDate = date;
+    } else {
+      console.warn('[dateUtils] formatDateForAPI - Tipo de fecha no soportado:', typeof date, date);
       return null;
     }
     
-    // Usar el timezone del usuario para formatear la fecha
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: userTimezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
+    // Verificar que la fecha es válida
+    if (isNaN(inputDate.getTime())) {
+      console.warn('[dateUtils] formatDateForAPI - Fecha inválida:', date);
+      return null;
+    }
     
-    const formatted = formatter.format(d);
+    // Cuando el usuario selecciona una fecha en el date picker, queremos usar exactamente
+    // los componentes de fecha (año, mes, día) que el usuario vio y seleccionó
+    const year = inputDate.getFullYear();
+    const month = String(inputDate.getMonth() + 1).padStart(2, '0'); // Mes 1-12
+    const day = String(inputDate.getDate()).padStart(2, '0');
+    
+    const formatted = `${year}-${month}-${day}`;
+    
     console.debug('[dateUtils] formatDateForAPI:', {
       input: date,
       inputType: typeof date,
+      inputDate: inputDate.toISOString(),
+      localComponents: { year, month, day },
       result: formatted,
-      timezone: userTimezone,
-      originalDate: d.toISOString()
+      timezone: userTimezone
     });
     
     return formatted;

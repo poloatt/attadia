@@ -24,7 +24,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import TuneIcon from '@mui/icons-material/Tune';
 import { iconConfig } from './utils/iconConfig';
 import ItemCadenciaConfig from './ItemCadenciaConfig';
-import InlineItemConfig from './InlineItemConfig';
+import InlineItemConfigImproved from './InlineItemConfigImproved';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useRutinas } from './context/RutinasContext';
@@ -848,11 +848,11 @@ const ChecklistSection = ({
                   mb: 2
                 }}
               >
-                <InlineItemConfig
-                  section={section}
-                  itemId={itemId}
+                <InlineItemConfigImproved
                   config={config[itemId] || {}}
-                  onChange={(newConfig) => onConfigChange(itemId, newConfig)}
+                  onConfigChange={(newConfig) => onConfigChange(itemId, newConfig)}
+                  itemId={itemId}
+                  sectionId={section}
                 />
               </Box>
             </Box>

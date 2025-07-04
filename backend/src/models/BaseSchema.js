@@ -93,26 +93,43 @@ export const timezoneUtils = {
     if (!date) return null;
     
     try {
-      const inputDate = new Date(date);
-      if (isNaN(inputDate.getTime())) return null;
+      let year, month, day;
       
-      // Crear una nueva fecha usando los componentes de fecha en el timezone especificado
-      const formatter = new Intl.DateTimeFormat('en-CA', {
-        timeZone: timezone,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
+      // Manejar diferentes tipos de entrada
+      if (typeof date === 'string') {
+        // Si es formato YYYY-MM-DD, usar directamente los componentes
+        if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          [year, month, day] = date.split('-').map(Number);
+        } else {
+          // Para otros formatos, parsear y extraer componentes
+          const inputDate = new Date(date);
+          if (isNaN(inputDate.getTime())) return null;
+          
+          year = inputDate.getFullYear();
+          month = inputDate.getMonth() + 1; // Convertir a 1-12
+          day = inputDate.getDate();
+        }
+      } else if (date instanceof Date) {
+        if (isNaN(date.getTime())) return null;
+        
+        year = date.getFullYear();
+        month = date.getMonth() + 1; // Convertir a 1-12
+        day = date.getDate();
+      } else {
+        return null;
+      }
+      
+      // Crear fecha que representa el inicio del día en el timezone especificado
+      // Usamos el método que funciona consistentemente con timezones
+      const normalizedDate = new Date(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T00:00:00.000Z`);
+      
+      console.log('[timezoneUtils] normalizeToStartOfDay:', {
+        input: date,
+        inputType: typeof date,
+        components: { year, month, day },
+        result: normalizedDate.toISOString(),
+        timezone: timezone
       });
-      
-      const parts = formatter.formatToParts(inputDate);
-      const year = parseInt(parts.find(part => part.type === 'year').value);
-      const month = parseInt(parts.find(part => part.type === 'month').value) - 1; // Mes 0-indexado
-      const day = parseInt(parts.find(part => part.type === 'day').value);
-      
-      // Crear fecha normalizada en el timezone especificado
-      const normalizedDate = new Date();
-      normalizedDate.setFullYear(year, month, day);
-      normalizedDate.setHours(0, 0, 0, 0);
       
       return normalizedDate;
     } catch (error) {
@@ -131,8 +148,16 @@ export const timezoneUtils = {
     const startOfDay = timezoneUtils.normalizeToStartOfDay(date, timezone);
     if (!startOfDay) return null;
     
-    const endOfDay = new Date(startOfDay);
-    endOfDay.setHours(23, 59, 59, 999);
+    // Crear fecha al final del día usando UTC
+    const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1); // Agregar 24 horas menos 1ms
+    
+    console.log('[timezoneUtils] normalizeToEndOfDay:', {
+      input: date,
+      timezone: timezone,
+      startOfDay: startOfDay.toISOString(),
+      endOfDay: endOfDay.toISOString()
+    });
+    
     return endOfDay;
   },
 

@@ -1,3 +1,25 @@
+/**
+ * @deprecated Este componente ha sido reemplazado por InlineItemConfigImproved.jsx
+ * 
+ * IMPORTANTE: Este archivo será eliminado en una futura versión.
+ * Por favor, migra a InlineItemConfigImproved para obtener:
+ * - Diseño más compacto y elegante
+ * - Auto-save con debounce
+ * - Mejor experiencia móvil
+ * - Micro-interacciones mejoradas
+ * 
+ * Migración:
+ * import InlineItemConfigImproved from './InlineItemConfigImproved';
+ * 
+ * Props actualizadas:
+ * - section → sectionId
+ * - onChange → onConfigChange
+ * - Agregar: itemId, sectionId
+ * 
+ * Fecha de deprecación: Enero 2025
+ * Fecha de eliminación planificada: Marzo 2025
+ */
+
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,

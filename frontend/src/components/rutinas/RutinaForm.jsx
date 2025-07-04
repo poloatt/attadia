@@ -199,7 +199,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
     
     autoSaveTimeout.current = setTimeout(() => {
       console.log('[RutinaForm] Auto-guardando cambios de configuración...');
-      handleSave();
+      handleAutoSave();
     }, 500);
   };
 
@@ -246,6 +246,51 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
       console.log('[RutinaForm] Configuración por defecto inicializada para nueva rutina');
     }
   }, []);
+
+  // Función para auto-guardado (no cierra el formulario)
+  const handleAutoSave = async () => {
+    if (submitInProgress.current) {
+      console.log('[RutinaForm] Envío ya en progreso, ignorando auto-save');
+      return;
+    }
+    
+    if (fechaError) {
+      console.log('[RutinaForm] Fecha con error, saltando auto-save');
+      return;
+    }
+    
+    // Solo auto-guardar si estamos editando una rutina existente
+    if (!isEditing || !initialData?._id) {
+      console.log('[RutinaForm] Auto-save solo disponible para rutinas existentes');
+      return;
+    }
+    
+    try {
+      console.log('[RutinaForm] Ejecutando auto-save...');
+      
+      const rutinaToSubmit = {
+        fecha: formData.fecha ? formatDateForAPI(formData.fecha) : undefined,
+        useGlobalConfig: true,
+        config: rutinaData.config
+      };
+      
+      const response = await clienteAxios.put(`/api/rutinas/${initialData._id}`, rutinaToSubmit);
+      
+      console.log('[RutinaForm] Auto-save exitoso:', response.status);
+      
+      // Disparar evento para actualizar la lista sin notificación
+      window.dispatchEvent(new CustomEvent('rutina-updated', { 
+        detail: { 
+          rutina: response.data,
+          action: 'auto-save'
+        } 
+      }));
+      
+    } catch (error) {
+      console.error('[RutinaForm] Error en auto-save:', error);
+      // No mostrar error al usuario para auto-save
+    }
+  };
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
