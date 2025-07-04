@@ -613,7 +613,6 @@ export function Cuentas() {
 
                   <Box>
                     {grupo.cuentas.map((cuenta) => {
-                      console.log('Renderizando cuenta:', cuenta);
                       return (
                         <Box
                           key={cuenta._id || cuenta.id}
