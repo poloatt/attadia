@@ -134,6 +134,13 @@ export function Inquilinos() {
     });
   }, [inquilinos, activeFilter]);
 
+  // Memorizar conteos para evitar recálculos en cada renderizado
+  const conteoInquilinos = useMemo(() => {
+    const activos = inquilinos.filter(i => ['ACTIVO', 'RESERVADO', 'PENDIENTE'].includes(i.estado || 'PENDIENTE')).length;
+    const inactivos = inquilinos.filter(i => ['INACTIVO', 'SIN_CONTRATO'].includes(i.estado || 'PENDIENTE')).length;
+    return { activos, inactivos };
+  }, [inquilinos]);
+
   return (
     <Container maxWidth={false}>
       <EntityToolbar
