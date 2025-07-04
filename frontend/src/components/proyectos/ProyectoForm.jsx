@@ -35,6 +35,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { es } from 'date-fns/locale';
 import TareasSection from './TareasSection';
 import TareaForm from './TareaForm';
+import { useRelationalData } from '../../hooks/useRelationalData';
 
 const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }) => {
   const theme = useTheme();
@@ -56,11 +57,41 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
 
   const [errors, setErrors] = useState({});
   const [isTareaFormOpen, setIsTareaFormOpen] = useState(false);
+  
+  // Datos relacionales para monedas y propiedades
+  const relatedFields = [
+    { 
+      type: 'relational',
+      name: 'moneda',
+      endpoint: '/monedas',
+      labelField: 'nombre',
+      populate: []
+    },
+    { 
+      type: 'relational',
+      name: 'propiedad',
+      endpoint: '/propiedades',
+      labelField: 'titulo',
+      populate: []
+    }
+  ];
+  
+  const { relatedData, isLoading: isLoadingRelated } = useRelationalData({
+    open,
+    relatedFields
+  });
 
   const handleChange = (field) => (event) => {
+    const value = event.target.value;
+    
+    // Convertir valores numéricos para presupuesto
+    const finalValue = field === 'presupuesto' ? 
+      (value === '' ? 0 : Number(value.replace(/[^0-9]/g, ''))) : 
+      value;
+    
     setFormData(prev => ({
       ...prev,
-      [field]: event.target.value
+      [field]: finalValue
     }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: null }));
@@ -316,6 +347,105 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
                   {formData.prioridad === 'ALTA' ? 'Alta' : 'Baja'}
                 </Button>
               </Tooltip>
+            </Grid>
+          </Grid>
+
+          <Grid container spacing={2} sx={{ px: 2 }}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                size="small"
+                label="Presupuesto"
+                fullWidth
+                value={formData.presupuesto}
+                onChange={handleChange('presupuesto')}
+                error={!!errors.presupuesto}
+                helperText={errors.presupuesto}
+                type="number"
+                sx={{
+                  ...commonInputStyles,
+                  '& .MuiInputBase-root': {
+                    mx: -2
+                  }
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <MoneyIcon />
+                    </InputAdornment>
+                  )
+                }}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <TextField
+                select
+                size="small"
+                label="Moneda"
+                fullWidth
+                value={formData.moneda || ''}
+                onChange={handleChange('moneda')}
+                error={!!errors.moneda}
+                helperText={errors.moneda}
+                sx={{
+                  ...commonInputStyles,
+                  '& .MuiInputBase-root': {
+                    mx: -2
+                  }
+                }}
+                SelectProps={{
+                  displayEmpty: true
+                }}
+              >
+                <MenuItem value="">
+                  <em>Seleccionar moneda</em>
+                </MenuItem>
+                {relatedData?.moneda?.map((moneda) => (
+                  <MenuItem key={moneda._id} value={moneda._id}>
+                    {moneda.simbolo} - {moneda.nombre}
+                  </MenuItem>
+                ))}
+                             </TextField>
+             </Grid>
+           </Grid>
+
+          <Grid container spacing={2} sx={{ px: 2 }}>
+            <Grid item xs={12}>
+              <TextField
+                select
+                size="small"
+                label="Propiedad"
+                fullWidth
+                value={formData.propiedad || ''}
+                onChange={handleChange('propiedad')}
+                error={!!errors.propiedad}
+                helperText={errors.propiedad}
+                sx={{
+                  ...commonInputStyles,
+                  '& .MuiInputBase-root': {
+                    mx: -2
+                  }
+                }}
+                SelectProps={{
+                  displayEmpty: true
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <HomeIcon />
+                    </InputAdornment>
+                  )
+                }}
+              >
+                <MenuItem value="">
+                  <em>Sin propiedad asociada</em>
+                </MenuItem>
+                {relatedData?.propiedad?.map((propiedad) => (
+                  <MenuItem key={propiedad._id} value={propiedad._id}>
+                    {propiedad.titulo}
+                  </MenuItem>
+                ))}
+              </TextField>
             </Grid>
           </Grid>
 
