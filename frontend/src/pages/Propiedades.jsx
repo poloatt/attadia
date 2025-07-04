@@ -3,7 +3,6 @@ import {
   Box, 
   Button, 
   Typography, 
-  Container,
   Grid,
   Card,
   CardContent,
@@ -337,7 +336,7 @@ export function Propiedades() {
 
   if (loading) {
     return (
-      <Container sx={{ py: 4 }}>
+      <Box sx={{ px: 0, py: 1 }}>
         <Grid container spacing={4}>
           {[1, 2, 3, 4].map((item) => (
             <Grid item key={item} xs={12} sm={6} md={4} lg={3}>
@@ -347,20 +346,20 @@ export function Propiedades() {
             </Grid>
           ))}
         </Grid>
-      </Container>
+      </Box>
     );
   }
 
   if (error) {
     return (
-      <Container sx={{ py: 4 }}>
+      <Box sx={{ px: 0, py: 1 }}>
         <Alert severity="error">{error}</Alert>
-      </Container>
+      </Box>
     );
   }
 
   return (
-    <Container maxWidth="lg">
+    <Box sx={{ px: 0 }}>
       <EntityToolbar
         onAdd={() => {
           setEditingPropiedad(null);
@@ -429,7 +428,7 @@ export function Propiedades() {
         initialData={editingPropiedad || {}}
         isEditing={!!editingPropiedad}
       />
-    </Container>
+    </Box>
   );
 }
 

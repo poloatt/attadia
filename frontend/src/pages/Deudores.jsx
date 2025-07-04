@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container } from '@mui/material';
+import { Container, Box } from '@mui/material';
 import EntityToolbar from '../components/EntityToolbar';
 import { 
   AccountBalanceOutlined as BankIcon,
@@ -16,7 +16,7 @@ export function Deudores() {
   const navigate = useNavigate();
 
   return (
-    <Container maxWidth="lg">
+    <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar
         showBackButton={true}
         onBack={() => window.location.href = '/dashboard'}
@@ -49,7 +49,7 @@ export function Deudores() {
       <EntityDetails title="Deudores">
         <UnderConstruction />
       </EntityDetails>
-    </Container>
+    </Box>
   );
 }
 

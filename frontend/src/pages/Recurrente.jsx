@@ -346,7 +346,7 @@ export function Recurrente() {
   }, [enqueueSnackbar, fetchTransacciones]);
 
   return (
-    <Container maxWidth="lg">
+    <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar
         onAdd={() => setIsFormOpen(true)}
         showBackButton={true}
@@ -447,7 +447,7 @@ export function Recurrente() {
           isEditing={!!editingTransaccion}
         />
       )}
-    </Container>
+    </Box>
   );
 }
 

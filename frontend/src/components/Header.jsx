@@ -7,17 +7,18 @@ import {
   Tooltip
 } from '@mui/material';
 import { 
-  PsychologyOutlined as BrainIcon,
-  SettingsOutlined as SettingsIcon,
+  MenuOutlined as MenuIcon,
   Visibility as ShowValuesIcon,
   VisibilityOff as HideValuesIcon
 } from '@mui/icons-material';
 import { useSidebar } from '../context/SidebarContext';
+import { useUISettings } from '../context/UISettingsContext';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function Header() {
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, isOpen, isDesktop } = useSidebar();
+  const { showSidebar } = useUISettings();
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
   const location = useLocation();
   const navigate = useNavigate();
@@ -54,11 +55,15 @@ export default function Header() {
     <AppBar 
       position="fixed" 
       sx={{ 
-        zIndex: (theme) => theme.zIndex.drawer + 1,
+        zIndex: (theme) => theme.zIndex.drawer + 1, // Header siempre por encima de sidebar
         backgroundColor: 'rgba(0, 0, 0, 0.7)',
         borderBottom: '1px solid',
         borderColor: 'divider',
-        height: 40
+        height: 40,
+        left: 0, // Header ocupa todo el ancho
+        width: '100%', // Header siempre 100% del ancho
+        transition: 'none', // Sin transiciones innecesarias
+        top: 0 // Header siempre arriba de todo
       }}
     >
       <Toolbar 
@@ -78,15 +83,26 @@ export default function Header() {
           alignItems: 'center',
           gap: 1
         }}>
+          {showSidebar && (
+            <Tooltip title="Menú">
           <IconButton 
-            onClick={() => navigate('/')}
+                onClick={toggleSidebar}
             sx={{ 
               color: 'inherit',
+                  width: 36,
+                  height: 36,
+                  minWidth: 0,
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
               '&:hover': { color: 'text.primary' }
             }}
           >
-            <BrainIcon sx={{ fontSize: 20 }} />
+                <MenuIcon sx={{ fontSize: 20 }} />
           </IconButton>
+            </Tooltip>
+          )}
           <Typography 
             variant="subtitle2" 
             sx={{ 
@@ -94,7 +110,7 @@ export default function Header() {
               fontSize: '0.875rem'
             }}
           >
-            Foco &lt; {getRouteTitle()}
+            {getRouteTitle()}
           </Typography>
         </Box>
 
@@ -118,20 +134,8 @@ export default function Header() {
               </IconButton>
             </Tooltip>
           )}
-          <Tooltip title="Configuración">
-            <IconButton 
-              size="small"
-              onClick={toggleSidebar}
-              sx={{ 
-                color: 'inherit',
-                '&:hover': { color: 'text.primary' }
-              }}
-            >
-              <SettingsIcon sx={{ fontSize: 20 }} />
-            </IconButton>
-          </Tooltip>
         </Box>
       </Toolbar>
     </AppBar>
   );
-} 
+}

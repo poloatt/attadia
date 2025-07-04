@@ -79,7 +79,7 @@ export const excludeCommonFields = (fieldsToExclude = []) => {
   const fields = { ...commonFields };
   fieldsToExclude.forEach(field => delete fields[field]);
   return fields;
-};
+}; 
 
 // Utilidades para manejo de timezone
 export const timezoneUtils = {

@@ -70,7 +70,7 @@ const RutinasContent = () => {
   };
 
   return (
-    <Container maxWidth="lg">
+    <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar
         onAdd={() => handleOpenDialog()}
         navigationItems={[
@@ -164,7 +164,7 @@ const RutinasContent = () => {
           onCancel={handleCloseDialog}
         />
       </Dialog>
-    </Container>
+    </Box>
   );
 };
 

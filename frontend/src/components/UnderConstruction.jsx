@@ -10,7 +10,7 @@ import {
   Restaurant as DietaFilledIcon,
   Assignment as ProjectFilledIcon,
   CurrencyExchange as MoneyFilledIcon,
-  Inventory2 as InventoryFilledIcon,
+  AllInbox as InventoryFilledIcon,
   Bed as BedFilledIcon,
   People as PeopleFilledIcon,
   Description as ContratosFilledIcon,

@@ -137,7 +137,7 @@ export function Lab() {
   ];
 
   return (
-    <Container maxWidth="lg">
+    <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar
         onAdd={() => {
           setEditingMedicion(null);
@@ -190,7 +190,7 @@ export function Lab() {
         initialData={editingMedicion || {}}
         isEditing={!!editingMedicion}
       />
-    </Container>
+    </Box>
   );
 }
 

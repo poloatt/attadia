@@ -12,7 +12,9 @@ import {
   Divider,
   Paper,
   Tooltip,
-  LinearProgress
+  LinearProgress,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import {
@@ -274,6 +276,9 @@ const calcularProgresoContrato = (contratos, precio) => {
 };
 
 const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExpanded = false, onToggleExpand }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
   const [expandedSections, setExpandedSections] = useState({
     inquilinos: false,
     contratos: false,
@@ -397,9 +402,10 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
           justifyContent: 'space-between',
           width: '100%'
         }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            {/* Título de la propiedad */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <HomeWork sx={{ fontSize: '1.1rem' }} />
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <HomeWork sx={{ fontSize: '1.1rem', color: 'text.primary' }} />
               <Typography variant="subtitle1" sx={{ 
                 fontWeight: 500, 
                 fontSize: '0.9rem',
@@ -407,11 +413,28 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
               }}>
                 {titulo}
               </Typography>
-              <StatusChip 
-                customcolor={color}
-              >
-                {icon} {estado.charAt(0) + estado.slice(1).toLowerCase()}
-              </StatusChip>
+            </Box>
+            
+            {/* Estado de la propiedad */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ 
+                fontSize: '1.1rem', 
+                color: color,
+                display: 'flex',
+                alignItems: 'center',
+                '& .MuiSvgIcon-root': {
+                  fontSize: '1.1rem'
+                }
+              }}>
+                {icon}
+              </Box>
+              <Typography variant="body2" sx={{ 
+                fontSize: '0.75rem',
+                color: color,
+                fontWeight: 500
+              }}>
+                {estado.charAt(0) + estado.slice(1).toLowerCase()}
+              </Typography>
             </Box>
           </Box>
           <Box sx={{ display: 'flex', gap: 0.5 }}>

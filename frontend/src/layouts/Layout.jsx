@@ -1,24 +1,19 @@
-import { Box, Drawer, List, ListItem, ListItemIcon, ListItemText, ListItemButton, useTheme, useMediaQuery } from '@mui/material';
-import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { Box, useTheme, useMediaQuery } from '@mui/material';
+import { useUISettings } from '../context/UISettingsContext';
+import { useNavigate, Outlet } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import BottomNavigation from '../components/BottomNavigation';
-import { SettingsOutlined as SettingsIcon } from '@mui/icons-material';
-import PersonIcon from '@mui/icons-material/Person';
-
-const menuItems = [
-  { text: 'Configuración', icon: <SettingsIcon />, path: '/configuracion' },
-  { text: 'Perfil', icon: <PersonIcon />, path: '/perfil' }
-];
+import Sidebar from '../components/Sidebar';
 
 export function Layout() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
-  const location = useLocation();
-  const { isOpen, toggleSidebar } = useSidebar();
+  const { isOpen, isDesktop } = useSidebar();
+  const { showSidebar, showEntityToolbarNavigation } = useUISettings();
   const { user } = useAuth();
 
   if (!user) {
@@ -34,105 +29,40 @@ export function Layout() {
       overflow: 'hidden'
     }}>
       <Header />
-      <Drawer
-        variant="permanent"
-        anchor="right"
-        open={isOpen}
-        onClose={() => toggleSidebar()}
-        sx={{
-          '& .MuiDrawer-paper': {
-            width: isOpen ? 240 : 0,
-            transition: 'width 0.3s ease',
-            overflowX: 'hidden',
-            backgroundColor: 'background.paper',
-            borderLeft: '1px solid',
-            borderColor: 'divider',
-            position: 'fixed',
-            height: '100vh',
-            top: 0,
-            right: 0,
-            zIndex: (theme) => theme.zIndex.drawer,
-            visibility: isOpen ? 'visible' : 'hidden'
-          },
-        }}
-      >
-        <Box sx={{ height: '40px' }} /> {/* Ajustado a 40px para coincidir con el header */}
-        <List sx={{ p: 1 }}>
-          {menuItems.map((item) => (
-            <ListItem key={item.text} disablePadding>
-              <ListItemButton
-                selected={location.pathname === item.path}
-                onClick={() => navigate(item.path)}
-                sx={{
-                  minHeight: 40,
-                  justifyContent: isOpen ? 'initial' : 'center',
-                  px: isOpen ? 2.5 : 1.5,
-                  borderRadius: 1,
-                }}
-              >
-                <ListItemIcon
-                  sx={{
-                    minWidth: 0,
-                    mr: isOpen ? 2 : 'auto',
-                    justifyContent: 'center',
-                    '& .MuiSvgIcon-root': {
-                      fontSize: 20,
-                    }
-                  }}
-                >
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText 
-                  primary={item.text} 
-                  sx={{ 
-                    opacity: isOpen ? 1 : 0,
-                    transition: 'opacity 0.3s ease'
-                  }} 
-                />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
-      </Drawer>
+      {showSidebar && <Sidebar />}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          pt: '48px',
-          pb: '120px', // Aumentar padding inferior para acomodar la navegación inferior y mensajes de error
-          pr: {
-            xs: 0,
-            sm: isOpen ? '240px' : 0
-          },
-          transition: 'padding-right 0.3s ease',
+          pt: showEntityToolbarNavigation ? '45px' : '45px', // Mantener espacio suficiente debajo del header
+          pb: showEntityToolbarNavigation ? '80px' : '90px', // Espacio adicional cuando toolbar está deshabilitada
+          pl: 0, // Eliminado padding-left - la sidebar ya ocupa su espacio
+          pr: 0, // Eliminado padding derecho explícitamente
           minHeight: '100vh',
-          maxWidth: '100%',
+          width: showSidebar ? 
+            (isMobile ? `calc(100vw - 56px)` : '100%') : // En móvil, restar ancho de sidebar colapsada
+            '100vw', // Sin sidebar ocupa todo el ancho
           display: 'flex',
           flexDirection: 'column',
           bgcolor: 'background.default',
           overflow: 'auto',
-          position: 'relative' // Añadido para posicionar correctamente elementos hijos
+          position: 'relative', // Añadido para posicionar correctamente elementos hijos
+          // Sin margin left porque la sidebar ya ocupa su espacio
+          ml: 0
         }}
       >
         <Box sx={{ 
           width: '100%',
           maxWidth: '100%',
-          mx: 'auto',
-          px: {
-            xs: 0.15,
-            sm: 0.3,
-            md: 0.45,
-            lg: 0.6
-          },
+          mx: 0, // Eliminado el centrado automático
+          px: isMobile ? 1 : 0, // Padding horizontal en móvil para evitar que el contenido toque los bordes
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          gap: 2
+          gap: showEntityToolbarNavigation ? 0.5 : 0 // Reducir gap cuando toolbar está deshabilitada
         }}>
           <Outlet />
         </Box>
-        {/* Añadir un espacio extra para mensajes de error */}
-        <Box sx={{ height: '16px' }} />
         <BottomNavigation />
         <Footer />
       </Box>

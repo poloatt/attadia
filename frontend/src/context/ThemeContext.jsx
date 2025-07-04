@@ -163,8 +163,8 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           '@media (min-width:600px)': {
-            paddingLeft: '16px',
-            paddingRight: '16px',
+            paddingLeft: '0px',
+            paddingRight: '0px',
           }
         }
       }

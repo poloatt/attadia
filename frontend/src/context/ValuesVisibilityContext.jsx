@@ -17,7 +17,7 @@ export const maskNumber = (number, symbol = '') => {
 const ValuesVisibilityContext = createContext();
 
 export const ValuesVisibilityProvider = ({ children }) => {
-  const [maskValues, setMaskValues] = useState(true);
+  const [maskValues, setMaskValues] = useState(false);
 
   const toggleValuesVisibility = useCallback(() => {
     setMaskValues(prev => !prev);

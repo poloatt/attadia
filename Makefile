@@ -31,7 +31,7 @@ staging-rebuild: staging-prune staging-build staging-up
 
 # Comando todo en uno
 staging: staging-build staging-up
-	@echo "Ambiente de staging iniciado. Usa 'make staging-logs' para ver los logs."
+	@echo "Ambiente de staging iniciado. Usa 'make staging-logs' para ver los logs." 
 
 # ===== FIX RUTINAS DELETE 404 =====
 .PHONY: fix-rutinas-diagnostic fix-rutinas-nginx fix-rutinas-ssl fix-rutinas-complete fix-rutinas-rollback

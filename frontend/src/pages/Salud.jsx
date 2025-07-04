@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container, Button } from '@mui/material';
+import { Container, Button, Box } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import { 
   ScienceOutlined as LabIcon,
@@ -12,7 +12,7 @@ import UnderConstruction from '../components/UnderConstruction';
 
 export function Salud() {
   return (
-    <Container maxWidth="lg">
+    <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar
         navigationItems={[
           {
@@ -48,7 +48,7 @@ export function Salud() {
       >
         <UnderConstruction />
       </EntityDetails>
-    </Container>
+    </Box>
   );
 }
 

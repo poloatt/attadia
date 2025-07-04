@@ -152,7 +152,7 @@ export function Dieta() {
   ];
 
   return (
-    <Container maxWidth="lg">
+    <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar
         onAdd={() => {
           setEditingComida(null);
@@ -205,7 +205,7 @@ export function Dieta() {
         initialData={editingComida || {}}
         isEditing={!!editingComida}
       />
-    </Container>
+    </Box>
   );
 }
 

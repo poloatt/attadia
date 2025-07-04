@@ -120,9 +120,10 @@ export const getNormalizedToday = () => {
 };
 
 /**
- * Parsea una fecha de la API usando el timezone del usuario
+ * Parsea una fecha de la API como fecha "naive" (sin conversiones de timezone)
+ * Para rutinas, las fechas representan días específicos, no momentos en el tiempo
  * @param {string|Date|any} date - Fecha a parsear
- * @returns {Date} Fecha parseada
+ * @returns {Date} Fecha parseada como fecha local
  */
 export const parseAPIDate = (date) => {
   if (!date) return null;
@@ -130,47 +131,40 @@ export const parseAPIDate = (date) => {
   try {
     let year, month, day;
     
-    // Si ya es un objeto Date, extraer los componentes usando el timezone del usuario
+    // Si ya es un objeto Date, NO hacer conversiones de timezone
     if (date instanceof Date) {
-      const formatter = new Intl.DateTimeFormat('en-CA', {
-        timeZone: userTimezone,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      });
-      
-      const parts = formatter.formatToParts(date);
-      year = parseInt(parts.find(part => part.type === 'year').value);
-      month = parseInt(parts.find(part => part.type === 'month').value) - 1; // Mes 0-indexado
-      day = parseInt(parts.find(part => part.type === 'day').value);
+      // Usar getUTC* para extraer los componentes de fecha como fueron guardados
+      year = date.getUTCFullYear();
+      month = date.getUTCMonth();
+      day = date.getUTCDate();
     }
-    // Si es string, intentar parsear
+    // Si es string, parsear directamente sin conversiones
     else {
       const dateStr = String(date);
       
-      // Para formato YYYY-MM-DD
+      // Para formato YYYY-MM-DD (más común desde el backend)
       if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
         const [y, m, d] = dateStr.split('-').map(Number);
         year = y;
         month = m - 1; // Ajustar mes (0-11)
         day = d;
       }
-      // Para formato ISO
+      // Para formato ISO (desde el backend: 2025-07-01T00:00:00.000Z)
       else if (dateStr.includes('T')) {
-        const d = new Date(dateStr);
-        
-        // Extraer componentes usando el timezone del usuario
-        const formatter = new Intl.DateTimeFormat('en-CA', {
-          timeZone: userTimezone,
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit'
-        });
-        
-        const parts = formatter.formatToParts(d);
-        year = parseInt(parts.find(part => part.type === 'year').value);
-        month = parseInt(parts.find(part => part.type === 'month').value) - 1; // Mes 0-indexado
-        day = parseInt(parts.find(part => part.type === 'day').value);
+        // Extraer solo la parte de la fecha, ignorar la parte de tiempo y timezone
+        const datePart = dateStr.split('T')[0];
+        if (datePart.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          const [y, m, d] = datePart.split('-').map(Number);
+          year = y;
+          month = m - 1; // Ajustar mes (0-11)
+          day = d;
+        } else {
+          // Fallback: usar Date constructor pero extraer como UTC
+          const d = new Date(dateStr);
+          year = d.getUTCFullYear();
+          month = d.getUTCMonth();
+          day = d.getUTCDate();
+        }
       }
       // Último recurso: parseo directo
       else {
@@ -180,30 +174,25 @@ export const parseAPIDate = (date) => {
           return null;
         }
         
-        // Extraer componentes usando el timezone del usuario
-        const formatter = new Intl.DateTimeFormat('en-CA', {
-          timeZone: userTimezone,
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit'
-        });
-        
-        const parts = formatter.formatToParts(d);
-        year = parseInt(parts.find(part => part.type === 'year').value);
-        month = parseInt(parts.find(part => part.type === 'month').value) - 1; // Mes 0-indexado
-        day = parseInt(parts.find(part => part.type === 'day').value);
+        // Usar componentes UTC para evitar conversiones de timezone
+        year = d.getUTCFullYear();
+        month = d.getUTCMonth();
+        day = d.getUTCDate();
       }
     }
     
-    // Crear nueva fecha a mediodía para evitar problemas con DST
+    // Crear fecha local a mediodía para evitar problemas con DST
+    // Esta fecha representará el día específico sin importar el timezone
     const parsed = new Date(year, month, day, 12, 0, 0, 0);
     
-    console.debug('[dateUtils] parseAPIDate:', {
+    console.log('[dateUtils] parseAPIDate - FIX TIMEZONE:', {
       input: date,
       inputType: typeof date,
-      result: parsed.toISOString(),
-      timezone: userTimezone,
-      components: { year, month, day }
+      extractedComponents: { year, month: month + 1, day }, // Mostrar mes 1-12 para debug
+      resultDate: parsed.toISOString(),
+      resultLocal: parsed.toDateString(),
+      userTimezone,
+      explanation: `Entrada "${date}" parseada como día ${day}/${month + 1}/${year}`
     });
     
     return parsed;

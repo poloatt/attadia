@@ -21,6 +21,7 @@ import Dieta from './pages/Dieta';
 import DataCorporal from './pages/DataCorporal';
 import { Deudores } from './pages/Deudores';
 import { Salud } from './pages/Salud';
+import { Configuracion } from './pages/Configuracion';
 import ErrorBoundary from './components/ErrorBoundary';
 import theme from './context/ThemeContext';
 import { ThemeProvider } from '@mui/material/styles';
@@ -98,6 +99,8 @@ function App() {
                   <Route path="/tareas" element={<Tareas />} />
                   <Route path="/archivo" element={<Archivo />} />
                   <Route path="/tiempo" element={<Tiempo />} />
+                  <Route path="/configuracion" element={<Configuracion />} />
+                  <Route path="/preferencias" element={<Configuracion />} />
                 </Route>
               </Route>
 

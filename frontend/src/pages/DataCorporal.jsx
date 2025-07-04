@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Button } from '@mui/material';
+import { Container, Button, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
@@ -84,7 +84,7 @@ export function DataCorporal() {
   };
 
   return (
-    <Container maxWidth="lg">
+    <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar
         onAdd={() => handleOpenDialog()}
         showBackButton={true}
@@ -126,7 +126,7 @@ export function DataCorporal() {
         onSubmit={handleSubmit}
         initialData={editingData}
       />
-    </Container>
+    </Box>
   );
 }
 

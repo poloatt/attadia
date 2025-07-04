@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { SidebarProvider } from './context/SidebarContext'
+import { UISettingsProvider } from './context/UISettingsContext'
 import App from './App'
 import axios from 'axios'
 import './index.css'
@@ -42,11 +43,13 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter {...router}>
       <AuthProvider>
         <CustomSnackbarProvider>
-          <SidebarProvider>
-            <App />
-          </SidebarProvider>
+          <UISettingsProvider>
+            <SidebarProvider>
+              <App />
+            </SidebarProvider>
+          </UISettingsProvider>
         </CustomSnackbarProvider>
       </AuthProvider>
     </BrowserRouter>
-  </React.StrictMode>,
+  </React.StrictMode>
 ) 

@@ -1,31 +1,255 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useMediaQuery, useTheme } from '@mui/material';
+import {
+  PaidOutlined,
+  AccountBalanceWalletOutlined,
+  CurrencyExchangeOutlined,
+  AttachMoneyOutlined,
+  RepeatOutlined,
+  PersonSearchOutlined,
+  ApartmentOutlined,
+  PersonOutlined,
+  DescriptionOutlined,
+  HotelOutlined,
+  AllInboxOutlined,
+  HealthAndSafetyOutlined,
+  MonitorHeartOutlined,
+  ScienceOutlined,
+  RestaurantOutlined,
+  AccessTimeOutlined,
+  FolderOutlined,
+  TaskOutlined,
+  ArchiveOutlined,
+  SettingsOutlined,
+  ManageAccountsOutlined,
+  AccountCircleOutlined
+} from '@mui/icons-material';
 
 const SidebarContext = createContext();
 
 const menuItems = [
   {
-    title: 'Configuración',
-    path: '/configuracion',
+    id: 'assets',
+    title: 'Assets',
+    icon: <PaidOutlined />,
+    path: '/dashboard', // Ruta principal para Assets
+    hasSubItems: true,
+    subItems: [
+      {
+        title: 'Transacciones',
+        path: '/transacciones',
+        icon: <AttachMoneyOutlined />
+      },
+      {
+        title: 'Cuentas',
+        path: '/cuentas',
+        icon: <AccountBalanceWalletOutlined />
+      },
+      {
+        title: 'Monedas',
+        path: '/monedas',
+        icon: <CurrencyExchangeOutlined />
+      },
+      {
+        title: 'Recurrente',
+        path: '/recurrente',
+        icon: <RepeatOutlined />
+      },
+      {
+        title: 'Deudores',
+        path: '/deudores',
+        icon: <PersonSearchOutlined />
+      },
+      {
+        title: 'Inventario',
+        path: '/inventario',
+        icon: <AllInboxOutlined />
+      }
+    ]
   },
+  {
+    id: 'propiedades',
+    title: 'Propiedades',
+    icon: <ApartmentOutlined />,
+    path: '/propiedades',
+    hasSubItems: true,
+    subItems: [
+      {
+        title: 'Inquilinos',
+        path: '/inquilinos',
+        icon: <PersonOutlined />
+      },
+      {
+        title: 'Contratos',
+        path: '/contratos',
+        icon: <DescriptionOutlined />
+      },
+      {
+        title: 'Habitaciones',
+        path: '/habitaciones',
+        icon: <HotelOutlined />
+      },
+      {
+        title: 'Inventario',
+        path: '/inventario',
+        icon: <AllInboxOutlined />
+      }
+    ]
+  },
+  {
+    id: 'rutinas',
+    title: 'Rutinas',
+    icon: <MonitorHeartOutlined />,
+    path: '/rutinas', // Ruta principal para Rutinas
+    hasSubItems: true,
+    subItems: [
+      {
+        title: 'Salud',
+        path: '/salud',
+        icon: <HealthAndSafetyOutlined />
+      },
+      {
+        title: 'Lab',
+        path: '/lab',
+        icon: <ScienceOutlined />
+      },
+      {
+        title: 'Dieta',
+        path: '/dieta',
+        icon: <RestaurantOutlined />
+      }
+    ]
+  },
+  {
+    id: 'time',
+    title: 'Time',
+    icon: <AccessTimeOutlined />,
+    path: '/tiempo', // Ruta principal para Time
+    hasSubItems: true,
+    subItems: [
+      {
+        title: 'Proyectos',
+        path: '/proyectos',
+        icon: <FolderOutlined />
+      },
+      {
+        title: 'Tareas',
+        path: '/tareas',
+        icon: <TaskOutlined />
+      },
+      {
+        title: 'Archivo',
+        path: '/archivo',
+        icon: <ArchiveOutlined />
+      }
+    ]
+  },
+  {
+    id: 'setup',
+    title: 'Setup',
+    icon: <SettingsOutlined />,
+    path: '/configuracion', // Ruta principal para Setup
+    hasSubItems: true,
+    subItems: [
   {
     title: 'Perfil',
     path: '/perfil',
+        icon: <AccountCircleOutlined />
+      },
+      {
+        title: 'Preferencias',
+        path: '/preferencias',
+        icon: <ManageAccountsOutlined />
+      }
+    ]
   }
 ];
 
 export function SidebarProvider({ children }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up('sm'));
+  
+  // Inicializar isOpen basado en el tamaño de pantalla
+  const [isOpen, setIsOpen] = useState(isDesktop);
+  const [expandedSections, setExpandedSections] = useState(new Set()); // Todas las secciones colapsadas por defecto
+
+  // Efecto para ajustar la sidebar cuando cambie el tamaño de pantalla
+  useEffect(() => {
+    if (isDesktop) {
+      // En desktop, abrir por defecto si no está explícitamente cerrada
+      const userPreference = localStorage.getItem('sidebarDesktopOpen');
+      if (userPreference === null) {
+        setIsOpen(true);
+      } else {
+        setIsOpen(userPreference === 'true');
+      }
+    } else {
+      // En móvil, mantener colapsada por defecto pero visible
+      const userPreference = localStorage.getItem('sidebarMobileOpen');
+      if (userPreference === null) {
+        setIsOpen(false); // Colapsada por defecto
+      } else {
+        setIsOpen(userPreference === 'true');
+      }
+    }
+  }, [isDesktop]);
 
   const toggleSidebar = () => {
-    setIsOpen(!isOpen);
+    const newState = !isOpen;
+    setIsOpen(newState);
+    
+    // Guardar preferencia del usuario para desktop y móvil
+    if (isDesktop) {
+      localStorage.setItem('sidebarDesktopOpen', newState.toString());
+    } else {
+      localStorage.setItem('sidebarMobileOpen', newState.toString());
+    }
   };
 
   const closeSidebar = () => {
     setIsOpen(false);
+    if (isDesktop) {
+      localStorage.setItem('sidebarDesktopOpen', 'false');
+    } else {
+      localStorage.setItem('sidebarMobileOpen', 'false');
+    }
   };
 
   const openSidebar = () => {
     setIsOpen(true);
+    if (isDesktop) {
+      localStorage.setItem('sidebarDesktopOpen', 'true');
+    } else {
+      localStorage.setItem('sidebarMobileOpen', 'true');
+    }
+  };
+
+  const toggleSection = (sectionId) => {
+    setExpandedSections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sectionId)) {
+        newSet.delete(sectionId);
+      } else {
+        newSet.add(sectionId);
+      }
+      return newSet;
+    });
+  };
+
+  const isSectionExpanded = (sectionId) => {
+    return expandedSections.has(sectionId);
+  };
+
+  const expandSection = (sectionId) => {
+    setExpandedSections(prev => new Set([...prev, sectionId]));
+  };
+
+  const collapseSection = (sectionId) => {
+    setExpandedSections(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(sectionId);
+      return newSet;
+    });
   };
 
   return (
@@ -34,7 +258,13 @@ export function SidebarProvider({ children }) {
       toggleSidebar,
       closeSidebar,
       openSidebar,
-      menuItems
+      menuItems,
+      expandedSections,
+      toggleSection,
+      isSectionExpanded,
+      expandSection,
+      collapseSection,
+      isDesktop
     }}>
       {children}
     </SidebarContext.Provider>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Container, Grid, Box, Typography, Skeleton, Paper, IconButton, Menu, MenuItem, Collapse } from '@mui/material';
+import { Grid, Box, Typography, Skeleton, Paper, IconButton, Menu, MenuItem, Collapse } from '@mui/material';
 import { Link } from 'react-router-dom';
 import EntityToolbar from '../components/EntityToolbar';
 import clienteAxios from '../config/axios';
@@ -556,7 +556,7 @@ export function Dashboard() {
   );
 
   return (
-    <Container maxWidth="lg" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
+    <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar
         showAddButton={false}
         showBackButton={false}
@@ -601,7 +601,7 @@ export function Dashboard() {
           </Paper>
         </Grid>
       </Grid>
-    </Container>
+    </Box>
   );
 }
 
