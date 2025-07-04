@@ -154,16 +154,16 @@ export const initializeSampleData = async (userId) => {
         usuario: userId,
         moneda: usdMoneda._id,
         saldo: 5000,
-        activa: true,
-        tipo: 'corriente'
+        activo: true,
+        tipo: 'BANCO'
       },
       {
         nombre: 'Cuenta Ahorros EUR',
         usuario: userId,
         moneda: eurMoneda._id,
         saldo: 3000,
-        activa: true,
-        tipo: 'ahorro'
+        activo: true,
+        tipo: 'BANCO'
       }
     ]);
 
@@ -172,22 +172,22 @@ export const initializeSampleData = async (userId) => {
       {
         descripcion: 'Pago de alquiler - Juan Pérez',
         monto: 1200,
-        tipo: 'ingreso',
-        categoria: 'alquiler',
+        tipo: 'INGRESO',
+        categoria: 'Contabilidad y Facturas',
         fecha: new Date(),
         usuario: userId,
         cuenta: cuentas[0]._id,
-        moneda: usdMoneda._id
+        estado: 'PAGADO'
       },
       {
         descripcion: 'Mantenimiento propiedad',
         monto: 300,
-        tipo: 'egreso',
-        categoria: 'mantenimiento',
+        tipo: 'EGRESO',
+        categoria: 'Contabilidad y Facturas',
         fecha: new Date(),
         usuario: userId,
         cuenta: cuentas[0]._id,
-        moneda: usdMoneda._id
+        estado: 'PAGADO'
       }
     ]);
 

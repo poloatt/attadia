@@ -154,7 +154,7 @@ class TransaccionesController extends BaseController {
       const cuenta = await Cuentas.findOne({
         _id: req.body.cuenta,
         usuario: req.user.id
-      }).populate('moneda');
+      });
 
       if (!cuenta) {
         console.error('Cuenta no encontrada:', {
@@ -164,23 +164,17 @@ class TransaccionesController extends BaseController {
         return res.status(404).json({ message: 'La cuenta seleccionada no existe o no pertenece al usuario' });
       }
 
-      if (!cuenta.moneda) {
-        console.error('Cuenta sin moneda asociada:', cuenta);
-        return res.status(400).json({ message: 'La cuenta seleccionada no tiene una moneda asociada' });
-      }
-
-      // Crear la transacción usando los _id
+      // Crear la transacción - el middleware se encargará de asignar la moneda
       const transaccion = new this.Model({
         ...req.body,
         usuario: req.user.id,
-        cuenta: cuenta._id,
-        moneda: cuenta.moneda._id
+        cuenta: cuenta._id
+        // No asignamos moneda aquí - lo hace el middleware
       });
 
       await transaccion.save();
       await transaccion.populate(['moneda', 'cuenta']);
       
-      // La transformación a JSON ya está manejada por el BaseSchema
       res.status(201).json(transaccion);
     } catch (error) {
       console.error('Error al crear transacción:', error);

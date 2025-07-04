@@ -26,16 +26,19 @@ const inquilinoSchema = createSchema({
   },
   telefono: {
     type: String,
-    required: true
+    required: false,
+    default: ''
   },
   dni: {
     type: String,
-    required: true,
-    unique: true
+    required: false,
+    unique: true,
+    sparse: true
   },
   nacionalidad: {
     type: String,
-    required: true
+    required: false,
+    default: ''
   },
   ocupacion: String,
   documentos: [{

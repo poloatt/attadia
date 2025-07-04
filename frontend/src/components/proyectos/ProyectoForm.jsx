@@ -47,7 +47,8 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
     fechaInicio: initialData?.fechaInicio ? new Date(initialData.fechaInicio) : new Date(),
     fechaFin: initialData?.fechaFin ? new Date(initialData.fechaFin) : null,
     prioridad: initialData?.prioridad || 'MEDIA',
-    presupuesto: initialData?.presupuesto || { monto: '', moneda: null },
+    presupuesto: initialData?.presupuesto || 0,
+    moneda: initialData?.moneda || null,
     archivos: initialData?.archivos || [],
     propiedad: initialData?.propiedad || null,
     tareas: initialData?.tareas || []

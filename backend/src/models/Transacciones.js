@@ -33,7 +33,7 @@ const transaccionSchema = createSchema({
   },
   estado: {
     type: String,
-    enum: ['PENDIENTE', 'PAGADO'],
+    enum: ['PENDIENTE', 'PAGADO', 'COMPLETADA', 'CANCELADA'],
     default: 'PENDIENTE'
   },
   tipo: {
@@ -66,9 +66,10 @@ const transaccionSchema = createSchema({
 // Middleware para asignar automáticamente la moneda de la cuenta
 transaccionSchema.pre('save', async function(next) {
   try {
+    // Solo ejecutar si es un documento nuevo o si la cuenta fue modificada
     if (this.isNew || this.isModified('cuenta')) {
       const Cuentas = mongoose.model('Cuentas');
-      console.log('Buscando cuenta con ID:', this.cuenta);
+      console.log('Procesando cuenta para transacción:', this.cuenta);
       
       // Asegurarnos de que el ID de la cuenta sea un ObjectId válido
       const cuentaId = mongoose.Types.ObjectId.isValid(this.cuenta) ? 
@@ -88,12 +89,13 @@ transaccionSchema.pre('save', async function(next) {
         throw new Error('La cuenta no tiene una moneda asociada');
       }
       
-      console.log('Cuenta encontrada:', cuenta);
-      console.log('Asignando moneda:', cuenta.moneda._id);
+      console.log('Cuenta encontrada:', cuenta.nombre);
+      console.log('Asignando moneda:', cuenta.moneda.nombre);
       
-      // Asegurarnos de usar el _id de la moneda
-      this.moneda = cuenta.moneda._id;
-      this.cuenta = cuenta._id; // Asegurarnos de usar el _id de la cuenta
+      // Solo asignar si no está ya asignado para evitar bucles
+      if (!this.moneda || this.moneda.toString() !== cuenta.moneda._id.toString()) {
+        this.moneda = cuenta.moneda._id;
+      }
     }
     next();
   } catch (error) {
@@ -102,8 +104,8 @@ transaccionSchema.pre('save', async function(next) {
   }
 });
 
-// Configuración para populate automático
-transaccionSchema.pre(/^find/, function(next) {
+// Configuración para populate automático solo en consultas específicas
+transaccionSchema.pre(['find', 'findOne', 'findOneAndUpdate'], function(next) {
   this.populate('moneda').populate('cuenta');
   next();
 });

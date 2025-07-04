@@ -91,7 +91,7 @@ export function Proyectos() {
     try {
       const dataToSend = {
         ...formData,
-        fechaInicio: formData.fechaInicio.toISOString(),
+        fechaInicio: formData.fechaInicio ? formData.fechaInicio.toISOString() : new Date().toISOString(),
         fechaFin: formData.fechaFin ? formData.fechaFin.toISOString() : null,
       };
 

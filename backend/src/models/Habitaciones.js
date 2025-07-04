@@ -36,7 +36,10 @@ const habitacionSchema = createSchema({
     trim: true,
     validate: {
       validator: function(v) {
-        return this.tipo !== 'OTRO' || (v && v.length > 0);
+        if (this.tipo === 'OTRO') {
+          return v && v.trim().length > 0;
+        }
+        return true;
       },
       message: 'El nombre personalizado es requerido cuando el tipo es OTRO'
     }

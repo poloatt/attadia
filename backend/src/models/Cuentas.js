@@ -48,8 +48,8 @@ const cuentaSchema = createSchema({
   ...commonFields
 });
 
-// Middleware para poblar referencias
-cuentaSchema.pre(['find', 'findOne', 'findById'], function() {
+// Middleware para poblar referencias solo en consultas específicas
+cuentaSchema.pre(['find', 'findOne'], function() {
   this.populate('moneda');
 });
 

@@ -39,21 +39,23 @@ const propiedadSchema = createSchema({
   },
   metrosCuadrados: {
     type: Number,
-    required: true
+    required: false,
+    default: 0
   },
   precio: {
     type: Number,
-    required: true
+    required: false,
+    default: 0
   },
   moneda: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Monedas',
-    required: true
+    required: false
   },
   cuenta: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Cuentas',
-    required: true
+    required: false
   },
   imagen: String,
   ...commonFields

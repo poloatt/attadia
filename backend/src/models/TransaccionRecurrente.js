@@ -28,7 +28,17 @@ const transaccionRecurrenteSchema = createSchema({
   },
   categoria: {
     type: String,
-    required: true
+    required: true,
+    enum: [
+      'Salud y Belleza',
+      'Contabilidad y Facturas',
+      'Transporte',
+      'Comida y Mercado',
+      'Fiesta',
+      'Ropa',
+      'Tecnología',
+      'Otro'
+    ]
   },
   estado: {
     type: String,

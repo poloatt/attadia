@@ -28,7 +28,8 @@ const inventarioSchema = createSchema({
   },
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Users'
+    ref: 'Users',
+    required: true
   },
   habitacion: {
     type: mongoose.Schema.Types.ObjectId,
