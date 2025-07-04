@@ -127,9 +127,11 @@ export function Inquilinos() {
         const estado = inquilino.estado || 'PENDIENTE';
         return ['INACTIVO', 'SIN_CONTRATO'].includes(estado);
       });
-    } else {
-      return inquilinos; // 'todos'
     }
+    return inquilinos.filter(inquilino => {
+      const estado = inquilino.estado || 'PENDIENTE';
+      return ['ACTIVO', 'RESERVADO', 'PENDIENTE'].includes(estado);
+    });
   }, [inquilinos, activeFilter]);
 
   return (
@@ -179,17 +181,6 @@ export function Inquilinos() {
           onClick={() => setActiveFilter('inactivos')}
           color={activeFilter === 'inactivos' ? 'primary' : 'default'}
           variant={activeFilter === 'inactivos' ? 'filled' : 'outlined'}
-          sx={{ 
-            borderRadius: 0,
-            clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)',
-            fontWeight: 500
-          }}
-        />
-        <Chip
-          label={`Todos los Inquilinos (${inquilinos.length})`}
-          onClick={() => setActiveFilter('todos')}
-          color={activeFilter === 'todos' ? 'primary' : 'default'}
-          variant={activeFilter === 'todos' ? 'filled' : 'outlined'}
           sx={{ 
             borderRadius: 0,
             clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)',

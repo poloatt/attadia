@@ -214,8 +214,8 @@ const PropiedadForm = ({
         direccion: initialData.direccion || '',
         ciudad: initialData.ciudad || '',
         estado: initialData.estado || 'DISPONIBLE',
-        precio: initialData.precio?.toString() || '1',
-        metrosCuadrados: initialData.metrosCuadrados?.toString() || '1',
+        precio: initialData.precio?.toString() || '',
+        metrosCuadrados: initialData.metrosCuadrados?.toString() || '',
         caracteristicas: initialData.caracteristicas || [],
         descripcion: initialData.descripcion || '',
         moneda: initialData.moneda?._id || initialData.moneda?.id || initialData.moneda || '',
@@ -262,9 +262,22 @@ const PropiedadForm = ({
   const handleChange = (name, value) => {
     // Convertir valores numéricos
     const numericFields = ['precio', 'metrosCuadrados'];
-    const finalValue = numericFields.includes(name) ? 
-      (value === '' ? '0' : value.replace(/[^0-9]/g, '')) : 
-      value;
+    let finalValue = value;
+    
+    if (numericFields.includes(name)) {
+      // Permitir números decimales y mantener valor vacío como string vacía
+      if (value === '') {
+        finalValue = '';
+      } else {
+        // Permitir números con punto decimal
+        finalValue = value.replace(/[^0-9.]/g, '');
+        // Evitar múltiples puntos decimales
+        const parts = finalValue.split('.');
+        if (parts.length > 2) {
+          finalValue = parts[0] + '.' + parts.slice(1).join('');
+        }
+      }
+    }
 
     setFormData(prev => ({
       ...prev,
@@ -300,8 +313,8 @@ const PropiedadForm = ({
 
     const dataToSubmit = {
       ...formData,
-      precio: Number(formData.precio),
-      metrosCuadrados: Number(formData.metrosCuadrados),
+      precio: Number(formData.precio) || 0,
+      metrosCuadrados: Number(formData.metrosCuadrados) || 0,
       moneda: formData.moneda,
       cuenta: formData.cuenta,
       usuario: user?._id || user?.id
@@ -376,22 +389,28 @@ const PropiedadForm = ({
 
     Object.entries(numericFields).forEach(([field, label]) => {
       const value = parseFloat(formData[field]);
-      if (isNaN(value) || value <= 0) {
+      if (!formData[field] || formData[field].trim() === '' || isNaN(value) || value <= 0) {
         newErrors[field] = `${label} debe ser mayor a 0`;
       }
     });
 
-    // Validación de moneda y cuenta
-    const monedaId = selectedMoneda?._id || selectedMoneda?.id;
-    const cuentaId = selectedCuenta?._id || selectedCuenta?.id;
+    // Validación de moneda y cuenta - usar formData en lugar de selectedValues
+    console.log('Validando moneda:', { 
+      selectedMoneda, 
+      formDataMoneda: formData.moneda, 
+      monedas: relatedData?.moneda?.length 
+    });
+    console.log('Validando cuenta:', { 
+      selectedCuenta, 
+      formDataCuenta: formData.cuenta, 
+      cuentas: relatedData?.cuenta?.length 
+    });
 
-    console.log('Validando moneda:', { selectedMoneda, monedaId, formDataMoneda: formData.moneda });
-    console.log('Validando cuenta:', { selectedCuenta, cuentaId, formDataCuenta: formData.cuenta });
-
-    if (!monedaId) {
+    // Usar formData directamente en lugar de selectedValues
+    if (!formData.moneda) {
       newErrors.moneda = 'La moneda es requerida';
     }
-    if (!cuentaId) {
+    if (!formData.cuenta) {
       newErrors.cuenta = 'La cuenta es requerida';
     }
 

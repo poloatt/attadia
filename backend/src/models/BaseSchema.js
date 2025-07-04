@@ -79,4 +79,94 @@ export const excludeCommonFields = (fieldsToExclude = []) => {
   const fields = { ...commonFields };
   fieldsToExclude.forEach(field => delete fields[field]);
   return fields;
+};
+
+// Utilidades para manejo de timezone
+export const timezoneUtils = {
+  /**
+   * Normaliza una fecha al inicio del día en el timezone especificado
+   * @param {Date|string} date - Fecha a normalizar
+   * @param {string} timezone - Timezone (ej: 'America/Santiago')
+   * @returns {Date} Fecha normalizada
+   */
+  normalizeToStartOfDay: (date, timezone = 'America/Santiago') => {
+    if (!date) return null;
+    
+    try {
+      const inputDate = new Date(date);
+      if (isNaN(inputDate.getTime())) return null;
+      
+      // Crear una nueva fecha usando los componentes de fecha en el timezone especificado
+      const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      
+      const parts = formatter.formatToParts(inputDate);
+      const year = parseInt(parts.find(part => part.type === 'year').value);
+      const month = parseInt(parts.find(part => part.type === 'month').value) - 1; // Mes 0-indexado
+      const day = parseInt(parts.find(part => part.type === 'day').value);
+      
+      // Crear fecha normalizada en el timezone especificado
+      const normalizedDate = new Date();
+      normalizedDate.setFullYear(year, month, day);
+      normalizedDate.setHours(0, 0, 0, 0);
+      
+      return normalizedDate;
+    } catch (error) {
+      console.error('Error al normalizar fecha:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Convierte una fecha al final del día en el timezone especificado
+   * @param {Date|string} date - Fecha a convertir
+   * @param {string} timezone - Timezone (ej: 'America/Santiago')
+   * @returns {Date} Fecha al final del día
+   */
+  normalizeToEndOfDay: (date, timezone = 'America/Santiago') => {
+    const startOfDay = timezoneUtils.normalizeToStartOfDay(date, timezone);
+    if (!startOfDay) return null;
+    
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setHours(23, 59, 59, 999);
+    return endOfDay;
+  },
+
+  /**
+   * Obtiene el timezone de un usuario o devuelve el por defecto
+   * @param {Object} user - Usuario con preferencias
+   * @returns {string} Timezone del usuario o por defecto
+   */
+  getUserTimezone: (user) => {
+    return user?.preferences?.timezone || 'America/Santiago';
+  },
+
+  /**
+   * Formatea una fecha para mostrar en el timezone del usuario
+   * @param {Date|string} date - Fecha a formatear
+   * @param {string} timezone - Timezone del usuario
+   * @returns {string} Fecha formateada
+   */
+  formatDateForUser: (date, timezone = 'America/Santiago') => {
+    if (!date) return null;
+    
+    try {
+      const inputDate = new Date(date);
+      if (isNaN(inputDate.getTime())) return null;
+      
+      return new Intl.DateTimeFormat('es-CL', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(inputDate);
+    } catch (error) {
+      console.error('Error al formatear fecha:', error);
+      return null;
+    }
+  }
 }; 

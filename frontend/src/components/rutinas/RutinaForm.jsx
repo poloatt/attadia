@@ -34,6 +34,7 @@ import { useDebounce } from './utils/hooks';
 import { formatDate, iconConfig } from './utils/iconConfig';
 import { useRutinasCRUD } from '../../hooks/useRutinasCRUD';
 import { useAuth } from '../../hooks/useAuth';
+import { useTimezone } from '../../hooks/useTimezone';
 import ChecklistSection from './ChecklistSection';
 import EntityDateSelect from '../EntityViews/EntityDateSelect';
 import { formatDateForAPI, getNormalizedToday, parseAPIDate } from '../../utils/dateUtils';
@@ -50,6 +51,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
   const [error, setError] = useState(null);
   const { enqueueSnackbar } = useCustomSnackbar();
   const { user } = useAuth();
+  const { timezone } = useTimezone(); // Configurar timezone del usuario
   const submitButtonRef = useRef(null);
   const submitInProgress = useRef(false);
   const { syncRutinaWithGlobal, updateGlobalFromRutina } = useRutinasCRUD();
@@ -264,7 +266,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
     
     try {
       const rutinaToSubmit = {
-        fecha: formData.fecha ? formData.fecha.toISOString() : undefined, // Enviar en formato ISO UTC
+        fecha: formData.fecha ? formatDateForAPI(formData.fecha) : undefined, // Enviar usando formatDateForAPI
         useGlobalConfig: true,
         config: rutinaData.config
       };

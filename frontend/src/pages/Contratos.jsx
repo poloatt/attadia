@@ -292,9 +292,11 @@ export function Contratos() {
         const estado = contrato.estadoActual || contrato.estado;
         return estado === 'FINALIZADO';
       });
-    } else {
-      return contratos; // 'todos'
     }
+    return contratos.filter(contrato => {
+      const estado = contrato.estadoActual || contrato.estado;
+      return ['ACTIVO', 'RESERVADO', 'PLANEADO', 'MANTENIMIENTO'].includes(estado);
+    });
   }, [contratos, activeFilter]);
 
   const cardConfig = {
@@ -404,17 +406,6 @@ export function Contratos() {
               fontWeight: 500
             }}
           />
-          <Chip
-            label={`Todos los Contratos (${contratos.length})`}
-            onClick={() => setActiveFilter('todos')}
-            color={activeFilter === 'todos' ? 'primary' : 'default'}
-            variant={activeFilter === 'todos' ? 'filled' : 'outlined'}
-            sx={{ 
-              borderRadius: 0,
-              clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)',
-              fontWeight: 500
-            }}
-          />
         </Box>
         <Tooltip title="Nuevo Contrato">
           <IconButton 
@@ -437,11 +428,10 @@ export function Contratos() {
       {contratosFiltrados.length === 0 ? (
         <EmptyState
           icon={DescriptionIcon}
-          title={`No hay contratos ${activeFilter === 'activos' ? 'activos' : activeFilter === 'finalizados' ? 'finalizados' : ''}`}
+          title={`No hay contratos ${activeFilter === 'activos' ? 'activos' : 'finalizados'}`}
           description={activeFilter === 'activos' ? 
             "No hay contratos activos, reservados, planeados o en mantenimiento" : 
-            activeFilter === 'finalizados' ? "No hay contratos finalizados" :
-            "No hay contratos registrados"
+            "No hay contratos finalizados"
           }
         />
       ) : (

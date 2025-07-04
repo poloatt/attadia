@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { createSchema, commonFields } from './BaseSchema.js';
+import { createSchema, commonFields, timezoneUtils } from './BaseSchema.js';
 
 // Definir el esquema de configuración de cadencia
 const cadenciaSchema = {
@@ -226,11 +226,26 @@ rutinaSchema.methods.shouldShowItem = function(section, item) {
 };
 
 // Middleware para normalizar la fecha antes de guardar
-rutinaSchema.pre('save', function(next) {
+rutinaSchema.pre('save', async function(next) {
   if (this.isModified('fecha')) {
-    const fecha = new Date(this.fecha);
-    fecha.setUTCHours(0, 0, 0, 0);
-    this.fecha = fecha;
+    try {
+      // Obtener el timezone del usuario
+      const Users = mongoose.model('Users');
+      const user = await Users.findById(this.usuario).select('preferences.timezone');
+      const timezone = timezoneUtils.getUserTimezone(user);
+      
+      // Normalizar la fecha usando el timezone del usuario
+      const fechaNormalizada = timezoneUtils.normalizeToStartOfDay(this.fecha, timezone);
+      
+      if (fechaNormalizada) {
+        this.fecha = fechaNormalizada;
+      } else {
+        return next(new Error('Fecha inválida'));
+      }
+    } catch (error) {
+      console.error('Error al normalizar fecha en rutina:', error);
+      return next(error);
+    }
   }
   next();
 });
@@ -238,23 +253,35 @@ rutinaSchema.pre('save', function(next) {
 // Middleware para validar que no exista otra rutina en el mismo día
 rutinaSchema.pre('save', async function(next) {
   if (this.isModified('fecha')) {
-    const fechaInicio = new Date(this.fecha);
-    fechaInicio.setUTCHours(0, 0, 0, 0);
-    
-    const fechaFin = new Date(fechaInicio);
-    fechaFin.setUTCHours(23, 59, 59, 999);
-
-    const existingRutina = await this.constructor.findOne({
-      _id: { $ne: this._id },
-      usuario: this.usuario,
-      fecha: {
-        $gte: fechaInicio,
-        $lte: fechaFin
+    try {
+      // Obtener el timezone del usuario
+      const Users = mongoose.model('Users');
+      const user = await Users.findById(this.usuario).select('preferences.timezone');
+      const timezone = timezoneUtils.getUserTimezone(user);
+      
+      // Normalizar el rango de fechas usando el timezone del usuario
+      const fechaInicio = timezoneUtils.normalizeToStartOfDay(this.fecha, timezone);
+      const fechaFin = timezoneUtils.normalizeToEndOfDay(this.fecha, timezone);
+      
+      if (!fechaInicio || !fechaFin) {
+        return next(new Error('Fecha inválida para validación'));
       }
-    });
 
-    if (existingRutina) {
-      next(new Error('Ya existe una rutina para esta fecha'));
+      const existingRutina = await this.constructor.findOne({
+        _id: { $ne: this._id },
+        usuario: this.usuario,
+        fecha: {
+          $gte: fechaInicio,
+          $lte: fechaFin
+        }
+      });
+
+      if (existingRutina) {
+        return next(new Error('Ya existe una rutina para esta fecha'));
+      }
+    } catch (error) {
+      console.error('Error al validar rutina duplicada:', error);
+      return next(error);
     }
   }
   next();

@@ -6,6 +6,7 @@ import { RutinaForm } from '../components/rutinas';
 import { MemoizedRutinaNavigation as RutinaNavigation } from '../components/rutinas/RutinaNavigation';
 import EntityToolbar from '../components/EntityToolbar';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTimezone } from '../hooks/useTimezone';
 import { 
   CalendarMonthOutlined as DateIcon,
   ScienceOutlined as LabIcon,
@@ -23,6 +24,7 @@ const RutinasWithContext = () => {
   const params = useParams();
   const rutinaId = params.id;
   const navigate = useNavigate();
+  const { timezone } = useTimezone(); // Configurar timezone del usuario
   const rutinasContext = useRutinas();
   const { 
     rutina, 

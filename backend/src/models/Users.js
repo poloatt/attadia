@@ -102,6 +102,22 @@ const userSchema = new mongoose.Schema({
       enum: ['es', 'en'],
       default: 'es'
     },
+    timezone: {
+      type: String,
+      default: 'America/Santiago', // Timezone por defecto para Chile
+      validate: {
+        validator: function(v) {
+          // Validar que el timezone sea válido usando Intl.DateTimeFormat
+          try {
+            Intl.DateTimeFormat('en', { timeZone: v });
+            return true;
+          } catch (e) {
+            return false;
+          }
+        },
+        message: 'El timezone proporcionado no es válido'
+      }
+    },
     notifications: {
       email: {
         type: Boolean,
