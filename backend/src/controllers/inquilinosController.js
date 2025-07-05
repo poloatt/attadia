@@ -1,5 +1,5 @@
 import { BaseController } from './BaseController.js';
-import { Inquilinos, Propiedades } from '../models/index.js';
+import { Inquilinos, Propiedades, Contratos } from '../models/index.js';
 import mongoose from 'mongoose';
 
 class InquilinosController extends BaseController {
@@ -175,20 +175,57 @@ class InquilinosController extends BaseController {
   async getActivosByPropiedad(req, res) {
     try {
       const { propiedadId } = req.params;
-      const result = await this.Model.paginate(
-        {
-          usuario: req.user._id,
-          propiedad: propiedadId,
-          estado: 'ACTIVO'
-        },
-        {
-          populate: ['propiedad'],
-          sort: { createdAt: 'desc' }
-        }
-      );
-
-      const docs = result.docs.map(doc => this.formatResponse(doc));
-      res.json({ ...result, docs });
+      console.log(`Obteniendo inquilinos activos para propiedad ID: ${propiedadId}`);
+      
+      // Obtener contratos activos de esta propiedad
+      const contratosActivos = await Contratos.find({
+        usuario: req.user._id,
+        propiedad: propiedadId,
+        estado: 'ACTIVO'
+      }).populate('inquilino');
+      
+      console.log(`Contratos activos encontrados: ${contratosActivos.length}`);
+      
+      // Extraer los inquilinos únicos de los contratos activos
+      const inquilinosIds = [...new Set(contratosActivos
+        .filter(contrato => contrato.inquilino && contrato.inquilino._id)
+        .map(contrato => contrato.inquilino._id.toString())
+      )];
+      
+      console.log(`Inquilinos activos únicos encontrados: ${inquilinosIds.length}`);
+      
+      let inquilinos = [];
+      if (inquilinosIds.length > 0) {
+        // Obtener los inquilinos completos
+        inquilinos = await this.Model.find({
+          _id: { $in: inquilinosIds },
+          usuario: req.user._id
+        }).populate('contratos');
+      }
+      
+      // Procesar cada inquilino para clasificar sus contratos
+      const inquilinosProcesados = await Promise.all(inquilinos.map(async (inquilino) => {
+        const inquilinoObj = inquilino.toObject ? inquilino.toObject() : inquilino;
+        
+        // Obtener contratos clasificados usando el método del modelo
+        const contratosClasificados = await inquilino.getContratosClasificados();
+        
+        return {
+          ...inquilinoObj,
+          contratosClasificados,
+          estado: inquilinoObj.estadoActual || inquilinoObj.estado
+        };
+      }));
+      
+      console.log(`Inquilinos activos procesados retornados: ${inquilinosProcesados.length}`);
+      
+      res.json({ 
+        docs: inquilinosProcesados,
+        totalDocs: inquilinosProcesados.length,
+        limit: inquilinosProcesados.length,
+        page: 1,
+        totalPages: 1
+      });
     } catch (error) {
       console.error('Error al obtener inquilinos activos por propiedad:', error);
       res.status(500).json({ error: 'Error al obtener inquilinos activos por propiedad' });
@@ -294,20 +331,69 @@ class InquilinosController extends BaseController {
       const { propiedadId } = req.params;
       console.log(`Obteniendo inquilinos para propiedad ID: ${propiedadId}`);
       
-      const result = await this.Model.paginate(
-        { 
-          propiedad: propiedadId,
-          usuario: req.user._id
-        },
-        {
-          populate: ['propiedad'],
-          sort: { createdAt: 'desc' }
-        }
-      );
+      // Primero, obtener todos los contratos activos de esta propiedad
+      const contratosActivos = await Contratos.find({
+        usuario: req.user._id,
+        propiedad: propiedadId,
+        estado: 'ACTIVO'
+      }).populate('inquilino');
       
-      const docs = result.docs.map(doc => this.formatResponse(doc));
-      console.log(`Inquilinos encontrados para propiedad ${propiedadId}:`, docs.length);
-      res.json({ ...result, docs });
+      console.log(`Contratos activos encontrados: ${contratosActivos.length}`);
+      
+      // Extraer los inquilinos únicos de los contratos activos
+      const inquilinosIds = [...new Set(contratosActivos
+        .filter(contrato => contrato.inquilino && contrato.inquilino._id)
+        .map(contrato => contrato.inquilino._id.toString())
+      )];
+      
+      console.log(`Inquilinos únicos encontrados: ${inquilinosIds.length}`);
+      
+      // Si no hay contratos activos, buscar inquilinos que tengan esta propiedad asignada directamente
+      let inquilinos = [];
+      if (inquilinosIds.length > 0) {
+        // Obtener los inquilinos completos
+        inquilinos = await this.Model.find({
+          _id: { $in: inquilinosIds },
+          usuario: req.user._id
+        }).populate('contratos');
+      } else {
+        // Fallback: buscar inquilinos que tengan esta propiedad asignada directamente
+        const result = await this.Model.paginate(
+          {
+            propiedad: propiedadId,
+            usuario: req.user._id
+          },
+          {
+            populate: ['contratos'],
+            sort: { createdAt: 'desc' }
+          }
+        );
+        inquilinos = result.docs;
+      }
+      
+      // Procesar cada inquilino para clasificar sus contratos
+      const inquilinosProcesados = await Promise.all(inquilinos.map(async (inquilino) => {
+        const inquilinoObj = inquilino.toObject ? inquilino.toObject() : inquilino;
+        
+        // Obtener contratos clasificados usando el método del modelo
+        const contratosClasificados = await inquilino.getContratosClasificados();
+        
+        return {
+          ...inquilinoObj,
+          contratosClasificados,
+          estado: inquilinoObj.estadoActual || inquilinoObj.estado
+        };
+      }));
+      
+      console.log(`Inquilinos procesados retornados: ${inquilinosProcesados.length}`);
+      
+      res.json({ 
+        docs: inquilinosProcesados,
+        totalDocs: inquilinosProcesados.length,
+        limit: inquilinosProcesados.length,
+        page: 1,
+        totalPages: 1
+      });
     } catch (error) {
       console.error(`Error al obtener inquilinos para propiedad ${req.params.propiedadId}:`, error);
       res.status(500).json({ error: 'Error al obtener inquilinos para esta propiedad' });

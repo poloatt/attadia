@@ -159,7 +159,31 @@ const inventarioConfig = {
 
 // Función para crear secciones estándar para una propiedad
 const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta, moneda, inquilinos, habitaciones, contratos, inventario, extendida = false) => {
-  // Datos adicionales para la sección financiera
+  // Calcular progreso de ocupación para obtener el total prorrateado
+  const calcularProgresoOcupacion = (prop) => {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    // Encontrar contrato activo
+    const contratoActivo = (prop.contratos || []).find(contrato => {
+      const inicio = new Date(contrato.fechaInicio);
+      const fin = new Date(contrato.fechaFin);
+      return inicio <= hoy && fin >= hoy && contrato.estado === 'ACTIVO';
+    });
+    if (!contratoActivo) {
+      return { montoTotal: 0 };
+    }
+    const inicio = new Date(contratoActivo.fechaInicio);
+    inicio.setHours(0, 0, 0, 0);
+    const fin = new Date(contratoActivo.fechaFin);
+    fin.setHours(0, 0, 0, 0);
+    const diasTotales = Math.max(0, Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24)));
+    const montoMensual = prop.precio || 0;
+    const montoTotal = (diasTotales / 30) * montoMensual;
+    return { montoTotal };
+  };
+
+  const progresoOcupacion = calcularProgresoOcupacion(propiedad);
+
   const datosFinancierosAdicionales = [
     {
       icon: MoneyIcon,
@@ -172,6 +196,12 @@ const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta,
       label: 'Depósito',
       value: `${simboloMoneda} ${(precio * 2).toLocaleString()}`,
       color: 'text.secondary'
+    },
+    {
+      icon: MoneyIcon,
+      label: 'Total',
+      value: `${simboloMoneda} ${progresoOcupacion.montoTotal.toLocaleString()}`,
+      color: 'text.secondary'
     }
   ];
 
@@ -179,7 +209,7 @@ const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta,
   const secciones = [
     SECTION_CONFIGS.ubicacion(propiedad),
     SECTION_CONFIGS.financiero(simboloMoneda, nombreCuenta, datosFinancierosAdicionales),
-    SECTION_CONFIGS.inquilinos(inquilinos, contratos)
+    SECTION_CONFIGS.inquilinos(inquilinos, contratos, inquilinos)
   ];
 
   // Si es vista extendida, agregar habitaciones e inventario
@@ -367,6 +397,12 @@ const PropiedadGridView = ({
             label: 'Depósito',
             value: `${simboloMoneda} ${(precio * 2).toLocaleString()}`,
             color: 'text.secondary'
+          },
+          {
+            icon: MoneyIcon,
+            label: 'Total',
+            value: `${simboloMoneda} ${progresoOcupacion.montoTotal.toLocaleString()}`,
+            color: 'text.secondary'
           }
         ];
         const seccionFinanciera = SECTION_CONFIGS.financiero(simboloMoneda, nombreCuenta, datosFinancierosAdicionales);
@@ -400,8 +436,24 @@ const PropiedadGridView = ({
           inventario,
           data?.extendida || false // Usar la prop extendida del data si está disponible
         );
+        // Buscar el índice de la sección de inquilinos
+        const idxInquilinos = secciones.findIndex(s => s.left && s.left[0]?.icon === PeopleIcon);
+        if (idxInquilinos !== -1) {
+          secciones[idxInquilinos] = {
+            type: 'custom-inquilinos',
+            render: () => (
+              <EntityGridView
+                type="list"
+                data={inquilinos}
+                config={inquilinosConfig}
+                gridSize={{ xs: 6, sm: 6, md: 6, lg: 6 }}
+                emptyMessage="Sin inquilinos"
+                inquilinos={inquilinos}
+              />
+            )
+          };
+        }
         // Reemplazar la sección de contratos estándar por el renderer personalizado
-        // Buscar el índice de la sección de inquilinos/contratos
         const idxContratos = secciones.findIndex(s => s.left && s.left[0]?.icon === ContractIcon);
         if (idxContratos !== -1) {
           secciones[idxContratos] = {
@@ -414,17 +466,20 @@ const PropiedadGridView = ({
             {secciones.map((section, i) =>
               section.type === 'custom-contratos'
                 ? section.render()
-                : <EntityGridView 
-                    key={i} 
-                    type="sections" 
-                    sections={[section]} 
-                    sectionGridSize={{ xs: 12, sm: 12, md: 12, lg: 12 }} 
-                    showCollapseButton={false} 
-                    isCollapsed={false}
-                    contratos={contratos}
-                    onEditContrato={onEdit}
-                    onDeleteContrato={onDelete}
-                  />
+                : section.type === 'custom-inquilinos'
+                  ? section.render()
+                  : <EntityGridView 
+                      key={i} 
+                      type="sections" 
+                      sections={[section]} 
+                      sectionGridSize={{ xs: 12, sm: 12, md: 12, lg: 12 }} 
+                      showCollapseButton={false} 
+                      isCollapsed={false}
+                      contratos={contratos}
+                      onEditContrato={onEdit}
+                      onDeleteContrato={onDelete}
+                      inquilinos={inquilinos}
+                    />
             )}
           </Box>
         );
@@ -459,6 +514,7 @@ const PropiedadGridView = ({
             contratos={contratos}
             onEditContrato={onEdit}
             onDeleteContrato={onDelete}
+            inquilinos={inquilinos}
           />
         );
       default:
