@@ -1,9 +1,7 @@
 import React from 'react';
 import {
   Box,
-  Typography,
-  Chip,
-  IconButton
+  Typography
 } from '@mui/material';
 import {
   HomeOutlined as HomeIcon,
@@ -25,7 +23,10 @@ import {
   ListAlt as ListIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  ExpandMore as ExpandMoreIcon
+  ExpandMore as ExpandMoreIcon,
+  LocationCityOutlined as CityIcon,
+  SquareFootOutlined as AreaIcon,
+  AccountBalanceWalletOutlined as DepositIcon
 } from '@mui/icons-material';
 import EntityGridView, { SECTION_CONFIGS, EntityHeader } from '../EntityViews/EntityGridView';
 import { 
@@ -37,6 +38,59 @@ import {
   formatFecha 
 } from './contratoUtils';
 import getEntityHeaderProps from '../EntityViews/entityHeaderProps.jsx';
+import { Link } from 'react-router-dom';
+
+// Configuraciones para diferentes tipos de datos
+const inquilinosConfig = {
+  getIcon: (inquilino) => {
+    const statusIcons = {
+      'ACTIVO': CheckCircleIcon,
+      'RESERVADO': ReservedIcon,
+      'PENDIENTE': PendingIcon,
+      'INACTIVO': PersonIcon
+    };
+    return statusIcons[inquilino.estado] || PersonIcon;
+  },
+  getIconColor: (inquilino) => {
+    const statusColors = {
+      'ACTIVO': '#4caf50',
+      'RESERVADO': '#ff9800',
+      'PENDIENTE': '#2196f3',
+      'INACTIVO': '#9e9e9e'
+    };
+    return statusColors[inquilino.estado] || '#9e9e9e';
+  },
+  getTitle: (inquilino) => `${inquilino.nombre} ${inquilino.apellido}`,
+  getSubtitle: (inquilino) => inquilino.estado,
+  getHoverInfo: (inquilino) => {
+    if (inquilino.contrato) {
+      return `${new Date(inquilino.contrato.fechaInicio).toLocaleDateString()} - ${new Date(inquilino.contrato.fechaFin).toLocaleDateString()}`;
+    }
+    return 'Sin contrato';
+  }
+};
+
+const propiedadesConfig = {
+  getIcon: (propiedad) => {
+    const iconMap = {
+      'CASA': HomeIcon,
+      'DEPARTAMENTO': BusinessIcon,
+      'APARTAMENTO': BusinessIcon,
+      'LOCAL': ServicesIcon
+    };
+    return iconMap[propiedad.tipo] || HomeIcon;
+  },
+  getTitle: (propiedad) => propiedad.titulo || 'Sin título',
+  getSubtitle: (propiedad) => propiedad.ciudad || '',
+  getHoverInfo: (propiedad) => propiedad.metrosCuadrados ? `${propiedad.metrosCuadrados}m²` : 'Sin medidas'
+};
+
+const transaccionesConfig = {
+  getIcon: () => MoneyIcon,
+  getTitle: (transaccion) => transaccion.descripcion || 'Sin descripción',
+  getSubtitle: (transaccion) => `${transaccion.moneda?.simbolo || '$'} ${transaccion.monto?.toLocaleString() || 0}`,
+  getHoverInfo: (transaccion) => transaccion.fecha ? new Date(transaccion.fecha).toLocaleDateString() : 'Sin fecha'
+};
 
 // Función para obtener el ícono del tipo de contrato
 const getContratoIcon = (tipo) => {
@@ -49,17 +103,44 @@ const getContratoIcon = (tipo) => {
   return iconMap[tipo] || ContractIcon;
 };
 
-// Función para obtener el ícono del estado del contrato
-const getContratoStatusIcon = (estado) => {
-  const statusIcons = {
-    'ACTIVO': CheckCircleIcon,
-    'RESERVADO': ReservedIcon,
-    'PLANEADO': PendingIcon,
-    'FINALIZADO': PersonIcon,
-    'PENDIENTE': PendingIcon,
-    'MANTENIMIENTO': EngineeringIcon
+// Función para obtener el estado del contrato
+const getContratoEstado = (contrato) => {
+  if (!contrato) return 'PLANEADO';
+  
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const inicio = new Date(contrato.fechaInicio);
+  const fin = new Date(contrato.fechaFin);
+  
+  if (contrato.esMantenimiento || contrato.tipoContrato === 'MANTENIMIENTO') {
+    if (inicio <= hoy && fin >= hoy) {
+      return 'MANTENIMIENTO';
+    } else if (inicio > hoy) {
+      return 'PLANEADO';
+    } else {
+      return 'FINALIZADO';
+    }
+  }
+  
+  if (inicio <= hoy && fin >= hoy) {
+    return 'ACTIVO';
+  } else if (inicio > hoy) {
+    return 'PLANEADO';
+  } else {
+    return 'FINALIZADO';
+  }
+};
+
+// Función para obtener el color del estado
+const getContratoEstadoColor = (estado) => {
+  const statusColors = {
+    'ACTIVO': '#4caf50',
+    'PLANEADO': '#2196f3',
+    'FINALIZADO': '#9e9e9e',
+    'MANTENIMIENTO': '#ff9800',
+    'RESERVADO': '#9c27b0'
   };
-  return statusIcons[estado] || PersonIcon;
+  return statusColors[estado] || '#9e9e9e';
 };
 
 // Función para calcular duración del contrato
@@ -145,317 +226,316 @@ const obtenerDatosRelacionados = (contrato, relatedData) => {
 };
 
 // Función para crear secciones estándar para un contrato
-const crearSeccionesContrato = (contrato, relatedData) => {
+const crearSeccionesContrato = (contrato, relatedData, extendida = false) => {
   const datos = obtenerDatosRelacionados(contrato, relatedData);
   
   // Calcular valores
   const diasRestantes = calcularTiempoRestante(contrato.fechaFin);
   const duracionTotal = calcularDuracionTotal(contrato.fechaInicio, contrato.fechaFin);
+  let diasTotalesNum = '';
+  if (typeof duracionTotal === 'string') {
+    const match = duracionTotal.match(/\d+/);
+    if (match) diasTotalesNum = match[0];
+  }
   const montoMensual = contrato.montoMensual || 0;
   const montoTotal = calcularMontoTotal(contrato);
   const simboloMoneda = datos.moneda?.simbolo || '$';
   const nombreCuenta = datos.cuenta?.nombre || 'No especificada';
   const moneda = datos.moneda?.nombre || 'No especificada';
 
-  // Primera sección primaria: Tiempo restante + Inquilinos
-  const seccionTiempoInquilinos = {
-    type: 'primary',
-    left: [
-      {
-        icon: CalendarIcon,
-        label: 'Restantes',
-        value: diasRestantes ? `${diasRestantes}` : 'Finalizado',
-        color: 'warning.main',
-        position: 'left'
-      },
-      {
-        icon: ScheduleIcon,
-        label: 'Duración',
-        value: `de ${duracionTotal}`,
-        color: 'info.main',
-        position: 'left'
-      }
-    ],
-    right: datos.inquilinos.map(inq => ({
-      icon: PeopleIcon,
-      label: 'Inquilino',
-      value: `${inq.nombre} ${inq.apellido}`,
-      color: 'text.secondary',
-      position: 'right'
-    }))
-  };
-
-  // Segunda sección primaria: Cuenta + Alquiler
-  const seccionCuentaAlquiler = {
-    type: 'primary',
-    left: [
-      {
-        icon: CurrencyIcon,
-        label: 'Moneda',
-        value: simboloMoneda,
-        color: 'text.secondary',
-        position: 'left'
-      },
-      {
-        icon: AccountIcon,
-        label: 'Cuenta',
-        value: nombreCuenta,
-        color: 'text.secondary',
-        position: 'left'
-      }
-    ],
-    right: [
-      {
-        icon: MoneyIcon,
-        label: 'Alquiler mensual',
-        value: `${simboloMoneda} ${montoMensual.toLocaleString()}`,
-        color: 'text.secondary',
-        position: 'right'
-      },
-      {
-        icon: AccountIcon,
-        label: 'Alquiler total',
-        value: `${simboloMoneda} ${montoTotal.toLocaleString()}`,
-        color: 'text.secondary',
-        position: 'right'
-      }
-    ]
-  };
-
-  // Crear secciones usando las configuraciones estándar
-  const secciones = [
-    // Sección 1: Tiempo restante + Inquilinos (primaria)
-    seccionTiempoInquilinos,
-    
-    // Sección 2: Cuenta + Alquiler (primaria)
-    seccionCuentaAlquiler,
-    
-    // Sección 3: Ubicación (secundaria) - solo si hay propiedad
-    SECTION_CONFIGS.ubicacion(datos.propiedad)
+  // Datos adicionales para la sección financiera
+  const datosFinancierosAdicionales = [
+    {
+      icon: MoneyIcon,
+      label: 'Mensual',
+      value: `${simboloMoneda} ${montoMensual.toLocaleString()}`,
+      color: 'text.secondary'
+    },
+    {
+      icon: DepositIcon,
+      label: 'Total',
+      value: `${simboloMoneda} ${montoTotal.toLocaleString()}`,
+      color: 'text.secondary'
+    }
   ];
+
+  // Crear secciones base (siempre visibles)
+  const secciones = [
+    // Sección de tiempo (primaria)
+    {
+      type: 'primary',
+      left: [
+        {
+          icon: null,
+          label: 'restantes',
+          value: diasRestantes !== null && diasRestantes !== undefined && diasRestantes !== false
+            ? diasRestantes
+            : 'Finalizado',
+          subtitle: diasRestantes !== null && diasRestantes !== undefined && diasRestantes !== false ? 'DÍAS RESTANTES' : '',
+          color: 'warning.main',
+          position: 'left',
+          showLargeNumber: true
+        }
+      ],
+      right: [
+        {
+          icon: null,
+          label: 'totales',
+          value: diasTotalesNum || (duracionTotal ? duracionTotal.match(/\d+/)?.[0] : '0') || '0',
+          subtitle: 'DÍAS EN TOTAL',
+          color: 'info.main',
+          position: 'right',
+          showLargeNumber: true
+        }
+      ]
+    },
+    // Sección financiera (primaria)
+    SECTION_CONFIGS.financiero(simboloMoneda, nombreCuenta, datosFinancierosAdicionales)
+  ];
+
+  // Si es vista extendida, agregar ubicación (sin título)
+  if (extendida && datos.propiedad) {
+    // Clonar la propiedad pero sin el título
+    const ubicacionSinTitulo = { ...datos.propiedad };
+    delete ubicacionSinTitulo.titulo;
+    secciones.push(SECTION_CONFIGS.ubicacion(ubicacionSinTitulo));
+  }
 
   return secciones;
 };
 
-// Configuraciones para diferentes tipos de datos
-const contratosConfig = (relatedData) => ({
-  getIcon: (contrato) => {
-    const iconMap = {
-      'ALQUILER': HomeIcon,
-      'MANTENIMIENTO': EngineeringIcon,
-      'VENTA': BusinessIcon,
-      'SERVICIOS': ServicesIcon
-    };
-    return iconMap[contrato.tipoContrato] || ContractIcon;
-  },
-  getIconColor: (contrato) => {
-    const estado = getEstadoContrato(contrato);
-    return getEstadoColor(estado);
-  },
-  getTitle: (contrato) => {
-    const propiedadData = (() => {
-      if (contrato.propiedad && typeof contrato.propiedad === 'object' && contrato.propiedad.titulo) {
-        return contrato.propiedad;
-      }
-      return relatedData.propiedades?.find(p => p._id === contrato.propiedad);
-    })();
-    return propiedadData?.titulo || 'Sin propiedad';
-  },
-  getSubtitle: (contrato) => {
-    const estado = getEstadoContrato(contrato);
-    return getEstadoLabel(estado);
-  },
-  getHoverInfo: (contrato) => {
-    const montoMensual = contrato.montoMensual || 0;
-    const monedaData = (() => {
-      const cuentaData = (() => {
-        if (contrato.cuenta && typeof contrato.cuenta === 'object' && contrato.cuenta.nombre) {
-          return contrato.cuenta;
-        }
-        return relatedData.cuentas?.find(c => c._id === contrato.cuenta);
-      })();
-      
-      if (cuentaData?.moneda) {
-        if (typeof cuentaData.moneda === 'object') {
-          return cuentaData.moneda;
-        }
-        return relatedData.monedas?.find(m => m._id === cuentaData.moneda);
-      }
-      if (contrato.moneda) {
-        if (typeof contrato.moneda === 'object') {
-          return contrato.moneda;
-        }
-        return relatedData.monedas?.find(m => m._id === contrato.moneda);
-      }
-      return null;
-    })();
-    
-    return `${monedaData?.simbolo || '$'} ${montoMensual.toLocaleString()} mensual`;
-  }
-});
-
-const inquilinosConfig = {
-  getIcon: () => PeopleIcon,
-  getTitle: (inquilino) => `${inquilino.nombre} ${inquilino.apellido}`,
-  getSubtitle: (inquilino) => inquilino.estado || 'PENDIENTE'
-};
-
-// Configuración para información financiera
-const financieroConfig = (contratos) => {
-  if (!contratos || contratos.length === 0) {
-    return [];
-  }
-
-  // Calcular estadísticas
-  const contratosActivos = contratos.filter(c => getEstadoContrato(c) === 'ACTIVO');
-  const contratosFinalizados = contratos.filter(c => getEstadoContrato(c) === 'FINALIZADO');
+// Render personalizado para la sección de transacciones recurrentes
+function TransaccionesRecurrentesSection({ transaccionesRecurrentes, moneda }) {
+  if (!transaccionesRecurrentes || transaccionesRecurrentes.length === 0) return null;
   
-  const totalIngresos = contratosActivos.reduce((sum, c) => {
-    if (c.tipoContrato === 'MANTENIMIENTO') return sum;
-    return sum + (c.montoMensual || 0);
-  }, 0);
-
-  const promedioMensual = contratosActivos.length > 0 ? totalIngresos / contratosActivos.length : 0;
-
-  return [
-    {
-      icon: CheckCircleIcon,
-      label: 'Contratos Activos',
-      value: contratosActivos.length,
-      color: '#4caf50'
-    },
-    {
-      icon: PersonIcon,
-      label: 'Contratos Finalizados',
-      value: contratosFinalizados.length,
-      color: '#9e9e9e'
-    },
-    {
-      icon: MoneyIcon,
-      label: 'Ingresos Mensuales',
-      value: `$${totalIngresos.toLocaleString()}`,
-      color: '#2196f3'
-    },
-    {
-      icon: CurrencyIcon,
-      label: 'Promedio Mensual',
-      value: `$${promedioMensual.toLocaleString()}`,
-      color: '#ff9800'
-    }
-  ];
-};
-
-// Función para obtener inquilinos únicos de contratos
-const obtenerInquilinosUnicos = (contratos, relatedData) => {
-  if (!contratos || contratos.length === 0) {
-    return [];
-  }
-
-  // Obtener todos los inquilinos únicos de los contratos
-  const inquilinosUnicos = new Map();
-  contratos.forEach(contrato => {
-    if (contrato.inquilino && contrato.inquilino.length > 0) {
-      contrato.inquilino.forEach(inquilino => {
-        const id = typeof inquilino === 'object' ? inquilino._id : inquilino;
-        if (!inquilinosUnicos.has(id)) {
-          const inquilinoData = typeof inquilino === 'object' ? inquilino : 
-            relatedData.inquilinos?.find(i => i._id === inquilino);
-          if (inquilinoData) {
-            inquilinosUnicos.set(id, inquilinoData);
-          }
-        }
-      });
-    }
-  });
-
-  return Array.from(inquilinosUnicos.values());
-};
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.5 }}>
+      {transaccionesRecurrentes.map((transaccion, idx) => (
+        <Box key={idx} sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1, 
+          justifyContent: 'space-between', 
+          bgcolor: 'rgba(255,255,255,0.01)', 
+          px: 1, 
+          py: 0.5, 
+          borderRadius: 0 
+        }}>
+          {/* Concepto a la izquierda */}
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
+            <Typography variant="caption" sx={{ 
+              fontSize: '0.75rem', 
+              color: 'text.primary', 
+              whiteSpace: 'nowrap', 
+              textOverflow: 'ellipsis', 
+              overflow: 'hidden', 
+              maxWidth: '100%' 
+            }}>
+              {transaccion.concepto}
+            </Typography>
+            <Typography variant="caption" sx={{ 
+              fontSize: '0.65rem', 
+              color: 'text.secondary' 
+            }}>
+              Día {transaccion.diaVencimiento}
+            </Typography>
+          </Box>
+          {/* Monto a la derecha */}
+          <Box sx={{ flexShrink: 0 }}>
+            <Typography variant="caption" sx={{ 
+              fontSize: '0.75rem', 
+              color: 'text.primary',
+              fontWeight: 500
+            }}>
+              {moneda?.simbolo || '$'} {transaccion.monto?.toLocaleString() || 0}
+            </Typography>
+          </Box>
+        </Box>
+      ))}
+    </Box>
+  );
+}
 
 // Componente principal ContratosGridView
 const ContratosGridView = ({ 
   type, 
-  contratos, 
+  data, 
   title,
   showEmpty = true,
+  // Props específicos para contratos
+  contrato = null,
+  contratos = [],
   relatedData = {},
+  onView,
   onEdit,
   onDelete,
-  viewMode,
-  onToggleView
+  onExpand
 }) => {
-  // Log en el componente principal
-  console.log('ContratosGridView principal contratos:', contratos);
-
   const renderContent = () => {
-    // Log en el renderContent
-    console.log('ContratosGridView renderContent contratos:', contratos);
     switch (type) {
-      case 'contratos':
-        if (!contratos || contratos.length === 0) {
+      case 'inquilinos':
+        return (
+          <EntityGridView
+            type="list"
+            data={data}
+            config={inquilinosConfig}
+            gridSize={{ xs: 6, sm: 6, md: 6, lg: 6 }}
+            emptyMessage="No hay inquilinos registrados"
+          />
+        );
+      case 'propiedades':
+        return (
+          <EntityGridView
+            type="list"
+            data={data}
+            config={propiedadesConfig}
+            gridSize={{ xs: 6, sm: 6, md: 6, lg: 6 }}
+            emptyMessage="No hay propiedades registradas"
+          />
+        );
+      case 'transacciones':
+        return (
+          <EntityGridView
+            type="list"
+            data={data}
+            config={transaccionesConfig}
+            gridSize={{ xs: 6, sm: 6, md: 4, lg: 3 }}
+            emptyMessage="No hay transacciones registradas"
+          />
+        );
+      case 'transaccionesRecurrentes':
+        return (
+          <TransaccionesRecurrentesSection 
+            transaccionesRecurrentes={data} 
+            moneda={relatedData.moneda}
+          />
+        );
+      case 'ubicacion':
+        const seccionUbicacion = SECTION_CONFIGS.ubicacion(contrato?.propiedad);
+        if (seccionUbicacion.hidden) {
           return (
             <Box sx={{ 
               p: 1.5, 
               textAlign: 'center'
             }}>
               <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                No hay contratos registrados
+                No hay información de ubicación disponible
               </Typography>
             </Box>
           );
         }
-
-        return (
-          <Box>
-            {contratos.map((contrato, index) => {
-              const secciones = crearSeccionesContrato(contrato, relatedData);
-              const estado = getEstadoContrato(contrato);
-              const datos = obtenerDatosRelacionados(contrato, relatedData);
-              
-              return (
-                <Box key={contrato._id || index} sx={{ mb: 2 }}>
-                  {/* Solo la entidad principal usa EntityHeader */}
-                  {(() => {
-                    const headerProps = getEntityHeaderProps({
-                      entity: contrato,
-                      type: 'contrato',
-                      onView: onToggleView,
-                      onEdit,
-                      onDelete,
-                      onExpand: () => {}
-                    });
-                    return <EntityHeader {...headerProps} />;
-                  })()}
-                  {/* Secciones organizadas con opción de colapsar */}
-                  <EntityGridView
-                    type="sections"
-                    sections={secciones}
-                    sectionGridSize={{ xs: 6, sm: 6, md: 6, lg: 6 }}
-                    showCollapseButton={true}
-                    isCollapsed={false}
-                  />
-                </Box>
-              );
-            })}
-          </Box>
-        );
-      case 'financiero':
         return (
           <EntityGridView
             type="info"
-            data={financieroConfig(contratos)}
-            gridSize={{ xs: 6, sm: 6, md: 3, lg: 3 }}
-            emptyMessage="No hay contratos para mostrar información financiera"
+            data={seccionUbicacion.left}
+            gridSize={{ xs: 4, sm: 4, md: 4, lg: 4 }}
           />
         );
-      case 'inquilinos':
-        const inquilinos = obtenerInquilinosUnicos(contratos, relatedData);
+      case 'financiero':
+        const datosFinancierosAdicionales = [
+          {
+            icon: MoneyIcon,
+            label: 'Mensual',
+            value: `${contrato?.moneda?.simbolo || '$'} ${(contrato?.montoMensual || 0).toLocaleString()}`,
+            color: 'text.secondary'
+          },
+          {
+            icon: DepositIcon,
+            label: 'Depósito',
+            value: `${contrato?.moneda?.simbolo || '$'} ${(contrato?.deposito || 0).toLocaleString()}`,
+            color: 'text.secondary'
+          }
+        ];
+        const seccionFinanciera = SECTION_CONFIGS.financiero(
+          contrato?.moneda?.simbolo || '$', 
+          contrato?.cuenta?.nombre || 'No especificada', 
+          datosFinancierosAdicionales
+        );
         return (
           <EntityGridView
-            type="list"
-            data={inquilinos}
-            config={inquilinosConfig}
-            gridSize={{ xs: 6, sm: 4, md: 3, lg: 2.4 }}
-            emptyMessage="No hay inquilinos registrados en los contratos"
+            type="info"
+            data={[...seccionFinanciera.left, ...seccionFinanciera.right]}
+            gridSize={{ xs: 3, sm: 3, md: 3, lg: 3 }}
+          />
+        );
+      case 'sections':
+        // Unificar datos para asegurar que siempre haya información completa
+        const contratoData = {
+          ...(contrato || {}),
+          propiedad: contrato?.propiedad || data?.propiedad,
+          inquilino: contrato?.inquilino || data?.inquilino,
+          cuenta: contrato?.cuenta || data?.cuenta,
+          moneda: contrato?.moneda || data?.moneda,
+          fechaInicio: contrato?.fechaInicio || data?.fechaInicio,
+          fechaFin: contrato?.fechaFin || data?.fechaFin,
+          montoMensual: contrato?.montoMensual || data?.montoMensual,
+          tipoContrato: contrato?.tipoContrato || data?.tipoContrato,
+          esMantenimiento: contrato?.esMantenimiento || data?.esMantenimiento
+        };
+        
+        // Crear secciones según el estado extendido
+        let secciones = crearSeccionesContrato(
+          contratoData,
+          relatedData,
+          data?.extendida || false
+        );
+        
+        // Reemplazar la sección de transacciones recurrentes por el renderer personalizado
+        if (contratoData.transaccionesRecurrentes && contratoData.transaccionesRecurrentes.length > 0) {
+          secciones.push({
+            type: 'custom-transacciones',
+            render: () => (
+              <TransaccionesRecurrentesSection 
+                transaccionesRecurrentes={contratoData.transaccionesRecurrentes} 
+                moneda={contratoData.moneda}
+              />
+            )
+          });
+        }
+        
+        return (
+          <Box>
+            {secciones.map((section, i) =>
+              section.type === 'custom-transacciones'
+                ? section.render()
+                : <EntityGridView 
+                    key={i} 
+                    type="sections" 
+                    sections={[section]} 
+                    title={i === 0 ? title : null} // Solo mostrar título en la primera sección
+                    sectionGridSize={{ xs: 12, sm: 12, md: 12, lg: 12 }} 
+                    showCollapseButton={false} 
+                    isCollapsed={false} 
+                  />
+            )}
+          </Box>
+        );
+      case 'compact':
+        // Unificar datos para asegurar que siempre haya información completa
+        const contratoDataCompact = {
+          ...(contrato || {}),
+          propiedad: contrato?.propiedad || data?.propiedad,
+          inquilino: contrato?.inquilino || data?.inquilino,
+          cuenta: contrato?.cuenta || data?.cuenta,
+          moneda: contrato?.moneda || data?.moneda,
+          fechaInicio: contrato?.fechaInicio || data?.fechaInicio,
+          fechaFin: contrato?.fechaFin || data?.fechaFin,
+          montoMensual: contrato?.montoMensual || data?.montoMensual,
+          tipoContrato: contrato?.tipoContrato || data?.tipoContrato,
+          esMantenimiento: contrato?.esMantenimiento || data?.esMantenimiento
+        };
+        const seccionesCompact = crearSeccionesContrato(
+          contratoDataCompact,
+          relatedData,
+          false // Vista colapsada por defecto
+        );
+        return (
+          <EntityGridView
+            type="sections"
+            sections={seccionesCompact}
+            sectionGridSize={{ xs: 12, sm: 12, md: 12, lg: 12 }}
+            showCollapseButton={false}
+            isCollapsed={false}
           />
         );
       default:
@@ -472,7 +552,18 @@ const ContratosGridView = ({
     }
   };
 
-  return renderContent();
+  return (
+    <Box sx={{ width: '100%' }}>
+      {title && (
+        <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
+          {title}
+        </Typography>
+      )}
+      {renderContent()}
+    </Box>
+  );
 };
 
-export default ContratosGridView; 
+export default ContratosGridView;
+
+export { crearSeccionesContrato }; 

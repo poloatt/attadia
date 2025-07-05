@@ -107,7 +107,7 @@ const EntityGroupedCards = ({
           </Box>
 
           <Collapse in={expandedGroups[group.info.key]} timeout={200}>
-            <Grid container spacing={0.4}>
+            <Grid container spacing={0.4} sx={{ p: 0 }}>
               {group.items.map((item, index) => (
                 <Grid item key={item.id} {...gridProps}>
                   <Box

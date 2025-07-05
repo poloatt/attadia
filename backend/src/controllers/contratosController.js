@@ -159,24 +159,59 @@ class ContratosController extends BaseController {
       // LOG: contar contratos que matchean el filtro
       const totalFiltrados = await this.Model.countDocuments(filtros);
       console.log('Contratos que matchean el filtro:', totalFiltrados);
-      // Obtener contratos con populate y virtuals
+      // Obtener contratos con populate pero sin lean para mantener virtuals
       const contratos = await this.Model.find(filtros)
-        .populate(this.options.populate)
-        .lean({ virtuals: true });
-      res.json({
-        docs: contratos,
-        totalDocs: contratos.length,
-        limit: contratos.length,
-        page: 1,
-        totalPages: 1,
-        hasNextPage: false,
-        hasPrevPage: false,
-        nextPage: null,
-        prevPage: null
+        .populate(this.options.populate);
+      // Convertir a objetos planos y calcular estado actual manualmente
+      const contratosFormateados = contratos.map(contrato => {
+        const contratoObj = contrato.toObject();
+        // Calcular estado actual manualmente
+        try {
+          if (!contratoObj.fechaInicio) {
+            contratoObj.estadoActual = contratoObj.estado || 'PLANEADO';
+          } else {
+            const now = new Date();
+            now.setHours(0, 0, 0, 0);
+            const inicio = new Date(contratoObj.fechaInicio);
+            inicio.setHours(0, 0, 0, 0);
+            if (!contratoObj.fechaFin) {
+              if (inicio <= now) {
+                contratoObj.estadoActual = contratoObj.esMantenimiento || contratoObj.tipoContrato === 'MANTENIMIENTO' ? 'MANTENIMIENTO' : 'ACTIVO';
+              } else {
+                contratoObj.estadoActual = 'PLANEADO';
+              }
+            } else {
+              const fin = new Date(contratoObj.fechaFin);
+              fin.setHours(0, 0, 0, 0);
+              if (contratoObj.esMantenimiento || contratoObj.tipoContrato === 'MANTENIMIENTO') {
+                if (inicio <= now && fin > now) {
+                  contratoObj.estadoActual = 'MANTENIMIENTO';
+                } else if (inicio > now) {
+                  contratoObj.estadoActual = 'PLANEADO';
+                } else {
+                  contratoObj.estadoActual = 'FINALIZADO';
+                }
+              } else {
+                if (inicio <= now && fin >= now) {
+                  contratoObj.estadoActual = 'ACTIVO';
+                } else if (inicio > now) {
+                  contratoObj.estadoActual = 'PLANEADO';
+                } else {
+                  contratoObj.estadoActual = 'FINALIZADO';
+                }
+              }
+            }
+          }
+        } catch (e) {
+          contratoObj.estadoActual = contratoObj.estado || 'PLANEADO';
+        }
+        return contratoObj;
       });
+      // Devuelve los contratos formateados
+      return res.json(contratosFormateados);
     } catch (error) {
       console.error('Error al obtener contratos con estado actual:', error);
-      res.status(500).json({ error: 'Error al obtener contratos' });
+      res.status(500).json({ error: 'Error al obtener contratos con estado actual' });
     }
   }
 

@@ -414,7 +414,17 @@ const PropiedadGridView = ({
             {secciones.map((section, i) =>
               section.type === 'custom-contratos'
                 ? section.render()
-                : <EntityGridView key={i} type="sections" sections={[section]} sectionGridSize={{ xs: 12, sm: 12, md: 12, lg: 12 }} showCollapseButton={false} isCollapsed={false} />
+                : <EntityGridView 
+                    key={i} 
+                    type="sections" 
+                    sections={[section]} 
+                    sectionGridSize={{ xs: 12, sm: 12, md: 12, lg: 12 }} 
+                    showCollapseButton={false} 
+                    isCollapsed={false}
+                    contratos={contratos}
+                    onEditContrato={onEdit}
+                    onDeleteContrato={onDelete}
+                  />
             )}
           </Box>
         );
@@ -446,6 +456,9 @@ const PropiedadGridView = ({
             sectionGridSize={{ xs: 12, sm: 12, md: 12, lg: 12 }}
             showCollapseButton={false}
             isCollapsed={false}
+            contratos={contratos}
+            onEditContrato={onEdit}
+            onDeleteContrato={onDelete}
           />
         );
       default:

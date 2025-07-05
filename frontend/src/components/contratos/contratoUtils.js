@@ -70,9 +70,9 @@ export const calcularTiempoRestante = (fechaFin) => {
     return null;
   } else if (diferenciaDias > 90) {
     const meses = Math.floor(diferenciaDias / 30);
-    return `${meses} meses`;
+    return meses;
   } else {
-    return `${diferenciaDias} días`;
+    return diferenciaDias;
   }
 };
 

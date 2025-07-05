@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { 
   Container, 
   Button,
@@ -88,22 +88,19 @@ export function Contratos() {
 
       console.log('Cargando datos relacionados...');
 
-      // Agregamos un pequeño delay entre cada grupo de llamadas
-      const [contratosRes, propiedadesRes] = await Promise.all([
+      // Todas las llamadas en paralelo
+      const [
+        contratosRes,
+        propiedadesRes,
+        inquilinosRes,
+        habitacionesRes,
+        cuentasRes,
+        monedasRes
+      ] = await Promise.all([
         clienteAxios.get('/api/contratos/estado-actual'),
-        clienteAxios.get('/api/propiedades')
-      ]);
-
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const [inquilinosRes, habitacionesRes] = await Promise.all([
+        clienteAxios.get('/api/propiedades'),
         clienteAxios.get('/api/inquilinos'),
-        clienteAxios.get('/api/habitaciones')
-      ]);
-
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const [cuentasRes, monedasRes] = await Promise.all([
+        clienteAxios.get('/api/habitaciones'),
         clienteAxios.get('/api/cuentas'),
         clienteAxios.get('/api/monedas')
       ]);
@@ -165,10 +162,13 @@ export function Contratos() {
   // Ahora envolvemos fetchData en useCallback
   const loadData = useCallback(fetchData, [enqueueSnackbar]);
 
-  // Efecto para cargar datos iniciales
+  // Evitar doble carga en StrictMode (React 18)
+  const isFirstLoad = useRef(true);
   useEffect(() => {
-    const timer = setTimeout(loadData, 500);
-    return () => clearTimeout(timer);
+    if (isFirstLoad.current) {
+      isFirstLoad.current = false;
+      loadData();
+    }
   }, [loadData]);
 
   // Efecto para manejar la navegación desde inquilinos
@@ -408,7 +408,7 @@ export function Contratos() {
   };
 
   return (
-    <Container maxWidth="xl">
+    <Container maxWidth="xl" sx={{ py: 0, px: 0 }}>
       <EntityToolbar
         title="Contratos"
         onBack={handleBack}
@@ -438,8 +438,8 @@ export function Contratos() {
       />
 
       {/* Sección de Contratos Activos */}
-      <Box sx={{ mt: 2 }}>
-        <Paper sx={{ overflow: 'hidden' }}>
+      <Box sx={{ mt: 0 }}>
+        <Box>
           <Box sx={{ 
             display: 'flex', 
             alignItems: 'center', 
@@ -460,33 +460,30 @@ export function Contratos() {
               {isActiveContractsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             </IconButton>
           </Box>
-          
           <Collapse in={isActiveContractsExpanded}>
-            <Box sx={{ p: 2 }}>
-              {contratosActivos.length === 0 ? (
-                <EmptyState
-                  icon={DescriptionIcon}
-                  title="No hay contratos activos"
-                  description="No hay contratos activos, reservados, planeados o en mantenimiento"
-                />
-              ) : (
-                <ContratosView
-                  contratos={contratosActivos}
-                  relatedData={relatedData}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  viewMode={viewMode}
-                  onToggleView={handleToggleView}
-                />
-              )}
-            </Box>
+            {contratosActivos.length === 0 ? (
+              <EmptyState
+                icon={DescriptionIcon}
+                title="No hay contratos activos"
+                description="No hay contratos activos, reservados, planeados o en mantenimiento"
+              />
+            ) : (
+              <ContratosView
+                contratos={contratosActivos}
+                relatedData={relatedData}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                viewMode={viewMode}
+                onToggleView={handleToggleView}
+              />
+            )}
           </Collapse>
-        </Paper>
+        </Box>
       </Box>
 
       {/* Sección de Contratos Finalizados */}
-      <Box sx={{ mt: 2 }}>
-        <Paper sx={{ overflow: 'hidden' }}>
+      <Box sx={{ mt: 0 }}>
+        <Box>
           <Box sx={{ 
             display: 'flex', 
             alignItems: 'center', 
@@ -507,28 +504,25 @@ export function Contratos() {
               {isFinishedContractsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             </IconButton>
           </Box>
-          
           <Collapse in={isFinishedContractsExpanded}>
-            <Box sx={{ p: 2 }}>
-              {contratosFinalizados.length === 0 ? (
-                <EmptyState
-                  icon={DescriptionIcon}
-                  title="No hay contratos finalizados"
-                  description="No hay contratos finalizados"
-                />
-              ) : (
-                <ContratosView
-                  contratos={contratosFinalizados}
-                  relatedData={relatedData}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  viewMode={viewMode}
-                  onToggleView={handleToggleView}
-                />
-              )}
-            </Box>
+            {contratosFinalizados.length === 0 ? (
+              <EmptyState
+                icon={DescriptionIcon}
+                title="No hay contratos finalizados"
+                description="No hay contratos finalizados"
+              />
+            ) : (
+              <ContratosView
+                contratos={contratosFinalizados}
+                relatedData={relatedData}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                viewMode={viewMode}
+                onToggleView={handleToggleView}
+              />
+            )}
           </Collapse>
-        </Paper>
+        </Box>
       </Box>
 
       {isFormOpen && (
