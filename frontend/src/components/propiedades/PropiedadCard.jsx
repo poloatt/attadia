@@ -42,7 +42,7 @@ import {
 } from '@mui/icons-material';
 import { EntityActions } from '../EntityViews/EntityActions';
 import PropiedadCardItem from './PropiedadCardItem';
-import PropiedadGridView, { CompactGridView } from './PropiedadGridView';
+import PropiedadGridView, { crearSeccionesPropiedad } from './PropiedadGridView';
 import PropiedadListView from './PropiedadListView';
 import { Link } from 'react-router-dom';
 
@@ -311,6 +311,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
   const montoMensual = propiedad.precio || 0;
   const simboloMoneda = propiedad.cuenta?.moneda?.simbolo || propiedad.moneda?.simbolo || '$';
   const nombreCuenta = propiedad.cuenta?.nombre || 'No especificada';
+  const moneda = propiedad.cuenta?.moneda?.nombre || propiedad.moneda?.nombre || '';
   const habitaciones = propiedad.habitaciones || [];
   const numDormitorios = habitaciones.filter(h => 
     h.tipo === 'DORMITORIO_SIMPLE' || h.tipo === 'DORMITORIO_DOBLE'
@@ -383,6 +384,15 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
 
   // Calcular progreso del contrato
   const progresoContrato = calcularProgresoContrato(contratos, montoMensual);
+
+  // --- MOVER AQUÍ LA LÓGICA DE SECCIONES ---
+  const propiedadData = {
+    ...propiedad,
+    direccion: propiedad.direccion || direccion,
+    ciudad: propiedad.ciudad || ciudad,
+    metrosCuadrados: propiedad.metrosCuadrados || metrosCuadrados,
+    tipo: propiedad.tipo || undefined
+  };
 
   return (
     <StyledCard sx={{ bgcolor: 'background.default' }}>
@@ -503,25 +513,30 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
             </Tooltip>
           </Box>
         </Box>
-        {/* CompactGridView solo en colapsado */}
+        {/* Vista compacta solo en colapsado */}
         {!isExpanded && (
-          <CompactGridView
-            direccion={direccion}
-            ciudad={ciudad}
+          <PropiedadGridView
+            type="sections"
+            data={{ extendida: false }}
+            propiedad={propiedadData}
             precio={montoMensual}
             simboloMoneda={simboloMoneda}
             nombreCuenta={nombreCuenta}
+            moneda={moneda}
             inquilinos={inquilinos}
             habitaciones={habitaciones}
             contratos={contratos}
             inventario={inventarios}
+            sectionGridSize={{ xs: 12, sm: 12, md: 12, lg: 12 }}
+            showCollapseButton={false}
+            isCollapsed={false}
           />
         )}
       </Box>
 
       {isExpanded && (
         <CardContent sx={{ 
-          p: 1.5, 
+          p: 1, 
           pb: 0.5, 
           maxHeight: 400, 
           overflowY: 'auto',
@@ -546,10 +561,10 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
           scrollbarWidth: 'thin',
           scrollbarColor: 'rgba(0, 0, 0, 0.1) transparent'
         }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
             {viewMode === 'grid' ? (
               // Vista Grid: Colapso controlado solo por isExpanded
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                 {/* Barra de progreso del contrato */}
                 {progresoContrato.tieneContrato && (
                   <Box sx={{ mb: 1 }}>
@@ -583,54 +598,22 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
                     </Box>
                   </Box>
                 )}
-                {!isExpanded ? (
-                  // Vista compacta: Solo elementos esenciales
-                  <CompactGridView 
-                    direccion={direccion}
-                    ciudad={ciudad}
-                    precio={montoMensual}
-                    simboloMoneda={simboloMoneda}
-                    nombreCuenta={nombreCuenta}
-                    inquilinos={inquilinos}
-                    habitaciones={habitaciones}
-                    contratos={contratos}
-                    inventario={inventarios}
-                  />
-                ) : (
-                  // Vista expandida: Todas las secciones
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {/* Ubicación grid */}
-                    <PropiedadGridView 
-                      type="ubicacion" 
-                      direccion={direccion}
-                      ciudad={ciudad}
-                      metrosCuadrados={metrosCuadrados}
-                    />
-                    {/* Grid financiero */}
-                    <PropiedadGridView 
-                      type="financiero" 
-                      precio={montoMensual}
-                      simboloMoneda={simboloMoneda}
-                      nombreCuenta={nombreCuenta}
-                      moneda={propiedad.cuenta?.moneda?.nombre || propiedad.moneda?.nombre}
-                    />
-                    {/* Inquilinos grid */}
-                    <PropiedadGridView 
-                      type="inquilinos" 
-                      data={inquilinos}
-                    />
-                    {/* Habitaciones grid */}
-                    <PropiedadGridView 
-                      type="habitaciones" 
-                      data={habitaciones}
-                    />
-                    {/* Inventario grid */}
-                    <PropiedadGridView 
-                      type="inventario" 
-                      data={inventarios}
-                    />
-                  </Box>
-                )}
+                <PropiedadGridView
+                  type="sections"
+                  data={{ extendida: true }}
+                  propiedad={propiedadData}
+                  precio={montoMensual}
+                  simboloMoneda={simboloMoneda}
+                  nombreCuenta={nombreCuenta}
+                  moneda={moneda}
+                  inquilinos={inquilinos}
+                  habitaciones={habitaciones}
+                  contratos={contratos}
+                  inventario={inventarios}
+                  sectionGridSize={{ xs: 12, sm: 12, md: 12, lg: 12 }}
+                  showCollapseButton={false}
+                  isCollapsed={false}
+                />
               </Box>
             ) : (
               // Vista Lista: Mantener collapses originales

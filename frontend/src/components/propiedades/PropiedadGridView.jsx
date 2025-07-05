@@ -1,12 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Box,
-  Grid,
-  Typography,
-  Paper,
-  Chip
+  Typography
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
 import {
   PeopleOutlined as PeopleIcon,
   BedOutlined as BedIcon,
@@ -36,80 +32,44 @@ import {
   AccountBalance as BankIcon,
   AttachMoney as CurrencyIcon
 } from '@mui/icons-material';
+import EntityGridView, { SECTION_CONFIGS, EntityHeader } from '../EntityViews/EntityGridView';
+import getEntityHeaderProps from '../EntityViews/entityHeaderProps.jsx';
 import { Link } from 'react-router-dom';
 
-// Componente Paper estilizado minimalista con fondo del tema
-const GeometricPaper = styled(Paper)(({ theme }) => ({
-  borderRadius: 0,
-  padding: theme.spacing(0.75),
-  border: 'none',
-  backgroundColor: theme.palette.background.default,
-  transition: 'all 0.2s ease',
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  justifyContent: 'center',
-  minHeight: '50px',
-  '&:hover': {
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-  }
-}));
+// Configuraciones para diferentes tipos de datos
 
-// Componente Paper específico para habitaciones más compacto
-const CompactPaper = styled(Paper)(({ theme }) => ({
-  borderRadius: 0,
-  padding: theme.spacing(0.5),
-  border: 'none',
-  backgroundColor: theme.palette.background.default,
-  transition: 'all 0.2s ease',
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  justifyContent: 'center',
-  minHeight: '40px',
-  '&:hover': {
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-  }
-}));
-
-// Chip estilizado geométrico
-const GeometricChip = styled(Chip)(({ theme, customcolor }) => ({
-  borderRadius: 0,
-  backgroundColor: customcolor || theme.palette.action.selected,
-  color: theme.palette.text.primary,
-  fontWeight: 500,
-  fontSize: '0.75rem',
-  height: 24,
-  '& .MuiChip-icon': {
-    fontSize: '0.9rem',
-    marginLeft: theme.spacing(0.5)
-  }
-}));
-
-// Función para obtener el color del estado del inquilino
-const getInquilinoStatusColor = (estado) => {
+// Configuraciones para diferentes tipos de datos
+const inquilinosConfig = {
+  getIcon: (inquilino) => {
+    const statusIcons = {
+      'ACTIVO': CheckCircle,
+      'RESERVADO': BookmarkAdded,
+      'PENDIENTE': PendingActions,
+      'INACTIVO': Person
+    };
+    return statusIcons[inquilino.estado] || Person;
+  },
+  getIconColor: (inquilino) => {
   const statusColors = {
     'ACTIVO': '#4caf50',
     'RESERVADO': '#ff9800',
     'PENDIENTE': '#2196f3',
     'INACTIVO': '#9e9e9e'
   };
-  return statusColors[estado] || '#9e9e9e';
+    return statusColors[inquilino.estado] || '#9e9e9e';
+  },
+  getTitle: (inquilino) => `${inquilino.nombre} ${inquilino.apellido}`,
+  getSubtitle: (inquilino) => inquilino.estado,
+  getHoverInfo: (inquilino) => {
+    if (inquilino.contrato) {
+      return `${new Date(inquilino.contrato.fechaInicio).toLocaleDateString()} - ${new Date(inquilino.contrato.fechaFin).toLocaleDateString()}`;
+    }
+    return 'Sin contrato';
+  }
 };
 
-// Función para obtener el ícono del estado del inquilino
-const getInquilinoStatusIcon = (estado) => {
-  const statusIcons = {
-    'ACTIVO': CheckCircle,
-    'RESERVADO': BookmarkAdded,
-    'PENDIENTE': PendingActions,
-    'INACTIVO': Person
-  };
-  return statusIcons[estado] || Person;
-};
-
-// Función para obtener el ícono del tipo de habitación
-const getHabitacionIcon = (tipo) => {
+const habitacionesConfig = {
+  getIcon: (habitacion) => {
   const iconMap = {
     'DORMITORIO': BedIcon,
     'DORMITORIO_PRINCIPAL': KingBed,
@@ -122,604 +82,88 @@ const getHabitacionIcon = (tipo) => {
     'BALCON': HomeOutlined,
     'TERRAZA': HomeOutlined
   };
-  return iconMap[tipo] || BedIcon;
+    return iconMap[habitacion.tipo] || BedIcon;
+  },
+  getTitle: (habitacion) => habitacion.nombre || habitacion.tipo.replace('_', ' '),
+  getHoverInfo: (habitacion) => habitacion.metrosCuadrados ? `${habitacion.metrosCuadrados}m²` : 'Sin medidas'
 };
 
-// Función para obtener el color del estado del contrato
-const getContratoStatusColor = (estado) => {
-  const statusColors = {
-    'ACTIVO': '#4caf50',
-    'RESERVADO': '#ff9800',
-    'PLANEADO': '#2196f3',
-    'FINALIZADO': '#9e9e9e',
-    'PENDIENTE': '#f44336'
-  };
-  return statusColors[estado] || '#9e9e9e';
-};
-
-// Función para obtener el ícono del tipo de contrato
-const getContratoIcon = (tipo) => {
-  const iconMap = {
-    'ALQUILER': HomeOutlined,
-    'MANTENIMIENTO': Engineering,
-    'VENTA': BusinessOutlined,
-    'SERVICIOS': StoreOutlined
-  };
-  return iconMap[tipo] || ContractIcon;
-};
-
-// Función para determinar el estado del contrato
-const getEstadoContrato = (contrato) => {
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  const inicio = new Date(contrato.fechaInicio);
-  const fin = new Date(contrato.fechaFin);
-  
-  if (inicio <= hoy && fin >= hoy) {
-    return 'ACTIVO';
-  } else if (inicio > hoy) {
-    return contrato.estado === 'RESERVADO' ? 'RESERVADO' : 'PLANEADO';
-  } else if (fin < hoy) {
-    return 'FINALIZADO';
-  }
-  return contrato.estado || 'PENDIENTE';
-};
-
-// Componente individual para inquilino con hover horizontal
-const InquilinoCard = ({ inquilino }) => {
-  const [isHovered, setIsHovered] = useState(false);
-  const IconComponent = getInquilinoStatusIcon(inquilino.estado);
-
-  return (
-    <GeometricPaper
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      sx={{ cursor: 'pointer', minHeight: '50px' }}
-    >
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center',
-        gap: 1,
-        height: '100%',
-        width: '100%'
-      }}>
-        {/* Icono a la izquierda */}
-        <IconComponent 
-          sx={{ 
-            fontSize: '1.2rem', 
-            color: getInquilinoStatusColor(inquilino.estado),
-            flexShrink: 0
-          }} 
-        />
-        
-        {/* Contenido a la derecha */}
-        <Box sx={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: 0.25,
-          flex: 1,
-          overflow: 'hidden'
-        }}>
-          {!isHovered ? (
-            // Vista normal: nombre + estado
-            <>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontWeight: 500,
-                  fontSize: '0.7rem',
-                  lineHeight: 1.2,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {inquilino.nombre} {inquilino.apellido}
-              </Typography>
-              <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
-                {inquilino.estado}
-              </Typography>
-            </>
-          ) : (
-            // Vista hover: información del contrato
-            <>
-              <Typography variant="body2" sx={{ fontSize: '0.7rem', fontWeight: 600, color: 'primary.main' }}>
-                {inquilino.nombre} {inquilino.apellido}
-              </Typography>
-              {inquilino.contrato ? (
-                <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'warning.main' }}>
-                  {new Date(inquilino.contrato.fechaInicio).toLocaleDateString()} - {new Date(inquilino.contrato.fechaFin).toLocaleDateString()}
-                </Typography>
-              ) : (
-                <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
-                  Sin contrato
-                </Typography>
-              )}
-            </>
-          )}
-        </Box>
-      </Box>
-    </GeometricPaper>
-  );
-};
-
-// Componente para mostrar inquilinos en grid
-const InquilinosGrid = ({ inquilinos }) => {
-  if (!inquilinos || inquilinos.length === 0) {
-    return (
-      <Box sx={{ 
-        p: 1.5, 
-        textAlign: 'center'
-      }}>
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-          No hay inquilinos registrados
-        </Typography>
-      </Box>
-    );
-  }
-
-  return (
-    <Grid container spacing={0.75} sx={{ p: 0.75 }}>
-      {inquilinos.map((inquilino, index) => (
-        <Grid item xs={6} sm={6} md={6} lg={6} key={inquilino._id || index}>
-          <InquilinoCard inquilino={inquilino} />
-        </Grid>
-      ))}
-    </Grid>
-  );
-};
-
-// Componente individual para habitación con hover
-const HabitacionCard = ({ habitacion }) => {
-  const [isHovered, setIsHovered] = useState(false);
-  const IconComponent = getHabitacionIcon(habitacion.tipo);
-
-  return (
-    <CompactPaper
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      sx={{ cursor: 'pointer' }}
-    >
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        gap: 0.25,
-        textAlign: 'center',
-        justifyContent: 'center',
-        height: '100%'
-      }}>
-        {!isHovered ? (
-          // Vista normal: icono + nombre
-          <>
-            <IconComponent 
-              sx={{ 
-                fontSize: '1.1rem', 
-                color: 'text.primary' 
-              }} 
-            />
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                fontWeight: 500,
-                fontSize: '0.6rem',
-                lineHeight: 1.1,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical'
-              }}
-            >
-              {habitacion.nombre || habitacion.tipo.replace('_', ' ')}
-            </Typography>
-          </>
-        ) : (
-          // Vista hover: solo medidas, más gris y pequeño
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, width: '100%', justifyContent: 'center', alignItems: 'center' }}>
-            <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 500, color: '#9e9e9e', textAlign: 'center' }}>
-              {habitacion.metrosCuadrados ? `${habitacion.metrosCuadrados}m²` : 'Sin medidas'}
-            </Typography>
-            {habitacion.descripcion && (
-              <Typography variant="caption" sx={{ fontSize: '0.55rem', color: '#757575', textAlign: 'center', lineHeight: 1.1 }}>
-                {habitacion.descripcion}
-              </Typography>
-            )}
-          </Box>
-        )}
-      </Box>
-    </CompactPaper>
-  );
-};
-
-// Componente para mostrar habitaciones en grid con paginación y espacio fijo
-const HabitacionesGrid = ({ habitaciones }) => {
-  const [currentPage, setCurrentPage] = useState(0);
-  const itemsPerPage = 8; // 2 filas x 4 columnas
-  const fixedSlots = 8; // Siempre mostrar 8 espacios para mantener coherencia visual
-  
-  if (!habitaciones || habitaciones.length === 0) {
-    return (
-      <Box sx={{ position: 'relative', minHeight: '104px' }}> {/* Altura fija para 2 filas */}
-        <Grid container spacing={0.75} sx={{ p: 0.75 }}>
-          {/* Crear 8 espacios vacíos para mantener la estructura */}
-          {Array.from({ length: fixedSlots }).map((_, index) => (
-            <Grid item xs={3} sm={3} md={3} lg={3} key={`empty-${index}`}>
-              <CompactPaper sx={{ 
-                minHeight: '40px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                                 {index === 0 && (
-                   <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>
-                     Sin habitaciones
-                   </Typography>
-                 )}
-              </CompactPaper>
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
-    );
-  }
-
-  const totalPages = Math.ceil(habitaciones.length / itemsPerPage);
-  const startIndex = currentPage * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentHabitaciones = habitaciones.slice(startIndex, endIndex);
-  
-  // Crear array de 8 elementos, rellenando con null los espacios vacíos
-  const displaySlots = Array.from({ length: fixedSlots }, (_, index) => 
-    currentHabitaciones[index] || null
-  );
-
-  const handleNextPage = () => {
-    setCurrentPage((prev) => (prev + 1) % totalPages);
-  };
-
-  return (
-    <Box sx={{ position: 'relative' }}>
-      <Box sx={{ 
-        minHeight: '104px', // Altura fija para 2 filas
-        paddingRight: totalPages > 1 ? '24px' : '0px' // Espacio para la flecha
-      }}>
-        <Grid container spacing={0.75} sx={{ p: 0.75 }}>
-          {displaySlots.map((habitacion, index) => (
-            <Grid item xs={3} sm={3} md={3} lg={3} key={habitacion?._id || `slot-${index}`}>
-              {habitacion ? (
-                <HabitacionCard habitacion={habitacion} />
-              ) : (
-                <CompactPaper sx={{ 
-                  minHeight: '40px',
-                  backgroundColor: 'transparent',
-                  '&:hover': {
-                    backgroundColor: 'transparent'
-                  }
-                }}>
-                  {/* Espacio vacío para mantener la estructura */}
-                </CompactPaper>
-              )}
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
-      
-      {/* Flecha sutil para más habitaciones */}
-      {totalPages > 1 && (
-        <Box 
-          onClick={handleNextPage}
-          sx={{ 
-            position: 'absolute',
-            right: 0,
-            top: '12px', // Alineado con el padding del grid
-            width: '20px',
-            height: '80px',
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderLeft: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s ease',
-            '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.08)',
-              borderColor: 'rgba(255, 255, 255, 0.2)'
-            }
-          }}
-        >
-          <Typography 
-            sx={{ 
-              fontSize: '0.9rem', 
-              color: 'text.secondary',
-              transform: 'rotate(90deg)',
-              userSelect: 'none',
-              fontWeight: 400
-            }}
-          >
-            ›
-          </Typography>
-        </Box>
-      )}
-      
-      {/* Indicador de página (opcional, muy sutil) */}
-      {totalPages > 1 && (
-        <Box sx={{ 
-          position: 'absolute', 
-          bottom: 6, 
-          right: 28, 
-          display: 'flex', 
-          gap: 0.5 
-        }}>
-          {Array.from({ length: totalPages }).map((_, pageIndex) => (
-            <Box
-              key={pageIndex}
-              sx={{
-                width: 3,
-                height: 3,
-                borderRadius: '50%',
-                backgroundColor: pageIndex === currentPage 
-                  ? 'text.secondary' 
-                  : 'rgba(255, 255, 255, 0.2)',
-                transition: 'backgroundColor 0.2s ease'
-              }}
-            />
-          ))}
-        </Box>
-      )}
-    </Box>
-  );
-};
-
-// Componente para mostrar contratos en grid
-const ContratosGrid = ({ contratos }) => {
-  if (!contratos || contratos.length === 0) {
-    return (
-      <Box sx={{ 
-        p: 1.5, 
-        textAlign: 'center'
-      }}>
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-          No hay contratos registrados
-        </Typography>
-      </Box>
-    );
-  }
-
-  return (
-    <Grid container spacing={0.75} sx={{ p: 0.75 }}>
-      {contratos.map((contrato, index) => {
-        const estado = getEstadoContrato(contrato);
-        const IconComponent = getContratoIcon(contrato.tipoContrato);
-        return (
-          <Grid item xs={3} sm={3} md={2.4} lg={2} key={contrato._id || index}>
-            <GeometricPaper 
-              component={Link}
-              to={`/contratos/${contrato._id}`}
-              sx={{ 
-                textDecoration: 'none',
-                color: 'inherit',
-                display: 'flex',
-                cursor: 'pointer',
-                minHeight: '50px'
-              }}
-            >
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1,
-                width: '100%',
-                height: '100%'
-              }}>
-                {/* Icono a la izquierda */}
-                <IconComponent 
-                  sx={{ 
-                    fontSize: '1.2rem', 
-                    color: getContratoStatusColor(estado),
-                    flexShrink: 0
-                  }} 
-                />
-                
-                {/* Contenido a la derecha */}
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: 0.1,
-                  flex: 1,
-                  overflow: 'hidden'
-                }}>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      fontWeight: 500,
-                      fontSize: '0.7rem',
-                      lineHeight: 1.2,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {contrato.tipoContrato === 'MANTENIMIENTO' ? 'Mantenimiento' : 'Alquiler'}
-                  </Typography>
-                  <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
-                    {estado}
-                  </Typography>
-                </Box>
-              </Box>
-            </GeometricPaper>
-          </Grid>
-        );
-      })}
-    </Grid>
-  );
-};
-
-// Componente para mostrar inventario en grid
-const InventarioGrid = ({ inventario }) => {
-  if (!inventario || inventario.length === 0) {
-    return (
-      <Box sx={{ 
-        p: 1.5, 
-        textAlign: 'center'
-      }}>
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-          No hay elementos en el inventario
-        </Typography>
-      </Box>
-    );
-  }
-
-  return (
-    <Grid container spacing={0.75} sx={{ p: 0.75 }}>
-      {inventario.map((item, index) => (
-        <Grid item xs={3} sm={3} md={2.4} lg={2} key={item._id || index}>
-          <GeometricPaper sx={{ minHeight: '50px' }}>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1,
-              height: '100%',
-              width: '100%'
-            }}>
-              {/* Icono a la izquierda */}
-              <InventoryIcon 
-                sx={{ 
-                  fontSize: '1.2rem', 
-                  color: 'text.secondary',
-                  flexShrink: 0
-                }} 
-              />
-              
-              {/* Contenido a la derecha */}
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: 0.1,
-                flex: 1,
-                overflow: 'hidden'
-              }}>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    fontWeight: 500,
-                    fontSize: '0.7rem',
-                    lineHeight: 1.2,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {item.nombre}
-                </Typography>
-                <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
-                  Cant: {item.cantidad || 1}
-                </Typography>
-              </Box>
-            </Box>
-          </GeometricPaper>
-        </Grid>
-      ))}
-    </Grid>
-  );
-};
-
-// Componente para mostrar ubicación en grid horizontal
-const UbicacionGrid = ({ direccion, ciudad, metrosCuadrados }) => {
-  const ubicacionData = [
-    {
-      icon: AddressIcon,
-      label: 'Dirección',
-      value: direccion,
-      color: 'primary.main'
-    },
-    {
-      icon: CityIcon,
-      label: 'Ciudad',
-      value: ciudad,
-      color: 'secondary.main'
-    },
-    {
-      icon: AreaIcon,
-      label: 'Superficie',
-      value: `${metrosCuadrados}m²`,
-      color: 'success.main'
+const contratosConfig = {
+  getIcon: (contrato) => {
+    const iconMap = {
+      'ALQUILER': HomeOutlined,
+      'MANTENIMIENTO': Engineering,
+      'VENTA': BusinessOutlined,
+      'SERVICIOS': StoreOutlined
+    };
+    return iconMap[contrato.tipoContrato] || ContractIcon;
+  },
+  getIconColor: (contrato) => {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const inicio = new Date(contrato.fechaInicio);
+    const fin = new Date(contrato.fechaFin);
+    
+    let estado;
+    if (inicio <= hoy && fin > hoy) {
+      estado = 'ACTIVO';
+    } else if (inicio > hoy) {
+      estado = contrato.estado === 'RESERVADO' ? 'RESERVADO' : 'PLANEADO';
+    } else if (fin < hoy) {
+      estado = 'FINALIZADO';
+    } else {
+      estado = contrato.estado || 'PENDIENTE';
     }
-  ];
-
-  return (
-    <Grid container spacing={0.75} sx={{ p: 0.75 }}>
-      {ubicacionData.map((item, index) => {
-        const IconComponent = item.icon;
-        return (
-          <Grid item xs={4} sm={4} md={4} lg={4} key={index}>
-            <GeometricPaper sx={{ minHeight: '50px' }}>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1.5,
-                height: '100%',
-                width: '100%',
-                justifyContent: 'flex-start'
-              }}>
-                {/* Icono centrado a la izquierda */}
-                <IconComponent 
-                  sx={{ 
-                    fontSize: '1.3rem', 
-                    color: item.color,
-                    flexShrink: 0
-                  }} 
-                />
-                
-                {/* Contenido centrado verticalmente */}
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: 0.2,
-                  flex: 1,
-                  justifyContent: 'center',
-                  overflow: 'hidden'
-                }}>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      fontWeight: 500,
-                      fontSize: '0.75rem',
-                      lineHeight: 1.2,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {item.value}
-                  </Typography>
-                  <Typography 
-                    variant="caption" 
-                    sx={{ 
-                      fontSize: '0.6rem',
-                      color: 'text.secondary',
-                      fontWeight: 400,
-                      lineHeight: 1.1
-                    }}
-                  >
-                    {item.label}
-                  </Typography>
-                </Box>
-              </Box>
-            </GeometricPaper>
-          </Grid>
-        );
-      })}
-    </Grid>
-  );
+    
+    const statusColors = {
+      'ACTIVO': '#4caf50',
+      'RESERVADO': '#ff9800',
+      'PLANEADO': '#2196f3',
+      'FINALIZADO': '#9e9e9e',
+      'PENDIENTE': '#f44336'
+    };
+    return statusColors[estado] || '#9e9e9e';
+  },
+  getTitle: (contrato, index) => (
+    <Link to={`/contratos/${contrato._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+      {`Contrato ${index + 1}`}
+    </Link>
+  ),
+  getSubtitle: (contrato) => {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const inicio = new Date(contrato.fechaInicio);
+    const fin = new Date(contrato.fechaFin);
+    
+    if (inicio <= hoy && fin > hoy) {
+      return 'ACTIVO';
+    } else if (inicio > hoy) {
+      return contrato.estado === 'RESERVADO' ? 'RESERVADO' : 'PLANEADO';
+    } else if (fin < hoy) {
+      return 'FINALIZADO';
+    }
+    return contrato.estado || 'PENDIENTE';
+  },
+  getLinkTo: (contrato) => `/contratos/${contrato._id}`,
+  getInquilinos: (contrato) => {
+    if (!contrato.inquilino || !Array.isArray(contrato.inquilino)) return [];
+    return contrato.inquilino.map(i => i && (i.nombre || i.apellido) ? `${i.nombre || ''} ${i.apellido || ''}`.trim() : '').filter(Boolean);
+  }
 };
 
-// Componente para mostrar información financiera en grid
-const FinancieroGrid = ({ precio, simboloMoneda, nombreCuenta, moneda }) => {
-  const financieroData = [
+const inventarioConfig = {
+  getIcon: () => InventoryIcon,
+  getTitle: (item) => item.nombre,
+  getSubtitle: (item) => `Cant: ${item.cantidad || 1}`
+};
+
+// Función para crear secciones estándar para una propiedad
+const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta, moneda, inquilinos, habitaciones, contratos, inventario, extendida = false) => {
+  // Datos adicionales para la sección financiera
+  const datosFinancierosAdicionales = [
     {
       icon: MoneyIcon,
-      label: 'Precio Mensual',
+      label: 'Mensual',
       value: `${simboloMoneda} ${precio.toLocaleString()}`,
       color: 'text.secondary'
     },
@@ -728,192 +172,103 @@ const FinancieroGrid = ({ precio, simboloMoneda, nombreCuenta, moneda }) => {
       label: 'Depósito',
       value: `${simboloMoneda} ${(precio * 2).toLocaleString()}`,
       color: 'text.secondary'
-    },
-    {
-      icon: BankIcon,
-      label: 'Cuenta',
-      value: nombreCuenta,
-      color: 'text.secondary'
-    },
-    {
-      icon: CurrencyIcon,
-      label: 'Moneda',
-      value: moneda || 'No especificada',
-      color: 'text.secondary'
     }
   ];
 
-  return (
-    <Grid container spacing={0.75} sx={{ p: 0.75 }}>
-      {financieroData.map((item, index) => {
-        const IconComponent = item.icon;
-        return (
-          <Grid item xs={3} sm={3} md={3} lg={3} key={index}>
-            <GeometricPaper sx={{ minHeight: '50px' }}>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1.5,
-                height: '100%',
-                width: '100%',
-                justifyContent: 'flex-start'
-              }}>
-                {/* Icono centrado a la izquierda */}
-                <IconComponent 
-                  sx={{ 
-                    fontSize: '1.3rem', 
-                    color: item.color,
-                    flexShrink: 0
-                  }} 
-                />
-                
-                {/* Contenido centrado verticalmente */}
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: 0.2,
-                  flex: 1,
-                  justifyContent: 'center',
-                  overflow: 'hidden'
-                }}>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      fontWeight: 500,
-                      fontSize: '0.75rem',
-                      lineHeight: 1.2,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {item.value}
-                  </Typography>
-                  <Typography 
-                    variant="caption" 
-                    sx={{ 
-                      fontSize: '0.6rem',
-                      color: 'text.secondary',
-                      fontWeight: 400,
-                      lineHeight: 1.1
-                    }}
-                  >
-                    {item.label}
-                  </Typography>
-                </Box>
-              </Box>
-            </GeometricPaper>
-          </Grid>
-        );
-      })}
-    </Grid>
-  );
-};
-
-// Componente compacto para vista grid colapsada (solo elementos esenciales)
-const CompactGridView = ({ 
-  direccion, 
-  ciudad,
-  precio, 
-  simboloMoneda, 
-  nombreCuenta, 
-  inquilinos, 
-  habitaciones = [],
-  contratos = [],
-  inventario = []
-}) => {
-  const totalItems = (habitaciones?.length || 0) + (inquilinos?.length || 0) + (contratos?.length || 0) + (inventario?.length || 0);
-  const compactItems = [
-    {
-      icon: AddressIcon,
-      label: 'Dirección',
-      value: direccion,
-      color: 'primary.main'
-    },
-    {
-      icon: CityIcon,
-      label: 'Ciudad',
-      value: ciudad,
-      color: 'secondary.main'
-    },
-    {
-      icon: MoneyIcon,
-      label: 'Precio Mensual',
-      value: `${simboloMoneda} ${precio.toLocaleString()}`,
-      color: 'text.secondary'
-    },
-    {
-      icon: InventoryIcon,
-      label: 'Total items',
-      value: totalItems,
-      color: 'text.secondary'
-    }
+  // Crear secciones base (siempre visibles)
+  const secciones = [
+    SECTION_CONFIGS.ubicacion(propiedad),
+    SECTION_CONFIGS.financiero(simboloMoneda, nombreCuenta, datosFinancierosAdicionales),
+    SECTION_CONFIGS.inquilinos(inquilinos, contratos)
   ];
 
-  return (
-    <Grid container spacing={0.75} sx={{ p: 0.75 }}>
-      {compactItems.map((item, index) => {
-        const IconComponent = item.icon;
-        return (
-          <Grid item xs={6} sm={6} md={6} lg={6} key={index}>
-            <GeometricPaper sx={{ minHeight: '50px' }}>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1.5,
-                height: '100%',
-                width: '100%',
-                justifyContent: 'flex-start'
-              }}>
-                <IconComponent 
-                  sx={{ 
-                    fontSize: '1.3rem', 
-                    color: item.color,
-                    flexShrink: 0
-                  }} 
-                />
-                
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: 0.2,
-                  flex: 1,
-                  justifyContent: 'center',
-                  overflow: 'hidden'
-                }}>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      fontWeight: 500,
-                      fontSize: '0.75rem',
-                      lineHeight: 1.2,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {item.value}
-                  </Typography>
-                  <Typography 
-                    variant="caption" 
-                    sx={{ 
-                      fontSize: '0.6rem',
-                      color: 'text.secondary',
-                      fontWeight: 400,
-                      lineHeight: 1.1
-                    }}
-                  >
-                    {item.label}
-                  </Typography>
-                </Box>
-              </Box>
-            </GeometricPaper>
-          </Grid>
-        );
-      })}
-    </Grid>
-  );
+  // Si es vista extendida, agregar habitaciones e inventario
+  if (extendida) {
+    // Sección de habitaciones
+    if (habitaciones && habitaciones.length > 0) {
+      secciones.push(SECTION_CONFIGS.habitaciones(habitaciones));
+    }
+    
+    // Sección de resumen de inventario (siempre mostrar en vista extendida)
+    secciones.push(SECTION_CONFIGS.resumenInventario(inventario || []));
+  }
+
+  return secciones;
 };
+
+// Función para obtener el ícono del tipo de propiedad
+const getPropiedadIcon = (tipo) => {
+  const iconMap = {
+    'CASA': HomeOutlined,
+    'DEPARTAMENTO': BusinessOutlined,
+    'APARTAMENTO': BusinessOutlined,
+    'LOCAL': StoreOutlined
+  };
+  return iconMap[tipo?.toUpperCase()] || HomeOutlined;
+};
+
+// Función para obtener el estado de la propiedad
+const getPropiedadEstado = (propiedad) => {
+  if (!propiedad) return 'DISPONIBLE';
+  
+  const contratosActivos = propiedad.contratos?.filter(c => {
+    const hoy = new Date();
+    const inicio = new Date(c.fechaInicio);
+    const fin = new Date(c.fechaFin);
+    return inicio <= hoy && fin >= hoy;
+  }) || [];
+  
+  if (contratosActivos.length > 0) {
+    return 'OCUPADA';
+  }
+  
+  return propiedad.estado || 'DISPONIBLE';
+};
+
+// Función para obtener el color del estado
+const getPropiedadEstadoColor = (estado) => {
+  const statusColors = {
+    'DISPONIBLE': '#4caf50',
+    'OCUPADA': '#ff9800',
+    'MANTENIMIENTO': '#2196f3',
+    'RESERVADA': '#9c27b0'
+  };
+  return statusColors[estado] || '#9e9e9e';
+};
+
+// Render personalizado para la sección de contratos activos
+function ContratosActivosSection({ contratos }) {
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const contratosActivos = (contratos || []).filter(c => {
+    const inicio = new Date(c.fechaInicio);
+    const fin = new Date(c.fechaFin);
+    return inicio <= hoy && fin > hoy;
+  });
+  if (contratosActivos.length === 0) return null;
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.5 }}>
+      {contratosActivos.map((contrato, idx) => (
+        <Box key={contrato._id || idx} sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'space-between', bgcolor: 'rgba(255,255,255,0.01)', px: 1, py: 0.5, borderRadius: 0 }}>
+          {/* Inquilinos a la izquierda */}
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
+            {(contrato.inquilino || []).map((i, iidx) => (
+              <Typography key={i._id || iidx} variant="caption" sx={{ fontSize: '0.75rem', color: 'text.primary', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: '100%' }}>
+                {i && (i.nombre || i.apellido) ? `${i.nombre || ''} ${i.apellido || ''}`.trim() : ''}
+              </Typography>
+            ))}
+          </Box>
+          {/* Link a la derecha */}
+          <Box sx={{ flexShrink: 0 }}>
+            <Link to={`/contratos/${contrato._id}`} style={{ textDecoration: 'none', color: 'inherit', fontWeight: 500 }}>
+              {`Contrato ${idx + 1}`}
+            </Link>
+          </Box>
+        </Box>
+      ))}
+    </Box>
+  );
+}
 
 // Componente principal PropiedadGridView
 const PropiedadGridView = ({ 
@@ -927,24 +282,172 @@ const PropiedadGridView = ({
   precio,
   simboloMoneda,
   nombreCuenta,
-  moneda
+  moneda,
+  // Nuevos props para usar con secciones estándar
+  propiedad = null,
+  inquilinos = [],
+  habitaciones = [],
+  contratos = [],
+  inventario = [],
+  onView,
+  onEdit,
+  onDelete,
+  onExpand
 }) => {
   const renderContent = () => {
     switch (type) {
       case 'inquilinos':
-        return <InquilinosGrid inquilinos={data} />;
+        return (
+          <EntityGridView
+            type="list"
+            data={data}
+            config={inquilinosConfig}
+            gridSize={{ xs: 6, sm: 6, md: 6, lg: 6 }}
+            emptyMessage="No hay inquilinos registrados"
+          />
+        );
       case 'habitaciones':
-        return <HabitacionesGrid habitaciones={data} />;
+        return (
+          <EntityGridView
+            type="list"
+            data={data}
+            config={habitacionesConfig}
+            isCompact={true}
+            fixedSlots={8}
+            itemsPerPage={8}
+            gridSize={{ xs: 3, sm: 3, md: 3, lg: 3 }}
+            emptyMessage="Sin habitaciones"
+          />
+        );
       case 'contratos':
-        return <ContratosGrid contratos={data} />;
+        return (
+          <ContratosActivosSection contratos={contratos} />
+        );
       case 'inventario':
-        return <InventarioGrid inventario={data} />;
+        return (
+          <EntityGridView
+            type="list"
+            data={data}
+            config={inventarioConfig}
+            gridSize={{ xs: 3, sm: 3, md: 2.4, lg: 2 }}
+            emptyMessage="No hay elementos en el inventario"
+          />
+        );
       case 'ubicacion':
-        return <UbicacionGrid direccion={direccion} ciudad={ciudad} metrosCuadrados={metrosCuadrados} />;
+        const seccionUbicacion = SECTION_CONFIGS.ubicacion(propiedad || { direccion, ciudad, metrosCuadrados });
+        if (seccionUbicacion.hidden) {
+          return (
+            <Box sx={{ 
+              p: 1.5, 
+              textAlign: 'center'
+            }}>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                No hay información de ubicación disponible
+              </Typography>
+            </Box>
+          );
+        }
+        return (
+          <EntityGridView
+            type="info"
+            data={seccionUbicacion.left}
+            gridSize={{ xs: 4, sm: 4, md: 4, lg: 4 }}
+          />
+        );
       case 'financiero':
-        return <FinancieroGrid precio={precio} simboloMoneda={simboloMoneda} nombreCuenta={nombreCuenta} moneda={moneda} />;
+        const datosFinancierosAdicionales = [
+          {
+            icon: MoneyIcon,
+            label: 'Mensual',
+            value: `${simboloMoneda} ${precio.toLocaleString()}`,
+            color: 'text.secondary'
+          },
+          {
+            icon: DepositIcon,
+            label: 'Depósito',
+            value: `${simboloMoneda} ${(precio * 2).toLocaleString()}`,
+            color: 'text.secondary'
+          }
+        ];
+        const seccionFinanciera = SECTION_CONFIGS.financiero(simboloMoneda, nombreCuenta, datosFinancierosAdicionales);
+        return (
+          <EntityGridView
+            type="info"
+            data={[...seccionFinanciera.left, ...seccionFinanciera.right]}
+            gridSize={{ xs: 3, sm: 3, md: 3, lg: 3 }}
+          />
+        );
+      case 'sections':
+        // Unificar datos para asegurar que siempre haya dirección, ciudad, metrosCuadrados y tipo
+        const propiedadData = {
+          ...(propiedad || {}),
+          direccion: (propiedad && propiedad.direccion) || direccion,
+          ciudad: (propiedad && propiedad.ciudad) || ciudad,
+          metrosCuadrados: (propiedad && propiedad.metrosCuadrados) || metrosCuadrados,
+          tipo: (propiedad && propiedad.tipo) || (typeof tipo !== 'undefined' ? tipo : undefined)
+        };
+        
+        // Crear secciones según el estado extendido (usar prop extendida si está disponible)
+        let secciones = crearSeccionesPropiedad(
+          propiedadData,
+          precio,
+          simboloMoneda,
+          nombreCuenta,
+          moneda,
+          inquilinos,
+          habitaciones,
+          contratos,
+          inventario,
+          data?.extendida || false // Usar la prop extendida del data si está disponible
+        );
+        // Reemplazar la sección de contratos estándar por el renderer personalizado
+        // Buscar el índice de la sección de inquilinos/contratos
+        const idxContratos = secciones.findIndex(s => s.left && s.left[0]?.icon === ContractIcon);
+        if (idxContratos !== -1) {
+          secciones[idxContratos] = {
+            type: 'custom-contratos',
+            render: () => <ContratosActivosSection contratos={contratos} />
+          };
+        }
+        return (
+          <Box>
+            {secciones.map((section, i) =>
+              section.type === 'custom-contratos'
+                ? section.render()
+                : <EntityGridView key={i} type="sections" sections={[section]} sectionGridSize={{ xs: 12, sm: 12, md: 12, lg: 12 }} showCollapseButton={false} isCollapsed={false} />
+            )}
+          </Box>
+        );
       case 'compact':
-        return <CompactGridView direccion={direccion} ciudad={ciudad} precio={precio} simboloMoneda={simboloMoneda} nombreCuenta={nombreCuenta} inquilinos={data} habitaciones={data} contratos={data} inventario={data} />;
+        // Unificar datos para asegurar que siempre haya dirección, ciudad, metrosCuadrados y tipo
+        const propiedadDataCompact = {
+          ...(propiedad || {}),
+          direccion: (propiedad && propiedad.direccion) || direccion,
+          ciudad: (propiedad && propiedad.ciudad) || ciudad,
+          metrosCuadrados: (propiedad && propiedad.metrosCuadrados) || metrosCuadrados,
+          tipo: (propiedad && propiedad.tipo) || (typeof tipo !== 'undefined' ? tipo : undefined)
+        };
+        const seccionesCompact = crearSeccionesPropiedad(
+          propiedadDataCompact,
+          precio,
+          simboloMoneda,
+          nombreCuenta,
+          moneda,
+          inquilinos,
+          habitaciones,
+          contratos,
+          inventario,
+          false // Vista colapsada por defecto
+        );
+        return (
+          <EntityGridView
+            type="sections"
+            sections={seccionesCompact}
+            sectionGridSize={{ xs: 12, sm: 12, md: 12, lg: 12 }}
+            showCollapseButton={false}
+            isCollapsed={false}
+          />
+        );
       default:
         return (
           <Box sx={{ 
@@ -972,4 +475,5 @@ const PropiedadGridView = ({
 };
 
 export default PropiedadGridView;
-export { CompactGridView }; 
+
+export { crearSeccionesPropiedad };

@@ -225,7 +225,7 @@ const ContratoForm = ({
     if (relatedData.inquilinos?.length > 0 && safeInitialData.inquilino) {
       const inquilinos = Array.isArray(safeInitialData.inquilino) ? safeInitialData.inquilino : [safeInitialData.inquilino];
       const selectedInqs = inquilinos
-        .map(inqId => relatedData.inquilinos.find(i =>
+        .map(inqId => relatedData.inquilinos.find(i => 
           i._id === (typeof inqId === 'object' ? inqId._id : inqId)
         ))
         .filter(Boolean);
@@ -241,8 +241,8 @@ const ContratoForm = ({
     }
 
     // --- Setear formData con los valores correctos ---
-    setFormData(prev => ({
-      ...prev,
+        setFormData(prev => ({
+          ...prev,
       propiedad: propiedadObj?._id || propiedadObj?.id || '',
       cuenta: cuentaObj?._id || cuentaObj?.id || '',
       montoMensual: safeInitialData.montoMensual?.toString() || propiedadObj?.precio?.toString() || '0',
