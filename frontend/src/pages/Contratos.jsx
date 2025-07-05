@@ -53,7 +53,7 @@ export function Contratos() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeFilter, setActiveFilter] = useState('activos'); // 'activos', 'finalizados' o 'todos'
-  const [viewMode, setViewMode] = useState('list'); // 'list' o 'grid'
+  const [viewMode, setViewMode] = useState('grid'); // 'list' o 'grid'
   const [isActiveContractsExpanded, setIsActiveContractsExpanded] = useState(true);
   const [isFinishedContractsExpanded, setIsFinishedContractsExpanded] = useState(false);
   const { enqueueSnackbar } = useSnackbar();

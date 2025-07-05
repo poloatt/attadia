@@ -1,14 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Box,
-  Grid,
   Typography,
-  Paper,
   Chip,
-  IconButton,
-  Tooltip
+  IconButton
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
 import {
   HomeOutlined as HomeIcon,
   Engineering as EngineeringIcon,
@@ -25,13 +21,13 @@ import {
   MonetizationOnOutlined as CurrencyIcon,
   People as PeopleIcon,
   LocationOnOutlined as LocationIcon,
+  Schedule as ScheduleIcon,
+  ListAlt as ListIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  GridOn as GridIcon,
-  List as ListIcon
+  ExpandMore as ExpandMoreIcon
 } from '@mui/icons-material';
-import { Link } from 'react-router-dom';
-import { useValuesVisibility } from '../../context/ValuesVisibilityContext';
+import EntityGridView, { SECTION_CONFIGS, EntityHeader } from '../EntityViews/EntityGridView';
 import { 
   getEstadoLabel, 
   getEstadoColor, 
@@ -40,48 +36,7 @@ import {
   calcularDuracionTotal, 
   formatFecha 
 } from './contratoUtils';
-
-// Componente Paper estilizado minimalista con fondo del tema
-const GeometricPaper = styled(Paper)(({ theme }) => ({
-  borderRadius: 0,
-  padding: 0,
-  border: 'none',
-  backgroundColor: theme.palette.background.default,
-  boxShadow: 'none',
-  transition: 'none',
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  minHeight: '80px',
-  overflow: 'visible',
-}));
-
-const CellBox = styled(Box)(({ theme, borderRight, borderBottom }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: theme.spacing(1),
-  padding: theme.spacing(1.5, 1.5, 1.5, 1.5),
-  borderRight: borderRight ? `1px solid ${theme.palette.divider}` : 'none',
-  borderBottom: borderBottom ? `1px solid ${theme.palette.divider}` : 'none',
-  minHeight: 48,
-  background: 'none',
-}));
-
-// Chip estilizado geométrico
-const GeometricChip = styled(Chip)(({ theme, customcolor }) => ({
-  borderRadius: 0,
-  backgroundColor: customcolor || theme.palette.action.selected,
-  color: theme.palette.text.primary,
-  fontWeight: 500,
-  fontSize: '0.75rem',
-  height: 24,
-  '& .MuiChip-icon': {
-    fontSize: '0.9rem',
-    marginLeft: theme.spacing(0.5)
-  }
-}));
-
-
+import getEntityHeaderProps from '../EntityViews/entityHeaderProps.jsx';
 
 // Función para obtener el ícono del tipo de contrato
 const getContratoIcon = (tipo) => {
@@ -120,37 +75,24 @@ const calcularDuracionContrato = (fechaInicio, fechaFin) => {
   }
 };
 
-const CellPaper = styled(Paper)(({ theme }) => ({
-  borderRadius: 0,
-  backgroundColor: theme.palette.background.paper,
-  boxShadow: theme.shadows[1],
-  padding: theme.spacing(0, 1, 0, 1),
-  display: 'flex',
-  alignItems: 'center',
-  gap: theme.spacing(0.5),
-  minHeight: 12,
-  height: '100%',
-}));
+// Función para calcular monto total del contrato
+const calcularMontoTotal = (contrato) => {
+  const montoMensual = contrato.montoMensual || 0;
+  const inicio = new Date(contrato.fechaInicio);
+  const fin = new Date(contrato.fechaFin);
+  const meses = (fin.getFullYear() - inicio.getFullYear()) * 12 + (fin.getMonth() - inicio.getMonth());
+  const dias = Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24));
+  
+  if (meses > 0) {
+    return montoMensual * meses;
+  } else {
+    return montoMensual * (dias / 30);
+  }
+};
 
-// Componente individual para contrato con hover
-const ContratoCard = ({ contrato, relatedData, onEdit, onDelete, viewMode, onToggleView }) => {
-  const [isHovered, setIsHovered] = useState(false);
-  const { showValues, maskNumber } = useValuesVisibility();
-  const estado = getEstadoContrato(contrato);
-  const IconComponent = getContratoIcon(contrato.tipoContrato);
-  const StatusIcon = getContratoStatusIcon(estado);
-
-  // Debug: Verificar montoMensual en cada contrato
-  console.log('🔍 ContratoCard montoMensual:', {
-    id: contrato._id,
-    montoMensual: contrato.montoMensual,
-    tipo: typeof contrato.montoMensual,
-    esMantenimiento: contrato.esMantenimiento,
-    tipoContrato: contrato.tipoContrato,
-    contratoCompleto: contrato // Ver todo el objeto contrato
-  });
-
-  // Obtener datos relacionados
+// Función para obtener datos relacionados de un contrato
+const obtenerDatosRelacionados = (contrato, relatedData) => {
+  // Obtener datos de propiedad
   const propiedadData = (() => {
     if (contrato.propiedad && typeof contrato.propiedad === 'object' && contrato.propiedad.titulo) {
       return contrato.propiedad;
@@ -158,6 +100,7 @@ const ContratoCard = ({ contrato, relatedData, onEdit, onDelete, viewMode, onTog
     return relatedData.propiedades?.find(p => p._id === contrato.propiedad);
   })();
 
+  // Obtener datos de inquilinos
   const inquilinosData = (() => {
     if (!contrato.inquilino || contrato.inquilino.length === 0) return [];
     if (contrato.inquilino[0] && typeof contrato.inquilino[0] === 'object' && contrato.inquilino[0].nombre) {
@@ -168,6 +111,7 @@ const ContratoCard = ({ contrato, relatedData, onEdit, onDelete, viewMode, onTog
     ).filter(Boolean) || [];
   })();
 
+  // Obtener datos de cuenta
   const cuentaData = (() => {
     if (contrato.cuenta && typeof contrato.cuenta === 'object' && contrato.cuenta.nombre) {
       return contrato.cuenta;
@@ -175,6 +119,7 @@ const ContratoCard = ({ contrato, relatedData, onEdit, onDelete, viewMode, onTog
     return relatedData.cuentas?.find(c => c._id === contrato.cuenta);
   })();
 
+  // Obtener datos de moneda
   const monedaData = (() => {
     if (cuentaData?.moneda) {
       if (typeof cuentaData.moneda === 'object') {
@@ -191,184 +136,174 @@ const ContratoCard = ({ contrato, relatedData, onEdit, onDelete, viewMode, onTog
     return null;
   })();
 
-  // Calcular información temporal
-  const tiempoRestante = calcularTiempoRestante(contrato.fechaFin);
+  return {
+    propiedad: propiedadData,
+    inquilinos: inquilinosData,
+    cuenta: cuentaData,
+    moneda: monedaData
+  };
+};
+
+// Función para crear secciones estándar para un contrato
+const crearSeccionesContrato = (contrato, relatedData) => {
+  const datos = obtenerDatosRelacionados(contrato, relatedData);
+  
+  // Calcular valores
+  const diasRestantes = calcularTiempoRestante(contrato.fechaFin);
   const duracionTotal = calcularDuracionTotal(contrato.fechaInicio, contrato.fechaFin);
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  const fin = new Date(contrato.fechaFin);
-  const estaFinalizado = fin < hoy;
+  const montoMensual = contrato.montoMensual || 0;
+  const montoTotal = calcularMontoTotal(contrato);
+  const simboloMoneda = datos.moneda?.simbolo || '$';
+  const nombreCuenta = datos.cuenta?.nombre || 'No especificada';
+  const moneda = datos.moneda?.nombre || 'No especificada';
 
-  // Primer inquilino
-  const primerInquilino = inquilinosData[0];
+  // Primera sección primaria: Tiempo restante + Inquilinos
+  const seccionTiempoInquilinos = {
+    type: 'primary',
+    left: [
+      {
+        icon: CalendarIcon,
+        label: 'Restantes',
+        value: diasRestantes ? `${diasRestantes}` : 'Finalizado',
+        color: 'warning.main',
+        position: 'left'
+      },
+      {
+        icon: ScheduleIcon,
+        label: 'Duración',
+        value: `de ${duracionTotal}`,
+        color: 'info.main',
+        position: 'left'
+      }
+    ],
+    right: datos.inquilinos.map(inq => ({
+      icon: PeopleIcon,
+      label: 'Inquilino',
+      value: `${inq.nombre} ${inq.apellido}`,
+      color: 'text.secondary',
+      position: 'right'
+    }))
+  };
 
-  // Color para el estado
-  const estadoColor = getEstadoColor(estado);
+  // Segunda sección primaria: Cuenta + Alquiler
+  const seccionCuentaAlquiler = {
+    type: 'primary',
+    left: [
+      {
+        icon: CurrencyIcon,
+        label: 'Moneda',
+        value: simboloMoneda,
+        color: 'text.secondary',
+        position: 'left'
+      },
+      {
+        icon: AccountIcon,
+        label: 'Cuenta',
+        value: nombreCuenta,
+        color: 'text.secondary',
+        position: 'left'
+      }
+    ],
+    right: [
+      {
+        icon: MoneyIcon,
+        label: 'Alquiler mensual',
+        value: `${simboloMoneda} ${montoMensual.toLocaleString()}`,
+        color: 'text.secondary',
+        position: 'right'
+      },
+      {
+        icon: AccountIcon,
+        label: 'Alquiler total',
+        value: `${simboloMoneda} ${montoTotal.toLocaleString()}`,
+        color: 'text.secondary',
+        position: 'right'
+      }
+    ]
+  };
 
-  // Subtítulo: solo nombre de la propiedad (sin duración)
-  const subtitulo = propiedadData?.titulo || 'Sin propiedad';
+  // Crear secciones usando las configuraciones estándar
+  const secciones = [
+    // Sección 1: Tiempo restante + Inquilinos (primaria)
+    seccionTiempoInquilinos,
+    
+    // Sección 2: Cuenta + Alquiler (primaria)
+    seccionCuentaAlquiler,
+    
+    // Sección 3: Ubicación (secundaria) - solo si hay propiedad
+    SECTION_CONFIGS.ubicacion(datos.propiedad)
+  ];
 
-  // Log completo del contrato para debug
-  console.log('GRID contrato completo:', contrato);
-
-  return (
-    <Box sx={{ mb: 2, px: 1.5, pt: 1.5, bgcolor: 'transparent' }}>
-      {/* Header unificado */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, px: 0.5, pt: 0.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <HomeIcon sx={{ fontSize: '1.1rem', color: 'primary.main' }} />
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.75rem', color: 'text.primary', lineHeight: 1.2 }}>
-            {subtitulo}
-          </Typography>
-          <Box component="span" sx={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            fontSize: '0.75rem',
-            color: estadoColor,
-            ml: 1,
-            height: 16,
-            px: 0.5,
-            py: 0,
-            borderRadius: 1,
-            background: 'none',
-            fontWeight: 500
-          }}>
-            <span style={{ fontSize: '0.9em', marginRight: 2 }}>•</span> {getEstadoLabel(estado)}
-          </Box>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Tooltip title={viewMode === 'list' ? 'Cambiar a vista grid' : 'Cambiar a vista lista'}>
-            <IconButton onClick={() => onToggleView && onToggleView()} size="small" sx={{ color: 'text.secondary', p: 0.5 }}>
-              {viewMode === 'list' ? <GridIcon /> : <ListIcon />}
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Editar">
-            <IconButton size="small" onClick={() => onEdit(contrato)} sx={{ color: 'text.secondary', p: 0.5 }}>
-              <EditIcon sx={{ fontSize: 16 }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Eliminar">
-            <IconButton size="small" onClick={() => onDelete(contrato._id)} sx={{ color: 'text.secondary', p: 0.5 }}>
-              <DeleteIcon sx={{ fontSize: 16 }} />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
-      {/* Grid de información con estilo de lista */}
-      <Grid container spacing={2} sx={{ px: 0, pb: 0 }}>
-        {/* Días restantes */}
-        <Grid item xs={12} sm={6} md={6} lg={6}>
-          <CellPaper sx={{ p: 1.5, gap: 1 }}>
-            <CalendarIcon sx={{ fontSize: '0.85rem', color: 'text.secondary' }} />
-            <Box>
-              <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8rem', lineHeight: 1.1 }}>
-                {tiempoRestante || 'Finalizado'}
-              </Typography>
-              <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary', fontWeight: 400, lineHeight: 1.1 }}>
-                Días restantes
-              </Typography>
-            </Box>
-          </CellPaper>
-        </Grid>
-        {/* Inquilinos */}
-        <Grid item xs={12} sm={6} md={6} lg={6}>
-          <CellPaper sx={{ p: 1.5, gap: 1 }}>
-            <PersonIcon sx={{ fontSize: '0.85rem', color: 'text.secondary' }} />
-            <Box>
-              <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8rem', lineHeight: 1.1 }}>
-                {inquilinosData.length} {inquilinosData.length === 1 ? 'inquilino' : 'inquilinos'}
-              </Typography>
-              <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary', fontWeight: 400, lineHeight: 1.1 }}>
-                Inquilinos
-              </Typography>
-            </Box>
-          </CellPaper>
-        </Grid>
-        {/* Monto mensual */}
-        <Grid item xs={12} sm={6} md={6} lg={6}>
-          <CellPaper sx={{ p: 1.5, gap: 1 }}>
-            <MoneyIcon sx={{ fontSize: '0.85rem', color: 'text.secondary' }} />
-            <Box>
-              <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8rem', lineHeight: 1.1 }}>
-                {monedaData?.simbolo || '$'} {contrato.montoMensual?.toLocaleString() || 0}
-              </Typography>
-              <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary', fontWeight: 400, lineHeight: 1.1 }}>
-                Alquiler mensual
-              </Typography>
-            </Box>
-          </CellPaper>
-        </Grid>
-        {/* Cuenta */}
-        <Grid item xs={12} sm={6} md={6} lg={6}>
-          <CellPaper sx={{ p: 1.5, gap: 1 }}>
-            <AccountIcon sx={{ fontSize: '0.85rem', color: 'text.secondary' }} />
-            <Box>
-              <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8rem', lineHeight: 1.1 }}>
-                {cuentaData?.nombre || 'Sin cuenta'}
-              </Typography>
-              <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary', fontWeight: 400, lineHeight: 1.1 }}>
-                Cuenta
-              </Typography>
-            </Box>
-          </CellPaper>
-        </Grid>
-      </Grid>
-    </Box>
-  );
+  return secciones;
 };
 
-// Componente para mostrar contratos en grid
-const ContratosGrid = ({ contratos, relatedData, onEdit, onDelete, viewMode, onToggleView }) => {
-  // Debug: Verificar contratos que llegan a la grid
-  console.log('ContratosGrid contratos:', contratos);
-
-  if (!contratos || contratos.length === 0) {
-    return (
-      <Box sx={{ 
-        p: 1.5, 
-        textAlign: 'center'
-      }}>
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-          No hay contratos registrados
-        </Typography>
-      </Box>
-    );
+// Configuraciones para diferentes tipos de datos
+const contratosConfig = (relatedData) => ({
+  getIcon: (contrato) => {
+    const iconMap = {
+      'ALQUILER': HomeIcon,
+      'MANTENIMIENTO': EngineeringIcon,
+      'VENTA': BusinessIcon,
+      'SERVICIOS': ServicesIcon
+    };
+    return iconMap[contrato.tipoContrato] || ContractIcon;
+  },
+  getIconColor: (contrato) => {
+    const estado = getEstadoContrato(contrato);
+    return getEstadoColor(estado);
+  },
+  getTitle: (contrato) => {
+    const propiedadData = (() => {
+      if (contrato.propiedad && typeof contrato.propiedad === 'object' && contrato.propiedad.titulo) {
+        return contrato.propiedad;
+      }
+      return relatedData.propiedades?.find(p => p._id === contrato.propiedad);
+    })();
+    return propiedadData?.titulo || 'Sin propiedad';
+  },
+  getSubtitle: (contrato) => {
+    const estado = getEstadoContrato(contrato);
+    return getEstadoLabel(estado);
+  },
+  getHoverInfo: (contrato) => {
+    const montoMensual = contrato.montoMensual || 0;
+    const monedaData = (() => {
+      const cuentaData = (() => {
+        if (contrato.cuenta && typeof contrato.cuenta === 'object' && contrato.cuenta.nombre) {
+          return contrato.cuenta;
+        }
+        return relatedData.cuentas?.find(c => c._id === contrato.cuenta);
+      })();
+      
+      if (cuentaData?.moneda) {
+        if (typeof cuentaData.moneda === 'object') {
+          return cuentaData.moneda;
+        }
+        return relatedData.monedas?.find(m => m._id === cuentaData.moneda);
+      }
+      if (contrato.moneda) {
+        if (typeof contrato.moneda === 'object') {
+          return contrato.moneda;
+        }
+        return relatedData.monedas?.find(m => m._id === contrato.moneda);
+      }
+      return null;
+    })();
+    
+    return `${monedaData?.simbolo || '$'} ${montoMensual.toLocaleString()} mensual`;
   }
+});
 
-  return (
-    <Grid container spacing={0} sx={{ p: 0, pt: 0, pb: 0 }}>
-      {contratos.map((contrato, index) => {
-        console.log('ContratosGrid contrato:', contrato);
-        return (
-          <Grid item xs={12} sm={12} md={12} lg={12} key={contrato.id || contrato._id || index}>
-            <ContratoCard 
-              contrato={contrato} 
-              relatedData={relatedData}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              viewMode={viewMode}
-              onToggleView={onToggleView}
-            />
-          </Grid>
-        );
-      })}
-    </Grid>
-  );
+const inquilinosConfig = {
+  getIcon: () => PeopleIcon,
+  getTitle: (inquilino) => `${inquilino.nombre} ${inquilino.apellido}`,
+  getSubtitle: (inquilino) => inquilino.estado || 'PENDIENTE'
 };
 
-// Componente para mostrar información financiera en grid
-const FinancieroGrid = ({ contratos, relatedData }) => {
+// Configuración para información financiera
+const financieroConfig = (contratos) => {
   if (!contratos || contratos.length === 0) {
-    return (
-      <Box sx={{ 
-        p: 1.5, 
-        textAlign: 'center'
-      }}>
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-          No hay contratos para mostrar información financiera
-        </Typography>
-      </Box>
-    );
+    return [];
   }
 
   // Calcular estadísticas
@@ -382,7 +317,7 @@ const FinancieroGrid = ({ contratos, relatedData }) => {
 
   const promedioMensual = contratosActivos.length > 0 ? totalIngresos / contratosActivos.length : 0;
 
-  const financieroData = [
+  return [
     {
       icon: CheckCircleIcon,
       label: 'Contratos Activos',
@@ -408,85 +343,12 @@ const FinancieroGrid = ({ contratos, relatedData }) => {
       color: '#ff9800'
     }
   ];
-
-  return (
-    <Grid container spacing={0.75} sx={{ p: 0.75 }}>
-      {financieroData.map((item, index) => {
-        const IconComponent = item.icon;
-        return (
-          <Grid item xs={6} sm={6} md={3} lg={3} key={index}>
-            <GeometricPaper sx={{ minHeight: '50px' }}>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1.5,
-                height: '100%',
-                width: '100%',
-                justifyContent: 'flex-start'
-              }}>
-                <IconComponent 
-                  sx={{ 
-                    fontSize: '1.3rem', 
-                    color: item.color,
-                    flexShrink: 0
-                  }} 
-                />
-                
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: 0.2,
-                  flex: 1,
-                  justifyContent: 'center',
-                  overflow: 'hidden'
-                }}>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      fontWeight: 500,
-                      fontSize: '0.75rem',
-                      lineHeight: 1.2,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {item.value}
-                  </Typography>
-                  <Typography 
-                    variant="caption" 
-                    sx={{ 
-                      fontSize: '0.6rem',
-                      color: 'text.secondary',
-                      fontWeight: 400,
-                      lineHeight: 1.1
-                    }}
-                  >
-                    {item.label}
-                  </Typography>
-                </Box>
-              </Box>
-            </GeometricPaper>
-          </Grid>
-        );
-      })}
-    </Grid>
-  );
 };
 
-// Componente para mostrar información de inquilinos en grid
-const InquilinosGrid = ({ contratos, relatedData }) => {
+// Función para obtener inquilinos únicos de contratos
+const obtenerInquilinosUnicos = (contratos, relatedData) => {
   if (!contratos || contratos.length === 0) {
-    return (
-      <Box sx={{ 
-        p: 1.5, 
-        textAlign: 'center'
-      }}>
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-          No hay contratos para mostrar inquilinos
-        </Typography>
-      </Box>
-    );
+    return [];
   }
 
   // Obtener todos los inquilinos únicos de los contratos
@@ -506,71 +368,7 @@ const InquilinosGrid = ({ contratos, relatedData }) => {
     }
   });
 
-  const inquilinos = Array.from(inquilinosUnicos.values());
-
-  if (inquilinos.length === 0) {
-    return (
-      <Box sx={{ 
-        p: 1.5, 
-        textAlign: 'center'
-      }}>
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-          No hay inquilinos registrados en los contratos
-        </Typography>
-      </Box>
-    );
-  }
-
-  return (
-    <Grid container spacing={0.75} sx={{ p: 0.75 }}>
-      {inquilinos.map((inquilino, index) => (
-        <Grid item xs={6} sm={4} md={3} lg={2.4} key={inquilino._id || index}>
-          <GeometricPaper sx={{ minHeight: '50px' }}>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1,
-              height: '100%',
-              width: '100%'
-            }}>
-              <PeopleIcon 
-                sx={{ 
-                  fontSize: '1.2rem', 
-                  color: 'text.secondary',
-                  flexShrink: 0
-                }} 
-              />
-              
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: 0.1,
-                flex: 1,
-                overflow: 'hidden'
-              }}>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    fontWeight: 500,
-                    fontSize: '0.7rem',
-                    lineHeight: 1.2,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {inquilino.nombre} {inquilino.apellido}
-                </Typography>
-                <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
-                  {inquilino.estado || 'PENDIENTE'}
-                </Typography>
-              </Box>
-            </Box>
-          </GeometricPaper>
-        </Grid>
-      ))}
-    </Grid>
-  );
+  return Array.from(inquilinosUnicos.values());
 };
 
 // Componente principal ContratosGridView
@@ -593,11 +391,73 @@ const ContratosGridView = ({
     console.log('ContratosGridView renderContent contratos:', contratos);
     switch (type) {
       case 'contratos':
-        return <ContratosGrid contratos={contratos} relatedData={relatedData} onEdit={onEdit} onDelete={onDelete} viewMode={viewMode} onToggleView={onToggleView} />;
+        if (!contratos || contratos.length === 0) {
+          return (
+            <Box sx={{ 
+              p: 1.5, 
+              textAlign: 'center'
+            }}>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                No hay contratos registrados
+              </Typography>
+            </Box>
+          );
+        }
+
+        return (
+          <Box>
+            {contratos.map((contrato, index) => {
+              const secciones = crearSeccionesContrato(contrato, relatedData);
+              const estado = getEstadoContrato(contrato);
+              const datos = obtenerDatosRelacionados(contrato, relatedData);
+              
+              return (
+                <Box key={contrato._id || index} sx={{ mb: 2 }}>
+                  {/* Solo la entidad principal usa EntityHeader */}
+                  {(() => {
+                    const headerProps = getEntityHeaderProps({
+                      entity: contrato,
+                      type: 'contrato',
+                      onView: onToggleView,
+                      onEdit,
+                      onDelete,
+                      onExpand: () => {}
+                    });
+                    return <EntityHeader {...headerProps} />;
+                  })()}
+                  {/* Secciones organizadas con opción de colapsar */}
+                  <EntityGridView
+                    type="sections"
+                    sections={secciones}
+                    sectionGridSize={{ xs: 6, sm: 6, md: 6, lg: 6 }}
+                    showCollapseButton={true}
+                    isCollapsed={false}
+                  />
+                </Box>
+              );
+            })}
+          </Box>
+        );
       case 'financiero':
-        return <FinancieroGrid contratos={contratos} relatedData={relatedData} />;
+        return (
+          <EntityGridView
+            type="info"
+            data={financieroConfig(contratos)}
+            gridSize={{ xs: 6, sm: 6, md: 3, lg: 3 }}
+            emptyMessage="No hay contratos para mostrar información financiera"
+          />
+        );
       case 'inquilinos':
-        return <InquilinosGrid contratos={contratos} relatedData={relatedData} />;
+        const inquilinos = obtenerInquilinosUnicos(contratos, relatedData);
+        return (
+          <EntityGridView
+            type="list"
+            data={inquilinos}
+            config={inquilinosConfig}
+            gridSize={{ xs: 6, sm: 4, md: 3, lg: 2.4 }}
+            emptyMessage="No hay inquilinos registrados en los contratos"
+          />
+        );
       default:
         return (
           <Box sx={{ 
