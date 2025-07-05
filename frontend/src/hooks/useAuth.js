@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import clienteAxios from '../config/axios';
-import useCustomSnackbar from '../components/common/CustomSnackbar.jsx';
 
 export const useAuth = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { enqueueSnackbar } = useCustomSnackbar();
 
   useEffect(() => {
     checkAuth();
@@ -36,14 +34,9 @@ export const useAuth = () => {
       const response = await clienteAxios.post('/api/auth/login', credentials);
       localStorage.setItem('token', response.data.token);
       setUser(response.data.user);
-      enqueueSnackbar('Inicio de sesión exitoso', { variant: 'success' });
       return response.data;
     } catch (error) {
       console.error('Error al iniciar sesión:', error);
-      enqueueSnackbar(
-        error.response?.data?.error || 'Error al iniciar sesión',
-        { variant: 'error' }
-      );
       throw error;
     } finally {
       setLoading(false);
@@ -53,7 +46,6 @@ export const useAuth = () => {
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
-    enqueueSnackbar('Sesión cerrada exitosamente', { variant: 'success' });
   };
 
   const register = async (userData) => {
@@ -62,14 +54,9 @@ export const useAuth = () => {
       const response = await clienteAxios.post('/api/auth/register', userData);
       localStorage.setItem('token', response.data.token);
       setUser(response.data.user);
-      enqueueSnackbar('Registro exitoso', { variant: 'success' });
       return response.data;
     } catch (error) {
       console.error('Error al registrar usuario:', error);
-      enqueueSnackbar(
-        error.response?.data?.error || 'Error al registrar usuario',
-        { variant: 'error' }
-      );
       throw error;
     } finally {
       setLoading(false);

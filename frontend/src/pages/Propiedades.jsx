@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Box, 
   Button, 
@@ -33,7 +33,7 @@ import {
   ExpandLess as ExpandLessIcon,
   HomeWork
 } from '@mui/icons-material';
-import { useSnackbar } from 'notistack';
+import { snackbar } from '../components/common/snackbarUtils';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '@mui/material/styles';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
@@ -56,7 +56,7 @@ export function Propiedades() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { enqueueSnackbar } = useSnackbar();
+  // Usar snackbar unificado
   const { user } = useAuth();
   const theme = useTheme();
   const [selectedPropiedad, setSelectedPropiedad] = useState(null);
@@ -82,38 +82,64 @@ export function Propiedades() {
   const [cuentas, setCuentas] = useState([]);
   const [loadingRelated, setLoadingRelated] = useState(true);
   const [editingPropiedad, setEditingPropiedad] = useState(null);
+  
+  // Referencia estable para fetchPropiedades
+  const fetchPropiedadesRef = useRef();
+  
+  // Cache y control de requests
+  const requestCacheRef = useRef(new Map());
+  const debounceTimerRef = useRef(null);
 
   const handleBack = () => {
     navigate('/');
   };
 
-  // Función para cargar propiedades
+  // Función auxiliar para hacer requests con cache
+  const getCachedRequest = useCallback((url) => {
+    const cache = requestCacheRef.current;
+    
+    if (cache.has(url)) {
+      // console.log(`🎯 Cache HIT para: ${url}`);
+      return cache.get(url);
+    }
+    
+    // console.log(`🔄 Cache MISS para: ${url}`);
+    const request = clienteAxios.get(url).finally(() => {
+      // Limpiar cache después de 3 segundos
+      setTimeout(() => {
+        cache.delete(url);
+        // console.log(`🗑️ Cache limpiado para: ${url}`);
+      }, 3000);
+    });
+    
+    cache.set(url, request);
+    return request;
+  }, []);
+
+  // Función para cargar propiedades con debouncing y cache
   const fetchPropiedades = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('Solicitando propiedades...');
       
       const response = await clienteAxios.get('/api/propiedades');
-      console.log('Respuesta recibida:', response.data);
       
       const propiedadesData = response.data.docs || [];
       // OPTIMIZACIÓN: Procesar todas las propiedades en paralelo
       const propiedadesEnriquecidas = await Promise.all(propiedadesData.map(async (propiedad) => {
         try {
           const propiedadId = propiedad._id || propiedad.id;
-          console.log(`Obteniendo datos relacionados para propiedad ${propiedadId} (${propiedad.titulo})`);
 
-          // Todas las requests en paralelo
+          // Todas las requests en paralelo con cache
           const [
             inquilinosResponse,
             habitacionesResponse,
             contratosResponse,
             inventarioResponse
           ] = await Promise.all([
-            clienteAxios.get(`/api/inquilinos/propiedad/${propiedadId}`),
-            clienteAxios.get(`/api/habitaciones/propiedad/${propiedadId}`),
-            clienteAxios.get(`/api/contratos/propiedad/${propiedadId}`),
-            clienteAxios.get(`/api/inventarios/propiedad/${propiedadId}`)
+            getCachedRequest(`/api/inquilinos/propiedad/${propiedadId}`),
+            getCachedRequest(`/api/habitaciones/propiedad/${propiedadId}`),
+            getCachedRequest(`/api/contratos/propiedad/${propiedadId}`),
+            getCachedRequest(`/api/inventarios/propiedad/${propiedadId}`)
           ]);
 
           const habitaciones = habitacionesResponse.data.docs || [];
@@ -123,15 +149,7 @@ export function Propiedades() {
           const contratos = contratosResponse.data.docs || [];
           const inventario = inventarioResponse.data.docs || [];
 
-          if (inquilinos.length > 0) {
-            console.log(`Datos de inquilinos para propiedad ${propiedadId}:`, 
-              inquilinos.map(i => ({
-                id: i._id || i.id,
-                nombre: i.nombre,
-                apellido: i.apellido
-              }))
-            );
-          }
+
 
           return {
             ...propiedad,
@@ -141,7 +159,10 @@ export function Propiedades() {
             inventario
           };
         } catch (error) {
-          console.error(`Error al cargar datos relacionados para propiedad ${propiedad._id || propiedad.id}:`, error);
+          // Solo mostrar error si no es por cancelación de request
+          if (error.name !== 'CanceledError' && !error.message?.includes('cancelada')) {
+            console.error(`Error al cargar datos relacionados para propiedad ${propiedad._id || propiedad.id}:`, error.message);
+          }
           // Si hay error, agregamos la propiedad con arrays vacíos
           return {
             ...propiedad,
@@ -153,18 +174,34 @@ export function Propiedades() {
         }
       }));
 
-      console.log('Propiedades enriquecidas:', propiedadesEnriquecidas);
       setPropiedades(propiedadesEnriquecidas);
       setFilteredPropiedades(propiedadesEnriquecidas);
 
     } catch (error) {
       console.error('Error al cargar propiedades:', error);
       setError(error.message || 'Error al cargar propiedades');
-      enqueueSnackbar('Error al cargar propiedades', { variant: 'error' });
+      snackbar.error('Error al cargar propiedades');
     } finally {
       setLoading(false);
     }
-  }, [enqueueSnackbar]);
+  }, [getCachedRequest]);
+
+  // Función con debouncing para evitar llamadas múltiples
+  const debouncedFetchPropiedades = useCallback(() => {
+    // Limpiar timer anterior
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    // Configurar nuevo timer
+    debounceTimerRef.current = setTimeout(() => {
+      // console.log('🔄 Ejecutando fetchPropiedades con debounce');
+      fetchPropiedades();
+    }, 300); // 300ms de debounce
+  }, [fetchPropiedades]);
+  
+  // Mantener referencia actualizada
+  fetchPropiedadesRef.current = debouncedFetchPropiedades;
 
   // Función para cargar datos relacionados
   const fetchRelatedData = useCallback(async () => {
@@ -179,21 +216,38 @@ export function Propiedades() {
       setCuentas(cuentasRes.data.docs || []);
     } catch (error) {
       console.error('Error al cargar datos relacionados:', error);
-      enqueueSnackbar('Error al cargar datos relacionados', { variant: 'error' });
+      snackbar.error('Error al cargar datos relacionados');
     } finally {
       setLoadingRelated(false);
     }
-  }, [enqueueSnackbar]);
+  }, []);
 
-  // Modificar el useEffect para agregar un delay inicial
+  // Cargar datos iniciales (sin debounce para carga inmediata)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchPropiedades();
-      fetchRelatedData();
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [fetchPropiedades, fetchRelatedData]);
+    const loadInitialData = async () => {
+      try {
+        setLoading(true);
+        await Promise.all([
+          fetchPropiedades(), // Llamada directa sin debounce
+          fetchRelatedData()
+        ]);
+      } catch (error) {
+        console.error('Error al cargar datos iniciales:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadInitialData();
+    
+    // Cleanup al desmontar
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      requestCacheRef.current.clear();
+    };
+  }, []); // Solo ejecutar una vez al montar
 
   // Escuchar evento del Header para abrir formulario cuando EntityToolbar esté oculto
   useEffect(() => {
@@ -214,7 +268,7 @@ export function Propiedades() {
   useEffect(() => {
     const handleEntityUpdate = (event) => {
       if (event.detail.type === 'propiedad' || event.detail.type === 'propiedades') {
-        fetchPropiedades();
+        fetchPropiedadesRef.current?.();
       }
     };
 
@@ -223,10 +277,9 @@ export function Propiedades() {
     return () => {
       window.removeEventListener('entityUpdated', handleEntityUpdate);
     };
-  }, [fetchPropiedades]);
+  }, []); // Sin dependencias para evitar re-registros
 
   const handleEdit = useCallback((propiedad) => {
-    console.log('Editando propiedad:', propiedad);
     setEditingPropiedad({
       ...propiedad,
       _id: propiedad._id || propiedad.id,
@@ -239,15 +292,22 @@ export function Propiedades() {
 
   const handleDelete = useCallback(async (id) => {
     try {
-      console.log('Eliminando propiedad:', id);
       await clienteAxios.delete(`/api/propiedades/${id}`);
-      enqueueSnackbar('Propiedad eliminada exitosamente', { variant: 'success' });
-      fetchPropiedades();
-    } catch (error) {
-      console.error('Error al eliminar propiedad:', error);
-      enqueueSnackbar('Error al eliminar la propiedad', { variant: 'error' });
-    }
-  }, [enqueueSnackbar, fetchPropiedades]);
+      snackbar.success('Propiedad eliminada exitosamente');
+      
+      // Disparar evento de actualización en lugar de llamada directa
+      window.dispatchEvent(new CustomEvent('entityUpdated', {
+        detail: { 
+          type: 'propiedades', 
+          action: 'delete',
+          id: id
+        }
+      }));
+          } catch (error) {
+        console.error('Error al eliminar propiedad:', error);
+        snackbar.error('Error al eliminar la propiedad');
+      }
+    }, []);
 
   const handleFormSubmit = async (formData) => {
     try {
@@ -273,22 +333,19 @@ export function Propiedades() {
         const id = editingPropiedad._id || editingPropiedad.id;
         console.log('Propiedades - Actualizando propiedad con ID:', id);
         response = await clienteAxios.put(`/api/propiedades/${id}`, dataToSend);
-        enqueueSnackbar('Propiedad actualizada exitosamente', { variant: 'success' });
+        snackbar.success('Propiedad actualizada exitosamente');
       } else {
         console.log('Propiedades - Creando nueva propiedad');
         response = await clienteAxios.post('/api/propiedades', dataToSend);
         console.log('Propiedades - Respuesta de creación:', response.data);
-        enqueueSnackbar('Propiedad creada exitosamente', { variant: 'success' });
+        snackbar.success('Propiedad creada exitosamente');
       }
-
-      // Actualizar la lista de propiedades
-      await fetchPropiedades();
       
       // Cerrar el formulario solo si la operación fue exitosa
       setIsFormOpen(false);
       setEditingPropiedad(null);
 
-      // Disparar evento de actualización
+      // Disparar evento de actualización (esto actualizará la lista automáticamente)
       window.dispatchEvent(new CustomEvent('entityUpdated', {
         detail: { 
           type: 'propiedades', 
@@ -305,7 +362,7 @@ export function Propiedades() {
                           error.response?.data?.details || 
                           'Error al guardar la propiedad';
       console.log('Propiedades - Mensaje de error:', errorMessage);
-      enqueueSnackbar(errorMessage, { variant: 'error' });
+      snackbar.error(errorMessage);
       throw error;
     }
   };
@@ -327,10 +384,10 @@ export function Propiedades() {
   const handleMultipleDelete = async (ids) => {
     try {
       await Promise.all(ids.map(id => handleDelete(id)));
-      enqueueSnackbar(`${ids.length} propiedades eliminadas`, { variant: 'success' });
+      snackbar.success(`${ids.length} propiedades eliminadas`);
     } catch (error) {
       console.error('Error al eliminar múltiples propiedades:', error);
-      enqueueSnackbar('Error al eliminar propiedades', { variant: 'error' });
+      snackbar.error('Error al eliminar propiedades');
     }
   };
 
@@ -439,7 +496,13 @@ export function Propiedades() {
           setIsFormOpen(false);
           setEditingPropiedad(null);
         }}
-        onSubmit={handleFormSubmit}
+        onSubmit={() => {
+          // PropiedadForm maneja la creación internamente y dispara evento 'entityUpdated'
+          // El listener 'entityUpdated' se encarga de actualizar la lista
+          // Solo cerrar el formulario
+          setIsFormOpen(false);
+          setEditingPropiedad(null);
+        }}
         initialData={editingPropiedad || {}}
         isEditing={!!editingPropiedad}
       />

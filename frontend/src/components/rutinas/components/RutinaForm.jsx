@@ -22,7 +22,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import EventIcon from '@mui/icons-material/Event';
 import SaveIcon from '@mui/icons-material/Save';
 import clienteAxios from '../../config/axios';
-import useCustomSnackbar from '../../common/CustomSnackbar.jsx';
+import { snackbar } from '../../common/snackbarUtils.jsx';
 import { useDebounce } from './utils/hooks';
 import { useNavigate } from 'react-router-dom';
 import TextField from "@mui/material/TextField";
@@ -33,7 +33,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
   const [fechaError, setFechaError] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { enqueueSnackbar } = useCustomSnackbar();
+  // Usar snackbar unificado
   const submitButtonRef = useRef(null);
   const submitInProgress = useRef(false);
   const navigate = useNavigate();
@@ -117,7 +117,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
     }
     
     if (fechaError) {
-      enqueueSnackbar('Por favor selecciona una fecha válida', { variant: 'error' });
+              snackbar.error('Por favor selecciona una fecha válida');
       return;
     }
     
@@ -137,7 +137,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
         if (isEditing && initialData?._id) {
           response = await clienteAxios.put(`/api/rutinas/${initialData._id}`, rutinaToSubmit);
           console.log('[RutinaForm] Respuesta exitosa al actualizar rutina:', response.status, response.statusText);
-          enqueueSnackbar('Rutina actualizada con éxito', { variant: 'success' });
+          snackbar.success('Rutina actualizada con éxito');
           
           // Disparar evento para actualizar la lista
           window.dispatchEvent(new CustomEvent('rutina-updated', { 
@@ -176,12 +176,12 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
           
           if (!rutinaId) {
             console.error('[RutinaForm] No se pudo obtener un ID válido de la rutina creada:', response.data);
-            enqueueSnackbar('Rutina creada, pero hubo un problema al redirigir', { variant: 'warning' });
+            snackbar.warning('Rutina creada, pero hubo un problema al redirigir');
             onClose();
             return;
           }
           
-          enqueueSnackbar('Rutina creada con éxito', { variant: 'success' });
+                      snackbar.success('Rutina creada con éxito');
           
           // Disparar evento para actualizar la lista
           window.dispatchEvent(new CustomEvent('rutina-updated', { 
@@ -210,12 +210,12 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
           errorMsg = httpError.response.data.error;
         }
         
-        enqueueSnackbar(errorMsg, { variant: 'error' });
+        snackbar.error(errorMsg);
       }
       
     } catch (error) {
       console.error('[RutinaForm] Error general al guardar la rutina:', error);
-      enqueueSnackbar(error.message || 'Error al guardar rutina', { variant: 'error' });
+              snackbar.error(error.message || 'Error al guardar rutina');
     } finally {
       setIsSubmitting(false);
       submitInProgress.current = false;

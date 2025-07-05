@@ -8,7 +8,7 @@ import { Add as AddIcon } from '@mui/icons-material';
 import EntityToolbar from '../components/EntityToolbar';
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import EntityForm from '../components/EntityViews/EntityForm';
-import { useSnackbar } from 'notistack';
+import { snackbar } from '../components/common/snackbarUtils';
 import clienteAxios from '../config/axios';
 import { 
   ApartmentOutlined as BuildingIcon,
@@ -40,7 +40,7 @@ export function Habitaciones() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingHabitacion, setEditingHabitacion] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { enqueueSnackbar } = useSnackbar();
+  // Usar snackbar unificado
   const navigate = useNavigate();
 
   const handleBack = () => {
@@ -54,11 +54,11 @@ export function Habitaciones() {
       setHabitaciones(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar habitaciones:', error);
-      enqueueSnackbar('Error al cargar habitaciones', { variant: 'error' });
-    } finally {
-      setLoading(false);
-    }
-  }, [enqueueSnackbar]);
+      snackbar.error('Error al cargar habitaciones');
+          } finally {
+        setLoading(false);
+      }
+    }, []);
 
   const fetchPropiedades = useCallback(async () => {
     try {
@@ -66,9 +66,9 @@ export function Habitaciones() {
       setPropiedades(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar propiedades:', error);
-      enqueueSnackbar('Error al cargar propiedades', { variant: 'error' });
-    }
-  }, [enqueueSnackbar]);
+                      snackbar.error('Error al cargar propiedades');
+      }
+    }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -83,11 +83,11 @@ export function Habitaciones() {
     try {
       const response = await clienteAxios.post('/api/propiedades', data);
       setPropiedades(prev => [...prev, response.data]);
-      enqueueSnackbar('Propiedad creada exitosamente', { variant: 'success' });
+      snackbar.success('Propiedad creada exitosamente');
       return response.data;
     } catch (error) {
       console.error('Error al crear propiedad:', error);
-      enqueueSnackbar('Error al crear la propiedad', { variant: 'error' });
+              snackbar.error('Error al crear la propiedad');
       throw error;
     }
   };
@@ -105,14 +105,11 @@ export function Habitaciones() {
       }
       setIsFormOpen(false);
       setEditingHabitacion(null);
-      enqueueSnackbar('Habitación guardada exitosamente', { variant: 'success' });
+              snackbar.success('Habitación guardada exitosamente');
       await fetchHabitaciones();
     } catch (error) {
       console.error('Error:', error);
-      enqueueSnackbar(
-        error.response?.data?.error || 'Error al guardar la habitación', 
-        { variant: 'error' }
-      );
+      snackbar.error(error.response?.data?.error || 'Error al guardar la habitación');
     }
   };
 
@@ -130,12 +127,12 @@ export function Habitaciones() {
     try {
       await clienteAxios.delete(`/api/habitaciones/${id}`);
       setHabitaciones(prev => prev.filter(h => h.id !== id));
-      enqueueSnackbar('Habitación eliminada exitosamente', { variant: 'success' });
+      snackbar.success('Habitación eliminada exitosamente');
     } catch (error) {
       console.error('Error al eliminar habitación:', error);
-      enqueueSnackbar('Error al eliminar la habitación', { variant: 'error' });
+      snackbar.error('Error al eliminar la habitación');
     }
-  }, [enqueueSnackbar]);
+  }, []);
 
   const getTipoIcon = (tipo) => {
     switch (tipo) {

@@ -8,7 +8,6 @@ import App from './App'
 import axios from 'axios'
 import './index.css'
 import './styles/notistack-override.css'
-import { CustomSnackbarProvider } from './components/common/snackbarUtils.jsx'
 
 // Configuración de React Router v7
 const router = {
@@ -42,13 +41,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter {...router}>
       <AuthProvider>
-        <CustomSnackbarProvider>
-          <UISettingsProvider>
-            <SidebarProvider>
-              <App />
-            </SidebarProvider>
-          </UISettingsProvider>
-        </CustomSnackbarProvider>
+        <UISettingsProvider>
+          <SidebarProvider>
+            <App />
+          </SidebarProvider>
+        </UISettingsProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>

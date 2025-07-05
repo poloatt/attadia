@@ -20,7 +20,7 @@ export function EmptyState() {
         p: 2,
         textAlign: 'center',
         boxShadow: 0,
-        margin: '16px 0'
+        margin: '8px 0'
       }}
     >
       <FolderIcon sx={{ fontSize: 40, color: theme.palette.grey[500], mb: 1 }} />

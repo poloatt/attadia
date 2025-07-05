@@ -39,7 +39,7 @@ import {
   Description as DescriptionIcon,
   Flag as FlagIcon,
 } from '@mui/icons-material';
-import { useSnackbar } from 'notistack';
+import { snackbar } from '../common/snackbarUtils';
 import { useRelationalData } from '../../hooks/useRelationalData';
 import { useAuth } from '../../context/AuthContext';
 import clienteAxios from '../../config/axios';
@@ -179,7 +179,7 @@ const PropiedadForm = ({
 
   const [errors, setErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
-  const { enqueueSnackbar } = useSnackbar();
+  // Usar snackbar unificado
   
   const relatedFields = [
     { 
@@ -225,11 +225,9 @@ const PropiedadForm = ({
       // Inicializar moneda y cuenta
       if (relatedData?.moneda?.length) {
         const monedaId = initialData.moneda?._id || initialData.moneda?.id || initialData.moneda;
-        console.log('Buscando moneda con ID:', monedaId);
         const monedaEncontrada = relatedData.moneda.find(m => 
           m._id === monedaId || m.id === monedaId
         );
-        console.log('Moneda encontrada:', monedaEncontrada);
         if (monedaEncontrada) {
           setSelectedMoneda(monedaEncontrada);
           setFormData(prev => ({
@@ -241,11 +239,9 @@ const PropiedadForm = ({
 
       if (relatedData?.cuenta?.length) {
         const cuentaId = initialData.cuenta?._id || initialData.cuenta?.id || initialData.cuenta || user?.cuentaDefault;
-        console.log('Buscando cuenta con ID:', cuentaId);
         const cuentaEncontrada = relatedData.cuenta.find(c => 
           c._id === cuentaId || c.id === cuentaId
         );
-        console.log('Cuenta encontrada:', cuentaEncontrada);
         if (cuentaEncontrada) {
           setSelectedCuenta(cuentaEncontrada);
           setFormData(prev => ({
@@ -298,49 +294,47 @@ const PropiedadForm = ({
   };
 
   const handleSubmit = async (e) => {
-    console.log('Iniciando handleSubmit');
     e.preventDefault();
-    console.log('Evento prevenido');
     
     const validationErrors = validateForm();
-    console.log('Errores de validación:', validationErrors);
     
     if (Object.keys(validationErrors).length > 0) {
-      console.log('Hay errores de validación, deteniendo submit');
       setErrors(validationErrors);
       return;
     }
 
+    // Preparar datos para enviar, siendo explícito sobre los campos
     const dataToSubmit = {
-      ...formData,
+      titulo: formData.titulo,
+      descripcion: formData.descripcion,
+      direccion: formData.direccion,
+      ciudad: formData.ciudad,
+      tipo: formData.tipo,
+      estado: formData.estado,
       precio: formData.precio ? Number(formData.precio) : 0,
       metrosCuadrados: formData.metrosCuadrados ? Number(formData.metrosCuadrados) : 0,
+      caracteristicas: formData.caracteristicas || [],
       moneda: formData.moneda || null,
       cuenta: formData.cuenta || null,
       usuario: user?._id || user?.id
     };
 
-    console.log('Datos finales a enviar:', dataToSubmit);
+    // Solo incluir _id para edición
+    if (initialData._id) {
+      dataToSubmit._id = initialData._id;
+    }
 
     try {
       setIsSaving(true);
-      console.log('Iniciando petición al servidor...');
       let response;
       
       if (initialData._id) {
-        console.log('Actualizando propiedad existente');
         response = await clienteAxios.put(`/api/propiedades/${initialData._id}`, dataToSubmit);
       } else {
-        console.log('Creando nueva propiedad');
         response = await clienteAxios.post('/api/propiedades', dataToSubmit);
       }
 
-      console.log('Respuesta del servidor:', response.data);
-
-      enqueueSnackbar(
-        isEditing ? 'Propiedad actualizada exitosamente' : 'Propiedad creada exitosamente',
-        { variant: 'success' }
-      );
+              snackbar.success(isEditing ? 'Propiedad actualizada exitosamente' : 'Propiedad creada exitosamente');
 
       // Disparar evento de actualización
       window.dispatchEvent(new CustomEvent('entityUpdated', {
@@ -367,7 +361,7 @@ const PropiedadForm = ({
         ...prev,
         submit: errorMessage
       }));
-      enqueueSnackbar(errorMessage, { variant: 'error' });
+              snackbar.error(errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -378,44 +372,30 @@ const PropiedadForm = ({
     
     // Validación de campos requeridos
     if (!formData.titulo?.trim()) newErrors.titulo = 'El título es requerido';
+    if (!formData.descripcion?.trim()) newErrors.descripcion = 'La descripción es requerida';
     if (!formData.direccion?.trim()) newErrors.direccion = 'La dirección es requerida';
     if (!formData.ciudad?.trim()) newErrors.ciudad = 'La ciudad es requerida';
     
-    // Validación de campos numéricos
+    // Validación de campos numéricos (solo si se proporciona valor)
     const numericFields = {
       precio: 'El precio',
       metrosCuadrados: 'Los metros cuadrados'
     };
 
     Object.entries(numericFields).forEach(([field, label]) => {
-      const value = parseFloat(formData[field]);
-      if (!formData[field] || formData[field].trim() === '' || isNaN(value) || value < 0) {
-        newErrors[field] = `${label} debe ser un número válido (mayor o igual a 0)`;
+      // Solo validar si el campo tiene contenido
+      if (formData[field] && formData[field].trim() !== '') {
+        const value = parseFloat(formData[field]);
+        if (isNaN(value) || value < 0) {
+          newErrors[field] = `${label} debe ser un número válido (mayor o igual a 0)`;
+        }
       }
     });
 
     // Validación de moneda y cuenta - Según el modelo, estos campos son opcionales
-    console.log('Validando moneda:', { 
-      selectedMoneda, 
-      formDataMoneda: formData.moneda, 
-      monedas: relatedData?.moneda?.length 
-    });
-    console.log('Validando cuenta:', { 
-      selectedCuenta, 
-      formDataCuenta: formData.cuenta, 
-      cuentas: relatedData?.cuenta?.length 
-    });
-
     // Los campos moneda y cuenta son opcionales según el modelo
-    // Solo validar que si se proporciona un valor, sea válido
-    if (formData.moneda && !selectedMoneda) {
-      newErrors.moneda = 'Moneda no válida';
-    }
-    if (formData.cuenta && !selectedCuenta) {
-      newErrors.cuenta = 'Cuenta no válida';
-    }
+    // No validar estos campos ya que son opcionales
 
-    console.log('Errores de validación:', newErrors);
     return newErrors;
   };
 
@@ -500,6 +480,8 @@ const PropiedadForm = ({
                 maxRows={5}
                 value={formData.descripcion}
                 onChange={(e) => handleChange('descripcion', e.target.value)}
+                error={!!errors.descripcion}
+                helperText={errors.descripcion}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1 }}>
@@ -529,7 +511,6 @@ const PropiedadForm = ({
                   sx={{ flex: 2 }}
                   value={selectedCuenta}
                   onChange={(_, newValue) => {
-                    console.log('Cuenta seleccionada:', newValue);
                     setSelectedCuenta(newValue);
                     setFormData(prev => ({ 
                       ...prev, 

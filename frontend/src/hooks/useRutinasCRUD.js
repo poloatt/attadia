@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import clienteAxios from '../config/axios';
-import useCustomSnackbar from '../components/common/CustomSnackbar.jsx';
 
 /**
  * Hook para operaciones básicas CRUD de rutinas
@@ -8,21 +7,15 @@ import useCustomSnackbar from '../components/common/CustomSnackbar.jsx';
  * conflictos con el hook useRutinas del contexto en components/rutinas/context/RutinasContext.jsx
  */
 export const useRutinasCRUD = () => {
-  const { enqueueSnackbar } = useCustomSnackbar();
   const [loading, setLoading] = useState(false);
 
   const createRutina = async (rutinaData) => {
     try {
       setLoading(true);
       const response = await clienteAxios.post('/api/rutinas', rutinaData);
-      enqueueSnackbar('Rutina creada exitosamente', { variant: 'success' });
       return response.data;
     } catch (error) {
       console.error('Error al crear rutina:', error);
-      enqueueSnackbar(
-        error.response?.data?.error || 'Error al crear la rutina',
-        { variant: 'error' }
-      );
       throw error;
     } finally {
       setLoading(false);
@@ -33,14 +26,9 @@ export const useRutinasCRUD = () => {
     try {
       setLoading(true);
       const response = await clienteAxios.put(`/api/rutinas/${id}`, rutinaData);
-      enqueueSnackbar('Rutina actualizada exitosamente', { variant: 'success' });
       return response.data;
     } catch (error) {
       console.error('Error al actualizar rutina:', error);
-      enqueueSnackbar(
-        error.response?.data?.error || 'Error al actualizar la rutina',
-        { variant: 'error' }
-      );
       throw error;
     } finally {
       setLoading(false);
@@ -54,10 +42,6 @@ export const useRutinasCRUD = () => {
       return response.data;
     } catch (error) {
       console.error('Error al obtener rutina:', error);
-      enqueueSnackbar(
-        error.response?.data?.error || 'Error al obtener la rutina',
-        { variant: 'error' }
-      );
       throw error;
     } finally {
       setLoading(false);
@@ -72,10 +56,6 @@ export const useRutinasCRUD = () => {
       return response.data.exists;
     } catch (error) {
       console.error('Error al verificar fecha:', error);
-      enqueueSnackbar(
-        error.response?.data?.error || 'Error al verificar la fecha',
-        { variant: 'error' }
-      );
       throw error;
     }
   };
@@ -86,10 +66,6 @@ export const useRutinasCRUD = () => {
       return response.data.fechas;
     } catch (error) {
       console.error('Error al obtener fechas:', error);
-      enqueueSnackbar(
-        error.response?.data?.error || 'Error al obtener las fechas',
-        { variant: 'error' }
-      );
       throw error;
     }
   };
@@ -103,14 +79,9 @@ export const useRutinasCRUD = () => {
         {}, 
         { params: { overwriteAll } }
       );
-      enqueueSnackbar('Configuración sincronizada exitosamente', { variant: 'success' });
       return response.data;
     } catch (error) {
       console.error('Error al sincronizar con configuración global:', error);
-      enqueueSnackbar(
-        error.response?.data?.error || 'Error al sincronizar con configuración global',
-        { variant: 'error' }
-      );
       throw error;
     } finally {
       setLoading(false);
@@ -125,14 +96,9 @@ export const useRutinasCRUD = () => {
         sections,
         items
       });
-      enqueueSnackbar('Configuración global actualizada exitosamente', { variant: 'success' });
       return response.data;
     } catch (error) {
       console.error('Error al actualizar configuración global:', error);
-      enqueueSnackbar(
-        error.response?.data?.error || 'Error al actualizar configuración global',
-        { variant: 'error' }
-      );
       throw error;
     } finally {
       setLoading(false);

@@ -7,6 +7,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import BottomNavigation from '../components/BottomNavigation';
 import Sidebar from '../components/Sidebar';
+import { CustomSnackbarProvider } from '../components/common/snackbarUtils.jsx';
 
 export function Layout() {
   const theme = useTheme();
@@ -55,7 +56,7 @@ export function Layout() {
           width: '100%',
           maxWidth: '100%',
           mx: 0, // Eliminado el centrado automático
-          px: isMobile ? 1 : 0, // Padding horizontal en móvil para evitar que el contenido toque los bordes
+          px: 0, // Eliminado padding horizontal completamente
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
@@ -65,6 +66,7 @@ export function Layout() {
         </Box>
         <BottomNavigation />
         <Footer />
+        <CustomSnackbarProvider />
       </Box>
     </Box>
   );

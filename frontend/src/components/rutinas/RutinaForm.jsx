@@ -29,7 +29,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import EventIcon from '@mui/icons-material/Event';
 import SaveIcon from '@mui/icons-material/Save';
 import clienteAxios from '../../config/axios';
-import useCustomSnackbar from '../common/CustomSnackbar.jsx';
+import { snackbar } from '../common/snackbarUtils.jsx';
 import { useDebounce } from './utils/hooks';
 import { formatDate, iconConfig } from './utils/iconConfig';
 import { useRutinasCRUD } from '../../hooks/useRutinasCRUD';
@@ -49,7 +49,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
   const [isLoadingDates, setIsLoadingDates] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { enqueueSnackbar } = useCustomSnackbar();
+  // Usar snackbar unificado
   const { user } = useAuth();
   const { timezone } = useTimezone(); // Configurar timezone del usuario
   const submitButtonRef = useRef(null);
@@ -301,7 +301,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
     }
     
     if (fechaError) {
-      enqueueSnackbar('Por favor selecciona una fecha válida', { variant: 'error' });
+              snackbar.error('Por favor selecciona una fecha válida');
       return;
     }
     
@@ -325,7 +325,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
         if (isEditing && initialData?._id) {
           response = await clienteAxios.put(`/api/rutinas/${initialData._id}`, rutinaToSubmit);
           console.log('[RutinaForm] Respuesta exitosa al actualizar rutina:', response.status, response.statusText);
-          enqueueSnackbar('Rutina actualizada con éxito', { variant: 'success' });
+          snackbar.success('Rutina actualizada con éxito');
           
           // Disparar evento para actualizar la lista
           window.dispatchEvent(new CustomEvent('rutina-updated', { 
@@ -348,12 +348,12 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
           
           if (!rutinaId) {
             console.error('[RutinaForm] No se pudo obtener un ID válido de la rutina creada:', response.data);
-            enqueueSnackbar('Rutina creada, pero hubo un problema al redirigir', { variant: 'warning' });
+            snackbar.warning('Rutina creada, pero hubo un problema al redirigir');
             onClose();
             return;
           }
           
-          enqueueSnackbar('Rutina creada con éxito', { variant: 'success' });
+                      snackbar.success('Rutina creada con éxito');
           
           // Disparar evento para actualizar la lista
           window.dispatchEvent(new CustomEvent('rutina-updated', { 
@@ -389,7 +389,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
         }
         
         setError(errorMsg);
-        enqueueSnackbar(errorMsg, { variant: 'error' });
+        snackbar.error(errorMsg);
         throw httpError; // Relanzar para manejo adicional si es necesario
       }
       
@@ -399,7 +399,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
       
       if (!error.response) { // Si no es un error HTTP que ya fue manejado
         setError(errorMsg);
-        enqueueSnackbar(errorMsg, { variant: 'error' });
+        snackbar.error(errorMsg);
       }
     } finally {
       setIsSubmitting(false);
@@ -542,7 +542,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
                   onClick={() => {
                     syncRutinaWithGlobal(initialData._id)
                       .then(response => {
-                        enqueueSnackbar("Configuración sincronizada con éxito", { variant: "success" });
+                        snackbar.success("Configuración sincronizada con éxito");
                         // Actualizar la rutina con la nueva configuración
                         setRutinaData(prev => ({
                           ...prev,
@@ -551,7 +551,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
                       })
                       .catch(err => {
                         console.error("Error al sincronizar:", err);
-                        enqueueSnackbar("Error al sincronizar configuración", { variant: "error" });
+                        snackbar.error("Error al sincronizar configuración");
                       });
                   }}
                   sx={{ 
@@ -573,11 +573,11 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
                   onClick={() => {
                     updateGlobalFromRutina(initialData._id)
                       .then(() => {
-                        enqueueSnackbar("Configuración global actualizada con éxito", { variant: "success" });
+                        snackbar.success("Configuración global actualizada con éxito");
                       })
                       .catch(err => {
                         console.error("Error al actualizar global:", err);
-                        enqueueSnackbar("Error al actualizar configuración global", { variant: "error" });
+                        snackbar.error("Error al actualizar configuración global");
                       });
                   }}
                   sx={{ 

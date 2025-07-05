@@ -31,20 +31,42 @@ export const SnackbarUtilsConfigurator = () => {
     const variant = options.variant || 'default';
     const className = `snackbar-${variant}`;
     
-    // Opciones por defecto
+    // Opciones por defecto con estilo exacto del Footer - Centrado en el contenedor de 32px
     const defaultOptions = {
       className,
       style: {
-        backgroundColor: variant === 'success' ? '#424242' : 
-                        variant === 'error' ? '#3a3a3a' : 
-                        variant === 'warning' ? '#484848' : 
-                        variant === 'info' ? '#424242' : '#333333',
-        color: '#f5f5f5',
-        fontWeight: 300,
-        borderLeft: '4px solid #757575',
+        position: 'fixed',
+        bottom: '32px',
+        left: 0,
+        right: 0,
+        width: '100%',
+        maxWidth: '100%',
+        height: '24px',
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        color: 'rgba(255, 255, 255, 0.9)',
+        fontWeight: 400,
+        fontSize: '0.75rem',
+        lineHeight: 1,
+        padding: '0 8px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        border: variant === 'success' ? '1px solid #4caf50' :
+                variant === 'error' ? '1px solid #f44336' :
+                variant === 'warning' ? '1px solid #ff9800' :
+                variant === 'info' ? '1px solid #2196f3' : '1px solid rgba(255, 255, 255, 0.1)',
         borderRadius: 0,
-        clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)',
-        boxShadow: '0 3px 8px rgba(0, 0, 0, 0.15)'
+        clipPath: 'none',
+        boxShadow: 'none',
+        backdropFilter: 'none',
+        pointerEvents: 'auto',
+        margin: 0,
+        zIndex: 1202,
+        transition: 'opacity 0.5s ease, transform 0.5s ease',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        boxSizing: 'border-box'
       },
       preventDuplicate: true,
       autoHideDuration: 4000
@@ -71,6 +93,7 @@ export const SnackbarUtilsConfigurator = () => {
 
 /**
  * Componente SnackbarProvider personalizado con referencia configurada
+ * Posicionado como chip en el centro del Footer (4px desde el bottom)
  * @param {object} props Propiedades del componente
  * @returns Componente SnackbarProvider personalizado
  */
@@ -81,7 +104,11 @@ export const CustomSnackbarProvider = props => {
       maxSnack={3}
       anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       autoHideDuration={4000}
-      style={{ marginBottom: '72px' }}
+      style={{ 
+        marginBottom: '0px',
+        pointerEvents: 'none',
+        zIndex: 1202
+      }}
       dense
       preventDuplicate
       classes={{

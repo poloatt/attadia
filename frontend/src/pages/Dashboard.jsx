@@ -29,6 +29,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 
+
 export function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -555,6 +556,8 @@ export function Dashboard() {
     </Box>
   );
 
+
+
   return (
     <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar
@@ -601,6 +604,8 @@ export function Dashboard() {
           </Paper>
         </Grid>
       </Grid>
+
+
     </Box>
   );
 }
