@@ -106,8 +106,6 @@ const FormSection = styled(Box)(({ theme }) => ({
   marginBottom: theme.spacing(2)
 }));
 
-
-
 const CategoryChip = styled(Chip)(({ theme, customcolor }) => ({
   borderRadius: 0,
   height: 40,
@@ -206,84 +204,51 @@ const ContratoForm = ({
     });
     console.log('Cuenta en initialData:', safeInitialData.cuenta);
     
+    // --- Propiedad ---
+    let propiedadObj = null;
     if (relatedData.propiedades?.length > 0 && safeInitialData.propiedad) {
-      const propiedad = relatedData.propiedades.find(p => 
-        p._id === (safeInitialData.propiedad?._id || safeInitialData.propiedad)
+      propiedadObj = relatedData.propiedades.find(p =>
+        p._id === (safeInitialData.propiedad?._id || safeInitialData.propiedad || safeInitialData.propiedad?.id)
       );
-      setSelectedPropiedad(propiedad || null);
+      setSelectedPropiedad(propiedadObj || null);
     }
 
+    // --- Cuenta ---
+    let cuentaObj = null;
+    if (relatedData.cuentas?.length > 0 && safeInitialData.cuenta) {
+      const cuentaId = typeof safeInitialData.cuenta === 'object' ? safeInitialData.cuenta._id || safeInitialData.cuenta.id : safeInitialData.cuenta;
+      cuentaObj = relatedData.cuentas.find(c => c._id === cuentaId || c.id === cuentaId);
+      setSelectedCuenta(cuentaObj || null);
+    }
+
+    // --- Inquilinos ---
+    if (relatedData.inquilinos?.length > 0 && safeInitialData.inquilino) {
+      const inquilinos = Array.isArray(safeInitialData.inquilino) ? safeInitialData.inquilino : [safeInitialData.inquilino];
+      const selectedInqs = inquilinos
+        .map(inqId => relatedData.inquilinos.find(i =>
+          i._id === (typeof inqId === 'object' ? inqId._id : inqId)
+        ))
+        .filter(Boolean);
+      setSelectedInquilinos(selectedInqs);
+    }
+
+    // --- Habitacion ---
     if (relatedData.habitaciones?.length > 0 && safeInitialData.habitacion) {
-      const habitacion = relatedData.habitaciones.find(h => 
+      const habitacion = relatedData.habitaciones.find(h =>
         h._id === (safeInitialData.habitacion?._id || safeInitialData.habitacion)
       );
       setSelectedHabitacion(habitacion || null);
     }
 
-    if (relatedData.inquilinos?.length > 0 && safeInitialData.inquilino) {
-      const inquilinos = Array.isArray(safeInitialData.inquilino) ? safeInitialData.inquilino : [safeInitialData.inquilino];
-      const selectedInqs = inquilinos
-        .map(inqId => relatedData.inquilinos.find(i => 
-          i._id === (typeof inqId === 'object' ? inqId._id : inqId)
-        ))
-        .filter(Boolean);
-      setSelectedInquilinos(selectedInqs);
-      setFormData(prev => ({
-        ...prev,
-        inquilino: selectedInqs.map(inq => inq._id)
-      }));
-    }
-
-    if (relatedData.cuentas?.length > 0 && safeInitialData.cuenta) {
-      console.log('Buscando cuenta en relatedData:', safeInitialData.cuenta);
-      
-      // Obtener el ID de la cuenta de manera más robusta
-      let cuentaId;
-      if (typeof safeInitialData.cuenta === 'object' && safeInitialData.cuenta?._id) {
-        cuentaId = safeInitialData.cuenta._id;
-      } else if (typeof safeInitialData.cuenta === 'string') {
-        cuentaId = safeInitialData.cuenta;
-      } else if (safeInitialData.cuenta?.id) {
-        cuentaId = safeInitialData.cuenta.id;
-      }
-      
-      console.log('ID de cuenta a buscar:', cuentaId);
-      console.log('Cuentas disponibles:', relatedData.cuentas.map(c => ({ id: c._id, nombre: c.nombre })));
-      
-      // Buscar la cuenta por ID
-      let cuenta = null;
-      if (cuentaId) {
-        cuenta = relatedData.cuentas.find(c => 
-          c._id === cuentaId || c.id === cuentaId
-        );
-      }
-      
-      console.log('Cuenta encontrada:', cuenta);
-      
-      if (cuenta) {
-        setSelectedCuenta(cuenta);
-        setFormData(prev => ({
-          ...prev,
-          cuenta: cuenta._id || cuenta.id
-        }));
-      } else {
-        console.warn('No se encontró la cuenta con ID:', cuentaId);
-        // Si no se encuentra la cuenta, intentar buscarla por nombre
-        if (typeof safeInitialData.cuenta === 'object' && safeInitialData.cuenta?.nombre) {
-          const cuentaPorNombre = relatedData.cuentas.find(c => 
-            c.nombre === safeInitialData.cuenta.nombre
-          );
-          if (cuentaPorNombre) {
-            console.log('Cuenta encontrada por nombre:', cuentaPorNombre);
-            setSelectedCuenta(cuentaPorNombre);
-            setFormData(prev => ({
-              ...prev,
-              cuenta: cuentaPorNombre._id || cuentaPorNombre.id
-            }));
-          }
-        }
-      }
-    }
+    // --- Setear formData con los valores correctos ---
+    setFormData(prev => ({
+      ...prev,
+      propiedad: propiedadObj?._id || propiedadObj?.id || '',
+      cuenta: cuentaObj?._id || cuentaObj?.id || '',
+      montoMensual: safeInitialData.montoMensual?.toString() || propiedadObj?.precio?.toString() || '0',
+      deposito: safeInitialData.deposito?.toString() || propiedadObj?.deposito?.toString() || (propiedadObj?.precio ? (propiedadObj.precio * 2).toString() : '0'),
+      inquilino: (Array.isArray(safeInitialData.inquilino) ? safeInitialData.inquilino : [safeInitialData.inquilino]).map(i => typeof i === 'object' ? i._id : i)
+    }));
   }, [safeInitialData, relatedData]);
 
   const handleChange = (name, value) => {

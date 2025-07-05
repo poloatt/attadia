@@ -42,7 +42,7 @@ const propiedadSchema = createSchema({
     required: false,
     default: 0
   },
-  precio: {
+  montoMensual: {
     type: Number,
     required: false,
     default: 0

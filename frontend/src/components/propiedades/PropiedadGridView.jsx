@@ -245,86 +245,26 @@ const InquilinoCard = ({ inquilino }) => {
 
 // Componente para mostrar inquilinos en grid
 const InquilinosGrid = ({ inquilinos }) => {
-  // Obtener nombres completos
-  const nombres = inquilinos && inquilinos.length > 0
-    ? inquilinos.map(i => `${i.nombre} ${i.apellido}`).join(', ')
-    : 'Sin inquilinos';
-  // Obtener nombre de contrato (si existe)
-  const contrato = inquilinos && inquilinos[0] && inquilinos[0].contrato;
-  const nombreContrato = contrato && contrato.nombre ? contrato.nombre : 'Sin contrato';
-  const contratoId = contrato && contrato._id;
+  if (!inquilinos || inquilinos.length === 0) {
+    return (
+      <Box sx={{ 
+        p: 1.5, 
+        textAlign: 'center'
+      }}>
+        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+          No hay inquilinos registrados
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <Grid container spacing={0.75} sx={{ p: 0.75 }}>
-      <Grid item xs={12} sm={12} md={12} lg={12}>
-        <GeometricPaper sx={{ minHeight: '50px' }}>
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 1.5,
-            height: '100%',
-            width: '100%',
-            justifyContent: 'space-between'
-          }}>
-            {/* Ícono de inquilinos a la izquierda */}
-            <PeopleIcon 
-              sx={{ 
-                fontSize: '1.3rem', 
-                color: 'primary.main',
-                flexShrink: 0,
-                mr: 1
-              }} 
-            />
-            {/* Nombres de inquilinos */}
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                fontWeight: 700,
-                fontSize: '0.8rem',
-                color: 'primary.main',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                flex: 1
-              }}
-            >
-              {nombres}
-            </Typography>
-            {/* Nombre del contrato y link a la derecha */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography 
-                variant="caption" 
-                sx={{ 
-                  fontWeight: 500,
-                  fontSize: '0.65rem',
-                  color: 'text.secondary',
-                  textAlign: 'right',
-                  mr: 1
-                }}
-              >
-                {nombreContrato}
-              </Typography>
-              {contratoId && (
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    fontWeight: 500,
-                    fontSize: '0.65rem',
-                    color: 'primary.main',
-                    textDecoration: 'underline',
-                    cursor: 'pointer',
-                    '&:hover': { color: 'primary.dark' }
-                  }}
-                  component={Link}
-                  to={`/contratos/${contratoId}`}
-                >
-                  ver contrato
-                </Typography>
-              )}
-            </Box>
-          </Box>
-        </GeometricPaper>
-      </Grid>
+      {inquilinos.map((inquilino, index) => (
+        <Grid item xs={6} sm={6} md={6} lg={6} key={inquilino._id || index}>
+          <InquilinoCard inquilino={inquilino} />
+        </Grid>
+      ))}
     </Grid>
   );
 };
@@ -532,115 +472,130 @@ const HabitacionesGrid = ({ habitaciones }) => {
   );
 };
 
-// Componente para mostrar inventario en grid
-const InventarioGrid = ({ inventario }) => {
-  const totalItems = inventario ? inventario.reduce((total, item) => total + (item.cantidad || 1), 0) : 0;
-  
+// Componente para mostrar contratos en grid
+const ContratosGrid = ({ contratos }) => {
+  if (!contratos || contratos.length === 0) {
+    return (
+      <Box sx={{ 
+        p: 1.5, 
+        textAlign: 'center'
+      }}>
+        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+          No hay contratos registrados
+        </Typography>
+      </Box>
+    );
+  }
+
   return (
     <Grid container spacing={0.75} sx={{ p: 0.75 }}>
-      <Grid item xs={12} sm={12} md={12} lg={12}>
-        <GeometricPaper sx={{ minHeight: '50px' }}>
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 1.5,
-            height: '100%',
-            width: '100%',
-            justifyContent: 'space-between'
-          }}>
-            {/* Lado izquierdo: Ícono de inventario */}
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1.5,
-              flexShrink: 0
-            }}>
-              <InventoryIcon 
-                sx={{ 
-                  fontSize: '1.3rem', 
-                  color: 'primary.main'
-                }} 
-              />
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontWeight: 700,
-                  fontSize: '0.8rem',
-                  color: 'primary.main'
-                }}
-              >
-                Inventario
-              </Typography>
-            </Box>
-
-            {/* Lado derecho: Conteo de items */}
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1
-            }}>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontWeight: 600,
-                  fontSize: '0.75rem',
-                  color: 'text.primary'
-                }}
-              >
-                {totalItems}
-              </Typography>
-              <Typography 
-                variant="caption" 
-                sx={{ 
-                  fontWeight: 500,
-                  fontSize: '0.65rem',
-                  color: 'text.secondary'
-                }}
-              >
-                {totalItems === 1 ? 'item' : 'items'}
-              </Typography>
-            </Box>
-          </Box>
-        </GeometricPaper>
-      </Grid>
+      {contratos.map((contrato, index) => {
+        const estado = getEstadoContrato(contrato);
+        const IconComponent = getContratoIcon(contrato.tipoContrato);
+        return (
+          <Grid item xs={3} sm={3} md={2.4} lg={2} key={contrato._id || index}>
+            <GeometricPaper 
+              component={Link}
+              to={`/contratos/${contrato._id}`}
+              sx={{ 
+                textDecoration: 'none',
+                color: 'inherit',
+                display: 'flex',
+                cursor: 'pointer',
+                minHeight: '50px'
+              }}
+            >
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1,
+                width: '100%',
+                height: '100%'
+              }}>
+                {/* Icono a la izquierda */}
+                <IconComponent 
+                  sx={{ 
+                    fontSize: '1.2rem', 
+                    color: getContratoStatusColor(estado),
+                    flexShrink: 0
+                  }} 
+                />
+                
+                {/* Contenido a la derecha */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: 0.1,
+                  flex: 1,
+                  overflow: 'hidden'
+                }}>
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      fontWeight: 500,
+                      fontSize: '0.7rem',
+                      lineHeight: 1.2,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {contrato.tipoContrato === 'MANTENIMIENTO' ? 'Mantenimiento' : 'Alquiler'}
+                  </Typography>
+                  <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
+                    {estado}
+                  </Typography>
+                </Box>
+              </Box>
+            </GeometricPaper>
+          </Grid>
+        );
+      })}
     </Grid>
   );
 };
 
-// Componente para mostrar ubicación en grid horizontal
-const UbicacionGrid = ({ direccion, ciudad, metrosCuadrados }) => {
+// Componente para mostrar inventario en grid
+const InventarioGrid = ({ inventario }) => {
+  if (!inventario || inventario.length === 0) {
+    return (
+      <Box sx={{ 
+        p: 1.5, 
+        textAlign: 'center'
+      }}>
+        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+          No hay elementos en el inventario
+        </Typography>
+      </Box>
+    );
+  }
+
   return (
     <Grid container spacing={0.75} sx={{ p: 0.75 }}>
-      <Grid item xs={12} sm={12} md={12} lg={12}>
-        <GeometricPaper sx={{ minHeight: '50px' }}>
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 1.5,
-            height: '100%',
-            width: '100%',
-            justifyContent: 'space-between'
-          }}>
-            {/* Lado izquierdo: Dirección y ciudad */}
+      {inventario.map((item, index) => (
+        <Grid item xs={3} sm={3} md={2.4} lg={2} key={item._id || index}>
+          <GeometricPaper sx={{ minHeight: '50px' }}>
             <Box sx={{ 
               display: 'flex', 
-              alignItems: 'flex-start', 
-              gap: 1.5,
-              flex: 1
+              alignItems: 'center', 
+              gap: 1,
+              height: '100%',
+              width: '100%'
             }}>
-              <AddressIcon 
+              {/* Icono a la izquierda */}
+              <InventoryIcon 
                 sx={{ 
-                  fontSize: '1.3rem', 
-                  color: 'primary.main',
-                  flexShrink: 0,
-                  mt: 0.5
+                  fontSize: '1.2rem', 
+                  color: 'text.secondary',
+                  flexShrink: 0
                 }} 
               />
               
+              {/* Contenido a la derecha */}
               <Box sx={{ 
                 display: 'flex', 
                 flexDirection: 'column', 
-                gap: 0.2,
+                gap: 0.1,
                 flex: 1,
                 overflow: 'hidden'
               }}>
@@ -648,114 +603,209 @@ const UbicacionGrid = ({ direccion, ciudad, metrosCuadrados }) => {
                   variant="body2" 
                   sx={{ 
                     fontWeight: 500,
-                    fontSize: '0.75rem',
+                    fontSize: '0.7rem',
                     lineHeight: 1.2,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap'
                   }}
                 >
-                  {direccion}
+                  {item.nombre}
                 </Typography>
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    fontWeight: 700,
-                    fontSize: '0.65rem',
-                    lineHeight: 1.1,
-                    color: 'text.secondary',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {ciudad}
+                <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
+                  Cant: {item.cantidad || 1}
                 </Typography>
               </Box>
             </Box>
+          </GeometricPaper>
+        </Grid>
+      ))}
+    </Grid>
+  );
+};
 
-            {/* Lado derecho: Superficie */}
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1,
-              flexShrink: 0,
-              pl: 2,
-              borderLeft: '1px solid',
-              borderColor: 'divider'
-            }}>
-              <AreaIcon 
-                sx={{ 
-                  fontSize: '1.1rem', 
-                  color: 'success.main'
-                }} 
-              />
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontWeight: 500,
-                  fontSize: '0.75rem',
-                  color: 'success.main'
-                }}
-              >
-                {metrosCuadrados}m²
-              </Typography>
-            </Box>
-          </Box>
-        </GeometricPaper>
-      </Grid>
+// Componente para mostrar ubicación en grid horizontal
+const UbicacionGrid = ({ direccion, ciudad, metrosCuadrados }) => {
+  const ubicacionData = [
+    {
+      icon: AddressIcon,
+      label: 'Dirección',
+      value: direccion,
+      color: 'primary.main'
+    },
+    {
+      icon: CityIcon,
+      label: 'Ciudad',
+      value: ciudad,
+      color: 'secondary.main'
+    },
+    {
+      icon: AreaIcon,
+      label: 'Superficie',
+      value: `${metrosCuadrados}m²`,
+      color: 'success.main'
+    }
+  ];
+
+  return (
+    <Grid container spacing={0.75} sx={{ p: 0.75 }}>
+      {ubicacionData.map((item, index) => {
+        const IconComponent = item.icon;
+        return (
+          <Grid item xs={4} sm={4} md={4} lg={4} key={index}>
+            <GeometricPaper sx={{ minHeight: '50px' }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1.5,
+                height: '100%',
+                width: '100%',
+                justifyContent: 'flex-start'
+              }}>
+                {/* Icono centrado a la izquierda */}
+                <IconComponent 
+                  sx={{ 
+                    fontSize: '1.3rem', 
+                    color: item.color,
+                    flexShrink: 0
+                  }} 
+                />
+                
+                {/* Contenido centrado verticalmente */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: 0.2,
+                  flex: 1,
+                  justifyContent: 'center',
+                  overflow: 'hidden'
+                }}>
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      fontWeight: 500,
+                      fontSize: '0.75rem',
+                      lineHeight: 1.2,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {item.value}
+                  </Typography>
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      fontSize: '0.6rem',
+                      color: 'text.secondary',
+                      fontWeight: 400,
+                      lineHeight: 1.1
+                    }}
+                  >
+                    {item.label}
+                  </Typography>
+                </Box>
+              </Box>
+            </GeometricPaper>
+          </Grid>
+        );
+      })}
     </Grid>
   );
 };
 
 // Componente para mostrar información financiera en grid
 const FinancieroGrid = ({ precio, simboloMoneda, nombreCuenta, moneda }) => {
+  const financieroData = [
+    {
+      icon: MoneyIcon,
+      label: 'Precio Mensual',
+      value: `${simboloMoneda} ${precio.toLocaleString()}`,
+      color: 'text.secondary'
+    },
+    {
+      icon: DepositIcon,
+      label: 'Depósito',
+      value: `${simboloMoneda} ${(precio * 2).toLocaleString()}`,
+      color: 'text.secondary'
+    },
+    {
+      icon: BankIcon,
+      label: 'Cuenta',
+      value: nombreCuenta,
+      color: 'text.secondary'
+    },
+    {
+      icon: CurrencyIcon,
+      label: 'Moneda',
+      value: moneda || 'No especificada',
+      color: 'text.secondary'
+    }
+  ];
+
   return (
     <Grid container spacing={0.75} sx={{ p: 0.75 }}>
-      <Grid item xs={12} sm={12} md={12} lg={12}>
-        <GeometricPaper sx={{ minHeight: '50px' }}>
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 2,
-            height: '100%',
-            width: '100%',
-            justifyContent: 'space-between'
-          }}>
-            {/* Izquierda: Ícono de moneda y montos */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
-              <CurrencyIcon sx={{ fontSize: '1.3rem', color: 'primary.main', flexShrink: 0 }} />
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.75rem', color: 'text.primary' }}>
-                    {precio.toLocaleString()}
+      {financieroData.map((item, index) => {
+        const IconComponent = item.icon;
+        return (
+          <Grid item xs={3} sm={3} md={3} lg={3} key={index}>
+            <GeometricPaper sx={{ minHeight: '50px' }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1.5,
+                height: '100%',
+                width: '100%',
+                justifyContent: 'flex-start'
+              }}>
+                {/* Icono centrado a la izquierda */}
+                <IconComponent 
+                  sx={{ 
+                    fontSize: '1.3rem', 
+                    color: item.color,
+                    flexShrink: 0
+                  }} 
+                />
+                
+                {/* Contenido centrado verticalmente */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: 0.2,
+                  flex: 1,
+                  justifyContent: 'center',
+                  overflow: 'hidden'
+                }}>
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      fontWeight: 500,
+                      fontSize: '0.75rem',
+                      lineHeight: 1.2,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {item.value}
                   </Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 500, fontSize: '0.65rem', color: 'text.secondary' }}>
-                    alquiler
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.75rem', color: 'text.primary' }}>
-                    {(precio * 2).toLocaleString()}
-                  </Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 500, fontSize: '0.65rem', color: 'text.secondary' }}>
-                    depósito
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      fontSize: '0.6rem',
+                      color: 'text.secondary',
+                      fontWeight: 400,
+                      lineHeight: 1.1
+                    }}
+                  >
+                    {item.label}
                   </Typography>
                 </Box>
               </Box>
-            </Box>
-            {/* Derecha: símbolo de moneda y cuenta */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.2, minWidth: 60, justifyContent: 'center' }}>
-              <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main', fontSize: '1.3rem', lineHeight: 1, mb: 0.2, textAlign: 'center' }}>
-                {simboloMoneda}
-              </Typography>
-              <Typography variant="caption" sx={{ fontWeight: 500, fontSize: '0.65rem', color: 'text.secondary', textAlign: 'center' }}>
-                {nombreCuenta || 'Sin cuenta'}
-              </Typography>
-            </Box>
-          </Box>
-        </GeometricPaper>
-      </Grid>
+            </GeometricPaper>
+          </Grid>
+        );
+      })}
     </Grid>
   );
 };
@@ -764,7 +814,6 @@ const FinancieroGrid = ({ precio, simboloMoneda, nombreCuenta, moneda }) => {
 const CompactGridView = ({ 
   direccion, 
   ciudad,
-  metrosCuadrados,
   precio, 
   simboloMoneda, 
   nombreCuenta, 
@@ -773,150 +822,95 @@ const CompactGridView = ({
   contratos = [],
   inventario = []
 }) => {
-  const totalItems = inventario ? inventario.reduce((total, item) => total + (item.cantidad || 1), 0) : 0;
-  
+  const totalItems = (habitaciones?.length || 0) + (inquilinos?.length || 0) + (contratos?.length || 0) + (inventario?.length || 0);
+  const compactItems = [
+    {
+      icon: AddressIcon,
+      label: 'Dirección',
+      value: direccion,
+      color: 'primary.main'
+    },
+    {
+      icon: CityIcon,
+      label: 'Ciudad',
+      value: ciudad,
+      color: 'secondary.main'
+    },
+    {
+      icon: MoneyIcon,
+      label: 'Precio Mensual',
+      value: `${simboloMoneda} ${precio.toLocaleString()}`,
+      color: 'text.secondary'
+    },
+    {
+      icon: InventoryIcon,
+      label: 'Total items',
+      value: totalItems,
+      color: 'text.secondary'
+    }
+  ];
+
   return (
     <Grid container spacing={0.75} sx={{ p: 0.75 }}>
-      {/* Ubicación */}
-      <Grid item xs={12} sm={12} md={12} lg={12}>
-        <GeometricPaper sx={{ minHeight: '50px' }}>
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 1.5,
-            height: '100%',
-            width: '100%',
-            justifyContent: 'space-between'
-          }}>
-            {/* Lado izquierdo: Dirección y ciudad */}
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'flex-start', 
-              gap: 1.5,
-              flex: 1
-            }}>
-              <AddressIcon 
-                sx={{ 
-                  fontSize: '1.3rem', 
-                  color: 'primary.main',
-                  flexShrink: 0,
-                  mt: 0.5
-                }} 
-              />
-              
+      {compactItems.map((item, index) => {
+        const IconComponent = item.icon;
+        return (
+          <Grid item xs={6} sm={6} md={6} lg={6} key={index}>
+            <GeometricPaper sx={{ minHeight: '50px' }}>
               <Box sx={{ 
                 display: 'flex', 
-                flexDirection: 'column', 
-                gap: 0.2,
-                flex: 1,
-                overflow: 'hidden'
+                alignItems: 'center', 
+                gap: 1.5,
+                height: '100%',
+                width: '100%',
+                justifyContent: 'flex-start'
               }}>
-                <Typography 
-                  variant="body2" 
+                <IconComponent 
                   sx={{ 
-                    fontWeight: 500,
-                    fontSize: '0.75rem',
-                    lineHeight: 1.2,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {direccion}
-                </Typography>
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    fontWeight: 700,
-                    fontSize: '0.65rem',
-                    lineHeight: 1.1,
-                    color: 'text.secondary',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {ciudad}
-                </Typography>
-              </Box>
-            </Box>
-
-            {/* Lado derecho: Superficie */}
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1,
-              flexShrink: 0,
-              pl: 2,
-              borderLeft: '1px solid',
-              borderColor: 'divider'
-            }}>
-              <AreaIcon 
-                sx={{ 
-                  fontSize: '1.1rem', 
-                  color: 'success.main'
-                }} 
-              />
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontWeight: 500,
-                  fontSize: '0.75rem',
-                  color: 'success.main'
-                }}
-              >
-                {metrosCuadrados}m²
-              </Typography>
-            </Box>
-          </Box>
-        </GeometricPaper>
-      </Grid>
-
-      {/* Financiero */}
-      <Grid item xs={12} sm={12} md={12} lg={12}>
-        <GeometricPaper sx={{ minHeight: '50px' }}>
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 2,
-            height: '100%',
-            width: '100%',
-            justifyContent: 'space-between'
-          }}>
-            {/* Izquierda: Ícono de moneda y montos */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
-              <CurrencyIcon sx={{ fontSize: '1.3rem', color: 'primary.main', flexShrink: 0 }} />
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.75rem', color: 'text.primary' }}>
-                    {precio.toLocaleString()}
+                    fontSize: '1.3rem', 
+                    color: item.color,
+                    flexShrink: 0
+                  }} 
+                />
+                
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: 0.2,
+                  flex: 1,
+                  justifyContent: 'center',
+                  overflow: 'hidden'
+                }}>
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      fontWeight: 500,
+                      fontSize: '0.75rem',
+                      lineHeight: 1.2,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {item.value}
                   </Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 500, fontSize: '0.65rem', color: 'text.secondary' }}>
-                    alquiler
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.75rem', color: 'text.primary' }}>
-                    {(precio * 2).toLocaleString()}
-                  </Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 500, fontSize: '0.65rem', color: 'text.secondary' }}>
-                    depósito
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      fontSize: '0.6rem',
+                      color: 'text.secondary',
+                      fontWeight: 400,
+                      lineHeight: 1.1
+                    }}
+                  >
+                    {item.label}
                   </Typography>
                 </Box>
               </Box>
-            </Box>
-            {/* Derecha: símbolo de moneda y cuenta */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.2, minWidth: 60, justifyContent: 'center' }}>
-              <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main', fontSize: '1.3rem', lineHeight: 1, mb: 0.2, textAlign: 'center' }}>
-                {simboloMoneda}
-              </Typography>
-              <Typography variant="caption" sx={{ fontWeight: 500, fontSize: '0.65rem', color: 'text.secondary', textAlign: 'center' }}>
-                {nombreCuenta || 'Sin cuenta'}
-              </Typography>
-            </Box>
-          </Box>
-        </GeometricPaper>
-      </Grid>
+            </GeometricPaper>
+          </Grid>
+        );
+      })}
     </Grid>
   );
 };
@@ -941,6 +935,8 @@ const PropiedadGridView = ({
         return <InquilinosGrid inquilinos={data} />;
       case 'habitaciones':
         return <HabitacionesGrid habitaciones={data} />;
+      case 'contratos':
+        return <ContratosGrid contratos={data} />;
       case 'inventario':
         return <InventarioGrid inventario={data} />;
       case 'ubicacion':

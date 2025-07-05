@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const UISettingsContext = createContext();
 
 export function UISettingsProvider({ children }) {
-  const [showEntityToolbarNavigation, setShowEntityToolbarNavigation] = useState(true);
+  const [showEntityToolbarNavigation, setShowEntityToolbarNavigation] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
 
   // Cargar configuraciones desde localStorage al inicializar

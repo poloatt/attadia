@@ -220,7 +220,7 @@ const getInquilinoStatusIcon = (estado) => {
 const pluralizar = (cantidad, singular, plural) => cantidad === 1 ? singular : plural;
 
 // Función para calcular el progreso del contrato
-const calcularProgresoContrato = (contratos, precio) => {
+const calcularProgresoContrato = (contratos, montoMensual) => {
   // Encontrar contrato activo
   const contratoActivo = contratos.find(contrato => {
     const hoy = new Date();
@@ -260,7 +260,7 @@ const calcularProgresoContrato = (contratos, precio) => {
   const porcentaje = Math.min(100, (mesesTranscurridos / mesTotales) * 100);
 
   // Calcular montos
-  const montoMensual = precio || 0;
+  montoMensual = montoMensual || 0;
   const montoAcumulado = mesesTranscurridos * montoMensual;
   const montoTotal = mesTotales * montoMensual;
 
@@ -308,7 +308,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
   const direccion = propiedad.direccion || '';
   const ciudad = propiedad.ciudad || '';
   const metrosCuadrados = propiedad.metrosCuadrados || 0;
-  const precio = propiedad.precio || 0;
+  const montoMensual = propiedad.precio || 0;
   const simboloMoneda = propiedad.cuenta?.moneda?.simbolo || propiedad.moneda?.simbolo || '$';
   const nombreCuenta = propiedad.cuenta?.nombre || 'No especificada';
   const habitaciones = propiedad.habitaciones || [];
@@ -382,7 +382,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
   ).length;
 
   // Calcular progreso del contrato
-  const progresoContrato = calcularProgresoContrato(contratos, precio);
+  const progresoContrato = calcularProgresoContrato(contratos, montoMensual);
 
   return (
     <StyledCard sx={{ bgcolor: 'background.default' }}>
@@ -508,7 +508,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
           <CompactGridView
             direccion={direccion}
             ciudad={ciudad}
-            precio={precio}
+            precio={montoMensual}
             simboloMoneda={simboloMoneda}
             nombreCuenta={nombreCuenta}
             inquilinos={inquilinos}
@@ -588,7 +588,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
                   <CompactGridView 
                     direccion={direccion}
                     ciudad={ciudad}
-                    precio={precio}
+                    precio={montoMensual}
                     simboloMoneda={simboloMoneda}
                     nombreCuenta={nombreCuenta}
                     inquilinos={inquilinos}
@@ -609,7 +609,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
                     {/* Grid financiero */}
                     <PropiedadGridView 
                       type="financiero" 
-                      precio={precio}
+                      precio={montoMensual}
                       simboloMoneda={simboloMoneda}
                       nombreCuenta={nombreCuenta}
                       moneda={propiedad.cuenta?.moneda?.nombre || propiedad.moneda?.nombre}
@@ -686,17 +686,17 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
                       justifyContent: 'space-between'
                     }}>
                       {/* Precio mensual */}
-                      <Tooltip title={`Precio mensual: ${simboloMoneda} ${precio.toLocaleString()}`}>
+                      <Tooltip title={`Precio mensual: ${simboloMoneda} ${montoMensual.toLocaleString()}`}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flex: 1 }}>
                           <MoneyIcon sx={{ fontSize: '0.9rem', color: 'success.main' }} />
                           <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>
-                            {simboloMoneda} {precio.toLocaleString()}
+                            {simboloMoneda} {montoMensual.toLocaleString()}
                           </Typography>
                         </Box>
                       </Tooltip>
 
                       {/* Depósito */}
-                      <Tooltip title={`Depósito: ${simboloMoneda} ${(precio * 2).toLocaleString()}`}>
+                      <Tooltip title={`Depósito: ${simboloMoneda} ${(montoMensual * 2).toLocaleString()}`}>
                         <Box sx={{ 
                           display: 'flex', 
                           alignItems: 'center', 
@@ -709,7 +709,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
                         }}>
                           <DepositIcon sx={{ fontSize: '0.8rem', color: 'warning.main' }} />
                           <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
-                            {simboloMoneda} {(precio * 2).toLocaleString()}
+                            {simboloMoneda} {(montoMensual * 2).toLocaleString()}
                           </Typography>
                         </Box>
                       </Tooltip>
@@ -775,10 +775,10 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
                       </Typography>
                       <Box sx={{ pl: 1 }}>
                         <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                          • Mensualidad: {simboloMoneda} {precio.toLocaleString()}
+                          • Mensualidad: {simboloMoneda} {montoMensual.toLocaleString()}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', display: 'block' }}>
-                          • Depósito requerido: {simboloMoneda} {(precio * 2).toLocaleString()}
+                          • Depósito requerido: {simboloMoneda} {(montoMensual * 2).toLocaleString()}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', display: 'block' }}>
                           • Cuenta destino: {nombreCuenta}

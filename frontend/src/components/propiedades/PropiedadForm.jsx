@@ -169,7 +169,7 @@ const PropiedadForm = ({
     direccion: initialData.direccion || '',
     ciudad: initialData.ciudad || '',
     estado: Array.isArray(initialData.estado) ? initialData.estado : (initialData.estado ? [initialData.estado] : ['DISPONIBLE']),
-    precio: initialData.precio?.toString() || '',
+    montoMensual: initialData.montoMensual?.toString() || '',
     metrosCuadrados: initialData.metrosCuadrados?.toString() || '',
     caracteristicas: initialData.caracteristicas || [],
     descripcion: initialData.descripcion || '',
@@ -214,7 +214,7 @@ const PropiedadForm = ({
         direccion: initialData.direccion || '',
         ciudad: initialData.ciudad || '',
         estado: Array.isArray(initialData.estado) ? initialData.estado : (initialData.estado ? [initialData.estado] : ['DISPONIBLE']),
-        precio: initialData.precio?.toString() || '',
+        montoMensual: initialData.montoMensual?.toString() || '',
         metrosCuadrados: initialData.metrosCuadrados?.toString() || '',
         caracteristicas: initialData.caracteristicas || [],
         descripcion: initialData.descripcion || '',
@@ -257,7 +257,7 @@ const PropiedadForm = ({
 
   const handleChange = (name, value) => {
     // Convertir valores numéricos
-    const numericFields = ['precio', 'metrosCuadrados'];
+    const numericFields = ['montoMensual', 'metrosCuadrados'];
     let finalValue = value;
     
     if (numericFields.includes(name)) {
@@ -311,7 +311,7 @@ const PropiedadForm = ({
       ciudad: formData.ciudad,
       tipo: formData.tipo,
       estado: formData.estado,
-      precio: formData.precio ? Number(formData.precio) : 0,
+      montoMensual: formData.montoMensual ? Number(formData.montoMensual) : 0,
       metrosCuadrados: formData.metrosCuadrados ? Number(formData.metrosCuadrados) : 0,
       caracteristicas: formData.caracteristicas || [],
       moneda: formData.moneda || null,
@@ -378,7 +378,7 @@ const PropiedadForm = ({
     
     // Validación de campos numéricos (solo si se proporciona valor)
     const numericFields = {
-      precio: 'El precio',
+      montoMensual: 'El monto mensual',
       metrosCuadrados: 'Los metros cuadrados'
     };
 
@@ -497,12 +497,12 @@ const PropiedadForm = ({
               <Box sx={{ display: 'flex', gap: 2, '& .MuiAutocomplete-root': { mt: -1 } }}>
                 <StyledTextField
                   sx={{ flex: 1 }}
-                  label="Precio"
+                  label="Monto Mensual"
                   type="number"
-                  value={formData.precio}
-                  onChange={(e) => handleChange('precio', e.target.value)}
-                  error={!!errors.precio}
-                  helperText={errors.precio}
+                  value={formData.montoMensual}
+                  onChange={(e) => handleChange('montoMensual', e.target.value)}
+                  error={!!errors.montoMensual}
+                  helperText={errors.montoMensual}
                   InputProps={{
                     startAdornment: <AttachMoney sx={{ mr: 1, color: 'text.secondary' }} />
                   }}

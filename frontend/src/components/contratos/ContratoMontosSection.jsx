@@ -12,20 +12,35 @@ const ContratoMontosSection = ({
   errors
 }) => {
   useEffect(() => {
-    console.log('ContratoMontosSection - selectedCuenta:', selectedCuenta);
-    console.log('ContratoMontosSection - formData.cuenta:', formData.cuenta);
-    console.log('ContratoMontosSection - cuentas disponibles:', relatedData.cuentas?.length || 0);
+    console.log('🔍 ContratoMontosSection - selectedCuenta:', selectedCuenta);
+    console.log('🔍 ContratoMontosSection - formData.cuenta:', formData.cuenta);
+    console.log('🔍 ContratoMontosSection - cuentas disponibles:', relatedData.cuentas?.length || 0);
     
     // Si hay un ID de cuenta en formData pero no hay selectedCuenta, intentar encontrarla
     if (formData.cuenta && !selectedCuenta && relatedData.cuentas?.length > 0) {
-      console.log('Intentando encontrar cuenta por ID:', formData.cuenta);
+      console.log('🔍 Intentando encontrar cuenta por ID:', formData.cuenta);
       const cuenta = relatedData.cuentas.find(c => c._id === formData.cuenta || c.id === formData.cuenta);
       if (cuenta) {
-        console.log('Cuenta encontrada en ContratoMontosSection:', cuenta);
+        console.log('🔍 Cuenta encontrada en ContratoMontosSection:', cuenta);
         onCuentaChange(cuenta);
       }
     }
   }, [selectedCuenta, formData.cuenta, relatedData.cuentas, onCuentaChange]);
+
+  // Obtener el símbolo de la moneda de la cuenta seleccionada
+  const getMonedaSimbolo = () => {
+    if (selectedCuenta?.moneda) {
+      if (typeof selectedCuenta.moneda === 'object') {
+        return selectedCuenta.moneda.simbolo || '$';
+      }
+      // Si es un ID, buscar en las monedas relacionadas
+      const moneda = relatedData.monedas?.find(m => m._id === selectedCuenta.moneda);
+      return moneda?.simbolo || '$';
+    }
+    return '$';
+  };
+
+  const simboloMoneda = getMonedaSimbolo();
 
   return (
     <FormSection>
@@ -45,7 +60,9 @@ const ContratoMontosSection = ({
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <AttachMoney />
+                  <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                    {simboloMoneda}
+                  </Typography>
                 </InputAdornment>
               )
             }}
@@ -64,7 +81,9 @@ const ContratoMontosSection = ({
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <AttachMoney />
+                  <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                    {simboloMoneda}
+                  </Typography>
                 </InputAdornment>
               )
             }}
@@ -76,7 +95,8 @@ const ContratoMontosSection = ({
           options={relatedData.cuentas || []}
           getOptionLabel={(option) => {
             if (!option) return '';
-            return `${option.nombre || ''} - ${option.moneda?.simbolo || ''} (${option.tipo || ''})`;
+            const simbolo = option.moneda?.simbolo || '$';
+            return `${option.nombre || ''} - ${simbolo} (${option.tipo || ''})`;
           }}
           isOptionEqualToValue={(option, value) => {
             if (!option || !value) return false;
@@ -97,12 +117,13 @@ const ContratoMontosSection = ({
           renderOption={(props, option) => {
             if (!option) return null;
             const { key, ...otherProps } = props;
+            const simbolo = option.moneda?.simbolo || '$';
             return (
               <Box component="li" key={option._id || option.id} {...otherProps}>
                 <Box>
                   <Typography>{option.nombre}</Typography>
                   <Typography variant="caption" color="text.secondary">
-                    {option.moneda?.simbolo} - {option.tipo}
+                    {simbolo} - {option.tipo}
                   </Typography>
                 </Box>
               </Box>

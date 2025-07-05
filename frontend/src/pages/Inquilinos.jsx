@@ -16,6 +16,7 @@ import {
 } from '@mui/icons-material';
 import clienteAxios from '../config/axios';
 import { useNavigate } from 'react-router-dom';
+import ContratoForm from '../components/contratos/ContratoForm';
 
 export function Inquilinos() {
   const [inquilinos, setInquilinos] = useState([]);
@@ -26,6 +27,10 @@ export function Inquilinos() {
   const [activeFilter, setActiveFilter] = useState('activos'); // 'activos', 'inactivos', 'todos'
   const { enqueueSnackbar } = useSnackbar();
   const navigate = useNavigate();
+  const [openContratoForm, setOpenContratoForm] = useState(false);
+  const [contratoInitialData, setContratoInitialData] = useState({});
+  const [cuentas, setCuentas] = useState([]);
+  const [monedas, setMonedas] = useState([]);
 
   const handleBack = () => {
     navigate('/');
@@ -75,9 +80,33 @@ export function Inquilinos() {
     }
   };
 
+  // Cargar cuentas
+  const fetchCuentas = async () => {
+    try {
+      const response = await clienteAxios.get('/api/cuentas');
+      setCuentas(response.data.docs);
+    } catch (error) {
+      console.error('Error al cargar cuentas:', error);
+      enqueueSnackbar('Error al cargar cuentas', { variant: 'error' });
+    }
+  };
+
+  // Cargar monedas
+  const fetchMonedas = async () => {
+    try {
+      const response = await clienteAxios.get('/api/monedas');
+      setMonedas(response.data.docs);
+    } catch (error) {
+      console.error('Error al cargar monedas:', error);
+      enqueueSnackbar('Error al cargar monedas', { variant: 'error' });
+    }
+  };
+
   useEffect(() => {
     fetchInquilinos();
     fetchPropiedades();
+    fetchCuentas();
+    fetchMonedas();
   }, []);
 
   const handleSubmit = async (formData) => {
@@ -121,13 +150,38 @@ export function Inquilinos() {
   };
 
   const handleCreateContract = (inquilino) => {
-    // Navegar a la página de contratos con los datos del inquilino pre-llenados
-    navigate('/contratos', {
-      state: {
-        createContract: true,
-        inquilinoData: inquilino
+    // 1. Buscar la propiedad asociada al inquilino
+    const propiedad = propiedades.find(p => p._id === inquilino.propiedad || p.id === inquilino.propiedad);
+
+    // 2. Buscar la cuenta asociada a la propiedad
+    let cuentaObj = null;
+    if (propiedad?.cuenta && cuentas && cuentas.length > 0) {
+      if (typeof propiedad.cuenta === 'object') {
+        cuentaObj = propiedad.cuenta;
+      } else {
+        cuentaObj = cuentas.find(c => c._id === propiedad.cuenta || c.id === propiedad.cuenta) || '';
       }
-    });
+    }
+    // Si no hay cuenta, busca una por defecto
+    if (!cuentaObj && cuentas && cuentas.length > 0) {
+      cuentaObj = cuentas.find(c => c.activo !== false) || cuentas[0];
+    }
+
+    // 3. Preparar initialData con los datos correctos
+    const initialData = {
+      inquilino: [inquilino._id],
+      propiedad: propiedad?._id || propiedad?.id || '',
+      cuenta: cuentaObj?._id || cuentaObj?.id || '',
+      montoMensual: propiedad?.montoMensual?.toString() || '0',
+      deposito: propiedad?.deposito?.toString() || (propiedad?.montoMensual ? (propiedad.montoMensual * 2).toString() : '0'),
+      esMantenimiento: false,
+      tipoContrato: 'ALQUILER'
+    };
+
+    console.log('initialData para contrato:', initialData, { propiedad, cuentaObj, inquilino });
+
+    setContratoInitialData(initialData);
+    setOpenContratoForm(true);
   };
 
   // Filtrar inquilinos según el filtro activo
@@ -229,6 +283,16 @@ export function Inquilinos() {
         initialData={selectedInquilino}
         propiedades={propiedades}
       />
+
+      {/* Formulario de contrato autopopulado */}
+      {openContratoForm && (
+        <ContratoForm
+          initialData={contratoInitialData}
+          relatedData={{ propiedades, inquilinos, cuentas, monedas }}
+          onClose={() => setOpenContratoForm(false)}
+          onSubmit={() => { setOpenContratoForm(false); fetchInquilinos(); }}
+        />
+      )}
     </Container>
   );
 }

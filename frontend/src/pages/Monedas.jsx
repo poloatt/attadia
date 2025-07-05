@@ -379,6 +379,19 @@ export function Monedas() {
     };
   }, [refetchMonedas]);
 
+  // Escuchar el evento del botón "+" del Header
+  useEffect(() => {
+    const handleHeaderAdd = (e) => {
+      if (e.detail?.type === 'moneda') {
+        setEditingMoneda(null);
+        setIsFormOpen(true);
+      }
+    };
+    
+    window.addEventListener('headerAddButtonClicked', handleHeaderAdd);
+    return () => window.removeEventListener('headerAddButtonClicked', handleHeaderAdd);
+  }, []);
+
   const handleFormSubmit = useCallback(async (formData) => {
     try {
       // Mostrar mensaje de carga
