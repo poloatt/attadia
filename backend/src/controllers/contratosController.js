@@ -105,7 +105,7 @@ class ContratosController extends BaseController {
       
       // Si no se proporciona un usuario en la query, usar el ID del usuario autenticado
       const filtros = {
-        usuario: usuario || req.user.id
+        usuario: new mongoose.Types.ObjectId(usuario || req.user.id)
       };
       
       console.log('Filtros aplicados:', filtros);
@@ -142,27 +142,27 @@ class ContratosController extends BaseController {
   async getConEstadoActual(req, res) {
     try {
       console.log('Obteniendo contratos con estado actual...');
-      
       // Verificar si hay un usuario autenticado
       if (!req.user) {
         console.log('No hay usuario autenticado');
         return res.status(401).json({ error: 'Usuario no autenticado' });
       }
-      
       const { usuario } = req.query;
-      
       // Si no se proporciona un usuario en la query, usar el ID del usuario autenticado
       const filtros = {
-        usuario: usuario || req.user.id
+        usuario: new mongoose.Types.ObjectId(usuario || req.user.id)
       };
-      
       console.log('Filtros aplicados:', filtros);
-      
+      // LOG: contar todos los contratos
+      const totalContratos = await this.Model.countDocuments();
+      console.log('Total de contratos en la base de datos:', totalContratos);
+      // LOG: contar contratos que matchean el filtro
+      const totalFiltrados = await this.Model.countDocuments(filtros);
+      console.log('Contratos que matchean el filtro:', totalFiltrados);
       // Obtener contratos con populate y virtuals
       const contratos = await this.Model.find(filtros)
         .populate(this.options.populate)
         .lean({ virtuals: true });
-      
       res.json({
         docs: contratos,
         totalDocs: contratos.length,
@@ -174,7 +174,6 @@ class ContratosController extends BaseController {
         nextPage: null,
         prevPage: null
       });
-      
     } catch (error) {
       console.error('Error al obtener contratos con estado actual:', error);
       res.status(500).json({ error: 'Error al obtener contratos' });
@@ -215,7 +214,7 @@ class ContratosController extends BaseController {
 
       // Solo agregar el usuario si está disponible
       if (req.user && req.user.id) {
-        data.usuario = req.user.id;
+        data.usuario = new mongoose.Types.ObjectId(req.user.id);
       }
 
       console.log('Datos procesados:', data);
@@ -373,7 +372,7 @@ class ContratosController extends BaseController {
       const { estado } = req.params;
       const result = await this.Model.paginate(
         { 
-          usuario: req.user._id,
+          usuario: new mongoose.Types.ObjectId(req.user._id),
           estado: estado.toUpperCase()
         },
         {
@@ -418,7 +417,7 @@ class ContratosController extends BaseController {
       const { propiedadId } = req.params;
       const result = await this.Model.paginate(
         {
-          usuario: req.user._id,
+          usuario: new mongoose.Types.ObjectId(req.user._id),
           propiedad: propiedadId
         },
         {
@@ -490,7 +489,7 @@ class ContratosController extends BaseController {
       
       const result = await this.Model.paginate(
         {
-          usuario: req.user._id,
+          usuario: new mongoose.Types.ObjectId(req.user._id),
           propiedad: propiedadId,
           esMantenimiento: true,
           fechaInicio: { $lte: now },
@@ -515,7 +514,7 @@ class ContratosController extends BaseController {
       const { inquilinoId } = req.params;
       const result = await this.Model.paginate(
         {
-          usuario: req.user._id,
+          usuario: new mongoose.Types.ObjectId(req.user._id),
           inquilino: inquilinoId
         },
         {
@@ -539,7 +538,7 @@ class ContratosController extends BaseController {
       const now = new Date();
       
       const contrato = await this.Model.findOne({
-        usuario: req.user._id,
+        usuario: new mongoose.Types.ObjectId(req.user._id),
         inquilino: inquilinoId,
         fechaInicio: { $lte: now },
         fechaFin: { $gt: now }
@@ -562,7 +561,7 @@ class ContratosController extends BaseController {
       const { inquilinoId } = req.params;
       const result = await this.Model.paginate(
         {
-          usuario: req.user._id,
+          usuario: new mongoose.Types.ObjectId(req.user._id),
           inquilino: inquilinoId,
           estado: { $in: ['FINALIZADO', 'ACTIVO'] }
         },
@@ -654,7 +653,7 @@ class ContratosController extends BaseController {
       const updateData = {
         ...contrato.toObject(),
         ...req.body,
-        usuario: req.user._id || contrato.usuario, // Preservar el usuario o usar el autenticado
+        usuario: new mongoose.Types.ObjectId(req.user._id) || contrato.usuario, // Preservar el usuario o usar el autenticado
         fechaInicio: req.body.fechaInicio ? new Date(req.body.fechaInicio) : contrato.fechaInicio,
         fechaFin: req.body.fechaFin ? new Date(req.body.fechaFin) : contrato.fechaFin,
         montoMensual: req.body.montoMensual !== undefined ? parseFloat(req.body.montoMensual) : contrato.montoMensual,
@@ -675,7 +674,7 @@ class ContratosController extends BaseController {
 
       // Asegurarse de que el usuario esté presente
       if (!updateData.usuario && req.user) {
-        updateData.usuario = req.user._id;
+        updateData.usuario = new mongoose.Types.ObjectId(req.user._id);
       }
 
       Object.assign(contrato, updateData);

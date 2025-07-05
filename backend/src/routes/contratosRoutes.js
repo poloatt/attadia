@@ -11,7 +11,7 @@ router.use(checkAuth);
 
 // Rutas básicas que solo requieren autenticación
 router.get('/', contratosController.getAll);
-router.get('/estado-actual', contratosController.getConEstadoActual);
+router.get('/estado-actual', (req, res) => contratosController.getConEstadoActual(req, res));
 router.get('/activos', contratosController.getActivos);
 router.post('/', contratosController.create);
 router.post('/actualizar-estados', contratosController.actualizarEstados);
