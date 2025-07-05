@@ -148,10 +148,11 @@ class ContratosController extends BaseController {
         return res.status(401).json({ error: 'Usuario no autenticado' });
       }
       const { usuario } = req.query;
-      // Si no se proporciona un usuario en la query, usar el ID del usuario autenticado
-      const filtros = {
-        usuario: new mongoose.Types.ObjectId(usuario || req.user.id)
-      };
+      // Si el usuario es ADMIN, no filtrar por usuario
+      let filtros = {};
+      if (!(req.user.role === 'ADMIN')) {
+        filtros.usuario = new mongoose.Types.ObjectId(usuario || req.user.id);
+      }
       console.log('Filtros aplicados:', filtros);
       // LOG: contar todos los contratos
       const totalContratos = await this.Model.countDocuments();

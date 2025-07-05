@@ -71,7 +71,7 @@ const ContratoList = ({
         const isExpanded = expandedContratos[contrato._id || contrato.id] || false;
         
         return (
-          <Grid item key={contrato._id || contrato.id} xs={12} sm={6} md={4} lg={3}>
+          <Grid item key={contrato._id || contrato.id} xs={12}>
             <ContratoCard
               contrato={contrato}
               onEdit={onEdit}

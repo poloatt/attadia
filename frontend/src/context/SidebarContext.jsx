@@ -174,6 +174,7 @@ export function SidebarProvider({ children }) {
   // Inicializar isOpen basado en el tamaño de pantalla
   const [isOpen, setIsOpen] = useState(isDesktop);
   const [expandedSections, setExpandedSections] = useState(new Set()); // Todas las secciones colapsadas por defecto
+  const [isPinned, setIsPinned] = useState(false); // Estado para sidebar pinnada
 
   // Efecto para ajustar la sidebar cuando cambie el tamaño de pantalla
   useEffect(() => {
@@ -193,6 +194,12 @@ export function SidebarProvider({ children }) {
       } else {
         setIsOpen(userPreference === 'true');
       }
+    }
+
+    // Cargar estado de pinned desde localStorage
+    const pinnedPreference = localStorage.getItem('sidebarPinned');
+    if (pinnedPreference !== null) {
+      setIsPinned(pinnedPreference === 'true');
     }
   }, [isDesktop]);
 
@@ -254,6 +261,21 @@ export function SidebarProvider({ children }) {
     });
   };
 
+  const togglePinned = () => {
+    const newPinnedState = !isPinned;
+    setIsPinned(newPinnedState);
+    localStorage.setItem('sidebarPinned', newPinnedState.toString());
+  };
+
+  const expandAllSections = () => {
+    const allSectionIds = menuItems.map(item => item.id);
+    setExpandedSections(new Set(allSectionIds));
+  };
+
+  const collapseAllSections = () => {
+    setExpandedSections(new Set());
+  };
+
   return (
     <SidebarContext.Provider value={{ 
       isOpen, 
@@ -266,7 +288,11 @@ export function SidebarProvider({ children }) {
       isSectionExpanded,
       expandSection,
       collapseSection,
-      isDesktop
+      isDesktop,
+      isPinned,
+      togglePinned,
+      expandAllSections,
+      collapseAllSections
     }}>
       {children}
     </SidebarContext.Provider>
