@@ -619,13 +619,6 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
                       type="inquilinos" 
                       data={inquilinos}
                     />
-                    {/* Contratos grid */}
-                    {contratosActivos.length > 0 && (
-                      <PropiedadGridView 
-                        type="contratos" 
-                        data={contratos}
-                      />
-                    )}
                     {/* Habitaciones grid */}
                     <PropiedadGridView 
                       type="habitaciones" 
@@ -834,44 +827,6 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
                     />
                   </Collapse>
                 </Box>
-                
-                {/* Contratos section */}
-                {contratosActivos.length > 0 && (
-                  <Box sx={{ mt: 0.25 }}>
-                    <Box 
-                      onClick={() => toggleSection('contratos')}
-                      sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 0.5,
-                        cursor: 'pointer',
-                        '&:hover': { color: 'primary.main' }
-                      }}
-                    >
-                      <DescriptionIcon sx={{ fontSize: '0.9rem', color: 'text.secondary' }} />
-                      <Typography variant="body2" sx={{ flex: 1, fontSize: '0.8rem' }}>
-                        {contratosActivos.length} {pluralizar(contratosActivos.length, 'contrato activo', 'contratos activos')}
-                      </Typography>
-                      <IconButton
-                        size="small"
-                        sx={{
-                          p: 0.25,
-                          transform: expandedSections.contratos ? 'rotate(180deg)' : 'none',
-                          transition: 'transform 0.2s'
-                        }}
-                      >
-                        <ExpandMoreIcon sx={{ fontSize: '0.9rem' }} />
-                      </IconButton>
-                    </Box>
-                    <Collapse in={expandedSections.contratos}>
-                      <PropiedadListView 
-                        type="contratos" 
-                        data={contratos}
-                        contratosActivos={contratosActivos}
-                      />
-                    </Collapse>
-                  </Box>
-                )}
                 
                 {/* Habitaciones section */}
                 <Box sx={{ mt: 0.25 }}>

@@ -37,16 +37,15 @@ export function Layout() {
           flexGrow: 1,
           pt: showEntityToolbarNavigation ? '45px' : '45px', // Mantener espacio suficiente debajo del header
           pb: showEntityToolbarNavigation ? '80px' : '90px', // Espacio adicional cuando toolbar está deshabilitada
-          pl: 0, // Eliminado padding-left - la sidebar ya ocupa su espacio
-          pr: 0, // Eliminado padding derecho explícitamente
           minHeight: '100vh',
+          height: '100vh', // Asegura altura total
           width: showSidebar ? 
             (isMobile ? `calc(100vw - 56px)` : '100%') : // En móvil, restar ancho de sidebar colapsada
             '100vw', // Sin sidebar ocupa todo el ancho
           display: 'flex',
           flexDirection: 'column',
           bgcolor: 'background.default',
-          overflow: 'auto',
+          overflowY: 'auto', // Permite scroll vertical
           position: 'relative', // Añadido para posicionar correctamente elementos hijos
           // Sin margin left porque la sidebar ya ocupa su espacio
           ml: 0
@@ -60,7 +59,8 @@ export function Layout() {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          gap: showEntityToolbarNavigation ? 0.5 : 0 // Reducir gap cuando toolbar está deshabilitada
+          gap: showEntityToolbarNavigation ? 0.5 : 0,
+          minHeight: 0 // Permite que flexbox no bloquee el scroll
         }}>
           <Outlet />
         </Box>
