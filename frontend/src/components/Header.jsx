@@ -169,6 +169,7 @@ export default function Header() {
     '/monedas',
     '/rutinas',
     '/inquilinos',
+    '/contratos',
     '/habitaciones',
     '/inventario',
     '/recurrente'

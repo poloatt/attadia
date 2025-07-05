@@ -47,6 +47,22 @@ export function Habitaciones() {
     navigate('/');
   };
 
+  // Escuchar el evento del Header para abrir el formulario
+  useEffect(() => {
+    const handleHeaderAddButton = (event) => {
+      if (event.detail.type === 'habitacion') {
+        setEditingHabitacion(null);
+        setIsFormOpen(true);
+      }
+    };
+
+    window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
+
+    return () => {
+      window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
+    };
+  }, []);
+
   const fetchHabitaciones = useCallback(async () => {
     try {
       setLoading(true);
@@ -55,10 +71,10 @@ export function Habitaciones() {
     } catch (error) {
       console.error('Error al cargar habitaciones:', error);
       snackbar.error('Error al cargar habitaciones');
-          } finally {
-        setLoading(false);
-      }
-    }, []);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const fetchPropiedades = useCallback(async () => {
     try {
@@ -66,9 +82,9 @@ export function Habitaciones() {
       setPropiedades(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar propiedades:', error);
-                      snackbar.error('Error al cargar propiedades');
-      }
-    }, []);
+      snackbar.error('Error al cargar propiedades');
+    }
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -87,7 +103,7 @@ export function Habitaciones() {
       return response.data;
     } catch (error) {
       console.error('Error al crear propiedad:', error);
-              snackbar.error('Error al crear la propiedad');
+      snackbar.error('Error al crear la propiedad');
       throw error;
     }
   };
@@ -105,7 +121,7 @@ export function Habitaciones() {
       }
       setIsFormOpen(false);
       setEditingHabitacion(null);
-              snackbar.success('Habitación guardada exitosamente');
+      snackbar.success('Habitación guardada exitosamente');
       await fetchHabitaciones();
     } catch (error) {
       console.error('Error:', error);

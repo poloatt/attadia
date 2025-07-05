@@ -58,6 +58,22 @@ export function Contratos() {
     navigate('/');
   };
 
+  // Escuchar el evento del Header para abrir el formulario
+  useEffect(() => {
+    const handleHeaderAddButton = (event) => {
+      if (event.detail.type === 'contrato') {
+        setEditingContrato(null);
+        setIsFormOpen(true);
+      }
+    };
+
+    window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
+
+    return () => {
+      window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
+    };
+  }, []);
+
   // Función para cargar datos sin useCallback inicialmente
   const fetchData = async () => {
     try {
@@ -381,48 +397,30 @@ export function Contratos() {
         ]}
       />
 
-      {/* Filtros de grupos y botones de acción */}
-      <Box sx={{ mt: 2, mb: 2, display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'space-between' }}>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Chip
-            label={`Contratos Activos (${contratos.filter(c => ['ACTIVO', 'RESERVADO', 'PLANEADO', 'MANTENIMIENTO'].includes(c.estadoActual || c.estado)).length})`}
-            onClick={() => setActiveFilter('activos')}
-            color={activeFilter === 'activos' ? 'primary' : 'default'}
-            variant={activeFilter === 'activos' ? 'filled' : 'outlined'}
-            sx={{ 
-              borderRadius: 0,
-              clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)',
-              fontWeight: 500
-            }}
-          />
-          <Chip
-            label={`Contratos Finalizados (${contratos.filter(c => (c.estadoActual || c.estado) === 'FINALIZADO').length})`}
-            onClick={() => setActiveFilter('finalizados')}
-            color={activeFilter === 'finalizados' ? 'primary' : 'default'}
-            variant={activeFilter === 'finalizados' ? 'filled' : 'outlined'}
-            sx={{ 
-              borderRadius: 0,
-              clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)',
-              fontWeight: 500
-            }}
-          />
-        </Box>
-        <Tooltip title="Nuevo Contrato">
-          <IconButton 
-            onClick={() => {
-              setEditingContrato(null);
-              setIsFormOpen(true);
-            }}
-            sx={{ 
-              color: 'text.secondary',
-              '&:hover': { color: 'primary.main' },
-              borderRadius: 0,
-              clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)'
-            }}
-          >
-            <AddIcon />
-          </IconButton>
-        </Tooltip>
+      {/* Filtros de grupos */}
+      <Box sx={{ mt: 2, mb: 2, display: 'flex', gap: 1 }}>
+        <Chip
+          label={`Contratos Activos (${contratos.filter(c => ['ACTIVO', 'RESERVADO', 'PLANEADO', 'MANTENIMIENTO'].includes(c.estadoActual || c.estado)).length})`}
+          onClick={() => setActiveFilter('activos')}
+          color={activeFilter === 'activos' ? 'primary' : 'default'}
+          variant={activeFilter === 'activos' ? 'filled' : 'outlined'}
+          sx={{ 
+            borderRadius: 0,
+            clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)',
+            fontWeight: 500
+          }}
+        />
+        <Chip
+          label={`Contratos Finalizados (${contratos.filter(c => (c.estadoActual || c.estado) === 'FINALIZADO').length})`}
+          onClick={() => setActiveFilter('finalizados')}
+          color={activeFilter === 'finalizados' ? 'primary' : 'default'}
+          variant={activeFilter === 'finalizados' ? 'filled' : 'outlined'}
+          sx={{ 
+            borderRadius: 0,
+            clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)',
+            fontWeight: 500
+          }}
+        />
       </Box>
 
       {contratosFiltrados.length === 0 ? (
