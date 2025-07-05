@@ -22,7 +22,9 @@ import {
   ArchiveOutlined,
   SettingsOutlined,
   ManageAccountsOutlined,
-  AccountCircleOutlined
+  AccountCircleOutlined,
+  AccountBalanceOutlined,
+  TrendingUpOutlined
 } from '@mui/icons-material';
 
 const SidebarContext = createContext();
@@ -31,19 +33,19 @@ const menuItems = [
   {
     id: 'assets',
     title: 'Assets',
-    icon: <PaidOutlined />,
+    icon: <TrendingUpOutlined />,
     path: '/dashboard', // Ruta principal para Assets
     hasSubItems: true,
     subItems: [
       {
         title: 'Transacciones',
         path: '/transacciones',
-        icon: <AttachMoneyOutlined />
+        icon: <AccountBalanceWalletOutlined />
       },
       {
         title: 'Cuentas',
         path: '/cuentas',
-        icon: <AccountBalanceWalletOutlined />
+        icon: <AccountBalanceOutlined />
       },
       {
         title: 'Monedas',

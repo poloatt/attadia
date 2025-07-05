@@ -9,9 +9,13 @@ import {
   Typography,
   Dialog,
   IconButton,
-  Tooltip
+  Tooltip,
+  Collapse,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
-import { Add as AddIcon, Refresh as RefreshIcon, ViewList as ListIcon, GridView as GridIcon } from '@mui/icons-material';
+import { Add as AddIcon, Refresh as RefreshIcon, ViewList as ListIcon, GridView as GridIcon, ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon } from '@mui/icons-material';
 import { 
   ApartmentOutlined as BuildingIcon,
   BedOutlined as BedIcon,
@@ -50,6 +54,8 @@ export function Contratos() {
   const [error, setError] = useState(null);
   const [activeFilter, setActiveFilter] = useState('activos'); // 'activos', 'finalizados' o 'todos'
   const [viewMode, setViewMode] = useState('list'); // 'list' o 'grid'
+  const [isActiveContractsExpanded, setIsActiveContractsExpanded] = useState(true);
+  const [isFinishedContractsExpanded, setIsFinishedContractsExpanded] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   const navigate = useNavigate();
   const location = useLocation();
@@ -84,7 +90,7 @@ export function Contratos() {
 
       // Agregamos un pequeño delay entre cada grupo de llamadas
       const [contratosRes, propiedadesRes] = await Promise.all([
-        clienteAxios.get('/api/contratos'),
+        clienteAxios.get('/api/contratos/estado-actual'),
         clienteAxios.get('/api/propiedades')
       ]);
 
@@ -124,6 +130,17 @@ export function Contratos() {
         montoMensual: c.montoMensual,
         tipo: typeof c.montoMensual,
         esMantenimiento: c.esMantenimiento
+      })));
+
+      // Debug: Verificar estados de contratos
+      console.log('Debug estados de contratos:', contratos.map(c => ({
+        id: c._id,
+        estado: c.estado,
+        estadoActual: c.estadoActual,
+        fechaInicio: c.fechaInicio,
+        fechaFin: c.fechaFin,
+        esMantenimiento: c.esMantenimiento,
+        tipoContrato: c.tipoContrato
       })));
 
       setContratos(contratos);
@@ -315,6 +332,29 @@ export function Contratos() {
     });
   }, [contratos, activeFilter]);
 
+  // Separar contratos activos y finalizados
+  const contratosActivos = useMemo(() => {
+    const activos = contratos.filter(contrato => {
+      // Usar estadoActual si existe, sino usar estado
+      const estado = contrato.estadoActual || contrato.estado;
+      console.log(`Contrato ${contrato._id}: estado=${contrato.estado}, estadoActual=${contrato.estadoActual}, filtrado=${['ACTIVO', 'RESERVADO', 'PLANEADO', 'MANTENIMIENTO'].includes(estado)}`);
+      return ['ACTIVO', 'RESERVADO', 'PLANEADO', 'MANTENIMIENTO'].includes(estado);
+    });
+    console.log('Contratos activos encontrados:', activos.length);
+    return activos;
+  }, [contratos]);
+
+  const contratosFinalizados = useMemo(() => {
+    const finalizados = contratos.filter(contrato => {
+      // Usar estadoActual si existe, sino usar estado
+      const estado = contrato.estadoActual || contrato.estado;
+      console.log(`Contrato ${contrato._id}: estado=${contrato.estado}, estadoActual=${contrato.estadoActual}, filtrado=${estado === 'FINALIZADO'}`);
+      return estado === 'FINALIZADO';
+    });
+    console.log('Contratos finalizados encontrados:', finalizados.length);
+    return finalizados;
+  }, [contratos]);
+
   const cardConfig = {
     renderIcon: () => <DescriptionIcon />,
     getTitle: (contrato) => {
@@ -397,51 +437,99 @@ export function Contratos() {
         ]}
       />
 
-      {/* Filtros de grupos */}
-      <Box sx={{ mt: 2, mb: 2, display: 'flex', gap: 1 }}>
-        <Chip
-          label={`Contratos Activos (${contratos.filter(c => ['ACTIVO', 'RESERVADO', 'PLANEADO', 'MANTENIMIENTO'].includes(c.estadoActual || c.estado)).length})`}
-          onClick={() => setActiveFilter('activos')}
-          color={activeFilter === 'activos' ? 'primary' : 'default'}
-          variant={activeFilter === 'activos' ? 'filled' : 'outlined'}
-          sx={{ 
-            borderRadius: 0,
-            clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)',
-            fontWeight: 500
-          }}
-        />
-        <Chip
-          label={`Contratos Finalizados (${contratos.filter(c => (c.estadoActual || c.estado) === 'FINALIZADO').length})`}
-          onClick={() => setActiveFilter('finalizados')}
-          color={activeFilter === 'finalizados' ? 'primary' : 'default'}
-          variant={activeFilter === 'finalizados' ? 'filled' : 'outlined'}
-          sx={{ 
-            borderRadius: 0,
-            clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)',
-            fontWeight: 500
-          }}
-        />
+      {/* Sección de Contratos Activos */}
+      <Box sx={{ mt: 2 }}>
+        <Paper sx={{ overflow: 'hidden' }}>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            px: 2,
+            py: 1.5,
+            bgcolor: 'background.default',
+            borderBottom: 1,
+            borderColor: 'divider'
+          }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Contratos Activos ({contratosActivos.length})
+            </Typography>
+            <IconButton
+              onClick={() => setIsActiveContractsExpanded(!isActiveContractsExpanded)}
+              size="small"
+            >
+              {isActiveContractsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </IconButton>
+          </Box>
+          
+          <Collapse in={isActiveContractsExpanded}>
+            <Box sx={{ p: 2 }}>
+              {contratosActivos.length === 0 ? (
+                <EmptyState
+                  icon={DescriptionIcon}
+                  title="No hay contratos activos"
+                  description="No hay contratos activos, reservados, planeados o en mantenimiento"
+                />
+              ) : (
+                <ContratosView
+                  contratos={contratosActivos}
+                  relatedData={relatedData}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  viewMode={viewMode}
+                  onToggleView={handleToggleView}
+                />
+              )}
+            </Box>
+          </Collapse>
+        </Paper>
       </Box>
 
-      {contratosFiltrados.length === 0 ? (
-        <EmptyState
-          icon={DescriptionIcon}
-          title={`No hay contratos ${activeFilter === 'activos' ? 'activos' : 'finalizados'}`}
-          description={activeFilter === 'activos' ? 
-            "No hay contratos activos, reservados, planeados o en mantenimiento" : 
-            "No hay contratos finalizados"
-          }
-        />
-      ) : (
-        <ContratosView
-          contratos={contratosFiltrados}
-          relatedData={relatedData}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          viewMode={viewMode}
-          onToggleView={handleToggleView}
-        />
-      )}
+      {/* Sección de Contratos Finalizados */}
+      <Box sx={{ mt: 2 }}>
+        <Paper sx={{ overflow: 'hidden' }}>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            px: 2,
+            py: 1.5,
+            bgcolor: 'background.default',
+            borderBottom: 1,
+            borderColor: 'divider'
+          }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Contratos Finalizados ({contratosFinalizados.length})
+            </Typography>
+            <IconButton
+              onClick={() => setIsFinishedContractsExpanded(!isFinishedContractsExpanded)}
+              size="small"
+            >
+              {isFinishedContractsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </IconButton>
+          </Box>
+          
+          <Collapse in={isFinishedContractsExpanded}>
+            <Box sx={{ p: 2 }}>
+              {contratosFinalizados.length === 0 ? (
+                <EmptyState
+                  icon={DescriptionIcon}
+                  title="No hay contratos finalizados"
+                  description="No hay contratos finalizados"
+                />
+              ) : (
+                <ContratosView
+                  contratos={contratosFinalizados}
+                  relatedData={relatedData}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  viewMode={viewMode}
+                  onToggleView={handleToggleView}
+                />
+              )}
+            </Box>
+          </Collapse>
+        </Paper>
+      </Box>
 
       {isFormOpen && (
         <ContratoForm

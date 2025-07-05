@@ -164,6 +164,19 @@ export function Cuentas() {
     }
   }, [cuentas]);
 
+  // Escuchar el evento del botón "+" del Header
+  useEffect(() => {
+    const handleHeaderAdd = (e) => {
+      if (e.detail?.type === 'cuenta') {
+        setEditingCuenta(null);
+        setIsFormOpen(true);
+      }
+    };
+    
+    window.addEventListener('headerAddButtonClicked', handleHeaderAdd);
+    return () => window.removeEventListener('headerAddButtonClicked', handleHeaderAdd);
+  }, []);
+
   const handleCreateMoneda = async (data) => {
     try {
       const response = await clienteAxios.post('/api/monedas', data);
