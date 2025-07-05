@@ -31,6 +31,21 @@ export function Inquilinos() {
     navigate('/');
   };
 
+  // Escuchar el evento del Header para abrir el formulario
+  useEffect(() => {
+    const handleHeaderAddButton = (event) => {
+      if (event.detail.type === 'inquilino') {
+        setOpenForm(true);
+      }
+    };
+
+    window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
+
+    return () => {
+      window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
+    };
+  }, []);
+
   // Cargar inquilinos
   const fetchInquilinos = async (propiedadId = null) => {
     setIsLoading(true);
