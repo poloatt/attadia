@@ -78,34 +78,48 @@ const STATUS_COLORS = {
   'MANTENIMIENTO': '#ff9800'
 };
 
-// Función para calcular el progreso del contrato
-const calcularProgresoContrato = (contrato) => {
+// Función para calcular el progreso y tiempos del contrato
+export const calcularProgresoContrato = (contrato) => {
   if (!contrato.fechaInicio || !contrato.fechaFin) {
     return {
       porcentaje: 0,
       diasTranscurridos: 0,
       diasTotales: 0,
+      diasRestantes: 0,
+      estadoTiempo: 'Sin fechas',
       montoAcumulado: 0,
       montoTotal: 0,
       tieneContrato: false
     };
   }
 
+  // Normalizar fechas a medianoche
   const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
   const inicio = new Date(contrato.fechaInicio);
+  inicio.setHours(0, 0, 0, 0);
   const fin = new Date(contrato.fechaFin);
+  fin.setHours(0, 0, 0, 0);
 
   // Calcular días totales
-  const diasTotales = Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24));
-
+  const diasTotales = Math.max(0, Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24)));
   // Calcular días transcurridos
-  const diasTranscurridos = Math.min(
-    Math.max(0, Math.ceil((hoy - inicio) / (1000 * 60 * 60 * 24))),
-    diasTotales
-  );
+  const diasTranscurridos = Math.max(0, Math.min(diasTotales, Math.ceil((hoy - inicio) / (1000 * 60 * 60 * 24))));
+  // Calcular días restantes
+  const diasRestantes = Math.max(0, Math.ceil((fin - hoy) / (1000 * 60 * 60 * 24)));
+
+  // Estado textual
+  let estadoTiempo = '';
+  if (hoy < inicio) {
+    estadoTiempo = 'No iniciado';
+  } else if (hoy > fin) {
+    estadoTiempo = 'Finalizado';
+  } else {
+    estadoTiempo = `${diasRestantes} días restantes`;
+  }
 
   // Calcular porcentaje
-  const porcentaje = Math.min(100, (diasTranscurridos / diasTotales) * 100);
+  const porcentaje = diasTotales > 0 ? Math.min(100, (diasTranscurridos / diasTotales) * 100) : 0;
 
   // Calcular montos
   const montoMensual = contrato.montoMensual || 0;
@@ -116,6 +130,8 @@ const calcularProgresoContrato = (contrato) => {
     porcentaje,
     diasTranscurridos,
     diasTotales,
+    diasRestantes,
+    estadoTiempo,
     montoAcumulado,
     montoTotal,
     tieneContrato: true
@@ -317,10 +333,10 @@ const ContratoCard = ({ contrato, onEdit, onDelete, isDashboard = false, isExpan
               <Box sx={{ mb: 1 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
                   <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
-                    {progresoContrato.diasTranscurridos}/{progresoContrato.diasTotales} días
+                    {progresoContrato.diasTranscurridos} días transcurridos
                   </Typography>
                   <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
-                    {Math.round(progresoContrato.porcentaje)}%
+                    Duración total: {progresoContrato.diasTotales} días
                   </Typography>
                 </Box>
                 <LinearProgress 
@@ -441,10 +457,10 @@ const ContratoCard = ({ contrato, onEdit, onDelete, isDashboard = false, isExpan
                   <Box sx={{ mb: 1 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
                       <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
-                        {progresoContrato.diasTranscurridos}/{progresoContrato.diasTotales} días
+                        {progresoContrato.diasTranscurridos} días transcurridos
                       </Typography>
                       <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
-                        {Math.round(progresoContrato.porcentaje)}%
+                        Duración total: {progresoContrato.diasTotales} días
                       </Typography>
                     </Box>
                     <LinearProgress 

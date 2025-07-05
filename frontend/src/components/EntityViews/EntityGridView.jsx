@@ -131,6 +131,7 @@ const SECTION_CONFIGS = {
     // Extraer datos adicionales
     const montoMensual = datosAdicionales[0]?.value || '';
     const deposito = datosAdicionales[1]?.value || '';
+    const totalContrato = datosAdicionales[2]?.value || '';
     return {
       type: 'primary',
       left: [
@@ -148,7 +149,7 @@ const SECTION_CONFIGS = {
         {
           icon: MoneyIcon,
           label: 'Montos',
-          value: [montoMensual, deposito],
+          value: [montoMensual, totalContrato], // Ahora muestra mensual y total
           color: 'text.secondary',
           position: 'right'
         }
@@ -211,18 +212,44 @@ const SECTION_CONFIGS = {
   },
 
   // Sección de inquilinos estándar (primaria)
-  inquilinos: (inquilinos = [], contratos = []) => {
-    const nombresInquilinos = inquilinos.map(inq => `${inq.nombre} ${inq.apellido}`).filter(Boolean).join(', ');
-    
-    // Crear links a contratos activos
+  inquilinos: (inquilinos = [], contratos = [], inquilinosGlobal = []) => {
+    // Extraer inquilinos reales de los contratos activos
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    // Buscar contratos activos
     const contratosActivos = contratos.filter(contrato => {
-      const hoy = new Date();
-      hoy.setHours(0, 0, 0, 0);
       const inicio = new Date(contrato.fechaInicio);
       const fin = new Date(contrato.fechaFin);
       return inicio <= hoy && fin >= hoy && contrato.estado === 'ACTIVO';
     });
-    
+    // Extraer inquilinos de los contratos activos
+    let inquilinosReales = [];
+    contratosActivos.forEach(contrato => {
+      if (Array.isArray(contrato.inquilino)) {
+        contrato.inquilino.forEach(inq => {
+          if (typeof inq === 'object' && (inq.nombre || inq.apellido)) {
+            inquilinosReales.push(inq);
+          } else if (typeof inq === 'string' && inquilinosGlobal.length > 0) {
+            // Buscar el objeto completo por ID
+            const obj = inquilinosGlobal.find(i => i._id === inq);
+            if (obj) inquilinosReales.push(obj);
+          }
+        });
+      } else if (contrato.inquilino && typeof contrato.inquilino === 'object' && (contrato.inquilino.nombre || contrato.inquilino.apellido)) {
+        inquilinosReales.push(contrato.inquilino);
+      } else if (contrato.inquilino && typeof contrato.inquilino === 'string' && inquilinosGlobal.length > 0) {
+        const obj = inquilinosGlobal.find(i => i._id === contrato.inquilino);
+        if (obj) inquilinosReales.push(obj);
+      }
+    });
+    // Eliminar duplicados por _id
+    inquilinosReales = inquilinosReales.filter((inq, idx, arr) => inq && inq._id && arr.findIndex(i => i._id === inq._id) === idx);
+    // Si no hay inquilinos reales, usar los que vienen por props
+    if (inquilinosReales.length === 0 && inquilinos.length > 0) {
+      inquilinosReales = inquilinos;
+    }
+    const nombresInquilinos = inquilinosReales.map(inq => `${inq.nombre} ${inq.apellido}`).filter(Boolean).join(', ');
+    // Crear links a contratos activos
     const contratosLinks = contratosActivos.map((contrato, idx) => ({
       text: `Contrato ${idx + 1}`,
       link: `/contratos/${contrato._id}`,
@@ -230,7 +257,6 @@ const SECTION_CONFIGS = {
       contrato: contrato,
       tipo: contrato.tipoContrato || 'Sin especificar'
     }));
-    
     return {
       type: 'primary',
       left: [
@@ -354,7 +380,7 @@ const SECTION_CONFIGS = {
 };
 
 // Componente para renderizar sección con layout izquierda/derecha
-const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null, inquilinos = [] }) => {
+const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null, inquilinos = [], onInquilinoDetail = null }) => {
   if (section.hidden) return null;
 
   // Detectar si es sección especial (ubicación, finanzas, inquilinos/contratos) que usan value como array o string
@@ -639,7 +665,7 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
               }}>
                 {inquilinosArr.length > 0 ? (
                   inquilinosArr.map((inq, idx) => (
-                    <Box key={inq._id || idx} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Box key={inq._id || idx} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
                       <Typography 
                         variant="body2" 
                         sx={{ 
@@ -655,8 +681,8 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
                       >
                         {inq.nombre} {inq.apellido}
                       </Typography>
-                      <IconButton size="small" onClick={() => handleInquilinoDetail(inq._id)} sx={{ p: 0.2, color: 'primary.main' }}>
-                        <ViewIcon sx={{ fontSize: '1rem' }} />
+                      <IconButton size="small" onClick={() => onInquilinoDetail(inq._id)} sx={{ p: 0.2, color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <ViewIcon sx={{ fontSize: '0.8rem', verticalAlign: 'middle' }} />
                       </IconButton>
                     </Box>
                   ))
@@ -764,7 +790,7 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
                           <ViewIcon 
                             className="view-icon"
                             sx={{ 
-                              fontSize: '0.9rem', 
+                              fontSize: '0.8rem', 
                               color: 'primary.main',
                               flexShrink: 0
                             }} 
@@ -804,7 +830,7 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
                           </Typography>
                           <ViewIcon 
                             sx={{ 
-                              fontSize: '0.9rem', 
+                              fontSize: '0.8rem', 
                               color: 'primary.main',
                               flexShrink: 0
                             }} 
@@ -1198,7 +1224,7 @@ const SecondarySectionRenderer = ({ section, isCollapsed = false }) => {
 };
 
 // Componente para mostrar secciones estándar organizadas
-const StandardSections = ({ sections, gridSize = { xs: 6, sm: 6, md: 6, lg: 6 }, isCollapsed = false, onContratoDetail = null, inquilinos = [] }) => {
+const StandardSections = ({ sections, gridSize = { xs: 6, sm: 6, md: 6, lg: 6 }, isCollapsed = false, onContratoDetail = null, inquilinos = [], onInquilinoDetail = null }) => {
   const seccionesPrimarias = sections.filter(s => s.type === 'primary' && !s.hidden);
   const seccionesSecundarias = sections.filter(s => s.type === 'secondary');
   const seccionesHabitaciones = sections.filter(s => s.type === 'habitaciones');
@@ -1208,7 +1234,7 @@ const StandardSections = ({ sections, gridSize = { xs: 6, sm: 6, md: 6, lg: 6 },
       {/* Secciones primarias - siempre visibles */}
       {seccionesPrimarias.map((section, sectionIndex) => (
         <Grid item {...gridSize} key={`primary-${sectionIndex}`}>
-          <SectionRenderer section={section} isCollapsed={isCollapsed} onContratoDetail={onContratoDetail} inquilinos={inquilinos} />
+          <SectionRenderer section={section} isCollapsed={isCollapsed} onContratoDetail={onContratoDetail} inquilinos={inquilinos} onInquilinoDetail={onInquilinoDetail} />
         </Grid>
       ))}
       
@@ -1850,7 +1876,7 @@ const EntityGridView = ({
       case 'info':
         return <InfoGrid data={data} config={config} gridSize={gridSize} />;
       case 'sections':
-        return <StandardSections sections={sections} gridSize={sectionGridSize} isCollapsed={collapsed} onContratoDetail={handleContratoDetail} inquilinos={inquilinos} />;
+        return <StandardSections sections={sections} gridSize={sectionGridSize} isCollapsed={collapsed} onContratoDetail={handleContratoDetail} inquilinos={inquilinos} onInquilinoDetail={handleInquilinoDetail} />;
       case 'habitaciones':
         return <HabitacionesRenderer section={data} isCollapsed={collapsed} />;
       default:

@@ -35,8 +35,9 @@ import {
   getEstadoContrato, 
   calcularTiempoRestante, 
   calcularDuracionTotal, 
-  formatFecha 
+  formatFecha
 } from './contratoUtils';
+import { calcularProgresoContrato } from './ContratoCard.jsx';
 import getEntityHeaderProps from '../EntityViews/entityHeaderProps.jsx';
 import { Link } from 'react-router-dom';
 
@@ -230,13 +231,7 @@ const crearSeccionesContrato = (contrato, relatedData, extendida = false) => {
   const datos = obtenerDatosRelacionados(contrato, relatedData);
   
   // Calcular valores
-  const diasRestantes = calcularTiempoRestante(contrato.fechaFin);
-  const duracionTotal = calcularDuracionTotal(contrato.fechaInicio, contrato.fechaFin);
-  let diasTotalesNum = '';
-  if (typeof duracionTotal === 'string') {
-    const match = duracionTotal.match(/\d+/);
-    if (match) diasTotalesNum = match[0];
-  }
+  const progresoContrato = calcularProgresoContrato(contrato);
   const montoMensual = contrato.montoMensual || 0;
   const montoTotal = calcularMontoTotal(contrato);
   const simboloMoneda = datos.moneda?.simbolo || '$';
@@ -253,8 +248,14 @@ const crearSeccionesContrato = (contrato, relatedData, extendida = false) => {
     },
     {
       icon: DepositIcon,
+      label: 'Depósito',
+      value: `${simboloMoneda} ${(contrato.deposito || 0).toLocaleString()}`,
+      color: 'text.secondary'
+    },
+    {
+      icon: MoneyIcon,
       label: 'Total',
-      value: `${simboloMoneda} ${montoTotal.toLocaleString()}`,
+      value: `${simboloMoneda} ${progresoContrato.montoTotal.toLocaleString()}`,
       color: 'text.secondary'
     }
   ];
@@ -268,10 +269,10 @@ const crearSeccionesContrato = (contrato, relatedData, extendida = false) => {
         {
           icon: null,
           label: 'restantes',
-          value: diasRestantes !== null && diasRestantes !== undefined && diasRestantes !== false
-            ? diasRestantes
+          value: progresoContrato.diasRestantes !== null && progresoContrato.diasRestantes !== undefined && progresoContrato.diasRestantes !== false
+            ? progresoContrato.diasRestantes
             : 'Finalizado',
-          subtitle: diasRestantes !== null && diasRestantes !== undefined && diasRestantes !== false ? 'DÍAS RESTANTES' : '',
+          subtitle: progresoContrato.diasRestantes !== null && progresoContrato.diasRestantes !== undefined && progresoContrato.diasRestantes !== false ? 'DÍAS RESTANTES' : '',
           color: 'warning.main',
           position: 'left',
           showLargeNumber: true
@@ -281,7 +282,7 @@ const crearSeccionesContrato = (contrato, relatedData, extendida = false) => {
         {
           icon: null,
           label: 'totales',
-          value: diasTotalesNum || (duracionTotal ? duracionTotal.match(/\d+/)?.[0] : '0') || '0',
+          value: progresoContrato.diasTotales || '0',
           subtitle: 'DÍAS EN TOTAL',
           color: 'info.main',
           position: 'right',
@@ -443,6 +444,12 @@ const ContratosGridView = ({
             icon: DepositIcon,
             label: 'Depósito',
             value: `${contrato?.moneda?.simbolo || '$'} ${(contrato?.deposito || 0).toLocaleString()}`,
+            color: 'text.secondary'
+          },
+          {
+            icon: MoneyIcon,
+            label: 'Total',
+            value: `${contrato?.moneda?.simbolo || '$'} ${calcularMontoTotal(contrato).toLocaleString()}`,
             color: 'text.secondary'
           }
         ];
