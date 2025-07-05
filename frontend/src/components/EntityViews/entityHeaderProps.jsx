@@ -31,6 +31,17 @@ const getPropiedadEstadoColor = (estado) => {
   return statusColors[estado] || '#9e9e9e';
 };
 
+// Funciones auxiliares para contratos
+const getContratoIcon = (tipo) => {
+  const iconMap = {
+    'ALQUILER': HomeIcon,
+    'MANTENIMIENTO': EngineeringIcon,
+    'VENTA': BusinessIcon,
+    'SERVICIOS': ServicesIcon
+  };
+  return iconMap[tipo] || HomeIcon;
+};
+
 const getEntityHeaderProps = ({ entity, type, onView, onEdit, onDelete, onExpand }) => {
   if (type === 'propiedad') {
     return {
@@ -60,22 +71,15 @@ const getEntityHeaderProps = ({ entity, type, onView, onEdit, onDelete, onExpand
     };
   }
   if (type === 'contrato') {
+    const estado = getEstadoContrato(entity);
     return {
       isMain: true,
       title: entity.propiedad?.titulo || 'Sin propiedad',
       subtitle: entity.propiedad?.ciudad || '',
-      statusLabel: getEstadoLabel(getEstadoContrato(entity)),
-      statusColor: getEstadoColor(getEstadoContrato(entity)),
-      icon: (() => {
-        const iconMap = {
-          'ALQUILER': HomeIcon,
-          'MANTENIMIENTO': EngineeringIcon,
-          'VENTA': BusinessIcon,
-          'SERVICIOS': ServicesIcon
-        };
-        return iconMap[entity.tipoContrato] || HomeIcon;
-      })(),
-      iconColor: getEstadoColor(getEstadoContrato(entity)),
+      statusLabel: getEstadoLabel(estado),
+      statusColor: getEstadoColor(estado),
+      icon: getContratoIcon(entity.tipoContrato),
+      iconColor: getEstadoColor(estado),
       actions: (
         <>
           <IconButton size="small" onClick={() => onView && onView(entity)}>

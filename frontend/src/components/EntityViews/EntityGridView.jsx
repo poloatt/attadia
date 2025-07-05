@@ -10,6 +10,8 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { Link } from 'react-router-dom';
+import ContratoDetail from '../contratos/ContratoDetail';
+import InquilinoDetail from '../inquilinos/InquilinoDetail';
 import {
   LocationOnOutlined as AddressIcon,
   LocationCityOutlined as CityIcon,
@@ -28,7 +30,8 @@ import {
   ExpandLess as ExpandLessIcon,
   StoreOutlined,
   Bed as BedIcon,
-  Inventory as InventoryIcon
+  Inventory as InventoryIcon,
+  Visibility as ViewIcon
 } from '@mui/icons-material';
 
 // Componente Paper estilizado minimalista con fondo del tema
@@ -132,11 +135,13 @@ const SECTION_CONFIGS = {
       type: 'primary',
       left: [
         {
-          icon: CurrencyIcon,
+          icon: null, // Sin ícono, solo el símbolo de moneda
           label: 'Moneda',
-          value: [simboloMoneda || '$', nombreCuenta || 'No especificada'],
+          value: simboloMoneda || '$',
+          subtitle: nombreCuenta || 'No especificada',
           color: 'text.secondary',
-          position: 'left'
+          position: 'left',
+          showLargeCurrency: true // Flag especial para mostrar moneda grande
         }
       ],
       right: [
@@ -208,13 +213,30 @@ const SECTION_CONFIGS = {
   // Sección de inquilinos estándar (primaria)
   inquilinos: (inquilinos = [], contratos = []) => {
     const nombresInquilinos = inquilinos.map(inq => `${inq.nombre} ${inq.apellido}`).filter(Boolean).join(', ');
-    const tiposContratos = contratos.map(contrato => contrato.tipoContrato || 'Sin especificar').filter(Boolean).join(', ');
+    
+    // Crear links a contratos activos
+    const contratosActivos = contratos.filter(contrato => {
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      const inicio = new Date(contrato.fechaInicio);
+      const fin = new Date(contrato.fechaFin);
+      return inicio <= hoy && fin >= hoy && contrato.estado === 'ACTIVO';
+    });
+    
+    const contratosLinks = contratosActivos.map((contrato, idx) => ({
+      text: `Contrato ${idx + 1}`,
+      link: `/contratos/${contrato._id}`,
+      contratoId: contrato._id,
+      contrato: contrato,
+      tipo: contrato.tipoContrato || 'Sin especificar'
+    }));
+    
     return {
       type: 'primary',
       left: [
         {
           icon: PeopleIcon,
-          value: nombresInquilinos,
+          value: nombresInquilinos || 'Sin inquilinos',
           color: 'text.secondary',
           position: 'left'
         }
@@ -222,9 +244,10 @@ const SECTION_CONFIGS = {
       right: [
         {
           icon: ContractIcon,
-          value: tiposContratos,
-          color: 'text.secondary',
-          position: 'right'
+          value: contratosLinks.length > 0 ? 'Contratos activos' : 'Sin contratos activos',
+          color: contratosLinks.length > 0 ? 'primary.main' : 'text.secondary',
+          position: 'right',
+          links: contratosLinks // Agregar links para renderizado especial
         }
       ]
     };
@@ -331,7 +354,7 @@ const SECTION_CONFIGS = {
 };
 
 // Componente para renderizar sección con layout izquierda/derecha
-const SectionRenderer = ({ section, isCollapsed = false }) => {
+const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null, inquilinos = [] }) => {
   if (section.hidden) return null;
 
   // Detectar si es sección especial (ubicación, finanzas, inquilinos/contratos) que usan value como array o string
@@ -339,8 +362,481 @@ const SectionRenderer = ({ section, isCollapsed = false }) => {
 
   // Si es sección financiera, mostrar monto mensual arriba y depósito abajo, con estilos distintos
   const isFinanciera = isSpecial && section.left[0]?.label === 'Moneda' && section.right?.[0]?.label === 'Montos';
+  const isFinancieraLarge = isFinanciera && section.left[0]?.showLargeCurrency;
+  
+  // Si es sección de tiempo con números grandes
+  const isTiempoLarge = section.left[0]?.showLargeNumber && section.right?.[0]?.showLargeNumber;
+  
+  // Si es sección de inquilinos con links a contratos
+  const isInquilinosConLinks = isSpecial && section.right?.[0]?.links && Array.isArray(section.right[0].links);
 
-  if (isFinanciera) {
+  if (isFinancieraLarge) {
+    // Nueva versión con símbolo de moneda grande a la izquierda
+    const simboloMoneda = section.left[0]?.value || '$';
+    const nombreCuenta = section.left[0]?.subtitle || 'No especificada';
+    const iconRight = section.right?.[0]?.icon;
+    const valuesRight = Array.isArray(section.right?.[0]?.value) ? section.right?.[0]?.value : [section.right?.[0]?.value];
+    
+    return (
+      <GeometricPaper sx={{ minHeight: '40px' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', width: '100%' }}>
+          {/* Columna 1: Símbolo de moneda y cuenta */}
+          <Box sx={{ 
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            gap: 0.3
+          }}>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 600,
+                fontSize: '1.2rem',
+                lineHeight: 1,
+                m: 0,
+                color: 'text.primary'
+              }}
+            >
+              {simboloMoneda}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 400,
+                fontSize: '0.65rem',
+                color: 'rgba(255,255,255,0.7)',
+                lineHeight: 1,
+                m: 0,
+                textAlign: 'center'
+              }}
+            >
+              {nombreCuenta}
+            </Typography>
+          </Box>
+          
+          {/* Separador vertical */}
+          <Box sx={{ 
+            width: '1px', 
+            backgroundColor: 'divider',
+            mx: 1,
+            height: '60%'
+          }} />
+          
+          {/* Columna 2: Monto mensual */}
+          <Box sx={{ 
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            gap: 0.3
+          }}>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 500,
+                fontSize: '0.8rem',
+                lineHeight: 1,
+                m: 0,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                textAlign: 'center'
+              }}
+            >
+              {valuesRight[0] || ''}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 400,
+                fontSize: '0.65rem',
+                color: 'rgba(255,255,255,0.7)',
+                lineHeight: 1,
+                m: 0,
+                textAlign: 'center'
+              }}
+            >
+              mensual
+            </Typography>
+          </Box>
+          
+          {/* Separador vertical */}
+          <Box sx={{ 
+            width: '1px', 
+            backgroundColor: 'divider',
+            mx: 1,
+            height: '60%'
+          }} />
+          
+          {/* Columna 3: Monto total */}
+          <Box sx={{ 
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            gap: 0.3
+          }}>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 500,
+                fontSize: '0.8rem',
+                lineHeight: 1,
+                m: 0,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                textAlign: 'center'
+              }}
+            >
+              {valuesRight[1] || ''}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 400,
+                fontSize: '0.65rem',
+                color: 'rgba(255,255,255,0.7)',
+                lineHeight: 1,
+                m: 0,
+                textAlign: 'center'
+              }}
+            >
+              total
+            </Typography>
+          </Box>
+        </Box>
+      </GeometricPaper>
+    );
+  } else if (isTiempoLarge) {
+    // Nueva versión con números grandes para la sección de tiempo
+    const valorIzquierda = section.left[0]?.value || '0';
+    const subtituloIzquierda = section.left[0]?.subtitle || '';
+    const valorDerecha = section.right?.[0]?.value || '0';
+    const subtituloDerecha = section.right?.[0]?.subtitle || '';
+    
+    return (
+      <GeometricPaper sx={{ minHeight: '40px' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', width: '100%' }}>
+          {/* Número grande y etiqueta izquierda */}
+          <Box sx={{ 
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            gap: 0.3
+          }}>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 600,
+                fontSize: '1.4rem',
+                lineHeight: 1,
+                m: 0,
+                color: 'text.primary'
+              }}
+            >
+              {valorIzquierda}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 400,
+                fontSize: '0.65rem',
+                color: 'rgba(255,255,255,0.7)',
+                lineHeight: 1,
+                m: 0,
+                textAlign: 'center'
+              }}
+            >
+              {subtituloIzquierda}
+            </Typography>
+          </Box>
+          {/* Número grande y etiqueta derecha */}
+          <Box sx={{ 
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            gap: 0.3
+          }}>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 600,
+                fontSize: '1.4rem',
+                lineHeight: 1,
+                m: 0,
+                color: 'text.primary'
+              }}
+            >
+              {valorDerecha}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 400,
+                fontSize: '0.65rem',
+                color: 'rgba(255,255,255,0.7)',
+                lineHeight: 1,
+                m: 0,
+                textAlign: 'center'
+              }}
+            >
+              {subtituloDerecha}
+            </Typography>
+          </Box>
+        </Box>
+      </GeometricPaper>
+    );
+  } else if (isInquilinosConLinks) {
+    // Renderizado especial para sección de inquilinos con links a contratos
+    const iconLeft = section.left[0]?.icon;
+    const valueLeft = section.left[0]?.value || '';
+    const iconRight = section.right[0]?.icon;
+    const valueRight = section.right[0]?.value || '';
+    const links = section.right[0]?.links || [];
+    const inquilinosArr = inquilinos;
+    return (
+      <GeometricPaper sx={{ minHeight: '40px' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', width: '100%' }}>
+          {/* Parte izquierda: Inquilinos */}
+          <Box sx={{ 
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 0,
+            pr: 1,
+            justifyContent: 'center'
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1,
+              flex: 1,
+              justifyContent: 'center'
+            }}>
+              {iconLeft && React.createElement(iconLeft, { 
+                sx: { 
+                  fontSize: '1.2rem', 
+                  color: 'text.secondary',
+                  flexShrink: 0
+                } 
+              })}
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: 0,
+                flex: 1,
+                overflow: 'hidden',
+                alignItems: 'center'
+              }}>
+                {inquilinosArr.length > 0 ? (
+                  inquilinosArr.map((inq, idx) => (
+                    <Box key={inq._id || idx} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          fontWeight: 500,
+                          fontSize: '0.7rem',
+                          lineHeight: 1,
+                          m: 0,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          textAlign: 'center'
+                        }}
+                      >
+                        {inq.nombre} {inq.apellido}
+                      </Typography>
+                      <IconButton size="small" onClick={() => handleInquilinoDetail(inq._id)} sx={{ p: 0.2, color: 'primary.main' }}>
+                        <ViewIcon sx={{ fontSize: '1rem' }} />
+                      </IconButton>
+                    </Box>
+                  ))
+                ) : (
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      fontWeight: 500,
+                      fontSize: '0.7rem',
+                      lineHeight: 1,
+                      m: 0,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      textAlign: 'center'
+                    }}
+                  >
+                    Sin inquilinos
+                  </Typography>
+                )}
+              </Box>
+            </Box>
+          </Box>
+
+          {/* Separador vertical */}
+          <Box sx={{ 
+            width: '1px', 
+            backgroundColor: 'divider',
+            mx: 1
+          }} />
+
+          {/* Parte derecha: Contratos con links */}
+          <Box sx={{ 
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 0,
+            pl: 0.5,
+            justifyContent: 'center'
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1,
+              flex: 1,
+              justifyContent: 'flex-start'
+            }}>
+              {iconRight && React.createElement(iconRight, { 
+                sx: { 
+                  fontSize: '1.2rem', 
+                  color: 'text.secondary',
+                  flexShrink: 0
+                } 
+              })}
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: 0.2,
+                flex: 1,
+                overflow: 'hidden',
+                alignItems: 'flex-start'
+              }}>
+                {/* Links a contratos - solo mostrar links, no texto descriptivo */}
+                {links.length > 0 ? (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.1 }}>
+                    {links.map((link, idx) => (
+                      onContratoDetail ? (
+                        <Box
+                          key={idx}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.3,
+                            cursor: 'pointer',
+                            justifyContent: 'flex-start',
+                            '&:hover': {
+                              '& .contrato-text': {
+                                color: 'primary.light',
+                                textDecoration: 'underline'
+                              },
+                              '& .view-icon': {
+                                color: 'primary.light'
+                              }
+                            }
+                          }}
+                          onClick={() => onContratoDetail(link.contratoId)}
+                        >
+                          <Typography
+                            variant="caption"
+                            className="contrato-text"
+                            sx={{ 
+                              fontSize: '0.7rem',
+                              fontWeight: 500,
+                              color: 'primary.main',
+                              lineHeight: 1,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              textDecoration: 'none',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {link.text}
+                          </Typography>
+                          <ViewIcon 
+                            className="view-icon"
+                            sx={{ 
+                              fontSize: '0.9rem', 
+                              color: 'primary.main',
+                              flexShrink: 0
+                            }} 
+                          />
+                        </Box>
+                      ) : (
+                        <Box
+                          key={idx}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.3,
+                            justifyContent: 'flex-start'
+                          }}
+                        >
+                          <Typography
+                            component={Link}
+                            to={link.link}
+                            variant="caption"
+                            sx={{ 
+                              fontSize: '0.7rem',
+                              fontWeight: 500,
+                              color: 'primary.main',
+                              lineHeight: 1,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              textDecoration: 'none',
+                              cursor: 'pointer',
+                              '&:hover': {
+                                color: 'primary.light',
+                                textDecoration: 'underline'
+                              }
+                            }}
+                          >
+                            {link.text}
+                          </Typography>
+                          <ViewIcon 
+                            sx={{ 
+                              fontSize: '0.9rem', 
+                              color: 'primary.main',
+                              flexShrink: 0
+                            }} 
+                          />
+                        </Box>
+                      )
+                    ))}
+                  </Box>
+                ) : (
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      fontWeight: 500,
+                      fontSize: '0.7rem',
+                      lineHeight: 1,
+                      m: 0,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      color: 'text.secondary'
+                    }}
+                  >
+                    Sin contratos activos
+                  </Typography>
+                )}
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+      </GeometricPaper>
+    );
+  } else if (isFinanciera) {
     const iconLeft = section.left[0]?.icon;
     const colorLeft = section.left[0]?.color;
     const valuesLeft = Array.isArray(section.left[0]?.value) ? section.left[0]?.value : [section.left[0]?.value];
@@ -355,13 +851,12 @@ const SectionRenderer = ({ section, isCollapsed = false }) => {
         <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', width: '100%' }}>
           {/* Ícono izquierda */}
           {iconLeft && (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', pr: 1.5 }}>
-              {React.createElement(iconLeft, { sx: { fontSize: '0.8rem', color: colorLeft } })}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', pr: 1.5, minWidth: 28 }}>
+              {React.createElement(iconLeft, { sx: { fontSize: '1.05rem', color: 'rgba(255,255,255,0.7)' } })}
             </Box>
           )}
           {/* Valores izquierda */}
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0, justifyContent: 'center' }}>
-            {valuesLeft[0] && (
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.4, justifyContent: 'center' }}>
               <Typography
                 variant="body2"
                 sx={{
@@ -374,36 +869,32 @@ const SectionRenderer = ({ section, isCollapsed = false }) => {
                   whiteSpace: 'nowrap'
                 }}
               >
-                {valuesLeft[0]}
+              {section.left[0]?.value}
               </Typography>
-            )}
-            {valuesLeft[1] && (
+            {section.left[0]?.subtitle && (
               <Typography
                 variant="caption"
                 sx={{
                   fontWeight: 400,
-                  fontSize: '0.68rem',
-                  color: 'text.secondary',
+                  fontSize: '0.65rem',
+                  color: 'rgba(255,255,255,0.7)',
                   lineHeight: 1,
                   m: 0,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
+                  mt: 0.2
                 }}
               >
-                {valuesLeft[1]}
+                {section.left[0]?.subtitle}
               </Typography>
             )}
           </Box>
           {/* Ícono derecha */}
           {iconRight && (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', pl: 1.5 }}>
-              {React.createElement(iconRight, { sx: { fontSize: '0.8rem', color: colorRight } })}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', pl: 1.5, minWidth: 28 }}>
+              {React.createElement(iconRight, { sx: { fontSize: '1.05rem', color: 'rgba(255,255,255,0.7)' } })}
             </Box>
           )}
           {/* Monto mensual y depósito en dos líneas */}
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0, justifyContent: 'center', alignItems: 'flex-start' }}>
-            {montoMensual && (
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.4, justifyContent: 'center', alignItems: 'flex-start' }}>
               <Typography
                 variant="body2"
                 sx={{
@@ -416,24 +907,21 @@ const SectionRenderer = ({ section, isCollapsed = false }) => {
                   whiteSpace: 'nowrap'
                 }}
               >
-                {montoMensual}
+              {section.right[0]?.value}
               </Typography>
-            )}
-            {deposito && (
+            {section.right[0]?.subtitle && (
               <Typography
                 variant="caption"
                 sx={{
                   fontWeight: 400,
-                  fontSize: '0.68rem',
-                  color: 'text.secondary',
+                  fontSize: '0.65rem',
+                  color: 'rgba(255,255,255,0.7)',
                   lineHeight: 1,
                   m: 0,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
+                  mt: 0.2
                 }}
               >
-                {deposito}
+                {section.right[0]?.subtitle}
               </Typography>
             )}
           </Box>
@@ -464,8 +952,8 @@ const SectionRenderer = ({ section, isCollapsed = false }) => {
         <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', width: '100%' }}>
           {/* Ícono izquierda */}
           {iconLeft && (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', pr: 1.5 }}>
-              {React.createElement(iconLeft, { sx: { fontSize: '0.8rem', color: colorLeft } })}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', pr: 1.5, minWidth: 28 }}>
+              {React.createElement(iconLeft, { sx: { fontSize: '1.05rem', color: 'rgba(255,255,255,0.7)' } })}
             </Box>
           )}
           {/* Dirección y ciudad */}
@@ -506,8 +994,8 @@ const SectionRenderer = ({ section, isCollapsed = false }) => {
           </Box>
           {/* Ícono derecha */}
           {iconRight && (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', pl: 1.5 }}>
-              {React.createElement(iconRight, { sx: { fontSize: '0.8rem', color: colorRight } })}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', pl: 1.5, minWidth: 28 }}>
+              {React.createElement(iconRight, { sx: { fontSize: '1.05rem', color: 'rgba(255,255,255,0.7)' } })}
             </Box>
           )}
           {/* Valores derecha */}
@@ -560,7 +1048,7 @@ const SectionRenderer = ({ section, isCollapsed = false }) => {
             }}>
               <item.icon 
                 sx={{ 
-                  fontSize: '0.8rem', 
+                  fontSize: '1.2rem', 
                   color: item.color,
                   flexShrink: 0
                 }} 
@@ -615,7 +1103,7 @@ const SectionRenderer = ({ section, isCollapsed = false }) => {
             }}>
               <item.icon 
                 sx={{ 
-                  fontSize: '0.8rem', 
+                  fontSize: '1.2rem', 
                   color: item.color,
                   flexShrink: 0
                 }} 
@@ -710,17 +1198,17 @@ const SecondarySectionRenderer = ({ section, isCollapsed = false }) => {
 };
 
 // Componente para mostrar secciones estándar organizadas
-const StandardSections = ({ sections, gridSize = { xs: 6, sm: 6, md: 6, lg: 6 }, isCollapsed = false }) => {
+const StandardSections = ({ sections, gridSize = { xs: 6, sm: 6, md: 6, lg: 6 }, isCollapsed = false, onContratoDetail = null, inquilinos = [] }) => {
   const seccionesPrimarias = sections.filter(s => s.type === 'primary' && !s.hidden);
   const seccionesSecundarias = sections.filter(s => s.type === 'secondary');
   const seccionesHabitaciones = sections.filter(s => s.type === 'habitaciones');
 
   return (
-    <Grid container spacing={0.3} sx={{ p: 0.3 }}>
+    <Grid container spacing={0.3} sx={{ p: 0 }}>
       {/* Secciones primarias - siempre visibles */}
       {seccionesPrimarias.map((section, sectionIndex) => (
         <Grid item {...gridSize} key={`primary-${sectionIndex}`}>
-          <SectionRenderer section={section} isCollapsed={isCollapsed} />
+          <SectionRenderer section={section} isCollapsed={isCollapsed} onContratoDetail={onContratoDetail} inquilinos={inquilinos} />
         </Grid>
       ))}
       
@@ -855,7 +1343,7 @@ const EntityGrid = ({
     if (fixedSlots) {
       return (
         <Box sx={{ position: 'relative', minHeight: isCompact ? '104px' : '120px' }}>
-          <Grid container spacing={0.3} sx={{ p: 0.3 }}>
+          <Grid container spacing={0.3} sx={{ p: 0 }}>
             {Array.from({ length: fixedSlots }).map((_, index) => (
               <Grid item {...gridSize} key={`empty-${index}`}>
                 <CompactPaper sx={{ 
@@ -914,7 +1402,7 @@ const EntityGrid = ({
         minHeight: isCompact ? '104px' : '120px',
         paddingRight: totalPages > 1 ? '24px' : '0px'
       }}>
-        <Grid container spacing={0.3} sx={{ p: 0.3 }}>
+        <Grid container spacing={0.3} sx={{ p: 0 }}>
           {displayItems.map((item, index) => (
             <Grid item {...gridSize} key={item?._id || item?.id || `slot-${index}`}>
               {item ? (
@@ -1010,7 +1498,7 @@ const EntityGrid = ({
 // Componente para mostrar información en grid horizontal
 const InfoGrid = ({ data, config, gridSize = { xs: 4, sm: 4, md: 4, lg: 4 } }) => {
   return (
-    <Grid container spacing={0.3} sx={{ p: 0.3 }}>
+    <Grid container spacing={0.3} sx={{ p: 0 }}>
       {data.map((item, index) => {
         const IconComponent = item.icon;
         return (
@@ -1284,9 +1772,18 @@ const EntityGridView = ({
   sectionGridSize = { xs: 6, sm: 6, md: 6, lg: 6 },
   isCollapsed = false,
   showCollapseButton = false,
-  onToggleCollapse = null
+  onToggleCollapse = null,
+  // Props para manejo de contratos
+  contratos = [],
+  onEditContrato = null,
+  onDeleteContrato = null,
+  inquilinos = []
 }) => {
   const [collapsed, setCollapsed] = useState(isCollapsed);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedContrato, setSelectedContrato] = useState(null);
+  const [inquilinoDetailOpen, setInquilinoDetailOpen] = useState(false);
+  const [selectedInquilino, setSelectedInquilino] = useState(null);
 
   const handleToggleCollapse = () => {
     const newCollapsed = !collapsed;
@@ -1294,6 +1791,46 @@ const EntityGridView = ({
     if (onToggleCollapse) {
       onToggleCollapse(newCollapsed);
     }
+  };
+
+  const handleContratoDetail = (contratoId) => {
+    const contrato = contratos.find(c => c._id === contratoId);
+    if (contrato) {
+      setSelectedContrato(contrato);
+      setDetailOpen(true);
+    }
+  };
+
+  const handleCloseDetail = () => {
+    setDetailOpen(false);
+    setSelectedContrato(null);
+  };
+
+  const handleEditContrato = (contrato) => {
+    if (onEditContrato) {
+      onEditContrato(contrato);
+    }
+    handleCloseDetail();
+  };
+
+  const handleDeleteContrato = (contratoId) => {
+    if (onDeleteContrato) {
+      onDeleteContrato(contratoId);
+    }
+    handleCloseDetail();
+  };
+
+  const handleInquilinoDetail = (inquilinoId) => {
+    const inq = inquilinos.find(i => i._id === inquilinoId);
+    if (inq) {
+      setSelectedInquilino(inq);
+      setInquilinoDetailOpen(true);
+    }
+  };
+
+  const handleCloseInquilinoDetail = () => {
+    setInquilinoDetailOpen(false);
+    setSelectedInquilino(null);
   };
 
   const renderContent = () => {
@@ -1313,7 +1850,7 @@ const EntityGridView = ({
       case 'info':
         return <InfoGrid data={data} config={config} gridSize={gridSize} />;
       case 'sections':
-        return <StandardSections sections={sections} gridSize={sectionGridSize} isCollapsed={collapsed} />;
+        return <StandardSections sections={sections} gridSize={sectionGridSize} isCollapsed={collapsed} onContratoDetail={handleContratoDetail} inquilinos={inquilinos} />;
       case 'habitaciones':
         return <HabitacionesRenderer section={data} isCollapsed={collapsed} />;
       default:
@@ -1331,7 +1868,7 @@ const EntityGridView = ({
   };
 
   return (
-    <Box>
+    <Box sx={{ width: '100%' }}>
       {/* Header con título y botón de colapsar */}
       {(title || showCollapseButton) && (
         <Box sx={{ 
@@ -1364,6 +1901,26 @@ const EntityGridView = ({
       
       {/* Contenido */}
       {renderContent()}
+      
+      {/* Popup de detalle de contrato */}
+      {selectedContrato && (
+        <ContratoDetail
+          open={detailOpen}
+          onClose={handleCloseDetail}
+          contrato={selectedContrato}
+          onEdit={handleEditContrato}
+          onDelete={handleDeleteContrato}
+          relatedData={{}}
+        />
+      )}
+      {/* Popup de detalle de inquilino */}
+      {selectedInquilino && (
+        <InquilinoDetail
+          open={inquilinoDetailOpen}
+          onClose={handleCloseInquilinoDetail}
+          inquilino={selectedInquilino}
+        />
+      )}
     </Box>
   );
 };

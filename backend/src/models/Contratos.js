@@ -337,43 +337,64 @@ contratoSchema.virtual('transacciones', {
 
 // Virtual para calcular el estado actual basado en fechas
 contratoSchema.virtual('estadoActual').get(function() {
-  // Normalizar fechas a medianoche
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const inicio = new Date(this.fechaInicio);
-  inicio.setHours(0, 0, 0, 0);
-  const fin = new Date(this.fechaFin);
-  fin.setHours(0, 0, 0, 0);
+  try {
+    // Verificar que las fechas existan
+    if (!this.fechaInicio) {
+      console.warn('[estadoActual] fechaInicio no definida para contrato:', this._id?.toString());
+      return this.estado || 'PLANEADO';
+    }
 
-  // LOG de depuración
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('[estadoActual] Contrato:', this._id?.toString());
-    console.log('  fechaInicio:', inicio.toISOString());
-    console.log('  fechaFin:', fin.toISOString());
-    console.log('  now:', now.toISOString());
-    console.log('  esMantenimiento:', this.esMantenimiento, 'tipoContrato:', this.tipoContrato);
-    console.log('  Comparaciones:', {
-      inicioMenorIgualNow: inicio <= now,
-      finMayorNow: fin > now,
-      finMenorIgualNow: fin <= now
-    });
-  }
+    // Normalizar fechas a medianoche
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const inicio = new Date(this.fechaInicio);
+    inicio.setHours(0, 0, 0, 0);
+    
+    // Si no hay fecha de fin, considerar como activo si ya comenzó
+    if (!this.fechaFin) {
+      if (inicio <= now) {
+        return this.esMantenimiento || this.tipoContrato === 'MANTENIMIENTO' ? 'MANTENIMIENTO' : 'ACTIVO';
+      } else {
+        return 'PLANEADO';
+      }
+    }
+    
+    const fin = new Date(this.fechaFin);
+    fin.setHours(0, 0, 0, 0);
 
-  if (this.esMantenimiento || this.tipoContrato === 'MANTENIMIENTO') {
+    // LOG de depuración
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[estadoActual] Contrato:', this._id?.toString());
+      console.log('  fechaInicio:', inicio.toISOString());
+      console.log('  fechaFin:', fin.toISOString());
+      console.log('  now:', now.toISOString());
+      console.log('  esMantenimiento:', this.esMantenimiento, 'tipoContrato:', this.tipoContrato);
+      console.log('  Comparaciones:', {
+        inicioMenorIgualNow: inicio <= now,
+        finMayorNow: fin > now,
+        finMenorIgualNow: fin <= now
+      });
+    }
+
+    if (this.esMantenimiento || this.tipoContrato === 'MANTENIMIENTO') {
+      if (inicio <= now && fin > now) {
+        return 'MANTENIMIENTO';
+      } else if (inicio > now) {
+        return 'PLANEADO';
+      } else {
+        return 'FINALIZADO';
+      }
+    }
     if (inicio <= now && fin > now) {
-      return 'MANTENIMIENTO';
+      return 'ACTIVO';
     } else if (inicio > now) {
       return 'PLANEADO';
     } else {
       return 'FINALIZADO';
     }
-  }
-  if (inicio <= now && fin > now) {
-    return 'ACTIVO';
-  } else if (inicio > now) {
-    return 'PLANEADO';
-  } else {
-    return 'FINALIZADO';
+  } catch (error) {
+    console.error('[estadoActual] Error calculando estado actual:', error);
+    return this.estado || 'PLANEADO';
   }
 });
 

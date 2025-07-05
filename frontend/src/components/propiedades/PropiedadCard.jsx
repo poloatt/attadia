@@ -275,6 +275,68 @@ const calcularProgresoContrato = (contratos, montoMensual) => {
   };
 };
 
+// Función para calcular el progreso de ocupación de la propiedad
+const calcularProgresoOcupacion = (propiedad) => {
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  
+  // Encontrar contrato activo
+  const contratoActivo = (propiedad.contratos || []).find(contrato => {
+    const inicio = new Date(contrato.fechaInicio);
+    const fin = new Date(contrato.fechaFin);
+    return inicio <= hoy && fin >= hoy && contrato.estado === 'ACTIVO';
+  });
+
+  if (!contratoActivo) {
+    return {
+      porcentaje: 0,
+      diasTranscurridos: 0,
+      diasTotales: 0,
+      montoAcumulado: 0,
+      montoTotal: 0,
+      tieneContrato: false,
+      estado: 'DISPONIBLE'
+    };
+  }
+
+  const inicio = new Date(contratoActivo.fechaInicio);
+  const fin = new Date(contratoActivo.fechaFin);
+
+  // Calcular días totales del contrato
+  const diasTotales = Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24));
+
+  // Calcular días transcurridos
+  const diasTranscurridos = Math.min(
+    Math.max(0, Math.ceil((hoy - inicio) / (1000 * 60 * 60 * 24))),
+    diasTotales
+  );
+
+  // Calcular porcentaje
+  const porcentaje = Math.min(100, (diasTranscurridos / diasTotales) * 100);
+
+  // Calcular montos (usando el precio de la propiedad)
+  const montoMensual = propiedad.precio || 0;
+  const montoAcumulado = (diasTranscurridos / 30) * montoMensual;
+  const montoTotal = (diasTotales / 30) * montoMensual;
+
+  // Determinar estado
+  let estado = 'OCUPADA';
+  if (contratoActivo.esMantenimiento || contratoActivo.tipoContrato === 'MANTENIMIENTO') {
+    estado = 'MANTENIMIENTO';
+  }
+
+  return {
+    porcentaje,
+    diasTranscurridos,
+    diasTotales,
+    montoAcumulado,
+    montoTotal,
+    tieneContrato: true,
+    contrato: contratoActivo,
+    estado
+  };
+};
+
 const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExpanded = false, onToggleExpand }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -384,6 +446,9 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
 
   // Calcular progreso del contrato
   const progresoContrato = calcularProgresoContrato(contratos, montoMensual);
+  
+  // Calcular progreso de ocupación de la propiedad
+  const progresoOcupacion = calcularProgresoOcupacion(propiedad);
 
   // --- MOVER AQUÍ LA LÓGICA DE SECCIONES ---
   const propiedadData = {
@@ -515,22 +580,59 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
         </Box>
         {/* Vista compacta solo en colapsado */}
         {!isExpanded && (
-          <PropiedadGridView
-            type="sections"
-            data={{ extendida: false }}
-            propiedad={propiedadData}
-            precio={montoMensual}
-            simboloMoneda={simboloMoneda}
-            nombreCuenta={nombreCuenta}
-            moneda={moneda}
-            inquilinos={inquilinos}
-            habitaciones={habitaciones}
-            contratos={contratos}
-            inventario={inventarios}
-            sectionGridSize={{ xs: 12, sm: 12, md: 12, lg: 12 }}
-            showCollapseButton={false}
-            isCollapsed={false}
-          />
+          <CardContent sx={{ p: 1, pb: 0.5 }}>
+            {/* Barra de progreso de ocupación en vista colapsada */}
+            {progresoOcupacion.tieneContrato && (
+              <Box sx={{ mb: 1 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                  <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
+                    {progresoOcupacion.diasTranscurridos}/{progresoOcupacion.diasTotales} días
+                  </Typography>
+                  <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
+                    {Math.round(progresoOcupacion.porcentaje)}%
+                  </Typography>
+                </Box>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={progresoOcupacion.porcentaje}
+                  sx={{ 
+                    height: 3,
+                    borderRadius: 0,
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    '& .MuiLinearProgress-bar': {
+                      backgroundColor: progresoOcupacion.estado === 'MANTENIMIENTO' ? 'warning.main' : 'primary.main'
+                    }
+                  }}
+                />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+                  <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
+                    {simboloMoneda} {progresoOcupacion.montoAcumulado.toLocaleString()}
+                  </Typography>
+                  <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
+                    {simboloMoneda} {progresoOcupacion.montoTotal.toLocaleString()}
+                  </Typography>
+                </Box>
+              </Box>
+            )}
+            <PropiedadGridView
+              type="sections"
+              data={{ extendida: false }}
+              propiedad={propiedadData}
+              precio={montoMensual}
+              simboloMoneda={simboloMoneda}
+              nombreCuenta={nombreCuenta}
+              moneda={moneda}
+              inquilinos={inquilinos}
+              habitaciones={habitaciones}
+              contratos={contratos}
+              inventario={inventarios}
+              sectionGridSize={{ xs: 12, sm: 12, md: 12, lg: 12 }}
+              showCollapseButton={false}
+              isCollapsed={false}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
+          </CardContent>
         )}
       </Box>
 
@@ -565,35 +667,35 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
             {viewMode === 'grid' ? (
               // Vista Grid: Colapso controlado solo por isExpanded
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                {/* Barra de progreso del contrato */}
-                {progresoContrato.tieneContrato && (
+                {/* Barra de progreso de ocupación */}
+                {progresoOcupacion.tieneContrato && (
                   <Box sx={{ mb: 1 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
                       <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
-                        {progresoContrato.mesesTranscurridos}/{progresoContrato.mesTotales} meses
+                        {progresoOcupacion.diasTranscurridos}/{progresoOcupacion.diasTotales} días
                       </Typography>
                       <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
-                        {Math.round(progresoContrato.porcentaje)}%
+                        {Math.round(progresoOcupacion.porcentaje)}%
                       </Typography>
                     </Box>
                     <LinearProgress 
                       variant="determinate" 
-                      value={progresoContrato.porcentaje}
+                      value={progresoOcupacion.porcentaje}
                       sx={{ 
                         height: 3,
                         borderRadius: 0,
                         backgroundColor: 'rgba(255, 255, 255, 0.1)',
                         '& .MuiLinearProgress-bar': {
-                          backgroundColor: 'primary.main'
+                          backgroundColor: progresoOcupacion.estado === 'MANTENIMIENTO' ? 'warning.main' : 'primary.main'
                         }
                       }}
                     />
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
                       <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
-                        {simboloMoneda} {progresoContrato.montoAcumulado.toLocaleString()}
+                        {simboloMoneda} {progresoOcupacion.montoAcumulado.toLocaleString()}
                       </Typography>
                       <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
-                        {simboloMoneda} {progresoContrato.montoTotal.toLocaleString()}
+                        {simboloMoneda} {progresoOcupacion.montoTotal.toLocaleString()}
                       </Typography>
                     </Box>
                   </Box>
@@ -613,6 +715,8 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
                   sectionGridSize={{ xs: 12, sm: 12, md: 12, lg: 12 }}
                   showCollapseButton={false}
                   isCollapsed={false}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
                 />
               </Box>
             ) : (
@@ -627,35 +731,35 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
                       '&:hover': { color: 'primary.main' }
                     }}
                   >
-                    {/* Barra de progreso del contrato */}
-                    {progresoContrato.tieneContrato && (
+                    {/* Barra de progreso de ocupación */}
+                    {progresoOcupacion.tieneContrato && (
                       <Box sx={{ mb: 1 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
                           <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
-                            {progresoContrato.mesesTranscurridos}/{progresoContrato.mesTotales} meses
+                            {progresoOcupacion.diasTranscurridos}/{progresoOcupacion.diasTotales} días
                           </Typography>
                           <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
-                            {Math.round(progresoContrato.porcentaje)}%
+                            {Math.round(progresoOcupacion.porcentaje)}%
                           </Typography>
                         </Box>
                         <LinearProgress 
                           variant="determinate" 
-                          value={progresoContrato.porcentaje}
+                          value={progresoOcupacion.porcentaje}
                           sx={{ 
                             height: 3,
                             borderRadius: 0,
                             backgroundColor: 'rgba(255, 255, 255, 0.1)',
                             '& .MuiLinearProgress-bar': {
-                              backgroundColor: 'primary.main'
+                              backgroundColor: progresoOcupacion.estado === 'MANTENIMIENTO' ? 'warning.main' : 'primary.main'
                             }
                           }}
                         />
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
                           <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
-                            {simboloMoneda} {progresoContrato.montoAcumulado.toLocaleString()}
+                            {simboloMoneda} {progresoOcupacion.montoAcumulado.toLocaleString()}
                           </Typography>
                           <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
-                            {simboloMoneda} {progresoContrato.montoTotal.toLocaleString()}
+                            {simboloMoneda} {progresoOcupacion.montoTotal.toLocaleString()}
                           </Typography>
                         </Box>
                       </Box>
@@ -732,23 +836,26 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
 
                   <Collapse in={expandedSections.price}>
                     <Box sx={{ pl: 1, pt: 0.75, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                      {progresoContrato.tieneContrato && (
+                      {progresoOcupacion.tieneContrato && (
                         <>
                           <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>
-                            Progreso del contrato:
+                            Progreso de ocupación:
                           </Typography>
                           <Box sx={{ pl: 1, mb: 0.5 }}>
                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                              • Inicio: {new Date(progresoContrato.contrato.fechaInicio).toLocaleDateString()}
+                              • Inicio: {new Date(progresoOcupacion.contrato.fechaInicio).toLocaleDateString()}
                             </Typography>
                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', display: 'block' }}>
-                              • Fin: {new Date(progresoContrato.contrato.fechaFin).toLocaleDateString()}
+                              • Fin: {new Date(progresoOcupacion.contrato.fechaFin).toLocaleDateString()}
                             </Typography>
                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', display: 'block' }}>
-                              • Pagado hasta hoy: {simboloMoneda} {progresoContrato.montoAcumulado.toLocaleString()}
+                              • Ingresos hasta hoy: {simboloMoneda} {progresoOcupacion.montoAcumulado.toLocaleString()}
                             </Typography>
                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', display: 'block' }}>
-                              • Total contrato: {simboloMoneda} {progresoContrato.montoTotal.toLocaleString()}
+                              • Total esperado: {simboloMoneda} {progresoOcupacion.montoTotal.toLocaleString()}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', display: 'block' }}>
+                              • Estado: {progresoOcupacion.estado}
                             </Typography>
                           </Box>
                         </>

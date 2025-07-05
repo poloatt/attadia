@@ -23,20 +23,22 @@ const EntityCards = ({
   const itemsToRender = items || data;
 
   return (
-    <Grid container spacing={2} sx={{ mt: 1 }}>
+    <Grid container spacing={1} sx={{ mt: 1 }}>
       {itemsToRender?.map((item) => {
         const itemId = item.id || item._id;
         return (
-          <Grid item key={itemId} {...gridProps}>
+          <Grid item key={itemId} {...gridProps} sx={{ width: '100%' }}>
             <Paper 
               elevation={0}
               sx={{ 
-                p: 2,
+                p: 1,
+                pb: 0.5,
                 height: '100%',
                 border: 'none',
                 backgroundColor: 'background.default',
                 transition: 'all 0.2s ease',
                 position: 'relative',
+                width: '100%',
                 '&:hover': {
                   backgroundColor: 'background.paper',
                   transform: 'translateY(-2px)'
@@ -55,7 +57,7 @@ const EntityCards = ({
                     justifyContent: 'center',
                     color: 'primary.contrastText'
                   }}>
-                    {config.renderIcon(item)}
+                    {React.cloneElement(config.renderIcon(item), { sx: { fontSize: '2.2rem' } })}
                   </Box>
                 ) : config.getAvatarText ? (
                   <Avatar sx={{ width: 40, height: 40 }}>
@@ -64,30 +66,25 @@ const EntityCards = ({
                 ) : null}
 
                 {/* Contenido Principal */}
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 500, mb: 1 }}>
+                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 40, gap: 0.5 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 500, mb: 0, textAlign: 'center' }}>
                     {config.getTitle(item)}
                   </Typography>
-                  
-                  {/* Lista de Detalles */}
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                    {config.getDetails(item).map((detail, index) => (
-                      <Box key={`${itemId}-detail-${index}`} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {detail.icon && React.cloneElement(detail.icon, { 
-                          sx: { fontSize: 16, color: 'text.secondary' }
-                        })}
-                        <Typography 
-                          component="span" 
-                          variant="body2" 
-                          color="text.secondary" 
-                          noWrap={detail.noWrap}
-                          sx={{ display: 'inline-block' }}
-                        >
-                          {detail.text}
-                        </Typography>
-                      </Box>
-                    ))}
-                  </Box>
+                  {/* Chip de estado si existe */}
+                  {config.getStatus && (
+                    <Chip
+                      label={config.getStatus(item).label}
+                      color={config.getStatus(item).color}
+                      size="small"
+                      icon={null}
+                      sx={{ 
+                        borderRadius: 0,
+                        minWidth: 80,
+                        justifyContent: 'center',
+                        mt: 0.2
+                      }}
+                    />
+                  )}
                 </Box>
               </Box>
               
@@ -101,18 +98,6 @@ const EntityCards = ({
                 alignItems: 'flex-end',
                 gap: 1
               }}>
-                {config.getStatus && (
-                  <Chip
-                    label={config.getStatus(item).label}
-                    color={config.getStatus(item).color}
-                    size="small"
-                    sx={{ 
-                      borderRadius: 0,
-                      minWidth: 80,
-                      justifyContent: 'center'
-                    }}
-                  />
-                )}
                 {config.getActions && (
                   <EntityActions
                     {...config.getActions(item)}

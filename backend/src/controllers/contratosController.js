@@ -158,15 +158,65 @@ class ContratosController extends BaseController {
       
       console.log('Filtros aplicados:', filtros);
       
-      // Obtener contratos con populate y virtuals
+      // Obtener contratos con populate pero sin lean para mantener virtuals
       const contratos = await this.Model.find(filtros)
-        .populate(this.options.populate)
-        .lean({ virtuals: true });
+        .populate(this.options.populate);
+      
+      // Convertir a objetos planos y calcular estado actual manualmente
+      const contratosFormateados = contratos.map(contrato => {
+        const contratoObj = contrato.toObject();
+        
+        // Calcular estado actual manualmente
+        try {
+          if (!contratoObj.fechaInicio) {
+            contratoObj.estadoActual = contratoObj.estado || 'PLANEADO';
+          } else {
+            const now = new Date();
+            now.setHours(0, 0, 0, 0);
+            const inicio = new Date(contratoObj.fechaInicio);
+            inicio.setHours(0, 0, 0, 0);
+            
+            if (!contratoObj.fechaFin) {
+              if (inicio <= now) {
+                contratoObj.estadoActual = contratoObj.esMantenimiento || contratoObj.tipoContrato === 'MANTENIMIENTO' ? 'MANTENIMIENTO' : 'ACTIVO';
+              } else {
+                contratoObj.estadoActual = 'PLANEADO';
+              }
+            } else {
+              const fin = new Date(contratoObj.fechaFin);
+              fin.setHours(0, 0, 0, 0);
+              
+              if (contratoObj.esMantenimiento || contratoObj.tipoContrato === 'MANTENIMIENTO') {
+                if (inicio <= now && fin > now) {
+                  contratoObj.estadoActual = 'MANTENIMIENTO';
+                } else if (inicio > now) {
+                  contratoObj.estadoActual = 'PLANEADO';
+                } else {
+                  contratoObj.estadoActual = 'FINALIZADO';
+                }
+              } else {
+                if (inicio <= now && fin > now) {
+                  contratoObj.estadoActual = 'ACTIVO';
+                } else if (inicio > now) {
+                  contratoObj.estadoActual = 'PLANEADO';
+                } else {
+                  contratoObj.estadoActual = 'FINALIZADO';
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error calculando estado actual para contrato:', contratoObj._id, error);
+          contratoObj.estadoActual = contratoObj.estado || 'PLANEADO';
+        }
+        
+        return contratoObj;
+      });
       
       res.json({
-        docs: contratos,
-        totalDocs: contratos.length,
-        limit: contratos.length,
+        docs: contratosFormateados,
+        totalDocs: contratosFormateados.length,
+        limit: contratosFormateados.length,
         page: 1,
         totalPages: 1,
         hasNextPage: false,

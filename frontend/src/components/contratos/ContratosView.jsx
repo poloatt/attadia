@@ -2,8 +2,7 @@ import React from 'react';
 import {
   Box
 } from '@mui/material';
-import ContratosListView from './ContratosListView';
-import ContratosGridView from './ContratosGridView';
+import ContratoList from './ContratoList';
 
 const ContratosView = ({ 
   contratos = [], 
@@ -24,26 +23,12 @@ const ContratosView = ({
   return (
     <Box sx={{ mt: 2 }}>
       {/* Renderizar la vista correspondiente */}
-      {viewMode === 'list' ? (
-        <ContratosListView
-          contratos={contratos}
-          relatedData={relatedData}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          onToggleView={onToggleView}
-          viewMode={viewMode}
-        />
-      ) : (
-        <ContratosGridView
-          type="contratos"
-          contratos={contratos}
-          relatedData={relatedData}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          onToggleView={onToggleView}
-          viewMode={viewMode}
-        />
-      )}
+      <ContratoList
+        contratos={contratos}
+        relatedData={relatedData}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
     </Box>
   );
 };
