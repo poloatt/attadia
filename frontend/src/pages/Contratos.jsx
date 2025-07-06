@@ -105,8 +105,7 @@ export function Contratos() {
         clienteAxios.get('/api/monedas')
       ]);
 
-      // El endpoint de contratos devuelve un array plano, los demás devuelven { docs: [...] }
-      const contratos = Array.isArray(contratosRes.data) ? contratosRes.data : (contratosRes.data.docs || []);
+      const contratos = contratosRes.data.docs || [];
       const propiedades = propiedadesRes.data.docs || [];
       const inquilinos = inquilinosRes.data.docs || [];
       const habitaciones = habitacionesRes.data.docs || [];

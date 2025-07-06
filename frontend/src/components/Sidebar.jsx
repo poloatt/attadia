@@ -10,19 +10,14 @@ import {
   Divider,
   Collapse,
   Typography,
-  Tooltip,
-  IconButton
+  Tooltip
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import { 
   ExpandLess,
   ExpandMore,
-  FiberManualRecordOutlined,
-  PushPin,
-  PushPinOutlined,
-  UnfoldMore,
-  UnfoldLess
+  FiberManualRecordOutlined
 } from '@mui/icons-material';
 
 export default function Sidebar() {
@@ -34,12 +29,7 @@ export default function Sidebar() {
     isDesktop,
     closeSidebar,
     openSidebar,
-    expandSection,
-    isPinned,
-    togglePinned,
-    expandAllSections,
-    collapseAllSections,
-    collapseSection
+    expandSection
   } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
@@ -58,17 +48,9 @@ export default function Sidebar() {
     if (item.hasSubItems) {
       return location.pathname === item.path;
     }
-<<<<<<< HEAD
-    // Si alguna subsección está activa, la sección NO debe estar activa visualmente
-    const hasActiveSubRoute = item.subItems?.some(subItem => isRouteActive(subItem.path));
-    const isMainRouteActive = isRouteActive(item.path);
-    const isExpanded = isSectionExpanded(item.id);
-    return (!hasActiveSubRoute && (isMainRouteActive || (isOpen && isExpanded)));
-=======
     
     // Si no tiene subsecciones, usar la lógica normal
     return isRouteActive(item.path);
->>>>>>> develop
   };
 
   // Función para determinar si una subsección está activa
@@ -159,178 +141,7 @@ export default function Sidebar() {
   const renderMenuItem = (item, isConfigItem = false) => {
     const isActive = shouldShowSelection(item);
     const isExpanded = isSectionExpanded(item.id);
-    const isCollapsedActive = !isOpen && activeSectionForCollapsed?.id === item.id;
-
-    // Sidebar colapsada y sección activa: render especial con óvalo decorativo
-    if (!isOpen && item.hasSubItems && isCollapsedActive) {
-      return (
-        <Box key={item.id} sx={{ position: 'relative', width: '100%' }}>
-          {/* Óvalo de fondo decorativo */}
-          <Box
-            sx={{
-              position: 'absolute',
-              left: 6,
-              right: 6,
-              top: -46,
-              bottom: 0,
-              background: (theme) => theme.palette.action.selected,
-              opacity: 0.18,
-              borderRadius: 99,
-              zIndex: 0,
-              pointerEvents: 'none',
-            }}
-          />
-          {/* Sección principal, siempre clickeable */}
-          <ListItem disablePadding sx={{ position: 'relative', zIndex: 1 }}>
-            <Tooltip 
-              title={item.hasSubItems ? `${item.title} (click para expandir)` : item.title} 
-              placement="right"
-              arrow
-            >
-              <ListItemButton
-                onClick={() => {
-                  if (item.path) navigate(item.path);
-                  if (item.hasSubItems && isDesktop) expandSection(item.id);
-                }}
-                sx={{
-                  minHeight: 36,
-                  justifyContent: 'center',
-                  px: 1,
-                  borderRadius: '20px',
-                  mb: 0.25,
-                  backgroundColor: 'transparent',
-                  position: 'relative',
-                  zIndex: 1,
-                  '&:hover': {
-                    backgroundColor: isDesktop ? 'action.selected' : 'transparent',
-                    borderRadius: isDesktop ? '8px' : '20px',
-                  },
-                }}
-              >
-                <ListItemIcon
-                  sx={{
-                    minWidth: 0,
-                    mr: 'auto',
-                    justifyContent: 'center',
-                    position: 'relative',
-                    color: 'inherit',
-                    zIndex: 1,
-                  }}
-                >
-                  <Box sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 38,
-                    height: 38,
-                    borderRadius: '50%',
-                    bgcolor: isActive ? 'action.selected' : 'transparent',
-                    color: isActive ? 'primary.main' : 'inherit',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      bgcolor: isActive ? 'action.selected' : 'action.hover',
-                    },
-                    '& .MuiSvgIcon-root': {
-                      fontSize: 20,
-                    }
-                  }}>
-                    {item.icon}
-                  </Box>
-                </ListItemIcon>
-                {/* Botón de expandir/colapsar individual */}
-                {item.hasSubItems && (
-                  <Box sx={{ ml: 1 }}>
-                    <IconButton
-                      size="small"
-                      onClick={e => {
-                        e.stopPropagation();
-                        isExpanded ? collapseSection(item.id) : expandSection(item.id);
-                      }}
-                      sx={{
-                        color: 'text.secondary',
-                        p: 0.5,
-                        ml: 0.5,
-                      }}
-                    >
-                      {isExpanded ? <ExpandLess /> : <ExpandMore />}
-                    </IconButton>
-                  </Box>
-                )}
-              </ListItemButton>
-            </Tooltip>
-          </ListItem>
-          {/* Subsecciones, debajo del ícono principal */}
-          <List component="div" disablePadding sx={{ pl: 0, pr: 0, width: '100%', position: 'relative', zIndex: 1 }}>
-            {item.subItems?.map((subItem) => (
-              <ListItem key={subItem.path} disablePadding>
-                <ListItemButton
-                  onClick={() => {
-                    navigate(subItem.path);
-                    if (!isDesktop && isOpen && !isPinned) {
-                      closeSidebar();
-                    }
-                  }}
-                  sx={{
-                    minHeight: 32,
-                    pl: 1,
-                    pr: 0.5,
-                    borderRadius: '16px',
-                    mb: 0.125,
-                    justifyContent: 'center',
-                    backgroundColor: 'transparent',
-                    position: 'relative',
-                    zIndex: 1,
-                    '&:hover': {
-                      backgroundColor: isDesktop ? 'action.selected' : 'transparent',
-                      borderRadius: isDesktop ? '8px' : '16px',
-                    },
-                  }}
-                >
-                  <ListItemIcon
-                    sx={{
-                      minWidth: 0,
-                      mr: 'auto',
-                      justifyContent: 'center',
-                      color: 'inherit',
-                      zIndex: 1,
-                    }}
-                  >
-                    <Box sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 38,
-                      height: 38,
-                      borderRadius: '50%',
-                      bgcolor: isRouteActive(subItem.path) ? 'action.selected' : 'transparent',
-                      color: isRouteActive(subItem.path) ? 'primary.main' : 'text.disabled',
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        bgcolor: isDesktop ? 'action.selected' : 'transparent',
-                      },
-                      '& .MuiSvgIcon-root': {
-                        fontSize: 20,
-                      }
-                    }}>
-                      {subItem.icon || <FiberManualRecordOutlined sx={{ fontSize: 8 }} />}
-                    </Box>
-                  </ListItemIcon>
-                  <Tooltip 
-                    title={subItem.title} 
-                    placement="right"
-                    arrow
-                  >
-                    <Box sx={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
-                  </Tooltip>
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-        </Box>
-      );
-    }
-
-    // Sidebar expandida o sección no activa: render normal
+    
     return (
       <React.Fragment key={item.id}>
         <ListItem disablePadding>
@@ -342,34 +153,22 @@ export default function Sidebar() {
             <ListItemButton
               onClick={() => {
                 if (item.hasSubItems) {
-<<<<<<< HEAD
-                  // Siempre navegar a la ruta principal de la sección
-                  if (item.path) {
-                    navigate(item.path);
-                  }
-                  if (isDesktop) {
-                    expandSection(item.id); // Asegura que la sección se expanda
-=======
                   if (isOpen) {
                     // Si la sidebar está abierta, usar la nueva función
                     handleToggleSection(item.id);
->>>>>>> develop
                   } else {
-                    // En mobile: cerrar sidebar solo si no está pinnada
-                    if (isOpen && !isPinned) {
-                      closeSidebar();
+                    // Si la sidebar está cerrada, navegar a la ruta principal si existe
+                    if (item.path) {
+                      navigate(item.path);
+                      // En móvil, colapsar sidebar después de navegar (solo si está expandida)
+                      if (!isDesktop && isOpen) {
+                        closeSidebar();
+                      }
                     }
                   }
-<<<<<<< HEAD
-                } else {
-                  // Sin subsecciones: navegar normalmente
-                  navigate(item.path);
-                  if (!isDesktop && isOpen && !isPinned) {
-=======
                 } else if (item.path) {
                   navigate(item.path);
                   if (!isDesktop && isOpen) {
->>>>>>> develop
                     closeSidebar();
                   }
                 }
@@ -383,15 +182,10 @@ export default function Sidebar() {
                 mb: 0.25,
                 backgroundColor: 'transparent',
                 '&:hover': {
-<<<<<<< HEAD
-                  backgroundColor: isDesktop ? 'action.selected' : 'transparent',
-                  borderRadius: isDesktop ? '8px' : '20px',
-=======
                   backgroundColor: isOpen ? 'action.hover' : 'transparent',
                 },
                 '&.Mui-selected, &.Mui-selected:hover': {
                   backgroundColor: !isOpen && !isDesktop ? 'transparent' : 'action.selected',
->>>>>>> develop
                 },
               }}
             >
@@ -424,6 +218,7 @@ export default function Sidebar() {
                   {item.icon}
                 </Box>
               </ListItemIcon>
+              
               {isOpen && (
                 <>
                   <ListItemText 
@@ -440,20 +235,7 @@ export default function Sidebar() {
                   />
                   {item.hasSubItems && (
                     <Box sx={{ ml: 1 }}>
-                      <IconButton
-                        size="small"
-                        onClick={e => {
-                          e.stopPropagation();
-                          isExpanded ? collapseSection(item.id) : expandSection(item.id);
-                        }}
-                        sx={{
-                          color: 'text.secondary',
-                          p: 0.5,
-                          ml: 0.5,
-                        }}
-                      >
-                        {isExpanded ? <ExpandLess /> : <ExpandMore />}
-                      </IconButton>
+                      {isExpanded ? <ExpandLess /> : <ExpandMore />}
                     </Box>
                   )}
                 </>
@@ -461,13 +243,10 @@ export default function Sidebar() {
             </ListItemButton>
           </Tooltip>
         </ListItem>
+        
         {/* Subitems - mostrar cuando la sidebar está expandida O cuando está colapsada y es la sección activa */}
         {item.hasSubItems && (
-<<<<<<< HEAD
-          (isOpen && isExpanded)
-=======
           (isOpen && isExpanded) || (!isOpen && !isDesktop && findActiveSection()?.id === item.id)
->>>>>>> develop
         ) && (
           <Collapse in={true} timeout="auto" unmountOnExit>
             <List component="div" disablePadding sx={{ pl: isOpen ? 0.25 : 0 }}>
@@ -476,36 +255,32 @@ export default function Sidebar() {
                   <ListItemButton
                     onClick={() => {
                       navigate(subItem.path);
-                      if (!isDesktop && isOpen && !isPinned) {
+                      // En móvil, colapsar sidebar después de navegar (solo si está expandida)
+                      if (!isDesktop && isOpen) {
                         closeSidebar();
                       }
                     }}
                     selected={isRouteActive(subItem.path)}
                     sx={{
                       minHeight: 32,
-                      pl: isOpen ? 2.5 : 1,
-                      pr: isOpen ? 1.5 : 0.5,
+                      pl: isOpen ? 2.5 : 1, // Menos padding en modo colapsado
+                      pr: isOpen ? 1.5 : 0.5, // Menos padding en modo colapsado
                       borderRadius: '16px',
                       mb: 0.125,
-                      justifyContent: isOpen ? 'initial' : 'center',
+                      justifyContent: isOpen ? 'initial' : 'center', // Centrado en modo colapsado
                       backgroundColor: 'transparent',
                       '&:hover': {
-<<<<<<< HEAD
-                        backgroundColor: isDesktop ? 'action.selected' : 'transparent',
-                        borderRadius: isDesktop ? '8px' : '16px',
-=======
                         backgroundColor: isOpen ? 'action.hover' : 'transparent',
                       },
                       '&.Mui-selected, &.Mui-selected:hover': {
                         backgroundColor: !isOpen && !isDesktop ? 'transparent' : 'action.selected',
->>>>>>> develop
                       },
                     }}
                   >
                     <ListItemIcon
                       sx={{
                         minWidth: 0,
-                        mr: isOpen ? 1 : 'auto',
+                        mr: isOpen ? 1 : 'auto', // Sin margin en modo colapsado
                         justifyContent: 'center',
                         color: 'inherit',
                       }}
@@ -521,7 +296,7 @@ export default function Sidebar() {
                         color: isRouteActive(subItem.path) ? 'primary.main' : 'text.disabled',
                         transition: 'all 0.2s ease',
                         '&:hover': {
-                          bgcolor: isDesktop ? 'action.selected' : 'transparent',
+                          bgcolor: isRouteActive(subItem.path) ? 'action.selected' : 'action.hover',
                         },
                         '& .MuiSvgIcon-root': {
                           fontSize: 20,
@@ -550,7 +325,7 @@ export default function Sidebar() {
                         placement="right"
                         arrow
                       >
-                        <Box sx={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
+                        <Box sx={{ position: 'absolute', inset: 0 }} />
                       </Tooltip>
                     )}
                   </ListItemButton>
@@ -605,77 +380,18 @@ export default function Sidebar() {
       >
         {/* Header */}
         {isOpen && (
-          <Box sx={{ 
-            p: 1, 
-            borderBottom: '1px solid', 
-            borderColor: 'divider',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}>
+          <Box sx={{ p: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
             <Typography 
               variant="h6" 
               sx={{ 
                 fontSize: '1rem',
                 fontWeight: 600,
                 color: 'primary.main',
-                flex: 1,
                 textAlign: 'center'
               }}
             >
               Present
             </Typography>
-            
-            {/* Botones de control */}
-            <Box sx={{ display: 'flex', gap: 0.5, ml: 1 }}>
-              {/* Botón de pin */}
-              <Tooltip title={isPinned ? "Desanclar sidebar" : "Anclar sidebar"}>
-                <IconButton
-                  size="small"
-                  onClick={togglePinned}
-                  sx={{
-                    color: isPinned ? 'primary.main' : 'text.secondary',
-                    padding: 0.5,
-                    '&:hover': {
-                      backgroundColor: 'action.hover',
-                      color: 'primary.main'
-                    }
-                  }}
-                >
-                  {isPinned ? <PushPin sx={{ fontSize: '1rem' }} /> : <PushPinOutlined sx={{ fontSize: '1rem' }} />}
-                </IconButton>
-              </Tooltip>
-              
-              {/* Botón de expandir/contraer todas las secciones */}
-              <Tooltip title="Expandir/Contraer todas las secciones">
-                <IconButton
-                  size="small"
-                  onClick={() => {
-                    const hasExpandedSections = menuItems.some(item => 
-                      item.hasSubItems && isSectionExpanded(item.id)
-                    );
-                    if (hasExpandedSections) {
-                      collapseAllSections();
-                    } else {
-                      expandAllSections();
-                    }
-                  }}
-                  sx={{
-                    color: 'text.secondary',
-                    padding: 0.5,
-                    '&:hover': {
-                      backgroundColor: 'action.hover',
-                      color: 'primary.main'
-                    }
-                  }}
-                >
-                  {menuItems.some(item => item.hasSubItems && isSectionExpanded(item.id)) ? 
-                    <UnfoldLess sx={{ fontSize: '1rem' }} /> : 
-                    <UnfoldMore sx={{ fontSize: '1rem' }} />
-                  }
-                </IconButton>
-              </Tooltip>
-            </Box>
           </Box>
         )}
 

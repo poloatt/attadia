@@ -148,11 +148,10 @@ class ContratosController extends BaseController {
         return res.status(401).json({ error: 'Usuario no autenticado' });
       }
       const { usuario } = req.query;
-      // Si el usuario es ADMIN, no filtrar por usuario
-      let filtros = {};
-      if (!(req.user.role === 'ADMIN')) {
-        filtros.usuario = new mongoose.Types.ObjectId(usuario || req.user.id);
-      }
+      // Si no se proporciona un usuario en la query, usar el ID del usuario autenticado
+      const filtros = {
+        usuario: new mongoose.Types.ObjectId(usuario || req.user.id)
+      };
       console.log('Filtros aplicados:', filtros);
       // LOG: contar todos los contratos
       const totalContratos = await this.Model.countDocuments();
@@ -193,7 +192,7 @@ class ContratosController extends BaseController {
                   contratoObj.estadoActual = 'FINALIZADO';
                 }
               } else {
-                if (inicio <= now && fin >= now) {
+                if (inicio <= now && fin > now) {
                   contratoObj.estadoActual = 'ACTIVO';
                 } else if (inicio > now) {
                   contratoObj.estadoActual = 'PLANEADO';
@@ -203,16 +202,26 @@ class ContratosController extends BaseController {
               }
             }
           }
-        } catch (e) {
+        } catch (error) {
+          console.error('Error calculando estado actual para contrato:', contratoObj._id, error);
           contratoObj.estadoActual = contratoObj.estado || 'PLANEADO';
         }
         return contratoObj;
       });
-      // Devuelve los contratos formateados
-      return res.json(contratosFormateados);
+      res.json({
+        docs: contratosFormateados,
+        totalDocs: contratosFormateados.length,
+        limit: contratosFormateados.length,
+        page: 1,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPrevPage: false,
+        nextPage: null,
+        prevPage: null
+      });
     } catch (error) {
       console.error('Error al obtener contratos con estado actual:', error);
-      res.status(500).json({ error: 'Error al obtener contratos con estado actual' });
+      res.status(500).json({ error: 'Error al obtener contratos' });
     }
   }
 
