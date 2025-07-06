@@ -47,12 +47,12 @@ const GeometricPaper = styled(Paper)(({ theme }) => ({
   borderRadius: 0,
   padding: theme.spacing(1.5),
   border: 'none',
-  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30,30,30,0.98)' : 'rgba(240,240,240,1)',
+  backgroundColor: theme.palette.background.default,
   boxShadow: '0 1px 0 0 rgba(0,0,0,0.18)',
   borderBottom: '1px solid rgba(255,255,255,0.04)',
   transition: 'all 0.2s ease',
   '&:hover': {
-    backgroundColor: 'rgba(40,40,40,1)',
+    backgroundColor: theme.palette.action.hover,
   }
 }));
 
@@ -180,7 +180,7 @@ const ContratoDetail = ({
       PaperProps={{
         sx: {
           borderRadius: 0,
-          backgroundColor: 'background.default',
+          backgroundColor: theme => theme.palette.background.default,
           minHeight: isMobile ? '100vh' : 'auto'
         }
       }}

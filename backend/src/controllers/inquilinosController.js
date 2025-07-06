@@ -2,6 +2,28 @@ import { BaseController } from './BaseController.js';
 import { Inquilinos, Propiedades, Contratos } from '../models/index.js';
 import mongoose from 'mongoose';
 
+// Utilidades para labels y descripciones de estado de inquilino
+const ESTADO_LABELS = {
+  'ACTIVO': 'Huésped actual',
+  'RESERVADO': 'Próximo huésped',
+  'PENDIENTE': 'Pendiente de ingreso',
+  'INACTIVO': 'Sin estadía actual',
+  'SIN_CONTRATO': 'Sin contrato'
+};
+const ESTADO_DESCS = {
+  'ACTIVO': 'El inquilino está actualmente alojado en una de tus propiedades.',
+  'RESERVADO': 'El inquilino tiene una reserva futura en una de tus propiedades.',
+  'PENDIENTE': 'El inquilino está asignado pero aún no tiene contrato activo ni futuro.',
+  'INACTIVO': 'El inquilino no tiene contratos activos ni futuros.',
+  'SIN_CONTRATO': 'El inquilino nunca tuvo un contrato.'
+};
+function getInquilinoEstadoLabel(estado) {
+  return ESTADO_LABELS[estado] || estado;
+}
+function getInquilinoEstadoDescripcion(estado) {
+  return ESTADO_DESCS[estado] || '';
+}
+
 class InquilinosController extends BaseController {
   constructor() {
     super(Inquilinos, {
@@ -35,11 +57,14 @@ class InquilinosController extends BaseController {
   formatResponse(doc) {
     if (!doc) return null;
     const formatted = doc.toObject ? doc.toObject() : doc;
+    const estado = formatted.estadoActual || formatted.estado;
     return {
       ...formatted,
       id: formatted._id,
       propiedadId: formatted.propiedad?._id || formatted.propiedad,
-      estado: formatted.estadoActual
+      estado,
+      estadoLabel: getInquilinoEstadoLabel(estado),
+      estadoDescripcion: getInquilinoEstadoDescripcion(estado)
     };
   }
 
@@ -85,17 +110,14 @@ class InquilinosController extends BaseController {
         }
       );
 
-      // Procesar cada inquilino para clasificar sus contratos
+      // Procesar cada inquilino para clasificar sus contratos y formatear la respuesta
       const docs = await Promise.all(result.docs.map(async (inquilino) => {
-        const inquilinoObj = inquilino.toObject();
-        
-        // Obtener contratos clasificados usando el método del modelo
         const contratosClasificados = await inquilino.getContratosClasificados();
-
+        // Usar formatResponse para agregar los labels y descripciones
+        const formatted = this.formatResponse(inquilino);
         return {
-          ...inquilinoObj,
-          contratosClasificados,
-          estado: inquilinoObj.estadoActual || inquilinoObj.estado
+          ...formatted,
+          contratosClasificados
         };
       }));
 

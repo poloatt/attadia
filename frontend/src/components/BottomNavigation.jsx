@@ -76,7 +76,7 @@ export default function BottomNavigation() {
         width: '100vw',
         zIndex: 1200, // Reducido para evitar conflictos con Dialogs
         borderRadius: 0,
-        bgcolor: 'background.paper',
+        bgcolor: 'background.default',
         boxShadow: '0 -2px 8px rgba(0,0,0,0.10)',
         borderTop: '1px solid',
         borderColor: 'divider',
