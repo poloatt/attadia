@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Grid, Box, Typography, Skeleton, Paper, IconButton, Menu, MenuItem, Collapse } from '@mui/material';
 import { Link } from 'react-router-dom';
 import EntityToolbar from '../components/EntityToolbar';
+import ContratoDetail from '../components/contratos/ContratoDetail';
 import clienteAxios from '../config/axios';
 import { 
   ApartmentOutlined as BuildingIcon,
@@ -37,6 +38,18 @@ import { STATUS_ICONS, STATUS_COLORS } from '../components/propiedades/Propiedad
 
 export function Dashboard() {
   const [loading, setLoading] = useState(true);
+  const [selectedPeriod, setSelectedPeriod] = useState(30);
+  const { showValues } = useValuesVisibility();
+  const [isAccountsOpen, setIsAccountsOpen] = useState(true);
+  const [accounts, setAccounts] = useState([]);
+  const [isPropertiesDetailOpen, setIsPropertiesDetailOpen] = useState(true);
+  const [inquilinos, setInquilinos] = useState([]);
+  const [contratos, setContratos] = useState([]);
+  const [isDaylistOpen, setIsDaylistOpen] = useState(false);
+  const [propiedades, setPropiedades] = useState([]);
+  const [selectedContrato, setSelectedContrato] = useState(null);
+  const [contratoDetailOpen, setContratoDetailOpen] = useState(false);
+
   const [stats, setStats] = useState({
     propiedades: {
       total: 0,
@@ -54,15 +67,6 @@ export function Dashboard() {
       monedaColor: '#75AADB'
     }
   });
-  const [selectedPeriod, setSelectedPeriod] = useState(30);
-  const { showValues } = useValuesVisibility();
-  const [isAccountsOpen, setIsAccountsOpen] = useState(true);
-  const [accounts, setAccounts] = useState([]);
-  const [isPropertiesDetailOpen, setIsPropertiesDetailOpen] = useState(true);
-  const [inquilinos, setInquilinos] = useState([]);
-  const [contratos, setContratos] = useState([]);
-  const [isDaylistOpen, setIsDaylistOpen] = useState(false);
-  const [propiedades, setPropiedades] = useState([]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -586,7 +590,25 @@ export function Dashboard() {
     </Box>
   );
 
+  const handleOpenContratoDetail = (contrato) => {
+    setSelectedContrato(contrato);
+    setContratoDetailOpen(true);
+  };
 
+  const handleCloseContratoDetail = () => {
+    setContratoDetailOpen(false);
+    setSelectedContrato(null);
+  };
+
+  const handleEditContrato = (contrato) => {
+    // Implementar edición de contrato si es necesario
+    console.log('Editar contrato:', contrato);
+  };
+
+  const handleDeleteContrato = (contratoId) => {
+    // Implementar eliminación de contrato si es necesario
+    console.log('Eliminar contrato:', contratoId);
+  };
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -594,7 +616,6 @@ export function Dashboard() {
         showAddButton={false}
         showBackButton={false}
         showDivider={false}
-        forceShow={true}
         navigationItems={[
           {
             icon: <WalletIcon sx={{ fontSize: 21.6 }} />, 
@@ -648,6 +669,16 @@ export function Dashboard() {
           </Grid>
         </Grid>
       </Box>
+
+      {selectedContrato && (
+        <ContratoDetail
+          contrato={selectedContrato}
+          open={contratoDetailOpen}
+          onClose={handleCloseContratoDetail}
+          onEdit={handleEditContrato}
+          onDelete={handleDeleteContrato}
+        />
+      )}
     </Box>
   );
 }

@@ -79,32 +79,8 @@ const EntityToolbar = ({
     'tareas'
   ];
 
-  // Lista de rutas donde el EntityToolbar siempre debe estar presente
-  const alwaysShowToolbarRoutes = [
-    '', // Dashboard (ruta raíz)
-    'propiedades',
-    'habitaciones',
-    'contratos',
-    'inquilinos',
-    'inventario',
-    'lab',
-    'rutinas',
-    'salud',
-    'transacciones',
-    'cuentas',
-    'monedas',
-    'dieta',
-    'proyectos',
-    'tareas',
-    'datacorporal',
-    'recurrente'
-  ];
-
-  // Determinar si el toolbar debe mostrarse siempre para la página actual
-  const shouldAlwaysShowToolbar = alwaysShowToolbarRoutes.includes(currentPath);
-  
-  // El toolbar se muestra si está habilitado en configuración O si es una página que siempre debe mostrarlo O si forceShow está activado
-  const shouldShowToolbar = forceShow || showEntityToolbarNavigation || shouldAlwaysShowToolbar;
+  // El toolbar se muestra SOLO si está habilitado en configuración O si forceShow está activado
+  const shouldShowToolbar = forceShow || showEntityToolbarNavigation;
 
   // Mapeo de rutas a íconos
   const routeIcons = {

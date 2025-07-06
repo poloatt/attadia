@@ -177,78 +177,80 @@ export function Tareas() {
   };
 
   return (
-    <Container maxWidth={isMobile ? "sm" : "xl"} sx={{ px: isMobile ? 1 : 3 }}>
-      <EntityToolbar 
-        title="Tareas"
-        icon={<TaskIcon sx={{ fontSize: 20 }} />}
-        onAdd={() => {
-          setEditingTarea(null);
-          setIsFormOpen(true);
-        }}
-        showBackButton={true}
-        onBack={handleBack}
-        navigationItems={[
-          { 
-            icon: <ProjectIcon sx={{ fontSize: 20 }} />, 
-            label: 'Proyectos', 
-            to: '/proyectos',
-            current: location.pathname === '/proyectos'
-          },
-          {
-            icon: <ArchiveIcon sx={{ fontSize: 20 }} />,
-            label: 'Archivo',
-            to: '/archivo',
-            current: location.pathname === '/archivo'
-          }
-        ]}
-        entityName="tarea"
-      />
-
-      <Box 
-        sx={{ 
-          py: isMobile ? 1 : 2,
-          px: isMobile ? 0 : 1,
-          height: isMobile ? 'calc(100vh - 180px)' : 'calc(100vh - 190px)', // Ajustado para móvil
-          overflowY: 'auto',
-          '&::-webkit-scrollbar': {
-            width: isMobile ? '4px' : '8px',
-          },
-          '&::-webkit-scrollbar-track': {
-            backgroundColor: 'rgba(0,0,0,0.1)',
-          },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: 'rgba(0,0,0,0.2)',
-            borderRadius: '4px',
-          },
-          '&::-webkit-scrollbar-thumb:hover': {
-            backgroundColor: 'rgba(0,0,0,0.3)',
-          },
-        }}
-      >
-        <TareasTable
-          tareas={tareas}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onUpdateEstado={handleUpdateEstado}
-          showValues={showValues}
-        />
-      </Box>
-
-      {isFormOpen && (
-        <TareaForm
-          open={isFormOpen}
-          onClose={() => {
-            setIsFormOpen(false);
+    <Box sx={{ px: 0, width: '100%' }}>
+      <Container maxWidth={isMobile ? "sm" : "xl"} sx={{ px: isMobile ? 1 : 3 }}>
+        <EntityToolbar 
+          title="Tareas"
+          icon={<TaskIcon sx={{ fontSize: 20 }} />}
+          onAdd={() => {
             setEditingTarea(null);
+            setIsFormOpen(true);
           }}
-          onSubmit={handleFormSubmit}
-          initialData={editingTarea}
-          isEditing={!!editingTarea}
-          proyectos={proyectos}
-          onProyectosUpdate={fetchProyectos}
+          showBackButton={true}
+          onBack={handleBack}
+          navigationItems={[
+            { 
+              icon: <ProjectIcon sx={{ fontSize: 20 }} />, 
+              label: 'Proyectos', 
+              to: '/proyectos',
+              current: location.pathname === '/proyectos'
+            },
+            {
+              icon: <ArchiveIcon sx={{ fontSize: 20 }} />,
+              label: 'Archivo',
+              to: '/archivo',
+              current: location.pathname === '/archivo'
+            }
+          ]}
+          entityName="tarea"
         />
-      )}
-    </Container>
+
+        <Box 
+          sx={{ 
+            py: isMobile ? 1 : 2,
+            px: isMobile ? 0 : 1,
+            height: isMobile ? 'calc(100vh - 180px)' : 'calc(100vh - 190px)', // Ajustado para móvil
+            overflowY: 'auto',
+            '&::-webkit-scrollbar': {
+              width: isMobile ? '4px' : '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: 'rgba(0,0,0,0.1)',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: 'rgba(0,0,0,0.2)',
+              borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb:hover': {
+              backgroundColor: 'rgba(0,0,0,0.3)',
+            },
+          }}
+        >
+          <TareasTable
+            tareas={tareas}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onUpdateEstado={handleUpdateEstado}
+            showValues={showValues}
+          />
+        </Box>
+
+        {isFormOpen && (
+          <TareaForm
+            open={isFormOpen}
+            onClose={() => {
+              setIsFormOpen(false);
+              setEditingTarea(null);
+            }}
+            onSubmit={handleFormSubmit}
+            initialData={editingTarea}
+            isEditing={!!editingTarea}
+            proyectos={proyectos}
+            onProyectosUpdate={fetchProyectos}
+          />
+        )}
+      </Container>
+    </Box>
   );
 }
 

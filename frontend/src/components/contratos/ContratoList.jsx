@@ -67,11 +67,14 @@ const ContratoList = ({
 
   return (
     <Grid container spacing={2}>
-      {contratosToRender.map((contrato) => {
+      {contratosToRender.map((contrato, idx) => {
         const isExpanded = expandedContratos[contrato._id || contrato.id] || false;
-        
+        // Si solo hay una card, que ocupe todo el ancho
+        const gridProps = contratosToRender.length === 1
+          ? { xs: 12, sm: 12, md: 12, lg: 12 }
+          : { xs: 12, sm: 6, md: 4, lg: 3 };
         return (
-          <Grid item key={contrato._id || contrato.id} xs={12} sm={6} md={4} lg={3}>
+          <Grid item key={contrato._id || contrato.id} {...gridProps}>
             <ContratoCard
               contrato={contrato}
               onEdit={onEdit}

@@ -172,7 +172,7 @@ const RutinasWithContext = () => {
   };
 
   return (
-    <>
+    <Box sx={{ px: 0, width: '100%' }}>
       {/* EntityToolbar para navegación y acciones */}
       <EntityToolbar
         entityName="rutina"
@@ -199,13 +199,14 @@ const RutinasWithContext = () => {
           }
         ]}
       />
-      
-            <Container maxWidth={isMobile ? "sm" : "lg"} sx={{
+      <Box sx={{
         mt: 0,
         mb: isMobile ? 2 : 4,
-        pb: isMobile ? '90px' : '104px', // Ajustado para móvil
+        pb: isMobile ? '90px' : '104px',
         minHeight: isMobile ? 'calc(100vh - 90px)' : 'calc(100vh - 104px)',
-        px: isMobile ? 1 : 3
+        px: 0,
+        maxWidth: '100%',
+        width: '100%'
       }}>
         <Box sx={{
           position: 'relative',
@@ -233,10 +234,8 @@ const RutinasWithContext = () => {
               <CircularProgress />
             </Box>
           )}
-          
           {/* Mensaje de estado vacío */}
           <EmptyStateMessage />
-          
           {/* Vista principal de rutinas */}
           {!loading && !editMode && rutina && (
             <>
@@ -258,7 +257,6 @@ const RutinasWithContext = () => {
               />
             </>
           )}
-          
           {/* Formulario de edición */}
           {editMode && (
             <RutinaForm 
@@ -269,8 +267,8 @@ const RutinasWithContext = () => {
             />
           )}
         </Box>
-      </Container>
-    </>
+      </Box>
+    </Box>
   );
 };
 
