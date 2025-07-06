@@ -961,4 +961,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExp
   );
 };
 
-export default PropiedadCard; 
+export default PropiedadCard;
+
+export { STATUS_COLORS, STATUS_ICONS };
+export { StatusChip }; 
