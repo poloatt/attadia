@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Grid, Box, Typography, Skeleton, Paper, IconButton, Menu, MenuItem, Collapse } from '@mui/material';
 import { Link } from 'react-router-dom';
-import EntityToolbar from '../components/EntityToolbar';
+
 import ContratoDetail from '../components/contratos/ContratoDetail';
 import clienteAxios from '../config/axios';
 import { 
@@ -612,29 +612,7 @@ export function Dashboard() {
 
   return (
     <Box sx={{ width: '100%' }}>
-      <EntityToolbar
-        showAddButton={false}
-        showBackButton={false}
-        showDivider={false}
-        forceShow={true}
-        navigationItems={[
-          {
-            icon: <WalletIcon sx={{ fontSize: 21.6 }} />, 
-            label: 'Transacciones',
-            to: '/transacciones'
-          },
-          {
-            icon: <BuildingIcon sx={{ fontSize: 21.6 }} />, 
-            label: 'Propiedades',
-            to: '/propiedades'
-          },
-          {
-            icon: <InventoryIcon sx={{ fontSize: 21.6 }} />, 
-            label: 'Inventario',
-            to: '/inventario'
-          }
-        ]}
-      />
+
 
       {/* Contenido principal */}
       <Box sx={{ 

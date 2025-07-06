@@ -13,7 +13,7 @@ import {
   Paper
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
-import EntityToolbar from '../components/EntityToolbar';
+
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import EntityForm from '../components/EntityViews/EntityForm';
 import { useSnackbar } from 'notistack';
@@ -22,7 +22,8 @@ import {
   ApartmentOutlined as BuildingIcon,
   BedOutlined as BedIcon,
   PeopleOutlined as PeopleIcon,
-  DescriptionOutlined as DescriptionIcon
+  DescriptionOutlined as DescriptionIcon,
+  AccountBalanceWalletOutlined as WalletIcon
 } from '@mui/icons-material';
 import EmptyState from '../components/EmptyState';
 import { EntityActions } from '../components/EntityViews/EntityActions';
@@ -221,36 +222,7 @@ export function Inventario() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar
-        onAdd={() => {
-          setEditingItem(null);
-          setIsFormOpen(true);
-        }}
-        onBack={handleBack}
-        searchPlaceholder="Buscar items..."
-        navigationItems={[
-          {
-            icon: <BuildingIcon sx={{ fontSize: 20 }} />,
-            label: 'Propiedades',
-            to: '/propiedades'
-          },
-          {
-            icon: <BedIcon sx={{ fontSize: 20 }} />,
-            label: 'Habitaciones',
-            to: '/habitaciones'
-          },
-          {
-            icon: <PeopleIcon sx={{ fontSize: 20 }} />,
-            label: 'Inquilinos',
-            to: '/inquilinos'
-          },
-          {
-            icon: <DescriptionIcon sx={{ fontSize: 20 }} />,
-            label: 'Contratos',
-            to: '/contratos'
-          }
-        ]}
-      />
+
 
       <EntityDetails
         title="Inventario"

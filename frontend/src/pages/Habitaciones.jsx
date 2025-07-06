@@ -5,7 +5,7 @@ import {
   Box, Typography, Grid, IconButton
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
-import EntityToolbar from '../components/EntityToolbar';
+
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import EntityForm from '../components/EntityViews/EntityForm';
 import { snackbar } from '../components/common/snackbarUtils';
@@ -333,36 +333,7 @@ export function Habitaciones() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar
-        onAdd={() => {
-          setEditingHabitacion(null);
-          setIsFormOpen(true);
-        }}
-        onBack={handleBack}
-        searchPlaceholder="Buscar habitaciones..."
-        navigationItems={[
-          {
-            icon: <BuildingIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Propiedades',
-            to: '/propiedades'
-          },
-          {
-            icon: <PeopleIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Inquilinos',
-            to: '/inquilinos'
-          },
-          {
-            icon: <DescriptionIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Contratos',
-            to: '/contratos'
-          },
-          {
-            icon: <InventoryIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Inventario',
-            to: '/inventario'
-          }
-        ]}
-      />
+
 
       <EntityDetails
         title="Habitaciones"

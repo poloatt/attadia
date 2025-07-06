@@ -61,11 +61,6 @@ const menuItems = [
         title: 'Deudores',
         path: '/deudores',
         icon: <PersonSearchOutlined />
-      },
-      {
-        title: 'Inventario',
-        path: '/inventario',
-        icon: <AllInboxOutlined />
       }
     ]
   },
@@ -90,11 +85,6 @@ const menuItems = [
         title: 'Habitaciones',
         path: '/habitaciones',
         icon: <HotelOutlined />
-      },
-      {
-        title: 'Inventario',
-        path: '/inventario',
-        icon: <AllInboxOutlined />
       }
     ]
   },

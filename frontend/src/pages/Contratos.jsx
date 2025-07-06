@@ -27,7 +27,7 @@ import {
   HomeWorkOutlined as HomeIcon,
   PersonOutlineOutlined as PersonIcon
 } from '@mui/icons-material';
-import EntityToolbar from '../components/EntityToolbar';
+
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import ContratoForm from '../components/contratos/ContratoForm';
 import { useSnackbar } from 'notistack';
@@ -409,33 +409,7 @@ export function Contratos() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar
-        title="Contratos"
-        onBack={handleBack}
-        searchPlaceholder="Buscar contratos..."
-        navigationItems={[
-          {
-            icon: <BuildingIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Propiedades',
-            to: '/propiedades'
-          },
-          {
-            icon: <BedIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Habitaciones',
-            to: '/habitaciones'
-          },
-          {
-            icon: <PeopleIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Inquilinos',
-            to: '/inquilinos'
-          },
-          {
-            icon: <InventoryIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Inventario',
-            to: '/inventario'
-          }
-        ]}
-      />
+
 
       {/* Sección de Contratos Activos */}
         <Box>

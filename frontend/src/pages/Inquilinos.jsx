@@ -7,7 +7,7 @@ import {
 import { useSnackbar } from 'notistack';
 import { InquilinoList, InquilinoForm } from '../components/inquilinos';
 import EntityDetails from '../components/EntityViews/EntityDetails';
-import EntityToolbar from '../components/EntityToolbar';
+
 import {
   ApartmentOutlined as BuildingIcon,
   BedOutlined as BedIcon,
@@ -212,32 +212,7 @@ export function Inquilinos() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar
-        onAdd={() => setOpenForm(true)}
-        onBack={handleBack}
-        navigationItems={[
-          {
-            icon: <BuildingIcon sx={{ fontSize: 20 }} />,
-            label: 'Propiedades',
-            to: '/propiedades'
-          },
-          {
-            icon: <BedIcon sx={{ fontSize: 20 }} />,
-            label: 'Habitaciones',
-            to: '/habitaciones'
-          },
-          {
-            icon: <ContratosIcon sx={{ fontSize: 20 }} />,
-            label: 'Contratos',
-            to: '/contratos'
-          },
-          {
-            icon: <InventoryIcon sx={{ fontSize: 20 }} />,
-            label: 'Inventario',
-            to: '/inventario'
-          }
-        ]}
-      />
+
 
       {/* Filtros de grupos */}
       <Box sx={{ mt: 2, mb: 2, display: 'flex', gap: 1 }}>
