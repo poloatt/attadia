@@ -10,17 +10,20 @@ import {
   MenuOutlined as MenuIcon,
   Visibility as ShowValuesIcon,
   VisibilityOff as HideValuesIcon,
-  AddOutlined as AddIcon
+  AddOutlined as AddIcon,
+  Undo as UndoIcon
 } from '@mui/icons-material';
 import { useSidebar } from '../context/SidebarContext';
 import { useUISettings } from '../context/UISettingsContext';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
+import { useActionHistory } from '../context/ActionHistoryContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function Header() {
   const { toggleSidebar, isOpen, isDesktop } = useSidebar();
   const { showSidebar, showEntityToolbarNavigation } = useUISettings();
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
+  const { canUndo, undoLastAction, getUndoCount } = useActionHistory();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -175,6 +178,12 @@ export default function Header() {
     '/recurrente'
   ].includes(location.pathname);
 
+  // Rutas donde se debe mostrar el botón de revertir acciones
+  const showUndoButton = [
+    '/proyectos',
+    '/tareas'
+  ].includes(location.pathname);
+
   const entityConfig = getEntityConfig();
 
   return (
@@ -257,6 +266,30 @@ export default function Header() {
                   <HideValuesIcon sx={{ fontSize: 20 }} /> : 
                   <ShowValuesIcon sx={{ fontSize: 20 }} />
                 }
+              </IconButton>
+            </Tooltip>
+          )}
+
+          {/* Botón de revertir acciones */}
+          {showUndoButton && canUndo() && (
+            <Tooltip title={`Revertir última acción (${getUndoCount()} disponible${getUndoCount() > 1 ? 's' : ''})`}>
+              <IconButton 
+                size="small"
+                onClick={() => {
+                  const lastAction = undoLastAction();
+                  if (lastAction) {
+                    // Disparar evento para que el componente maneje la reversión
+                    window.dispatchEvent(new CustomEvent('undoAction', {
+                      detail: lastAction
+                    }));
+                  }
+                }}
+                sx={{ 
+                  color: 'inherit',
+                  '&:hover': { color: 'text.primary' }
+                }}
+              >
+                <UndoIcon sx={{ fontSize: 20 }} />
               </IconButton>
             </Tooltip>
           )}

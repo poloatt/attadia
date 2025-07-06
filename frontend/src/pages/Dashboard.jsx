@@ -616,6 +616,7 @@ export function Dashboard() {
         showAddButton={false}
         showBackButton={false}
         showDivider={false}
+        forceShow={true}
         navigationItems={[
           {
             icon: <WalletIcon sx={{ fontSize: 21.6 }} />, 
