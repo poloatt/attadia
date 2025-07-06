@@ -24,10 +24,15 @@ import {
   TrendingUpOutlined as IngresosIcon,
   TimerOutlined as PeriodIcon,
   FitnessCenterOutlined as RutinasIcon,
-  FolderOutlined as TaskIcon
+  FolderOutlined as TaskIcon,
+  PeopleOutlined as PeopleIcon,
+  DescriptionOutlined as DescriptionOutlinedIcon,
+  VisibilityOutlined as VisibilityOutlinedIcon
 } from '@mui/icons-material';
 import { toast } from 'react-hot-toast';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
+import { StatusChip } from '../components/propiedades/PropiedadCard';
+import { STATUS_ICONS, STATUS_COLORS } from '../components/propiedades/PropiedadCard';
 
 
 export function Dashboard() {
@@ -476,58 +481,83 @@ export function Dashboard() {
               </Typography>
             )}
             {propiedades.map((prop) => (
-              <Paper key={prop._id} sx={{ p: 2, mb: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+              <Paper key={prop._id} sx={{ p: 2, mb: 2, bgcolor: '#111', borderRadius: 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                   <BuildingIcon sx={{ fontSize: 18 }} />
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{prop.titulo || 'Sin título'}</Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
-                    Estado: <b>{prop.estado || 'N/A'}</b>
-                  </Typography>
+                  <StatusChip customcolor={STATUS_COLORS[prop.estado] || 'text.secondary'}>
+                    {STATUS_ICONS[prop.estado] || null}
+                    {prop.estado ? prop.estado.charAt(0) + prop.estado.slice(1).toLowerCase() : 'N/A'}
+                  </StatusChip>
                 </Box>
-                {/* Inquilinos */}
-                <Box sx={{ mb: 1 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>Inquilinos:</Typography>
-                  {Array.isArray(prop.inquilinos) && prop.inquilinos.length > 0 ? (
+                {/* Inquilinos con icono individual */}
+                {Array.isArray(prop.inquilinos) && prop.inquilinos.length > 0 && (
+                  <Box sx={{ mb: 1 }}>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                       {prop.inquilinos.map((inq) => (
-                        <Typography key={inq._id} variant="body2" color="primary.main">
-                          {inq.nombre} {inq.apellido}
-                        </Typography>
-                      ))}
-                    </Box>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">Sin inquilinos</Typography>
-                  )}
-                </Box>
-                {/* Contratos */}
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>Contratos:</Typography>
-                  {Array.isArray(prop.contratos) && prop.contratos.length > 0 ? (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                      {prop.contratos.map((contrato) => (
-                        <Box key={contrato._id} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            Estado: <b>{contrato.estado}</b>
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {Array.isArray(contrato.inquilino) && contrato.inquilino.length > 0
-                              ? contrato.inquilino.map((inq, idx) => (
-                                  <span key={inq._id || idx}>
-                                    {inq.nombre} {inq.apellido}{idx < contrato.inquilino.length - 1 ? ', ' : ''}
-                                  </span>
-                                ))
-                              : 'Sin inquilino'}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {contrato.fechaInicio ? new Date(contrato.fechaInicio).toLocaleDateString() : 'Sin fecha'} - {contrato.fechaFin ? new Date(contrato.fechaFin).toLocaleDateString() : 'Sin fecha'}
+                        <Box key={inq._id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <PeopleIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+                          <Typography variant="body2" color="primary.main">
+                            {inq.nombre} {inq.apellido}
                           </Typography>
                         </Box>
                       ))}
                     </Box>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">Sin contratos</Typography>
-                  )}
-                </Box>
+                  </Box>
+                )}
+                {/* Contratos referenciados con icono y botón de ver detalle */}
+                {Array.isArray(prop.contratos) && prop.contratos.length > 0 && (
+                  <Box sx={{ mt: 1 }}>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {prop.contratos.map((contrato) => (
+                        <Box key={contrato._id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <DescriptionOutlinedIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+                          <Typography variant="body2" color="primary.main">
+                            {(() => {
+                              const fechaInicio = contrato.fechaInicio ? new Date(contrato.fechaInicio) : null;
+                              const fechaFin = contrato.fechaFin ? new Date(contrato.fechaFin) : null;
+                              
+                              if (fechaInicio && fechaFin) {
+                                const inicioStr = fechaInicio.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+                                const finStr = fechaFin.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+                                return `${inicioStr} - ${finStr}`;
+                              } else if (fechaInicio) {
+                                const inicioStr = fechaInicio.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+                                return `${inicioStr} - Sin fecha fin`;
+                              } else {
+                                return 'Sin fechas';
+                              }
+                            })()}
+                          </Typography>
+                          <IconButton size="small" onClick={() => handleOpenContratoDetail(contrato)}>
+                            <VisibilityOutlinedIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        </Box>
+                      ))}
+                    </Box>
+                    {/* Total de contratos */}
+                    {(() => {
+                      const totalContratos = prop.contratos.reduce((total, contrato) => {
+                        return total + (contrato.montoMensual || 0);
+                      }, 0);
+                      
+                      if (totalContratos > 0) {
+                        const simboloMoneda = prop.contratos[0]?.moneda?.simbolo || 
+                                            prop.contratos[0]?.cuenta?.moneda?.simbolo || '$';
+                        
+                        return (
+                          <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
+                            <MoneyIcon sx={{ fontSize: 18, color: 'text.primary' }} />
+                            <Typography variant="body2" color="text.primary" sx={{ fontWeight: 500 }}>
+                              Total: {simboloMoneda} {totalContratos.toLocaleString()}
+                            </Typography>
+                          </Box>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </Box>
+                )}
               </Paper>
             ))}
           </Box>
@@ -559,11 +589,12 @@ export function Dashboard() {
 
 
   return (
-    <Box sx={{ px: 0, width: '100%' }}>
+    <Box sx={{ width: '100%' }}>
       <EntityToolbar
         showAddButton={false}
         showBackButton={false}
         showDivider={false}
+        forceShow={true}
         navigationItems={[
           {
             icon: <WalletIcon sx={{ fontSize: 21.6 }} />, 
@@ -583,29 +614,40 @@ export function Dashboard() {
         ]}
       />
 
-      <Grid container spacing={2}>
-        {/* Sección de Propiedades */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2, height: '100%' }}>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
-              Propiedades
-            </Typography>
-            <PropertiesSection />
-          </Paper>
+      {/* Contenido principal */}
+      <Box sx={{ 
+        width: '100%', 
+        px: { xs: 1, sm: 2, md: 3 },
+        py: 1
+      }}>
+        <Grid container spacing={2}>
+          {/* Sección de Propiedades */}
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ 
+              p: 2, 
+              height: '100%',
+              borderRadius: 1,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+              bgcolor: '#111'
+            }}>
+              <PropertiesSection />
+            </Paper>
+          </Grid>
+
+          {/* Sección de Cuentas */}
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ 
+              p: 2, 
+              height: '100%',
+              borderRadius: 1,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+              bgcolor: '#111'
+            }}>
+              <FinanceSection />
+            </Paper>
+          </Grid>
         </Grid>
-
-        {/* Sección de Cuentas */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2, height: '100%' }}>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
-              Cuentas
-            </Typography>
-            <FinanceSection />
-          </Paper>
-        </Grid>
-      </Grid>
-
-
+      </Box>
     </Box>
   );
 }

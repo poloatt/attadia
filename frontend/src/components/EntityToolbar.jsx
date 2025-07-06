@@ -49,7 +49,8 @@ const EntityToolbar = ({
   icon,
   title,
   children,
-  onBack
+  onBack,
+  forceShow = false
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -77,6 +78,33 @@ const EntityToolbar = ({
     'proyectos',
     'tareas'
   ];
+
+  // Lista de rutas donde el EntityToolbar siempre debe estar presente
+  const alwaysShowToolbarRoutes = [
+    '', // Dashboard (ruta raíz)
+    'propiedades',
+    'habitaciones',
+    'contratos',
+    'inquilinos',
+    'inventario',
+    'lab',
+    'rutinas',
+    'salud',
+    'transacciones',
+    'cuentas',
+    'monedas',
+    'dieta',
+    'proyectos',
+    'tareas',
+    'datacorporal',
+    'recurrente'
+  ];
+
+  // Determinar si el toolbar debe mostrarse siempre para la página actual
+  const shouldAlwaysShowToolbar = alwaysShowToolbarRoutes.includes(currentPath);
+  
+  // El toolbar se muestra si está habilitado en configuración O si es una página que siempre debe mostrarlo O si forceShow está activado
+  const shouldShowToolbar = forceShow || showEntityToolbarNavigation || shouldAlwaysShowToolbar;
 
   // Mapeo de rutas a íconos
   const routeIcons = {
@@ -260,7 +288,7 @@ const EntityToolbar = ({
 
   const renderForm = () => {
     // No renderizar formulario si el EntityToolbar está oculto
-    if (!showEntityToolbarNavigation) {
+    if (!shouldShowToolbar) {
       return null;
     }
 
@@ -291,7 +319,7 @@ const EntityToolbar = ({
     <>
       <Box
         sx={{
-          display: showEntityToolbarNavigation ? 'flex' : 'none',
+          display: shouldShowToolbar ? 'flex' : 'none',
           alignItems: 'center',
           justifyContent: 'space-between',
           bgcolor: theme.palette.background.default,
@@ -359,7 +387,7 @@ const EntityToolbar = ({
               overflow: 'auto'
             }}>
               {/* Íconos de navegación a la izquierda */}
-              {showEntityToolbarNavigation && finalNavigationItems.length > 0 && (
+              {shouldShowToolbar && finalNavigationItems.length > 0 && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   {finalNavigationItems.slice(0, Math.ceil(finalNavigationItems.length / 2)).map((item, index) => (
                     <Tooltip
@@ -429,7 +457,7 @@ const EntityToolbar = ({
               )}
 
               {/* Íconos de navegación a la derecha */}
-              {showEntityToolbarNavigation && finalNavigationItems.length > 0 && (
+              {shouldShowToolbar && finalNavigationItems.length > 0 && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   {finalNavigationItems.slice(Math.ceil(finalNavigationItems.length / 2)).map((item, index) => (
                     <Tooltip
