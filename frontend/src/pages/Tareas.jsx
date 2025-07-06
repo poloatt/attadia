@@ -26,6 +26,7 @@ import { useSnackbar } from 'notistack';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useNavigationBar } from '../context/NavigationBarContext';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
+import { useActionHistory } from '../context/ActionHistoryContext';
 
 export function Tareas() {
   const [tareas, setTareas] = useState([]);
@@ -38,6 +39,7 @@ export function Tareas() {
   const location = useLocation();
   const { setTitle, setActions } = useNavigationBar();
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
+  const { addAction } = useActionHistory();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -91,7 +93,7 @@ export function Tareas() {
     fetchProyectos();
   }, [fetchTareas, fetchProyectos]);
 
-  // Escuchar evento del Header para abrir formulario cuando EntityToolbar esté oculto
+  // Escuchar eventos del Header
   useEffect(() => {
     const handleHeaderAddButton = (event) => {
       if (event.detail.type === 'tarea') {
@@ -100,9 +102,19 @@ export function Tareas() {
       }
     };
 
+    const handleUndoAction = (event) => {
+      const action = event.detail;
+      if (action.type === 'tarea') {
+        handleUndoAction(action);
+      }
+    };
+
     window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
+    window.addEventListener('undoAction', handleUndoAction);
+    
     return () => {
       window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
+      window.removeEventListener('undoAction', handleUndoAction);
     };
   }, []);
 
@@ -118,12 +130,36 @@ export function Tareas() {
 
       if (editingTarea) {
         console.log('Actualizando tarea:', editingTarea._id);
+        
+        // Guardar estado anterior para poder revertir
+        const previousState = { ...editingTarea };
+        
         response = await clienteAxios.put(`/api/tareas/${editingTarea._id}`, datosAEnviar);
         enqueueSnackbar('Tarea actualizada exitosamente', { variant: 'success' });
+        
+        // Registrar acción para poder revertir
+        addAction({
+          type: 'tarea',
+          action: 'update',
+          entityId: editingTarea._id,
+          previousState,
+          currentState: response.data,
+          timestamp: new Date().toISOString()
+        });
       } else {
         console.log('Creando nueva tarea');
         response = await clienteAxios.post('/api/tareas', datosAEnviar);
         enqueueSnackbar('Tarea creada exitosamente', { variant: 'success' });
+        
+        // Registrar acción para poder revertir
+        addAction({
+          type: 'tarea',
+          action: 'create',
+          entityId: response.data._id,
+          previousState: null,
+          currentState: response.data,
+          timestamp: new Date().toISOString()
+        });
       }
 
       console.log('Respuesta del servidor:', response.data);
@@ -152,14 +188,31 @@ export function Tareas() {
 
   const handleDelete = useCallback(async (id) => {
     try {
+      // Buscar la tarea antes de eliminarla para poder revertir
+      const tareaToDelete = tareas.find(t => t._id === id);
+      if (!tareaToDelete) {
+        throw new Error('Tarea no encontrada');
+      }
+      
       await clienteAxios.delete(`/api/tareas/${id}`);
       enqueueSnackbar('Tarea eliminada exitosamente', { variant: 'success' });
+      
+      // Registrar acción para poder revertir
+      addAction({
+        type: 'tarea',
+        action: 'delete',
+        entityId: id,
+        previousState: tareaToDelete,
+        currentState: null,
+        timestamp: new Date().toISOString()
+      });
+      
       await fetchTareas();
     } catch (error) {
       console.error('Error al eliminar tarea:', error);
       enqueueSnackbar('Error al eliminar la tarea', { variant: 'error' });
     }
-  }, [enqueueSnackbar, fetchTareas]);
+  }, [enqueueSnackbar, fetchTareas, tareas, addAction]);
 
   const handleUpdateEstado = (tareaActualizada) => {
     setTareas(prevTareas => 
@@ -169,6 +222,43 @@ export function Tareas() {
     );
     if (editingTarea && editingTarea._id === tareaActualizada._id) {
       setEditingTarea(tareaActualizada);
+    }
+  };
+
+  // Función para manejar la reversión de acciones
+  const handleUndoAction = async (action) => {
+    try {
+      switch (action.action) {
+        case 'create':
+          // Revertir creación: eliminar la tarea
+          await clienteAxios.delete(`/api/tareas/${action.entityId}`);
+          enqueueSnackbar('Creación de tarea revertida', { variant: 'success' });
+          break;
+          
+        case 'update':
+          // Revertir actualización: restaurar estado anterior
+          await clienteAxios.put(`/api/tareas/${action.entityId}`, action.previousState);
+          enqueueSnackbar('Actualización de tarea revertida', { variant: 'success' });
+          break;
+          
+        case 'delete':
+          // Revertir eliminación: recrear la tarea
+          await clienteAxios.post('/api/tareas', action.previousState);
+          enqueueSnackbar('Eliminación de tarea revertida', { variant: 'success' });
+          break;
+          
+        default:
+          console.warn('Tipo de acción no soportado para revertir:', action.action);
+          return;
+      }
+      
+      // Actualizar datos después de revertir
+      await fetchTareas();
+      await fetchProyectos();
+      
+    } catch (error) {
+      console.error('Error al revertir acción:', error);
+      enqueueSnackbar('Error al revertir la acción', { variant: 'error' });
     }
   };
 

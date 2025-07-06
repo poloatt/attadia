@@ -4,8 +4,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { 
   AccountBalanceWalletOutlined as WalletIcon,
   HealthAndSafety as HealthIcon,
-  AccessTimeOutlined as TimeIcon,
-  ApartmentOutlined as BuildingIcon
+  AccessTimeOutlined as TimeIcon
 } from '@mui/icons-material';
 
 /**
@@ -63,7 +62,6 @@ export default function BottomNavigation() {
   // Lista de elementos de navegación con nuevos nombres
   const navItems = [
     { icon: <WalletIcon />, label: 'Assets', path: '/dashboard' },
-    { icon: <BuildingIcon />, label: 'Props', path: '/propiedades' },
     { icon: <HealthIcon />, label: 'Health', path: '/rutinas' },
     { icon: <TimeIcon />, label: 'Time', path: '/tiempo' }
   ];

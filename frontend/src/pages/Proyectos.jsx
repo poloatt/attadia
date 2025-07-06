@@ -28,6 +28,7 @@ import ProyectoForm from '../components/proyectos/ProyectoForm';
 import { useNavigationBar } from '../context/NavigationBarContext';
 import TareaForm from '../components/proyectos/TareaForm';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
+import { useActionHistory } from '../context/ActionHistoryContext';
 import { useNavigate } from 'react-router-dom';
 
 export function Proyectos() {
@@ -42,6 +43,7 @@ export function Proyectos() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { setTitle, setActions } = useNavigationBar();
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
+  const { addAction } = useActionHistory();
   const navigate = useNavigate();
 
   const handleBack = () => {
@@ -87,7 +89,7 @@ export function Proyectos() {
     fetchProyectos();
   }, [fetchProyectos]);
 
-  // Escuchar evento del Header para abrir formulario cuando EntityToolbar esté oculto
+  // Escuchar eventos del Header
   useEffect(() => {
     const handleHeaderAddButton = (event) => {
       if (event.detail.type === 'proyecto') {
@@ -96,9 +98,19 @@ export function Proyectos() {
       }
     };
 
+    const handleUndoAction = (event) => {
+      const action = event.detail;
+      if (action.type === 'proyecto') {
+        handleUndoAction(action);
+      }
+    };
+
     window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
+    window.addEventListener('undoAction', handleUndoAction);
+    
     return () => {
       window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
+      window.removeEventListener('undoAction', handleUndoAction);
     };
   }, []);
 
@@ -112,11 +124,34 @@ export function Proyectos() {
 
       let response;
       if (editingProyecto) {
+        // Guardar estado anterior para poder revertir
+        const previousState = { ...editingProyecto };
+        
         response = await clienteAxios.put(`/api/proyectos/${editingProyecto._id || editingProyecto.id}`, dataToSend);
         enqueueSnackbar('Proyecto actualizado exitosamente', { variant: 'success' });
+        
+        // Registrar acción para poder revertir
+        addAction({
+          type: 'proyecto',
+          action: 'update',
+          entityId: editingProyecto._id || editingProyecto.id,
+          previousState,
+          currentState: response.data,
+          timestamp: new Date().toISOString()
+        });
       } else {
         response = await clienteAxios.post('/api/proyectos', dataToSend);
         enqueueSnackbar('Proyecto creado exitosamente', { variant: 'success' });
+        
+        // Registrar acción para poder revertir
+        addAction({
+          type: 'proyecto',
+          action: 'create',
+          entityId: response.data._id,
+          previousState: null,
+          currentState: response.data,
+          timestamp: new Date().toISOString()
+        });
       }
       setIsFormOpen(false);
       setEditingProyecto(null);
@@ -137,14 +172,31 @@ export function Proyectos() {
 
   const handleDelete = useCallback(async (id) => {
     try {
+      // Buscar el proyecto antes de eliminarlo para poder revertir
+      const proyectoToDelete = proyectos.find(p => p._id === id);
+      if (!proyectoToDelete) {
+        throw new Error('Proyecto no encontrado');
+      }
+      
       await clienteAxios.delete(`/api/proyectos/${id}`);
       enqueueSnackbar('Proyecto eliminado exitosamente', { variant: 'success' });
+      
+      // Registrar acción para poder revertir
+      addAction({
+        type: 'proyecto',
+        action: 'delete',
+        entityId: id,
+        previousState: proyectoToDelete,
+        currentState: null,
+        timestamp: new Date().toISOString()
+      });
+      
       await fetchProyectos();
     } catch (error) {
       console.error('Error al eliminar proyecto:', error);
       enqueueSnackbar('Error al eliminar el proyecto', { variant: 'error' });
     }
-  }, [enqueueSnackbar, fetchProyectos]);
+  }, [enqueueSnackbar, fetchProyectos, proyectos, addAction]);
 
   const handleUpdateTarea = useCallback(async (tareaActualizada) => {
     setProyectos(prevProyectos => 
@@ -195,6 +247,42 @@ export function Proyectos() {
     } catch (error) {
       console.error('Error al crear tarea:', error);
       enqueueSnackbar('Error al crear la tarea', { variant: 'error' });
+    }
+  };
+
+  // Función para manejar la reversión de acciones
+  const handleUndoAction = async (action) => {
+    try {
+      switch (action.action) {
+        case 'create':
+          // Revertir creación: eliminar el proyecto
+          await clienteAxios.delete(`/api/proyectos/${action.entityId}`);
+          enqueueSnackbar('Creación de proyecto revertida', { variant: 'success' });
+          break;
+          
+        case 'update':
+          // Revertir actualización: restaurar estado anterior
+          await clienteAxios.put(`/api/proyectos/${action.entityId}`, action.previousState);
+          enqueueSnackbar('Actualización de proyecto revertida', { variant: 'success' });
+          break;
+          
+        case 'delete':
+          // Revertir eliminación: recrear el proyecto
+          await clienteAxios.post('/api/proyectos', action.previousState);
+          enqueueSnackbar('Eliminación de proyecto revertida', { variant: 'success' });
+          break;
+          
+        default:
+          console.warn('Tipo de acción no soportado para revertir:', action.action);
+          return;
+      }
+      
+      // Actualizar datos después de revertir
+      await fetchProyectos();
+      
+    } catch (error) {
+      console.error('Error al revertir acción:', error);
+      enqueueSnackbar('Error al revertir la acción', { variant: 'error' });
     }
   };
 

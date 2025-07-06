@@ -17,7 +17,7 @@ router.get('/colores', monedasController.getColores);
 
 // Rutas base del controlador
 router.get('/', monedasController.getAll);
-router.post('/', [checkRole([ROLES.ADMIN])], monedasController.create);
+router.post('/', monedasController.create);
 
 // Rutas con parámetros (deben ir al final)
 router.get('/:id', monedasController.getById);

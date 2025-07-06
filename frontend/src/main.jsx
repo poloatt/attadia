@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { SidebarProvider } from './context/SidebarContext'
 import { UISettingsProvider } from './context/UISettingsContext'
+import { ActionHistoryProvider } from './context/ActionHistoryContext'
 import App from './App'
 import axios from 'axios'
 import './index.css'
@@ -42,9 +43,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter {...router}>
       <AuthProvider>
         <UISettingsProvider>
-          <SidebarProvider>
-            <App />
-          </SidebarProvider>
+          <ActionHistoryProvider>
+            <SidebarProvider>
+              <App />
+            </SidebarProvider>
+          </ActionHistoryProvider>
         </UISettingsProvider>
       </AuthProvider>
     </BrowserRouter>
