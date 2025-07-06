@@ -208,8 +208,12 @@ class ContratosController extends BaseController {
         }
         return contratoObj;
       });
+<<<<<<< HEAD
       // Devuelve los contratos formateados
       return res.json(contratosFormateados);
+=======
+      res.json({ docs: contratosFormateados });
+>>>>>>> a7ba1bb (controller)
     } catch (error) {
       console.error('Error al obtener contratos con estado actual:', error);
       res.status(500).json({ error: 'Error al obtener contratos con estado actual' });
