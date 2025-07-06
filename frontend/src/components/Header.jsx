@@ -11,7 +11,8 @@ import {
   Visibility as ShowValuesIcon,
   VisibilityOff as HideValuesIcon,
   AddOutlined as AddIcon,
-  Undo as UndoIcon
+  Undo as UndoIcon,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { useSidebar } from '../context/SidebarContext';
 import { useUISettings } from '../context/UISettingsContext';
@@ -307,6 +308,17 @@ export default function Header() {
               </IconButton>
             </Tooltip>
           )}
+
+          {/* Botón de recargar app */}
+          <Tooltip title="Recargar app">
+            <IconButton 
+              size="small"
+              onClick={() => window.location.reload()}
+              sx={{ color: 'inherit', '&:hover': { color: 'text.primary' } }}
+            >
+              <RefreshIcon sx={{ fontSize: 20 }} />
+            </IconButton>
+          </Tooltip>
         </Box>
       </Toolbar>
     </AppBar>
