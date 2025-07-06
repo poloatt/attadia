@@ -142,6 +142,7 @@ class ContratosController extends BaseController {
   async getConEstadoActual(req, res) {
     try {
       console.log('Obteniendo contratos con estado actual...');
+      console.log('Usuario autenticado:', req.user);
       // Verificar si hay un usuario autenticado
       if (!req.user) {
         console.log('No hay usuario autenticado');
@@ -153,12 +154,23 @@ class ContratosController extends BaseController {
         usuario: new mongoose.Types.ObjectId(usuario || req.user.id)
       };
       console.log('Filtros aplicados:', filtros);
+      console.log('ID del usuario:', req.user.id);
+      console.log('Tipo de ID del usuario:', typeof req.user.id);
       // LOG: contar todos los contratos
       const totalContratos = await this.Model.countDocuments();
       console.log('Total de contratos en la base de datos:', totalContratos);
       // LOG: contar contratos que matchean el filtro
       const totalFiltrados = await this.Model.countDocuments(filtros);
       console.log('Contratos que matchean el filtro:', totalFiltrados);
+      // LOG: verificar algunos contratos para debug
+      const algunosContratos = await this.Model.find().limit(5);
+      console.log('Algunos contratos en la BD:', algunosContratos.map(c => ({
+        id: c._id,
+        usuario: c.usuario,
+        tipoUsuario: typeof c.usuario,
+        esString: typeof c.usuario === 'string',
+        esObjectId: c.usuario instanceof mongoose.Types.ObjectId
+      })));
       // Obtener contratos con populate pero sin lean para mantener virtuals
       const contratos = await this.Model.find(filtros)
         .populate(this.options.populate);
