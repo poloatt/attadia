@@ -29,7 +29,7 @@ class HabitacionesController extends BaseController {
   // GET /api/habitaciones
   async getAll(req, res) {
     try {
-      const habitaciones = await this.Model.find()
+      const habitaciones = await this.Model.find({ usuario: req.user._id })
         .populate(['propiedad', 'inventarios'])
         .sort({ createdAt: 'desc' });
 
@@ -46,13 +46,21 @@ class HabitacionesController extends BaseController {
     try {
       const data = {
         ...req.body,
-        propiedad: req.body.propiedadId
+        propiedad: req.body.propiedadId,
+        usuario: req.user._id // Agregar el usuario del request
       };
+
+      // Limpiar nombrePersonalizado si no es OTRO
+      if (data.tipo !== 'OTRO') {
+        data.nombrePersonalizado = undefined;
+      }
 
       // Validación adicional para nombrePersonalizado
       if (data.tipo === 'OTRO' && (!data.nombrePersonalizado || data.nombrePersonalizado.trim() === '')) {
         throw new Error('Por favor, especifica el tipo de habitación personalizado');
       }
+
+      console.log('Datos a crear habitación:', data);
 
       const habitacion = await this.Model.create(data);
       const populatedHabitacion = await this.Model.findById(habitacion._id)
@@ -72,7 +80,10 @@ class HabitacionesController extends BaseController {
   async getAllByPropiedad(req, res) {
     try {
       const { propiedadId } = req.params;
-      const habitaciones = await this.Model.find({ propiedad: propiedadId })
+      const habitaciones = await this.Model.find({ 
+        propiedad: propiedadId,
+        usuario: req.user._id 
+      })
         .populate(['propiedad', 'inventarios'])
         .sort({ createdAt: 'desc' });
 
@@ -128,13 +139,21 @@ class HabitacionesController extends BaseController {
       const { id } = req.params;
       const data = {
         ...req.body,
-        propiedad: req.body.propiedadId
+        propiedad: req.body.propiedadId,
+        usuario: req.user._id // Agregar el usuario del request
       };
+
+      // Limpiar nombrePersonalizado si no es OTRO
+      if (data.tipo !== 'OTRO') {
+        data.nombrePersonalizado = undefined;
+      }
 
       // Validación adicional para nombrePersonalizado
       if (data.tipo === 'OTRO' && (!data.nombrePersonalizado || data.nombrePersonalizado.trim() === '')) {
         throw new Error('Por favor, especifica el tipo de habitación personalizado');
       }
+
+      console.log('Datos a actualizar habitación:', data);
 
       const habitacion = await this.Model.findByIdAndUpdate(
         id,

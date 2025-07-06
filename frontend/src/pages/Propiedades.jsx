@@ -31,7 +31,8 @@ import {
   Inventory2Outlined as InventoryIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
-  HomeWork
+  HomeWork,
+  AccountBalanceWalletOutlined as WalletIcon
 } from '@mui/icons-material';
 import { snackbar } from '../components/common/snackbarUtils';
 import { useAuth } from '../context/AuthContext';
@@ -42,7 +43,7 @@ import BathtubOutlinedIcon from '@mui/icons-material/BathtubOutlined';
 import EntityForm from '../components/EntityViews/EntityForm';
 import { useNavigate } from 'react-router-dom';
 import clienteAxios from '../config/axios';
-import EntityToolbar from '../components/EntityToolbar';
+
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import EntityCards from '../components/EntityViews/EntityCards';
 import EmptyState from '../components/EmptyState';
@@ -432,37 +433,7 @@ export function Propiedades() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar
-        onAdd={() => {
-          setEditingPropiedad(null);
-          setIsFormOpen(true);
-        }}
-        onBack={handleBack}
-        searchPlaceholder="Buscar propiedades..."
-        onSearch={handleSearch}
-        navigationItems={[
-          {
-            icon: <BedIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Habitaciones',
-            to: '/habitaciones'
-          },
-          {
-            icon: <PeopleIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Inquilinos',
-            to: '/inquilinos'
-          },
-          {
-            icon: <DescriptionIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Contratos',
-            to: '/contratos'
-          },
-          {
-            icon: <InventoryIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Inventario',
-            to: '/inventario'
-          }
-        ]}
-      />
+
 
       <EntityDetails 
         title="Propiedades"

@@ -69,7 +69,9 @@ habitacionSchema.pre('save', async function(next) {
         throw new Error('La propiedad especificada no existe');
       }
       
-      if (propiedad.usuario.toString() !== this.usuario.toString()) {
+      // Verificar que el usuario de la propiedad coincida con el usuario de la habitación
+      if (propiedad.usuario && this.usuario && 
+          propiedad.usuario.toString() !== this.usuario.toString()) {
         throw new Error('No tienes permiso para crear habitaciones en esta propiedad');
       }
     } catch (error) {
@@ -82,13 +84,6 @@ habitacionSchema.pre('save', async function(next) {
 // Middleware para filtrar por usuario en las consultas
 habitacionSchema.pre(/^find/, function() {
   this.populate('propiedad');
-  if (this._conditions.usuario) {
-    const userId = this._conditions.usuario;
-    this._conditions.$or = [
-      { usuario: userId },
-      { 'propiedad.usuario': userId }
-    ];
-  }
 });
 
 export const Habitaciones = mongoose.model('Habitaciones', habitacionSchema); 

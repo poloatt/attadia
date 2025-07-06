@@ -79,8 +79,21 @@ const EntityToolbar = ({
     'tareas'
   ];
 
-  // El toolbar se muestra SOLO si está habilitado en configuración O si forceShow está activado
-  const shouldShowToolbar = forceShow || showEntityToolbarNavigation;
+  // Lista de rutas que siempre muestran la toolbar de navegación
+  const alwaysShowToolbarRoutes = [
+    'inventario',
+    'dashboard',
+    'transacciones', 
+    'propiedades'
+  ];
+
+  // El toolbar se muestra si:
+  // 1. Está habilitado en configuración O
+  // 2. forceShow está activado O  
+  // 3. Estamos en una ruta que siempre debe mostrar la toolbar
+  const shouldShowToolbar = forceShow || 
+                           showEntityToolbarNavigation || 
+                           alwaysShowToolbarRoutes.includes(currentPath);
 
   // Mapeo de rutas a íconos
   const routeIcons = {
@@ -141,6 +154,11 @@ const EntityToolbar = ({
       // Verificar si se trata de la página de rutinas
       if (currentBase === '/rutinas' && itemPath === '/rutinas') {
         return false;
+      }
+      
+      // Para las rutas que siempre muestran toolbar, mostrar todos los elementos
+      if (alwaysShowToolbarRoutes.includes(currentPath)) {
+        return true;
       }
       
       // Verificar si el item coincide con la página actual (para otras páginas que no sean rutinas)

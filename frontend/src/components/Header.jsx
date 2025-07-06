@@ -163,18 +163,16 @@ export default function Header() {
   };
 
   // Rutas donde se debe mostrar el botón de agregar cuando el EntityToolbar esté oculto
+  // Excluimos inventario, transacciones y propiedades porque tienen el botón en la toolbar
   const showAddButton = !showEntityToolbarNavigation && [
     '/proyectos',
     '/tareas',
-    '/propiedades',
-    '/transacciones',
     '/cuentas',
     '/monedas',
     '/rutinas',
     '/inquilinos',
     '/contratos',
     '/habitaciones',
-    '/inventario',
     '/recurrente'
   ].includes(location.pathname);
 
