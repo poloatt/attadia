@@ -197,17 +197,15 @@ const ContratoCard = ({ contrato, onEdit, onDelete, isDashboard = false, isExpan
   return (
     <StyledCard sx={{ bgcolor: 'background.default' }}>
       {/* Header con título y acciones */}
-      <Box sx={{ 
-        p: 1.5, 
-        pb: 1,
-        display: 'flex', 
+      <Box sx={{
+        display: 'flex',
         flexDirection: 'column',
         gap: 1,
         bgcolor: 'background.default'
       }}>
         {/* Título y botones de acción */}
-        <Box sx={{ 
-          display: 'flex', 
+        <Box sx={{
+          display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           width: '100%'
@@ -327,7 +325,7 @@ const ContratoCard = ({ contrato, onEdit, onDelete, isDashboard = false, isExpan
         </Box>
         {/* Vista compacta solo en colapsado */}
         {!isExpanded && (
-          <CardContent sx={{ p: 1, pb: 0.5 }}>
+          <CardContent sx={{ p: 0, pb: 0.5 }}>
             {/* Barra de progreso del contrato en vista colapsada */}
             {progresoContrato.tieneContrato && (
               <Box sx={{ mb: 1 }}>
@@ -381,7 +379,6 @@ const ContratoCard = ({ contrato, onEdit, onDelete, isDashboard = false, isExpan
                   alignItems: 'center', 
                   gap: 1,
                   justifyContent: 'space-between',
-                  bgcolor: 'rgba(255, 255, 255, 0.02)',
                   p: 1,
                   borderRadius: 0
                 }}>
@@ -405,7 +402,6 @@ const ContratoCard = ({ contrato, onEdit, onDelete, isDashboard = false, isExpan
                     display: 'flex', 
                     alignItems: 'center', 
                     gap: 1,
-                    bgcolor: 'rgba(255, 255, 255, 0.02)',
                     p: 1,
                     borderRadius: 0
                   }}>
@@ -422,10 +418,10 @@ const ContratoCard = ({ contrato, onEdit, onDelete, isDashboard = false, isExpan
       </Box>
 
       {isExpanded && (
-        <CardContent sx={{ 
-          p: 1, 
-          pb: 0.5, 
-          maxHeight: 400, 
+        <CardContent sx={{
+          p: 0,
+          pb: 0.5,
+          maxHeight: 400,
           overflowY: 'auto',
           '&:last-child': { pb: 0.5 },
           bgcolor: 'background.default',
@@ -505,7 +501,6 @@ const ContratoCard = ({ contrato, onEdit, onDelete, isDashboard = false, isExpan
                   alignItems: 'center', 
                   gap: 1,
                   justifyContent: 'space-between',
-                  bgcolor: 'rgba(255, 255, 255, 0.02)',
                   p: 1,
                   borderRadius: 0
                 }}>
@@ -529,7 +524,6 @@ const ContratoCard = ({ contrato, onEdit, onDelete, isDashboard = false, isExpan
                     display: 'flex', 
                     alignItems: 'center', 
                     gap: 1,
-                    bgcolor: 'rgba(255, 255, 255, 0.02)',
                     p: 1,
                     borderRadius: 0
                   }}>

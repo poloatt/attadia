@@ -4,7 +4,8 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { 
   AccountBalanceWalletOutlined as WalletIcon,
   HealthAndSafety as HealthIcon,
-  AccessTimeOutlined as TimeIcon
+  AccessTimeOutlined as TimeIcon,
+  ApartmentOutlined as BuildingIcon
 } from '@mui/icons-material';
 
 /**
@@ -32,6 +33,16 @@ export default function BottomNavigation() {
       return true;
     }
     
+    if (path === '/propiedades') {
+      // Considerar como activo para propiedades y páginas relacionadas
+      return location.pathname === '/propiedades' || 
+             location.pathname.startsWith('/propiedades/') ||
+             location.pathname === '/habitaciones' || 
+             location.pathname === '/contratos' || 
+             location.pathname === '/inquilinos' ||
+             location.pathname === '/inventario';
+    }
+    
     if (path === '/rutinas') {
       // Considerar como activo para rutinas y páginas relacionadas
       return location.pathname === '/rutinas' || 
@@ -52,6 +63,7 @@ export default function BottomNavigation() {
   // Lista de elementos de navegación con nuevos nombres
   const navItems = [
     { icon: <WalletIcon />, label: 'Assets', path: '/dashboard' },
+    { icon: <BuildingIcon />, label: 'Props', path: '/propiedades' },
     { icon: <HealthIcon />, label: 'Health', path: '/rutinas' },
     { icon: <TimeIcon />, label: 'Time', path: '/tiempo' }
   ];

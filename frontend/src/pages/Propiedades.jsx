@@ -431,7 +431,7 @@ export function Propiedades() {
   }
 
   return (
-    <Box sx={{ px: 0 }}>
+    <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar
         onAdd={() => {
           setEditingPropiedad(null);
