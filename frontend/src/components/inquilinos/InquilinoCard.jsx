@@ -6,8 +6,11 @@ import {
   Chip,
   Avatar,
   IconButton,
-  Tooltip
+  Tooltip,
+  Divider,
+  LinearProgress
 } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import {
   Email as EmailIcon,
   Phone as PhoneIcon,
@@ -19,10 +22,89 @@ import {
   OpenInNew as OpenIcon,
   CalendarToday as CalendarIcon,
   Description as ContractIcon,
-  Visibility as ViewIcon
+  Visibility as ViewIcon,
+  CheckCircle as CheckIcon,
+  PendingActions as PendingIcon,
+  BookmarkAdded as ReservedIcon,
+  Person as PersonIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import InquilinoDetail from './InquilinoDetail';
+import ContratoDetail from '../contratos/ContratoDetail';
+
+// Componentes estilizados siguiendo la estética geométrica
+const StyledPaper = styled(Paper)(({ theme }) => ({
+  borderRadius: 0,
+  border: '1px solid',
+  borderColor: theme.palette.divider,
+  backgroundColor: theme.palette.background.default,
+  transition: 'all 0.2s ease',
+  position: 'relative',
+  overflow: 'hidden',
+  '&:hover': {
+    borderColor: theme.palette.primary.main,
+    transform: 'translateY(-2px)',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+  }
+}));
+
+const StyledAvatar = styled(Avatar)(({ theme }) => ({
+  borderRadius: '50%',
+  width: 48,
+  height: 48,
+  backgroundColor: theme.palette.primary.main,
+  fontSize: '1rem',
+  fontWeight: 600
+}));
+
+const StyledIconButton = styled(IconButton)(({ theme }) => ({
+  borderRadius: 0,
+  padding: theme.spacing(0.5),
+  color: theme.palette.text.secondary,
+  transition: 'all 0.2s ease',
+  '&:hover': {
+    backgroundColor: theme.palette.action.hover,
+    color: theme.palette.primary.main
+  }
+}));
+
+const STATUS_COLORS = {
+  'ACTIVO': '#4caf50',
+  'RESERVADO': '#ff9800',
+  'PENDIENTE': '#2196f3',
+  'INACTIVO': '#9e9e9e'
+};
+const STATUS_ICONS = {
+  'ACTIVO': <CheckIcon sx={{ fontSize: '0.9rem', color: STATUS_COLORS['ACTIVO'] }} />,
+  'RESERVADO': <ReservedIcon sx={{ fontSize: '0.9rem', color: STATUS_COLORS['RESERVADO'] }} />,
+  'PENDIENTE': <PendingIcon sx={{ fontSize: '0.9rem', color: STATUS_COLORS['PENDIENTE'] }} />,
+  'INACTIVO': <PersonIcon sx={{ fontSize: '0.9rem', color: STATUS_COLORS['INACTIVO'] }} />
+};
+
+const InfoRow = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(1),
+  padding: theme.spacing(0.5, 0),
+  '& .MuiSvgIcon-root': {
+    fontSize: 16,
+    color: theme.palette.text.secondary,
+    flexShrink: 0
+  }
+}));
+
+const ActionBar = styled(Box)(({ theme }) => ({
+  position: 'absolute',
+  top: 8,
+  right: 8,
+  display: 'flex',
+  gap: 2,
+  backgroundColor: theme.palette.background.paper,
+  border: '1px solid',
+  borderColor: theme.palette.divider,
+  padding: theme.spacing(0.25),
+  borderRadius: 0
+}));
 
 const InquilinoCard = ({ 
   inquilino, 
@@ -33,6 +115,7 @@ const InquilinoCard = ({
 }) => {
   const navigate = useNavigate();
   const [detailOpen, setDetailOpen] = React.useState(false);
+  const [contratoDetailOpen, setContratoDetailOpen] = React.useState(false);
   
   const {
     _id,
@@ -41,29 +124,29 @@ const InquilinoCard = ({
     email,
     telefono,
     dni,
-    estado = 'PENDIENTE',
+    estadoActual = 'PENDIENTE',
     contratosClasificados = {}
   } = inquilino;
 
-  const getStatusColor = (status) => {
-    const statusColors = {
-      'ACTIVO': 'success',
-      'RESERVADO': 'warning',
-      'INACTIVO': 'default',
-      'PENDIENTE': 'info',
-      'SIN_CONTRATO': 'info'
+  const getStatusIcon = (status) => {
+    const statusIcons = {
+      'ACTIVO': CheckIcon,
+      'RESERVADO': ReservedIcon,
+      'PENDIENTE': PendingIcon,
+      'INACTIVO': PersonIcon
     };
-    return statusColors[status] || 'default';
+    return statusIcons[status] || PersonIcon;
   };
 
-  const getStatusLabel = (status) => {
-    const statusLabels = {
-      'ACTIVO': 'Activo',
-      'RESERVADO': 'Reservado',
-      'INACTIVO': 'Inactivo',
-      'PENDIENTE': 'Pendiente'
+  const getStatusColor = (status) => {
+    const statusColors = {
+      'ACTIVO': '#4caf50',
+      'RESERVADO': '#ff9800',
+      'INACTIVO': '#9e9e9e',
+      'PENDIENTE': '#2196f3',
+      'SIN_CONTRATO': '#2196f3'
     };
-    return statusLabels[status] || status;
+    return statusColors[status] || '#9e9e9e';
   };
 
   const getInitials = () => {
@@ -124,176 +207,183 @@ const InquilinoCard = ({
 
   return (
     <>
-      <Paper
+      <StyledPaper
         elevation={0}
         sx={{
           p: 2,
           height: '100%',
-          border: '1px solid',
-          borderColor: 'divider',
-          backgroundColor: 'background.default',
-          transition: 'all 0.2s ease',
-          position: 'relative',
-          borderRadius: 0,
-          // Línea superior sutil verde para inquilinos activos
-          borderTop: estado === 'ACTIVO' ? '3px solid' : '1px solid',
-          borderTopColor: estado === 'ACTIVO' ? 'success.main' : 'divider',
-          '&:hover': {
-            borderColor: 'primary.main',
-            transform: 'translateY(-2px)',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-          }
+          // Línea superior sutil para inquilinos activos
+          borderTop: estadoActual === 'ACTIVO' ? '3px solid' : '1px solid',
+          borderTopColor: estadoActual === 'ACTIVO' ? getStatusColor(estadoActual) : 'divider',
         }}
       >
-        {/* Action Items en la esquina superior derecha */}
+        {/* Barra de acciones */}
         {showActions && (
-          <Box sx={{
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            display: 'flex',
-            gap: 0.25
-          }}>
+          <ActionBar>
             <Tooltip title="Ver detalle">
-              <IconButton 
-                size="small" 
-                onClick={handleOpenDetail}
-                sx={{ 
-                  color: 'text.secondary',
-                  padding: 0.25,
-                  '&:hover': { color: 'primary.main' }
-                }}
-              >
+              <StyledIconButton size="small" onClick={handleOpenDetail}>
                 <ViewIcon sx={{ fontSize: '1rem' }} />
-              </IconButton>
+              </StyledIconButton>
             </Tooltip>
             
             <Tooltip title="Editar">
-              <IconButton 
-                size="small" 
-                onClick={() => onEdit(inquilino)}
-                sx={{ 
-                  color: 'text.secondary',
-                  padding: 0.25,
-                  '&:hover': { color: 'primary.main' }
-                }}
-              >
+              <StyledIconButton size="small" onClick={() => onEdit(inquilino)}>
                 <EditIcon sx={{ fontSize: '1rem' }} />
-              </IconButton>
+              </StyledIconButton>
             </Tooltip>
             
-            {/* Botón de crear contrato - visible para todos */}
+            {/* Botón de crear contrato */}
             {onCreateContract && (
-              <Tooltip title="Crear contrato para este inquilino">
-                <IconButton 
+              <Tooltip title="Crear contrato">
+                <StyledIconButton 
                   size="small" 
                   onClick={() => onCreateContract(inquilino)}
-                  sx={{ 
-                    color: 'success.main',
-                    padding: 0.25,
-                    '&:hover': { 
-                      backgroundColor: 'success.light',
-                      color: 'success.dark'
-                    }
-                  }}
                 >
                   <AddIcon sx={{ fontSize: '1rem' }} />
-                </IconButton>
+                </StyledIconButton>
               </Tooltip>
             )}
             
             <Tooltip title="Eliminar">
-              <IconButton 
+              <StyledIconButton 
                 size="small" 
                 onClick={() => onDelete(inquilino)}
-                sx={{ 
-                  color: 'error.light',
-                  padding: 0.25,
-                  '&:hover': { color: 'error.main' }
-                }}
               >
                 <DeleteIcon sx={{ fontSize: '1rem' }} />
-              </IconButton>
+              </StyledIconButton>
             </Tooltip>
-          </Box>
+          </ActionBar>
         )}
 
         {/* Contenido Principal */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 2, pr: showActions ? 6 : 0 }}>
-          <Avatar 
-            sx={{ 
-              width: 48, 
-              height: 48,
-              bgcolor: 'primary.main',
-              fontSize: '1rem'
-            }}
-          >
+        <Box sx={{ display: 'flex', gap: 2, mb: 2, pr: showActions ? 8 : 0 }}>
+          <StyledAvatar>
             {getInitials()}
-          </Avatar>
+          </StyledAvatar>
 
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 500, mb: 0.5 }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            {/* Nombre */}
+            <Typography 
+              variant="subtitle1" 
+              sx={{ 
+                fontWeight: 600, 
+                flex: 1,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}
+            >
               {nombre} {apellido}
             </Typography>
-
-            {/* Detalles */}
+            {/* Chip de estado debajo del nombre */}
+            <Tooltip title={inquilino.estadoDescripcion || ''} disableHoverListener={!inquilino.estadoDescripcion} arrow>
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '2px 4px',
+                  fontSize: '0.75rem',
+                  color: STATUS_COLORS[estadoActual] || '#9e9e9e',
+                  height: '20px',
+                  marginTop: 0.5,
+                  marginBottom: 0.5
+                }}
+              >
+                {STATUS_ICONS[estadoActual]}
+                {inquilino.estadoLabel || estadoActual}
+              </Box>
+            </Tooltip>
+            {/* Información de contacto */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               {email && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <EmailIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                  <Typography variant="body2" color="text.secondary">
+                <InfoRow>
+                  <EmailIcon />
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
                     {email}
                   </Typography>
-                </Box>
+                </InfoRow>
               )}
               {telefono && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <PhoneIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                  <Typography variant="body2" color="text.secondary">
+                <InfoRow>
+                  <PhoneIcon />
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
                     {telefono}
                   </Typography>
-                </Box>
+                </InfoRow>
               )}
               {dni && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <BadgeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                <InfoRow>
+                  <BadgeIcon />
                   <Typography variant="body2" color="text.secondary">
                     DNI: {dni}
                   </Typography>
-                </Box>
-              )}
-              {/* Solo mostrar propiedad y duración si hay contrato actual y fechas válidas */}
-              {contratoActual && contratoActual.propiedad && contratoActual.fechaInicio && contratoActual.fechaFin && (
-                <>
-                  <Box 
-                    onClick={() => handleContratoClick(contratoActual)}
-                    sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: 1,
-                      cursor: 'pointer',
-                      '&:hover': { color: 'primary.main' }
-                    }}
-                  >
-                    <ContractIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                    <Typography variant="body2" color="text.secondary">
-                      {contratoActual.propiedad?.titulo || contratoActual.propiedad?.nombre || 'Propiedad'}
-                    </Typography>
-                    <OpenIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                    <Typography variant="body2" color="text.secondary">
-                      {new Date(contratoActual.fechaInicio).toLocaleDateString()} - {new Date(contratoActual.fechaFin).toLocaleDateString()}
-                      {' • '}{formatContratoDuration(contratoActual.fechaInicio, contratoActual.fechaFin)}
-                    </Typography>
-                  </Box>
-                </>
+                </InfoRow>
               )}
             </Box>
           </Box>
         </Box>
-      </Paper>
+
+        {/* Información del contrato */}
+        {contratoActual && contratoActual.propiedad && contratoActual.fechaInicio && contratoActual.fechaFin && (
+          <>
+            <Divider sx={{ my: 1, opacity: 0.5 }} />
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 1.5,
+              px: 0,
+              py: 0,
+              width: '100%',
+              margin: 0
+            }}>
+              <ContractIcon sx={{ fontSize: 24, color: 'primary.main', mt: 0.2 }} />
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 500,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      color: 'text.primary',
+                      flex: 1
+                    }}
+                    component="span"
+                  >
+                    {contratoActual.propiedad?.titulo || contratoActual.propiedad?.nombre || 'Propiedad'}
+                  </Typography>
+                  <Tooltip title="Ver detalle del contrato">
+                    <StyledIconButton size="small" onClick={() => setContratoDetailOpen(true)}>
+                      <ViewIcon sx={{ fontSize: 18 }} />
+                    </StyledIconButton>
+                  </Tooltip>
+                </Box>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.1, lineHeight: 1.2 }}>
+                  {new Date(contratoActual.fechaInicio).toLocaleDateString()} - {new Date(contratoActual.fechaFin).toLocaleDateString()} • {formatContratoDuration(contratoActual.fechaInicio, contratoActual.fechaFin)}
+                </Typography>
+              </Box>
+            </Box>
+          </>
+        )}
+      </StyledPaper>
 
       {/* Popup de detalle */}
       <InquilinoDetail
@@ -303,6 +393,16 @@ const InquilinoCard = ({
         onEdit={onEdit}
         onDelete={onDelete}
       />
+      {/* Modal de detalle de contrato */}
+      {contratoActual && (
+        <ContratoDetail
+          open={contratoDetailOpen}
+          onClose={() => setContratoDetailOpen(false)}
+          contrato={contratoActual}
+          onEdit={() => { setContratoDetailOpen(false); navigate('/contratos', { state: { editContract: true, contratoId: contratoActual._id } }); }}
+          onDelete={() => setContratoDetailOpen(false)}
+        />
+      )}
     </>
   );
 };

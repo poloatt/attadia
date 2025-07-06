@@ -129,6 +129,32 @@ const InquilinoForm = ({
           </IconButton>
         </Box>
 
+        {/* Estado informativo si existe */}
+        {initialData && (initialData.estadoLabel || initialData.estadoDescripcion) && (
+          <Box sx={{ px: 3, pt: 1, pb: 0 }}>
+            <Box
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '2px 4px',
+                fontSize: '0.75rem',
+                color: '#2196f3',
+                height: '20px',
+                mb: 0.5
+              }}
+            >
+              {/* Icono según estado si lo deseas, aquí solo color info */}
+              {initialData.estadoLabel}
+            </Box>
+            {initialData.estadoDescripcion && (
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0, mb: 0.5 }}>
+                {initialData.estadoDescripcion}
+              </Typography>
+            )}
+          </Box>
+        )}
+
         <DialogContent>
           {isLoading && (
             <Box sx={{ width: '100%', mb: 2 }}>

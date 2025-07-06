@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Container, Box } from '@mui/material';
+import { Container, Box, Button, Fab } from '@mui/material';
 
 import { 
   AccountBalanceOutlined as BankIcon,
@@ -9,8 +9,9 @@ import {
   ApartmentOutlined as BuildingIcon,
   Inventory2Outlined as InventoryIcon
 } from '@mui/icons-material';
-import { Button } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import PaidIcon from '@mui/icons-material/Paid';
+import FabNuevaTransaccion from '../components/transacciones/FabNuevaTransaccion';
 
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
@@ -222,11 +223,10 @@ export function Transacciones() {
     setIsFormOpen(true);
   }, []);
 
-
-
   return (
-    <Box sx={{ px: 0, width: '100%' }}>
+    <Box sx={{ px: 0, width: '100%', position: 'relative', minHeight: '80vh', bgcolor: 'background.default' }}>
 
+      <FabNuevaTransaccion onClick={handleOpenForm} />
 
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>

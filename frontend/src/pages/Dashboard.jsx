@@ -35,6 +35,73 @@ import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 import { StatusChip } from '../components/propiedades/PropiedadCard';
 import { STATUS_ICONS, STATUS_COLORS } from '../components/propiedades/PropiedadCard';
 
+// Función para calcular el progreso de ocupación de la propiedad (copiada de PropiedadCard.jsx)
+const calcularProgresoOcupacion = (propiedad) => {
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  // Encontrar contrato activo
+  const contratoActivo = (propiedad.contratos || []).find(contrato => {
+    const inicio = new Date(contrato.fechaInicio);
+    const fin = new Date(contrato.fechaFin);
+    return inicio <= hoy && fin >= hoy && contrato.estado === 'ACTIVO';
+  });
+  if (!contratoActivo) {
+    return {
+      porcentaje: 0,
+      diasTranscurridos: 0,
+      diasTotales: 0,
+      diasRestantes: 0,
+      estadoTiempo: 'Sin contrato',
+      montoAcumulado: 0,
+      montoTotal: 0,
+      tieneContrato: false,
+      estado: 'DISPONIBLE',
+      contrato: null
+    };
+  }
+  const inicio = new Date(contratoActivo.fechaInicio);
+  inicio.setHours(0, 0, 0, 0);
+  const fin = new Date(contratoActivo.fechaFin);
+  fin.setHours(0, 0, 0, 0);
+  // Calcular días totales del contrato
+  const diasTotales = Math.max(0, Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24)));
+  // Calcular días transcurridos
+  const diasTranscurridos = Math.max(0, Math.min(diasTotales, Math.ceil((hoy - inicio) / (1000 * 60 * 60 * 24))));
+  // Calcular días restantes
+  const diasRestantes = Math.max(0, Math.ceil((fin - hoy) / (1000 * 60 * 60 * 24)));
+  // Estado textual
+  let estadoTiempo = '';
+  if (hoy < inicio) {
+    estadoTiempo = 'No iniciado';
+  } else if (hoy > fin) {
+    estadoTiempo = 'Finalizado';
+  } else {
+    estadoTiempo = `${diasRestantes} días restantes`;
+  }
+  // Calcular porcentaje
+  const porcentaje = diasTotales > 0 ? Math.min(100, (diasTranscurridos / diasTotales) * 100) : 0;
+  // Calcular montos (usando el precio de la propiedad)
+  const montoMensual = propiedad.precio || 0;
+  const montoAcumulado = (diasTranscurridos / 30) * montoMensual;
+  const montoTotal = (diasTotales / 30) * montoMensual;
+  // Determinar estado
+  let estado = 'OCUPADA';
+  if (contratoActivo.esMantenimiento || contratoActivo.tipoContrato === 'MANTENIMIENTO') {
+    estado = 'MANTENIMIENTO';
+  }
+  return {
+    porcentaje,
+    diasTranscurridos,
+    diasTotales,
+    diasRestantes,
+    estadoTiempo,
+    montoAcumulado,
+    montoTotal,
+    tieneContrato: true,
+    contrato: contratoActivo,
+    estado
+  };
+};
 
 export function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -541,12 +608,14 @@ export function Dashboard() {
                     </Box>
                     {/* Total de contratos */}
                     {(() => {
-                      const totalContratos = prop.contratos.reduce((total, contrato) => {
-                        return total + (contrato.montoMensual || 0);
-                      }, 0);
+                      // Calcular el progreso de ocupación para obtener el total correcto
+                      const progresoOcupacion = calcularProgresoOcupacion(prop);
+                      const totalContratos = progresoOcupacion.montoTotal;
                       
                       if (totalContratos > 0) {
-                        const simboloMoneda = prop.contratos[0]?.moneda?.simbolo || 
+                        const simboloMoneda = prop.cuenta?.moneda?.simbolo || 
+                                            prop.moneda?.simbolo || 
+                                            prop.contratos[0]?.moneda?.simbolo || 
                                             prop.contratos[0]?.cuenta?.moneda?.simbolo || '$';
                         
                         return (
