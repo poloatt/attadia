@@ -220,7 +220,7 @@ export function Inventario() {
   ];
 
   return (
-    <Container maxWidth="lg">
+    <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar
         onAdd={() => {
           setEditingItem(null);
@@ -283,7 +283,7 @@ export function Inventario() {
         initialData={editingItem || {}}
         isEditing={!!editingItem}
       />
-    </Container>
+    </Box>
   );
 }
 

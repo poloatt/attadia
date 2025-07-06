@@ -71,10 +71,10 @@ export function Habitaciones() {
     } catch (error) {
       console.error('Error al cargar habitaciones:', error);
       snackbar.error('Error al cargar habitaciones');
-          } finally {
-        setLoading(false);
-      }
-    }, []);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const fetchPropiedades = useCallback(async () => {
     try {
@@ -82,9 +82,9 @@ export function Habitaciones() {
       setPropiedades(response.data.docs || []);
     } catch (error) {
       console.error('Error al cargar propiedades:', error);
-                      snackbar.error('Error al cargar propiedades');
-      }
-    }, []);
+      snackbar.error('Error al cargar propiedades');
+    }
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -103,7 +103,7 @@ export function Habitaciones() {
       return response.data;
     } catch (error) {
       console.error('Error al crear propiedad:', error);
-              snackbar.error('Error al crear la propiedad');
+      snackbar.error('Error al crear la propiedad');
       throw error;
     }
   };
@@ -121,7 +121,7 @@ export function Habitaciones() {
       }
       setIsFormOpen(false);
       setEditingHabitacion(null);
-              snackbar.success('Habitación guardada exitosamente');
+      snackbar.success('Habitación guardada exitosamente');
       await fetchHabitaciones();
     } catch (error) {
       console.error('Error:', error);
@@ -332,7 +332,7 @@ export function Habitaciones() {
   ];
 
   return (
-    <Container maxWidth="lg">
+    <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar
         onAdd={() => {
           setEditingHabitacion(null);
@@ -409,7 +409,7 @@ export function Habitaciones() {
         initialData={editingHabitacion || {}}
         isEditing={!!editingHabitacion}
       />
-    </Container>
+    </Box>
   );
 }
 

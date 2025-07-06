@@ -211,7 +211,7 @@ export function Inquilinos() {
   }, [inquilinos]);
 
   return (
-    <Container maxWidth={false}>
+    <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar
         onAdd={() => setOpenForm(true)}
         onBack={handleBack}
@@ -293,7 +293,7 @@ export function Inquilinos() {
           onSubmit={() => { setOpenContratoForm(false); fetchInquilinos(); }}
         />
       )}
-    </Container>
+    </Box>
   );
 }
 

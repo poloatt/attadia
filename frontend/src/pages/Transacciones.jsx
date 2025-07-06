@@ -337,7 +337,7 @@ export function Transacciones() {
   ];
 
   return (
-    <Container maxWidth="xl" sx={{ p: 0 }}>
+    <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar
         title="Transacciones"
         onAdd={handleOpenForm}
@@ -403,7 +403,7 @@ export function Transacciones() {
           submitButtonText={editingTransaccion ? 'Actualizar' : 'Crear'}
         />
       )}
-    </Container>
+    </Box>
   );
 }
 

@@ -250,7 +250,11 @@ export function SidebarProvider({ children }) {
   };
 
   const expandSection = (sectionId) => {
-    setExpandedSections(prev => new Set([...prev, sectionId]));
+    if (isDesktop) {
+      setExpandedSections(new Set([sectionId])); // Solo una expandida en desktop
+    } else {
+      setExpandedSections(prev => new Set([...prev, sectionId])); // Comportamiento actual en móvil
+    }
   };
 
   const collapseSection = (sectionId) => {

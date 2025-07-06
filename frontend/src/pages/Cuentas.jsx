@@ -528,7 +528,7 @@ export function Cuentas() {
   }, [monedas, cuentas, balances, balancesPorMoneda]);
 
   return (
-    <Container maxWidth="lg" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
+    <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar
         onAdd={() => setIsFormOpen(true)}
         showBackButton={true}
@@ -726,7 +726,7 @@ export function Cuentas() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+    </Box>
   );
 }
 

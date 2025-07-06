@@ -409,7 +409,7 @@ export function Contratos() {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: 0, px: 0 }}>
+    <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar
         title="Contratos"
         onBack={handleBack}
@@ -439,91 +439,69 @@ export function Contratos() {
       />
 
       {/* Sección de Contratos Activos */}
-      <Box sx={{ mt: 0 }}>
-        <Box>
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between',
-            px: 2,
-            py: 1.5,
-            bgcolor: 'background.default',
-            borderBottom: 1,
-            borderColor: 'divider'
-          }}>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Contratos Activos ({contratosActivos.length})
-            </Typography>
-            <IconButton
-              onClick={() => setIsActiveContractsExpanded(!isActiveContractsExpanded)}
-              size="small"
-            >
-              {isActiveContractsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </IconButton>
-          </Box>
-          <Collapse in={isActiveContractsExpanded}>
-            {contratosActivos.length === 0 ? (
-              <EmptyState
-                icon={DescriptionIcon}
-                title="No hay contratos activos"
-                description="No hay contratos activos, reservados, planeados o en mantenimiento"
-              />
-            ) : (
-              <ContratosView
-                contratos={contratosActivos}
-                relatedData={relatedData}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                viewMode={viewMode}
-                onToggleView={handleToggleView}
-              />
-            )}
-          </Collapse>
+      <Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 1, borderColor: 'divider' }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            Contratos Activos ({contratosActivos.length})
+          </Typography>
+          <IconButton
+            onClick={() => setIsActiveContractsExpanded(!isActiveContractsExpanded)}
+            size="small"
+          >
+            {isActiveContractsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          </IconButton>
         </Box>
+        <Collapse in={isActiveContractsExpanded}>
+          {contratosActivos.length === 0 ? (
+            <EmptyState
+              icon={DescriptionIcon}
+              title="No hay contratos activos"
+              description="No hay contratos activos, reservados, planeados o en mantenimiento"
+            />
+          ) : (
+            <ContratosView
+              contratos={contratosActivos}
+              relatedData={relatedData}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              viewMode={viewMode}
+              onToggleView={handleToggleView}
+            />
+          )}
+        </Collapse>
       </Box>
 
       {/* Sección de Contratos Finalizados */}
-      <Box sx={{ mt: 0 }}>
-        <Box>
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between',
-            px: 2,
-            py: 1.5,
-            bgcolor: 'background.default',
-            borderBottom: 1,
-            borderColor: 'divider'
-          }}>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Contratos Finalizados ({contratosFinalizados.length})
-            </Typography>
-            <IconButton
-              onClick={() => setIsFinishedContractsExpanded(!isFinishedContractsExpanded)}
-              size="small"
-            >
-              {isFinishedContractsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </IconButton>
-          </Box>
-          <Collapse in={isFinishedContractsExpanded}>
-            {contratosFinalizados.length === 0 ? (
-              <EmptyState
-                icon={DescriptionIcon}
-                title="No hay contratos finalizados"
-                description="No hay contratos finalizados"
-              />
-            ) : (
-              <ContratosView
-                contratos={contratosFinalizados}
-                relatedData={relatedData}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                viewMode={viewMode}
-                onToggleView={handleToggleView}
-              />
-            )}
-          </Collapse>
+      <Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 1, borderColor: 'divider' }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            Contratos Finalizados ({contratosFinalizados.length})
+          </Typography>
+          <IconButton
+            onClick={() => setIsFinishedContractsExpanded(!isFinishedContractsExpanded)}
+            size="small"
+          >
+            {isFinishedContractsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          </IconButton>
         </Box>
+        <Collapse in={isFinishedContractsExpanded}>
+          {contratosFinalizados.length === 0 ? (
+            <EmptyState
+              icon={DescriptionIcon}
+              title="No hay contratos finalizados"
+              description="No hay contratos finalizados"
+            />
+          ) : (
+            <ContratosView
+              contratos={contratosFinalizados}
+              relatedData={relatedData}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              viewMode={viewMode}
+              onToggleView={handleToggleView}
+            />
+          )}
+        </Collapse>
       </Box>
 
       {isFormOpen && (
@@ -540,7 +518,7 @@ export function Contratos() {
           isSaving={isSaving}
         />
       )}
-    </Container>
+    </Box>
   );
 }
 

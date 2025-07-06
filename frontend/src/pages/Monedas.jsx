@@ -606,7 +606,7 @@ export function Monedas() {
   ];
 
   return (
-    <Container maxWidth="lg">
+    <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar
         onAdd={() => {
           setEditingMoneda(null);
@@ -717,7 +717,7 @@ export function Monedas() {
         initialData={editingMoneda || { color: COLORES_MONEDA.CELESTE_ARGENTINA.value }}
         isEditing={!!editingMoneda}
       />
-    </Container>
+    </Box>
   );
 }
 

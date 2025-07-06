@@ -308,92 +308,94 @@ export function Tiempo() {
   };
 
   return (
-    <Container maxWidth="xl">
-      <EntityToolbar 
-        title="Tiempo"
-        icon={null}
-        onAdd={() => enqueueSnackbar('Función no implementada', { variant: 'info' })}
-        showBackButton={false}
-        actions={
-          <>
-            <Tooltip title={showValues ? "Ocultar valores" : "Mostrar valores"}>
-              <IconButton 
-                onClick={toggleValuesVisibility}
-                sx={{ color: 'white' }}
+    <Box sx={{ px: 0, width: '100%' }}>
+      <Container maxWidth="xl">
+        <EntityToolbar 
+          title="Tiempo"
+          icon={null}
+          onAdd={() => enqueueSnackbar('Función no implementada', { variant: 'info' })}
+          showBackButton={false}
+          actions={
+            <>
+              <Tooltip title={showValues ? "Ocultar valores" : "Mostrar valores"}>
+                <IconButton 
+                  onClick={toggleValuesVisibility}
+                  sx={{ color: 'white' }}
+                >
+                  {showValues ? <HideValuesIcon /> : <ShowValuesIcon />}
+                </IconButton>
+              </Tooltip>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => enqueueSnackbar('Función no implementada', { variant: 'info' })}
+                sx={{ borderRadius: 0 }}
               >
-                {showValues ? <HideValuesIcon /> : <ShowValuesIcon />}
-              </IconButton>
-            </Tooltip>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => enqueueSnackbar('Función no implementada', { variant: 'info' })}
-              sx={{ borderRadius: 0 }}
-            >
-              Nueva Tarea
-            </Button>
-          </>
-        }
-        navigationItems={[
-          { 
-            icon: <ProjectIcon sx={{ fontSize: 21.6 }} />, 
-            label: 'Proyectos', 
-            to: '/proyectos'
-          },
-          {
-            icon: <TaskIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Tareas',
-            to: '/tareas'
-          },
-          {
-            icon: <ArchiveIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Archivo',
-            to: '/archivo'
+                Nueva Tarea
+              </Button>
+            </>
           }
-        ]}
-      />
+          navigationItems={[
+            { 
+              icon: <ProjectIcon sx={{ fontSize: 21.6 }} />, 
+              label: 'Proyectos', 
+              to: '/proyectos'
+            },
+            {
+              icon: <TaskIcon sx={{ fontSize: 21.6 }} />,
+              label: 'Tareas',
+              to: '/tareas'
+            },
+            {
+              icon: <ArchiveIcon sx={{ fontSize: 21.6 }} />,
+              label: 'Archivo',
+              to: '/archivo'
+            }
+          ]}
+        />
 
-      <Box 
-        sx={{ 
-          py: 2,
-          height: 'calc(100vh - 190px)',
-          overflowY: 'auto',
-          '&::-webkit-scrollbar': {
-            width: '8px',
-          },
-          '&::-webkit-scrollbar-track': {
-            backgroundColor: 'rgba(0,0,0,0.1)',
-          },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: 'rgba(0,0,0,0.2)',
-            borderRadius: '4px',
-          },
-          '&::-webkit-scrollbar-thumb:hover': {
-            backgroundColor: 'rgba(0,0,0,0.3)',
-          },
-        }}
-      >
-        <Grid container spacing={2}>
-          {/* Tasks and Projects Section */}
-          <Grid item xs={12}>
-            <Paper sx={{ p: 2 }}>
-              <TasksAndProjectsSection />
-            </Paper>
+        <Box 
+          sx={{ 
+            py: 2,
+            height: 'calc(100vh - 190px)',
+            overflowY: 'auto',
+            '&::-webkit-scrollbar': {
+              width: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: 'rgba(0,0,0,0.1)',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: 'rgba(0,0,0,0.2)',
+              borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb:hover': {
+              backgroundColor: 'rgba(0,0,0,0.3)',
+            },
+          }}
+        >
+          <Grid container spacing={2}>
+            {/* Tasks and Projects Section */}
+            <Grid item xs={12}>
+              <Paper sx={{ p: 2 }}>
+                <TasksAndProjectsSection />
+              </Paper>
+            </Grid>
+            
+            {/* Espacio para contenido adicional */}
+            <Grid item xs={12}>
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="h6">Gestión del Tiempo</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Este panel te permite ver y gestionar tus tareas y proyectos de manera eficiente.
+                  Utiliza las opciones de navegación para acceder a las vistas detalladas.
+                </Typography>
+              </Paper>
+            </Grid>
           </Grid>
-          
-          {/* Espacio para contenido adicional */}
-          <Grid item xs={12}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6">Gestión del Tiempo</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Este panel te permite ver y gestionar tus tareas y proyectos de manera eficiente.
-                Utiliza las opciones de navegación para acceder a las vistas detalladas.
-              </Typography>
-            </Paper>
-          </Grid>
-        </Grid>
-      </Box>
-    </Container>
+        </Box>
+      </Container>
+    </Box>
   );
 }
 

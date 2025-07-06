@@ -201,7 +201,7 @@ export function Proyectos() {
   const filteredProyectos = proyectos;
 
   return (
-    <Container maxWidth="xl">
+    <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar 
         title="Proyectos"
         icon={<ProjectIcon />}
@@ -311,7 +311,7 @@ export function Proyectos() {
           proyectos={[selectedProyecto]}
         />
       )}
-    </Container>
+    </Box>
   );
 }
 
