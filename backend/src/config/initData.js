@@ -90,7 +90,7 @@ export const initializeSampleData = async (userId) => {
         propiedad: propiedades[0]._id,
         usuario: userId,
         estado: 'disponible',
-        precio: 800,
+        montoMensual: 800,
         moneda: usdMoneda._id
       },
       {
@@ -98,7 +98,7 @@ export const initializeSampleData = async (userId) => {
         propiedad: propiedades[0]._id,
         usuario: userId,
         estado: 'disponible',
-        precio: 600,
+        montoMensual: 600,
         moneda: usdMoneda._id
       },
       {
@@ -106,7 +106,7 @@ export const initializeSampleData = async (userId) => {
         propiedad: propiedades[1]._id,
         usuario: userId,
         estado: 'ocupada',
-        precio: 1200,
+        montoMensual: 1200,
         moneda: usdMoneda._id
       }
     ]);

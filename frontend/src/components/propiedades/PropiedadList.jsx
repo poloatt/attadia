@@ -3,6 +3,7 @@ import { Grid, Box, Typography, IconButton } from '@mui/material';
 import { ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon } from '@mui/icons-material';
 import PropiedadCard from './PropiedadCard';
 import EmptyState from '../EmptyState';
+// Si corresponde, importa { SeccionInquilinos, SeccionHabitaciones, SeccionContratos, SeccionInventario, SeccionDocumentos } from './SeccionesPropiedad';
 
 const PropiedadList = ({ 
   propiedades, 
@@ -76,7 +77,8 @@ const PropiedadList = ({
           habitaciones: Array.isArray(propiedad.habitaciones) ? propiedad.habitaciones : [],
           contratos: Array.isArray(propiedad.contratos) ? propiedad.contratos : 
                     contratos.filter(c => c.propiedad?._id === propiedad._id),
-          inventario: Array.isArray(propiedad.inventario) ? propiedad.inventario : []
+          inventario: Array.isArray(propiedad.inventario) ? propiedad.inventario : [],
+          documentos: Array.isArray(propiedad.documentos) ? propiedad.documentos : []
         };
         
         return (

@@ -136,16 +136,23 @@ tareaSchema.pre('findOneAndUpdate', async function() {
 
   const update = this.getUpdate();
   
-  // Si hay subtareas en la actualización, asegurarse de preservar las existentes
+  // Si hay subtareas en la actualización, manejar correctamente
   if (update.subtareas) {
-    update.subtareas = [
-      ...docToUpdate.subtareas,
-      ...update.subtareas.filter(st => 
-        !docToUpdate.subtareas.some(existing => 
-          existing._id.toString() === st._id?.toString()
+    // Si las subtareas vienen como un array completo, usarlas tal como están
+    if (Array.isArray(update.subtareas)) {
+      // No modificar, usar las subtareas tal como vienen
+      console.log('Actualizando subtareas completas:', update.subtareas.length);
+    } else {
+      // Si es una actualización parcial de subtareas, preservar las existentes
+      update.subtareas = [
+        ...docToUpdate.subtareas,
+        ...update.subtareas.filter(st => 
+          !docToUpdate.subtareas.some(existing => 
+            existing._id.toString() === st._id?.toString()
+          )
         )
-      )
-    ];
+      ];
+    }
   }
 
   // Asegurar que el estado se actualice correctamente

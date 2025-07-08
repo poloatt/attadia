@@ -31,8 +31,22 @@ import {
   StoreOutlined,
   Bed as BedIcon,
   Inventory as InventoryIcon,
-  Visibility as ViewIcon
+  Visibility as ViewIcon,
+  InfoOutlined as InfoIcon,
+  Description as DescriptionIcon,
+  DriveFolderUpload as DriveIcon
 } from '@mui/icons-material';
+import { getInquilinosByPropiedad, getInquilinosByContrato } from '../inquilinos/utils';
+import { getEstadoContrato, calcularDuracionTotal, getApellidoInquilinoContrato, calcularRangoMesesContrato } from '../contratos/contratoUtils';
+
+// Constantes de estilo jerárquicas para alineación y separadores
+const SECTION_PADDING_X = 1;
+const SECTION_PADDING_Y = 0.5;
+const SECTION_GAP = 0.5;
+const SECTION_MIN_HEIGHT = '40px';
+const ROW_MIN_HEIGHT = '32px';
+const SEPARATOR_COLOR = 'divider';
+const SEPARATOR_WIDTH = '1px';
 
 // Componente Paper estilizado minimalista con fondo del tema
 const GeometricPaper = styled(Paper)(({ theme }) => ({
@@ -86,6 +100,61 @@ const GeometricChip = styled(Chip)(({ theme, customcolor }) => ({
   }
 }));
 
+// Componente base para filas/secciones
+const EntitySectionRow = ({
+  icon: Icon = InfoIcon,
+  primary,
+  secondary,
+  children,
+  sx = {},
+  ...props
+}) => (
+  <Box
+    sx={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 1,
+      minHeight: '32px',
+      px: 1,
+      py: 0.5,
+      ...sx
+    }}
+    {...props}
+  >
+    <Icon sx={{ fontSize: '1.2rem', color: 'text.secondary', flexShrink: 0 }} />
+    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <Typography
+        variant="body2"
+        sx={{
+          fontWeight: 500,
+          color: 'text.primary',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        }}
+      >
+        {primary}
+      </Typography>
+      {secondary && (
+        <Typography
+          variant="caption"
+          sx={{
+            color: 'text.secondary',
+            fontSize: '0.75rem',
+            lineHeight: 1.1,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}
+        >
+          {secondary}
+        </Typography>
+      )}
+    </Box>
+    {children}
+  </Box>
+);
+
 // Componente estandarizado para encabezado de entidad con título y estado y acciones a la derecha
 const EntityHeader = ({ title, status, statusLabel, statusColor, icon: Icon, iconColor, actions }) => (
   <Box sx={{ mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
@@ -121,6 +190,16 @@ const EntityHeader = ({ title, status, statusLabel, statusColor, icon: Icon, ico
         {actions}
       </Box>
     )}
+  </Box>
+);
+
+// Encabezado unificado para todas las secciones primarias
+const PrimarySectionHeader = ({ icon: Icon, title }) => (
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: SECTION_GAP, mb: SECTION_GAP, pl: SECTION_PADDING_X, minHeight: ROW_MIN_HEIGHT }}>
+    {Icon && <Icon sx={{ fontSize: '1.1rem', color: 'primary.main', flexShrink: 0 }} />}
+    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', fontSize: '0.95rem', letterSpacing: 0.1 }}>
+      {title}
+    </Typography>
   </Box>
 );
 
@@ -212,72 +291,32 @@ const SECTION_CONFIGS = {
   },
 
   // Sección de inquilinos estándar (primaria)
-  inquilinos: (inquilinos = [], contratos = [], inquilinosGlobal = []) => {
-    // Extraer inquilinos reales de los contratos activos
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    // Buscar contratos activos
-    const contratosActivos = contratos.filter(contrato => {
-      const inicio = new Date(contrato.fechaInicio);
-      const fin = new Date(contrato.fechaFin);
-      return inicio <= hoy && fin >= hoy && contrato.estado === 'ACTIVO';
-    });
-    // Extraer inquilinos de los contratos activos
-    let inquilinosReales = [];
-    contratosActivos.forEach(contrato => {
-      if (Array.isArray(contrato.inquilino)) {
-        contrato.inquilino.forEach(inq => {
-          if (typeof inq === 'object' && (inq.nombre || inq.apellido)) {
-            inquilinosReales.push(inq);
-          } else if (typeof inq === 'string' && inquilinosGlobal.length > 0) {
-            // Buscar el objeto completo por ID
-            const obj = inquilinosGlobal.find(i => i._id === inq);
-            if (obj) inquilinosReales.push(obj);
-          }
-        });
-      } else if (contrato.inquilino && typeof contrato.inquilino === 'object' && (contrato.inquilino.nombre || contrato.inquilino.apellido)) {
-        inquilinosReales.push(contrato.inquilino);
-      } else if (contrato.inquilino && typeof contrato.inquilino === 'string' && inquilinosGlobal.length > 0) {
-        const obj = inquilinosGlobal.find(i => i._id === contrato.inquilino);
-        if (obj) inquilinosReales.push(obj);
+  inquilinos: (inquilinos) => ({
+    type: 'primary',
+    left: [
+      {
+        icon: PeopleIcon,
+        value: inquilinos.length
+          ? inquilinos.map(i => `${i.nombre} ${i.apellido}`).join(', ')
+          : 'Ninguno',
+        subtitle: 'Inquilinos',
+        color: 'text.secondary'
       }
-    });
-    // Eliminar duplicados por _id
-    inquilinosReales = inquilinosReales.filter((inq, idx, arr) => inq && inq._id && arr.findIndex(i => i._id === inq._id) === idx);
-    // Si no hay inquilinos reales, usar los que vienen por props
-    if (inquilinosReales.length === 0 && inquilinos.length > 0) {
-      inquilinosReales = inquilinos;
-    }
-    const nombresInquilinos = inquilinosReales.map(inq => `${inq.nombre} ${inq.apellido}`).filter(Boolean).join(', ');
-    // Crear links a contratos activos
-    const contratosLinks = contratosActivos.map((contrato, idx) => ({
-      text: `Contrato ${idx + 1}`,
-      link: `/contratos/${contrato._id}`,
-      contratoId: contrato._id,
-      contrato: contrato,
-      tipo: contrato.tipoContrato || 'Sin especificar'
-    }));
-    return {
-      type: 'primary',
-      left: [
-        {
-          icon: PeopleIcon,
-          value: nombresInquilinos || 'Sin inquilinos',
-          color: 'text.secondary',
-          position: 'left'
-        }
-      ],
-      right: [
-        {
-          icon: ContractIcon,
-          value: contratosLinks.length > 0 ? 'Contratos activos' : 'Sin contratos activos',
-          color: contratosLinks.length > 0 ? 'primary.main' : 'text.secondary',
-          position: 'right',
-          links: contratosLinks // Agregar links para renderizado especial
-        }
-      ]
-    };
-  },
+    ]
+  }),
+
+  documentos: (documentos) => ({
+    type: 'primary',
+    left: [
+      {
+        icon: DescriptionIcon,
+        value: 'Documentos',
+        color: 'text.secondary',
+        documentos
+      }
+    ],
+    documentos
+  }),
 
   // Sección de tiempo estándar (secundaria)
   tiempo: (diasRestantes, duracionTotal) => ({
@@ -393,10 +432,76 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
   // Si es sección de tiempo con números grandes
   const isTiempoLarge = section.left[0]?.showLargeNumber && section.right?.[0]?.showLargeNumber;
   
-  // Si es sección de inquilinos con links a contratos
-  const isInquilinosConLinks = isSpecial && section.right?.[0]?.links && Array.isArray(section.right[0].links);
-
-  if (isFinancieraLarge) {
+  // Si es sección de inquilinos estándar (PeopleIcon)
+  const isInquilinos = section.left && section.left.length === 1 && section.left[0]?.icon === PeopleIcon;
+  if (isInquilinos) {
+    // Obtener la entidad (propiedad o contrato) desde section.entity si está disponible
+    let inquilinosArr = [];
+    if (section.entity) {
+      if (section.entity.contratos || section.entity.inquilinos) {
+        inquilinosArr = getInquilinosByPropiedad(section.entity);
+      } else if (section.entity.inquilino) {
+        inquilinosArr = getInquilinosByContrato(section.entity);
+      }
+    } else if (Array.isArray(inquilinos) && inquilinos.length > 0) {
+      inquilinosArr = inquilinos;
+    } else if (typeof section.left[0].value === 'string' && section.left[0].value !== 'Ninguno') {
+      inquilinosArr = section.left[0].value.split(',').map(n => ({ nombre: n.trim(), apellido: '' }));
+    }
+    // Si no hay inquilinos, mostrar mensaje
+    if (!inquilinosArr.length) {
+      return (
+        <GeometricPaper sx={{ minHeight: '40px' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.5 }}>
+            <PeopleIcon sx={{ fontSize: '1.2rem', color: 'text.secondary', flexShrink: 0 }} />
+            <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.secondary' }}>
+              Sin inquilinos
+            </Typography>
+          </Box>
+        </GeometricPaper>
+      );
+    }
+    // Mostrar los inquilinos en un grid de máximo dos columnas por fila
+    const rows = [];
+    for (let i = 0; i < inquilinosArr.length; i += 2) {
+      rows.push(inquilinosArr.slice(i, i + 2));
+    }
+    return (
+      <GeometricPaper sx={{ minHeight: '40px' }}>
+        <Box sx={{ width: '100%', py: 0.5 }}>
+          {rows.map((row, rowIdx) => (
+            <Box key={rowIdx} sx={{ display: 'flex', gap: 1, mb: 0.2 }}>
+              {row.map((inq, idx) => (
+                <Box key={inq._id || idx} sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+                  <PeopleIcon sx={{ fontSize: '1.1rem', color: 'text.secondary', flexShrink: 0 }} />
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 500,
+                      color: 'text.primary',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      fontSize: '0.85rem'
+                    }}
+                  >
+                    {inq.nombre} {inq.apellido}
+                  </Typography>
+                  {onInquilinoDetail && inq._id && (
+                    <IconButton size="small" onClick={() => onInquilinoDetail(inq._id)} sx={{ p: 0.2, color: 'primary.main' }}>
+                      <ViewIcon sx={{ fontSize: '0.8rem' }} />
+                    </IconButton>
+                  )}
+                </Box>
+              ))}
+              {/* Si la fila tiene solo un inquilino, agrego un espacio vacío para mantener la grilla */}
+              {row.length === 1 && <Box sx={{ flex: 1 }} />}
+            </Box>
+          ))}
+        </Box>
+      </GeometricPaper>
+    );
+  } else if (isFinancieraLarge) {
     // Nueva versión con símbolo de moneda grande a la izquierda
     const simboloMoneda = section.left[0]?.value || '$';
     const nombreCuenta = section.left[0]?.subtitle || 'No especificada';
@@ -621,247 +726,6 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
         </Box>
       </GeometricPaper>
     );
-  } else if (isInquilinosConLinks) {
-    // Renderizado especial para sección de inquilinos con links a contratos
-    const iconLeft = section.left[0]?.icon;
-    const valueLeft = section.left[0]?.value || '';
-    const iconRight = section.right[0]?.icon;
-    const valueRight = section.right[0]?.value || '';
-    const links = section.right[0]?.links || [];
-    const inquilinosArr = inquilinos;
-    return (
-      <GeometricPaper sx={{ minHeight: '40px' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', width: '100%' }}>
-          {/* Parte izquierda: Inquilinos */}
-          <Box sx={{ 
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 0,
-            pr: 1,
-            justifyContent: 'center'
-          }}>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1,
-              flex: 1,
-              justifyContent: 'center'
-            }}>
-              {iconLeft && React.createElement(iconLeft, { 
-                sx: { 
-                  fontSize: '1.2rem', 
-                  color: 'text.secondary',
-                  flexShrink: 0
-                } 
-              })}
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: 0,
-                flex: 1,
-                overflow: 'hidden',
-                alignItems: 'center'
-              }}>
-                {inquilinosArr.length > 0 ? (
-                  inquilinosArr.map((inq, idx) => (
-                    <Box key={inq._id || idx} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-                      <Typography 
-                        variant="body2" 
-                        sx={{ 
-                          fontWeight: 500,
-                          fontSize: '0.7rem',
-                          lineHeight: 1,
-                          m: 0,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          textAlign: 'center'
-                        }}
-                      >
-                        {inq.nombre} {inq.apellido}
-                      </Typography>
-                      <IconButton size="small" onClick={() => onInquilinoDetail(inq._id)} sx={{ p: 0.2, color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <ViewIcon sx={{ fontSize: '0.8rem', verticalAlign: 'middle' }} />
-                      </IconButton>
-                    </Box>
-                  ))
-                ) : (
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      fontWeight: 500,
-                      fontSize: '0.7rem',
-                      lineHeight: 1,
-                      m: 0,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      textAlign: 'center'
-                    }}
-                  >
-                    Sin inquilinos
-                  </Typography>
-                )}
-              </Box>
-            </Box>
-          </Box>
-
-          {/* Separador vertical */}
-          <Box sx={{ 
-            width: '1px', 
-            backgroundColor: 'divider',
-            mx: 1
-          }} />
-
-          {/* Parte derecha: Contratos con links */}
-          <Box sx={{ 
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 0,
-            pl: 0.5,
-            justifyContent: 'center'
-          }}>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1,
-              flex: 1,
-              justifyContent: 'flex-start'
-            }}>
-              {iconRight && React.createElement(iconRight, { 
-                sx: { 
-                  fontSize: '1.2rem', 
-                  color: 'text.secondary',
-                  flexShrink: 0
-                } 
-              })}
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: 0.2,
-                flex: 1,
-                overflow: 'hidden',
-                alignItems: 'flex-start'
-              }}>
-                {/* Links a contratos - solo mostrar links, no texto descriptivo */}
-                {links.length > 0 ? (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.1 }}>
-                    {links.map((link, idx) => (
-                      onContratoDetail ? (
-                        <Box
-                          key={idx}
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.3,
-                            cursor: 'pointer',
-                            justifyContent: 'flex-start',
-                            '&:hover': {
-                              '& .contrato-text': {
-                                color: 'primary.light',
-                                textDecoration: 'underline'
-                              },
-                              '& .view-icon': {
-                                color: 'primary.light'
-                              }
-                            }
-                          }}
-                          onClick={() => onContratoDetail(link.contratoId)}
-                        >
-                          <Typography
-                            variant="caption"
-                            className="contrato-text"
-                            sx={{ 
-                              fontSize: '0.7rem',
-                              fontWeight: 500,
-                              color: 'primary.main',
-                              lineHeight: 1,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              textDecoration: 'none',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            {link.text}
-                          </Typography>
-                          <ViewIcon 
-                            className="view-icon"
-                            sx={{ 
-                              fontSize: '0.8rem', 
-                              color: 'primary.main',
-                              flexShrink: 0
-                            }} 
-                          />
-                        </Box>
-                      ) : (
-                        <Box
-                          key={idx}
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.3,
-                            justifyContent: 'flex-start'
-                          }}
-                        >
-                          <Typography
-                            component={Link}
-                            to={link.link}
-                            variant="caption"
-                            sx={{ 
-                              fontSize: '0.7rem',
-                              fontWeight: 500,
-                              color: 'primary.main',
-                              lineHeight: 1,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              textDecoration: 'none',
-                              cursor: 'pointer',
-                              '&:hover': {
-                                color: 'primary.light',
-                                textDecoration: 'underline'
-                              }
-                            }}
-                          >
-                            {link.text}
-                          </Typography>
-                          <ViewIcon 
-                            sx={{ 
-                              fontSize: '0.8rem', 
-                              color: 'primary.main',
-                              flexShrink: 0
-                            }} 
-                          />
-                        </Box>
-                      )
-                    ))}
-                  </Box>
-                ) : (
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      fontWeight: 500,
-                      fontSize: '0.7rem',
-                      lineHeight: 1,
-                      m: 0,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      color: 'text.secondary'
-                    }}
-                  >
-                    Sin contratos activos
-                  </Typography>
-                )}
-              </Box>
-            </Box>
-          </Box>
-        </Box>
-      </GeometricPaper>
-    );
   } else if (isFinanciera) {
     const iconLeft = section.left[0]?.icon;
     const colorLeft = section.left[0]?.color;
@@ -1050,8 +914,85 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
     );
   }
 
+  // Lógica especial para sección de documentos
+  const isDocumentos = section.left && section.left.length === 1 && section.left[0]?.icon === DescriptionIcon;
+  if (isDocumentos) {
+    const documentos = section.documentos || section.left[0].documentos || [];
+    return (
+      <GeometricPaper sx={{ minHeight: SECTION_MIN_HEIGHT, px: SECTION_PADDING_X, py: SECTION_PADDING_Y, display: 'flex', flexDirection: 'column', gap: SECTION_GAP }}>
+        <PrimarySectionHeader icon={DriveIcon} title="Documentos" />
+        {documentos.length === 0 ? (
+          <Typography variant="caption" color="text.secondary" sx={{ pl: 3 }}>
+            No hay documentos
+          </Typography>
+        ) : (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.2 }}>
+            {documentos.map((doc, idx) => {
+              let IconoDoc = DescriptionIcon;
+              let label = doc.nombre;
+              let secondary = '';
+              if (doc.categoria === 'CONTRATO' || doc.tipo === 'CONTRATO') {
+                IconoDoc = ContractIcon;
+                const apellido = getApellidoInquilinoContrato(doc);
+                const rango = doc.fechaInicio && doc.fechaFin ? calcularRangoMesesContrato(doc.fechaInicio, doc.fechaFin) : '';
+                label = apellido;
+                secondary = rango;
+              }
+              return (
+                <EntitySectionRow
+                  key={doc._id || idx}
+                  icon={IconoDoc}
+                  primary={label}
+                  secondary={secondary}
+                  children={doc.url && (
+                    <IconButton size="small" href={doc.url} target="_blank" rel="noopener noreferrer" sx={{ p: 0.2 }}>
+                      <ViewIcon sx={{ fontSize: '1rem', color: 'primary.main' }} />
+                    </IconButton>
+                  )}
+                  sx={{ minHeight: ROW_MIN_HEIGHT, pl: 2 }}
+                />
+              );
+            })}
+          </Box>
+        )}
+      </GeometricPaper>
+    );
+  }
+
+  // Para todas las secciones primarias estándar, usar encabezado y layout unificado
+  const isPrimarySection = section.type === 'primary' && !isSpecial && !isDocumentos;
+  if (isPrimarySection) {
+    const hasLeft = (section.left || []).length > 0;
+    const hasRight = (section.right || []).length > 0;
+    return (
+      <GeometricPaper sx={{ minHeight: SECTION_MIN_HEIGHT, px: SECTION_PADDING_X, py: SECTION_PADDING_Y, display: 'flex', flexDirection: 'column', gap: SECTION_GAP }}>
+        <PrimarySectionHeader icon={section.left[0]?.icon} title={section.left[0]?.label || ''} />
+        <Box sx={{ display: 'flex', width: '100%' }}>
+          {/* Columna izquierda */}
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0 }}>
+            {(section.left || []).map((item, index) => (
+              <EntitySectionRow key={index} icon={item.icon} primary={item.value} secondary={item.subtitle} sx={{ minHeight: ROW_MIN_HEIGHT }} />
+            ))}
+          </Box>
+          {/* Separador vertical solo si hay ambas columnas */}
+          {hasLeft && hasRight && (
+            <Box sx={{ width: SEPARATOR_WIDTH, backgroundColor: SEPARATOR_COLOR, mx: 1 }} />
+          )}
+          {/* Columna derecha */}
+          {hasRight && (
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0 }}>
+              {(section.right || []).map((item, index) => (
+                <EntitySectionRow key={index} icon={item.icon} primary={item.value} secondary={item.subtitle} sx={{ minHeight: ROW_MIN_HEIGHT }} />
+              ))}
+            </Box>
+          )}
+        </Box>
+      </GeometricPaper>
+    );
+  }
+
   return (
-    <GeometricPaper sx={{ minHeight: '40px' }}>
+    <GeometricPaper sx={{ minHeight: SECTION_MIN_HEIGHT, px: SECTION_PADDING_X, py: SECTION_PADDING_Y, display: 'flex', flexDirection: 'column', gap: SECTION_GAP }}>
       <Box sx={{ 
         display: 'flex', 
         height: '100%',
@@ -1065,100 +1006,32 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
           gap: 0,
           pr: 1
         }}>
-          {section.left.map((item, index) => (
-            <Box key={index} sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1,
-              flex: 1
-            }}>
-              <item.icon 
-                sx={{ 
-                  fontSize: '1.2rem', 
-                  color: item.color,
-                  flexShrink: 0
-                }} 
-              />
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: 0,
-                flex: 1,
-                overflow: 'hidden'
-              }}>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    fontWeight: 500,
-                    fontSize: '0.7rem',
-                    lineHeight: 1,
-                    m: 0,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {item.value}
-                </Typography>
-              </Box>
-            </Box>
+          {(section.left || []).map((item, index) => (
+            <EntitySectionRow key={index} icon={item.icon} primary={item.value} secondary={item.subtitle} />
           ))}
         </Box>
-
-        {/* Separador vertical */}
-        <Box sx={{ 
-          width: '1px', 
-          backgroundColor: 'divider',
-          mx: 1
-        }} />
-
+        {/* Separador vertical solo si hay ambas columnas */}
+        {(section.left || []).length > 0 && (section.right || []).length > 0 && (
+          <Box sx={{ 
+            width: SEPARATOR_WIDTH, 
+            backgroundColor: SEPARATOR_COLOR,
+            mx: 1
+          }} />
+        )}
         {/* Parte derecha */}
-        <Box sx={{ 
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 0,
-          pl: 1
-        }}>
-          {section.right.map((item, index) => (
-            <Box key={index} sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1,
-              flex: 1
-            }}>
-              <item.icon 
-                sx={{ 
-                  fontSize: '1.2rem', 
-                  color: item.color,
-                  flexShrink: 0
-                }} 
-              />
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: 0,
-                flex: 1,
-                overflow: 'hidden'
-              }}>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    fontWeight: 500,
-                    fontSize: '0.7rem',
-                    lineHeight: 1,
-                    m: 0,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {item.value}
-                </Typography>
-              </Box>
-            </Box>
-          ))}
-        </Box>
+        {(section.right || []).length > 0 && (
+          <Box sx={{ 
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 0,
+            pl: 1
+          }}>
+            {(section.right || []).map((item, index) => (
+              <EntitySectionRow key={index} icon={item.icon} primary={item.value} secondary={item.subtitle} />
+            ))}
+          </Box>
+        )}
       </Box>
     </GeometricPaper>
   );
@@ -1169,7 +1042,7 @@ const SecondarySectionRenderer = ({ section, isCollapsed = false }) => {
   if (isCollapsed) return null;
 
   return (
-    <GeometricPaper sx={{ minHeight: '50px' }}>
+    <GeometricPaper sx={{ minHeight: SECTION_MIN_HEIGHT, px: SECTION_PADDING_X, py: SECTION_PADDING_Y, display: 'flex', flexDirection: 'column', gap: SECTION_GAP }}>
       <Box sx={{ 
         display: 'flex', 
         flexDirection: 'column',
@@ -1177,47 +1050,14 @@ const SecondarySectionRenderer = ({ section, isCollapsed = false }) => {
         height: '100%',
         width: '100%'
       }}>
-        {section.data.map((item, itemIndex) => {
-          const IconComponent = item.icon;
-          return (
-            <Box key={itemIndex} sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1,
-              flex: 1
-            }}>
-              <IconComponent 
-                sx={{ 
-                  fontSize: '0.8rem', 
-                  color: item.color,
-                  flexShrink: 0
-                }} 
-              />
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: 0,
-                flex: 1,
-                overflow: 'hidden'
-              }}>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    fontWeight: 500,
-                    fontSize: '0.7rem',
-                    lineHeight: 1,
-                    m: 0,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {item.value}
-                </Typography>
-              </Box>
-            </Box>
-          );
-        })}
+        {section.data.map((item, itemIndex) => (
+          <EntitySectionRow
+            key={itemIndex}
+            icon={item.icon}
+            primary={item.value}
+            secondary={item.label}
+          />
+        ))}
       </Box>
     </GeometricPaper>
   );
@@ -1225,33 +1065,53 @@ const SecondarySectionRenderer = ({ section, isCollapsed = false }) => {
 
 // Componente para mostrar secciones estándar organizadas
 const StandardSections = ({ sections, gridSize = { xs: 6, sm: 6, md: 6, lg: 6 }, isCollapsed = false, onContratoDetail = null, inquilinos = [], onInquilinoDetail = null }) => {
+  // Secciones estándar
   const seccionesPrimarias = sections.filter(s => s.type === 'primary' && !s.hidden);
   const seccionesSecundarias = sections.filter(s => s.type === 'secondary');
   const seccionesHabitaciones = sections.filter(s => s.type === 'habitaciones');
+  // Secciones custom (con campo render)
+  const seccionesCustom = sections.filter(s => typeof s.render === 'function');
 
   return (
-    <Grid container spacing={0.3} sx={{ p: 0 }}>
-      {/* Secciones primarias - siempre visibles */}
+    <Box>
+      {/* Fila para cada sección primaria */}
       {seccionesPrimarias.map((section, sectionIndex) => (
-        <Grid item {...gridSize} key={`primary-${sectionIndex}`}>
-          <SectionRenderer section={section} isCollapsed={isCollapsed} onContratoDetail={onContratoDetail} inquilinos={inquilinos} onInquilinoDetail={onInquilinoDetail} />
+        <Grid container spacing={0.3} sx={{ p: 0, mb: 1 }} key={`primary-row-${section.type}-${section.left?.[0]?.label || sectionIndex}`}>
+          <Grid item {...gridSize}>
+            <SectionRenderer section={section} isCollapsed={isCollapsed} onContratoDetail={onContratoDetail} inquilinos={inquilinos} onInquilinoDetail={onInquilinoDetail} />
+          </Grid>
         </Grid>
       ))}
-      
-      {/* Secciones de habitaciones - solo visibles si no está colapsado */}
+
+      {/* Fila para cada sección de habitaciones */}
       {seccionesHabitaciones.map((section, sectionIndex) => (
-        <Grid item xs={12} key={`habitaciones-${sectionIndex}`}>
-          <HabitacionesRenderer section={section} isCollapsed={isCollapsed} />
+        <Grid container spacing={0.3} sx={{ p: 0, mb: 1 }} key={`habitaciones-row-${sectionIndex}`}>
+          <Grid item xs={12}>
+            <HabitacionesRenderer section={section} isCollapsed={isCollapsed} />
+          </Grid>
         </Grid>
       ))}
-      
-      {/* Secciones secundarias - solo visibles si no está colapsado */}
+
+      {/* Fila para cada sección secundaria */}
       {seccionesSecundarias.map((section, sectionIndex) => (
-        <Grid item {...gridSize} key={`secondary-${sectionIndex}`}>
-          <SecondarySectionRenderer section={section} isCollapsed={isCollapsed} />
+        <Grid container spacing={0.3} sx={{ p: 0, mb: 1 }} key={`secondary-row-${sectionIndex}`}>
+          <Grid item {...gridSize}>
+            <SecondarySectionRenderer section={section} isCollapsed={isCollapsed} />
+          </Grid>
         </Grid>
       ))}
-    </Grid>
+
+      {/* Fila para cada sección custom */}
+      {seccionesCustom.map((section, sectionIndex) => (
+        <Grid container spacing={0.3} sx={{ p: 0, mb: 1 }} key={`custom-row-${sectionIndex}`}>
+          <Grid item xs={12}>
+            <GeometricPaper>
+              {section.render()}
+            </GeometricPaper>
+          </Grid>
+        </Grid>
+      ))}
+    </Box>
   );
 };
 
@@ -1525,54 +1385,17 @@ const EntityGrid = ({
 const InfoGrid = ({ data, config, gridSize = { xs: 4, sm: 4, md: 4, lg: 4 } }) => {
   return (
     <Grid container spacing={0.3} sx={{ p: 0 }}>
-      {data.map((item, index) => {
-        const IconComponent = item.icon;
-        return (
-          <Grid item {...gridSize} key={index}>
-            <GeometricPaper sx={{ minHeight: '50px' }}>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1.5,
-                height: '100%',
-                width: '100%',
-                justifyContent: 'flex-start'
-              }}>
-                <IconComponent 
-                  sx={{ 
-                    fontSize: '1.3rem', 
-                    color: item.color,
-                    flexShrink: 0
-                  }} 
-                />
-                
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: 0.1,
-                  flex: 1,
-                  justifyContent: 'center',
-                  overflow: 'hidden'
-                }}>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      fontWeight: 500,
-                      fontSize: '0.75rem',
-                      lineHeight: 1.2,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {item.value}
-                  </Typography>
-                </Box>
-              </Box>
-            </GeometricPaper>
-          </Grid>
-        );
-      })}
+      {data.map((item, index) => (
+        <Grid item {...gridSize} key={index}>
+          <GeometricPaper sx={{ minHeight: '50px' }}>
+            <EntitySectionRow
+              icon={item.icon}
+              primary={item.value}
+              secondary={item.label}
+            />
+          </GeometricPaper>
+        </Grid>
+      ))}
     </Grid>
   );
 };
@@ -1660,7 +1483,7 @@ const HabitacionesRenderer = ({ section, isCollapsed = false }) => {
                 fontSize: '0.7rem',
                 color: habitacion.color
               }}>
-                {React.createElement(habitacion.icon, { sx: { fontSize: '0.7rem' } })}
+                {(habitacion.icon || InfoIcon) && React.createElement(habitacion.icon || InfoIcon, { sx: { fontSize: '0.7rem' } })}
               </Box>
               {/* Nombre */}
               {(() => {

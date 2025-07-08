@@ -35,7 +35,7 @@ import { addDays, addWeeks, addMonths, isWeekend, startOfMonth } from 'date-fns'
 import { useTheme } from '@mui/material/styles';
 import { useValuesVisibility } from '../../context/ValuesVisibilityContext';
 
-const TareaItem = ({ tarea, onUpdateTarea, showValues }) => {
+const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory }) => {
   const [open, setOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [tareaLocal, setTareaLocal] = useState(tarea);
@@ -45,19 +45,29 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues }) => {
 
   useEffect(() => {
     setTareaLocal(tarea);
+    console.log('🔄 TareaItem recibió nueva tarea:', tarea);
   }, [tarea]);
 
-  const handleSubtareaToggle = async (subtareaId, completada) => {
+  const handleSubtareaToggle = async (subtareaId) => {
     if (isUpdating) return;
-    
+
     try {
       setIsUpdating(true);
-      
+
+      // Buscar el estado actual de la subtarea
+      const subtareaActual = tareaLocal.subtareas.find(st => st._id === subtareaId);
+      const completadaActual = subtareaActual?.completada ?? false;
+
+      console.log('🔄 Actualizando subtarea en ProyectosGrid:', { subtareaId, completadaActual });
+
+      // Guardar el estado original ANTES de cualquier cambio
+      const tareaOriginal = { ...tareaLocal };
+
       // Actualizar estado local inmediatamente
-      const nuevasSubtareas = tareaLocal.subtareas.map(st => 
-        st._id === subtareaId ? { ...st, completada: !completada } : st
+      const nuevasSubtareas = tareaLocal.subtareas.map(st =>
+        st._id === subtareaId ? { ...st, completada: !completadaActual } : st
       );
-      
+
       // Determinar nuevo estado basado en subtareas
       const todasCompletadas = nuevasSubtareas.every(st => st.completada);
       const algunaCompletada = nuevasSubtareas.some(st => st.completada);
@@ -77,21 +87,27 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues }) => {
       };
       setTareaLocal(tareaActualizada);
 
-      const response = await clienteAxios.put(`/api/tareas/${tarea._id}/subtareas`, {
-        subtareaId,
-        completada: !completada
-      });
-      
-      if (response.data) {
+      console.log('📝 Enviando actualización:', { subtareas: nuevasSubtareas });
+
+      const response = await updateTareaWithHistory(tarea._id, {
+        subtareas: nuevasSubtareas
+      }, tareaOriginal);
+
+      console.log('✅ Respuesta recibida:', response);
+
+      if (response) {
+        // Actualizar estado local con los datos del servidor
+        setTareaLocal(response);
+
         // Actualizar estado global con la respuesta del servidor
         if (onUpdateTarea) {
-          onUpdateTarea(response.data);
+          onUpdateTarea(response);
         }
       }
     } catch (error) {
       // Revertir estado local en caso de error
       setTareaLocal(tarea);
-      console.error('Error al actualizar subtarea:', error);
+      console.error('❌ Error al actualizar subtarea:', error);
       enqueueSnackbar('Error al actualizar subtarea', { variant: 'error' });
     } finally {
       // Asegurar que el estado de actualización se resetee después de un tiempo
@@ -106,6 +122,10 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues }) => {
     
     try {
       setIsUpdating(true);
+      
+      // Guardar el estado original ANTES de cualquier cambio
+      const tareaOriginal = { ...tareaLocal };
+      
       const today = new Date();
       let nuevaFecha;
       
@@ -127,15 +147,17 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues }) => {
           break;
       }
 
-      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}`, {
+      const response = await updateTareaWithHistory(tarea._id, {
         fechaInicio: nuevaFecha.toISOString(),
         pushCount: (tarea.pushCount || 0) + 1
-      });
+      }, tareaOriginal);
       
-      if (onUpdateTarea) {
-        onUpdateTarea(response.data);
+      if (response) {
+        if (onUpdateTarea) {
+          onUpdateTarea(response);
+        }
+        enqueueSnackbar('Fecha actualizada exitosamente', { variant: 'success' });
       }
-      enqueueSnackbar('Fecha actualizada exitosamente', { variant: 'success' });
     } catch (error) {
       console.error('Error al actualizar fecha:', error);
       enqueueSnackbar('Error al actualizar fecha', { variant: 'error' });
@@ -151,28 +173,17 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues }) => {
     enqueueSnackbar('Función por implementar', { variant: 'info' });
   };
 
-  const handleTogglePriority = async (tarea) => {
-    if (isUpdating) return;
-    
+  const handleTogglePriority = async () => {
     try {
-      setIsUpdating(true);
+      // Guardar el estado original ANTES de cualquier cambio
+      const tareaOriginal = { ...tareaLocal };
+      
       const nuevaPrioridad = tarea.prioridad === 'ALTA' ? 'BAJA' : 'ALTA';
-      
-      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}`, {
-        prioridad: nuevaPrioridad
-      });
-      
-      if (onUpdateTarea) {
-        onUpdateTarea(response.data);
-      }
-      enqueueSnackbar('Prioridad actualizada exitosamente', { variant: 'success' });
+      const updated = await updateTareaWithHistory(tarea._id, { prioridad: nuevaPrioridad }, tareaOriginal);
+      if (onUpdateTarea) onUpdateTarea(updated);
     } catch (error) {
       console.error('Error al actualizar prioridad:', error);
       enqueueSnackbar('Error al actualizar prioridad', { variant: 'error' });
-    } finally {
-      setTimeout(() => {
-        setIsUpdating(false);
-      }, 500);
     }
   };
 
@@ -181,21 +192,34 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues }) => {
     
     try {
       setIsUpdating(true);
+      
+      console.log('🔄 Completando tarea en ProyectosGrid');
+      
+      // Guardar el estado original ANTES de cualquier cambio
+      const tareaOriginal = { ...tareaLocal };
+      
       const nuevasSubtareas = tareaLocal.subtareas.map(st => ({
         ...st,
         completada: true
       }));
 
-      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}/subtareas`, {
+      const response = await updateTareaWithHistory(tarea._id, {
         subtareas: nuevasSubtareas
-      });
+      }, tareaOriginal);
       
-      if (onUpdateTarea) {
-        onUpdateTarea(response.data);
+      console.log('✅ Respuesta recibida:', response);
+      
+      if (response) {
+        // Actualizar estado local con los datos del servidor
+        setTareaLocal(response);
+        
+        if (onUpdateTarea) {
+          onUpdateTarea(response);
+        }
+        enqueueSnackbar('Tarea completada exitosamente', { variant: 'success' });
       }
-      enqueueSnackbar('Tarea completada exitosamente', { variant: 'success' });
     } catch (error) {
-      console.error('Error al completar tarea:', error);
+      console.error('❌ Error al completar tarea:', error);
       enqueueSnackbar('Error al completar tarea', { variant: 'error' });
     } finally {
       setTimeout(() => {
@@ -209,21 +233,34 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues }) => {
     
     try {
       setIsUpdating(true);
+      
+      console.log('🔄 Reactivando tarea en ProyectosGrid');
+      
+      // Guardar el estado original ANTES de cualquier cambio
+      const tareaOriginal = { ...tareaLocal };
+      
       const nuevasSubtareas = tareaLocal.subtareas.map(st => ({
         ...st,
         completada: false
       }));
 
-      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}/subtareas`, {
+      const response = await updateTareaWithHistory(tarea._id, {
         subtareas: nuevasSubtareas
-      });
+      }, tareaOriginal);
       
-      if (onUpdateTarea) {
-        onUpdateTarea(response.data);
+      console.log('✅ Respuesta recibida:', response);
+      
+      if (response) {
+        // Actualizar estado local con los datos del servidor
+        setTareaLocal(response);
+        
+        if (onUpdateTarea) {
+          onUpdateTarea(response);
+        }
+        enqueueSnackbar('Tarea reactivada exitosamente', { variant: 'success' });
       }
-      enqueueSnackbar('Tarea reactivada exitosamente', { variant: 'success' });
     } catch (error) {
-      console.error('Error al reactivar tarea:', error);
+      console.error('❌ Error al reactivar tarea:', error);
       enqueueSnackbar('Error al reactivar tarea', { variant: 'error' });
     } finally {
       setTimeout(() => {
@@ -237,15 +274,21 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues }) => {
     
     try {
       setIsUpdating(true);
-      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}`, {
+      
+      // Guardar el estado original ANTES de cualquier cambio
+      const tareaOriginal = { ...tareaLocal };
+      
+      const response = await updateTareaWithHistory(tarea._id, {
         estado: 'CANCELADA',
         completada: false
-      });
+      }, tareaOriginal);
       
-      if (onUpdateTarea) {
-        onUpdateTarea(response.data);
+      if (response) {
+        if (onUpdateTarea) {
+          onUpdateTarea(response);
+        }
+        enqueueSnackbar('Tarea cancelada exitosamente', { variant: 'success' });
       }
-      enqueueSnackbar('Tarea cancelada exitosamente', { variant: 'success' });
     } catch (error) {
       console.error('Error al cancelar tarea:', error);
       enqueueSnackbar('Error al cancelar tarea', { variant: 'error' });
@@ -404,7 +447,7 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues }) => {
                   >
                     <Checkbox
                       checked={subtarea.completada}
-                      onChange={() => handleSubtareaToggle(subtarea._id, subtarea.completada)}
+                      onChange={() => handleSubtareaToggle(subtarea._id)}
                       size="small"
                       sx={{
                         padding: 0.25,
@@ -437,7 +480,10 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues }) => {
                         flex: 1,
                         cursor: 'pointer'
                       }}
-                      onClick={() => handleSubtareaToggle(subtarea._id, subtarea.completada)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSubtareaToggle(subtarea._id);
+                      }}
                     >
                       {showValues ? subtarea.titulo : maskText(subtarea.titulo)}
                     </Typography>
@@ -464,7 +510,7 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues }) => {
   );
 };
 
-const ProyectoItem = ({ proyecto, onEdit, onDelete, onUpdateTarea, onAddTarea, showValues }) => {
+const ProyectoItem = ({ proyecto, onEdit, onDelete, onUpdateTarea, onAddTarea, showValues, updateWithHistory, updateTareaWithHistory }) => {
   const [expanded, setExpanded] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const proyectoId = proyecto._id || proyecto.id;
@@ -489,6 +535,17 @@ const ProyectoItem = ({ proyecto, onEdit, onDelete, onUpdateTarea, onAddTarea, s
     event.stopPropagation();
     onDelete(proyectoId);
     handleMenuClose();
+  };
+
+  const handleInlineEdit = async (updates) => {
+    try {
+      const updated = await updateWithHistory(proyecto._id || proyecto.id, updates, proyecto);
+      // Actualizar estado local si es necesario
+      // ...
+      enqueueSnackbar('Proyecto actualizado exitosamente', { variant: 'success' });
+    } catch (error) {
+      enqueueSnackbar('Error al actualizar el proyecto', { variant: 'error' });
+    }
   };
 
   return (
@@ -645,6 +702,7 @@ const ProyectoItem = ({ proyecto, onEdit, onDelete, onUpdateTarea, onAddTarea, s
                     tarea={tarea}
                     onUpdateTarea={onUpdateTarea}
                     showValues={showValues}
+                    updateTareaWithHistory={updateTareaWithHistory}
                   />
                 ))}
             </Stack>
@@ -659,7 +717,7 @@ const ProyectoItem = ({ proyecto, onEdit, onDelete, onUpdateTarea, onAddTarea, s
   );
 };
 
-const ProyectosGrid = ({ proyectos, onEdit, onDelete, onAdd, onUpdateTarea, onAddTarea, showValues }) => {
+const ProyectosGrid = ({ proyectos, onEdit, onDelete, onAdd, onUpdateTarea, onAddTarea, showValues, updateWithHistory, updateTareaWithHistory }) => {
   const { maskText } = useValuesVisibility();
 
   if (proyectos.length === 0) {
@@ -681,6 +739,8 @@ const ProyectosGrid = ({ proyectos, onEdit, onDelete, onAdd, onUpdateTarea, onAd
           onUpdateTarea={onUpdateTarea}
           onAddTarea={onAddTarea}
           showValues={showValues}
+          updateWithHistory={updateWithHistory}
+          updateTareaWithHistory={updateTareaWithHistory}
         />
       ))}
     </Stack>

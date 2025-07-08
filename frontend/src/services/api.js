@@ -17,6 +17,14 @@ export const api = {
   updatePropiedad: (id, data) => clienteAxios.put(`/api/propiedades/${id}`, data),
   deletePropiedad: (id) => clienteAxios.delete(`/api/propiedades/${id}`),
   
+  // Documentos de Propiedades
+  getDocumentosPropiedad: (propiedadId) => clienteAxios.get(`/api/propiedades/${propiedadId}/documentos`),
+  sincronizarDocumentos: (propiedadId) => clienteAxios.post(`/api/propiedades/${propiedadId}/documentos/sincronizar`),
+  agregarDocumento: (propiedadId, documentoData) => clienteAxios.post(`/api/propiedades/${propiedadId}/documentos`, documentoData),
+  eliminarDocumento: (propiedadId, googleDriveId) => clienteAxios.delete(`/api/propiedades/${propiedadId}/documentos/${googleDriveId}`),
+  getDocumentosPorCategoria: (propiedadId, categoria) => clienteAxios.get(`/api/propiedades/${propiedadId}/documentos/categoria/${categoria}`),
+  crearCarpetaGoogleDrive: (propiedadId) => clienteAxios.post(`/api/propiedades/${propiedadId}/documentos/crear-carpeta`),
+  
   // Proyectos
   getProyectos: () => clienteAxios.get('/api/proyectos'),
   createProyecto: (data) => clienteAxios.post('/api/proyectos', data),

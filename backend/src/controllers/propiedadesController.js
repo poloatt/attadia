@@ -576,24 +576,199 @@ class PropiedadesController extends BaseController {
   // GET /api/propiedades/admin/stats
   async getAdminStats(req, res) {
     try {
-      const stats = await Promise.all([
+      const [
+        totalPropiedades,
+        disponibles,
+        ocupadas,
+        mantenimiento,
+        reservadas
+      ] = await Promise.all([
         this.Model.countDocuments(),
         this.Model.countDocuments({ estado: { $in: ['DISPONIBLE'] } }),
         this.Model.countDocuments({ estado: { $in: ['OCUPADA'] } }),
         this.Model.countDocuments({ estado: { $in: ['MANTENIMIENTO'] } }),
         this.Model.countDocuments({ estado: { $in: ['RESERVADA'] } })
       ]);
-      
+
       res.json({
-        total: stats[0],
-        disponibles: stats[1],
-        ocupadas: stats[2],
-        mantenimiento: stats[3],
-        reservadas: stats[4]
+        total: totalPropiedades,
+        disponibles,
+        ocupadas,
+        mantenimiento,
+        reservadas
       });
     } catch (error) {
-      console.error('Error al obtener estadísticas:', error);
+      console.error('Error en getAdminStats:', error);
       res.status(500).json({ error: 'Error al obtener estadísticas' });
+    }
+  }
+
+  // Métodos para gestión de documentos
+
+  // GET /api/propiedades/:id/documentos
+  async getDocumentos(req, res) {
+    try {
+      const propiedad = await this.Model.findById(req.params.id);
+      
+      if (!propiedad) {
+        return res.status(404).json({ error: 'Propiedad no encontrada' });
+      }
+
+      const estadisticas = propiedad.getEstadisticasDocumentos();
+      
+      res.json({
+        documentos: propiedad.documentos || [],
+        estadisticas,
+        configuracion: propiedad.googleDriveConfig
+      });
+    } catch (error) {
+      console.error('Error al obtener documentos:', error);
+      res.status(500).json({ error: 'Error al obtener documentos' });
+    }
+  }
+
+  // POST /api/propiedades/:id/documentos/sincronizar
+  async sincronizarDocumentos(req, res) {
+    try {
+      const propiedad = await this.Model.findById(req.params.id);
+      
+      if (!propiedad) {
+        return res.status(404).json({ error: 'Propiedad no encontrada' });
+      }
+
+      // Obtener access token del usuario (implementar según tu sistema de autenticación)
+      const accessToken = req.user.googleAccessToken; // Ajustar según tu implementación
+      
+      if (!accessToken) {
+        return res.status(400).json({ error: 'Se requiere acceso a Google Drive' });
+      }
+
+      const resultado = await propiedad.sincronizarDocumentos(accessToken);
+      
+      res.json({
+        message: 'Documentos sincronizados correctamente',
+        ...resultado
+      });
+    } catch (error) {
+      console.error('Error al sincronizar documentos:', error);
+      res.status(500).json({ 
+        error: 'Error al sincronizar documentos',
+        details: error.message 
+      });
+    }
+  }
+
+  // POST /api/propiedades/:id/documentos
+  async agregarDocumento(req, res) {
+    try {
+      const propiedad = await this.Model.findById(req.params.id);
+      
+      if (!propiedad) {
+        return res.status(404).json({ error: 'Propiedad no encontrada' });
+      }
+
+      const { nombre, categoria, url, googleDriveId, tamano, tipoArchivo } = req.body;
+      
+      if (!nombre || !categoria || !url) {
+        return res.status(400).json({ error: 'Nombre, categoría y URL son requeridos' });
+      }
+
+      const nuevoDocumento = await propiedad.agregarDocumento({
+        nombre,
+        categoria,
+        url,
+        googleDriveId,
+        tamano,
+        tipoArchivo
+      });
+      
+      res.status(201).json({
+        message: 'Documento agregado correctamente',
+        documento: nuevoDocumento
+      });
+    } catch (error) {
+      console.error('Error al agregar documento:', error);
+      res.status(500).json({ 
+        error: 'Error al agregar documento',
+        details: error.message 
+      });
+    }
+  }
+
+  // DELETE /api/propiedades/:id/documentos/:googleDriveId
+  async eliminarDocumento(req, res) {
+    try {
+      const propiedad = await this.Model.findById(req.params.id);
+      
+      if (!propiedad) {
+        return res.status(404).json({ error: 'Propiedad no encontrada' });
+      }
+
+      const documentoEliminado = await propiedad.eliminarDocumento(req.params.googleDriveId);
+      
+      res.json({
+        message: 'Documento eliminado correctamente',
+        documento: documentoEliminado
+      });
+    } catch (error) {
+      console.error('Error al eliminar documento:', error);
+      res.status(500).json({ 
+        error: 'Error al eliminar documento',
+        details: error.message 
+      });
+    }
+  }
+
+  // GET /api/propiedades/:id/documentos/categoria/:categoria
+  async getDocumentosPorCategoria(req, res) {
+    try {
+      const propiedad = await this.Model.findById(req.params.id);
+      
+      if (!propiedad) {
+        return res.status(404).json({ error: 'Propiedad no encontrada' });
+      }
+
+      const documentos = propiedad.getDocumentosPorCategoria(req.params.categoria);
+      
+      res.json({
+        categoria: req.params.categoria,
+        documentos,
+        total: documentos.length
+      });
+    } catch (error) {
+      console.error('Error al obtener documentos por categoría:', error);
+      res.status(500).json({ error: 'Error al obtener documentos por categoría' });
+    }
+  }
+
+  // POST /api/propiedades/:id/documentos/crear-carpeta
+  async crearCarpetaGoogleDrive(req, res) {
+    try {
+      const propiedad = await this.Model.findById(req.params.id);
+      
+      if (!propiedad) {
+        return res.status(404).json({ error: 'Propiedad no encontrada' });
+      }
+
+      // Obtener access token del usuario (implementar según tu sistema de autenticación)
+      const accessToken = req.user.googleAccessToken; // Ajustar según tu implementación
+      
+      if (!accessToken) {
+        return res.status(400).json({ error: 'Se requiere acceso a Google Drive' });
+      }
+
+      const resultado = await propiedad.crearCarpetaGoogleDrive(accessToken);
+      
+      res.json({
+        message: 'Carpeta creada correctamente en Google Drive',
+        ...resultado
+      });
+    } catch (error) {
+      console.error('Error al crear carpeta en Google Drive:', error);
+      res.status(500).json({ 
+        error: 'Error al crear carpeta en Google Drive',
+        details: error.message 
+      });
     }
   }
 }

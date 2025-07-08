@@ -42,6 +42,7 @@ import {
   calcularTiempoRestante, 
   calcularDuracionTotal 
 } from './contratoUtils';
+import { EntityActions } from '../EntityViews/EntityActions';
 
 // Componente estilizado para las tarjetas con estilo angular
 const StyledCard = styled(Card)(({ theme }) => ({
@@ -283,30 +284,11 @@ const ContratoCard = ({ contrato, onEdit, onDelete, isDashboard = false, isExpan
                 )}
               </IconButton>
             </Tooltip>
-            <Tooltip title="Editar">
-              <IconButton
-                size="small"
-                onClick={() => onEdit(contrato)}
-                sx={{ 
-                  color: 'text.secondary',
-                  padding: 0.25
-                }}
-              >
-                <EditIcon sx={{ fontSize: '0.9rem' }} />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Eliminar">
-              <IconButton
-                size="small"
-                onClick={() => onDelete(contrato._id || contrato.id)}
-                sx={{ 
-                  color: 'text.secondary',
-                  padding: 0.25
-                }}
-              >
-                <DeleteIcon sx={{ fontSize: '0.9rem' }} />
-              </IconButton>
-            </Tooltip>
+            <EntityActions 
+              onEdit={() => onEdit(contrato)}
+              onDelete={() => onDelete(contrato._id || contrato.id)}
+              itemName={titulo}
+            />
             <Tooltip title={isExpanded ? "Colapsar" : "Expandir"}>
               <IconButton
                 size="small"

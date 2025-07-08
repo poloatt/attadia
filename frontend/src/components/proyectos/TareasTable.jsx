@@ -79,7 +79,7 @@ const ordenarTareas = (tareas) => {
   });
 };
 
-const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues }) => {
+const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, updateTareaWithHistory }) => {
   const [open, setOpen] = useState(false);
   const [estadoLocal, setEstadoLocal] = useState(tarea.estado);
   const [subtareasLocal, setSubtareasLocal] = useState(tarea.subtareas || []);
@@ -100,6 +100,11 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
     try {
       setIsUpdating(true);
       
+      console.log('🔄 Actualizando subtarea:', { subtareaId, completada });
+      
+      // Guardar el estado original ANTES de cualquier cambio
+      const tareaOriginal = { ...tarea };
+      
       // Actualizar estado local inmediatamente
       const nuevasSubtareas = subtareasLocal.map(st => 
         st._id === subtareaId ? { ...st, completada: !completada } : st
@@ -117,22 +122,25 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
       }
       setEstadoLocal(nuevoEstado);
 
-      const response = await clienteAxios.put(`/api/tareas/${tarea._id}/subtareas`, {
-        subtareaId,
-        completada: !completada
-      });
+      console.log('📝 Enviando actualización:', { subtareas: nuevasSubtareas });
       
-      if (response.data) {
+      const response = await updateTareaWithHistory(tarea._id, {
+        subtareas: nuevasSubtareas
+      }, tareaOriginal);
+      
+      console.log('✅ Respuesta recibida:', response);
+      
+      if (response) {
         // Actualizar estado global
         if (onUpdateEstado) {
-          onUpdateEstado(response.data);
+          onUpdateEstado(response);
         }
       }
     } catch (error) {
       // Revertir cambios locales en caso de error
       setSubtareasLocal(tarea.subtareas || []);
       setEstadoLocal(tarea.estado);
-      console.error('Error al actualizar subtarea:', error);
+      console.error('❌ Error al actualizar subtarea:', error);
       enqueueSnackbar('Error al actualizar subtarea', { variant: 'error' });
     } finally {
       setTimeout(() => {
@@ -148,10 +156,13 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
     const nuevoEstado = estados[(currentIndex + 1) % estados.length];
     
     try {
-      const response = await clienteAxios.put(`/api/tareas/${tarea._id}/estado`, { estado: nuevoEstado });
+      // Guardar el estado original ANTES de cualquier cambio
+      const tareaOriginal = { ...tarea };
+      
+      const response = await updateTareaWithHistory(tarea._id, { estado: nuevoEstado }, tareaOriginal);
       setEstadoLocal(nuevoEstado);
       if (onUpdateEstado) {
-        onUpdateEstado(response.data);
+        onUpdateEstado(response);
       }
       enqueueSnackbar('Estado actualizado exitosamente', { variant: 'success' });
     } catch (error) {
@@ -228,14 +239,11 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
     }
 
     try {
-      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}`, {
-        fechaInicio: nuevaFecha.toISOString(),
-        pushCount: (tarea.pushCount || 0) + 1
-      });
+      // Guardar el estado original ANTES de cualquier cambio
+      const tareaOriginal = { ...tarea };
       
-      if (onUpdateEstado) {
-        onUpdateEstado(response.data);
-      }
+      const updated = await updateTareaWithHistory(tarea._id, { fechaInicio: nuevaFecha.toISOString(), pushCount: (tarea.pushCount || 0) + 1 }, tareaOriginal);
+      if (onUpdateEstado) onUpdateEstado(updated);
       enqueueSnackbar('Fecha actualizada exitosamente', { variant: 'success' });
     } catch (error) {
       console.error('Error al actualizar fecha:', error);
@@ -251,13 +259,11 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
   const handleTogglePriority = async (tarea) => {
     try {
       const nuevaPrioridad = tarea.prioridad === 'ALTA' ? 'BAJA' : 'ALTA';
-      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}`, {
-        prioridad: nuevaPrioridad
-      });
+      // Guardar el estado original ANTES de cualquier cambio
+      const tareaOriginal = { ...tarea };
       
-      if (onUpdateEstado) {
-        onUpdateEstado(response.data);
-      }
+      const updated = await updateTareaWithHistory(tarea._id, { prioridad: nuevaPrioridad }, tareaOriginal);
+      if (onUpdateEstado) onUpdateEstado(updated);
       enqueueSnackbar('Prioridad actualizada exitosamente', { variant: 'success' });
     } catch (error) {
       console.error('Error al actualizar prioridad:', error);
@@ -273,12 +279,13 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
         completada: true
       }));
 
-      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}/subtareas`, {
-        subtareas: nuevasSubtareas
-      });
+      // Guardar el estado original ANTES de cualquier cambio
+      const tareaOriginal = { ...tarea };
+      
+      const response = await updateTareaWithHistory(tarea._id, { subtareas: nuevasSubtareas }, tareaOriginal);
       
       if (onUpdateEstado) {
-        onUpdateEstado(response.data);
+        onUpdateEstado(response);
       }
       enqueueSnackbar('Tarea completada exitosamente', { variant: 'success' });
     } catch (error) {
@@ -295,12 +302,13 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
         completada: false
       }));
 
-      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}/subtareas`, {
-        subtareas: nuevasSubtareas
-      });
+      // Guardar el estado original ANTES de cualquier cambio
+      const tareaOriginal = { ...tarea };
+      
+      const response = await updateTareaWithHistory(tarea._id, { subtareas: nuevasSubtareas }, tareaOriginal);
       
       if (onUpdateEstado) {
-        onUpdateEstado(response.data);
+        onUpdateEstado(response);
       }
       enqueueSnackbar('Tarea reactivada exitosamente', { variant: 'success' });
     } catch (error) {
@@ -311,14 +319,11 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
 
   const handleCancel = async (tarea) => {
     try {
-      const response = await clienteAxios.patch(`/api/tareas/${tarea._id}`, {
-        estado: 'CANCELADA',
-        completada: false
-      });
+      // Guardar el estado original ANTES de cualquier cambio
+      const tareaOriginal = { ...tarea };
       
-      if (onUpdateEstado) {
-        onUpdateEstado(response.data);
-      }
+      const updated = await updateTareaWithHistory(tarea._id, { estado: 'CANCELADA', completada: false }, tareaOriginal);
+      if (onUpdateEstado) onUpdateEstado(updated);
       enqueueSnackbar('Tarea cancelada exitosamente', { variant: 'success' });
     } catch (error) {
       console.error('Error al cancelar tarea:', error);
@@ -583,7 +588,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
   );
 };
 
-const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues }) => {
+const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, updateTareaWithHistory }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { maskText } = useValuesVisibility();
@@ -653,6 +658,8 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
                     onUpdateEstado={onUpdateEstado}
                     isArchive={isArchive}
                     showValues={showValues}
+                    updateWithHistory={updateWithHistory}
+                    updateTareaWithHistory={updateTareaWithHistory}
                   />
                 ))}
               </TableBody>

@@ -38,4 +38,12 @@ router.get('/:id/contratos/mantenimiento', propiedadesController.getContratosMan
 router.get('/admin/all', [checkRole([ROLES.ADMIN])], propiedadesController.getAllAdmin);
 router.get('/admin/stats', [checkRole([ROLES.ADMIN])], propiedadesController.getAdminStats);
 
+// Rutas de documentos
+router.get('/:id/documentos', propiedadesController.getDocumentos);
+router.post('/:id/documentos/sincronizar', propiedadesController.sincronizarDocumentos);
+router.post('/:id/documentos', propiedadesController.agregarDocumento);
+router.delete('/:id/documentos/:googleDriveId', propiedadesController.eliminarDocumento);
+router.get('/:id/documentos/categoria/:categoria', propiedadesController.getDocumentosPorCategoria);
+router.post('/:id/documentos/crear-carpeta', propiedadesController.crearCarpetaGoogleDrive);
+
 export default router; 

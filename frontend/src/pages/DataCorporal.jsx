@@ -83,6 +83,18 @@ export function DataCorporal() {
     navigate('/rutinas');
   };
 
+  // Escuchar evento del Header para abrir formulario
+  useEffect(() => {
+    const handleHeaderAddButton = (event) => {
+      if (event.detail?.type === 'data-corporal') {
+        handleOpenDialog();
+      }
+    };
+
+    window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
+    return () => window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
+  }, []);
+
   return (
     <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar

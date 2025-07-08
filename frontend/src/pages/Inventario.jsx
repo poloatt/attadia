@@ -144,6 +144,19 @@ export function Inventario() {
     }
   }, [enqueueSnackbar, fetchInventario]);
 
+  // Escuchar evento del Header para abrir formulario
+  useEffect(() => {
+    const handleHeaderAddButton = (event) => {
+      if (event.detail?.type === 'inventario') {
+        setEditingItem(null);
+        setIsFormOpen(true);
+      }
+    };
+
+    window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
+    return () => window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
+  }, []);
+
   const formFields = [
     {
       name: 'propiedadId',

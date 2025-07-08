@@ -28,8 +28,18 @@ import {
   PersonSearchOutlined,
   PersonOutlined,
   DescriptionOutlined,
-  HotelOutlined
+  HotelOutlined,
+  FolderOutlined,
+  HealthAndSafetyOutlined,
+  MonitorHeartOutlined,
+  ScienceOutlined,
+  RestaurantOutlined,
+  MonitorWeightOutlined,
+  AccessTimeOutlined,
+  TaskOutlined,
+  ArchiveOutlined
 } from '@mui/icons-material';
+import { Link } from 'react-router-dom';
 
 export default function Sidebar() {
   const { 
@@ -63,6 +73,29 @@ export default function Sidebar() {
     return assetsPaths.some(path => location.pathname === path || location.pathname.startsWith(path + '/'));
   };
 
+  // Función para determinar si estamos en una sección de Rutinas
+  const isInRutinasSection = () => {
+    const rutinasPaths = [
+      '/rutinas',
+      '/lab',
+      '/dieta',
+      '/salud',
+      '/datacorporal'
+    ];
+    return rutinasPaths.some(path => location.pathname === path || location.pathname.startsWith(path + '/'));
+  };
+
+  // Función para determinar si estamos en una sección de Tiempo
+  const isInTiempoSection = () => {
+    const tiempoPaths = [
+      '/tiempo',
+      '/proyectos',
+      '/tareas',
+      '/archivo'
+    ];
+    return tiempoPaths.some(path => location.pathname === path || location.pathname.startsWith(path + '/'));
+  };
+
   // Función para determinar qué sección principal de Assets está activa
   const getActiveAssetsSection = () => {
     if (location.pathname === '/dashboard' || location.pathname.startsWith('/dashboard') ||
@@ -79,6 +112,36 @@ export default function Sidebar() {
       return 'propiedades';
     } else if (location.pathname === '/inventario' || location.pathname.startsWith('/inventario')) {
       return 'inventario';
+    }
+    return null;
+  };
+
+  // Función para determinar qué sección principal de Rutinas está activa
+  const getActiveRutinasSection = () => {
+    if (location.pathname === '/rutinas' || location.pathname.startsWith('/rutinas')) {
+      return 'rutinas';
+    } else if (location.pathname === '/lab' || location.pathname.startsWith('/lab')) {
+      return 'lab';
+    } else if (location.pathname === '/dieta' || location.pathname.startsWith('/dieta')) {
+      return 'dieta';
+    } else if (location.pathname === '/salud' || location.pathname.startsWith('/salud')) {
+      return 'salud';
+    } else if (location.pathname === '/datacorporal' || location.pathname.startsWith('/datacorporal')) {
+      return 'datacorporal';
+    }
+    return null;
+  };
+
+  // Función para determinar qué sección principal de Tiempo está activa
+  const getActiveTiempoSection = () => {
+    if (location.pathname === '/tiempo' || location.pathname.startsWith('/tiempo')) {
+      return 'tiempo';
+    } else if (location.pathname === '/proyectos' || location.pathname.startsWith('/proyectos')) {
+      return 'proyectos';
+    } else if (location.pathname === '/tareas' || location.pathname.startsWith('/tareas')) {
+      return 'tareas';
+    } else if (location.pathname === '/archivo' || location.pathname.startsWith('/archivo')) {
+      return 'archivo';
     }
     return null;
   };
@@ -493,6 +556,26 @@ export default function Sidebar() {
     }
   ];
 
+  // Elementos fijos de Rutinas
+  const rutinasFixedItems = [
+    {
+      id: 'rutinas',
+      title: 'Rutinas',
+      icon: <HealthAndSafetyOutlined />,
+      path: '/rutinas'
+    }
+  ];
+
+  // Elementos fijos de Tiempo
+  const tiempoFixedItems = [
+    {
+      id: 'tiempo',
+      title: 'Tiempo',
+      icon: <AccessTimeOutlined />,
+      path: '/tiempo'
+    }
+  ];
+
   // Obtener subsecciones dinámicas basadas en la sección activa
   const getDynamicSubItems = () => {
     const activeSection = getActiveAssetsSection();
@@ -541,10 +624,78 @@ export default function Sidebar() {
           title: 'Habitaciones',
           path: '/habitaciones',
           icon: <HotelOutlined />
+        },
+        {
+          title: 'Documentos',
+          path: '/propiedades/documentos',
+          icon: <FolderOutlined />
         }
       ];
     } else if (activeSection === 'inventario') {
       return []; // Inventario no tiene subsecciones por ahora
+    }
+    
+    return [];
+  };
+
+  // Obtener subsecciones dinámicas de Rutinas basadas en la sección activa
+  const getDynamicRutinasSubItems = () => {
+    const activeSection = getActiveRutinasSection();
+    
+    // Siempre mostrar las subsecciones cuando estamos en cualquier parte de la sección de Rutinas
+    if (activeSection === 'rutinas' || activeSection === 'lab' || activeSection === 'dieta' || 
+        activeSection === 'salud' || activeSection === 'datacorporal') {
+      return [
+        {
+          title: 'Salud',
+          path: '/salud',
+          icon: <MonitorHeartOutlined />
+        },
+        {
+          title: 'Lab',
+          path: '/lab',
+          icon: <ScienceOutlined />
+        },
+        {
+          title: 'Dieta',
+          path: '/dieta',
+          icon: <RestaurantOutlined />
+        },
+        {
+          title: 'Composición Corporal',
+          path: '/datacorporal',
+          icon: <MonitorWeightOutlined />
+        }
+      ];
+    }
+    
+    return [];
+  };
+
+  // Obtener subsecciones dinámicas de Tiempo basadas en la sección activa
+  const getDynamicTiempoSubItems = () => {
+    const activeSection = getActiveTiempoSection();
+    
+    // Siempre mostrar las subsecciones cuando estamos en cualquier parte de la sección de Tiempo
+    if (activeSection === 'tiempo' || activeSection === 'proyectos' || activeSection === 'tareas' || 
+        activeSection === 'archivo') {
+      return [
+        {
+          title: 'Proyectos',
+          path: '/proyectos',
+          icon: <FolderOutlined />
+        },
+        {
+          title: 'Tareas',
+          path: '/tareas',
+          icon: <TaskOutlined />
+        },
+        {
+          title: 'Archivo',
+          path: '/archivo',
+          icon: <ArchiveOutlined />
+        }
+      ];
     }
     
     return [];
@@ -707,44 +858,7 @@ export default function Sidebar() {
             {/* Si estamos en Assets, mostrar estructura especial */}
             {isInAssetsSection() ? (
               <>
-                {/* Grupo fijo de Assets */}
-                {isOpen && (
-                  <Box sx={{ mb: 2 }}>
-                    <Typography 
-                      variant="caption" 
-                      sx={{ 
-                        px: 1.5, 
-                        py: 0.5, 
-                        color: 'text.secondary',
-                        fontSize: '0.7rem',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px'
-                      }}
-                    >
-                      Assets
-                    </Typography>
-                  </Box>
-                )}
-                {assetsFixedItems.map(renderAssetsFixedItem)}
-                
-                {/* Separador sutil entre grupos */}
-                <Box sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  my: 1.5,
-                  px: isOpen ? 1.5 : 0.5
-                }}>
-                  <Box sx={{ 
-                    width: isOpen ? '80%' : '60%',
-                    height: '1px',
-                    bgcolor: 'divider',
-                    opacity: 0.3
-                  }} />
-                </Box>
-                
-                {/* Grupo dinámico de subsecciones */}
+                {/* Grupo dinámico de subsecciones - ARRIBA */}
                 {getDynamicSubItems().length > 0 && (
                   <>
                     {isOpen && (
@@ -786,11 +900,172 @@ export default function Sidebar() {
                   </>
                 )}
               </>
+            ) : isInRutinasSection() ? (
+              <>
+                {/* Grupo dinámico de subsecciones de Rutinas - ARRIBA */}
+                {getDynamicRutinasSubItems().length > 0 && (
+                  <>
+                    {isOpen && (
+                      <Box sx={{ mb: 2 }}>
+                        <Typography 
+                          variant="caption" 
+                          sx={{ 
+                            px: 1.5, 
+                            py: 0.5, 
+                            color: 'text.secondary',
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}
+                        >
+                          Salud
+                        </Typography>
+                      </Box>
+                    )}
+                    {getDynamicRutinasSubItems().map(renderDynamicSubItem)}
+                    
+                    {/* Separador sutil al final del grupo dinámico */}
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      my: 1.5,
+                      px: isOpen ? 1.5 : 0.5
+                    }}>
+                      <Box sx={{ 
+                        width: isOpen ? '60%' : '40%',
+                        height: '1px',
+                        bgcolor: 'divider',
+                        opacity: 0.2
+                      }} />
+                    </Box>
+                  </>
+                )}
+              </>
+            ) : isInTiempoSection() ? (
+              <>
+                {/* Grupo dinámico de subsecciones de Tiempo - ARRIBA */}
+                {getDynamicTiempoSubItems().length > 0 && (
+                  <>
+                    {isOpen && (
+                      <Box sx={{ mb: 2 }}>
+                        <Typography 
+                          variant="caption" 
+                          sx={{ 
+                            px: 1.5, 
+                            py: 0.5, 
+                            color: 'text.secondary',
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}
+                        >
+                          Gestión
+                        </Typography>
+                      </Box>
+                    )}
+                    {getDynamicTiempoSubItems().map(renderDynamicSubItem)}
+                    
+                    {/* Separador sutil al final del grupo dinámico */}
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      my: 1.5,
+                      px: isOpen ? 1.5 : 0.5
+                    }}>
+                      <Box sx={{ 
+                        width: isOpen ? '60%' : '40%',
+                        height: '1px',
+                        bgcolor: 'divider',
+                        opacity: 0.2
+                      }} />
+                    </Box>
+                  </>
+                )}
+              </>
             ) : (
               /* Mostrar elementos principales normales */
               itemsToShow.map((item) => renderMenuItem(item))
             )}
           </List>
+
+          {/* Secciones principales de Assets - ABAJO */}
+          {isInAssetsSection() && (
+            <List sx={{ p: isOpen ? 1 : 0.5 }}>
+              {isOpen && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      px: 1.5, 
+                      py: 0.5, 
+                      color: 'text.secondary',
+                      fontSize: '0.7rem',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}
+                  >
+                    Assets
+                  </Typography>
+                </Box>
+              )}
+              {assetsFixedItems.map(renderAssetsFixedItem)}
+            </List>
+          )}
+
+          {/* Secciones principales de Rutinas - ABAJO */}
+          {isInRutinasSection() && (
+            <List sx={{ p: isOpen ? 1 : 0.5 }}>
+              {isOpen && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      px: 1.5, 
+                      py: 0.5, 
+                      color: 'text.secondary',
+                      fontSize: '0.7rem',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}
+                  >
+                    Rutinas
+                  </Typography>
+                </Box>
+              )}
+              {rutinasFixedItems.map(renderAssetsFixedItem)}
+            </List>
+          )}
+
+          {/* Secciones principales de Tiempo - ABAJO */}
+          {isInTiempoSection() && (
+            <List sx={{ p: isOpen ? 1 : 0.5 }}>
+              {isOpen && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      px: 1.5, 
+                      py: 0.5, 
+                      color: 'text.secondary',
+                      fontSize: '0.7rem',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}
+                  >
+                    Tiempo
+                  </Typography>
+                </Box>
+              )}
+              {tiempoFixedItems.map(renderAssetsFixedItem)}
+            </List>
+          )}
 
           {/* Configuración siempre al final */}
           <List sx={{ p: isOpen ? 1 : 0.5, mt: 'auto' }}>

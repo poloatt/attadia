@@ -98,4 +98,25 @@ export const formatFecha = (fecha) => {
     month: 'short',
     year: 'numeric'
   });
+};
+
+// Función para obtener el apellido del primer inquilino de un contrato
+export const getApellidoInquilinoContrato = (contrato) => {
+  if (!contrato) return '';
+  // Puede ser array o un solo objeto
+  if (Array.isArray(contrato.inquilino) && contrato.inquilino.length > 0) {
+    return contrato.inquilino[0]?.apellido || '';
+  } else if (contrato.inquilino && typeof contrato.inquilino === 'object') {
+    return contrato.inquilino.apellido || '';
+  }
+  return '';
+};
+
+// Función para calcular duración del contrato en formato 'mes YYYY - mes YYYY'
+export const calcularRangoMesesContrato = (fechaInicio, fechaFin) => {
+  if (!fechaInicio || !fechaFin) return '';
+  const inicio = new Date(fechaInicio);
+  const fin = new Date(fechaFin);
+  const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  return `${meses[inicio.getMonth()]} ${inicio.getFullYear()} - ${meses[fin.getMonth()]} ${fin.getFullYear()}`;
 }; 
