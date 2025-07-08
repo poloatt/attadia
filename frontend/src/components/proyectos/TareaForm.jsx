@@ -47,7 +47,8 @@ const TareaForm = ({
   isEditing,
   proyectoId,
   proyectos,
-  onProyectosUpdate
+  onProyectosUpdate,
+  updateWithHistory
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -154,23 +155,49 @@ const TareaForm = ({
         completada: !subtarea.completada
       });
 
-      // Si la subtarea ya existe, llamamos al endpoint
-      const response = await clienteAxios.patch(`/api/tareas/${formData._id}/subtareas`, {
-        subtareaId: subtarea._id,
-        completada: !subtarea.completada
-      });
-      
-      console.log('Respuesta del servidor:', response.data);
+      // Si la subtarea ya existe, usar la función de historial
+      if (updateWithHistory && formData._id) {
+        // Guardar el estado original
+        const tareaOriginal = { ...formData };
+        
+        // Preparar las subtareas actualizadas
+        const subtareasActualizadas = formData.subtareas.map((st, i) => 
+          i === index ? { ...st, completada: !st.completada } : st
+        );
+        
+        const response = await updateWithHistory(formData._id, {
+          subtareas: subtareasActualizadas
+        }, tareaOriginal);
+        
+        console.log('Respuesta del servidor:', response);
 
-      // Actualizamos el estado local con los datos del servidor
-      if (response.data) {
-        setFormData(prev => ({
-          ...prev,
-          subtareas: response.data.subtareas || prev.subtareas.map(st => 
-            st._id === subtarea._id ? { ...st, completada: !st.completada } : st
-          )
-        }));
-        enqueueSnackbar('Subtarea actualizada exitosamente', { variant: 'success' });
+        // Actualizamos el estado local con los datos del servidor
+        if (response) {
+          setFormData(prev => ({
+            ...prev,
+            subtareas: response.subtareas || subtareasActualizadas
+          }));
+          enqueueSnackbar('Subtarea actualizada exitosamente', { variant: 'success' });
+        }
+      } else {
+        // Fallback: usar el endpoint directo si no hay función de historial
+        const response = await clienteAxios.patch(`/api/tareas/${formData._id}/subtareas`, {
+          subtareaId: subtarea._id,
+          completada: !subtarea.completada
+        });
+        
+        console.log('Respuesta del servidor:', response.data);
+
+        // Actualizamos el estado local con los datos del servidor
+        if (response.data) {
+          setFormData(prev => ({
+            ...prev,
+            subtareas: response.data.subtareas || prev.subtareas.map(st => 
+              st._id === subtarea._id ? { ...st, completada: !st.completada } : st
+            )
+          }));
+          enqueueSnackbar('Subtarea actualizada exitosamente', { variant: 'success' });
+        }
       }
     } catch (error) {
       console.error('Error al actualizar subtarea:', error);

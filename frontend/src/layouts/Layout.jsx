@@ -3,7 +3,7 @@ import { useUISettings } from '../context/UISettingsContext';
 import { useNavigate, Outlet } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import { useAuth } from '../context/AuthContext';
-import Header from '../components/Header';
+import { Header } from '../components/header';
 import Footer from '../components/Footer';
 import BottomNavigation from '../components/BottomNavigation';
 import Sidebar from '../components/Sidebar';

@@ -223,6 +223,18 @@ export function Transacciones() {
     setIsFormOpen(true);
   }, []);
 
+  // Escuchar evento del Header para abrir formulario
+  useEffect(() => {
+    const handleHeaderAddButton = (event) => {
+      if (event.detail?.type === 'transaccion') {
+        handleOpenForm();
+      }
+    };
+
+    window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
+    return () => window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
+  }, [handleOpenForm]);
+
   return (
     <Box sx={{ px: 0, width: '100%', position: 'relative', minHeight: '80vh', bgcolor: 'background.default' }}>
 

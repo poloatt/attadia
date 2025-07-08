@@ -1,7 +1,9 @@
 import React from 'react';
 import {
   Box,
-  Typography
+  Typography,
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import {
   PeopleOutlined as PeopleIcon,
@@ -30,11 +32,16 @@ import {
   MonetizationOnOutlined as MoneyIcon,
   AccountBalanceWalletOutlined as DepositIcon,
   AccountBalance as BankIcon,
-  AttachMoney as CurrencyIcon
+  AttachMoney as CurrencyIcon,
+  Visibility as VisibilityIcon
 } from '@mui/icons-material';
 import EntityGridView, { SECTION_CONFIGS, EntityHeader } from '../EntityViews/EntityGridView';
 import getEntityHeaderProps from '../EntityViews/entityHeaderProps.jsx';
 import { Link } from 'react-router-dom';
+import ContratoDetail from '../contratos/ContratoDetail';
+import { pluralizar, getEstadoContrato, getInquilinoStatusColor, agruparHabitaciones, calcularProgresoOcupacion } from './propiedadUtils';
+import { SeccionInquilinos, SeccionHabitaciones, SeccionInventario, SeccionDocumentos } from './SeccionesPropiedad';
+import { getInquilinosByPropiedad } from '../inquilinos/utils';
 
 // Configuraciones para diferentes tipos de datos
 
@@ -157,32 +164,48 @@ const inventarioConfig = {
   getSubtitle: (item) => `Cant: ${item.cantidad || 1}`
 };
 
-// Función para crear secciones estándar para una propiedad
-const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta, moneda, inquilinos, habitaciones, contratos, inventario, extendida = false) => {
-  // Calcular progreso de ocupación para obtener el total prorrateado
-  const calcularProgresoOcupacion = (prop) => {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    // Encontrar contrato activo
-    const contratoActivo = (prop.contratos || []).find(contrato => {
-      const inicio = new Date(contrato.fechaInicio);
-      const fin = new Date(contrato.fechaFin);
-      return inicio <= hoy && fin >= hoy && contrato.estado === 'ACTIVO';
-    });
-    if (!contratoActivo) {
-      return { montoTotal: 0 };
-    }
-    const inicio = new Date(contratoActivo.fechaInicio);
-    inicio.setHours(0, 0, 0, 0);
-    const fin = new Date(contratoActivo.fechaFin);
-    fin.setHours(0, 0, 0, 0);
-    const diasTotales = Math.max(0, Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24)));
-    const montoMensual = prop.precio || 0;
-    const montoTotal = (diasTotales / 30) * montoMensual;
-    return { montoTotal };
-  };
+const documentosConfig = {
+  getIcon: (documento) => {
+    const iconMap = {
+      'GASTO_FIJO': MoneyIcon,
+      'GASTO_VARIABLE': MoneyIcon,
+      'MANTENIMIENTO': Engineering,
+      'ALQUILER': HomeOutlined,
+      'CONTRATO': ContractIcon,
+      'PAGO': DepositIcon,
+      'COBRO': CurrencyIcon
+    };
+    return iconMap[documento.categoria] || ContractIcon;
+  },
+  getIconColor: (documento) => {
+    const colorMap = {
+      'GASTO_FIJO': '#f44336',
+      'GASTO_VARIABLE': '#ff9800',
+      'MANTENIMIENTO': '#2196f3',
+      'ALQUILER': '#4caf50',
+      'CONTRATO': '#9c27b0',
+      'PAGO': '#4caf50',
+      'COBRO': '#ff9800'
+    };
+    return colorMap[documento.categoria] || '#9e9e9e';
+  },
+  getTitle: (documento) => documento.nombre,
+  getSubtitle: (documento) => documento.categoria.replace('_', ' '),
+  getHoverInfo: (documento) => {
+    const fecha = new Date(documento.fechaCreacion).toLocaleDateString();
+    const tamano = documento.tamano ? `${(documento.tamano / 1024).toFixed(1)} KB` : 'Sin tamaño';
+    return `${fecha} - ${tamano}`;
+  },
+  getLinkTo: (documento) => documento.url
+};
 
+// Función para crear secciones estándar para una propiedad
+const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta, moneda, habitaciones, contratos, inventario, documentos = [], extendida = false) => {
+  // Calcular progreso de ocupación para obtener el total prorrateado
   const progresoOcupacion = calcularProgresoOcupacion(propiedad);
+
+  // Obtener el array de inquilinos usando el helper
+  const inquilinos = getInquilinosByPropiedad(propiedad);
 
   const datosFinancierosAdicionales = [
     {
@@ -205,23 +228,36 @@ const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta,
     }
   ];
 
-  // Crear secciones base (siempre visibles)
-  const secciones = [
-    SECTION_CONFIGS.ubicacion(propiedad),
+  // Crear secciones base (sin documentos ni inquilinos)
+  let secciones = [
     SECTION_CONFIGS.financiero(simboloMoneda, nombreCuenta, datosFinancierosAdicionales),
-    SECTION_CONFIGS.inquilinos(inquilinos, contratos, inquilinos)
+    SECTION_CONFIGS.ubicacion(propiedad)
   ];
 
   // Si es vista extendida, agregar habitaciones e inventario
   if (extendida) {
-    // Sección de habitaciones
     if (habitaciones && habitaciones.length > 0) {
       secciones.push(SECTION_CONFIGS.habitaciones(habitaciones));
     }
-    
-    // Sección de resumen de inventario (siempre mostrar en vista extendida)
     secciones.push(SECTION_CONFIGS.resumenInventario(inventario || []));
+    // Aquí puedes agregar otras secciones extendidas si las hubiera
   }
+
+  // Unir documentos y contratos como documentos
+  const documentosCompletos = [
+    ...(documentos || []),
+    ...(contratos || []).map(contrato => ({
+      ...contrato,
+      categoria: 'CONTRATO',
+      // Si el contrato ya tiene inquilino poblado, lo deja; si no, intenta poblarlo desde la propiedad
+      inquilino: contrato.inquilino || (Array.isArray(propiedad?.inquilinos) ? propiedad.inquilinos : []),
+      url: contrato.documentoUrl || `/contratos/${contrato._id}`
+    }))
+  ];
+
+  // SIEMPRE agregar la sección de inquilinos y documentos al final
+  secciones.push(SECTION_CONFIGS.inquilinos(inquilinos));
+  secciones.push(SECTION_CONFIGS.documentos(documentosCompletos));
 
   return secciones;
 };
@@ -277,25 +313,80 @@ function ContratosActivosSection({ contratos }) {
   });
   if (contratosActivos.length === 0) return null;
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.5 }}>
+    <Box>
       {contratosActivos.map((contrato, idx) => (
-        <Box key={contrato._id || idx} sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'space-between', bgcolor: 'rgba(255,255,255,0.01)', px: 1, py: 0.5, borderRadius: 0 }}>
+        <Box key={contrato._id || idx}>
           {/* Inquilinos a la izquierda */}
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
+          <Box>
             {(contrato.inquilino || []).map((i, iidx) => (
-              <Typography key={i._id || iidx} variant="caption" sx={{ fontSize: '0.75rem', color: 'text.primary', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: '100%' }}>
+              <Typography key={i._id || iidx} variant="caption">
                 {i && (i.nombre || i.apellido) ? `${i.nombre || ''} ${i.apellido || ''}`.trim() : ''}
               </Typography>
             ))}
           </Box>
           {/* Link a la derecha */}
-          <Box sx={{ flexShrink: 0 }}>
+          <Box>
             <Link to={`/contratos/${contrato._id}`} style={{ textDecoration: 'none', color: 'inherit', fontWeight: 500 }}>
               {`Contrato ${idx + 1}`}
             </Link>
           </Box>
         </Box>
       ))}
+    </Box>
+  );
+}
+
+// Render personalizado para la sección de documentos y contratos
+function DocumentosSection({ documentosPorCategoria }) {
+  if (!documentosPorCategoria || typeof documentosPorCategoria !== 'object') documentosPorCategoria = {};
+  const [openContrato, setOpenContrato] = React.useState(false);
+  const [contratoSeleccionado, setContratoSeleccionado] = React.useState(null);
+  return (
+    <Box>
+      {Object.entries(documentosPorCategoria).map(([categoria, docs]) => {
+        if (!docs.length) return null;
+        // Contratos: render especial con ojo
+        if (categoria === 'CONTRATOS') {
+          return (
+            <Box key="categoria-contratos">
+              <Typography variant="caption">
+                Contratos
+              </Typography>
+              {docs.map((contrato, idx) => (
+                <Box key={`contrato-${contrato._id || idx}`}> 
+                  <Typography variant="caption">
+                    {`Contrato ${idx + 1} - ${(contrato.inquilino||[]).map(i => `${i.nombre || ''} ${i.apellido || ''}`.trim()).join(', ') || 'Sin inquilino'}`}
+                  </Typography>
+                  <Tooltip title="Ver contrato">
+                    <IconButton size="small" onClick={() => { setContratoSeleccionado(contrato); setOpenContrato(true); }}>
+                      <VisibilityIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              ))}
+            </Box>
+          );
+        }
+        // Otros documentos
+        return (
+          <Box key={`categoria-${categoria}`}>
+            <Typography variant="caption">
+              {categoria.charAt(0) + categoria.slice(1).toLowerCase().replace('_', ' ')}
+            </Typography>
+            {docs.map((doc, dIdx) => (
+              <Box key={`doc-${doc._id || dIdx}`}> 
+                <Typography variant="caption">
+                  {doc.nombre}
+                </Typography>
+                <IconButton size="small" href={doc.url} target="_blank" rel="noopener noreferrer">
+                  <VisibilityIcon />
+                </IconButton>
+              </Box>
+            ))}
+          </Box>
+        );
+      })}
+      <ContratoDetail open={openContrato} onClose={() => setOpenContrato(false)} contrato={contratoSeleccionado} />
     </Box>
   );
 }
@@ -315,10 +406,10 @@ const PropiedadGridView = ({
   moneda,
   // Nuevos props para usar con secciones estándar
   propiedad = null,
-  inquilinos = [],
   habitaciones = [],
   contratos = [],
   inventario = [],
+  documentos = [],
   onView,
   onEdit,
   onDelete,
@@ -326,43 +417,6 @@ const PropiedadGridView = ({
 }) => {
   const renderContent = () => {
     switch (type) {
-      case 'inquilinos':
-        return (
-          <EntityGridView
-            type="list"
-            data={data}
-            config={inquilinosConfig}
-            gridSize={{ xs: 6, sm: 6, md: 6, lg: 6 }}
-            emptyMessage="No hay inquilinos registrados"
-          />
-        );
-      case 'habitaciones':
-        return (
-          <EntityGridView
-            type="list"
-            data={data}
-            config={habitacionesConfig}
-            isCompact={true}
-            fixedSlots={8}
-            itemsPerPage={8}
-            gridSize={{ xs: 3, sm: 3, md: 3, lg: 3 }}
-            emptyMessage="Sin habitaciones"
-          />
-        );
-      case 'contratos':
-        return (
-          <ContratosActivosSection contratos={contratos} />
-        );
-      case 'inventario':
-        return (
-          <EntityGridView
-            type="list"
-            data={data}
-            config={inventarioConfig}
-            gridSize={{ xs: 3, sm: 3, md: 2.4, lg: 2 }}
-            emptyMessage="No hay elementos en el inventario"
-          />
-        );
       case 'ubicacion':
         const seccionUbicacion = SECTION_CONFIGS.ubicacion(propiedad || { direccion, ciudad, metrosCuadrados });
         if (seccionUbicacion.hidden) {
@@ -401,7 +455,7 @@ const PropiedadGridView = ({
           {
             icon: MoneyIcon,
             label: 'Total',
-            value: `${simboloMoneda} ${progresoOcupacion.montoTotal.toLocaleString()}`,
+            value: `${simboloMoneda} ${calcularProgresoOcupacion(propiedad).montoTotal.toLocaleString()}`,
             color: 'text.secondary'
           }
         ];
@@ -422,7 +476,6 @@ const PropiedadGridView = ({
           metrosCuadrados: (propiedad && propiedad.metrosCuadrados) || metrosCuadrados,
           tipo: (propiedad && propiedad.tipo) || (typeof tipo !== 'undefined' ? tipo : undefined)
         };
-        
         // Crear secciones según el estado extendido (usar prop extendida si está disponible)
         let secciones = crearSeccionesPropiedad(
           propiedadData,
@@ -430,58 +483,24 @@ const PropiedadGridView = ({
           simboloMoneda,
           nombreCuenta,
           moneda,
-          inquilinos,
           habitaciones,
           contratos,
           inventario,
+          documentos,
           data?.extendida || false // Usar la prop extendida del data si está disponible
         );
-        // Buscar el índice de la sección de inquilinos
-        const idxInquilinos = secciones.findIndex(s => s.left && s.left[0]?.icon === PeopleIcon);
-        if (idxInquilinos !== -1) {
-          secciones[idxInquilinos] = {
-            type: 'custom-inquilinos',
-            render: () => (
-              <EntityGridView
-                type="list"
-                data={inquilinos}
-                config={inquilinosConfig}
-                gridSize={{ xs: 6, sm: 6, md: 6, lg: 6 }}
-                emptyMessage="Sin inquilinos"
-                inquilinos={inquilinos}
-              />
-            )
-          };
-        }
-        // Reemplazar la sección de contratos estándar por el renderer personalizado
-        const idxContratos = secciones.findIndex(s => s.left && s.left[0]?.icon === ContractIcon);
-        if (idxContratos !== -1) {
-          secciones[idxContratos] = {
-            type: 'custom-contratos',
-            render: () => <ContratosActivosSection contratos={contratos} />
-          };
-        }
+        // Renderizar usando EntityGridView con sections
         return (
-          <Box>
-            {secciones.map((section, i) =>
-              section.type === 'custom-contratos'
-                ? section.render()
-                : section.type === 'custom-inquilinos'
-                  ? section.render()
-                  : <EntityGridView 
-                      key={i} 
-                      type="sections" 
-                      sections={[section]} 
-                      sectionGridSize={{ xs: 12, sm: 12, md: 12, lg: 12 }} 
-                      showCollapseButton={false} 
-                      isCollapsed={false}
-                      contratos={contratos}
-                      onEditContrato={onEdit}
-                      onDeleteContrato={onDelete}
-                      inquilinos={inquilinos}
-                    />
-            )}
-          </Box>
+          <EntityGridView
+            type="sections"
+            sections={secciones}
+            sectionGridSize={{ xs: 12, sm: 12, md: 12, lg: 12 }}
+            showCollapseButton={false}
+            isCollapsed={false}
+            contratos={contratos}
+            onEditContrato={onEdit}
+            onDeleteContrato={onDelete}
+          />
         );
       case 'compact':
         // Unificar datos para asegurar que siempre haya dirección, ciudad, metrosCuadrados y tipo
@@ -498,10 +517,10 @@ const PropiedadGridView = ({
           simboloMoneda,
           nombreCuenta,
           moneda,
-          inquilinos,
           habitaciones,
           contratos,
           inventario,
+          documentos,
           false // Vista colapsada por defecto
         );
         return (
@@ -514,7 +533,6 @@ const PropiedadGridView = ({
             contratos={contratos}
             onEditContrato={onEdit}
             onDeleteContrato={onDelete}
-            inquilinos={inquilinos}
           />
         );
       default:
@@ -531,10 +549,33 @@ const PropiedadGridView = ({
     }
   };
 
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const contratoActivo = (contratos || []).find(contrato => {
+    const inicio = new Date(contrato.fechaInicio);
+    const fin = new Date(contrato.fechaFin);
+    return inicio <= hoy && fin >= hoy && contrato.estado === 'ACTIVO';
+  });
+  const progresoOcupacion = contratoActivo ? {
+    diasTranscurridos: Math.max(0, Math.ceil((hoy - new Date(contratoActivo.fechaInicio)) / (1000 * 60 * 60 * 24))),
+    diasTotales: Math.max(0, Math.ceil((new Date(contratoActivo.fechaFin) - new Date(contratoActivo.fechaInicio)) / (1000 * 60 * 60 * 24))),
+    porcentaje: Math.min(100, (Math.min(Math.max(0, Math.ceil((hoy - new Date(contratoActivo.fechaInicio)) / (1000 * 60 * 60 * 24))), Math.max(0, Math.ceil((new Date(contratoActivo.fechaFin) - new Date(contratoActivo.fechaInicio)) / (1000 * 60 * 60 * 24)))) / Math.max(1, Math.ceil((new Date(contratoActivo.fechaFin) - new Date(contratoActivo.fechaInicio)) / (1000 * 60 * 60 * 24)))) * 100),
+    estado: contratoActivo.estado || 'ACTIVO',
+    montoAcumulado: (Math.min(Math.max(0, Math.ceil((hoy - new Date(contratoActivo.fechaInicio)) / (1000 * 60 * 60 * 24))), Math.max(0, Math.ceil((new Date(contratoActivo.fechaFin) - new Date(contratoActivo.fechaInicio)) / (1000 * 60 * 60 * 24)))) / 30) * (precio || 0),
+    montoTotal: (Math.max(0, Math.ceil((new Date(contratoActivo.fechaFin) - new Date(contratoActivo.fechaInicio)) / (1000 * 60 * 60 * 24))) / 30) * (precio || 0)
+  } : {
+    diasTranscurridos: 0,
+    diasTotales: 0,
+    porcentaje: 0,
+    estado: 'PENDIENTE',
+    montoAcumulado: 0,
+    montoTotal: 0
+  };
+
   return (
     <Box>
       {title && (
-        <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
+        <Typography variant="h6">
           {title}
         </Typography>
       )}

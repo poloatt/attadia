@@ -28,7 +28,7 @@ import ProyectoForm from '../components/proyectos/ProyectoForm';
 import { useNavigationBar } from '../context/NavigationBarContext';
 import TareaForm from '../components/proyectos/TareaForm';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
-import { useActionHistory } from '../context/ActionHistoryContext';
+import { usePageWithHistory, useGlobalActionHistory } from '../hooks/useGlobalActionHistory';
 import { useNavigate } from 'react-router-dom';
 
 export function Proyectos() {
@@ -43,8 +43,45 @@ export function Proyectos() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { setTitle, setActions } = useNavigationBar();
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
-  const { addAction } = useActionHistory();
   const navigate = useNavigate();
+
+  // 1. Definir fetchProyectos primero
+  const fetchProyectos = useCallback(async () => {
+    try {
+      console.log('Solicitando proyectos con tareas...');
+      // Agregar timestamp para evitar cache
+      const response = await clienteAxios.get(`/api/proyectos?populate=tareas&_t=${Date.now()}`);
+      console.log('Respuesta completa:', response.data);
+      setProyectos(response.data.docs || []);
+    } catch (error) {
+      console.error('Error:', error);
+      enqueueSnackbar('Error al cargar proyectos', { variant: 'error' });
+      setProyectos([]);
+    }
+  }, [enqueueSnackbar]);
+
+  // 2. Historial de proyectos (ruta actual)
+  const { 
+    isSupported,
+    createWithHistory, 
+    updateWithHistory, 
+    deleteWithHistory 
+  } = usePageWithHistory(
+    fetchProyectos,
+    (error) => {
+      console.error('Error al revertir acción:', error);
+      enqueueSnackbar('Error al revertir la acción', { variant: 'error' });
+    }
+  );
+
+  // 3. Historial de tareas (ruta '/tareas')
+  const { updateWithHistory: updateTareaWithHistory } = useGlobalActionHistory(
+    undefined, // No hace falta fetch para tareas aquí
+    (error) => {
+      enqueueSnackbar('Error al revertir acción de tarea', { variant: 'error' });
+    },
+    '/tareas' // Forzar el entityType a 'tarea'
+  );
 
   const handleBack = () => {
     navigate('/tiempo');
@@ -72,19 +109,6 @@ export function Proyectos() {
     ]);
   }, [setTitle, setActions]);
 
-  const fetchProyectos = useCallback(async () => {
-    try {
-      console.log('Solicitando proyectos con tareas...');
-      const response = await clienteAxios.get('/api/proyectos?populate=tareas');
-      console.log('Respuesta completa:', response.data);
-      setProyectos(response.data.docs || []);
-    } catch (error) {
-      console.error('Error:', error);
-      enqueueSnackbar('Error al cargar proyectos', { variant: 'error' });
-      setProyectos([]);
-    }
-  }, [enqueueSnackbar]);
-
   useEffect(() => {
     fetchProyectos();
   }, [fetchProyectos]);
@@ -98,21 +122,32 @@ export function Proyectos() {
       }
     };
 
+    // Escuchar eventos de deshacer específicos para proyectos
     const handleUndoAction = (event) => {
       const action = event.detail;
-      if (action.type === 'proyecto') {
-        handleUndoAction(action);
-      }
+      handleUndoAction(action);
+    };
+
+    // Escuchar eventos de deshacer específicos para tareas
+    const handleUndoTareaAction = (event) => {
+      const action = event.detail;
+      console.log('Undo de tarea detectado:', action);
+      // Refrescar proyectos después del undo de tarea
+      setTimeout(() => {
+        fetchProyectos();
+      }, 500);
     };
 
     window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
-    window.addEventListener('undoAction', handleUndoAction);
+    window.addEventListener('undoAction_proyecto', handleUndoAction);
+    window.addEventListener('undoAction_tarea', handleUndoTareaAction);
     
     return () => {
       window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
-      window.removeEventListener('undoAction', handleUndoAction);
+      window.removeEventListener('undoAction_proyecto', handleUndoAction);
+      window.removeEventListener('undoAction_tarea', handleUndoTareaAction);
     };
-  }, []);
+  }, [fetchProyectos]);
 
   const handleFormSubmit = async (formData) => {
     try {
@@ -124,35 +159,19 @@ export function Proyectos() {
 
       let response;
       if (editingProyecto) {
-        // Guardar estado anterior para poder revertir
-        const previousState = { ...editingProyecto };
-        
-        response = await clienteAxios.put(`/api/proyectos/${editingProyecto._id || editingProyecto.id}`, dataToSend);
+        // Usar la función con historial automático
+        response = await updateWithHistory(
+          editingProyecto._id || editingProyecto.id, 
+          dataToSend, 
+          editingProyecto
+        );
         enqueueSnackbar('Proyecto actualizado exitosamente', { variant: 'success' });
-        
-        // Registrar acción para poder revertir
-        addAction({
-          type: 'proyecto',
-          action: 'update',
-          entityId: editingProyecto._id || editingProyecto.id,
-          previousState,
-          currentState: response.data,
-          timestamp: new Date().toISOString()
-        });
       } else {
-        response = await clienteAxios.post('/api/proyectos', dataToSend);
+        // Usar la función con historial automático
+        response = await createWithHistory(dataToSend);
         enqueueSnackbar('Proyecto creado exitosamente', { variant: 'success' });
-        
-        // Registrar acción para poder revertir
-        addAction({
-          type: 'proyecto',
-          action: 'create',
-          entityId: response.data._id,
-          previousState: null,
-          currentState: response.data,
-          timestamp: new Date().toISOString()
-        });
       }
+      
       setIsFormOpen(false);
       setEditingProyecto(null);
       await fetchProyectos();
@@ -172,39 +191,25 @@ export function Proyectos() {
 
   const handleDelete = useCallback(async (id) => {
     try {
-      // Buscar el proyecto antes de eliminarlo para poder revertir
-      const proyectoToDelete = proyectos.find(p => p._id === id);
-      if (!proyectoToDelete) {
-        throw new Error('Proyecto no encontrado');
-      }
-      
-      await clienteAxios.delete(`/api/proyectos/${id}`);
+      // Usar la función con historial automático
+      await deleteWithHistory(id);
       enqueueSnackbar('Proyecto eliminado exitosamente', { variant: 'success' });
-      
-      // Registrar acción para poder revertir
-      addAction({
-        type: 'proyecto',
-        action: 'delete',
-        entityId: id,
-        previousState: proyectoToDelete,
-        currentState: null,
-        timestamp: new Date().toISOString()
-      });
-      
       await fetchProyectos();
     } catch (error) {
       console.error('Error al eliminar proyecto:', error);
       enqueueSnackbar('Error al eliminar el proyecto', { variant: 'error' });
     }
-  }, [enqueueSnackbar, fetchProyectos, proyectos, addAction]);
+  }, [deleteWithHistory, enqueueSnackbar, fetchProyectos]);
 
-  const handleUpdateTarea = useCallback(async (tareaActualizada) => {
-    setProyectos(prevProyectos => 
+  const handleUpdateTarea = useCallback((tareaActualizada) => {
+    setProyectos(prevProyectos =>
       prevProyectos.map(proyecto => {
-        if (proyecto._id === tareaActualizada.proyecto) {
+        // Soportar tanto _id como id en proyecto de la tarea actualizada
+        const proyectoIdTarea = tareaActualizada.proyecto?._id || tareaActualizada.proyecto;
+        if (proyecto._id === proyectoIdTarea) {
           return {
             ...proyecto,
-            tareas: proyecto.tareas.map(tarea => 
+            tareas: proyecto.tareas.map(tarea =>
               tarea._id === tareaActualizada._id ? tareaActualizada : tarea
             )
           };
@@ -212,20 +217,7 @@ export function Proyectos() {
         return proyecto;
       })
     );
-
-    // Refrescar los datos después de un breve delay para asegurar sincronización
-    setTimeout(async () => {
-      try {
-        const response = await clienteAxios.get('/api/proyectos?populate=tareas');
-        if (response.data && response.data.docs) {
-          setProyectos(response.data.docs);
-        }
-      } catch (error) {
-        console.error('Error al actualizar proyectos:', error);
-        enqueueSnackbar('Error al sincronizar datos', { variant: 'error' });
-      }
-    }, 1000);
-  }, [enqueueSnackbar]);
+  }, []);
 
   const handleAddTarea = (proyecto) => {
     setSelectedProyecto(proyecto);
@@ -247,42 +239,6 @@ export function Proyectos() {
     } catch (error) {
       console.error('Error al crear tarea:', error);
       enqueueSnackbar('Error al crear la tarea', { variant: 'error' });
-    }
-  };
-
-  // Función para manejar la reversión de acciones
-  const handleUndoAction = async (action) => {
-    try {
-      switch (action.action) {
-        case 'create':
-          // Revertir creación: eliminar el proyecto
-          await clienteAxios.delete(`/api/proyectos/${action.entityId}`);
-          enqueueSnackbar('Creación de proyecto revertida', { variant: 'success' });
-          break;
-          
-        case 'update':
-          // Revertir actualización: restaurar estado anterior
-          await clienteAxios.put(`/api/proyectos/${action.entityId}`, action.previousState);
-          enqueueSnackbar('Actualización de proyecto revertida', { variant: 'success' });
-          break;
-          
-        case 'delete':
-          // Revertir eliminación: recrear el proyecto
-          await clienteAxios.post('/api/proyectos', action.previousState);
-          enqueueSnackbar('Eliminación de proyecto revertida', { variant: 'success' });
-          break;
-          
-        default:
-          console.warn('Tipo de acción no soportado para revertir:', action.action);
-          return;
-      }
-      
-      // Actualizar datos después de revertir
-      await fetchProyectos();
-      
-    } catch (error) {
-      console.error('Error al revertir acción:', error);
-      enqueueSnackbar('Error al revertir la acción', { variant: 'error' });
     }
   };
 
@@ -370,21 +326,22 @@ export function Proyectos() {
           onUpdateTarea={handleUpdateTarea}
           onAddTarea={handleAddTarea}
           showValues={showValues}
+          updateWithHistory={updateWithHistory}
+          updateTareaWithHistory={updateTareaWithHistory}
         />
       </Box>
 
-      {isFormOpen && (
-        <ProyectoForm
-          open={isFormOpen}
-          onClose={() => {
-            setIsFormOpen(false);
-            setEditingProyecto(null);
-          }}
-          onSubmit={handleFormSubmit}
-          initialData={editingProyecto}
-          isEditing={!!editingProyecto}
-        />
-      )}
+      <ProyectoForm
+        open={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onSubmit={handleFormSubmit}
+        isEditing={!!editingProyecto}
+        initialData={editingProyecto}
+        // Pasar funciones de historial para operaciones CRUD
+        createWithHistory={createWithHistory}
+        updateWithHistory={updateWithHistory}
+        deleteWithHistory={deleteWithHistory}
+      />
 
       {isTareaFormOpen && (
         <TareaForm

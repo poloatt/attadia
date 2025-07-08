@@ -58,6 +58,66 @@ const propiedadSchema = createSchema({
     required: false
   },
   imagen: String,
+  // Campo para documentos sincronizados con Google Drive
+  documentos: [{
+    nombre: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    categoria: {
+      type: String,
+      enum: ['GASTO_FIJO', 'GASTO_VARIABLE', 'MANTENIMIENTO', 'ALQUILER', 'CONTRATO', 'PAGO', 'COBRO'],
+      required: true
+    },
+    url: {
+      type: String,
+      required: true
+    },
+    googleDriveId: {
+      type: String,
+      required: true
+    },
+    fechaCreacion: {
+      type: Date,
+      default: Date.now
+    },
+    fechaModificacion: {
+      type: Date,
+      default: Date.now
+    },
+    tamano: {
+      type: Number,
+      default: 0
+    },
+    tipoArchivo: {
+      type: String,
+      default: 'application/octet-stream'
+    },
+    sincronizado: {
+      type: Boolean,
+      default: true
+    }
+  }],
+  // Configuración de Google Drive para esta propiedad
+  googleDriveConfig: {
+    carpetaId: {
+      type: String,
+      default: null
+    },
+    carpetaNombre: {
+      type: String,
+      default: null
+    },
+    ultimaSincronizacion: {
+      type: Date,
+      default: null
+    },
+    sincronizacionAutomatica: {
+      type: Boolean,
+      default: true
+    }
+  },
   ...commonFields
 });
 
@@ -277,8 +337,185 @@ propiedadSchema.methods.getFullInfo = async function() {
     inquilinos: propiedadObj.inquilinos || [],
     habitaciones: propiedadObj.habitaciones || [],
     contratos: propiedadObj.contratos || [],
-    inventarios: propiedadObj.inventarios || []
+    inventarios: propiedadObj.inventarios || [],
+    documentos: propiedadObj.documentos || []
   };
+};
+
+// Métodos para gestión de documentos con Google Drive
+
+// Método para crear carpeta en Google Drive para la propiedad
+propiedadSchema.methods.crearCarpetaGoogleDrive = async function(accessToken) {
+  try {
+    // Aquí se implementaría la lógica para crear carpeta en Google Drive
+    // usando la API de Google Drive con el accessToken del usuario
+    const carpetaNombre = `Propiedad - ${this.titulo}`;
+    
+    // Simulación de creación de carpeta (implementar con Google Drive API)
+    const carpetaId = `carpeta_${this._id}_${Date.now()}`;
+    
+    this.googleDriveConfig.carpetaId = carpetaId;
+    this.googleDriveConfig.carpetaNombre = carpetaNombre;
+    this.googleDriveConfig.ultimaSincronizacion = new Date();
+    
+    await this.save();
+    
+    return {
+      carpetaId,
+      carpetaNombre,
+      success: true
+    };
+  } catch (error) {
+    console.error('Error al crear carpeta en Google Drive:', error);
+    throw new Error('No se pudo crear la carpeta en Google Drive');
+  }
+};
+
+// Método para sincronizar documentos desde Google Drive
+propiedadSchema.methods.sincronizarDocumentos = async function(accessToken) {
+  try {
+    if (!this.googleDriveConfig.carpetaId) {
+      await this.crearCarpetaGoogleDrive(accessToken);
+    }
+    
+    // Aquí se implementaría la lógica para obtener archivos de Google Drive
+    // usando la API de Google Drive con el accessToken del usuario
+    
+    // Simulación de sincronización (implementar con Google Drive API)
+    const documentosGoogleDrive = [
+      {
+        nombre: 'Contrato de alquiler.pdf',
+        categoria: 'CONTRATO',
+        url: 'https://drive.google.com/file/d/ejemplo1/view',
+        googleDriveId: 'ejemplo1',
+        tamano: 1024000,
+        tipoArchivo: 'application/pdf'
+      },
+      {
+        nombre: 'Recibo de luz.pdf',
+        categoria: 'GASTO_FIJO',
+        url: 'https://drive.google.com/file/d/ejemplo2/view',
+        googleDriveId: 'ejemplo2',
+        tamano: 512000,
+        tipoArchivo: 'application/pdf'
+      }
+    ];
+    
+    // Actualizar documentos existentes y agregar nuevos
+    const documentosActualizados = [];
+    
+    for (const docGoogle of documentosGoogleDrive) {
+      const docExistente = this.documentos.find(d => d.googleDriveId === docGoogle.googleDriveId);
+      
+      if (docExistente) {
+        // Actualizar documento existente
+        Object.assign(docExistente, {
+          ...docGoogle,
+          fechaModificacion: new Date(),
+          sincronizado: true
+        });
+        documentosActualizados.push(docExistente);
+      } else {
+        // Agregar nuevo documento
+        documentosActualizados.push({
+          ...docGoogle,
+          fechaCreacion: new Date(),
+          fechaModificacion: new Date(),
+          sincronizado: true
+        });
+      }
+    }
+    
+    this.documentos = documentosActualizados;
+    this.googleDriveConfig.ultimaSincronizacion = new Date();
+    
+    await this.save();
+    
+    return {
+      documentosSincronizados: documentosActualizados.length,
+      success: true
+    };
+  } catch (error) {
+    console.error('Error al sincronizar documentos:', error);
+    throw new Error('No se pudieron sincronizar los documentos');
+  }
+};
+
+// Método para agregar documento manualmente
+propiedadSchema.methods.agregarDocumento = async function(documentoData) {
+  try {
+    const nuevoDocumento = {
+      nombre: documentoData.nombre,
+      categoria: documentoData.categoria,
+      url: documentoData.url,
+      googleDriveId: documentoData.googleDriveId || `manual_${Date.now()}`,
+      fechaCreacion: new Date(),
+      fechaModificacion: new Date(),
+      tamano: documentoData.tamano || 0,
+      tipoArchivo: documentoData.tipoArchivo || 'application/octet-stream',
+      sincronizado: false
+    };
+    
+    this.documentos.push(nuevoDocumento);
+    await this.save();
+    
+    return nuevoDocumento;
+  } catch (error) {
+    console.error('Error al agregar documento:', error);
+    throw new Error('No se pudo agregar el documento');
+  }
+};
+
+// Método para eliminar documento
+propiedadSchema.methods.eliminarDocumento = async function(googleDriveId) {
+  try {
+    const indice = this.documentos.findIndex(d => d.googleDriveId === googleDriveId);
+    
+    if (indice === -1) {
+      throw new Error('Documento no encontrado');
+    }
+    
+    const documentoEliminado = this.documentos.splice(indice, 1)[0];
+    await this.save();
+    
+    return documentoEliminado;
+  } catch (error) {
+    console.error('Error al eliminar documento:', error);
+    throw new Error('No se pudo eliminar el documento');
+  }
+};
+
+// Método para obtener documentos por categoría
+propiedadSchema.methods.getDocumentosPorCategoria = function(categoria) {
+  return this.documentos.filter(doc => doc.categoria === categoria);
+};
+
+// Método para obtener estadísticas de documentos
+propiedadSchema.methods.getEstadisticasDocumentos = function() {
+  const estadisticas = {
+    total: this.documentos.length,
+    porCategoria: {},
+    tamanoTotal: 0,
+    sincronizados: 0,
+    manuales: 0
+  };
+  
+  this.documentos.forEach(doc => {
+    // Contar por categoría
+    estadisticas.porCategoria[doc.categoria] = (estadisticas.porCategoria[doc.categoria] || 0) + 1;
+    
+    // Sumar tamaños
+    estadisticas.tamanoTotal += doc.tamano || 0;
+    
+    // Contar sincronizados vs manuales
+    if (doc.sincronizado) {
+      estadisticas.sincronizados++;
+    } else {
+      estadisticas.manuales++;
+    }
+  });
+  
+  return estadisticas;
 };
 
 export const Propiedades = mongoose.model('Propiedades', propiedadSchema); 

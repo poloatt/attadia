@@ -93,6 +93,19 @@ export function Dieta() {
     navigate('/rutinas');
   };
 
+  // Escuchar evento del Header para abrir formulario
+  useEffect(() => {
+    const handleHeaderAddButton = (event) => {
+      if (event.detail?.type === 'dieta') {
+        setEditingComida(null);
+        setIsFormOpen(true);
+      }
+    };
+
+    window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
+    return () => window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
+  }, []);
+
   const formFields = [
     {
       name: 'nombre',

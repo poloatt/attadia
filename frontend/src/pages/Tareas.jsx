@@ -26,7 +26,7 @@ import { useSnackbar } from 'notistack';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useNavigationBar } from '../context/NavigationBarContext';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
-import { useActionHistory } from '../context/ActionHistoryContext';
+import { usePageWithHistory } from '../hooks/useGlobalActionHistory';
 
 export function Tareas() {
   const [tareas, setTareas] = useState([]);
@@ -39,8 +39,26 @@ export function Tareas() {
   const location = useLocation();
   const { setTitle, setActions } = useNavigationBar();
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
-  const { addAction } = useActionHistory();
   const navigate = useNavigate();
+
+  // Usar el sistema automático de historial
+  const { 
+    isSupported,
+    createWithHistory, 
+    updateWithHistory, 
+    deleteWithHistory 
+  } = usePageWithHistory(
+    // Función para recargar datos
+    async () => {
+      await fetchProyectos();
+      await fetchTareas();
+    },
+    // Función para manejar errores
+    (error) => {
+      console.error('Error al revertir acción:', error);
+      enqueueSnackbar('Error al revertir la acción', { variant: 'error' });
+    }
+  );
 
   useEffect(() => {
     setTitle('Tareas');
@@ -67,7 +85,7 @@ export function Tareas() {
   const fetchProyectos = useCallback(async () => {
     try {
       // Obtener proyectos con sus tareas incluidas
-      const response = await clienteAxios.get('/api/proyectos?populate=tareas');
+      const response = await clienteAxios.get(`/api/proyectos?populate=tareas&_t=${Date.now()}`);
       console.log('Proyectos con tareas:', response.data);
       setProyectos(response.data.docs || []);
     } catch (error) {
@@ -79,7 +97,8 @@ export function Tareas() {
 
   const fetchTareas = useCallback(async () => {
     try {
-      const response = await clienteAxios.get('/api/tareas');
+      // Agregar timestamp para evitar cache
+      const response = await clienteAxios.get(`/api/tareas?_t=${Date.now()}`);
       setTareas(response.data.docs || []);
     } catch (error) {
       console.error('Error:', error);
@@ -102,78 +121,77 @@ export function Tareas() {
       }
     };
 
-    const handleUndoAction = (event) => {
+    // Escuchar eventos de deshacer específicos para tareas
+    const handleUndoTareaAction = (event) => {
       const action = event.detail;
-      if (action.type === 'tarea') {
-        handleUndoAction(action);
-      }
+      console.log('Undo de tarea detectado en página de Tareas:', action);
+      // Refrescar tareas después del undo
+      setTimeout(() => {
+        fetchTareas();
+        fetchProyectos();
+      }, 500);
     };
 
     window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
-    window.addEventListener('undoAction', handleUndoAction);
+    window.addEventListener('undoAction_tarea', handleUndoTareaAction);
     
     return () => {
       window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
-      window.removeEventListener('undoAction', handleUndoAction);
+      window.removeEventListener('undoAction_tarea', handleUndoTareaAction);
     };
-  }, []);
+  }, [fetchTareas, fetchProyectos]);
 
   const handleFormSubmit = async (formData) => {
     try {
-      let response;
       const datosAEnviar = {
         ...formData,
         proyecto: formData.proyecto?._id || formData.proyecto
       };
 
-      console.log('Datos a enviar:', datosAEnviar);
+      console.log('📝 Datos a enviar:', datosAEnviar);
 
       if (editingTarea) {
-        console.log('Actualizando tarea:', editingTarea._id);
+        console.log('🔄 Actualizando tarea:', editingTarea._id);
         
-        // Guardar estado anterior para poder revertir
-        const previousState = { ...editingTarea };
+        // Usar la función con historial automático
+        const updatedTarea = await updateWithHistory(editingTarea._id, datosAEnviar, editingTarea);
         
-        response = await clienteAxios.put(`/api/tareas/${editingTarea._id}`, datosAEnviar);
+        console.log('✅ Tarea actualizada recibida:', updatedTarea);
+        
+        // Actualizar estado local inmediatamente
+        setTareas(prevTareas => 
+          prevTareas.map(tarea => 
+            tarea._id === editingTarea._id ? updatedTarea : tarea
+          )
+        );
+        
         enqueueSnackbar('Tarea actualizada exitosamente', { variant: 'success' });
-        
-        // Registrar acción para poder revertir
-        addAction({
-          type: 'tarea',
-          action: 'update',
-          entityId: editingTarea._id,
-          previousState,
-          currentState: response.data,
-          timestamp: new Date().toISOString()
-        });
       } else {
-        console.log('Creando nueva tarea');
-        response = await clienteAxios.post('/api/tareas', datosAEnviar);
-        enqueueSnackbar('Tarea creada exitosamente', { variant: 'success' });
+        console.log('➕ Creando nueva tarea');
         
-        // Registrar acción para poder revertir
-        addAction({
-          type: 'tarea',
-          action: 'create',
-          entityId: response.data._id,
-          previousState: null,
-          currentState: response.data,
-          timestamp: new Date().toISOString()
-        });
+        // Usar la función con historial automático
+        const newTarea = await createWithHistory(datosAEnviar);
+        
+        console.log('✅ Nueva tarea creada:', newTarea);
+        
+        // Agregar la nueva tarea al estado local
+        setTareas(prevTareas => [newTarea, ...prevTareas]);
+        
+        enqueueSnackbar('Tarea creada exitosamente', { variant: 'success' });
       }
 
-      console.log('Respuesta del servidor:', response.data);
-      
       setIsFormOpen(false);
       setEditingTarea(null);
       
-      // Primero actualizamos los proyectos para obtener la nueva estructura
-      await fetchProyectos();
-      // Luego actualizamos las tareas
-      await fetchTareas();
+      // Recargar datos después de un breve delay para asegurar sincronización
+      setTimeout(() => {
+        console.log('🔄 Recargando datos...');
+        fetchTareas();
+        fetchProyectos();
+      }, 500);
     } catch (error) {
-      console.error('Error completo:', error);
-      console.error('Detalles del error:', error.response?.data);
+      console.error('❌ Error completo:', error);
+      console.error('❌ Detalles del error:', error.response?.data);
       enqueueSnackbar(
         error.response?.data?.error || 'Error al guardar la tarea', 
         { variant: 'error' }
@@ -188,31 +206,15 @@ export function Tareas() {
 
   const handleDelete = useCallback(async (id) => {
     try {
-      // Buscar la tarea antes de eliminarla para poder revertir
-      const tareaToDelete = tareas.find(t => t._id === id);
-      if (!tareaToDelete) {
-        throw new Error('Tarea no encontrada');
-      }
-      
-      await clienteAxios.delete(`/api/tareas/${id}`);
+      // Usar la función con historial automático
+      await deleteWithHistory(id);
       enqueueSnackbar('Tarea eliminada exitosamente', { variant: 'success' });
-      
-      // Registrar acción para poder revertir
-      addAction({
-        type: 'tarea',
-        action: 'delete',
-        entityId: id,
-        previousState: tareaToDelete,
-        currentState: null,
-        timestamp: new Date().toISOString()
-      });
-      
-      await fetchTareas();
+      // Los datos se recargan automáticamente después de la acción
     } catch (error) {
       console.error('Error al eliminar tarea:', error);
       enqueueSnackbar('Error al eliminar la tarea', { variant: 'error' });
     }
-  }, [enqueueSnackbar, fetchTareas, tareas, addAction]);
+  }, [deleteWithHistory, enqueueSnackbar]);
 
   const handleUpdateEstado = (tareaActualizada) => {
     setTareas(prevTareas => 
@@ -222,43 +224,6 @@ export function Tareas() {
     );
     if (editingTarea && editingTarea._id === tareaActualizada._id) {
       setEditingTarea(tareaActualizada);
-    }
-  };
-
-  // Función para manejar la reversión de acciones
-  const handleUndoAction = async (action) => {
-    try {
-      switch (action.action) {
-        case 'create':
-          // Revertir creación: eliminar la tarea
-          await clienteAxios.delete(`/api/tareas/${action.entityId}`);
-          enqueueSnackbar('Creación de tarea revertida', { variant: 'success' });
-          break;
-          
-        case 'update':
-          // Revertir actualización: restaurar estado anterior
-          await clienteAxios.put(`/api/tareas/${action.entityId}`, action.previousState);
-          enqueueSnackbar('Actualización de tarea revertida', { variant: 'success' });
-          break;
-          
-        case 'delete':
-          // Revertir eliminación: recrear la tarea
-          await clienteAxios.post('/api/tareas', action.previousState);
-          enqueueSnackbar('Eliminación de tarea revertida', { variant: 'success' });
-          break;
-          
-        default:
-          console.warn('Tipo de acción no soportado para revertir:', action.action);
-          return;
-      }
-      
-      // Actualizar datos después de revertir
-      await fetchTareas();
-      await fetchProyectos();
-      
-    } catch (error) {
-      console.error('Error al revertir acción:', error);
-      enqueueSnackbar('Error al revertir la acción', { variant: 'error' });
     }
   };
 
@@ -321,22 +286,25 @@ export function Tareas() {
             onEdit={handleEdit}
             onDelete={handleDelete}
             onUpdateEstado={handleUpdateEstado}
+            isArchive={false}
             showValues={showValues}
+            updateWithHistory={updateWithHistory}
+            updateTareaWithHistory={updateWithHistory}
           />
         </Box>
 
         {isFormOpen && (
           <TareaForm
             open={isFormOpen}
-            onClose={() => {
-              setIsFormOpen(false);
-              setEditingTarea(null);
-            }}
+            onClose={() => setIsFormOpen(false)}
             onSubmit={handleFormSubmit}
-            initialData={editingTarea}
             isEditing={!!editingTarea}
+            initialData={editingTarea}
             proyectos={proyectos}
             onProyectosUpdate={fetchProyectos}
+            createWithHistory={createWithHistory}
+            updateWithHistory={updateWithHistory}
+            deleteWithHistory={deleteWithHistory}
           />
         )}
       </Container>

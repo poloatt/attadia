@@ -37,7 +37,7 @@ import { useAuth } from './context/AuthContext';
 import AuthError from './components/auth/AuthError';
 import { RutinasProvider } from './components/rutinas/context/RutinasContext.jsx';
 import { RutinasHistoricalProvider } from './components/rutinas/context/rutinasHistoricalContext.jsx';
-
+import PropiedadDocumentos from './components/propiedades/PropiedadDocumentos';
 function App() {
   const { user, loading } = useAuth();
 
@@ -53,63 +53,64 @@ function App() {
         <NavigationBarProvider>
           <ErrorBoundary>
             <Routes>
-              {/* Rutas públicas */}
-              <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
-              <Route path="/registro" element={<Register />} />
-              <Route path="/auth/callback" element={<AuthCallback />} />
-              <Route path="/auth/error" element={<AuthError />} />
-              
-              {/* Ruta raíz */}
-              <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
-              
-              {/* Rutas protegidas */}
-              <Route element={<PrivateRoute />}>
-                <Route element={<Layout />}>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/propiedades" element={<Propiedades />} />
-                  <Route path="/transacciones" element={<Transacciones />} />
-                  <Route path="/recurrente" element={<Recurrente />} />
-                  <Route path="/rutinas" element={
-                    <RutinasProvider>
-                      <RutinasHistoricalProvider>
-                        <Rutinas />
-                      </RutinasHistoricalProvider>
-                    </RutinasProvider>
-                  } />
-                  <Route path="/rutinas/:id" element={
-                    <RutinasProvider>
-                      <RutinasHistoricalProvider>
-                        <Rutinas />
-                      </RutinasHistoricalProvider>
-                    </RutinasProvider>
-                  } />
-                  <Route path="/lab" element={<Lab />} />
-                  <Route path="/proyectos" element={<Proyectos />} />
-                  <Route path="/perfil" element={<Perfil />} />
-                  <Route path="/habitaciones" element={<Habitaciones />} />
-                  <Route path="/monedas" element={<Monedas />} />
-                  <Route path="/cuentas" element={<Cuentas />} />
-                  <Route path="/inquilinos" element={<Inquilinos />} />
-                  <Route path="/contratos" element={<Contratos />} />
-                  <Route path="/inventario" element={<Inventario />} />
-                  <Route path="/dieta" element={<Dieta />} />
-                  <Route path="/datacorporal" element={<DataCorporal />} />
-                  <Route path="/deudores" element={<Deudores />} />
-                  <Route path="/salud" element={<Salud />} />
-                  <Route path="/tareas" element={<Tareas />} />
-                  <Route path="/archivo" element={<Archivo />} />
-                  <Route path="/tiempo" element={<Tiempo />} />
-                  <Route path="/configuracion" element={<Configuracion />} />
-                  <Route path="/preferencias" element={<Configuracion />} />
+                {/* Rutas públicas */}
+                <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
+                <Route path="/registro" element={<Register />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/auth/error" element={<AuthError />} />
+                
+                {/* Ruta raíz */}
+                <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
+                
+                {/* Rutas protegidas */}
+                <Route element={<PrivateRoute />}>
+                  <Route element={<Layout />}>
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/propiedades" element={<Propiedades />} />
+                    <Route path="/transacciones" element={<Transacciones />} />
+                    <Route path="/recurrente" element={<Recurrente />} />
+                    <Route path="/rutinas" element={
+                      <RutinasProvider>
+                        <RutinasHistoricalProvider>
+                          <Rutinas />
+                        </RutinasHistoricalProvider>
+                      </RutinasProvider>
+                    } />
+                    <Route path="/rutinas/:id" element={
+                      <RutinasProvider>
+                        <RutinasHistoricalProvider>
+                          <Rutinas />
+                        </RutinasHistoricalProvider>
+                      </RutinasProvider>
+                    } />
+                    <Route path="/lab" element={<Lab />} />
+                    <Route path="/proyectos" element={<Proyectos />} />
+                    <Route path="/perfil" element={<Perfil />} />
+                    <Route path="/habitaciones" element={<Habitaciones />} />
+                    <Route path="/monedas" element={<Monedas />} />
+                    <Route path="/cuentas" element={<Cuentas />} />
+                    <Route path="/inquilinos" element={<Inquilinos />} />
+                    <Route path="/contratos" element={<Contratos />} />
+                    <Route path="/inventario" element={<Inventario />} />
+                    <Route path="/dieta" element={<Dieta />} />
+                    <Route path="/datacorporal" element={<DataCorporal />} />
+                    <Route path="/deudores" element={<Deudores />} />
+                    <Route path="/salud" element={<Salud />} />
+                    <Route path="/tareas" element={<Tareas />} />
+                    <Route path="/archivo" element={<Archivo />} />
+                    <Route path="/tiempo" element={<Tiempo />} />
+                    <Route path="/configuracion" element={<Configuracion />} />
+                    <Route path="/preferencias" element={<Configuracion />} />
+                    <Route path="/propiedades/documentos" element={<PropiedadDocumentos />} />
+                  </Route>
                 </Route>
-              </Route>
 
-              {/* Ruta 404 */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </ErrorBoundary>
-        </NavigationBarProvider>
-      </ValuesVisibilityProvider>
+                {/* Ruta 404 */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </ErrorBoundary>
+          </NavigationBarProvider>
+        </ValuesVisibilityProvider>
     </ThemeProvider>
   );
 }

@@ -50,6 +50,7 @@ import EmptyState from '../components/EmptyState';
 import { EntityActions } from '../components/EntityViews/EntityActions';
 import PropiedadForm from '../components/propiedades/PropiedadForm';
 import PropiedadList from '../components/propiedades/PropiedadList';
+import { usePageWithHistory } from '../hooks/useGlobalActionHistory';
 
 // Cambiamos a exportación nombrada para coincidir con App.jsx
 export function Propiedades() {
@@ -64,7 +65,7 @@ export function Propiedades() {
   const [formData, setFormData] = useState({
     titulo: '',
     descripcion: '',
-    precio: '',
+    montoMensual: '',
     direccion: '',
     ciudad: '',
     estado: 'DISPONIBLE',
@@ -90,6 +91,19 @@ export function Propiedades() {
   // Cache y control de requests
   const requestCacheRef = useRef(new Map());
   const debounceTimerRef = useRef(null);
+
+  // Hook automático de historial
+  const { createWithHistory, updateWithHistory, deleteWithHistory } = usePageWithHistory(
+    async () => {
+      await fetchPropiedades();
+    },
+    (error) => {
+      snackbar.error('Error al revertir la acción');
+      console.error('Error al revertir acción:', error);
+    }
+  );
+
+
 
   const handleBack = () => {
     navigate('/');
@@ -291,33 +305,25 @@ export function Propiedades() {
     setIsFormOpen(true);
   }, []);
 
+  // Usar deleteWithHistory para eliminar y registrar en historial
   const handleDelete = useCallback(async (id) => {
     try {
-      await clienteAxios.delete(`/api/propiedades/${id}`);
+      await deleteWithHistory(id);
       snackbar.success('Propiedad eliminada exitosamente');
-      
-      // Disparar evento de actualización en lugar de llamada directa
-      window.dispatchEvent(new CustomEvent('entityUpdated', {
-        detail: { 
-          type: 'propiedades', 
-          action: 'delete',
-          id: id
-        }
-      }));
-          } catch (error) {
-        console.error('Error al eliminar propiedad:', error);
-        snackbar.error('Error al eliminar la propiedad');
-      }
-    }, []);
+      await fetchPropiedades();
+    } catch (error) {
+      console.error('Error al eliminar propiedad:', error);
+      snackbar.error('Error al eliminar la propiedad');
+    }
+  }, [deleteWithHistory, fetchPropiedades]);
 
+  // Usar createWithHistory/updateWithHistory para registrar en historial
   const handleFormSubmit = async (formData) => {
     try {
-      console.log('Propiedades - Enviando datos:', formData);
-      
       // Asegurarnos que los campos numéricos son números y no strings
       const dataToSend = {
         ...formData,
-        precio: formData.precio ? Number(formData.precio) : 0,
+        montoMensual: formData.montoMensual ? Number(formData.montoMensual) : 0,
         metrosCuadrados: formData.metrosCuadrados ? Number(formData.metrosCuadrados) : 0,
         numDormitorios: formData.numDormitorios ? Number(formData.numDormitorios) : 0,
         banos: formData.banos ? Number(formData.banos) : 0,
@@ -327,18 +333,13 @@ export function Propiedades() {
         usuario: user.id
       };
       
-      console.log('Propiedades - Datos procesados para enviar:', dataToSend);
-      
       let response;
       if (editingPropiedad) {
         const id = editingPropiedad._id || editingPropiedad.id;
-        console.log('Propiedades - Actualizando propiedad con ID:', id);
-        response = await clienteAxios.put(`/api/propiedades/${id}`, dataToSend);
+        response = await updateWithHistory(id, dataToSend, editingPropiedad);
         snackbar.success('Propiedad actualizada exitosamente');
       } else {
-        console.log('Propiedades - Creando nueva propiedad');
-        response = await clienteAxios.post('/api/propiedades', dataToSend);
-        console.log('Propiedades - Respuesta de creación:', response.data);
+        response = await createWithHistory(dataToSend);
         snackbar.success('Propiedad creada exitosamente');
       }
       
@@ -362,7 +363,6 @@ export function Propiedades() {
                           error.response?.data?.error || 
                           error.response?.data?.details || 
                           'Error al guardar la propiedad';
-      console.log('Propiedades - Mensaje de error:', errorMessage);
       snackbar.error(errorMessage);
       throw error;
     }
@@ -476,7 +476,10 @@ export function Propiedades() {
         }}
         initialData={editingPropiedad || {}}
         isEditing={!!editingPropiedad}
+        createWithHistory={createWithHistory}
+        updateWithHistory={updateWithHistory}
       />
+
     </Box>
   );
 }

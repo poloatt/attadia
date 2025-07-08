@@ -32,75 +32,20 @@ import {
 } from '@mui/icons-material';
 import { toast } from 'react-hot-toast';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
-import { StatusChip } from '../components/propiedades/PropiedadCard';
-import { STATUS_ICONS, STATUS_COLORS } from '../components/propiedades/PropiedadCard';
+import { StatusChip } from '../components/propiedades/propiedadUtils';
+import { STATUS_ICONS, STATUS_COLORS } from '../components/propiedades/propiedadUtils';
+import PendingActionsIcon from '@mui/icons-material/PendingActions';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import EngineeringIcon from '@mui/icons-material/Engineering';
+import BookmarkAddedIcon from '@mui/icons-material/BookmarkAdded';
+import { calcularProgresoOcupacion } from '../components/propiedades/propiedadUtils';
 
-// Función para calcular el progreso de ocupación de la propiedad (copiada de PropiedadCard.jsx)
-const calcularProgresoOcupacion = (propiedad) => {
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  // Encontrar contrato activo
-  const contratoActivo = (propiedad.contratos || []).find(contrato => {
-    const inicio = new Date(contrato.fechaInicio);
-    const fin = new Date(contrato.fechaFin);
-    return inicio <= hoy && fin >= hoy && contrato.estado === 'ACTIVO';
-  });
-  if (!contratoActivo) {
-    return {
-      porcentaje: 0,
-      diasTranscurridos: 0,
-      diasTotales: 0,
-      diasRestantes: 0,
-      estadoTiempo: 'Sin contrato',
-      montoAcumulado: 0,
-      montoTotal: 0,
-      tieneContrato: false,
-      estado: 'DISPONIBLE',
-      contrato: null
-    };
-  }
-  const inicio = new Date(contratoActivo.fechaInicio);
-  inicio.setHours(0, 0, 0, 0);
-  const fin = new Date(contratoActivo.fechaFin);
-  fin.setHours(0, 0, 0, 0);
-  // Calcular días totales del contrato
-  const diasTotales = Math.max(0, Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24)));
-  // Calcular días transcurridos
-  const diasTranscurridos = Math.max(0, Math.min(diasTotales, Math.ceil((hoy - inicio) / (1000 * 60 * 60 * 24))));
-  // Calcular días restantes
-  const diasRestantes = Math.max(0, Math.ceil((fin - hoy) / (1000 * 60 * 60 * 24)));
-  // Estado textual
-  let estadoTiempo = '';
-  if (hoy < inicio) {
-    estadoTiempo = 'No iniciado';
-  } else if (hoy > fin) {
-    estadoTiempo = 'Finalizado';
-  } else {
-    estadoTiempo = `${diasRestantes} días restantes`;
-  }
-  // Calcular porcentaje
-  const porcentaje = diasTotales > 0 ? Math.min(100, (diasTranscurridos / diasTotales) * 100) : 0;
-  // Calcular montos (usando el precio de la propiedad)
-  const montoMensual = propiedad.precio || 0;
-  const montoAcumulado = (diasTranscurridos / 30) * montoMensual;
-  const montoTotal = (diasTotales / 30) * montoMensual;
-  // Determinar estado
-  let estado = 'OCUPADA';
-  if (contratoActivo.esMantenimiento || contratoActivo.tipoContrato === 'MANTENIMIENTO') {
-    estado = 'MANTENIMIENTO';
-  }
-  return {
-    porcentaje,
-    diasTranscurridos,
-    diasTotales,
-    diasRestantes,
-    estadoTiempo,
-    montoAcumulado,
-    montoTotal,
-    tieneContrato: true,
-    contrato: contratoActivo,
-    estado
-  };
+// Mapeo de nombre a componente de ícono
+const ICON_COMPONENTS = {
+  PendingActions: <PendingActionsIcon sx={{ fontSize: 18 }} />, 
+  CheckCircle: <CheckCircleIcon sx={{ fontSize: 18 }} />, 
+  Engineering: <EngineeringIcon sx={{ fontSize: 18 }} />, 
+  BookmarkAdded: <BookmarkAddedIcon sx={{ fontSize: 18 }} />
 };
 
 export function Dashboard() {
@@ -557,7 +502,7 @@ export function Dashboard() {
                   <BuildingIcon sx={{ fontSize: 18 }} />
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{prop.titulo || 'Sin título'}</Typography>
                   <StatusChip customcolor={STATUS_COLORS[prop.estado] || 'text.secondary'}>
-                    {STATUS_ICONS[prop.estado] || null}
+                    {ICON_COMPONENTS[STATUS_ICONS[prop.estado]] || null}
                     {prop.estado ? prop.estado.charAt(0) + prop.estado.slice(1).toLowerCase() : 'N/A'}
                   </StatusChip>
                 </Box>
@@ -617,12 +562,11 @@ export function Dashboard() {
                                             prop.moneda?.simbolo || 
                                             prop.contratos[0]?.moneda?.simbolo || 
                                             prop.contratos[0]?.cuenta?.moneda?.simbolo || '$';
-                        
                         return (
                           <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
                             <MoneyIcon sx={{ fontSize: 18, color: 'text.primary' }} />
                             <Typography variant="body2" color="text.primary" sx={{ fontWeight: 500 }}>
-                              Total: {simboloMoneda} {totalContratos.toLocaleString()}
+                              Total: {showValues ? `${simboloMoneda} ${totalContratos.toLocaleString()}` : '****'}
                             </Typography>
                           </Box>
                         );

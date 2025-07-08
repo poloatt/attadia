@@ -37,7 +37,7 @@ import TareasSection from './TareasSection';
 import TareaForm from './TareaForm';
 import { useRelationalData } from '../../hooks/useRelationalData';
 
-const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }) => {
+const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing, createWithHistory, updateWithHistory }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
@@ -140,9 +140,20 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (validateForm()) {
-      onSubmit(formData);
+      try {
+        if (isEditing && updateWithHistory) {
+          await updateWithHistory(initialData._id || initialData.id, formData, initialData);
+        } else if (!isEditing && createWithHistory) {
+          await createWithHistory(formData);
+        } else if (onSubmit) {
+          onSubmit(formData);
+        }
+        if (onClose) onClose();
+      } catch (error) {
+        // Manejo de error
+      }
     }
   };
 
@@ -433,9 +444,9 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing }
                     {moneda.simbolo} - {moneda.nombre}
                   </MenuItem>
                 ))}
-                             </TextField>
-             </Grid>
-           </Grid>
+              </TextField>
+            </Grid>
+          </Grid>
 
           <Grid container spacing={2} sx={{ px: 2 }}>
             <Grid item xs={12}>

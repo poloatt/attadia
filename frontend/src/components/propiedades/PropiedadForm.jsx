@@ -160,7 +160,9 @@ const PropiedadForm = ({
   onClose,
   onSubmit,
   initialData = {},
-  isEditing = false
+  isEditing = false,
+  createWithHistory,
+  updateWithHistory
 }) => {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
@@ -329,12 +331,22 @@ const PropiedadForm = ({
       let response;
       
       if (initialData._id) {
-        response = await clienteAxios.put(`/api/propiedades/${initialData._id}`, dataToSubmit);
+        // Usar updateWithHistory si está disponible, sino usar clienteAxios
+        if (updateWithHistory) {
+          response = await updateWithHistory(initialData._id, dataToSubmit, initialData);
+        } else {
+          response = await clienteAxios.put(`/api/propiedades/${initialData._id}`, dataToSubmit);
+        }
       } else {
-        response = await clienteAxios.post('/api/propiedades', dataToSubmit);
+        // Usar createWithHistory si está disponible, sino usar clienteAxios
+        if (createWithHistory) {
+          response = await createWithHistory(dataToSubmit);
+        } else {
+          response = await clienteAxios.post('/api/propiedades', dataToSubmit);
+        }
       }
 
-              snackbar.success(isEditing ? 'Propiedad actualizada exitosamente' : 'Propiedad creada exitosamente');
+      snackbar.success(isEditing ? 'Propiedad actualizada exitosamente' : 'Propiedad creada exitosamente');
 
       // Disparar evento de actualización
       window.dispatchEvent(new CustomEvent('entityUpdated', {
