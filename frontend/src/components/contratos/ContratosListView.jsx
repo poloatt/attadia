@@ -101,7 +101,7 @@ const ContratosListView = ({
     }));
   };
 
-  // Ordenar contratos según el Dashboard usando solo estadoActual
+  // Ordenar contratos según Assets usando solo estadoActual
   const contratosOrdenados = [...contratos].sort((a, b) => {
     const estadoA = a.estadoActual;
     const estadoB = b.estadoActual;

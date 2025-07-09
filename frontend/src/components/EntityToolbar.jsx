@@ -82,7 +82,7 @@ const EntityToolbar = ({
   // Lista de rutas que siempre muestran la toolbar de navegación
   const alwaysShowToolbarRoutes = [
     'inventario',
-    'dashboard',
+    'assets',
     'transacciones', 
     'propiedades'
   ];

@@ -5,8 +5,7 @@ import { useSidebar } from '../context/SidebarContext';
 import { useAuth } from '../context/AuthContext';
 import { Header } from '../components/header';
 import Footer from '../components/Footer';
-import BottomNavigation from '../components/BottomNavigation';
-import Sidebar from '../components/Sidebar';
+import { Sidebar, BottomNavigation } from '../navigation';
 import { CustomSnackbarProvider } from '../components/common/snackbarUtils.jsx';
 
 export function Layout() {
@@ -27,7 +26,9 @@ export function Layout() {
       display: 'flex', 
       minHeight: '100vh',
       maxWidth: '100vw',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      border: 'none',
+      outline: 'none'
     }}>
       <Header />
       {showSidebar && <Sidebar />}
@@ -35,37 +36,43 @@ export function Layout() {
         component="main"
         sx={{
           flexGrow: 1,
-          pt: showEntityToolbarNavigation ? '45px' : '45px', // Mantener espacio suficiente debajo del header
-          pb: showEntityToolbarNavigation ? '80px' : '90px', // Espacio adicional cuando toolbar está deshabilitada
+          pt: showEntityToolbarNavigation ? '45px' : '45px',
+          pb: { xs: isMobile ? '140px' : '70px', sm: isMobile ? '140px' : '70px', md: '70px' },
           minHeight: '100vh',
-          height: '100vh', // Asegura altura total
+          height: '100vh',
           width: showSidebar ? 
-            (isMobile ? `calc(100vw - 56px)` : '100%') : // En móvil, restar ancho de sidebar colapsada
-            '100vw', // Sin sidebar ocupa todo el ancho
+            (isMobile ? `calc(100vw - 56px)` : '100%') :
+            '100vw',
           display: 'flex',
           flexDirection: 'column',
           bgcolor: 'background.default',
-          overflowY: 'auto', // Permite scroll vertical
-          position: 'relative', // Añadido para posicionar correctamente elementos hijos
-          // Sin margin left porque la sidebar ya ocupa su espacio
-          ml: 0
+          overflowY: 'auto',
+          position: 'relative',
+          ml: 0,
+          border: 'none',
+          outline: 'none'
         }}
       >
         <Box sx={{ 
           width: '100%',
           maxWidth: '100%',
-          mx: 0, // Eliminado el centrado automático
-          px: 0, // Eliminado padding horizontal completamente
+          mx: 0,
+          px: 0,
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
           gap: showEntityToolbarNavigation ? 0.5 : 0,
-          minHeight: 0 // Permite que flexbox no bloquee el scroll
+          minHeight: 0,
+          border: 'none',
+          outline: 'none'
         }}>
           <Outlet />
         </Box>
-        <BottomNavigation />
-        <Footer />
+        {/* Mostrar BottomNavigation en mobile, Footer siempre */}
+        {isMobile && <BottomNavigation />}
+        <Box sx={{ position: 'fixed', left: 0, bottom: 0, width: '100vw', zIndex: 1300 }}>
+          <Footer isDesktop={isDesktop} isSidebarOpen={showSidebar && isDesktop} />
+        </Box>
         <CustomSnackbarProvider />
       </Box>
     </Box>

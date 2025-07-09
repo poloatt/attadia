@@ -4,20 +4,12 @@ import { ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon } from '@mui
 import ContratoCard from './ContratoCard';
 import EmptyState from '../EmptyState';
 
-const ContratoList = ({ 
-  contratos, 
-  onEdit, 
-  onDelete, 
-  onAdd,
-  filteredContratos = [],
-  isDashboard = false,
-  relatedData = {}
-}) => {
+const ContratoList = ({ isAssets = false, contratos = [], onAdd, onEdit, onDelete, relatedData }) => {
   // Estado global para la vista grid/list
   const [viewMode, setViewMode] = useState('grid');
 
-  // Usar contratos filtrados si existen, sino usar todos los contratos
-  const contratosToRender = filteredContratos.length > 0 ? filteredContratos : contratos;
+  // Usar directamente el prop contratos
+  const contratosToRender = contratos;
 
   // Inicializar todas las propiedades como colapsadas por defecto
   const [expandedContratos, setExpandedContratos] = useState(() => {
@@ -76,7 +68,7 @@ const ContratoList = ({
               contrato={contrato}
               onEdit={onEdit}
               onDelete={onDelete}
-              isDashboard={isDashboard}
+              isAssets={isAssets}
               isExpanded={isExpanded}
               onToggleExpand={() => handleToggleExpand(contrato._id || contrato.id)}
               relatedData={relatedData}

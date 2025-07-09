@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Grid, Box, Typography, Skeleton, Paper, IconButton, Menu, MenuItem, Collapse } from '@mui/material';
 import { Link } from 'react-router-dom';
 
-import ContratoDetail from '../components/contratos/ContratoDetail';
+import BarraEstadoPropiedad from '../components/propiedades/BarraEstadoPropiedad';
 import clienteAxios from '../config/axios';
 import { 
   ApartmentOutlined as BuildingIcon,
@@ -27,18 +27,16 @@ import {
   FitnessCenterOutlined as RutinasIcon,
   FolderOutlined as TaskIcon,
   PeopleOutlined as PeopleIcon,
-  DescriptionOutlined as DescriptionOutlinedIcon,
-  VisibilityOutlined as VisibilityOutlinedIcon
+
 } from '@mui/icons-material';
 import { toast } from 'react-hot-toast';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 import { StatusChip } from '../components/propiedades/propiedadUtils';
-import { STATUS_ICONS, STATUS_COLORS } from '../components/propiedades/propiedadUtils';
+import { STATUS_ICONS, STATUS_COLORS, calcularProgresoOcupacion } from '../components/propiedades/propiedadUtils';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EngineeringIcon from '@mui/icons-material/Engineering';
 import BookmarkAddedIcon from '@mui/icons-material/BookmarkAdded';
-import { calcularProgresoOcupacion } from '../components/propiedades/propiedadUtils';
 
 // Mapeo de nombre a componente de ícono
 const ICON_COMPONENTS = {
@@ -48,7 +46,7 @@ const ICON_COMPONENTS = {
   BookmarkAdded: <BookmarkAddedIcon sx={{ fontSize: 18 }} />
 };
 
-export function Dashboard() {
+export function Assets() {
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState(30);
   const { showValues } = useValuesVisibility();
@@ -59,8 +57,7 @@ export function Dashboard() {
   const [contratos, setContratos] = useState([]);
   const [isDaylistOpen, setIsDaylistOpen] = useState(false);
   const [propiedades, setPropiedades] = useState([]);
-  const [selectedContrato, setSelectedContrato] = useState(null);
-  const [contratoDetailOpen, setContratoDetailOpen] = useState(false);
+
 
   const [stats, setStats] = useState({
     propiedades: {
@@ -294,7 +291,7 @@ export function Dashboard() {
         // Ignorar errores por cancelación
         if (!error.cancelado) {
           console.error('Error al cargar datos:', error);
-          toast.error('Error al cargar datos del dashboard');
+          toast.error('Error al cargar datos de assets');
         }
       } finally {
         setLoading(false);
@@ -455,7 +452,6 @@ export function Dashboard() {
                 variant="body2"
                 sx={{
                   color: 'text.secondary',
-                  textDecoration: 'underline',
                   '&:hover': { cursor: 'pointer' }
                 }}
               >
@@ -521,60 +517,34 @@ export function Dashboard() {
                     </Box>
                   </Box>
                 )}
-                {/* Contratos referenciados con icono y botón de ver detalle */}
-                {Array.isArray(prop.contratos) && prop.contratos.length > 0 && (
-                  <Box sx={{ mt: 1 }}>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                      {prop.contratos.map((contrato) => (
-                        <Box key={contrato._id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <DescriptionOutlinedIcon sx={{ fontSize: 18, color: 'primary.main' }} />
-                          <Typography variant="body2" color="primary.main">
-                            {(() => {
-                              const fechaInicio = contrato.fechaInicio ? new Date(contrato.fechaInicio) : null;
-                              const fechaFin = contrato.fechaFin ? new Date(contrato.fechaFin) : null;
-                              
-                              if (fechaInicio && fechaFin) {
-                                const inicioStr = fechaInicio.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
-                                const finStr = fechaFin.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
-                                return `${inicioStr} - ${finStr}`;
-                              } else if (fechaInicio) {
-                                const inicioStr = fechaInicio.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
-                                return `${inicioStr} - Sin fecha fin`;
-                              } else {
-                                return 'Sin fechas';
-                              }
-                            })()}
-                          </Typography>
-                          <IconButton size="small" onClick={() => handleOpenContratoDetail(contrato)}>
-                            <VisibilityOutlinedIcon sx={{ fontSize: 18 }} />
-                          </IconButton>
-                        </Box>
-                      ))}
-                    </Box>
-                    {/* Total de contratos */}
-                    {(() => {
-                      // Calcular el progreso de ocupación para obtener el total correcto
-                      const progresoOcupacion = calcularProgresoOcupacion(prop);
-                      const totalContratos = progresoOcupacion.montoTotal;
-                      
-                      if (totalContratos > 0) {
-                        const simboloMoneda = prop.cuenta?.moneda?.simbolo || 
-                                            prop.moneda?.simbolo || 
-                                            prop.contratos[0]?.moneda?.simbolo || 
-                                            prop.contratos[0]?.cuenta?.moneda?.simbolo || '$';
-                        return (
-                          <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
-                            <MoneyIcon sx={{ fontSize: 18, color: 'text.primary' }} />
-                            <Typography variant="body2" color="text.primary" sx={{ fontWeight: 500 }}>
-                              Total: {showValues ? `${simboloMoneda} ${totalContratos.toLocaleString()}` : '****'}
-                            </Typography>
-                          </Box>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </Box>
-                )}
+                {/* Barra de estado de la propiedad */}
+                {(() => {
+                  const progresoOcupacion = calcularProgresoOcupacion(prop);
+                  const simboloMoneda = prop.cuenta?.moneda?.simbolo || 
+                                      prop.moneda?.simbolo || 
+                                      prop.contratos[0]?.moneda?.simbolo || 
+                                      prop.contratos[0]?.cuenta?.moneda?.simbolo || '$';
+                  
+                  if (progresoOcupacion.tieneContrato) {
+                    return (
+                      <Box sx={{ mt: 1 }}>
+                        <BarraEstadoPropiedad
+                          diasTranscurridos={progresoOcupacion.diasTranscurridos}
+                          diasTotales={progresoOcupacion.diasTotales}
+                          porcentaje={progresoOcupacion.porcentaje}
+                          simboloMoneda={simboloMoneda}
+                          montoAcumulado={progresoOcupacion.montoAcumulado}
+                          montoTotal={progresoOcupacion.montoTotal}
+                          color={progresoOcupacion.estado === 'MANTENIMIENTO' ? 'warning.main' : 'primary.main'}
+                          estado={progresoOcupacion.estado}
+                        />
+                      </Box>
+                    );
+                  }
+                  return null;
+                })()}
+                
+
               </Paper>
             ))}
           </Box>
@@ -603,25 +573,7 @@ export function Dashboard() {
     </Box>
   );
 
-  const handleOpenContratoDetail = (contrato) => {
-    setSelectedContrato(contrato);
-    setContratoDetailOpen(true);
-  };
 
-  const handleCloseContratoDetail = () => {
-    setContratoDetailOpen(false);
-    setSelectedContrato(null);
-  };
-
-  const handleEditContrato = (contrato) => {
-    // Implementar edición de contrato si es necesario
-    console.log('Editar contrato:', contrato);
-  };
-
-  const handleDeleteContrato = (contratoId) => {
-    // Implementar eliminación de contrato si es necesario
-    console.log('Eliminar contrato:', contratoId);
-  };
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -662,17 +614,9 @@ export function Dashboard() {
         </Grid>
       </Box>
 
-      {selectedContrato && (
-        <ContratoDetail
-          contrato={selectedContrato}
-          open={contratoDetailOpen}
-          onClose={handleCloseContratoDetail}
-          onEdit={handleEditContrato}
-          onDelete={handleDeleteContrato}
-        />
-      )}
+
     </Box>
   );
 }
 
-export default Dashboard;
+export default Assets;

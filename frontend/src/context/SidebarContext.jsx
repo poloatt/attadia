@@ -1,169 +1,22 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useMediaQuery, useTheme } from '@mui/material';
-import {
-  PaidOutlined,
-  AccountBalanceWalletOutlined,
-  CurrencyExchangeOutlined,
-  AttachMoneyOutlined,
-  RepeatOutlined,
-  PersonSearchOutlined,
-  ApartmentOutlined,
-  PersonOutlined,
-  DescriptionOutlined,
-  HotelOutlined,
-  AllInboxOutlined,
-  HealthAndSafetyOutlined,
-  MonitorHeartOutlined,
-  ScienceOutlined,
-  RestaurantOutlined,
-  AccessTimeOutlined,
-  FolderOutlined,
-  TaskOutlined,
-  ArchiveOutlined,
-  SettingsOutlined,
-  ManageAccountsOutlined,
-  AccountCircleOutlined,
-  AccountBalanceOutlined,
-  TrendingUpOutlined
-} from '@mui/icons-material';
+import { menuItems } from '../navigation/menuStructure';
+import { useLocation } from 'react-router-dom';
 
 const SidebarContext = createContext();
-
-const menuItems = [
-  {
-    id: 'assets',
-    title: 'Assets',
-    icon: <TrendingUpOutlined />,
-    path: '/dashboard', // Ruta principal para Assets
-    hasSubItems: true,
-    subItems: [
-      {
-        title: 'Transacciones',
-        path: '/transacciones',
-        icon: <AccountBalanceWalletOutlined />
-      },
-      {
-        title: 'Cuentas',
-        path: '/cuentas',
-        icon: <AccountBalanceOutlined />
-      },
-      {
-        title: 'Monedas',
-        path: '/monedas',
-        icon: <CurrencyExchangeOutlined />
-      },
-      {
-        title: 'Recurrente',
-        path: '/recurrente',
-        icon: <RepeatOutlined />
-      },
-      {
-        title: 'Deudores',
-        path: '/deudores',
-        icon: <PersonSearchOutlined />
-      }
-    ]
-  },
-  {
-    id: 'propiedades',
-    title: 'Propiedades',
-    icon: <ApartmentOutlined />,
-    path: '/propiedades',
-    hasSubItems: true,
-    subItems: [
-      {
-        title: 'Inquilinos',
-        path: '/inquilinos',
-        icon: <PersonOutlined />
-      },
-      {
-        title: 'Contratos',
-        path: '/contratos',
-        icon: <DescriptionOutlined />
-      },
-      {
-        title: 'Habitaciones',
-        path: '/habitaciones',
-        icon: <HotelOutlined />
-      }
-    ]
-  },
-  {
-    id: 'rutinas',
-    title: 'Rutinas',
-    icon: <HealthAndSafetyOutlined />,
-    path: '/rutinas', // Ruta principal para Rutinas
-    hasSubItems: true,
-    subItems: [
-      {
-        title: 'Salud',
-        path: '/salud',
-        icon: <MonitorHeartOutlined />
-      },
-      {
-        title: 'Lab',
-        path: '/lab',
-        icon: <ScienceOutlined />
-      },
-      {
-        title: 'Dieta',
-        path: '/dieta',
-        icon: <RestaurantOutlined />
-      }
-    ]
-  },
-  {
-    id: 'time',
-    title: 'Time',
-    icon: <AccessTimeOutlined />,
-    path: '/tiempo', // Ruta principal para Time
-    hasSubItems: true,
-    subItems: [
-      {
-        title: 'Proyectos',
-        path: '/proyectos',
-        icon: <FolderOutlined />
-      },
-      {
-        title: 'Tareas',
-        path: '/tareas',
-        icon: <TaskOutlined />
-      },
-      {
-        title: 'Archivo',
-        path: '/archivo',
-        icon: <ArchiveOutlined />
-      }
-    ]
-  },
-  {
-    id: 'setup',
-    title: 'Setup',
-    icon: <SettingsOutlined />,
-    path: '/configuracion', // Ruta principal para Setup
-    hasSubItems: true,
-    subItems: [
-  {
-    title: 'Perfil',
-    path: '/perfil',
-        icon: <AccountCircleOutlined />
-      },
-      {
-        title: 'Preferencias',
-        path: '/preferencias',
-        icon: <ManageAccountsOutlined />
-      }
-    ]
-  }
-];
 
 export function SidebarProvider({ children }) {
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up('sm'));
-  
+  const location = useLocation();
   // Inicializar isOpen basado en el tamaño de pantalla
   const [isOpen, setIsOpen] = useState(isDesktop);
   const [expandedSections, setExpandedSections] = useState(new Set()); // Todas las secciones colapsadas por defecto
+  const [selectedMain, setSelectedMain] = useState(null);
+  const [selectedSecond, setSelectedSecond] = useState(null);
+
+  // Obtener las secciones principales (excluyendo setup) - estabilizado con useMemo
+  const mainSections = useMemo(() => menuItems.filter(item => item.id !== 'setup'), []);
 
   // Efecto para ajustar la sidebar cuando cambie el tamaño de pantalla
   useEffect(() => {
@@ -186,37 +39,82 @@ export function SidebarProvider({ children }) {
     }
   }, [isDesktop]);
 
-  const toggleSidebar = () => {
+  // Sincronizar expansión y selección con la ruta actual
+  useEffect(() => {
+    // Buscar la sección principal activa
+    const mainSection = menuItems.find(section => {
+      if (section.path && (location.pathname === section.path || location.pathname.startsWith(section.path + '/'))) {
+        return true;
+      }
+      if (!section.subItems) return false;
+      return section.subItems.some(sub => {
+        if (sub.path && (location.pathname === sub.path || location.pathname.startsWith(sub.path + '/'))) return true;
+        if (sub.hasSubItems && sub.subItems) {
+          return sub.subItems.some(sub2 => location.pathname === sub2.path || location.pathname.startsWith(sub2.path + '/'));
+        }
+        return false;
+      });
+    });
+
+    if (mainSection) {
+      if (mainSection.id !== selectedMain) {
+        setSelectedMain(mainSection.id);
+        setExpandedSections(new Set([mainSection.id]));
+      }
+      // Si estamos exactamente en la ruta principal, limpiar selección de segundo nivel
+      if (location.pathname === mainSection.path) {
+        if (selectedSecond !== null) setSelectedSecond(null);
+      } else if (mainSection.subItems) {
+        // Buscar segundo nivel seleccionado
+        const second = mainSection.subItems.find(sub => {
+          if (sub.path && (location.pathname === sub.path || location.pathname.startsWith(sub.path + '/'))) return true;
+          if (sub.hasSubItems && sub.subItems) {
+            return sub.subItems.some(sub2 => location.pathname === sub2.path || location.pathname.startsWith(sub2.path + '/'));
+          }
+          return false;
+        });
+        if (second && second.id !== selectedSecond) {
+          setSelectedSecond(second.id);
+        } else if (!second && selectedSecond !== null) {
+          setSelectedSecond(null);
+        }
+      }
+    } else if (!selectedMain && mainSections.length > 0) {
+      setSelectedMain(mainSections[0].id);
+      setSelectedSecond(null);
+    }
+  }, [location.pathname, selectedMain, selectedSecond, mainSections]);
+
+  const toggleSidebar = useCallback(() => {
     const newState = !isOpen;
     setIsOpen(newState);
-    
     // Guardar preferencia del usuario para desktop y móvil
     if (isDesktop) {
       localStorage.setItem('sidebarDesktopOpen', newState.toString());
     } else {
       localStorage.setItem('sidebarMobileOpen', newState.toString());
     }
-  };
+  }, [isOpen, isDesktop]);
 
-  const closeSidebar = () => {
+  const closeSidebar = useCallback(() => {
     setIsOpen(false);
     if (isDesktop) {
       localStorage.setItem('sidebarDesktopOpen', 'false');
     } else {
       localStorage.setItem('sidebarMobileOpen', 'false');
     }
-  };
+  }, [isDesktop]);
 
-  const openSidebar = () => {
+  const openSidebar = useCallback(() => {
     setIsOpen(true);
     if (isDesktop) {
       localStorage.setItem('sidebarDesktopOpen', 'true');
     } else {
       localStorage.setItem('sidebarMobileOpen', 'true');
     }
-  };
+  }, [isDesktop]);
 
-  const toggleSection = (sectionId) => {
+  const toggleSection = useCallback((sectionId) => {
     setExpandedSections(prev => {
       const newSet = new Set(prev);
       if (newSet.has(sectionId)) {
@@ -226,27 +124,35 @@ export function SidebarProvider({ children }) {
       }
       return newSet;
     });
-  };
+  }, []);
 
-  const isSectionExpanded = (sectionId) => {
+  const isSectionExpanded = useCallback((sectionId) => {
     return expandedSections.has(sectionId);
-  };
+  }, [expandedSections]);
 
-  const expandSection = (sectionId) => {
+  const expandSection = useCallback((sectionId) => {
     if (isDesktop) {
       setExpandedSections(new Set([sectionId])); // Solo una expandida en desktop
     } else {
       setExpandedSections(prev => new Set([...prev, sectionId])); // Comportamiento actual en móvil
     }
-  };
+  }, [isDesktop]);
 
-  const collapseSection = (sectionId) => {
+  const collapseSection = useCallback((sectionId) => {
     setExpandedSections(prev => {
       const newSet = new Set(prev);
       newSet.delete(sectionId);
       return newSet;
     });
-  };
+  }, []);
+
+  const handleSetSelectedMain = useCallback((id) => {
+    setSelectedMain(id);
+  }, []);
+
+  const handleSetSelectedSecond = useCallback((id) => {
+    setSelectedSecond(id);
+  }, []);
 
   return (
     <SidebarContext.Provider value={{ 
@@ -255,12 +161,17 @@ export function SidebarProvider({ children }) {
       closeSidebar,
       openSidebar,
       menuItems,
+      mainSections,
       expandedSections,
       toggleSection,
       isSectionExpanded,
       expandSection,
       collapseSection,
-      isDesktop
+      isDesktop,
+      selectedMain,
+      setSelectedMain: handleSetSelectedMain,
+      selectedSecond,
+      setSelectedSecond: handleSetSelectedSecond
     }}>
       {children}
     </SidebarContext.Provider>

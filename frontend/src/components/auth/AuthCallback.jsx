@@ -57,9 +57,9 @@ function AuthCallback() {
         const authResult = await checkAuth();
         
         if (authResult) {
-          console.log('Autenticación exitosa, redirigiendo al dashboard');
+          console.log('Autenticación exitosa, redirigiendo a assets');
           toast.success('¡Bienvenido!');
-          navigate('/dashboard', { replace: true });
+          navigate('/assets', { replace: true });
         } else {
           throw new Error('Fallo en la verificación de autenticación');
         }

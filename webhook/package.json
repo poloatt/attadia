@@ -1,7 +1,7 @@
 {
-  "name": "present-webhook",
+  "name": "atta-webhook",
   "version": "1.0.0",
-  "description": "Webhook server for Present app",
+  "description": "Webhook server for Atta app",
   "main": "webhook-server.js",
   "scripts": {
     "start": "node webhook-server.js",

@@ -1,69 +1,50 @@
 import React from 'react';
-import { Box, Paper, IconButton, Typography } from '@mui/material';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { 
-  AccountBalanceWalletOutlined as WalletIcon,
-  HealthAndSafety as HealthIcon,
-  AccessTimeOutlined as TimeIcon
-} from '@mui/icons-material';
+import { Box, Paper, Typography } from '@mui/material';
+import { useLocation, Link } from 'react-router-dom';
+import { icons } from './menuIcons';
 
 /**
  * Componente de navegación inferior con diseño geométrico
- * Este componente muestra botones para acceder rápidamente a Dashboard, Rutinas y Tareas
+ * Este componente muestra botones para acceder rápidamente a Assets, Salud y Tiempo
  */
 export default function BottomNavigation() {
-  const navigate = useNavigate();
   const location = useLocation();
   
-  // Navegación directa a las páginas
-  const navigateTo = (path) => {
-    console.log('Navegando a:', path);
-    // Intentar usar un enfoque alternativo de navegación
-    window.location.href = path;
-  };
-
   // Verificar si estamos en una ruta específica
   const isActive = (path) => {
-    // Eliminar el log que está causando demasiadas salidas
-    // console.log('Verificando ruta activa:', path, 'actual:', location.pathname);
-    
-    // Mejorar la lógica de comparación
-    if (path === '/dashboard' && (location.pathname === '/' || location.pathname === '/dashboard')) {
-      return true;
+    if (path === '/assets') {
+      return location.pathname === '/' || 
+             location.pathname === '/assets' || 
+             location.pathname.startsWith('/assets/');
     }
-    
-    if (path === '/propiedades') {
-      // Considerar como activo para propiedades y páginas relacionadas
-      return location.pathname === '/propiedades' || 
-             location.pathname.startsWith('/propiedades/') ||
-             location.pathname === '/habitaciones' || 
-             location.pathname === '/contratos' || 
-             location.pathname === '/inquilinos' ||
-             location.pathname === '/inventario';
+    if (path === '/salud') {
+      return location.pathname === '/salud' || 
+             location.pathname.startsWith('/salud/');
     }
-    
-    if (path === '/rutinas') {
-      // Considerar como activo para rutinas y páginas relacionadas
-      return location.pathname === '/rutinas' || 
-             location.pathname.startsWith('/rutinas/') ||
-             location.pathname === '/lab' || 
-             location.pathname === '/dieta' || 
-             location.pathname === '/datacorporal';
-    }
-    
     if (path === '/tiempo') {
-      return location.pathname === '/tiempo' ||
+      return location.pathname === '/tiempo' || 
              location.pathname.startsWith('/tiempo/');
     }
-    
     return location.pathname === path;
   };
 
-  // Lista de elementos de navegación con nuevos nombres
+  // Lista de elementos de navegación usando los componentes de icono directamente
   const navItems = [
-    { icon: <WalletIcon />, label: 'Assets', path: '/dashboard' },
-    { icon: <HealthIcon />, label: 'Health', path: '/rutinas' },
-    { icon: <TimeIcon />, label: 'Time', path: '/tiempo' }
+    { 
+      icon: icons.trendingUp, 
+      label: 'Assets', 
+      path: '/assets' 
+    },
+    { 
+      icon: icons.health, 
+      label: 'Salud', 
+      path: '/salud' 
+    },
+    { 
+      icon: icons.accessTime, 
+      label: 'Tiempo', 
+      path: '/tiempo' 
+    }
   ];
 
   return (
@@ -74,25 +55,24 @@ export default function BottomNavigation() {
         bottom: 0,
         left: 0,
         width: '100vw',
-        zIndex: 1200, // Reducido para evitar conflictos con Dialogs
+        zIndex: 1200,
         borderRadius: 0,
-        bgcolor: 'background.default',
+        bgcolor: 'rgba(0, 0, 0, 0.7)', // igual que Header.jsx
         boxShadow: '0 -2px 8px rgba(0,0,0,0.10)',
         borderTop: '1px solid',
         borderColor: 'divider',
         m: 0,
         p: 0,
-
       }}
     >
       <Box 
         sx={{ 
           display: 'flex',
           justifyContent: 'center',
-          alignItems: 'flex-start', // Alinear al top para dejar espacio abajo
-          height: '88px', // Altura total: 56px navegación + 32px Footer
+          alignItems: 'flex-start',
+          height: '88px',
           width: '100%',
-          pt: 0, // Sin padding top
+          pt: 0,
         }}
       >
         <Box
@@ -104,7 +84,7 @@ export default function BottomNavigation() {
             width: 'auto',
             minWidth: '300px',
             maxWidth: '400px',
-            height: '56px', // Altura específica para el contenido de navegación
+            height: '56px',
           }}
         >
           {navItems.map((item, index) => (
@@ -112,7 +92,6 @@ export default function BottomNavigation() {
               key={item.path}
               component={Link}
               to={item.path}
-              onClick={() => console.log('Clic en:', item.path)}
               sx={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -149,9 +128,8 @@ export default function BottomNavigation() {
                   p: 0.5,
                 }}
               >
-                {React.cloneElement(item.icon, { 
-                  sx: { fontSize: 18 } 
-                })}
+                {/* Usar el componente de icono directamente como JSX */}
+                <item.icon sx={{ fontSize: 18 }} />
               </Box>
               <Typography
                 variant="caption"

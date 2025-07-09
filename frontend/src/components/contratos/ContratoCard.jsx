@@ -139,7 +139,7 @@ export const calcularProgresoContrato = (contrato) => {
   };
 };
 
-const ContratoCard = ({ contrato, onEdit, onDelete, isDashboard = false, isExpanded = false, onToggleExpand, relatedData = {} }) => {
+const ContratoCard = ({ contrato, onEdit, onDelete, isAssets = false, isExpanded = false, onToggleExpand, relatedData = {} }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
