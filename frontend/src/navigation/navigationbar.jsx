@@ -3,7 +3,7 @@ import { useNavigationBar } from '../context/NavigationBarContext';
 import { styled } from '@mui/material/styles';
 import { AppBar, Toolbar, Typography, Box, BottomNavigation, BottomNavigationAction, Paper } from '@mui/material';
 import { 
-  DashboardOutlined as DashboardIcon,
+  TrendingUpOutlined as AssetsIcon,
   FitnessCenterOutlined as RutinasIcon,
   TaskOutlined as TareasIcon,
   AccountBalanceWalletOutlined as WalletIcon,
@@ -63,19 +63,19 @@ export const FooterNavigation = () => {
 
   const navigationItems = [
     {
-      path: '/',
+      path: '/assets',
       icon: <WalletIcon />,
       label: 'Assets'
     },
     {
-      path: '/rutinas',
+      path: '/salud',
       icon: <CalendarIcon />,
-      label: 'Rutinas'
+      label: 'Salud'
     },
     {
-      path: '/tareas',
+      path: '/tiempo',
       icon: <TareasIcon />,
-      label: 'Tareas'
+      label: 'Tiempo'
     }
   ];
 

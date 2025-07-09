@@ -3,163 +3,138 @@ import { SUPPORTED_ROUTES } from '../../hooks/useGlobalActionHistory';
 
 // Configuración de rutas donde se debe mostrar el botón de visibilidad
 const VISIBILITY_ROUTES = [
-  '/', // Dashboard
-  '/dashboard', // También en la ruta /dashboard
-  '/transacciones',
-  '/cuentas',
-  '/monedas',
-  '/proyectos',
-  '/tareas',
-  '/archivo',
-  '/propiedades',
-  '/contratos'
+  '/', // Assets
+  '/assets', // También en la ruta /assets
+  '/assets/finanzas',
+  '/assets/finanzas/cuentas',
+  '/assets/finanzas/monedas',
+  '/tiempo/proyectos',
+  '/tiempo/tareas',
+  '/tiempo/archivo',
+  '/assets/propiedades',
+  '/assets/propiedades/contratos'
 ];
 
 // Configuración de rutas donde se debe mostrar el botón de agregar
 const ADD_BUTTON_ROUTES = [
-  '/proyectos',
-  '/tareas',
-  '/cuentas',
-  '/monedas',
-  '/rutinas',
-  '/inquilinos',
-  '/contratos',
-  '/habitaciones',
-  '/recurrente',
-  '/propiedades',
-  '/transacciones',
-  '/inventario',
-  '/data-corporal',
-  '/dieta'
+  '/tiempo/proyectos',
+  '/tiempo/tareas',
+  '/assets/finanzas/cuentas',
+  '/assets/finanzas/monedas',
+  '/salud/rutinas',
+  '/assets/propiedades/inquilinos',
+  '/assets/propiedades/contratos',
+  '/assets/finanzas/recurrente',
+  '/assets/propiedades',
+  '/assets/finanzas',
+  '/assets/propiedades/inventario',
+  '/salud/datacorporal',
+  '/salud/dieta'
 ];
 
 // Configuración de entidades por ruta
 const ENTITY_CONFIGS = {
-  proyectos: {
+  'tiempo/proyectos': {
     name: 'proyecto',
     action: () => {
       window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
-        detail: { type: 'proyecto', path: '/proyectos' }
+        detail: { type: 'proyecto', path: '/tiempo/proyectos' }
       }));
     }
   },
-  tareas: {
+  'tiempo/tareas': {
     name: 'tarea',
     action: () => {
       window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
-        detail: { type: 'tarea', path: '/tareas' }
+        detail: { type: 'tarea', path: '/tiempo/tareas' }
       }));
     }
   },
-  propiedades: {
+  'assets/propiedades': {
     name: 'propiedad',
     action: () => {
       window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
-        detail: { type: 'propiedad', path: '/propiedades' }
+        detail: { type: 'propiedad', path: '/assets/propiedades' }
       }));
     }
   },
-  transacciones: {
+  'assets/finanzas': {
     name: 'transacción',
     action: () => {
       window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
-        detail: { type: 'transaccion', path: '/transacciones' }
+        detail: { type: 'transaccion', path: '/assets/finanzas' }
       }));
     }
   },
-  cuentas: {
+  'assets/finanzas/cuentas': {
     name: 'cuenta',
     action: () => {
       window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
-        detail: { type: 'cuenta', path: '/cuentas' }
+        detail: { type: 'cuenta', path: '/assets/finanzas/cuentas' }
       }));
     }
   },
-  monedas: {
+  'assets/finanzas/monedas': {
     name: 'moneda',
     action: () => {
       window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
-        detail: { type: 'moneda', path: '/monedas' }
+        detail: { type: 'moneda', path: '/assets/finanzas/monedas' }
       }));
     }
   },
-  rutinas: {
+  'salud/rutinas': {
     name: 'rutina',
     action: () => {
       window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
-        detail: { type: 'rutina', path: '/rutinas' }
+        detail: { type: 'rutina', path: '/salud/rutinas' }
       }));
     }
   },
-  inquilinos: {
+  'assets/propiedades/inquilinos': {
     name: 'inquilino',
     action: () => {
       window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
-        detail: { type: 'inquilino', path: '/inquilinos' }
+        detail: { type: 'inquilino', path: '/assets/propiedades/inquilinos' }
       }));
     }
   },
-  contratos: {
+  'assets/propiedades/contratos': {
     name: 'contrato',
     action: () => {
       window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
-        detail: { type: 'contrato', path: '/contratos' }
+        detail: { type: 'contrato', path: '/assets/propiedades/contratos' }
       }));
     }
   },
-  habitaciones: {
-    name: 'habitación',
-    action: () => {
-      window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
-        detail: { type: 'habitacion', path: '/habitaciones' }
-      }));
-    }
-  },
-  inventario: {
+  'assets/propiedades/inventario': {
     name: 'inventario',
     action: () => {
       window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
-        detail: { type: 'inventario', path: '/inventario' }
+        detail: { type: 'inventario', path: '/assets/propiedades/inventario' }
       }));
     }
   },
-  recurrente: {
+  'assets/finanzas/recurrente': {
     name: 'transacción recurrente',
     action: () => {
       window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
-        detail: { type: 'transaccion-recurrente', path: '/recurrente' }
+        detail: { type: 'transaccion-recurrente', path: '/assets/finanzas/recurrente' }
       }));
     }
   },
-  transacciones: {
-    name: 'transacción',
-    action: () => {
-      window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
-        detail: { type: 'transaccion', path: '/transacciones' }
-      }));
-    }
-  },
-  inventario: {
-    name: 'inventario',
-    action: () => {
-      window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
-        detail: { type: 'inventario', path: '/inventario' }
-      }));
-    }
-  },
-  'data-corporal': {
+  'salud/datacorporal': {
     name: 'dato corporal',
     action: () => {
       window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
-        detail: { type: 'data-corporal', path: '/data-corporal' }
+        detail: { type: 'data-corporal', path: '/salud/datacorporal' }
       }));
     }
   },
-  dieta: {
+  'salud/dieta': {
     name: 'dieta',
     action: () => {
       window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
-        detail: { type: 'dieta', path: '/dieta' }
+        detail: { type: 'dieta', path: '/salud/dieta' }
       }));
     }
   }
@@ -167,9 +142,9 @@ const ENTITY_CONFIGS = {
 
 // Mapeo personalizado de títulos de rutas
 const ROUTE_TITLES = {
-  '': 'mis assets',          // ruta raíz (Dashboard)
-  'dashboard': 'mis assets', // También para la ruta /dashboard
-  'rutinas': 'mi salud',
+  '': 'mis assets',          // ruta raíz (Assets)
+  'assets': 'mis assets', // También para la ruta /assets
+  'salud': 'mi salud',
   'tiempo': 'mi tiempo'
 };
 

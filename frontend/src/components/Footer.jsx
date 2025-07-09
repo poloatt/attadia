@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 import clienteAxios from '../config/axios';
 import { useLocation } from 'react-router-dom';
 
-export default function Footer() {
+export default function Footer({ isDesktop = false, isSidebarOpen = false }) {
   const [connectionStatus, setConnectionStatus] = useState({
     backend: false,
     database: false,
@@ -41,8 +41,8 @@ export default function Footer() {
   }, []);
 
   useEffect(() => {
-    // Mostrar el footer solo en la ruta principal o dashboard
-    if (location.pathname === '/' || location.pathname === '/dashboard') {
+    // Mostrar el footer solo en la ruta principal o assets
+    if (location.pathname === '/' || location.pathname === '/assets') {
       setVisible(true);
       const timer = setTimeout(() => {
         setVisible(false);
@@ -73,7 +73,9 @@ export default function Footer() {
         zIndex: 1201, // Por encima del BottomNavigation (1200)
         left: 0,
         right: 0,
-        transition: 'opacity 0.5s ease, transform 0.5s ease', // Mejorar la transición
+        transition: 'opacity 0.5s ease, transform 0.5s ease, margin-left 0.3s cubic-bezier(0.4,0,0.2,1)', // Mejorar la transición
+        marginLeft: isDesktop && isSidebarOpen ? '280px' : 0,
+        width: isDesktop && isSidebarOpen ? 'calc(100% - 280px)' : '100%',
       }}
     >
       <Chip

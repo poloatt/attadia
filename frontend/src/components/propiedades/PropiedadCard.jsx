@@ -114,7 +114,7 @@ const STATUS_COLORS = {
   'RESERVADA': '#9c27b0'
 };
 
-const PropiedadCard = ({ propiedad, onEdit, onDelete, isDashboard = false, isExpanded = false, onToggleExpand, viewMode = 'grid', setViewMode = () => {} }) => {
+const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpanded = false, onToggleExpand, viewMode = 'grid', setViewMode = () => {} }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   

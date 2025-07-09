@@ -13,8 +13,8 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         manifest: {
-          name: 'Present',
-          short_name: 'Present',
+          name: 'Atta',
+          short_name: 'Atta',
           start_url: '.',
           display: 'standalone',
           background_color: '#ffffff',

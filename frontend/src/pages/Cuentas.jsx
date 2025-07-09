@@ -532,7 +532,7 @@ export function Cuentas() {
       <EntityToolbar
         onAdd={() => setIsFormOpen(true)}
         showBackButton={true}
-        onBack={() => window.location.href = '/dashboard'}
+        onBack={() => window.location.href = '/assets'}
         navigationItems={[
           {
             icon: <CurrencyIcon sx={{ fontSize: 21.6 }} />,

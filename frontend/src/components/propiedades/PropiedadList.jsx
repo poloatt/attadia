@@ -5,18 +5,10 @@ import PropiedadCard from './PropiedadCard';
 import EmptyState from '../EmptyState';
 // Si corresponde, importa { SeccionInquilinos, SeccionHabitaciones, SeccionContratos, SeccionInventario, SeccionDocumentos } from './SeccionesPropiedad';
 
-const PropiedadList = ({ 
-  propiedades, 
-  onEdit, 
-  onDelete, 
-  onAdd,
-  filteredPropiedades = [],
-  isDashboard = false,
-  contratos = []
-}) => {
+const PropiedadList = ({ isAssets = false, ...props }) => {
   // Inicializar todas las propiedades como colapsadas por defecto
   const [expandedProperties, setExpandedProperties] = useState(() => {
-    const propiedadesToRender = filteredPropiedades.length > 0 ? filteredPropiedades : propiedades;
+    const propiedadesToRender = props.filteredPropiedades.length > 0 ? props.filteredPropiedades : props.propiedades;
     const initialExpanded = {};
     propiedadesToRender.forEach(propiedad => {
       initialExpanded[propiedad._id || propiedad.id] = false;
@@ -25,7 +17,7 @@ const PropiedadList = ({
   });
 
   // Usar propiedades filtradas si existen, sino usar todas las propiedades
-  const propiedadesToRender = filteredPropiedades.length > 0 ? filteredPropiedades : propiedades;
+  const propiedadesToRender = props.filteredPropiedades.length > 0 ? props.filteredPropiedades : props.propiedades;
 
   // Actualizar estado cuando cambien las propiedades, manteniendo las nuevas como colapsadas
   useEffect(() => {
@@ -45,11 +37,11 @@ const PropiedadList = ({
       });
       return newExpanded;
     });
-  }, [propiedades, filteredPropiedades]);
+  }, [props.propiedades, props.filteredPropiedades]);
   
   // Si no hay propiedades, mostrar estado vacío
   if (!propiedadesToRender?.length) {
-    return <EmptyState onAdd={onAdd} />;
+    return <EmptyState onAdd={props.onAdd} />;
   }
 
   // Solo una expandida a la vez
@@ -68,7 +60,7 @@ const PropiedadList = ({
   const [viewMode, setViewMode] = useState('grid');
 
   return (
-    <Box sx={{ mt: isDashboard ? 0 : 2 }}>
+    <Box sx={{ mt: isAssets ? 0 : 2 }}>
       {propiedadesToRender.map((propiedad) => {
         // Verificar si hay datos relacionados disponibles
         const propiedadConDatos = {
@@ -76,7 +68,7 @@ const PropiedadList = ({
           inquilinos: Array.isArray(propiedad.inquilinos) ? propiedad.inquilinos : [],
           habitaciones: Array.isArray(propiedad.habitaciones) ? propiedad.habitaciones : [],
           contratos: Array.isArray(propiedad.contratos) ? propiedad.contratos : 
-                    contratos.filter(c => c.propiedad?._id === propiedad._id),
+                    props.contratos.filter(c => c.propiedad?._id === propiedad._id),
           inventario: Array.isArray(propiedad.inventario) ? propiedad.inventario : [],
           documentos: Array.isArray(propiedad.documentos) ? propiedad.documentos : []
         };
@@ -96,9 +88,9 @@ const PropiedadList = ({
           >
             <PropiedadCard
               propiedad={propiedadConDatos}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              isDashboard={isDashboard}
+              onEdit={props.onEdit}
+              onDelete={props.onDelete}
+              isAssets={isAssets}
               isExpanded={expandedProperties[propiedad._id || propiedad.id] || false}
               onToggleExpand={() => handleToggleExpand(propiedad._id || propiedad.id)}
               viewMode={viewMode}

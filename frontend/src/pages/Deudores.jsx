@@ -19,7 +19,7 @@ export function Deudores() {
     <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar
         showBackButton={true}
-        onBack={() => window.location.href = '/dashboard'}
+        onBack={() => window.location.href = '/assets'}
         title="Deudores"
         icon={<DeudoresIcon />}
         navigationItems={[

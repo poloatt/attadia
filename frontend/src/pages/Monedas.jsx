@@ -613,7 +613,7 @@ export function Monedas() {
           setIsFormOpen(true);
         }}
         showBackButton={true}
-        onBack={() => window.location.href = '/dashboard'}
+        onBack={() => window.location.href = '/assets'}
         navigationItems={navigationItems}
       />
       

@@ -350,7 +350,7 @@ export function Recurrente() {
       <EntityToolbar
         onAdd={() => setIsFormOpen(true)}
         showBackButton={true}
-        onBack={() => window.location.href = '/dashboard'}
+        onBack={() => window.location.href = '/assets'}
         navigationItems={[
           {
             icon: <WalletIcon sx={{ fontSize: 20 }} />,

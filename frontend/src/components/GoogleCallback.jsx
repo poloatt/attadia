@@ -35,8 +35,8 @@ function GoogleCallback() {
           throw new Error('Error al verificar la autenticación');
         }
 
-        // Redirigir al dashboard
-        navigate('/dashboard');
+        // Redirigir a assets
+        navigate('/assets');
       } catch (error) {
         console.error('Error en el callback de Google:', error);
         navigate('/auth/error?message=auth_failed');
