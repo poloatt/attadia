@@ -19,6 +19,4 @@ export { Subtareas } from './Subtareas.js';
 export { Dietas } from './Dietas.js';
 export { Objetivos } from './Objetivos.js';
 export { TransaccionRecurrente } from './TransaccionRecurrente.js';
-
-
-
+export { BankConnection } from './BankConnection.js';

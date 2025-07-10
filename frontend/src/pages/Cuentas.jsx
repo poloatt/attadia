@@ -36,6 +36,8 @@ import EmptyState from '../components/EmptyState';
 import { EntityActions } from '../components/EntityViews/EntityActions';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 import { useAPI } from '../hooks/useAPI';
+import MercadoPagoConnectButton from '../components/bankconnections/MercadoPagoConnectButton';
+import BankConnectionForm from '../components/bankconnections/BankConnectionForm';
 
 export function Cuentas() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -47,6 +49,8 @@ export function Cuentas() {
   const [balancesPorMoneda, setBalancesPorMoneda] = useState({});
   const [deletingId, setDeletingId] = useState(null);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const [isBankConnectionFormOpen, setIsBankConnectionFormOpen] = useState(false);
 
   // Función para restablecer los balances
   const resetBalance = useCallback(() => {
@@ -530,7 +534,7 @@ export function Cuentas() {
   return (
     <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar
-        onAdd={() => setIsFormOpen(true)}
+        onAdd={() => setIsBankConnectionFormOpen(true)}
         showBackButton={true}
         onBack={() => window.location.href = '/assets'}
         navigationItems={[
@@ -555,6 +559,19 @@ export function Cuentas() {
             to: '/deudores'
           }
         ]}
+        showSyncButton={true}
+        onSync={() => setIsSyncModalOpen(true)}
+        entityName="cuenta"
+      />
+      {/* Modal para crear cuenta (manual o MercadoPago) */}
+      <BankConnectionForm
+        open={isBankConnectionFormOpen}
+        onClose={() => setIsBankConnectionFormOpen(false)}
+        onSubmit={async () => {
+          setIsBankConnectionFormOpen(false);
+          await refetchCuentas();
+        }}
+        isEditing={false}
       />
       
       <EntityForm
@@ -725,6 +742,20 @@ export function Cuentas() {
             Eliminar
           </Button>
         </DialogActions>
+      </Dialog>
+
+      {/* Modal de sincronización */}
+      <Dialog open={isSyncModalOpen} onClose={() => setIsSyncModalOpen(false)} maxWidth="xs" fullWidth>
+        <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>Sincronizar nueva cuenta</Typography>
+          <MercadoPagoConnectButton
+            onSuccess={() => {
+              setIsSyncModalOpen(false);
+              refetchCuentas();
+            }}
+            onError={() => setIsSyncModalOpen(false)}
+          />
+        </Box>
       </Dialog>
     </Box>
   );

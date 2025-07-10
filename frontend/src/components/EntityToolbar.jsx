@@ -50,7 +50,9 @@ const EntityToolbar = ({
   title,
   children,
   onBack,
-  forceShow = false
+  forceShow = false,
+  onSync,
+  showSyncButton = false
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -541,6 +543,21 @@ const EntityToolbar = ({
                   >
                     <AddOutlined sx={{ fontSize: 21.6 }} />
                   </IconButton>
+                </Tooltip>
+              )}
+
+              {/* Botón Sincronizar */}
+              {showSyncButton && (
+                <Tooltip title="Sincronizar cuenta automáticamente">
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    sx={{ ml: 1, borderRadius: 0, minWidth: 0, px: 1.5, fontWeight: 500 }}
+                    onClick={onSync}
+                    startIcon={<AutorenewOutlined />}
+                  >
+                    Sincronizar
+                  </Button>
                 </Tooltip>
               )}
             </Box>

@@ -20,6 +20,7 @@ import monitoreoRoutes from './monitoreoRoutes.js';
 import perfilRoutes from './perfilRoutes.js';
 import healthRoutes from './healthRoutes.js';
 import dataCorporalRoutes from './dataCorporalRoutes.js';
+import bankConnectionRoutes from './bankConnectionRoutes.js';
 
 const router = express.Router();
 
@@ -42,6 +43,7 @@ router.use('/monedas', monedasRoutes);
 router.use('/cuentas', cuentasRoutes);
 router.use('/transacciones', transaccionesRoutes);
 router.use('/transaccionesrecurrentes', transaccionRecurrenteRoutes);
+router.use('/bankconnections', bankConnectionRoutes);
 
 // Rutas de gestión de proyectos
 router.use('/proyectos', proyectosRoutes);

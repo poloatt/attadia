@@ -41,6 +41,7 @@ import PropiedadDocumentos from './components/propiedades/PropiedadDocumentos';
 import Inversiones from './pages/Inversiones';
 import Autos from './pages/Autos';
 import Preferencias from './pages/Preferencias';
+import { MercadoPagoCallbackPage } from './pages/MercadoPagoCallbackPage';
 
 function App() {
   const { user, loading } = useAuth();
@@ -62,6 +63,7 @@ function App() {
               <Route path="/registro" element={<Register />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/auth/error" element={<AuthError />} />
+              <Route path="/mercadopago/callback" element={<MercadoPagoCallbackPage />} />
               
               {/* Ruta raíz redirige a /assets */}
               <Route path="/" element={<Navigate to="/assets" replace />} />

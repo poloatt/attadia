@@ -235,6 +235,17 @@ export function Transacciones() {
     return () => window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
   }, [handleOpenForm]);
 
+  // Escuchar eventos de sincronización bancaria
+  useEffect(() => {
+    const handleTransaccionesRefreshed = () => {
+      console.log('Refrescando transacciones después de sincronización bancaria');
+      refetchTransacciones();
+    };
+
+    window.addEventListener('transaccionesRefreshed', handleTransaccionesRefreshed);
+    return () => window.removeEventListener('transaccionesRefreshed', handleTransaccionesRefreshed);
+  }, [refetchTransacciones]);
+
   return (
     <Box sx={{ px: 0, width: '100%', position: 'relative', minHeight: '80vh', bgcolor: 'background.default' }}>
 

@@ -10,6 +10,7 @@ import morgan from 'morgan';
 import connectDB from './config/database/mongodb.js';
 import { initializeMonedas } from './config/initData.js';
 import MongoStore from 'connect-mongo';
+import BankSyncScheduler from './services/bankSyncScheduler.js';
 
 // Importar configuración según el entorno
 let config;
@@ -189,6 +190,11 @@ const startServer = async () => {
     
     await initializeMonedas();
     console.log('Datos iniciales cargados');
+    
+    // Iniciar scheduler de sincronización bancaria
+    const bankSyncScheduler = new BankSyncScheduler();
+    bankSyncScheduler.start();
+    console.log('Scheduler de sincronización bancaria iniciado');
     
     app.listen(config.port, '0.0.0.0', () => {
       // Asegurarse de que corsOrigins sea un array antes de usar join
