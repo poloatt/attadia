@@ -1,13 +1,22 @@
 import fetch from 'node-fetch';
+import config from '../config/config.js';
 
 export function getAuthUrl(redirectUri) {
-  const clientId = process.env.MERCADOPAGO_CLIENT_ID;
+  const clientId = config.mercadopago.clientId;
+  if (!clientId) {
+    throw new Error('MERCADOPAGO_CLIENT_ID no está configurado');
+  }
   return `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&redirect_uri=${encodeURIComponent(redirectUri)}`;
 }
 
 export async function exchangeCodeForToken({ code, redirectUri }) {
-  const clientId = process.env.MERCADOPAGO_CLIENT_ID;
-  const clientSecret = process.env.MERCADOPAGO_CLIENT_SECRET;
+  const clientId = config.mercadopago.clientId;
+  const clientSecret = config.mercadopago.clientSecret;
+  
+  if (!clientId || !clientSecret) {
+    throw new Error('Configuración de MercadoPago incompleta. Verifica MERCADOPAGO_CLIENT_ID y MERCADOPAGO_CLIENT_SECRET');
+  }
+  
   const params = new URLSearchParams({
     grant_type: 'authorization_code',
     client_id: clientId,
@@ -36,8 +45,13 @@ export async function exchangeCodeForToken({ code, redirectUri }) {
  * https://www.mercadopago.com.ar/developers/es/reference/oauth/_oauth_token/post
  */
 export async function refreshAccessToken({ refreshToken }) {
-  const clientId = process.env.MERCADOPAGO_CLIENT_ID;
-  const clientSecret = process.env.MERCADOPAGO_CLIENT_SECRET;
+  const clientId = config.mercadopago.clientId;
+  const clientSecret = config.mercadopago.clientSecret;
+  
+  if (!clientId || !clientSecret) {
+    throw new Error('Configuración de MercadoPago incompleta. Verifica MERCADOPAGO_CLIENT_ID y MERCADOPAGO_CLIENT_SECRET');
+  }
+  
   const params = new URLSearchParams({
     grant_type: 'refresh_token',
     client_id: clientId,

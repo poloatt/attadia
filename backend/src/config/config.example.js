@@ -6,7 +6,12 @@ dotenv.config();
 const baseConfig = {
   port: parseInt(process.env.PORT || '8080', 10),
   sessionSecret: process.env.SESSION_SECRET || 'fallback_session_secret',
-  isDev: false
+  isDev: false,
+  // Configuración de MercadoPago
+  mercadopago: {
+    clientId: process.env.MERCADOPAGO_CLIENT_ID,
+    clientSecret: process.env.MERCADOPAGO_CLIENT_SECRET
+  }
 };
 
 // Configuraciones específicas por ambiente

@@ -26,7 +26,9 @@ const validateRequiredEnvVars = () => {
     'FRONTEND_URL',
     'BACKEND_URL',
     'GOOGLE_CALLBACK_URL',
-    'CORS_ORIGINS'
+    'CORS_ORIGINS',
+    'MERCADOPAGO_CLIENT_ID',
+    'MERCADOPAGO_CLIENT_SECRET'
   ];
 
   for (const envVar of requiredEnvVars) {
@@ -42,7 +44,12 @@ const baseConfig = {
   sessionSecret: process.env.SESSION_SECRET || 'fallback_session_secret',
   jwtSecret: process.env.JWT_SECRET || 'fallback_jwt_secret',
   refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET || 'fallback_refresh_token_secret',
-  isDev: false
+  isDev: false,
+  // Configuración de MercadoPago
+  mercadopago: {
+    clientId: process.env.MERCADOPAGO_CLIENT_ID,
+    clientSecret: process.env.MERCADOPAGO_CLIENT_SECRET
+  }
 };
 
 // Configuraciones específicas por ambiente
