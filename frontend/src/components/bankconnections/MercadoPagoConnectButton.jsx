@@ -11,14 +11,20 @@ export default function MercadoPagoConnectButton({ onSuccess, onError }) {
   const handleConnect = async () => {
     setLoading(true);
     try {
+      console.log('Solicitando URL de autorización MercadoPago con redirect_uri:', REDIRECT_URI);
+      
       // Solicitar la URL de autorización al backend
       const { data } = await clienteAxios.get('/api/bankconnections/mercadopago/auth-url', {
         params: { redirect_uri: REDIRECT_URI }
       });
+      
+      console.log('URL de autorización recibida:', data.authUrl);
       window.location.href = data.authUrl;
     } catch (err) {
       setLoading(false);
-      if (onError) onError(err);
+      console.error('Error obteniendo URL de autorización MercadoPago:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Error desconocido';
+      if (onError) onError(new Error(`Error conectando con MercadoPago: ${errorMessage}`));
     }
   };
 
