@@ -71,22 +71,37 @@ export function Login() {
             autoComplete="email"
             autoFocus
             size="small"
+            InputLabelProps={{ shrink: true }}
             sx={{ 
               mb: 2,
               '& .MuiOutlinedInput-root': {
+                bgcolor: '#232323',
                 '& fieldset': {
                   borderColor: 'rgba(255, 255, 255, 0.1)',
                 },
                 '&:hover fieldset': {
                   borderColor: 'rgba(255, 255, 255, 0.3)',
                 },
+                '& input': {
+                  bgcolor: '#232323',
+                  color: 'rgba(255, 255, 255, 0.9)',
+                  ':-webkit-autofill': {
+                    WebkitBoxShadow: '0 0 0 100px #232323 inset',
+                    WebkitTextFillColor: 'rgba(255,255,255,0.9)',
+                  },
+                  ':-webkit-autofill:focus': {
+                    WebkitBoxShadow: '0 0 0 100px #232323 inset',
+                    WebkitTextFillColor: 'rgba(255,255,255,0.9)',
+                  },
+                  ':-webkit-autofill:hover': {
+                    WebkitBoxShadow: '0 0 0 100px #232323 inset',
+                    WebkitTextFillColor: 'rgba(255,255,255,0.9)',
+                  },
+                },
               },
               '& .MuiInputLabel-root': {
                 color: 'rgba(255, 255, 255, 0.7)',
               },
-              '& .MuiInputBase-input': {
-                color: 'rgba(255, 255, 255, 0.9)',
-              }
             }}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -102,6 +117,7 @@ export function Login() {
             id="password"
             autoComplete="current-password"
             size="small"
+            InputLabelProps={{ shrink: true }}
             InputProps={{
               endAdornment: (
                 <Tooltip title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}>
@@ -123,19 +139,33 @@ export function Login() {
             }}
             sx={{
               '& .MuiOutlinedInput-root': {
+                bgcolor: '#232323',
                 '& fieldset': {
                   borderColor: 'rgba(255, 255, 255, 0.1)',
                 },
                 '&:hover fieldset': {
                   borderColor: 'rgba(255, 255, 255, 0.3)',
                 },
+                '& input': {
+                  bgcolor: '#232323',
+                  color: 'rgba(255, 255, 255, 0.9)',
+                  ':-webkit-autofill': {
+                    WebkitBoxShadow: '0 0 0 100px #232323 inset',
+                    WebkitTextFillColor: 'rgba(255,255,255,0.9)',
+                  },
+                  ':-webkit-autofill:focus': {
+                    WebkitBoxShadow: '0 0 0 100px #232323 inset',
+                    WebkitTextFillColor: 'rgba(255,255,255,0.9)',
+                  },
+                  ':-webkit-autofill:hover': {
+                    WebkitBoxShadow: '0 0 0 100px #232323 inset',
+                    WebkitTextFillColor: 'rgba(255,255,255,0.9)',
+                  },
+                },
               },
               '& .MuiInputLabel-root': {
                 color: 'rgba(255, 255, 255, 0.7)',
               },
-              '& .MuiInputBase-input': {
-                color: 'rgba(255, 255, 255, 0.9)',
-              }
             }}
             value={password}
             onChange={(e) => setPassword(e.target.value)}

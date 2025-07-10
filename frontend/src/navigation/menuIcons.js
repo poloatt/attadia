@@ -56,6 +56,7 @@ export const icons = {
   inventario: Inventory2Outlined, // caja de inventario
   moneyBag: AttachMoneyOutlined, // bolsa de dinero (finanzas)
   fitnessCenter: FitnessCenterOutlined, // pesa de gym para rutinas
+  bankConnections: AccountBalanceWalletOutlined, // billetera digital
   expandLess: ExpandLess,
   expandMore: ExpandMore,
   fiberManualRecord: FiberManualRecordOutlined
