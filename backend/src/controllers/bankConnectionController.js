@@ -150,7 +150,7 @@ class BankConnectionController extends BaseController {
 
       if (!paymentsRes.ok) {
         throw new Error(`Error obteniendo pagos: ${paymentsRes.status}`);
-      }
+          }
 
       const paymentsData = await paymentsRes.json();
 
@@ -387,7 +387,7 @@ class BankConnectionController extends BaseController {
       if (!code) {
         return res.status(400).json({ message: 'Código de autorización requerido' });
       }
-      
+
       // Validar el parámetro state para prevenir CSRF (recomendado por MercadoPago)
       if (req.session && req.session.mercadopagoState && state !== req.session.mercadopagoState) {
         logger.error('State validation failed', null, {
@@ -430,16 +430,16 @@ class BankConnectionController extends BaseController {
         },
         moneda: undefined // Puedes mejorar para detectar la moneda
       });
-      
-      res.json({
+
+      res.json({ 
         message: 'Conexión MercadoPago creada y sincronizada',
         conexion: connection
       });
     } catch (error) {
       console.error('Error en callback MercadoPago:', error);
-      res.status(500).json({
-        message: 'Error conectando con MercadoPago',
-        error: error.message
+      res.status(500).json({ 
+        message: 'Error conectando con MercadoPago', 
+        error: error.message 
       });
     }
   }

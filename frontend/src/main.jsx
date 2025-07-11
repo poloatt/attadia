@@ -29,7 +29,7 @@ const getBaseUrl = () => {
     } else if (mode === 'staging') {
       return 'https://api.staging.present.attadia.com/api';
     }
-    return 'https://admin.attadia.com/api';
+    return 'https://api.admin.attadia.com/api';
   }
   
   return `${apiUrl}/api`;

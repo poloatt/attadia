@@ -56,13 +56,13 @@ export async function exchangeCodeForToken({ code, redirectUri }) {
   });
 
   try {
-    const response = await fetch('https://api.mercadopago.com/oauth/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params
-    });
+  const response = await fetch('https://api.mercadopago.com/oauth/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params
+  });
     
-    const data = await response.json();
+  const data = await response.json();
     const duration = Date.now() - startTime;
     
     logger.mercadopago('TOKEN_EXCHANGE_RESPONSE', 'Respuesta de intercambio de token recibida', {
@@ -106,7 +106,7 @@ export async function exchangeCodeForToken({ code, redirectUri }) {
       success: true
     });
     
-    return data;
+  return data;
   } catch (error) {
     const duration = Date.now() - startTime;
     logger.error('Error en exchangeCodeForToken', error, {
@@ -152,13 +152,13 @@ export async function refreshAccessToken({ refreshToken }) {
   });
 
   try {
-    const response = await fetch('https://api.mercadopago.com/oauth/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params
-    });
+  const response = await fetch('https://api.mercadopago.com/oauth/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params
+  });
     
-    const data = await response.json();
+  const data = await response.json();
     const duration = Date.now() - startTime;
     
     if (!response.ok) {
@@ -191,7 +191,7 @@ export async function refreshAccessToken({ refreshToken }) {
       success: true
     });
     
-    return data;
+  return data;
   } catch (error) {
     const duration = Date.now() - startTime;
     logger.error('Error en refreshAccessToken', error, { duration });

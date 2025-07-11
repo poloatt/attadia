@@ -577,8 +577,8 @@ export function Cuentas() {
               activo: true
             });
             
-            setIsBankConnectionFormOpen(false);
-            await refetchCuentas();
+          setIsBankConnectionFormOpen(false);
+          await refetchCuentas();
           } catch (error) {
             console.error('Error creando cuenta:', error);
             throw error;

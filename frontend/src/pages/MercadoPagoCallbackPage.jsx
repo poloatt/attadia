@@ -11,11 +11,11 @@ export function MercadoPagoCallbackPage() {
 
   useEffect(() => {
     const handleCallback = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
       const state = urlParams.get('state');
       const errorParam = urlParams.get('error');
-      
+    
       if (errorParam) {
         console.error('Error en autorización MercadoPago:', errorParam);
         setError(`Error de autorización: ${errorParam}`);
@@ -36,9 +36,9 @@ export function MercadoPagoCallbackPage() {
         console.error('State validation failed:', { received: state, expected: savedState });
         setError('Error de seguridad: parámetro state inválido');
         setStatus('error');
-        return;
-      }
-      
+      return;
+    }
+    
       try {
         console.log('Procesando código de autorización MercadoPago:', { code, state });
         await processCallback(code, state);
@@ -52,7 +52,7 @@ export function MercadoPagoCallbackPage() {
           navigate('/assets/finanzas/cuentas');
         }, 2000);
       } catch (error) {
-        console.error('Error al conectar con MercadoPago:', error);
+          console.error('Error al conectar con MercadoPago:', error);
         setError(error.message);
         setStatus('error');
         
@@ -128,7 +128,7 @@ export function MercadoPagoCallbackPage() {
   useEffect(() => {
     if (status === 'error') {
       const timer = setTimeout(() => {
-        navigate('/assets/finanzas/cuentas');
+          navigate('/assets/finanzas/cuentas');
       }, 5000);
       
       return () => clearTimeout(timer);

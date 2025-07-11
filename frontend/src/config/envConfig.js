@@ -16,7 +16,7 @@ export const config = {
     authPrefix: '/api/auth',
     apiPrefix: '/api',
     baseUrl: import.meta.env.VITE_API_URL || 'https://api.admin.attadia.com',
-    frontendUrl: import.meta.env.VITE_FRONTEND_URL || 'https://present.attadia.com'
+    frontendUrl: import.meta.env.VITE_FRONTEND_URL || 'https://admin.attadia.com'
   }
 };
 
