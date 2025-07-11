@@ -48,7 +48,9 @@ const baseConfig = {
   // Configuración de MercadoPago
   mercadopago: {
     clientId: process.env.MERCADOPAGO_CLIENT_ID,
-    clientSecret: process.env.MERCADOPAGO_CLIENT_SECRET
+    clientSecret: process.env.MERCADOPAGO_CLIENT_SECRET,
+    accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN,
+    publicKey: process.env.MERCADOPAGO_PUBLIC_KEY
   }
 };
 

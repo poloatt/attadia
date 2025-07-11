@@ -647,29 +647,48 @@ class BankConnectionController extends BaseController {
 
   /**
    * Crea una preferencia de pago de prueba usando el SDK de MercadoPago v2.8.0
-   * Sintaxis compatible con require/configure/preferences.create
+   * Sintaxis compatible con ES modules
    */
   async pagoPrueba(req, res) {
     try {
-      const mercadopago = require('mercadopago');
-      mercadopago.configure({
-        access_token: process.env.MERCADOPAGO_ACCESS_TOKEN || config.mercadopago.accessToken
+      // Importar MercadoPago usando ES modules
+      const mercadopago = await import('mercadopago');
+      
+      // Configurar con el access token
+      const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN || config.mercadopago.accessToken;
+      
+      if (!accessToken) {
+        throw new Error('MERCADOPAGO_ACCESS_TOKEN no está configurado');
+      }
+      
+      mercadopago.default.configure({
+        access_token: accessToken
       });
 
-      const result = await mercadopago.preferences.create({
+      const result = await mercadopago.default.preferences.create({
         items: [
           {
             title: 'Pago de prueba - Validación app MercadoPago',
             quantity: 1,
             currency_id: 'ARS',
-            unit_price: 1000
+            unit_price: 10.00
           }
-        ]
+        ],
+        back_urls: {
+          success: `${config.frontendUrl}/pago-exitoso`,
+          failure: `${config.frontendUrl}/pago-fallido`,
+          pending: `${config.frontendUrl}/pago-pendiente`
+        },
+        auto_return: 'approved'
       });
+
+      console.log('Preferencia de pago creada:', result.body);
 
       res.json({
         success: true,
         init_point: result.body.init_point,
+        sandbox_init_point: result.body.sandbox_init_point,
+        preference_id: result.body.id,
         message: 'Preferencia creada exitosamente'
       });
     } catch (error) {
@@ -677,7 +696,11 @@ class BankConnectionController extends BaseController {
       res.status(500).json({
         success: false,
         error: error.message,
-        message: 'Error al crear preferencia de pago'
+        message: 'Error al crear preferencia de pago',
+        details: {
+          accessTokenConfigured: !!process.env.MERCADOPAGO_ACCESS_TOKEN,
+          configAccessToken: !!config.mercadopago.accessToken
+        }
       });
     }
   }
