@@ -666,7 +666,7 @@ class BankConnectionController extends BaseController {
             title: 'Pago de prueba - Validación app MercadoPago',
             quantity: 1,
             currency_id: 'ARS',
-            unit_price: 10
+            unit_price: 1000
           }
         ]
       });
