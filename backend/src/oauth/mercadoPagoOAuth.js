@@ -13,7 +13,7 @@ export function getAuthUrl(redirectUri, state = null) {
   // Generar state aleatorio si no se proporciona (recomendado por MercadoPago)
   const stateParam = state || crypto.randomBytes(32).toString('hex');
   
-  const authUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&redirect_uri=${encodeURIComponent(redirectUri)}&state=${stateParam}`;
+  const authUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&redirect_uri=${encodeURIComponent(redirectUri)}&state=${stateParam}&prompt=consent`;
   
   logger.mercadopago('AUTH_URL_GENERATED', 'URL de autorización generada', {
     clientId: clientId ? 'configurado' : 'no configurado',
