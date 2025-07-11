@@ -1,19 +1,22 @@
 import fetch from 'node-fetch';
-import Mercadopago from 'mercadopago';
+import mercadopago from 'mercadopago';
 
 export class MercadoPagoAdapter {
   constructor({ accessToken, refreshToken, userId }) {
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;
     this.userId = userId;
-    this.mp = new Mercadopago({ access_token: accessToken });
+    // Configurar el singleton de mercadopago
+    mercadopago.configure({ access_token: accessToken });
   }
 
   async getUserInfo() {
-    // Usar la nueva API de instancia
-    const res = await this.mp.users.getMe();
-    if (!res || !res.id) throw new Error('No se pudo obtener info de usuario MercadoPago');
-    return res;
+    // Usar la API de singleton
+    const res = await mercadopago.users.getMe();
+    if (!res || !res.body || !res.body.id) {
+      throw new Error('No se pudo obtener info de usuario MercadoPago');
+    }
+    return res.body;
   }
 
   async getMovimientos({ since }) {
@@ -21,7 +24,8 @@ export class MercadoPagoAdapter {
     const filters = since
       ? { 'date_created': { gte: since } }
       : {};
-    const pagos = await this.mp.payment.search({ filters });
-    return pagos.results || [];
+    
+    const pagos = await mercadopago.payment.search({ filters });
+    return pagos.body.results || [];
   }
 } 

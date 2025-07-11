@@ -60,6 +60,24 @@ const transaccionSchema = createSchema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Contratos'
   },
+  // Campo para transacciones de fuentes externas (MercadoPago, bancos, etc.)
+  origen: {
+    tipo: {
+      type: String,
+      enum: ['MANUAL', 'MERCADOPAGO', 'PLAID', 'OPEN_BANKING', 'API_DIRECTA'],
+      default: 'MANUAL'
+    },
+    conexionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'BankConnection'
+    },
+    transaccionId: String, // ID de la transacción en el sistema externo
+    metadata: {
+      type: Map,
+      of: mongoose.Schema.Types.Mixed,
+      default: () => ({})
+    }
+  },
   ...commonFields
 });
 
