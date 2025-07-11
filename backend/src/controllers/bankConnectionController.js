@@ -413,11 +413,13 @@ class BankConnectionController extends BaseController {
         throw new Error(`Error obteniendo información del usuario: ${userRes.status}`);
       }
       const userData = await userRes.json();
-      // --- NUEVO: Obtener currency_id y buscar/crear moneda ---
+      // --- NUEVO: Validar y loguear currency_id ---
       const currencyId = userData.currency_id?.toUpperCase();
       if (!currencyId) {
-        throw new Error('No se pudo obtener el currency_id de Mercado Pago');
+        console.error('[MercadoPago] Respuesta de /users/me sin currency_id:', JSON.stringify(userData, null, 2));
+        throw new Error('No se pudo obtener la moneda de tu cuenta Mercado Pago. Por favor, revisa que tu cuenta esté completamente configurada y activa. Si el problema persiste, contacta soporte.');
       }
+      // --- NUEVO: Obtener currency_id y buscar/crear moneda ---
       let moneda = await Monedas.findOne({ codigo: currencyId });
       if (!moneda) {
         // Usar la tabla ISO_4217 para autocompletar nombre y símbolo

@@ -1,5 +1,10 @@
 import clienteAxios from '../config/axios';
-import { getRedirectURI } from '../config/mercadopago';
+
+let getRedirectURI = () => '';
+if (import.meta.env.PROD) {
+  // Solo importa la función real en producción
+  getRedirectURI = require('../config/mercadopago').getRedirectURI;
+}
 
 class MercadoPagoService {
   constructor() {

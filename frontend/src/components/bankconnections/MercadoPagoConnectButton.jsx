@@ -15,6 +15,8 @@ export default function MercadoPagoConnectButton({ onSuccess, onError, fullWidth
     }
   };
 
+  if (!import.meta.env.PROD) return null;
+
   return (
     <Button
       onClick={handleConnect}
