@@ -537,7 +537,7 @@ export function Cuentas() {
     setIsProcessingPago(true);
     try {
       // Llama a tu backend para crear la preferencia de pago
-      const response = await clienteAxios.post('/api/pagos/prueba', {
+      const response = await clienteAxios.post('/api/bankconnections/pagos/prueba', {
         monto: 10,
         descripcion: 'Pago de prueba para validación de app en producción'
       });
