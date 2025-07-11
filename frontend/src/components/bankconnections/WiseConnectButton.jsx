@@ -1,39 +1,37 @@
 import React, { useState } from 'react';
-import { Button, CircularProgress, Box } from '@mui/material';
+import { useSnackbar } from 'notistack';
+import DigitalWalletConnectButton from './DigitalWalletConnectButton';
 import wiseLogo from './logos/wise.png';
 
-export default function WiseConnectButton({ onSuccess, onError }) {
+export default function WiseConnectButton({ onSuccess, onError, fullWidth = false }) {
   const [loading, setLoading] = useState(false);
+  const { enqueueSnackbar } = useSnackbar();
 
   const handleConnect = async () => {
     setLoading(true);
-    // Aquí iría la lógica real de integración con Wise
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      // Simular proceso de conexión
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      
+      // Mostrar mensaje de próximamente
+      enqueueSnackbar('Integración con Wise próximamente disponible', { variant: 'info' });
+      
       if (onSuccess) onSuccess();
-    }, 1200);
+    } catch (error) {
+      console.error('Error conectando con Wise:', error);
+      if (onError) onError(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <Button
-      onClick={handleConnect}
-      sx={{
-        minWidth: 0,
-        minHeight: 48,
-        width: '100%',
-        bgcolor: 'transparent',
-        borderRadius: 0,
-        boxShadow: 'none',
-        p: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'transparent',
-        '&:hover': { bgcolor: 'grey.900' }
-      }}
-      fullWidth
-    >
-      <img src={wiseLogo} alt="Wise" style={{ maxWidth: 120, width: '100%', height: 40, objectFit: 'contain' }} />
-    </Button>
+    <DigitalWalletConnectButton
+      logo={wiseLogo}
+      alt="Wise"
+      onConnect={handleConnect}
+      loading={loading}
+      fullWidth={fullWidth}
+    />
   );
 } 

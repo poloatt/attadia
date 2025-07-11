@@ -567,9 +567,22 @@ export function Cuentas() {
       <BankConnectionForm
         open={isBankConnectionFormOpen}
         onClose={() => setIsBankConnectionFormOpen(false)}
-        onSubmit={async () => {
-          setIsBankConnectionFormOpen(false);
-          await refetchCuentas();
+        onSubmit={async (formData) => {
+          try {
+            // Crear la cuenta usando el endpoint de cuentas
+            await clienteAxios.post('/api/cuentas', {
+              nombre: formData.nombre,
+              numero: formData.numero,
+              tipo: formData.tipo,
+              activo: true
+            });
+            
+            setIsBankConnectionFormOpen(false);
+            await refetchCuentas();
+          } catch (error) {
+            console.error('Error creando cuenta:', error);
+            throw error;
+          }
         }}
         isEditing={false}
       />

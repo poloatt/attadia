@@ -107,464 +107,18 @@ const BANCOS_POPULARES = [
   'Banco Bice',
   'Banco Corpbanca',
   'Banco del Desarrollo',
-  'ICBC' // Agregado ICBC
+  'ICBC'
 ];
 
-// Color de MercadoPago
-const MERCADOPAGO_COLOR = '#009ee3';
-
-const BankConnectionForm = ({ 
-  open, 
-  onClose, 
-  onSubmit,
-  initialData = {},
-  isEditing = false 
-}) => {
-  const [formData, setFormData] = useState({
-    nombre: initialData.nombre || '',
-    banco: initialData.banco || '',
-    tipo: initialData.tipo || 'PLAID',
-    cuenta: '',
-    credenciales: {
-      accessToken: '',
-      refreshToken: '',
-      institutionId: '',
-      accountId: '',
-      apiKey: '',
-      apiSecret: '',
-      username: '',
-      password: '',
-      userId: ''
-    },
-    configuracion: {
-      sincronizacionAutomatica: initialData.configuracion?.sincronizacionAutomatica ?? true,
-      frecuenciaSincronizacion: initialData.configuracion?.frecuenciaSincronizacion || 'DIARIA',
-      categorizacionAutomatica: initialData.configuracion?.categorizacionAutomatica ?? true
-    }
-  });
-  const [errors, setErrors] = useState({});
-  const [isSaving, setIsSaving] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const { enqueueSnackbar } = useSnackbar();
-  
-  // Definición de campos relacionales
-  const relatedFields = [
-    { 
-      type: 'relational',
-      name: 'cuenta',
-      endpoint: '/cuentas',
-      labelField: 'nombre',
-      populate: ['moneda']
-    }
-  ];
-
-  const { relatedData, isLoading: isLoadingRelated } = useRelationalData({
-    open,
-    relatedFields
-  });
-
-  const [selectedCuenta, setSelectedCuenta] = useState(null);
-  const [walletModal, setWalletModal] = useState(null);
-  const [tipoCuenta, setTipoCuenta] = useState(null);
-
-  // Efecto para reiniciar el formulario cuando se abre
-  useEffect(() => {
-    if (open) {
-      console.log('Reiniciando formulario con datos:', initialData);
-      setFormData({
-        nombre: initialData.nombre || '',
-        banco: initialData.banco || '',
-        tipo: initialData.tipo || 'PLAID',
-        cuenta: '',
-        credenciales: {
-          accessToken: '',
-          refreshToken: '',
-          institutionId: '',
-          accountId: '',
-          apiKey: '',
-          apiSecret: '',
-          username: '',
-          password: '',
-          userId: ''
-        },
-        configuracion: {
-          sincronizacionAutomatica: initialData.configuracion?.sincronizacionAutomatica ?? true,
-          frecuenciaSincronizacion: initialData.configuracion?.frecuenciaSincronizacion || 'DIARIA',
-          categorizacionAutomatica: initialData.configuracion?.categorizacionAutomatica ?? true
-        }
-      });
-      setSelectedCuenta(null);
-      setErrors({});
-      setTipoCuenta(null); // Resetear el tipo de cuenta seleccionado
-    }
-  }, [open]);
-
-  // Efecto para manejar la cuenta cuando los datos relacionales están disponibles
-  useEffect(() => {
-    const inicializarCuenta = () => {
-      if (!relatedData?.cuenta?.length || !initialData.cuenta) return;
-
-      const cuentaId = typeof initialData.cuenta === 'string' ? 
-        initialData.cuenta : 
-        (initialData.cuenta?._id || initialData.cuenta?.id);
-
-      const cuentaEncontrada = relatedData.cuenta.find(c => 
-        c._id === cuentaId || c.id === cuentaId
-      );
-
-      if (cuentaEncontrada) {
-        setSelectedCuenta(cuentaEncontrada);
-        setFormData(prev => ({
-          ...prev,
-          cuenta: cuentaEncontrada._id || cuentaEncontrada.id
-        }));
-      }
-    };
-
-    if (open && !isLoadingRelated) {
-      inicializarCuenta();
-    }
-  }, [relatedData?.cuenta, initialData.cuenta, open, isLoadingRelated]);
-
-  const handleChange = useCallback((name, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: null }));
-    }
-  }, [errors]);
-
-  const handleCredencialesChange = useCallback((name, value) => {
-    setFormData(prev => ({
-      ...prev,
-      credenciales: {
-        ...prev.credenciales,
-        [name]: value
-      }
-    }));
-  }, []);
-
-  const handleConfiguracionChange = useCallback((name, value) => {
-    setFormData(prev => ({
-      ...prev,
-      configuracion: {
-        ...prev.configuracion,
-        [name]: value
-      }
-    }));
-  }, []);
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (!validateForm()) return;
-
-    setIsSaving(true);
-    try {
-      // Generar nombre automáticamente
-      let nombreGenerado = '';
-      const tipoLabel = TIPOS_CONEXION.find(t => t.valor === formData.tipo)?.label || formData.tipo;
-      if (formData.tipo === 'MERCADOPAGO') {
-        nombreGenerado = 'MercadoPago';
-      } else if (formData.tipo === 'MANUAL') {
-        nombreGenerado = 'Manual';
-      } else {
-        nombreGenerado = formData.banco ? `${tipoLabel} - ${formData.banco}` : tipoLabel;
-      }
-
-      // Construir el payload sin cuenta ni banco si no aplican
-      const dataToSubmit = {
-        ...formData,
-        nombre: nombreGenerado
-      };
-      // Solo incluir cuenta si existe y no es MercadoPago
-      if (formData.tipo !== 'MERCADOPAGO' && (selectedCuenta?.id || selectedCuenta?._id || formData.cuenta)) {
-        dataToSubmit.cuenta = selectedCuenta?.id || selectedCuenta?._id || formData.cuenta;
-      } else {
-        delete dataToSubmit.cuenta;
-      }
-      // Solo incluir banco si existe y no es MercadoPago ni Manual
-      if (formData.tipo !== 'MERCADOPAGO' && formData.tipo !== 'MANUAL' && formData.banco) {
-        dataToSubmit.banco = formData.banco;
-      } else {
-        delete dataToSubmit.banco;
-      }
-      // Limpiar credenciales para MercadoPago
-      if (formData.tipo === 'MERCADOPAGO') {
-        dataToSubmit.credenciales = { userId: formData.credenciales.userId };
-      }
-      // Limpiar credenciales vacías para otros tipos
-      if (formData.tipo !== 'MERCADOPAGO') {
-        Object.keys(dataToSubmit.credenciales).forEach(key => {
-          if (!dataToSubmit.credenciales[key]) {
-            delete dataToSubmit.credenciales[key];
-          }
-        });
-      }
-      console.log('Datos a enviar:', dataToSubmit);
-      await onSubmit(dataToSubmit);
-      enqueueSnackbar(
-        isEditing ? 'Conexión bancaria actualizada' : 'Conexión bancaria creada', 
-        { variant: 'success' }
-      );
-      onClose();
-    } catch (error) {
-      console.error('Error al guardar:', error);
-      enqueueSnackbar(
-        error.response?.data?.message || error.message || 'Error al guardar', 
-        { variant: 'error' }
-      );
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleVerificarConexion = async () => {
-    if (!validateForm()) return;
-
-    setIsVerifying(true);
-    try {
-      const dataToSubmit = {
-        ...formData,
-        cuenta: selectedCuenta?.id || selectedCuenta?._id || formData.cuenta
-      };
-
-      // Si es edición, verificar la conexión existente
-      if (isEditing && initialData.id) {
-        const response = await clienteAxios.post(`/api/bankconnections/${initialData.id}/verificar`);
-        enqueueSnackbar(response.data.message, { variant: 'success' });
-      } else {
-        // Para nuevas conexiones, simular verificación
-        enqueueSnackbar('Verificación completada (simulación)', { variant: 'info' });
-      }
-    } catch (error) {
-      console.error('Error al verificar conexión:', error);
-      enqueueSnackbar(
-        error.response?.data?.message || error.message || 'Error al verificar conexión', 
-        { variant: 'error' }
-      );
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors = {};
-    if (formData.tipo !== 'MERCADOPAGO' && formData.tipo !== 'MANUAL' && !formData.banco) newErrors.banco = 'Seleccione un banco';
-    if (!formData.tipo) newErrors.tipo = 'Seleccione el tipo de conexión';
-    if (formData.tipo !== 'MERCADOPAGO' && !selectedCuenta) newErrors.cuenta = 'Seleccione una cuenta';
-
-    // Validaciones específicas por tipo
-    if (formData.tipo === 'PLAID') {
-      if (!formData.credenciales.accessToken) newErrors.accessToken = 'Token de acceso requerido';
-    } else if (formData.tipo === 'API_DIRECTA') {
-      if (!formData.credenciales.apiKey) newErrors.apiKey = 'API Key requerida';
-      if (!formData.credenciales.username) newErrors.username = 'Usuario requerido';
-      if (!formData.credenciales.password) newErrors.password = 'Contraseña requerida';
-    } else if (formData.tipo === 'OPEN_BANKING') {
-      if (!formData.credenciales.accessToken) newErrors.accessToken = 'Token de acceso requerido';
-    } else if (formData.tipo === 'MERCADOPAGO') {
-      if (!formData.credenciales.userId) newErrors.userId = 'User ID requerido';
-      // Validar que el nombre generado no sea vacío
-      const tipoLabel = TIPOS_CONEXION.find(t => t.valor === formData.tipo)?.label || formData.tipo;
-      const nombreGenerado = 'MercadoPago';
-      if (!nombreGenerado) newErrors.nombre = 'El nombre de la conexión no puede estar vacío';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const getCamposCredenciales = () => {
-    switch (formData.tipo) {
-      case 'PLAID':
-        return (
-          <>
-            <StyledTextField
-              fullWidth
-              label="Access Token"
-              value={formData.credenciales.accessToken || ''}
-              onChange={(e) => handleCredencialesChange('accessToken', e.target.value)}
-              error={!!errors.accessToken}
-              helperText={errors.accessToken}
-              sx={{ mb: 2 }}
-              InputLabelProps={{ shrink: true }}
-            />
-            <StyledTextField
-              fullWidth
-              label="Institution ID"
-              value={formData.credenciales.institutionId || ''}
-              onChange={(e) => handleCredencialesChange('institutionId', e.target.value)}
-              sx={{ mb: 2 }}
-              InputLabelProps={{ shrink: true }}
-            />
-            <StyledTextField
-              fullWidth
-              label="Account ID"
-              value={formData.credenciales.accountId || ''}
-              onChange={(e) => handleCredencialesChange('accountId', e.target.value)}
-              sx={{ mb: 2 }}
-              InputLabelProps={{ shrink: true }}
-            />
-          </>
-        );
-      case 'API_DIRECTA':
-        return (
-          <>
-            <StyledTextField
-              fullWidth
-              label="API Key"
-              value={formData.credenciales.apiKey || ''}
-              onChange={(e) => handleCredencialesChange('apiKey', e.target.value)}
-              error={!!errors.apiKey}
-              helperText={errors.apiKey}
-              sx={{ mb: 2 }}
-              InputLabelProps={{ shrink: true }}
-            />
-            <StyledTextField
-              fullWidth
-              label="API Secret"
-              type="password"
-              value={formData.credenciales.apiSecret || ''}
-              onChange={(e) => handleCredencialesChange('apiSecret', e.target.value)}
-              sx={{ mb: 2 }}
-              InputLabelProps={{ shrink: true }}
-            />
-            <StyledTextField
-              fullWidth
-              label="Usuario"
-              value={formData.credenciales.username || ''}
-              onChange={(e) => handleCredencialesChange('username', e.target.value)}
-              error={!!errors.username}
-              helperText={errors.username}
-              sx={{ mb: 2 }}
-              InputLabelProps={{ shrink: true }}
-            />
-            <StyledTextField
-              fullWidth
-              label="Contraseña"
-              type="password"
-              value={formData.credenciales.password || ''}
-              onChange={(e) => handleCredencialesChange('password', e.target.value)}
-              error={!!errors.password}
-              helperText={errors.password}
-              sx={{ mb: 2 }}
-              InputLabelProps={{ shrink: true }}
-            />
-          </>
-        );
-      case 'OPEN_BANKING':
-        return (
-          <>
-            <StyledTextField
-              fullWidth
-              label="Access Token"
-              value={formData.credenciales.accessToken || ''}
-              onChange={(e) => handleCredencialesChange('accessToken', e.target.value)}
-              sx={{ mb: 2 }}
-              InputLabelProps={{ shrink: true }}
-            />
-            <StyledTextField
-              fullWidth
-              label="Refresh Token"
-              value={formData.credenciales.refreshToken || ''}
-              onChange={(e) => handleCredencialesChange('refreshToken', e.target.value)}
-              sx={{ mb: 2 }}
-              InputLabelProps={{ shrink: true }}
-            />
-          </>
-        );
-      case 'MERCADOPAGO':
-        return (
-          <>
-            <StyledTextField
-              fullWidth
-              label="User ID"
-              value={formData.credenciales.userId || ''}
-              onChange={(e) => handleCredencialesChange('userId', e.target.value)}
-              error={!!errors.userId}
-              helperText={errors.userId || 'ID del usuario de MercadoPago'}
-              sx={{ mb: 2 }}
-              InputLabelProps={{ shrink: true }}
-            />
-            <Alert severity="info" sx={{ mb: 2 }}>
-              <Typography variant="body2">
-                Para obtener tu User ID:
-                <br />1. Ingresa a tu cuenta de MercadoPago
-                <br />2. Ve a tu perfil (Configuración)
-                <br />3. Busca el campo "User ID" o "ID de usuario"
-                <br />4. Copia y pégalo aquí
-                <br /><br />El Access Token y la Public Key ya están configurados de forma segura por el administrador.
-              </Typography>
-            </Alert>
-          </>
-        );
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <StyledDialog
-      open={open}
-      onClose={!isSaving && !isVerifying ? onClose : undefined}
-      maxWidth="sm"
-      fullWidth
-    >
-      <Box sx={{ p: 3, minWidth: 350, position: 'relative', pt: 6 }}>
-        {/* Botón Atrás solo si no estamos en el paso inicial */}
-        {tipoCuenta && (
-          <IconButton
-            onClick={() => setTipoCuenta(null)}
-            sx={{
-              position: 'absolute',
-              top: 16,
-              left: 16,
-              color: 'text.secondary',
-              borderRadius: 0,
-              bgcolor: 'transparent',
-              '&:hover': { bgcolor: 'grey.900' },
-              zIndex: 2
-            }}
-            size="small"
-            aria-label="Atrás"
-          >
-            <ArrowBackIcon />
-          </IconButton>
-        )}
-        {/* Botón Cerrar (X) siempre visible */}
-        <IconButton
-          onClick={onClose}
-          sx={{
-            position: 'absolute',
-            top: 16,
-            right: 16,
-            color: 'text.secondary',
-            borderRadius: 0,
-            bgcolor: 'transparent',
-            '&:hover': { bgcolor: 'grey.900' },
-            zIndex: 2
-          }}
-          size="small"
-          aria-label="Cerrar"
-        >
-          <CloseIcon />
-        </IconButton>
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-          {isEditing ? 'Editar Conexión Bancaria' : 'Nueva Conexión Bancaria'}
-        </Typography>
-
-        {/* Paso 1: Selección visual de tipo de cuenta */}
-        {!tipoCuenta && (
+// Componente para selección de tipo de cuenta
+const AccountTypeSelector = ({ onSelect }) => (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
             <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary', letterSpacing: 1 }}>
               ¿Qué tipo de cuenta deseas agregar?
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Box
-                onClick={() => setTipoCuenta('BANCO')}
+        onClick={() => onSelect('BANCO')}
                 sx={{
                   cursor: 'pointer',
                   width: '100%',
@@ -591,7 +145,7 @@ const BankConnectionForm = ({
                 </Typography>
               </Box>
               <Box
-                onClick={() => setTipoCuenta('BILLETERA')}
+        onClick={() => onSelect('BILLETERA')}
                 sx={{
                   cursor: 'pointer',
                   width: '100%',
@@ -619,10 +173,10 @@ const BankConnectionForm = ({
               </Box>
             </Box>
           </Box>
-        )}
+);
 
-        {/* Paso 2: Si elige cuenta bancaria, mostrar los campos tradicionales */}
-        {tipoCuenta === 'BANCO' && (
+// Componente para formulario de cuenta bancaria
+const BankAccountForm = ({ formData, handleChange, handleSubmit, isSaving, onClose, errors }) => (
           <>
             <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary', letterSpacing: 1 }}>
               Información de la cuenta bancaria
@@ -658,8 +212,6 @@ const BankConnectionForm = ({
                 <MenuItem value="OTRO">Otro</MenuItem>
               </Select>
             </FormControl>
-            {/* Aquí puedes agregar el selector de moneda y otros campos necesarios */}
-            {/* ... */}
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
               <Button variant="text" color="inherit" onClick={onClose} sx={{ borderRadius: 0 }}>
                 Cancelar
@@ -671,14 +223,14 @@ const BankConnectionForm = ({
                 startIcon={isSaving ? <CircularProgress size={18} /> : <AccountBalanceIcon />}
                 sx={{ borderRadius: 0, color: 'white' }}
               >
-                {isSaving ? 'Guardando...' : isEditing ? 'Actualizar' : 'Crear'}
+        {isSaving ? 'Guardando...' : 'Crear'}
               </Button>
             </Box>
           </>
-        )}
+);
 
-        {/* Paso 2: Si elige billetera digital, mostrar los botones de integración */}
-        {tipoCuenta === 'BILLETERA' && (
+// Componente para billeteras digitales
+const DigitalWalletsForm = ({ onClose, onBack }) => (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
             <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary', letterSpacing: 1 }}>
               Selecciona tu billetera para conectar
@@ -686,17 +238,184 @@ const BankConnectionForm = ({
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
               <MercadoPagoConnectButton
                 onSuccess={onClose}
-                onError={(err) => enqueueSnackbar('Error conectando con MercadoPago', { variant: 'error' })}
+        onError={(err) => console.error('Error MercadoPago:', err)}
+        fullWidth
+      />
+      <GoogleWalletConnectButton 
+        onSuccess={onClose} 
+        onError={() => {}} 
+        fullWidth 
+      />
+      <UalaConnectButton 
+        onSuccess={onClose} 
+        onError={() => {}} 
+        fullWidth 
+      />
+      <WiseConnectButton 
+        onSuccess={onClose} 
+        onError={() => {}} 
                 fullWidth
               />
-              <GoogleWalletConnectButton onSuccess={onClose} onError={() => enqueueSnackbar('Próximamente', { variant: 'info' })} fullWidth />
-              <UalaConnectButton onSuccess={onClose} onError={() => enqueueSnackbar('Próximamente', { variant: 'info' })} fullWidth />
-              <WiseConnectButton onSuccess={onClose} onError={() => enqueueSnackbar('Próximamente', { variant: 'info' })} fullWidth />
             </Box>
-            <Button variant="text" sx={{ mt: 2 }} onClick={() => setTipoCuenta(null)}>
+    <Button variant="text" sx={{ mt: 2 }} onClick={onBack}>
               ← Volver
             </Button>
           </Box>
+);
+
+const BankConnectionForm = ({ 
+  open, 
+  onClose, 
+  onSubmit,
+  initialData = {},
+  isEditing = false 
+}) => {
+  const [formData, setFormData] = useState({
+    nombre: initialData.nombre || '',
+    numero: initialData.numero || '',
+    tipo: initialData.tipo || 'BANCO'
+  });
+  const [errors, setErrors] = useState({});
+  const [isSaving, setIsSaving] = useState(false);
+  const [tipoCuenta, setTipoCuenta] = useState(null);
+  const { enqueueSnackbar } = useSnackbar();
+
+  // Efecto para reiniciar el formulario cuando se abre
+  useEffect(() => {
+    if (open) {
+      setFormData({
+        nombre: initialData.nombre || '',
+        numero: initialData.numero || '',
+        tipo: initialData.tipo || 'BANCO'
+      });
+      setErrors({});
+      // setTipoCuenta(null); // <-- Quitado para no resetear el paso
+    }
+  }, [open, initialData]);
+
+  const handleChange = useCallback((name, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
+    }
+  }, [errors]);
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.nombre?.trim()) newErrors.nombre = 'El nombre es requerido';
+    if (!formData.numero?.trim()) newErrors.numero = 'El número de cuenta es requerido';
+    if (!formData.tipo) newErrors.tipo = 'Seleccione el tipo de cuenta';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (event) => {
+    if (event) event.preventDefault();
+    if (!validateForm()) return;
+
+    setIsSaving(true);
+    try {
+      await onSubmit(formData);
+      enqueueSnackbar('Cuenta creada exitosamente', { variant: 'success' });
+      onClose();
+    } catch (error) {
+      console.error('Error al guardar:', error);
+      enqueueSnackbar(
+        error.response?.data?.message || error.message || 'Error al guardar', 
+        { variant: 'error' }
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleClose = useCallback(() => {
+    if (!isSaving) {
+      onClose();
+    }
+  }, [isSaving, onClose]);
+
+  const handleBack = useCallback(() => {
+    setTipoCuenta(null);
+  }, []);
+
+  return (
+    <StyledDialog
+      open={open}
+      onClose={handleClose}
+      maxWidth="sm"
+      fullWidth
+    >
+      <Box sx={{ p: 3, minWidth: 350, position: 'relative', pt: 6 }}>
+        {/* Botón Atrás solo si no estamos en el paso inicial */}
+        {tipoCuenta && (
+          <IconButton
+            onClick={handleBack}
+            sx={{
+              position: 'absolute',
+              top: 16,
+              left: 16,
+              color: 'text.secondary',
+              borderRadius: 0,
+              bgcolor: 'transparent',
+              '&:hover': { bgcolor: 'grey.900' },
+              zIndex: 2
+            }}
+            size="small"
+            aria-label="Atrás"
+          >
+            <ArrowBackIcon />
+          </IconButton>
+        )}
+        
+        {/* Botón Cerrar (X) siempre visible */}
+        <IconButton
+          onClick={handleClose}
+          sx={{
+            position: 'absolute',
+            top: 16,
+            right: 16,
+            color: 'text.secondary',
+            borderRadius: 0,
+            bgcolor: 'transparent',
+            '&:hover': { bgcolor: 'grey.900' },
+            zIndex: 2
+          }}
+          size="small"
+          aria-label="Cerrar"
+        >
+          <CloseIcon />
+        </IconButton>
+        
+        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+          {isEditing ? 'Editar Cuenta' : 'Nueva Cuenta'}
+        </Typography>
+
+        {/* Paso 1: Selección visual de tipo de cuenta */}
+        {!tipoCuenta && (
+          <AccountTypeSelector onSelect={setTipoCuenta} />
+        )}
+
+        {/* Paso 2: Si elige cuenta bancaria, mostrar los campos tradicionales */}
+        {tipoCuenta === 'BANCO' && (
+          <BankAccountForm
+            formData={formData}
+            handleChange={handleChange}
+            handleSubmit={handleSubmit}
+            isSaving={isSaving}
+            onClose={handleClose}
+            errors={errors}
+          />
+        )}
+
+        {/* Paso 2: Si elige billetera digital, mostrar los botones de integración */}
+        {tipoCuenta === 'BILLETERA' && (
+          <DigitalWalletsForm onClose={handleClose} onBack={handleBack} />
         )}
       </Box>
     </StyledDialog>
