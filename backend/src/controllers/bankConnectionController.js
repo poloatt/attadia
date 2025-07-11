@@ -3,6 +3,7 @@ import { BankConnection } from '../models/BankConnection.js';
 import { BankSyncService } from '../services/bankSyncService.js';
 import crypto from 'crypto';
 import { getAuthUrl, exchangeCodeForToken } from '../oauth/mercadoPagoOAuth.js';
+import { BankIntegrationService } from '../services/bankIntegrationService.js';
 
 class BankConnectionController extends BaseController {
   constructor() {
@@ -369,107 +370,40 @@ class BankConnectionController extends BaseController {
   async mercadoPagoCallback(req, res) {
     try {
       const { code } = req.body;
-      
       if (!code) {
         return res.status(400).json({ message: 'Código de autorización requerido' });
       }
-
       // Usar la redirect_uri EXACTA registrada en MercadoPago
       const redirectUri = 'https://admin.attadia.com/mercadopago/callback';
-      
-      console.log('Procesando callback MercadoPago:', { code, redirectUri });
-      
+      // Intercambiar code por token y userId
       const tokenData = await exchangeCodeForToken({ code, redirectUri });
-      
-      // Obtener información del usuario
       const userRes = await fetch('https://api.mercadopago.com/users/me', {
         headers: { Authorization: `Bearer ${tokenData.access_token}` }
       });
-      
       if (!userRes.ok) {
         throw new Error(`Error obteniendo información del usuario: ${userRes.status}`);
       }
-      
       const userData = await userRes.json();
-      
-      // Verificar si ya existe una conexión MercadoPago para este usuario
-      const conexionExistente = await this.Model.findOne({
-        usuario: req.user.id,
-        tipo: 'MERCADOPAGO'
-      });
-
-      if (conexionExistente) {
-        // Actualizar la conexión existente
-        const credencialesEncriptadas = {};
-        for (const [key, value] of Object.entries({
-          accessToken: tokenData.access_token,
-          refreshToken: tokenData.refresh_token,
-          userId: userData.id?.toString() || ''
-        })) {
-          if (value) credencialesEncriptadas[key] = this.bankSyncService.encrypt(value);
-        }
-        
-        conexionExistente.credenciales = credencialesEncriptadas;
-        conexionExistente.estado = 'ACTIVA';
-        await conexionExistente.save();
-        
-        // Sincronizar inmediatamente
-        try {
-          await this.bankSyncService.sincronizarConexion(conexionExistente);
-        } catch (syncError) {
-          console.error('Error sincronizando MercadoPago:', syncError);
-        }
-        
-        return res.json({ 
-          message: 'Conexión MercadoPago actualizada y sincronizada',
-          conexion: conexionExistente
-        });
-      }
-
-      // Crear nueva conexión bancaria
-      const datosConexion = {
-        usuario: req.user.id,
-        nombre: 'MercadoPago',
+      // Modular: usar BankIntegrationService
+      const connection = await BankIntegrationService.connect({
         tipo: 'MERCADOPAGO',
+        usuario: req.user.id,
         credenciales: {
           accessToken: tokenData.access_token,
           refreshToken: tokenData.refresh_token,
           userId: userData.id?.toString() || ''
         },
-        estado: 'ACTIVA',
-        configuracion: {
-          sincronizacionAutomatica: true,
-          frecuenciaSincronizacion: 'DIARIA',
-          categorizacionAutomatica: true
-        }
-      };
-
-      // Encriptar credenciales
-      const credencialesEncriptadas = {};
-      for (const [key, value] of Object.entries(datosConexion.credenciales)) {
-        if (value) credencialesEncriptadas[key] = this.bankSyncService.encrypt(value);
-      }
-      datosConexion.credenciales = credencialesEncriptadas;
-      
-      const conexion = new this.Model(datosConexion);
-      await conexion.save();
-
-      // Sincronizar inmediatamente
-      try {
-        await this.bankSyncService.sincronizarConexion(conexion);
-      } catch (syncError) {
-        console.error('Error sincronizando MercadoPago:', syncError);
-      }
-
-      res.json({ 
+        moneda: undefined // Puedes mejorar para detectar la moneda
+      });
+      res.json({
         message: 'Conexión MercadoPago creada y sincronizada',
-        conexion
+        conexion: connection
       });
     } catch (error) {
       console.error('Error en callback MercadoPago:', error);
-      res.status(500).json({ 
-        message: 'Error conectando con MercadoPago', 
-        error: error.message 
+      res.status(500).json({
+        message: 'Error conectando con MercadoPago',
+        error: error.message
       });
     }
   }
