@@ -649,7 +649,7 @@ class BankConnectionController extends BaseController {
    */
   async pagoPrueba(req, res) {
     try {
-      const mercadopago = require('mercadopago');
+      const mercadopago = (await import('mercadopago')).default;
       mercadopago.configure({
         access_token: process.env.MERCADOPAGO_ACCESS_TOKEN || config.mercadopago.accessToken
       });
