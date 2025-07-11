@@ -17,6 +17,13 @@ export async function exchangeCodeForToken({ code, redirectUri }) {
     throw new Error('Configuración de MercadoPago incompleta. Verifica MERCADOPAGO_CLIENT_ID y MERCADOPAGO_CLIENT_SECRET');
   }
   
+  console.log('Intercambiando código por token:', {
+    clientId: clientId ? 'configurado' : 'no configurado',
+    clientSecret: clientSecret ? 'configurado' : 'no configurado',
+    code: code ? 'presente' : 'ausente',
+    redirectUri
+  });
+  
   const params = new URLSearchParams({
     grant_type: 'authorization_code',
     client_id: clientId,
@@ -25,14 +32,37 @@ export async function exchangeCodeForToken({ code, redirectUri }) {
     redirect_uri: redirectUri
   });
 
-  const response = await fetch('https://api.mercadopago.com/oauth/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params
-  });
-  const data = await response.json();
-  if (!data.access_token) throw new Error(data.error_description || 'No se pudo obtener access token');
-  return data;
+  try {
+    const response = await fetch('https://api.mercadopago.com/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params
+    });
+    
+    const data = await response.json();
+    
+    console.log('Respuesta de MercadoPago OAuth:', {
+      status: response.status,
+      hasAccessToken: !!data.access_token,
+      hasRefreshToken: !!data.refresh_token,
+      hasUserId: !!data.user_id,
+      error: data.error,
+      errorDescription: data.error_description
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${data.error_description || data.error || 'Error desconocido'}`);
+    }
+    
+    if (!data.access_token) {
+      throw new Error(data.error_description || 'No se pudo obtener access token');
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error en exchangeCodeForToken:', error);
+    throw error;
+  }
 }
 
 /**
@@ -42,7 +72,7 @@ export async function exchangeCodeForToken({ code, redirectUri }) {
  * @returns {Promise<Object>} - Nuevo access_token y refresh_token
  *
  * Documentación oficial:
- * https://www.mercadopago.com.ar/developers/es/reference/oauth/_oauth_token/post
+ * https://www.mercadopago.com.ar/developers/en/reference/oauth/_oauth_token/post
  */
 export async function refreshAccessToken({ refreshToken }) {
   const clientId = config.mercadopago.clientId;
@@ -59,12 +89,26 @@ export async function refreshAccessToken({ refreshToken }) {
     refresh_token: refreshToken
   });
 
-  const response = await fetch('https://api.mercadopago.com/oauth/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params
-  });
-  const data = await response.json();
-  if (!data.access_token) throw new Error(data.error_description || 'No se pudo refrescar access token');
-  return data;
+  try {
+    const response = await fetch('https://api.mercadopago.com/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${data.error_description || data.error || 'Error desconocido'}`);
+    }
+    
+    if (!data.access_token) {
+      throw new Error(data.error_description || 'No se pudo refrescar access token');
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error en refreshAccessToken:', error);
+    throw error;
+  }
 } 

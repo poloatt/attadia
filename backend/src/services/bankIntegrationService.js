@@ -8,6 +8,12 @@ const adapters = {
   // Aquí puedes agregar más adapters en el futuro
 };
 
+// Mapeo de tipos de integración a tipos de cuenta
+const tipoToCuentaTipo = {
+  MERCADOPAGO: 'MERCADO_PAGO',
+  // Agregar más mapeos según sea necesario
+};
+
 export class BankIntegrationService {
   static async connect({ tipo, usuario, credenciales, moneda }) {
     const Adapter = adapters[tipo];
@@ -15,9 +21,15 @@ export class BankIntegrationService {
     const adapter = new Adapter(credenciales);
 
     // 1. Crear o buscar cuenta local
-    let cuenta = await Cuentas.findOne({ usuario, tipo });
+    const cuentaTipo = tipoToCuentaTipo[tipo] || tipo;
+    let cuenta = await Cuentas.findOne({ usuario, tipo: cuentaTipo });
     if (!cuenta) {
-      cuenta = await Cuentas.create({ usuario, tipo, nombre: tipo, moneda });
+      cuenta = await Cuentas.create({ 
+        usuario, 
+        tipo: cuentaTipo, 
+        nombre: tipo === 'MERCADOPAGO' ? 'Mercado Pago' : tipo, 
+        moneda 
+      });
     }
 
     // 2. Crear o actualizar conexión
@@ -44,31 +56,52 @@ export class BankIntegrationService {
     // Obtener fecha de última sincronización
     const since = connection.configuracion?.ultimaSincronizacion?.toISOString();
     const movimientos = await adapter.getMovimientos({ since });
+    
+    console.log(`Sincronizando ${movimientos.length} movimientos para conexión ${connection.tipo}`);
+    
     for (const mov of movimientos) {
+      // Determinar tipo de transacción basado en el movimiento
+      let tipo = 'EGRESO';
+      if (mov.collector_id === adapter.userId) {
+        tipo = 'INGRESO'; // Si el usuario es el cobrador, es un ingreso
+      }
+      
       // Crea transacción si no existe
       await Transacciones.findOneAndUpdate(
-        { cuenta: connection.cuenta._id, 'origen.transaccionId': mov.id },
+        { 
+          cuenta: connection.cuenta._id, 
+          'origen.transaccionId': mov.id.toString() 
+        },
         {
-          descripcion: mov.description || 'Movimiento MercadoPago',
+          descripcion: mov.description || mov.external_reference || 'Movimiento MercadoPago',
           monto: mov.transaction_amount,
           fecha: new Date(mov.date_created),
-          categoria: 'Otro',
+          categoria: 'Otro', // Se puede mejorar con categorización automática
           estado: mov.status === 'approved' ? 'COMPLETADA' : 'PENDIENTE',
-          tipo: mov.collector_id === adapter.userId ? 'INGRESO' : 'EGRESO',
+          tipo: tipo,
           usuario: connection.usuario,
           moneda: connection.cuenta.moneda,
           cuenta: connection.cuenta._id,
           origen: {
             tipo: 'MERCADOPAGO',
             conexionId: connection._id,
-            transaccionId: mov.id,
-            metadata: mov
+            transaccionId: mov.id.toString(),
+            metadata: {
+              payment_id: mov.id,
+              status: mov.status,
+              payment_method: mov.payment_method?.type,
+              collector_id: mov.collector_id,
+              payer_id: mov.payer?.id
+            }
           }
         },
-        { upsert: true }
+        { upsert: true, new: true }
       );
     }
+    
     // Actualiza estado de sincronización
     await connection.actualizarSincronizacion('EXITOSA', movimientos.length, 0, null);
+    
+    console.log(`Sincronización completada: ${movimientos.length} transacciones procesadas`);
   }
 } 

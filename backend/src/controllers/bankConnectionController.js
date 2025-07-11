@@ -4,7 +4,7 @@ import { BankSyncService } from '../services/bankSyncService.js';
 import crypto from 'crypto';
 import { getAuthUrl, exchangeCodeForToken } from '../oauth/mercadoPagoOAuth.js';
 import { BankIntegrationService } from '../services/bankIntegrationService.js';
-import Mercadopago from 'mercadopago';
+import mercadopago from 'mercadopago';
 
 class BankConnectionController extends BaseController {
   constructor() {
@@ -114,17 +114,23 @@ class BankConnectionController extends BaseController {
   // Verificar conexión con MercadoPago
   async verificarMercadoPago(credenciales) {
     try {
-      // Crear instancia de MercadoPago
-      const mp = new Mercadopago({ access_token: credenciales.accessToken });
+      // Configurar el singleton de mercadopago
+      mercadopago.configure({ access_token: credenciales.accessToken });
       // Obtener información del usuario
-      const userInfo = await mp.users.getMe();
+      const userInfo = await mercadopago.users.getMe();
       // Obtener algunos pagos recientes para verificar el token
-      const pagos = await mp.payment.search({ filters: { 'date_created': { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() } } });
+      const pagos = await mercadopago.payment.search({ 
+        filters: { 
+          'date_created': { 
+            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() 
+          } 
+        } 
+      });
       return {
         exito: true,
         mensaje: 'Conexión con MercadoPago verificada exitosamente',
         datos: {
-          usuario: userInfo,
+          usuario: userInfo.body,
           pagosRecientes: pagos.body.results.length
         }
       };

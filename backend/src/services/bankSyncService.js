@@ -3,7 +3,7 @@ import { Transacciones } from '../models/Transacciones.js';
 import { Cuentas } from '../models/Cuentas.js';
 import crypto from 'crypto';
 import { refreshAccessToken } from '../oauth/mercadoPagoOAuth.js';
-import Mercadopago from 'mercadopago';
+import mercadopago from 'mercadopago';
 
 export class BankSyncService {
   constructor() {
@@ -277,12 +277,18 @@ export class BankSyncService {
       let accessToken = this.decrypt(bankConnection.credenciales.accessToken);
       let refreshToken = this.decrypt(bankConnection.credenciales.refreshToken);
       const userId = this.decrypt(bankConnection.credenciales.userId);
-      // Crear instancia de MercadoPago
-      const mp = new Mercadopago({ access_token: accessToken });
+      // Configurar el singleton de mercadopago
+      mercadopago.configure({ access_token: accessToken });
       // Obtener usuario
-      const userInfo = await mp.users.getMe();
+      const userInfo = await mercadopago.users.getMe();
       // Obtener pagos recientes
-      const pagos = await mp.payment.search({ filters: { 'date_created': { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() } } });
+      const pagos = await mercadopago.payment.search({ 
+        filters: { 
+          'date_created': { 
+            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() 
+          } 
+        } 
+      });
       
       let transaccionesNuevas = 0;
       let transaccionesActualizadas = 0;
