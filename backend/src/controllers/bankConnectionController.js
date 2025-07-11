@@ -644,23 +644,17 @@ class BankConnectionController extends BaseController {
   }
 
   /**
-   * Crea una preferencia de pago de prueba usando el nuevo SDK de MercadoPago (v3.x+)
-   * Versión simplificada para validación de producción - sin parámetros del frontend
-   * @see https://www.mercadopago.com.ar/developers/en/docs/checkout-api/checkout-pro/create-preference
+   * Crea una preferencia de pago de prueba usando el SDK de MercadoPago v2.8.0
+   * Sintaxis compatible con require/configure/preferences.create
    */
   async pagoPrueba(req, res) {
     try {
-      // Importar clases del nuevo SDK de MercadoPago
-      const { MercadoPagoConfig, Preference } = await import('mercadopago');
-      
-      // Inicializar el cliente con el access token de producción
-      const client = new MercadoPagoConfig({ 
-        accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || config.mercadopago.accessToken 
+      const mercadopago = require('mercadopago');
+      mercadopago.configure({
+        access_token: process.env.MERCADOPAGO_ACCESS_TOKEN || config.mercadopago.accessToken
       });
-      
-      // Crear preferencia hardcodeada para prueba de producción
-      const preference = new Preference(client);
-      const result = await preference.create({
+
+      const result = await mercadopago.preferences.create({
         items: [
           {
             title: 'Pago de prueba - Validación app MercadoPago',
@@ -671,16 +665,14 @@ class BankConnectionController extends BaseController {
         ]
       });
 
-      // Devolver la URL de pago
-      res.json({ 
+      res.json({
         success: true,
-        init_point: result.init_point,
+        init_point: result.body.init_point,
         message: 'Preferencia creada exitosamente'
       });
-
     } catch (error) {
       console.error('Error creando preferencia de pago:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
         error: error.message,
         message: 'Error al crear preferencia de pago'
