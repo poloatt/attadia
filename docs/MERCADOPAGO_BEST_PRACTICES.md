@@ -1,5 +1,10 @@
 # 🚀 MercadoPago - Mejores Prácticas Implementadas (Actualizado)
 
+## 🟢 Novedad: Integración Productiva Validada
+- El flujo de pago productivo fue validado exitosamente usando la API REST de MercadoPago (no el SDK).
+- Se recomienda usar la API REST para crear preferencias de pago en producción.
+- Para pruebas productivas, usar cuentas distintas para comprador y vendedor.
+
 ## 📋 Resumen de Implementación
 
 Este documento describe las mejores prácticas actuales de MercadoPago implementadas en el proyecto, basadas en la **nueva integración completa** que permite obtener todos los datos disponibles de la cuenta del usuario.

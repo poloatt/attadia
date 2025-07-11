@@ -1,5 +1,10 @@
 # Integración Completa de Mercado Pago
 
+## Novedad: Integración Productiva Validada
+- El flujo de pago productivo fue validado exitosamente usando la API REST de MercadoPago (no el SDK).
+- Se recomienda usar la API REST para crear preferencias de pago en producción.
+- MercadoPago se gestiona como un banco más en la sincronización bancaria.
+
 ## Resumen
 
 Esta documentación describe la integración completa y robusta con Mercado Pago que permite obtener y gestionar todos los datos disponibles de la cuenta del usuario, incluyendo pagos, movimientos de cuenta y órdenes de comerciante.

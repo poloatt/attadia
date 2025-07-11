@@ -1,5 +1,12 @@
 # Guía de Sincronización Bancaria
 
+## Novedad: Integración MercadoPago Productiva
+
+- La integración de MercadoPago ya está validada en producción usando la API REST (no el SDK).
+- El flujo de pago productivo fue superado exitosamente: se recomienda usar la API REST para crear preferencias de pago.
+- Para pruebas productivas, usar cuentas distintas para comprador y vendedor.
+- MercadoPago se gestiona como un banco más en la sincronización bancaria: puedes crear, sincronizar y ver movimientos igual que con otros bancos.
+
 ## Descripción General
 
 El sistema de sincronización bancaria permite conectar automáticamente con APIs bancarias para importar transacciones directamente a la aplicación. Las transacciones se sincronizan automáticamente y aparecen en la página de Transacciones como si hubieran sido creadas manualmente.

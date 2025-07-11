@@ -4,6 +4,7 @@ import { Cuentas } from '../models/Cuentas.js';
 import crypto from 'crypto';
 import { refreshAccessToken } from '../oauth/mercadoPagoOAuth.js';
 import fetch from 'node-fetch';
+import config from '../config/config.js';
 
 export class BankSyncService {
   constructor() {
@@ -274,51 +275,95 @@ export class BankSyncService {
     try {
       console.log(`Sincronizando con MercadoPago para conexión: ${bankConnection.nombre}`);
       
-      // Importar el servicio de datos completos de MercadoPago
-      const { MercadoPagoDataService } = await import('./mercadoPagoDataService.js');
+      // Usar el mismo patrón exitoso del controller: API REST directa
+      const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN || config.mercadopago.accessToken;
       
-      // Desencriptar credenciales de MercadoPago
-      let accessToken = this.decrypt(bankConnection.credenciales.accessToken);
+      if (!accessToken) {
+        throw new Error('MERCADOPAGO_ACCESS_TOKEN no está configurado');
+      }
+
+      // Desencriptar credenciales de MercadoPago del usuario
+      let userAccessToken = this.decrypt(bankConnection.credenciales.accessToken);
       let refreshToken = this.decrypt(bankConnection.credenciales.refreshToken);
       const userId = this.decrypt(bankConnection.credenciales.userId);
       
-      // Crear instancia del servicio de datos completos
-      const mpDataService = new MercadoPagoDataService({
-        accessToken,
-        refreshToken,
-        userId,
-        usuarioId: bankConnection.usuario
+      // Obtener información del usuario usando la API REST directamente (como en el controller exitoso)
+      const userRes = await fetch('https://api.mercadopago.com/users/me', {
+        headers: { 
+          'Authorization': `Bearer ${userAccessToken}`,
+          'Content-Type': 'application/json'
+        }
       });
 
-      // Obtener datos completos de Mercado Pago (últimos 30 días)
+      if (!userRes.ok) {
+        throw new Error(`Error obteniendo información del usuario: ${userRes.status}`);
+      }
+
+      const userInfo = await userRes.json();
+      console.log('Usuario MercadoPago verificado:', userInfo.nickname || userInfo.email);
+
+      // Obtener pagos recientes usando el endpoint de pagos (como en verificarMercadoPago)
       const fechaDesde = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      const datosCompletos = await mpDataService.obtenerDatosCompletos({
-        fechaDesde: fechaDesde.toISOString(),
-        limit: 100
+      const paymentsUrl = `https://api.mercadopago.com/v1/payments/search?range=date_created&begin_date=${fechaDesde.toISOString()}&limit=100&sort=date_created.desc`;
+      
+      const paymentsRes = await fetch(paymentsUrl, {
+        headers: { 
+          'Authorization': `Bearer ${userAccessToken}`,
+          'Content-Type': 'application/json'
+        }
       });
 
-      console.log('Datos completos obtenidos:', {
-        pagos: datosCompletos.pagos.length,
-        movimientos: datosCompletos.movimientosCuenta.length,
-        ordenes: datosCompletos.ordenesComerciante.length,
-        errores: datosCompletos.errores.length
+      if (!paymentsRes.ok) {
+        throw new Error(`Error obteniendo pagos: ${paymentsRes.status}`);
+      }
+
+      const paymentsData = await paymentsRes.json();
+      const pagos = paymentsData.results || [];
+
+      console.log('Pagos obtenidos de MercadoPago:', {
+        total: pagos.length,
+        usuario: userInfo.nickname || userInfo.email
       });
 
-      // Procesar pagos
-      const resultadoPagos = await mpDataService.procesarPagos(
-        datosCompletos.pagos, 
-        bankConnection.cuenta
-      );
+      // Procesar pagos como transacciones
+      let transaccionesNuevas = 0;
+      let transaccionesActualizadas = 0;
 
-      // Procesar movimientos de cuenta
-      const resultadoMovimientos = await mpDataService.procesarMovimientosCuenta(
-        datosCompletos.movimientosCuenta, 
-        bankConnection.cuenta
-      );
+      for (const pago of pagos) {
+        try {
+          // Verificar si la transacción ya existe
+          const transaccionExistente = await Transacciones.findOne({
+            cuenta: bankConnection.cuenta,
+            'origen.transaccionId': pago.id.toString(),
+            'origen.tipo': 'MERCADOPAGO_PAGO'
+          });
 
-      // Calcular totales
-      const transaccionesNuevas = resultadoPagos.nuevas + resultadoMovimientos.nuevas;
-      const transaccionesActualizadas = resultadoPagos.actualizadas + resultadoMovimientos.actualizadas;
+          if (!transaccionExistente) {
+            // Crear nueva transacción
+            const nuevaTransaccion = new Transacciones({
+              descripcion: this.formatearDescripcionMercadoPago(pago),
+              monto: pago.transaction_amount || 0,
+              fecha: new Date(pago.date_created),
+              categoria: bankConnection.configuracion.categorizacionAutomatica ? 
+                this.categorizarTransaccion(this.formatearDescripcionMercadoPago(pago)) : 'Otro',
+              estado: this.mapearEstadoMercadoPago(pago.status),
+              tipo: pago.transaction_amount > 0 ? 'INGRESO' : 'EGRESO',
+              usuario: bankConnection.usuario,
+              cuenta: bankConnection.cuenta,
+              origen: {
+                tipo: 'MERCADOPAGO_PAGO',
+                conexionId: bankConnection._id,
+                transaccionId: pago.id.toString()
+              }
+            });
+
+            await nuevaTransaccion.save();
+            transaccionesNuevas++;
+          }
+        } catch (error) {
+          console.error(`Error procesando pago ${pago.id}:`, error);
+        }
+      }
 
       // Actualizar estado de la conexión
       await bankConnection.actualizarSincronizacion(
@@ -332,9 +377,9 @@ export class BankSyncService {
         transaccionesNuevas,
         transaccionesActualizadas,
         detalles: {
-          pagos: resultadoPagos,
-          movimientos: resultadoMovimientos,
-          errores: datosCompletos.errores
+          usuario: userInfo.nickname || userInfo.email,
+          totalPagos: pagos.length,
+          errores: []
         }
       };
 
