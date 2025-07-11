@@ -646,6 +646,73 @@ class BankConnectionController extends BaseController {
   }
 
   /**
+   * Crea una preferencia de pago de prueba usando la API REST de MercadoPago
+   */
+  async pagoPrueba(req, res) {
+    try {
+      const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN || config.mercadopago.accessToken;
+      
+      if (!accessToken) {
+        throw new Error('MERCADOPAGO_ACCESS_TOKEN no está configurado');
+      }
+
+      const preferenceData = {
+        items: [
+          {
+            title: 'Pago de prueba - Validación app MercadoPago',
+            quantity: 1,
+            unit_price: 10.00
+          }
+        ],
+        back_urls: {
+          success: `${config.frontendUrl}/pago-exitoso`,
+          failure: `${config.frontendUrl}/pago-fallido`,
+          pending: `${config.frontendUrl}/pago-pendiente`
+        },
+        auto_return: 'approved'
+      };
+
+      console.log('Creando preferencia de pago:', preferenceData);
+
+      const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(preferenceData)
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(`Error de MercadoPago: ${result.message || 'Error desconocido'}`);
+      }
+
+      console.log('Preferencia de pago creada:', result.id);
+
+      res.json({
+        success: true,
+        init_point: result.init_point,
+        sandbox_init_point: result.sandbox_init_point,
+        preference_id: result.id,
+        message: 'Preferencia creada exitosamente'
+      });
+    } catch (error) {
+      console.error('Error creando preferencia de pago:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        message: 'Error al crear preferencia de pago',
+        details: {
+          accessTokenConfigured: !!process.env.MERCADOPAGO_ACCESS_TOKEN,
+          configAccessToken: !!config.mercadopago.accessToken
+        }
+      });
+    }
+  }
+
+  /**
    * Endpoint de prueba simple para diagnosticar problemas
    */
   async pagoPruebaSimple(req, res) {
@@ -672,12 +739,8 @@ class BankConnectionController extends BaseController {
         publicKey: config.mercadopago.publicKey
       });
       
-      // Intentar importar MercadoPago
+      // Usar API REST directa
       try {
-        const mercadopago = await import('mercadopago');
-        console.log('MercadoPago importado exitosamente');
-        
-        // Verificar access token
         const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN || config.mercadopago.accessToken;
         
         if (!accessToken) {
@@ -686,44 +749,52 @@ class BankConnectionController extends BaseController {
         
         console.log('Access token encontrado:', accessToken.substring(0, 20) + '...');
         
-        // Configurar MercadoPago
-        mercadopago.configure({
-          access_token: accessToken
-        });
-        
-        console.log('MercadoPago configurado exitosamente');
-        
-        // Crear preferencia simple
-        const result = await mercadopago.preferences.create({
+        const preferenceData = {
           items: [
             {
               title: 'Pago de prueba - Validación app MercadoPago',
               quantity: 1,
-              currency_id: 'ARS',
               unit_price: 10.00
             }
           ]
-        });
+        };
         
-        console.log('Preferencia creada exitosamente:', result.body.id);
+        console.log('Enviando datos a API REST:', JSON.stringify(preferenceData, null, 2));
+        
+        const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(preferenceData)
+        });
+
+        const result = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(`Error de MercadoPago: ${result.message || 'Error desconocido'}`);
+        }
+        
+        console.log('Preferencia creada exitosamente:', result.id);
         
         res.json({
           success: true,
-          init_point: result.body.init_point,
-          sandbox_init_point: result.body.sandbox_init_point,
-          preference_id: result.body.id,
+          init_point: result.init_point,
+          sandbox_init_point: result.sandbox_init_point,
+          preference_id: result.id,
           message: 'Preferencia creada exitosamente',
           envVars
         });
         
-      } catch (importError) {
-        console.error('Error importando/configurando MercadoPago:', importError);
+      } catch (apiError) {
+        console.error('Error con API REST de MercadoPago:', apiError);
         res.status(500).json({
           success: false,
-          error: importError.message,
+          error: apiError.message,
           message: 'Error con MercadoPago',
           envVars,
-          stack: config.isDev ? importError.stack : undefined
+          stack: config.isDev ? apiError.stack : undefined
         });
       }
       
@@ -734,57 +805,6 @@ class BankConnectionController extends BaseController {
         error: error.message,
         message: 'Error interno del servidor',
         stack: config.isDev ? error.stack : undefined
-      });
-    }
-  }
-
-  /**
-   * Crea una preferencia de pago de prueba usando el SDK de MercadoPago v2.8.0
-   * Sintaxis compatible con ES modules
-   */
-  async pagoPrueba(req, res) {
-    try {
-      const mercadopago = await import('mercadopago');
-      mercadopago.configure({
-        access_token: process.env.MERCADOPAGO_ACCESS_TOKEN || config.mercadopago.accessToken
-      });
-
-      const result = await mercadopago.preferences.create({
-        items: [
-          {
-            title: 'Pago de prueba - Validación app MercadoPago',
-            quantity: 1,
-            currency_id: 'ARS',
-            unit_price: 10.00
-          }
-        ],
-        back_urls: {
-          success: `${config.frontendUrl}/pago-exitoso`,
-          failure: `${config.frontendUrl}/pago-fallido`,
-          pending: `${config.frontendUrl}/pago-pendiente`
-        },
-        auto_return: 'approved'
-      });
-
-      console.log('Preferencia de pago creada:', result.body);
-
-      res.json({
-        success: true,
-        init_point: result.body.init_point,
-        sandbox_init_point: result.body.sandbox_init_point,
-        preference_id: result.body.id,
-        message: 'Preferencia creada exitosamente'
-      });
-    } catch (error) {
-      console.error('Error creando preferencia de pago:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message,
-        message: 'Error al crear preferencia de pago',
-        details: {
-          accessTokenConfigured: !!process.env.MERCADOPAGO_ACCESS_TOKEN,
-          configAccessToken: !!config.mercadopago.accessToken
-        }
       });
     }
   }
