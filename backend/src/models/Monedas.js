@@ -10,17 +10,41 @@ const COLORES_MONEDA = {
   VIOLETA_OSCURO: '#4B0082'    // Violeta oscuro
 };
 
+// Tabla de referencia de monedas ISO 4217 (código, nombre, símbolo)
+export const ISO_4217 = {
+  ARS: { nombre: 'Peso Argentino', simbolo: '$' },
+  USD: { nombre: 'Dólar Estadounidense', simbolo: 'US$' },
+  BRL: { nombre: 'Real Brasileño', simbolo: 'R$' },
+  CLP: { nombre: 'Peso Chileno', simbolo: '$' },
+  UYU: { nombre: 'Peso Uruguayo', simbolo: '$' },
+  EUR: { nombre: 'Euro', simbolo: '€' },
+  MXN: { nombre: 'Peso Mexicano', simbolo: '$' },
+  // Agrega más monedas según necesidad
+};
+
 const monedaSchema = createSchema({
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Users',
     required: false // Permitir monedas globales sin usuario específico
   },
+  /**
+   * Código de moneda ISO 4217 (ej: 'ARS', 'USD', 'BRL').
+   * Debe seguir el estándar internacional y coincidir con los códigos usados por Mercado Pago Developers.
+   */
   codigo: {
     type: String,
     required: true,
     trim: true,
-    unique: true
+    unique: true,
+    uppercase: true,
+    validate: {
+      validator: function(v) {
+        // Solo letras mayúsculas, 3 caracteres
+        return /^[A-Z]{3}$/.test(v);
+      },
+      message: 'El código de moneda debe ser ISO 4217 (3 letras mayúsculas)'
+    }
   },
   nombre: {
     type: String,
