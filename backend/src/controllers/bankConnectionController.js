@@ -649,12 +649,15 @@ class BankConnectionController extends BaseController {
    */
   async pagoPrueba(req, res) {
     try {
-      const mercadopago = (await import('mercadopago')).default;
-      mercadopago.configure({
+      // Importación dinámica robusta para v2.8.0
+      const mercadopagoImport = await import('mercadopago');
+      const mp = mercadopagoImport.default?.configure ? mercadopagoImport.default : mercadopagoImport;
+
+      mp.configure({
         access_token: process.env.MERCADOPAGO_ACCESS_TOKEN || config.mercadopago.accessToken
       });
 
-      const result = await mercadopago.preferences.create({
+      const result = await mp.preferences.create({
         items: [
           {
             title: 'Pago de prueba - Validación app MercadoPago',
