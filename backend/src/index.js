@@ -23,7 +23,7 @@ try {
     port: parseInt(process.env.PORT || '8080', 10),
     mongoUrl: process.env.MONGO_PUBLIC_URL || process.env.MONGO_URL,
     frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
-    corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:3000'],
+    corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim()) : ['http://localhost:3000'],
     sessionSecret: process.env.SESSION_SECRET || 'fallback_session_secret'
   };
 }
@@ -52,7 +52,16 @@ app.use(express.urlencoded({ extended: true }));
 // Configuración de CORS
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  const corsOrigins = Array.isArray(config.corsOrigins) ? config.corsOrigins : [config.frontendUrl];
+  
+  // Asegurar que corsOrigins sea un array y limpiar los valores
+  let corsOrigins = [];
+  if (Array.isArray(config.corsOrigins)) {
+    corsOrigins = config.corsOrigins.map(origin => origin.trim());
+  } else if (typeof config.corsOrigins === 'string') {
+    corsOrigins = config.corsOrigins.split(',').map(origin => origin.trim());
+  } else {
+    corsOrigins = [config.frontendUrl];
+  }
 
   // Log solo en staging/producción
   if (config.env !== 'development') {
