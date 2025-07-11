@@ -13,12 +13,20 @@ export function getAuthUrl(redirectUri, state = null) {
   // Generar state aleatorio si no se proporciona (recomendado por MercadoPago)
   const stateParam = state || crypto.randomBytes(32).toString('hex');
   
-  const authUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&redirect_uri=${encodeURIComponent(redirectUri)}&state=${stateParam}&prompt=consent`;
+  // Scopes necesarios para acceder a información del usuario y pagos
+  const scopes = [
+    'read',           // Permite leer información básica del usuario
+    'offline_access', // Permite obtener refresh_token
+    'write'           // Permite crear preferencias de pago
+  ].join(' ');
+  
+  const authUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&redirect_uri=${encodeURIComponent(redirectUri)}&state=${stateParam}&scope=${encodeURIComponent(scopes)}&prompt=consent`;
   
   logger.mercadopago('AUTH_URL_GENERATED', 'URL de autorización generada', {
     clientId: clientId ? 'configurado' : 'no configurado',
     redirectUri,
     hasState: !!stateParam,
+    scopes,
     authUrl: authUrl.substring(0, 100) + '...' // Log parcial por seguridad
   });
   

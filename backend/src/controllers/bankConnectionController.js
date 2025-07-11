@@ -809,18 +809,558 @@ class BankConnectionController extends BaseController {
     }
   }
 
+  /**
+   * Endpoint para probar permisos de un token de usuario
+   */
+  async probarTokenUsuario(req, res) {
+    try {
+      const { accessToken } = req.body;
+      
+      if (!accessToken) {
+        return res.status(400).json({ 
+          error: 'Access token requerido' 
+        });
+      }
+
+      console.log('=== PRUEBA DE PERMISOS DE TOKEN ===');
+      console.log('Token recibido:', accessToken.substring(0, 20) + '...');
+
+      const resultados = {};
+
+      // 1. Probar /users/me
+      try {
+        const userRes = await fetch('https://api.mercadopago.com/users/me', {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            'User-Agent': 'PresentApp/1.0'
+          }
+        });
+
+        if (userRes.ok) {
+          const userInfo = await userRes.json();
+          resultados.users_me = {
+            success: true,
+            data: {
+              id: userInfo.id,
+              nickname: userInfo.nickname,
+              email: userInfo.email,
+              country_id: userInfo.country_id
+            }
+          };
+        } else {
+          const errorText = await userRes.text();
+          resultados.users_me = {
+            success: false,
+            status: userRes.status,
+            error: errorText
+          };
+        }
+      } catch (error) {
+        resultados.users_me = {
+          success: false,
+          error: error.message
+        };
+      }
+
+      // 2. Probar /v1/payments/search
+      try {
+        const paymentsRes = await fetch('https://api.mercadopago.com/v1/payments/search?limit=1', {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            'User-Agent': 'PresentApp/1.0'
+          }
+        });
+
+        if (paymentsRes.ok) {
+          const paymentsData = await paymentsRes.json();
+          resultados.payments_search = {
+            success: true,
+            total: paymentsData.paging?.total || 0,
+            results: paymentsData.results?.length || 0
+          };
+        } else {
+          const errorText = await paymentsRes.text();
+          resultados.payments_search = {
+            success: false,
+            status: paymentsRes.status,
+            error: errorText
+          };
+        }
+      } catch (error) {
+        resultados.payments_search = {
+          success: false,
+          error: error.message
+        };
+      }
+
+      // 3. Probar /checkout/preferences (solo lectura)
+      try {
+        const preferencesRes = await fetch('https://api.mercadopago.com/checkout/preferences?limit=1', {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            'User-Agent': 'PresentApp/1.0'
+          }
+        });
+
+        if (preferencesRes.ok) {
+          const preferencesData = await preferencesRes.json();
+          resultados.preferences = {
+            success: true,
+            total: preferencesData.paging?.total || 0,
+            results: preferencesData.results?.length || 0
+          };
+        } else {
+          const errorText = await preferencesRes.text();
+          resultados.preferences = {
+            success: false,
+            status: preferencesRes.status,
+            error: errorText
+          };
+        }
+      } catch (error) {
+        resultados.preferences = {
+          success: false,
+          error: error.message
+        };
+      }
+
+      console.log('Resultados de prueba de permisos:', resultados);
+
+      res.json({
+        success: true,
+        resultados,
+        resumen: {
+          users_me: resultados.users_me?.success ? 'OK' : 'ERROR',
+          payments_search: resultados.payments_search?.success ? 'OK' : 'ERROR',
+          preferences: resultados.preferences?.success ? 'OK' : 'ERROR'
+        }
+      });
+
+    } catch (error) {
+      console.error('Error en probarTokenUsuario:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
   // Método para obtener información del usuario de MercadoPago
   async obtenerInformacionUsuarioMercadoPago(accessToken) {
-    const response = await fetch('https://api.mercadopago.com/users/me', {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
+    try {
+      console.log('Obteniendo información del usuario MercadoPago...');
+      
+      const response = await fetch('https://api.mercadopago.com/users/me', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'User-Agent': 'PresentApp/1.0'
+        }
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response from MercadoPago /users/me:', {
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries()),
+          body: errorText,
+          accessToken: accessToken ? accessToken.substring(0, 20) + '...' : 'no token'
+        });
+        
+        // Manejar errores específicos
+        if (response.status === 401) {
+          throw new Error('Token de acceso expirado o inválido');
+        } else if (response.status === 403) {
+          throw new Error('Acceso denegado - el token no tiene permisos para acceder a /users/me. Verificar scopes en OAuth');
+        } else if (response.status === 429) {
+          throw new Error('Rate limit excedido - intentar más tarde');
+        }
+        
+        throw new Error(`Error obteniendo información del usuario de MercadoPago: ${response.status} - ${errorText}`);
       }
-    });
-    if (!response.ok) {
-      throw new Error(`Error obteniendo información del usuario de MercadoPago: ${response.status}`);
+      
+      const userInfo = await response.json();
+      console.log('Información del usuario obtenida:', {
+        id: userInfo.id,
+        nickname: userInfo.nickname,
+        email: userInfo.email,
+        country_id: userInfo.country_id
+      });
+      
+      return userInfo;
+    } catch (error) {
+      console.error('Error en obtenerInformacionUsuarioMercadoPago:', error);
+      throw error;
     }
-    return await response.json();
+  }
+
+  // Método para obtener moneda por país
+  async obtenerMonedaPorPais(pais) {
+    try {
+      // Mapeo de países a códigos de moneda ISO 4217
+      const mapeoPaisMoneda = {
+        'AR': 'ARS', // Argentina - Peso Argentino
+        'BR': 'BRL', // Brasil - Real Brasileño
+        'CL': 'CLP', // Chile - Peso Chileno
+        'CO': 'COP', // Colombia - Peso Colombiano
+        'MX': 'MXN', // México - Peso Mexicano
+        'PE': 'PEN', // Perú - Sol Peruano
+        'UY': 'UYU', // Uruguay - Peso Uruguayo
+        'PY': 'PYG', // Paraguay - Guaraní
+        'BO': 'BOB', // Bolivia - Boliviano
+        'EC': 'USD', // Ecuador - Dólar Estadounidense
+        'VE': 'VES', // Venezuela - Bolívar Soberano
+        'GT': 'GTQ', // Guatemala - Quetzal
+        'SV': 'USD', // El Salvador - Dólar Estadounidense
+        'HN': 'HNL', // Honduras - Lempira
+        'NI': 'NIO', // Nicaragua - Córdoba
+        'CR': 'CRC', // Costa Rica - Colón Costarricense
+        'PA': 'PAB', // Panamá - Balboa
+        'DO': 'DOP', // República Dominicana - Peso Dominicano
+        'CU': 'CUP', // Cuba - Peso Cubano
+        'JM': 'JMD', // Jamaica - Dólar Jamaiquino
+        'TT': 'TTD', // Trinidad y Tobago - Dólar de Trinidad y Tobago
+        'BB': 'BBD', // Barbados - Dólar de Barbados
+        'GD': 'XCD', // Granada - Dólar del Caribe Oriental
+        'LC': 'XCD', // Santa Lucía - Dólar del Caribe Oriental
+        'VC': 'XCD', // San Vicente y las Granadinas - Dólar del Caribe Oriental
+        'AG': 'XCD', // Antigua y Barbuda - Dólar del Caribe Oriental
+        'KN': 'XCD', // San Cristóbal y Nieves - Dólar del Caribe Oriental
+        'DM': 'XCD', // Dominica - Dólar del Caribe Oriental
+        'US': 'USD', // Estados Unidos - Dólar Estadounidense
+        'CA': 'CAD', // Canadá - Dólar Canadiense
+        'ES': 'EUR', // España - Euro
+        'FR': 'EUR', // Francia - Euro
+        'DE': 'EUR', // Alemania - Euro
+        'IT': 'EUR', // Italia - Euro
+        'PT': 'EUR', // Portugal - Euro
+        'GB': 'GBP', // Reino Unido - Libra Esterlina
+        'JP': 'JPY', // Japón - Yen Japonés
+        'CN': 'CNY', // China - Yuan Chino
+        'IN': 'INR', // India - Rupia India
+        'AU': 'AUD', // Australia - Dólar Australiano
+        'NZ': 'NZD', // Nueva Zelanda - Dólar Neozelandés
+        'ZA': 'ZAR', // Sudáfrica - Rand Sudafricano
+        'RU': 'RUB', // Rusia - Rublo Ruso
+        'KR': 'KRW', // Corea del Sur - Won Surcoreano
+        'SG': 'SGD', // Singapur - Dólar de Singapur
+        'HK': 'HKD', // Hong Kong - Dólar de Hong Kong
+        'TW': 'TWD', // Taiwán - Dólar de Taiwán
+        'TH': 'THB', // Tailandia - Baht Tailandés
+        'MY': 'MYR', // Malasia - Ringgit Malayo
+        'ID': 'IDR', // Indonesia - Rupia Indonesia
+        'PH': 'PHP', // Filipinas - Peso Filipino
+        'VN': 'VND', // Vietnam - Dong Vietnamita
+        'AE': 'AED', // Emiratos Árabes Unidos - Dírham
+        'SA': 'SAR', // Arabia Saudita - Riyal Saudí
+        'IL': 'ILS', // Israel - Nuevo Séquel
+        'TR': 'TRY', // Turquía - Lira Turca
+        'EG': 'EGP', // Egipto - Libra Egipcia
+        'NG': 'NGN', // Nigeria - Naira Nigeriana
+        'KE': 'KES', // Kenia - Chelín Keniano
+        'GH': 'GHS', // Ghana - Cedi Ghanés
+        'MA': 'MAD', // Marruecos - Dírham Marroquí
+        'TN': 'TND', // Túnez - Dinar Tunecino
+        'DZ': 'DZD', // Argelia - Dinar Argelino
+        'LY': 'LYD', // Libia - Dinar Libio
+        'SD': 'SDG', // Sudán - Libra Sudanesa
+        'ET': 'ETB', // Etiopía - Birr Etíope
+        'UG': 'UGX', // Uganda - Chelín Ugandés
+        'TZ': 'TZS', // Tanzania - Chelín Tanzano
+        'ZM': 'ZMW', // Zambia - Kwacha Zambiano
+        'ZW': 'ZWL', // Zimbabue - Dólar de Zimbabue
+        'BW': 'BWP', // Botsuana - Pula
+        'NA': 'NAD', // Namibia - Dólar Namibio
+        'SZ': 'SZL', // Suazilandia - Lilangeni
+        'LS': 'LSL', // Lesoto - Loti
+        'MG': 'MGA', // Madagascar - Ariary
+        'MU': 'MUR', // Mauricio - Rupia Mauriciana
+        'SC': 'SCR', // Seychelles - Rupia de Seychelles
+        'KM': 'KMF', // Comoras - Franco Comorense
+        'DJ': 'DJF', // Yibuti - Franco de Yibuti
+        'SO': 'SOS', // Somalia - Chelín Somalí
+        'ER': 'ERN', // Eritrea - Nakfa
+        'SS': 'SSP', // Sudán del Sur - Libra Sursudanesa
+        'CF': 'XAF', // República Centroafricana - Franco CFA
+        'TD': 'XAF', // Chad - Franco CFA
+        'CM': 'XAF', // Camerún - Franco CFA
+        'CG': 'XAF', // República del Congo - Franco CFA
+        'GA': 'XAF', // Gabón - Franco CFA
+        'GQ': 'XAF', // Guinea Ecuatorial - Franco CFA
+        'NE': 'XAF', // Níger - Franco CFA
+        'BF': 'XAF', // Burkina Faso - Franco CFA
+        'ML': 'XAF', // Malí - Franco CFA
+        'SN': 'XAF', // Senegal - Franco CFA
+        'GN': 'GNF', // Guinea - Franco Guineano
+        'SL': 'SLL', // Sierra Leona - Leona
+        'LR': 'LRD', // Liberia - Dólar Liberiano
+        'CI': 'XOF', // Costa de Marfil - Franco CFA
+        'BJ': 'XOF', // Benín - Franco CFA
+        'TG': 'XOF', // Togo - Franco CFA
+        'GW': 'XOF', // Guinea-Bisáu - Franco CFA
+        'MR': 'MRO', // Mauritania - Ouguiya
+        'CV': 'CVE', // Cabo Verde - Escudo Caboverdiano
+        'GM': 'GMD', // Gambia - Dalasi
+        'ST': 'STD', // Santo Tomé y Príncipe - Dobra
+        'AO': 'AOA', // Angola - Kwanza
+        'MZ': 'MZN', // Mozambique - Metical
+        'MW': 'MWK', // Malawi - Kwacha Malauí
+        'RW': 'RWF', // Ruanda - Franco Ruandés
+        'BI': 'BIF', // Burundi - Franco Burundés
+        'CD': 'CDF', // República Democrática del Congo - Franco Congoleño
+        'CF': 'XAF', // República Centroafricana - Franco CFA
+        'TD': 'XAF', // Chad - Franco CFA
+        'CM': 'XAF', // Camerún - Franco CFA
+        'CG': 'XAF', // República del Congo - Franco CFA
+        'GA': 'XAF', // Gabón - Franco CFA
+        'GQ': 'XAF', // Guinea Ecuatorial - Franco CFA
+        'NE': 'XAF', // Níger - Franco CFA
+        'BF': 'XAF', // Burkina Faso - Franco CFA
+        'ML': 'XAF', // Malí - Franco CFA
+        'SN': 'XAF', // Senegal - Franco CFA
+        'GN': 'GNF', // Guinea - Franco Guineano
+        'SL': 'SLL', // Sierra Leona - Leona
+        'LR': 'LRD', // Liberia - Dólar Liberiano
+        'CI': 'XOF', // Costa de Marfil - Franco CFA
+        'BJ': 'XOF', // Benín - Franco CFA
+        'TG': 'XOF', // Togo - Franco CFA
+        'GW': 'XOF', // Guinea-Bisáu - Franco CFA
+        'MR': 'MRO', // Mauritania - Ouguiya
+        'CV': 'CVE', // Cabo Verde - Escudo Caboverdiano
+        'GM': 'GMD', // Gambia - Dalasi
+        'ST': 'STD', // Santo Tomé y Príncipe - Dobra
+        'AO': 'AOA', // Angola - Kwanza
+        'MZ': 'MZN', // Mozambique - Metical
+        'MW': 'MWK', // Malawi - Kwacha Malauí
+        'RW': 'RWF', // Ruanda - Franco Ruandés
+        'BI': 'BIF', // Burundi - Franco Burundés
+        'CD': 'CDF', // República Democrática del Congo - Franco Congoleño
+      };
+
+      const codigoMoneda = mapeoPaisMoneda[pais] || 'USD'; // Por defecto USD
+
+      // Buscar la moneda en la base de datos
+      let moneda = await Monedas.findOne({ codigo: codigoMoneda });
+      
+      if (!moneda) {
+        // Si no existe, crear la moneda por defecto
+        moneda = new Monedas({
+          codigo: codigoMoneda,
+          nombre: this.obtenerNombreMoneda(codigoMoneda),
+          simbolo: this.obtenerSimboloMoneda(codigoMoneda),
+          pais: pais,
+          activa: true
+        });
+        await moneda.save();
+      }
+
+      return moneda;
+    } catch (error) {
+      console.error('Error obteniendo moneda por país:', error);
+      // En caso de error, devolver moneda por defecto (USD)
+      let monedaDefault = await Monedas.findOne({ codigo: 'USD' });
+      if (!monedaDefault) {
+        monedaDefault = new Monedas({
+          codigo: 'USD',
+          nombre: 'Dólar Estadounidense',
+          simbolo: '$',
+          pais: 'US',
+          activa: true
+        });
+        await monedaDefault.save();
+      }
+      return monedaDefault;
+    }
+  }
+
+  // Método helper para obtener nombre de moneda
+  obtenerNombreMoneda(codigo) {
+    const nombres = {
+      'ARS': 'Peso Argentino',
+      'BRL': 'Real Brasileño',
+      'CLP': 'Peso Chileno',
+      'COP': 'Peso Colombiano',
+      'MXN': 'Peso Mexicano',
+      'PEN': 'Sol Peruano',
+      'UYU': 'Peso Uruguayo',
+      'PYG': 'Guaraní',
+      'BOB': 'Boliviano',
+      'USD': 'Dólar Estadounidense',
+      'VES': 'Bolívar Soberano',
+      'GTQ': 'Quetzal',
+      'HNL': 'Lempira',
+      'NIO': 'Córdoba',
+      'CRC': 'Colón Costarricense',
+      'PAB': 'Balboa',
+      'DOP': 'Peso Dominicano',
+      'CUP': 'Peso Cubano',
+      'JMD': 'Dólar Jamaiquino',
+      'TTD': 'Dólar de Trinidad y Tobago',
+      'BBD': 'Dólar de Barbados',
+      'XCD': 'Dólar del Caribe Oriental',
+      'CAD': 'Dólar Canadiense',
+      'EUR': 'Euro',
+      'GBP': 'Libra Esterlina',
+      'JPY': 'Yen Japonés',
+      'CNY': 'Yuan Chino',
+      'INR': 'Rupia India',
+      'AUD': 'Dólar Australiano',
+      'NZD': 'Dólar Neozelandés',
+      'ZAR': 'Rand Sudafricano',
+      'RUB': 'Rublo Ruso',
+      'KRW': 'Won Surcoreano',
+      'SGD': 'Dólar de Singapur',
+      'HKD': 'Dólar de Hong Kong',
+      'TWD': 'Dólar de Taiwán',
+      'THB': 'Baht Tailandés',
+      'MYR': 'Ringgit Malayo',
+      'IDR': 'Rupia Indonesia',
+      'PHP': 'Peso Filipino',
+      'VND': 'Dong Vietnamita',
+      'AED': 'Dírham',
+      'SAR': 'Riyal Saudí',
+      'ILS': 'Nuevo Séquel',
+      'TRY': 'Lira Turca',
+      'EGP': 'Libra Egipcia',
+      'NGN': 'Naira Nigeriana',
+      'KES': 'Chelín Keniano',
+      'GHS': 'Cedi Ghanés',
+      'MAD': 'Dírham Marroquí',
+      'TND': 'Dinar Tunecino',
+      'DZD': 'Dinar Argelino',
+      'LYD': 'Dinar Libio',
+      'SDG': 'Libra Sudanesa',
+      'ETB': 'Birr Etíope',
+      'UGX': 'Chelín Ugandés',
+      'TZS': 'Chelín Tanzano',
+      'ZMW': 'Kwacha Zambiano',
+      'ZWL': 'Dólar de Zimbabue',
+      'BWP': 'Pula',
+      'NAD': 'Dólar Namibio',
+      'SZL': 'Lilangeni',
+      'LSL': 'Loti',
+      'MGA': 'Ariary',
+      'MUR': 'Rupia Mauriciana',
+      'SCR': 'Rupia de Seychelles',
+      'KMF': 'Franco Comorense',
+      'DJF': 'Franco de Yibuti',
+      'SOS': 'Chelín Somalí',
+      'ERN': 'Nakfa',
+      'SSP': 'Libra Sursudanesa',
+      'XAF': 'Franco CFA',
+      'GNF': 'Franco Guineano',
+      'SLL': 'Leona',
+      'LRD': 'Dólar Liberiano',
+      'XOF': 'Franco CFA',
+      'MRO': 'Ouguiya',
+      'CVE': 'Escudo Caboverdiano',
+      'GMD': 'Dalasi',
+      'STD': 'Dobra',
+      'AOA': 'Kwanza',
+      'MZN': 'Metical',
+      'MWK': 'Kwacha Malauí',
+      'RWF': 'Franco Ruandés',
+      'BIF': 'Franco Burundés',
+      'CDF': 'Franco Congoleño'
+    };
+    return nombres[codigo] || 'Moneda Desconocida';
+  }
+
+  // Método helper para obtener símbolo de moneda
+  obtenerSimboloMoneda(codigo) {
+    const simbolos = {
+      'ARS': '$',
+      'BRL': 'R$',
+      'CLP': '$',
+      'COP': '$',
+      'MXN': '$',
+      'PEN': 'S/',
+      'UYU': '$',
+      'PYG': '₲',
+      'BOB': 'Bs',
+      'USD': '$',
+      'VES': 'Bs',
+      'GTQ': 'Q',
+      'HNL': 'L',
+      'NIO': 'C$',
+      'CRC': '₡',
+      'PAB': 'B/.',
+      'DOP': 'RD$',
+      'CUP': '$',
+      'JMD': 'J$',
+      'TTD': 'TT$',
+      'BBD': 'Bds$',
+      'XCD': 'EC$',
+      'CAD': 'C$',
+      'EUR': '€',
+      'GBP': '£',
+      'JPY': '¥',
+      'CNY': '¥',
+      'INR': '₹',
+      'AUD': 'A$',
+      'NZD': 'NZ$',
+      'ZAR': 'R',
+      'RUB': '₽',
+      'KRW': '₩',
+      'SGD': 'S$',
+      'HKD': 'HK$',
+      'TWD': 'NT$',
+      'THB': '฿',
+      'MYR': 'RM',
+      'IDR': 'Rp',
+      'PHP': '₱',
+      'VND': '₫',
+      'AED': 'د.إ',
+      'SAR': 'ر.س',
+      'ILS': '₪',
+      'TRY': '₺',
+      'EGP': 'E£',
+      'NGN': '₦',
+      'KES': 'KSh',
+      'GHS': 'GH₵',
+      'MAD': 'د.م.',
+      'TND': 'د.ت',
+      'DZD': 'د.ج',
+      'LYD': 'ل.د',
+      'SDG': 'ج.س.',
+      'ETB': 'Br',
+      'UGX': 'USh',
+      'TZS': 'TSh',
+      'ZMW': 'ZK',
+      'ZWL': 'Z$',
+      'BWP': 'P',
+      'NAD': 'N$',
+      'SZL': 'E',
+      'LSL': 'L',
+      'MGA': 'Ar',
+      'MUR': '₨',
+      'SCR': '₨',
+      'KMF': 'CF',
+      'DJF': 'Fdj',
+      'SOS': 'S',
+      'ERN': 'Nfk',
+      'SSP': 'SSP',
+      'XAF': 'FCFA',
+      'GNF': 'FG',
+      'SLL': 'Le',
+      'LRD': 'L$',
+      'XOF': 'CFA',
+      'MRO': 'UM',
+      'CVE': 'Esc',
+      'GMD': 'D',
+      'STD': 'Db',
+      'AOA': 'Kz',
+      'MZN': 'MT',
+      'MWK': 'MK',
+      'RWF': 'FRw',
+      'BIF': 'FBu',
+      'CDF': 'FC'
+    };
+    return simbolos[codigo] || '$';
   }
 }
 
