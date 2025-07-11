@@ -54,6 +54,12 @@ router.post('/pagos/prueba', (req, res) => {
   controller.pagoPrueba(req, res);
 });
 
+// Endpoint de diagnóstico para MercadoPago
+router.post('/pagos/diagnostico', (req, res) => {
+  const controller = new BankConnectionController();
+  controller.pagoPruebaSimple(req, res);
+});
+
 // Rutas de MercadoPago con rate limiting y validación
 router.get('/mercadopago/auth-url', 
   mercadopagoLimiter, 

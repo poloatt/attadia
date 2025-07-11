@@ -646,26 +646,110 @@ class BankConnectionController extends BaseController {
   }
 
   /**
+   * Endpoint de prueba simple para diagnosticar problemas
+   */
+  async pagoPruebaSimple(req, res) {
+    try {
+      console.log('=== DIAGNÓSTICO MERCADOPAGO ===');
+      
+      // Verificar variables de entorno
+      const envVars = {
+        MERCADOPAGO_ACCESS_TOKEN: !!process.env.MERCADOPAGO_ACCESS_TOKEN,
+        MERCADOPAGO_PUBLIC_KEY: !!process.env.MERCADOPAGO_PUBLIC_KEY,
+        MERCADOPAGO_CLIENT_ID: !!process.env.MERCADOPAGO_CLIENT_ID,
+        MERCADOPAGO_CLIENT_SECRET: !!process.env.MERCADOPAGO_CLIENT_SECRET,
+        NODE_ENV: process.env.NODE_ENV,
+        configAccessToken: !!config.mercadopago.accessToken,
+        configClientId: !!config.mercadopago.clientId
+      };
+      
+      console.log('Variables de entorno:', envVars);
+      
+      // Verificar configuración
+      console.log('Configuración MercadoPago:', {
+        clientId: config.mercadopago.clientId,
+        accessToken: config.mercadopago.accessToken ? 'CONFIGURADO' : 'NO CONFIGURADO',
+        publicKey: config.mercadopago.publicKey
+      });
+      
+      // Intentar importar MercadoPago
+      try {
+        const mercadopago = await import('mercadopago');
+        console.log('MercadoPago importado exitosamente');
+        
+        // Verificar access token
+        const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN || config.mercadopago.accessToken;
+        
+        if (!accessToken) {
+          throw new Error('No se encontró MERCADOPAGO_ACCESS_TOKEN');
+        }
+        
+        console.log('Access token encontrado:', accessToken.substring(0, 20) + '...');
+        
+        // Configurar MercadoPago
+        mercadopago.configure({
+          access_token: accessToken
+        });
+        
+        console.log('MercadoPago configurado exitosamente');
+        
+        // Crear preferencia simple
+        const result = await mercadopago.preferences.create({
+          items: [
+            {
+              title: 'Pago de prueba - Validación app MercadoPago',
+              quantity: 1,
+              currency_id: 'ARS',
+              unit_price: 10.00
+            }
+          ]
+        });
+        
+        console.log('Preferencia creada exitosamente:', result.body.id);
+        
+        res.json({
+          success: true,
+          init_point: result.body.init_point,
+          sandbox_init_point: result.body.sandbox_init_point,
+          preference_id: result.body.id,
+          message: 'Preferencia creada exitosamente',
+          envVars
+        });
+        
+      } catch (importError) {
+        console.error('Error importando/configurando MercadoPago:', importError);
+        res.status(500).json({
+          success: false,
+          error: importError.message,
+          message: 'Error con MercadoPago',
+          envVars,
+          stack: config.isDev ? importError.stack : undefined
+        });
+      }
+      
+    } catch (error) {
+      console.error('Error en pagoPruebaSimple:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        message: 'Error interno del servidor',
+        stack: config.isDev ? error.stack : undefined
+      });
+    }
+  }
+
+  /**
    * Crea una preferencia de pago de prueba usando el SDK de MercadoPago v2.8.0
    * Sintaxis compatible con ES modules
    */
   async pagoPrueba(req, res) {
     try {
-      // Importar MercadoPago usando ES modules
       const mercadopago = await import('mercadopago');
-      
-      // Configurar con el access token
-      const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN || config.mercadopago.accessToken;
-      
-      if (!accessToken) {
-        throw new Error('MERCADOPAGO_ACCESS_TOKEN no está configurado');
-      }
-      
-      mercadopago.default.configure({
-        access_token: accessToken
+      mercadopago.configure({
+        access_token: process.env.MERCADOPAGO_ACCESS_TOKEN || config.mercadopago.accessToken
       });
 
-      const result = await mercadopago.default.preferences.create({
+      const result = await mercadopago.preferences.create({
         items: [
           {
             title: 'Pago de prueba - Validación app MercadoPago',
