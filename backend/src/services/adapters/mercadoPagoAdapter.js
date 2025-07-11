@@ -1,5 +1,6 @@
 import fetch from 'node-fetch';
-import mercadopago from 'mercadopago';
+import pkg from 'mercadopago';
+const mercadopago = pkg.default || pkg;
 
 export class MercadoPagoAdapter {
   constructor({ accessToken, refreshToken, userId }) {
