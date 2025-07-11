@@ -643,23 +643,26 @@ class BankConnectionController extends BaseController {
     }
   }
 
-  // POST /api/pagos/prueba
+  /**
+   * Crea una preferencia de pago de prueba usando el nuevo SDK de MercadoPago (v3.x+)
+   * Utiliza MercadoPagoConfig y Preference según la documentación oficial.
+   * @see https://www.mercadopago.com.ar/developers/en/docs/checkout-api/checkout-pro/create-preference
+   */
   async pagoPrueba(req, res) {
     try {
       const { monto = 10, descripcion = 'Pago de prueba para validación de app en producción' } = req.body;
 
-      // Importar el SDK de MercadoPago de forma robusta compatible con ES Modules y cualquier versión
-      const mercadopagoImport = await import('mercadopago');
-      const mp = mercadopagoImport.default?.configure ? mercadopagoImport.default : mercadopagoImport;
-      if (typeof mp.configure !== 'function' || typeof mp.preferences?.create !== 'function') {
-        console.error('mercadopago importado no tiene configure o preferences.create:', mercadopagoImport);
-        return res.status(500).json({ message: 'SDK de MercadoPago mal importado', error: 'Métodos no disponibles' });
-      }
-      mp.configure({
-        access_token: process.env.MERCADOPAGO_ACCESS_TOKEN || config.mercadopago.accessToken
+      // Importar clases del nuevo SDK de MercadoPago
+      const { MercadoPagoConfig, Preference } = await import('mercadopago');
+      // Inicializar el cliente con el access token de producción
+      const client = new MercadoPagoConfig({
+        accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || config.mercadopago.accessToken
       });
+      // Crear instancia de Preference
+      const preference = new Preference(client);
 
-      const preference = {
+      // Crear la preferencia de pago
+      const result = await preference.create({
         items: [
           {
             title: descripcion,
@@ -667,12 +670,10 @@ class BankConnectionController extends BaseController {
             currency_id: 'ARS',
             unit_price: Number(monto)
           }
-        ],
+        ]
         // Puedes agregar back_urls si quieres manejar el retorno
-      };
-
-      const result = await mp.preferences.create(preference);
-      return res.json({ init_point: result.body.init_point });
+      });
+      return res.json({ init_point: result.init_point });
     } catch (error) {
       console.error('Error creando preferencia de pago:', error);
       res.status(500).json({ message: 'Error creando preferencia de pago', error: error.message });
