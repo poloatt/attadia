@@ -48,6 +48,12 @@ const syncLimiter = rateLimit({
 // Aplicar autenticación a todas las rutas
 router.use(checkAuth);
 
+// Endpoint temporal para pago de prueba con MercadoPago
+router.post('/pagos/prueba', (req, res) => {
+  const controller = new BankConnectionController();
+  controller.pagoPrueba(req, res);
+});
+
 // Rutas de MercadoPago con rate limiting y validación
 router.get('/mercadopago/auth-url', 
   mercadopagoLimiter, 

@@ -643,6 +643,37 @@ class BankConnectionController extends BaseController {
     }
   }
 
+  // POST /api/pagos/prueba
+  async pagoPrueba(req, res) {
+    try {
+      const { monto = 10, descripcion = 'Pago de prueba para validación de app en producción' } = req.body;
+
+      // Configurar el SDK de MercadoPago
+      const mercadopago = require('mercadopago');
+      mercadopago.configure({
+        access_token: process.env.MERCADOPAGO_ACCESS_TOKEN || config.mercadopago.accessToken
+      });
+
+      const preference = {
+        items: [
+          {
+            title: descripcion,
+            quantity: 1,
+            currency_id: 'ARS',
+            unit_price: Number(monto)
+          }
+        ],
+        // Puedes agregar back_urls si quieres manejar el retorno
+      };
+
+      const result = await mercadopago.preferences.create(preference);
+      return res.json({ init_point: result.body.init_point });
+    } catch (error) {
+      console.error('Error creando preferencia de pago:', error);
+      res.status(500).json({ message: 'Error creando preferencia de pago', error: error.message });
+    }
+  }
+
   // Método para obtener información del usuario de MercadoPago
   async obtenerInformacionUsuarioMercadoPago(accessToken) {
     const response = await fetch('https://api.mercadopago.com/users/me', {

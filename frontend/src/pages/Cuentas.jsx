@@ -51,6 +51,7 @@ export function Cuentas() {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [isBankConnectionFormOpen, setIsBankConnectionFormOpen] = useState(false);
+  const [isProcessingPago, setIsProcessingPago] = useState(false);
 
   // Función para restablecer los balances
   const resetBalance = useCallback(() => {
@@ -531,8 +532,40 @@ export function Cuentas() {
     );
   }, [monedas, cuentas, balances, balancesPorMoneda]);
 
+  // Función para iniciar el pago de prueba
+  const handlePagoPrueba = async () => {
+    setIsProcessingPago(true);
+    try {
+      // Llama a tu backend para crear la preferencia de pago
+      const response = await clienteAxios.post('/api/pagos/prueba', {
+        monto: 10,
+        descripcion: 'Pago de prueba para validación de app en producción'
+      });
+      const { init_point } = response.data;
+      if (init_point) {
+        window.location.href = init_point;
+      } else {
+        enqueueSnackbar('No se pudo obtener la URL de pago', { variant: 'error' });
+      }
+    } catch (error) {
+      enqueueSnackbar('Error al iniciar pago de prueba: ' + (error.response?.data?.message || error.message), { variant: 'error' });
+      setIsProcessingPago(false);
+    }
+  };
+
   return (
     <Box sx={{ px: 0, width: '100%' }}>
+      {/* Botón temporal para pago de prueba */}
+      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+        <Button
+          variant="contained"
+          color="success"
+          onClick={handlePagoPrueba}
+          disabled={isProcessingPago}
+        >
+          {isProcessingPago ? 'Redirigiendo...' : 'Pago de prueba $10'}
+        </Button>
+      </Box>
       <EntityToolbar
         onAdd={() => setIsBankConnectionFormOpen(true)}
         showBackButton={true}
