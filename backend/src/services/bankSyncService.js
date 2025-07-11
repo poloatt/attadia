@@ -3,8 +3,7 @@ import { Transacciones } from '../models/Transacciones.js';
 import { Cuentas } from '../models/Cuentas.js';
 import crypto from 'crypto';
 import { refreshAccessToken } from '../oauth/mercadoPagoOAuth.js';
-import pkg from 'mercadopago';
-const mercadopago = pkg.default || pkg;
+import Mercadopago from 'mercadopago';
 
 export class BankSyncService {
   constructor() {
@@ -278,35 +277,17 @@ export class BankSyncService {
       let accessToken = this.decrypt(bankConnection.credenciales.accessToken);
       let refreshToken = this.decrypt(bankConnection.credenciales.refreshToken);
       const userId = this.decrypt(bankConnection.credenciales.userId);
-      // Configurar cliente de MercadoPago
-      mercadopago.configure({ access_token: accessToken });
-      // Obtener fecha de última sincronización
-      const ultimaSincronizacion = bankConnection.ultimaSincronizacion || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      let pagos;
-      try {
-        pagos = await this.obtenerPagosMercadoPago(mercadopago, ultimaSincronizacion);
-      } catch (err) {
-        // Si el error es de autenticación, intenta refrescar el token
-        if (err.status === 401 || (err.message && err.message.includes('invalid_token'))) {
-          const data = await refreshAccessToken({ refreshToken });
-          accessToken = data.access_token;
-          refreshToken = data.refresh_token;
-          // Actualiza los tokens en la base de datos (encriptados)
-          bankConnection.credenciales.accessToken = this.encrypt(accessToken);
-          bankConnection.credenciales.refreshToken = this.encrypt(refreshToken);
-          await bankConnection.save();
-          // Reconfigura el cliente y reintenta
-          mercadopago.configure({ access_token: accessToken });
-          pagos = await this.obtenerPagosMercadoPago(mercadopago, ultimaSincronizacion);
-        } else {
-          throw err;
-        }
-      }
+      // Crear instancia de MercadoPago
+      const mp = new Mercadopago({ access_token: accessToken });
+      // Obtener usuario
+      const userInfo = await mp.users.getMe();
+      // Obtener pagos recientes
+      const pagos = await mp.payment.search({ filters: { 'date_created': { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() } } });
       
       let transaccionesNuevas = 0;
       let transaccionesActualizadas = 0;
 
-      for (const pago of pagos) {
+      for (const pago of pagos.body.results || []) {
         // Verificar si la transacción ya existe
         const transaccionExistente = await Transacciones.findOne({
           cuenta: bankConnection.cuenta,
