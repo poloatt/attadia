@@ -109,6 +109,16 @@ export async function exchangeCodeForToken({ code, redirectUri }) {
       duration
     });
     
+    // Log adicional para diagnosticar el problema de scopes
+    console.log('=== DIAGNÓSTICO DE SCOPES ===');
+    console.log('Scopes solicitados:', 'read offline_access write');
+    console.log('Scopes recibidos:', data.scope);
+    console.log('Access token recibido:', data.access_token ? data.access_token.substring(0, 20) + '...' : 'NO RECIBIDO');
+    console.log('User ID recibido:', data.user_id);
+    console.log('Token type:', data.token_type);
+    console.log('Expires in:', data.expires_in);
+    console.log('================================');
+    
     logger.performance('mercadopago_token_exchange', duration, {
       userId: data.user_id,
       success: true
