@@ -374,8 +374,8 @@ class BankConnectionController extends BaseController {
         return res.status(400).json({ message: 'Código de autorización requerido' });
       }
 
-      // Usar la misma redirect_uri que se usó en la autorización
-      const redirectUri = `${req.protocol}://${req.get('host')}/mercadopago/callback`;
+      // Usar la redirect_uri EXACTA registrada en MercadoPago
+      const redirectUri = 'https://admin.attadia.com/mercadopago/callback';
       
       console.log('Procesando callback MercadoPago:', { code, redirectUri });
       
