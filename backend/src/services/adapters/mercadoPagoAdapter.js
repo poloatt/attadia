@@ -1,5 +1,4 @@
 import fetch from 'node-fetch';
-import mercadopago from 'mercadopago';
 
 export class MercadoPagoAdapter {
   constructor({ accessToken, refreshToken, userId }) {
@@ -8,9 +7,6 @@ export class MercadoPagoAdapter {
     this.userId = userId;
     this.maxRetries = 3;
     this.timeout = 10000; // 10 segundos
-    
-    // Configurar el singleton de mercadopago
-    mercadopago.configure({ access_token: accessToken });
   }
 
   // Método helper para retry con exponential backoff
@@ -47,20 +43,30 @@ export class MercadoPagoAdapter {
     return this.withRetry(async () => {
       console.log('Obteniendo información de usuario MercadoPago...');
       
-      // Usar la API de singleton
-      const res = await mercadopago.users.getMe();
+      const response = await fetch('https://api.mercadopago.com/users/me', {
+        headers: { 
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
       
-      if (!res || !res.body || !res.body.id) {
+      if (!response.ok) {
+        throw new Error(`Error obteniendo información del usuario: ${response.status}`);
+      }
+      
+      const userInfo = await response.json();
+      
+      if (!userInfo || !userInfo.id) {
         throw new Error('No se pudo obtener info de usuario MercadoPago');
       }
       
       console.log('Información de usuario obtenida:', {
-        userId: res.body.id,
-        email: res.body.email,
-        nickname: res.body.nickname
+        userId: userInfo.id,
+        email: userInfo.email,
+        nickname: userInfo.nickname
       });
       
-      return res.body;
+      return userInfo;
     });
   }
 
@@ -71,13 +77,25 @@ export class MercadoPagoAdapter {
         userId: this.userId
       });
       
-      // since: fecha ISO para filtrar movimientos recientes
-      const filters = since
-        ? { 'date_created': { gte: since } }
-        : {};
+      // Construir URL con filtros de fecha si se proporciona
+      let url = 'https://api.mercadopago.com/v1/payments/search';
+      if (since) {
+        url += `?date_created.from=${since}`;
+      }
       
-      const pagos = await mercadopago.payment.search({ filters });
-      const results = pagos.body.results || [];
+      const response = await fetch(url, {
+        headers: { 
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error obteniendo movimientos: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const results = data.results || [];
       
       console.log(`Movimientos obtenidos: ${results.length}`, {
         userId: this.userId,
