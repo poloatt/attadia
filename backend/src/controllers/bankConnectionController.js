@@ -642,6 +642,20 @@ class BankConnectionController extends BaseController {
       });
     }
   }
+
+  // Método para obtener información del usuario de MercadoPago
+  async obtenerInformacionUsuarioMercadoPago(accessToken) {
+    const response = await fetch('https://api.mercadopago.com/users/me', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`Error obteniendo información del usuario de MercadoPago: ${response.status}`);
+    }
+    return await response.json();
+  }
 }
 
 export default BankConnectionController; 
