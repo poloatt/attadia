@@ -4,7 +4,7 @@ import { BankSyncService } from '../services/bankSyncService.js';
 import crypto from 'crypto';
 import { getAuthUrl, exchangeCodeForToken } from '../oauth/mercadoPagoOAuth.js';
 import { BankIntegrationService } from '../services/bankIntegrationService.js';
-import mercadopago from 'mercadopago';
+import fetch from 'node-fetch';
 
 class BankConnectionController extends BaseController {
   constructor() {
@@ -114,24 +114,51 @@ class BankConnectionController extends BaseController {
   // Verificar conexión con MercadoPago
   async verificarMercadoPago(credenciales) {
     try {
-      // Configurar el singleton de mercadopago
-      mercadopago.configure({ access_token: credenciales.accessToken });
-      // Obtener información del usuario
-      const userInfo = await mercadopago.users.getMe();
-      // Obtener algunos pagos recientes para verificar el token
-      const pagos = await mercadopago.payment.search({ 
-        filters: { 
-          'date_created': { 
-            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() 
-          } 
-        } 
+      // Verificar que tenemos el access token
+      if (!credenciales.accessToken) {
+        return {
+          exito: false,
+          mensaje: 'Access token de MercadoPago requerido'
+        };
+      }
+
+      // Obtener información del usuario usando la API REST directamente
+      const userRes = await fetch('https://api.mercadopago.com/users/me', {
+        headers: { 
+          'Authorization': `Bearer ${credenciales.accessToken}`,
+          'Content-Type': 'application/json'
+        }
       });
+
+      if (!userRes.ok) {
+        throw new Error(`Error obteniendo información del usuario: ${userRes.status}`);
+      }
+
+      const userInfo = await userRes.json();
+
+      // Obtener algunos pagos recientes para verificar el token
+      const paymentsRes = await fetch(
+        `https://api.mercadopago.com/v1/payments/search?date_created.from=${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()}`,
+        {
+          headers: { 
+            'Authorization': `Bearer ${credenciales.accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!paymentsRes.ok) {
+        throw new Error(`Error obteniendo pagos: ${paymentsRes.status}`);
+      }
+
+      const paymentsData = await paymentsRes.json();
+
       return {
         exito: true,
         mensaje: 'Conexión con MercadoPago verificada exitosamente',
         datos: {
-          usuario: userInfo.body,
-          pagosRecientes: pagos.body.results.length
+          usuario: userInfo,
+          pagosRecientes: paymentsData.results?.length || 0
         }
       };
     } catch (error) {

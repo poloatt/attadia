@@ -3,7 +3,7 @@ import { Transacciones } from '../models/Transacciones.js';
 import { Cuentas } from '../models/Cuentas.js';
 import crypto from 'crypto';
 import { refreshAccessToken } from '../oauth/mercadoPagoOAuth.js';
-import mercadopago from 'mercadopago';
+import fetch from 'node-fetch';
 
 export class BankSyncService {
   constructor() {
@@ -277,23 +277,43 @@ export class BankSyncService {
       let accessToken = this.decrypt(bankConnection.credenciales.accessToken);
       let refreshToken = this.decrypt(bankConnection.credenciales.refreshToken);
       const userId = this.decrypt(bankConnection.credenciales.userId);
-      // Configurar el singleton de mercadopago
-      mercadopago.configure({ access_token: accessToken });
-      // Obtener usuario
-      const userInfo = await mercadopago.users.getMe();
-      // Obtener pagos recientes
-      const pagos = await mercadopago.payment.search({ 
-        filters: { 
-          'date_created': { 
-            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() 
-          } 
-        } 
+      
+      // Obtener usuario usando la API REST directamente
+      const userRes = await fetch('https://api.mercadopago.com/users/me', {
+        headers: { 
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
       });
+
+      if (!userRes.ok) {
+        throw new Error(`Error obteniendo información del usuario: ${userRes.status}`);
+      }
+
+      const userInfo = await userRes.json();
+
+      // Obtener pagos recientes usando la API REST directamente
+      const paymentsRes = await fetch(
+        `https://api.mercadopago.com/v1/payments/search?date_created.from=${new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()}`,
+        {
+          headers: { 
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!paymentsRes.ok) {
+        throw new Error(`Error obteniendo pagos: ${paymentsRes.status}`);
+      }
+
+      const paymentsData = await paymentsRes.json();
+      const pagos = paymentsData.results || [];
       
       let transaccionesNuevas = 0;
       let transaccionesActualizadas = 0;
 
-      for (const pago of pagos.body.results || []) {
+      for (const pago of pagos) {
         // Verificar si la transacción ya existe
         const transaccionExistente = await Transacciones.findOne({
           cuenta: bankConnection.cuenta,
@@ -376,23 +396,28 @@ export class BankSyncService {
     }
   }
 
-  // Obtener pagos de MercadoPago
-  async obtenerPagosMercadoPago(mercadopago, fechaDesde) {
-    return new Promise((resolve, reject) => {
-      const filters = {
-        'date_created': `[${fechaDesde.toISOString()},NOW]`
-      };
-
-      mercadopago.payment.search({
-        filters: filters
-      }, (error, response) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve(response.body.results || []);
+  // Obtener pagos de MercadoPago (método actualizado para usar API REST)
+  async obtenerPagosMercadoPago(accessToken, fechaDesde) {
+    try {
+      const url = `https://api.mercadopago.com/v1/payments/search?date_created.from=${fechaDesde.toISOString()}`;
+      
+      const response = await fetch(url, {
+        headers: { 
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
         }
       });
-    });
+      
+      if (!response.ok) {
+        throw new Error(`Error obteniendo pagos: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.results || [];
+    } catch (error) {
+      console.error('Error obteniendo pagos de MercadoPago:', error);
+      throw error;
+    }
   }
 
   // Formatear descripción de transacción de MercadoPago
