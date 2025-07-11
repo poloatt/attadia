@@ -1,8 +1,8 @@
-# Integración Modular de MercadoPago
+# Integración Modular de MercadoPago (Actualizada)
 
 ## Descripción General
 
-Esta es la versión modular y mejorada de la integración con MercadoPago, diseñada para ser más mantenible, escalable y fácil de usar.
+Esta es la versión modular y mejorada de la integración con MercadoPago, diseñada para ser más mantenible, escalable y fácil de usar. **Ahora incluye obtención total de datos** de todos los endpoints disponibles de Mercado Pago.
 
 ## Arquitectura Modular
 
@@ -36,6 +36,7 @@ Esta es la versión modular y mejorada de la integración con MercadoPago, dise�
 - **`MercadoPagoConnectButton`**: Botón de conexión OAuth
 - **`DigitalWalletConnectButton`**: Componente genérico para billeteras
 - **`MercadoPagoCallbackPage`**: Página de procesamiento del callback
+- **`MercadoPagoDataManager`**: **NUEVO** - Gestión completa de datos
 
 ### Backend
 
@@ -53,6 +54,8 @@ Esta es la versión modular y mejorada de la integración con MercadoPago, dise�
   - `POST /api/bankconnections/mercadopago/callback`: Procesa callback OAuth
   - `POST /api/bankconnections/:id/sync`: Sincronización manual
   - `POST /api/bankconnections/:id/verificar`: Verificación de conexión
+  - **`GET /api/bankconnections/mercadopago/datos-completos/:conexionId`**: **NUEVO** - Obtiene datos completos
+  - **`POST /api/bankconnections/mercadopago/procesar-datos/:conexionId`**: **NUEVO** - Procesa datos completos
 
 #### 3. Bank Sync Service (`backend/src/services/bankSyncService.js`)
 - **Responsabilidad**: Sincronización de transacciones
@@ -61,6 +64,23 @@ Esta es la versión modular y mejorada de la integración con MercadoPago, dise�
   - `obtenerPagosMercadoPago(mercadopago, fechaDesde)`: Obtiene pagos
   - `formatearDescripcionMercadoPago(pago)`: Formatea descripciones
   - `mapearEstadoMercadoPago(status)`: Mapea estados
+
+#### 4. **NUEVO: MercadoPago Adapter** (`backend/src/services/adapters/mercadoPagoAdapter.js`)
+- **Responsabilidad**: Comunicación directa con la API de Mercado Pago
+- **Métodos**:
+  - `getUserInfo()`: Obtiene información del usuario
+  - `getMovimientos()`: Obtiene pagos (con parámetros corregidos)
+  - `getAccountMovements()`: Obtiene movimientos de cuenta
+  - `getMerchantOrders()`: Obtiene órdenes de comerciante
+
+#### 5. **NUEVO: MercadoPago Data Service** (`backend/src/services/mercadoPagoDataService.js`)
+- **Responsabilidad**: Procesamiento completo de datos de Mercado Pago
+- **Métodos**:
+  - `obtenerDatosCompletos()`: Obtiene datos de todos los endpoints
+  - `procesarPagos()`: Convierte pagos en transacciones
+  - `procesarMovimientosCuenta()`: Convierte movimientos en transacciones
+  - `crearTransaccionDePago()`: Crea transacciones desde pagos
+  - `crearTransaccionDeMovimiento()`: Crea transacciones desde movimientos
 
 ## Flujo de Integración
 
@@ -86,20 +106,68 @@ sequenceDiagram
     F->>U: Muestra confirmación
 ```
 
-### 2. Sincronización Automática
+### 2. **NUEVO: Obtención de Datos Completos**
+```mermaid
+sequenceDiagram
+    participant U as Usuario
+    participant F as Frontend
+    participant B as Backend
+    participant A as Adapter
+    participant M as MercadoPago
+    participant DB as Base de Datos
+
+    U->>F: Solicitar datos completos
+    F->>B: GET /api/bankconnections/mercadopago/datos-completos/:id
+    B->>A: obtenerDatosCompletos()
+    A->>M: GET /users/me
+    A->>M: GET /v1/payments/search
+    A->>M: GET /v1/account/movements/search
+    A->>M: GET /v1/merchant_orders/search
+    M->>A: Datos de usuario
+    M->>A: Datos de pagos
+    M->>A: Datos de movimientos
+    M->>A: Datos de órdenes
+    A->>B: Datos completos
+    B->>F: Respuesta con datos
+    F->>U: Muestra datos en MercadoPagoDataManager
+```
+
+### 3. **NUEVO: Procesamiento de Datos**
+```mermaid
+sequenceDiagram
+    participant U as Usuario
+    participant F as Frontend
+    participant B as Backend
+    participant S as DataService
+    participant DB as Base de Datos
+
+    U->>F: Procesar datos
+    F->>B: POST /api/bankconnections/mercadopago/procesar-datos/:id
+    B->>S: procesarPagos()
+    B->>S: procesarMovimientosCuenta()
+    S->>DB: Crear transacciones de pagos
+    S->>DB: Crear transacciones de movimientos
+    S->>B: Resultados del procesamiento
+    B->>F: Respuesta con resumen
+    F->>U: Muestra resultados
+```
+
+### 4. Sincronización Automática
 ```mermaid
 sequenceDiagram
     participant S as Scheduler
     participant B as Backend
+    participant DS as DataService
     participant M as MercadoPago
     participant DB as Base de Datos
 
     S->>B: Ejecuta sincronización programada
     B->>DB: Obtiene conexiones activas
-    B->>M: Obtiene transacciones
-    M->>B: Lista de transacciones
-    B->>DB: Guarda transacciones nuevas
-    B->>DB: Actualiza estado de conexión
+    B->>DS: obtenerDatosCompletos()
+    DS->>M: Obtiene datos de múltiples endpoints
+    M->>DS: Datos completos
+    DS->>DB: Procesa y guarda transacciones
+    DS->>DB: Actualiza estado de conexión
 ```
 
 ## Configuración
@@ -114,6 +182,9 @@ MERCADOPAGO_CLIENT_SECRET=tu_client_secret
 
 # Encriptación
 ENCRYPTION_KEY=tu_clave_de_encriptacion_secreta
+
+# Frontend URL
+FRONTEND_URL=https://tu-dominio.com
 
 # Timezone para scheduler
 TZ=America/Santiago
@@ -160,7 +231,38 @@ const handleConnect = async () => {
 };
 ```
 
-### 2. Sincronizar Manualmente
+### 2. **NUEVO: Obtener Datos Completos**
+```javascript
+import MercadoPagoDataManager from '../components/bankconnections/MercadoPagoDataManager';
+
+<MercadoPagoDataManager 
+  conexionId={conexionId}
+  onDataProcessed={(resultados) => {
+    console.log('Datos procesados:', resultados);
+  }}
+/>
+```
+
+### 3. **NUEVO: Procesar Datos Selectivamente**
+```javascript
+// Procesar solo pagos
+const procesarSoloPagos = async () => {
+  const response = await api.post(`/api/bankconnections/mercadopago/procesar-datos/${conexionId}`, {
+    procesarPagos: true,
+    procesarMovimientos: false
+  });
+};
+
+// Procesar solo movimientos
+const procesarSoloMovimientos = async () => {
+  const response = await api.post(`/api/bankconnections/mercadopago/procesar-datos/${conexionId}`, {
+    procesarPagos: false,
+    procesarMovimientos: true
+  });
+};
+```
+
+### 4. Sincronizar Manualmente
 ```javascript
 import { useMercadoPago } from '../hooks/useMercadoPago';
 
@@ -176,7 +278,7 @@ const handleSync = async (connectionId) => {
 };
 ```
 
-### 3. Verificar Conexión
+### 5. Verificar Conexión
 ```javascript
 import { useMercadoPago } from '../hooks/useMercadoPago';
 
@@ -196,6 +298,9 @@ const handleVerify = async (connectionId) => {
 
 ### ✅ Implementado
 - [x] Flujo OAuth completo
+- [x] **Obtención total de datos** (pagos, movimientos, órdenes)
+- [x] **Procesamiento selectivo** de datos
+- [x] **Componente de gestión de datos** completo
 - [x] Sincronización automática
 - [x] Categorización automática de transacciones
 - [x] Manejo de errores robusto
@@ -204,6 +309,8 @@ const handleVerify = async (connectionId) => {
 - [x] Historial de sincronizaciones
 - [x] Configuración por ambiente
 - [x] Componentes modulares y reutilizables
+- [x] **Gestión inteligente de monedas**
+- [x] **Parámetros de fecha corregidos**
 
 ### 🔄 En Desarrollo
 - [ ] Webhooks para sincronización en tiempo real
@@ -219,11 +326,82 @@ const handleVerify = async (connectionId) => {
 - [ ] Exportación de datos
 - [ ] Backup automático
 
+## **NUEVO: Endpoints de Datos Completos**
+
+### Obtener Datos Completos
+```http
+GET /api/bankconnections/mercadopago/datos-completos/:conexionId
+```
+
+**Parámetros:**
+- `fechaDesde` (opcional): Fecha desde la cual obtener datos
+- `limit` (opcional): Límite de registros por endpoint (default: 100)
+
+**Respuesta:**
+```json
+{
+  "message": "Datos completos obtenidos exitosamente",
+  "datos": {
+    "usuario": { /* información del usuario */ },
+    "pagos": [ /* array de pagos */ ],
+    "movimientosCuenta": [ /* array de movimientos */ ],
+    "ordenesComerciante": [ /* array de órdenes */ ],
+    "errores": [ /* errores por endpoint */ ]
+  },
+  "resumen": {
+    "totalPagos": 25,
+    "totalMovimientos": 15,
+    "totalOrdenes": 8,
+    "errores": 0
+  }
+}
+```
+
+### Procesar Datos
+```http
+POST /api/bankconnections/mercadopago/procesar-datos/:conexionId
+```
+
+**Body:**
+```json
+{
+  "procesarPagos": true,
+  "procesarMovimientos": true
+}
+```
+
+**Respuesta:**
+```json
+{
+  "message": "Datos procesados exitosamente",
+  "resultados": {
+    "pagos": { "nuevas": 10, "actualizadas": 2 },
+    "movimientos": { "nuevas": 5, "actualizadas": 1 },
+    "errores": []
+  },
+  "resumen": {
+    "totalNuevas": 15,
+    "totalActualizadas": 3,
+    "totalErrores": 0
+  }
+}
+```
+
 ## Troubleshooting
 
 ### Problemas Comunes
 
-#### 1. Error de configuración OAuth
+#### 1. **Error 400: "date_created.from is not a possible param"**
+```bash
+# SOLUCIONADO: Usar parámetros correctos
+# Para /v1/payments/search:
+range=date_created&begin_date=2024-01-01T00:00:00Z&end_date=2024-12-31T23:59:59Z
+
+# Para /v1/account/movements/search:
+date_created_from=2024-01-01T00:00:00Z&date_created_to=2024-12-31T23:59:59Z
+```
+
+#### 2. Error de configuración OAuth
 ```bash
 # Verificar variables de entorno
 echo $MERCADOPAGO_CLIENT_ID
@@ -235,7 +413,7 @@ echo $MERCADOPAGO_CLIENT_SECRET
 # - Permisos configurados
 ```
 
-#### 2. Error de sincronización
+#### 3. Error de sincronización
 ```bash
 # Verificar logs del backend
 docker logs -f backend | grep "MercadoPago"
@@ -245,88 +423,45 @@ curl -H "Authorization: Bearer TOKEN" \
   http://localhost:8080/api/bankconnections
 ```
 
-#### 3. Error de encriptación
+#### 4. **NUEVO: Error de obtención de datos completos**
 ```bash
-# Verificar clave de encriptación
-echo $ENCRYPTION_KEY
+# Verificar logs específicos
+docker logs -f backend | grep "MercadoPagoDataService"
 
-# La clave debe ser de al menos 32 caracteres
+# Probar endpoint directamente
+curl -H "Authorization: Bearer TOKEN" \
+  "http://localhost:8080/api/bankconnections/mercadopago/datos-completos/CONNECTION_ID"
 ```
 
-### Logs Útiles
+## **NUEVO: Componente MercadoPagoDataManager**
 
-#### Frontend
-```javascript
-// Habilitar logs detallados
-localStorage.setItem('debug', 'mercadopago:*');
+### Características
+- **Vista de datos completos**: Muestra todos los datos obtenidos
+- **Procesamiento selectivo**: Procesar solo pagos o solo movimientos
+- **Tablas interactivas**: Datos organizados en acordeones
+- **Estados visuales**: Chips de colores para estados
+- **Alertas**: Notificaciones de éxito y error
 
-// Ver logs en consola del navegador
-console.log('MercadoPago Service:', mercadopagoService);
+### Uso
+```jsx
+import MercadoPagoDataManager from '../components/bankconnections/MercadoPagoDataManager';
+
+function BankConnectionDetail({ conexionId }) {
+  return (
+    <div>
+      <h2>Gestión de Datos Mercado Pago</h2>
+      <MercadoPagoDataManager 
+        conexionId={conexionId}
+        onDataProcessed={(resultados) => {
+          console.log('Datos procesados:', resultados);
+          // Actualizar UI o mostrar notificación
+        }}
+      />
+    </div>
+  );
+}
 ```
-
-#### Backend
-```bash
-# Logs de OAuth
-grep "OAuth" logs/app.log
-
-# Logs de sincronización
-grep "sincronización" logs/app.log
-
-# Logs de errores
-grep "ERROR" logs/app.log | grep "MercadoPago"
-```
-
-## Pruebas
-
-### Script de Prueba
-```bash
-# Ejecutar script de prueba
-cd backend
-node test-mercadopago-flow.js
-```
-
-### Pruebas Manuales
-1. **Conexión OAuth**:
-   - Clic en "Conectar MercadoPago"
-   - Autorizar en MercadoPago
-   - Verificar que se crea la conexión
-
-2. **Sincronización**:
-   - Crear transacción en MercadoPago
-   - Ejecutar sincronización manual
-   - Verificar que aparece en la app
-
-3. **Categorización**:
-   - Verificar que las transacciones se categorizan automáticamente
-   - Revisar las reglas de categorización
-
-## Seguridad
-
-### Encriptación
-- Credenciales encriptadas con AES-256-CBC
-- Clave de encriptación en variables de entorno
-- Solo se desencriptan durante la sincronización
-
-### Validación
-- Validación de tokens OAuth
-- Verificación de permisos de usuario
-- Sanitización de datos de entrada
-
-### Auditoría
-- Logs de todas las operaciones
-- Historial de sincronizaciones
-- Trazabilidad completa
-
-## Soporte
-
-Para problemas técnicos:
-
-1. Revisar logs del sistema
-2. Verificar configuración de variables de entorno
-3. Probar con el script de prueba
-4. Consultar documentación de MercadoPago Developers
-5. Contactar al equipo de desarrollo con logs y detalles
 
 ---
 
-**Nota**: Esta integración está diseñada para uso personal y de pequeñas empresas. Para uso comercial a gran escala, considera implementar medidas adicionales de seguridad y monitoreo. 
+**Nota**: Esta documentación ha sido actualizada para reflejar la nueva integración completa de Mercado Pago que incluye obtención de datos de múltiples endpoints, procesamiento robusto y un componente de gestión de datos completo. 
