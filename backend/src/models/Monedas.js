@@ -22,6 +22,21 @@ export const ISO_4217 = {
   // Agrega más monedas según necesidad
 };
 
+// Lista de países y sus monedas ISO 4217
+export const PAISES_MONEDAS = {
+  AR: { nombre: 'Argentina', moneda: 'ARS' },
+  BR: { nombre: 'Brasil', moneda: 'BRL' },
+  CL: { nombre: 'Chile', moneda: 'CLP' },
+  UY: { nombre: 'Uruguay', moneda: 'UYU' },
+  US: { nombre: 'Estados Unidos', moneda: 'USD' },
+  MX: { nombre: 'México', moneda: 'MXN' },
+  CO: { nombre: 'Colombia', moneda: 'COP' },
+  PE: { nombre: 'Perú', moneda: 'PEN' },
+  EC: { nombre: 'Ecuador', moneda: 'USD' },
+  ES: { nombre: 'España', moneda: 'EUR' },
+  // Agrega más países según necesidad
+};
+
 const monedaSchema = createSchema({
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
