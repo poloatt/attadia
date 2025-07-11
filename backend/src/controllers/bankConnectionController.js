@@ -648,9 +648,9 @@ class BankConnectionController extends BaseController {
     try {
       const { monto = 10, descripcion = 'Pago de prueba para validación de app en producción' } = req.body;
 
-      // Importar el SDK de MercadoPago de forma dinámica compatible con ES Modules
-      const { default: mercadopago } = await import('mercadopago');
-      mercadopago.configure({
+      // Importar el SDK de MercadoPago de forma robusta compatible con ES Modules
+      const mercadopago = await import('mercadopago');
+      mercadopago.default.configure({
         access_token: process.env.MERCADOPAGO_ACCESS_TOKEN || config.mercadopago.accessToken
       });
 
@@ -666,7 +666,7 @@ class BankConnectionController extends BaseController {
         // Puedes agregar back_urls si quieres manejar el retorno
       };
 
-      const result = await mercadopago.preferences.create(preference);
+      const result = await mercadopago.default.preferences.create(preference);
       return res.json({ init_point: result.body.init_point });
     } catch (error) {
       console.error('Error creando preferencia de pago:', error);
