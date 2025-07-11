@@ -1,35 +1,27 @@
 import fetch from 'node-fetch';
-import pkg from 'mercadopago';
-const mercadopago = pkg.default || pkg;
+import Mercadopago from 'mercadopago';
 
 export class MercadoPagoAdapter {
   constructor({ accessToken, refreshToken, userId }) {
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;
     this.userId = userId;
-    mercadopago.configure({ access_token: accessToken });
+    this.mp = new Mercadopago({ access_token: accessToken });
   }
 
   async getUserInfo() {
-    const res = await fetch('https://api.mercadopago.com/users/me', {
-      headers: { Authorization: `Bearer ${this.accessToken}` }
-    });
-    if (!res.ok) throw new Error('No se pudo obtener info de usuario MercadoPago');
-    return await res.json();
+    // Usar la nueva API de instancia
+    const res = await this.mp.users.getMe();
+    if (!res || !res.id) throw new Error('No se pudo obtener info de usuario MercadoPago');
+    return res;
   }
 
   async getMovimientos({ since }) {
     // since: fecha ISO para filtrar movimientos recientes
     const filters = since
-      ? { 'date_created': `[${since},NOW]` }
+      ? { 'date_created': { gte: since } }
       : {};
-    return new Promise((resolve, reject) => {
-      mercadopago.payment.search({ filters }, (error, response) => {
-        if (error) return reject(error);
-        resolve(response.body.results || []);
-      });
-    });
+    const pagos = await this.mp.payment.search({ filters });
+    return pagos.results || [];
   }
-
-  // Puedes agregar métodos para refrescar token, etc.
 } 

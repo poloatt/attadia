@@ -4,8 +4,7 @@ import { BankSyncService } from '../services/bankSyncService.js';
 import crypto from 'crypto';
 import { getAuthUrl, exchangeCodeForToken } from '../oauth/mercadoPagoOAuth.js';
 import { BankIntegrationService } from '../services/bankIntegrationService.js';
-import pkg from 'mercadopago';
-const mercadopago = pkg.default || pkg;
+import Mercadopago from 'mercadopago';
 
 class BankConnectionController extends BaseController {
   constructor() {
@@ -115,47 +114,20 @@ class BankConnectionController extends BaseController {
   // Verificar conexión con MercadoPago
   async verificarMercadoPago(credenciales) {
     try {
-      mercadopago.configure({
-        access_token: credenciales.accessToken
-      });
-
-      // Intentar obtener información del usuario
-      const userInfo = await new Promise((resolve, reject) => {
-        mercadopago.users.get(credenciales.userId, (error, response) => {
-          if (error) {
-            reject(error);
-          } else {
-            resolve(response.body);
-          }
-        });
-      });
-
-      // Intentar obtener algunos pagos recientes para verificar el token
-      const pagos = await new Promise((resolve, reject) => {
-        const filters = {
-          'date_created': `[${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()},NOW]`
-        };
-
-        mercadopago.payment.search({
-          filters: filters
-        }, (error, response) => {
-          if (error) {
-            reject(error);
-          } else {
-            resolve(response.body.results || []);
-          }
-        });
-      });
-
+      // Crear instancia de MercadoPago
+      const mp = new Mercadopago({ access_token: credenciales.accessToken });
+      // Obtener información del usuario
+      const userInfo = await mp.users.getMe();
+      // Obtener algunos pagos recientes para verificar el token
+      const pagos = await mp.payment.search({ filters: { 'date_created': { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() } } });
       return {
         exito: true,
         mensaje: 'Conexión con MercadoPago verificada exitosamente',
         datos: {
           usuario: userInfo,
-          pagosRecientes: pagos.length
+          pagosRecientes: pagos.body.results.length
         }
       };
-
     } catch (error) {
       console.error('Error verificando MercadoPago:', error);
       return {
