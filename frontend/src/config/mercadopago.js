@@ -4,7 +4,7 @@ export const MERCADOPAGO_CONFIG = {
   redirectURIs: {
     development: 'http://localhost:5173/mercadopago/callback',
     staging: 'https://staging.present.attadia.com/mercadopago/callback',
-    production: 'https://api.admin.attadia.com/api/bankconnections/mercadopago/callback'
+    production: 'https://present.attadia.com/mercadopago/callback'
   },
   
   // Colores de marca
