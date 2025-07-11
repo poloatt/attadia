@@ -1,23 +1,28 @@
 import fetch from 'node-fetch';
+import crypto from 'crypto';
 import config from '../config/config.js';
 import logger from '../utils/logger.js';
 
-export function getAuthUrl(redirectUri) {
+export function getAuthUrl(redirectUri, state = null) {
   const clientId = config.mercadopago.clientId;
   if (!clientId) {
     logger.error('MERCADOPAGO_CLIENT_ID no está configurado', null, { redirectUri });
     throw new Error('MERCADOPAGO_CLIENT_ID no está configurado');
   }
   
-  const authUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&redirect_uri=${encodeURIComponent(redirectUri)}`;
+  // Generar state aleatorio si no se proporciona (recomendado por MercadoPago)
+  const stateParam = state || crypto.randomBytes(32).toString('hex');
+  
+  const authUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&redirect_uri=${encodeURIComponent(redirectUri)}&state=${stateParam}`;
   
   logger.mercadopago('AUTH_URL_GENERATED', 'URL de autorización generada', {
     clientId: clientId ? 'configurado' : 'no configurado',
     redirectUri,
+    hasState: !!stateParam,
     authUrl: authUrl.substring(0, 100) + '...' // Log parcial por seguridad
   });
   
-  return authUrl;
+  return { authUrl, state: stateParam };
 }
 
 export async function exchangeCodeForToken({ code, redirectUri }) {

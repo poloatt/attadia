@@ -28,8 +28,7 @@ try {
   };
 }
 
-console.log('Puerto detectado en config:', config.port);
-console.log('process.env.PORT:', process.env.PORT);
+// Logs de configuración removidos para producción
 
 const app = express();
 
@@ -185,7 +184,6 @@ app.use((err, req, res, next) => {
 const startServer = async () => {
   try {
     await connectDB();
-    console.log('MongoDB conectado exitosamente a mongodb-staging');
     console.log('MongoDB conectado exitosamente');
     
     await initializeMonedas();

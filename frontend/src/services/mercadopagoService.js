@@ -9,14 +9,14 @@ class MercadoPagoService {
 
   /**
    * Obtiene la URL de autorización de MercadoPago
-   * @returns {Promise<string>} URL de autorización
+   * @returns {Promise<{authUrl: string, state: string}>} URL de autorización y state
    */
   async getAuthUrl() {
     try {
       const { data } = await clienteAxios.get(`${this.baseURL}/auth-url`, {
         params: { redirect_uri: this.redirectURI }
       });
-      return data.authUrl;
+      return { authUrl: data.authUrl, state: data.state };
     } catch (error) {
       console.error('Error obteniendo URL de autorización:', error);
       throw new Error(
@@ -29,11 +29,12 @@ class MercadoPagoService {
   /**
    * Procesa el callback OAuth de MercadoPago
    * @param {string} code - Código de autorización
+   * @param {string} state - Parámetro state para validación CSRF
    * @returns {Promise<Object>} Resultado de la conexión
    */
-  async processCallback(code) {
+  async processCallback(code, state) {
     try {
-      const { data } = await clienteAxios.post(`${this.baseURL}/callback`, { code });
+      const { data } = await clienteAxios.post(`${this.baseURL}/callback`, { code, state });
       return data;
     } catch (error) {
       console.error('Error procesando callback MercadoPago:', error);
@@ -50,7 +51,13 @@ class MercadoPagoService {
    */
   async connect() {
     try {
-      const authUrl = await this.getAuthUrl();
+      const { authUrl, state } = await this.getAuthUrl();
+      
+      // Guardar el state en localStorage para validarlo en el callback
+      if (state) {
+        localStorage.setItem('mercadopago_state', state);
+      }
+      
       window.location.href = authUrl;
     } catch (error) {
       throw error;

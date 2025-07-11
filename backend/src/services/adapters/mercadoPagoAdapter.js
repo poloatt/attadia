@@ -46,12 +46,30 @@ export class MercadoPagoAdapter {
       const response = await fetch('https://api.mercadopago.com/users/me', {
         headers: { 
           'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'User-Agent': 'PresentApp/1.0' // Identificar la aplicación (buena práctica)
         }
       });
       
       if (!response.ok) {
-        throw new Error(`Error obteniendo información del usuario: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Error response from MercadoPago:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText,
+          userId: this.userId
+        });
+        
+        // Manejar errores específicos de MercadoPago
+        if (response.status === 401) {
+          throw new Error('Token de acceso expirado o inválido');
+        } else if (response.status === 403) {
+          throw new Error('Acceso denegado - verificar permisos de la aplicación');
+        } else if (response.status === 429) {
+          throw new Error('Rate limit excedido - intentar más tarde');
+        }
+        
+        throw new Error(`Error obteniendo información del usuario: ${response.status} - ${errorText}`);
       }
       
       const userInfo = await response.json();
@@ -70,28 +88,60 @@ export class MercadoPagoAdapter {
     });
   }
 
-  async getMovimientos({ since }) {
+  async getMovimientos({ since, limit = 100 }) {
     return this.withRetry(async () => {
       console.log('Obteniendo movimientos de MercadoPago...', {
         since: since || 'sin filtro de fecha',
+        limit,
         userId: this.userId
       });
       
       // Construir URL con filtros de fecha si se proporciona
       let url = 'https://api.mercadopago.com/v1/payments/search';
+      const params = new URLSearchParams();
+      
       if (since) {
-        url += `?date_created.from=${since}`;
+        params.append('date_created.from', since);
+      }
+      
+      // Agregar límite para evitar respuestas muy grandes
+      params.append('limit', limit.toString());
+      
+      // Ordenar por fecha de creación descendente (más recientes primero)
+      params.append('sort', 'date_created.desc');
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
       }
       
       const response = await fetch(url, {
         headers: { 
           'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'User-Agent': 'PresentApp/1.0'
         }
       });
       
       if (!response.ok) {
-        throw new Error(`Error obteniendo movimientos: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Error response from MercadoPago payments:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText,
+          userId: this.userId,
+          url
+        });
+        
+        // Manejar errores específicos de MercadoPago
+        if (response.status === 401) {
+          throw new Error('Token de acceso expirado o inválido');
+        } else if (response.status === 403) {
+          throw new Error('Acceso denegado - verificar permisos de la aplicación');
+        } else if (response.status === 429) {
+          throw new Error('Rate limit excedido - intentar más tarde');
+        }
+        
+        throw new Error(`Error obteniendo movimientos: ${response.status} - ${errorText}`);
       }
       
       const data = await response.json();
@@ -100,7 +150,9 @@ export class MercadoPagoAdapter {
       console.log(`Movimientos obtenidos: ${results.length}`, {
         userId: this.userId,
         since,
-        totalResults: results.length
+        limit,
+        totalResults: results.length,
+        hasPaging: !!data.paging
       });
       
       return results;
