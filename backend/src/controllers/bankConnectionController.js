@@ -9,6 +9,8 @@ import logger from '../utils/logger.js';
 import { Monedas, ISO_4217 } from '../models/Monedas.js';
 import { Cuentas } from '../models/Cuentas.js';
 import config from '../config/config.js';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 
 class BankConnectionController extends BaseController {
   constructor() {
@@ -649,15 +651,12 @@ class BankConnectionController extends BaseController {
    */
   async pagoPrueba(req, res) {
     try {
-      // Importación dinámica robusta para v2.8.0
-      const mercadopagoImport = await import('mercadopago');
-      const mp = mercadopagoImport.default?.configure ? mercadopagoImport.default : mercadopagoImport;
-
-      mp.configure({
+      const mercadopago = require('mercadopago');
+      mercadopago.configure({
         access_token: process.env.MERCADOPAGO_ACCESS_TOKEN || config.mercadopago.accessToken
       });
 
-      const result = await mp.preferences.create({
+      const result = await mercadopago.preferences.create({
         items: [
           {
             title: 'Pago de prueba - Validación app MercadoPago',
