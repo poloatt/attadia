@@ -67,6 +67,23 @@ router.post('/mercadopago/callback',
   }
 );
 
+// Nuevos endpoints para datos completos de MercadoPago
+router.get('/mercadopago/datos-completos/:conexionId', 
+  mercadopagoLimiter,
+  (req, res) => {
+    const controller = new BankConnectionController();
+    controller.obtenerDatosCompletosMercadoPago(req, res);
+  }
+);
+
+router.post('/mercadopago/procesar-datos/:conexionId', 
+  mercadopagoLimiter,
+  (req, res) => {
+    const controller = new BankConnectionController();
+    controller.procesarDatosMercadoPago(req, res);
+  }
+);
+
 // Rutas de sincronización con rate limiting y validación
 router.post('/sync/:id', 
   syncLimiter, 
