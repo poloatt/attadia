@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { getAuthUrl, exchangeCodeForToken } from '../oauth/mercadoPagoOAuth.js';
 import { BankIntegrationService } from '../services/bankIntegrationService.js';
 import fetch from 'node-fetch';
+import logger from '../utils/logger.js';
 
 class BankConnectionController extends BaseController {
   constructor() {
@@ -361,8 +362,15 @@ class BankConnectionController extends BaseController {
       if (!redirectUri) {
         return res.status(400).json({ message: 'redirect_uri es requerido' });
       }
-      const authUrl = getAuthUrl(redirectUri);
-      res.json({ authUrl });
+      
+      const { authUrl, state } = getAuthUrl(redirectUri);
+      
+      // Guardar el state en la sesión para validarlo en el callback
+      if (req.session) {
+        req.session.mercadopagoState = state;
+      }
+      
+      res.json({ authUrl, state });
     } catch (error) {
       console.error('Error generando URL de autorización MercadoPago:', error);
       res.status(500).json({ 
@@ -375,21 +383,42 @@ class BankConnectionController extends BaseController {
   // POST /api/bankconnections/mercadopago/callback
   async mercadoPagoCallback(req, res) {
     try {
-      const { code } = req.body;
+      const { code, state } = req.body;
       if (!code) {
         return res.status(400).json({ message: 'Código de autorización requerido' });
       }
+      
+      // Validar el parámetro state para prevenir CSRF (recomendado por MercadoPago)
+      if (req.session && req.session.mercadopagoState && state !== req.session.mercadopagoState) {
+        logger.error('State validation failed', null, {
+          receivedState: state,
+          expectedState: req.session.mercadopagoState,
+          userId: req.user?.id
+        });
+        return res.status(400).json({ message: 'Invalid state parameter' });
+      }
+      
+      // Limpiar el state de la sesión después de validarlo
+      if (req.session) {
+        delete req.session.mercadopagoState;
+      }
+      
       // Usar la redirect_uri EXACTA registrada en MercadoPago
       const redirectUri = 'https://admin.attadia.com/mercadopago/callback';
+      
       // Intercambiar code por token y userId
       const tokenData = await exchangeCodeForToken({ code, redirectUri });
+      
       const userRes = await fetch('https://api.mercadopago.com/users/me', {
         headers: { Authorization: `Bearer ${tokenData.access_token}` }
       });
+      
       if (!userRes.ok) {
         throw new Error(`Error obteniendo información del usuario: ${userRes.status}`);
       }
+      
       const userData = await userRes.json();
+      
       // Modular: usar BankIntegrationService
       const connection = await BankIntegrationService.connect({
         tipo: 'MERCADOPAGO',
@@ -401,6 +430,7 @@ class BankConnectionController extends BaseController {
         },
         moneda: undefined // Puedes mejorar para detectar la moneda
       });
+      
       res.json({
         message: 'Conexión MercadoPago creada y sincronizada',
         conexion: connection

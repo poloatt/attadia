@@ -13,6 +13,7 @@ export function MercadoPagoCallbackPage() {
     const handleCallback = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('code');
+      const state = urlParams.get('state');
       const errorParam = urlParams.get('error');
       
       if (errorParam) {
@@ -29,10 +30,22 @@ export function MercadoPagoCallbackPage() {
         return;
       }
       
+      // Validar el parámetro state para prevenir CSRF
+      const savedState = localStorage.getItem('mercadopago_state');
+      if (state && savedState && state !== savedState) {
+        console.error('State validation failed:', { received: state, expected: savedState });
+        setError('Error de seguridad: parámetro state inválido');
+        setStatus('error');
+        return;
+      }
+      
       try {
-        console.log('Procesando código de autorización MercadoPago:', code);
-        await processCallback(code);
+        console.log('Procesando código de autorización MercadoPago:', { code, state });
+        await processCallback(code, state);
         setStatus('success');
+        
+        // Limpiar el state del localStorage
+        localStorage.removeItem('mercadopago_state');
         
         // Redirigir después de un breve delay para mostrar el mensaje de éxito
         setTimeout(() => {
@@ -42,6 +55,9 @@ export function MercadoPagoCallbackPage() {
         console.error('Error al conectar con MercadoPago:', error);
         setError(error.message);
         setStatus('error');
+        
+        // Limpiar el state del localStorage en caso de error
+        localStorage.removeItem('mercadopago_state');
       }
     };
 

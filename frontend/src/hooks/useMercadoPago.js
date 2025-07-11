@@ -24,10 +24,10 @@ export const useMercadoPago = () => {
   /**
    * Procesa el callback OAuth de MercadoPago
    */
-  const processCallback = useCallback(async (code) => {
+  const processCallback = useCallback(async (code, state) => {
     setLoading(true);
     try {
-      const result = await mercadopagoService.processCallback(code);
+      const result = await mercadopagoService.processCallback(code, state);
       enqueueSnackbar('¡Conexión MercadoPago exitosa!', { variant: 'success' });
       return result;
     } catch (error) {
