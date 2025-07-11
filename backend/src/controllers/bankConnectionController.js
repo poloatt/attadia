@@ -6,6 +6,7 @@ import { getAuthUrl, exchangeCodeForToken } from '../oauth/mercadoPagoOAuth.js';
 import { BankIntegrationService } from '../services/bankIntegrationService.js';
 import fetch from 'node-fetch';
 import logger from '../utils/logger.js';
+import { Monedas, ISO_4217 } from '../models/Monedas.js';
 
 class BankConnectionController extends BaseController {
   constructor() {
@@ -397,28 +398,37 @@ class BankConnectionController extends BaseController {
         });
         return res.status(400).json({ message: 'Invalid state parameter' });
       }
-      
       // Limpiar el state de la sesión después de validarlo
       if (req.session) {
         delete req.session.mercadopagoState;
       }
-      
       // Usar la redirect_uri EXACTA registrada en MercadoPago
       const redirectUri = 'https://admin.attadia.com/mercadopago/callback';
-      
       // Intercambiar code por token y userId
       const tokenData = await exchangeCodeForToken({ code, redirectUri });
-      
       const userRes = await fetch('https://api.mercadopago.com/users/me', {
         headers: { Authorization: `Bearer ${tokenData.access_token}` }
       });
-      
       if (!userRes.ok) {
         throw new Error(`Error obteniendo información del usuario: ${userRes.status}`);
       }
-      
       const userData = await userRes.json();
-      
+      // --- NUEVO: Obtener currency_id y buscar/crear moneda ---
+      const currencyId = userData.currency_id?.toUpperCase();
+      if (!currencyId) {
+        throw new Error('No se pudo obtener el currency_id de Mercado Pago');
+      }
+      let moneda = await Monedas.findOne({ codigo: currencyId });
+      if (!moneda) {
+        // Usar la tabla ISO_4217 para autocompletar nombre y símbolo
+        const ref = ISO_4217[currencyId] || { nombre: currencyId, simbolo: currencyId };
+        moneda = await Monedas.create({
+          codigo: currencyId,
+          nombre: ref.nombre,
+          simbolo: ref.simbolo,
+          esGlobal: true
+        });
+      }
       // Modular: usar BankIntegrationService
       const connection = await BankIntegrationService.connect({
         tipo: 'MERCADOPAGO',
@@ -428,9 +438,8 @@ class BankConnectionController extends BaseController {
           refreshToken: tokenData.refresh_token,
           userId: userData.id?.toString() || ''
         },
-        moneda: undefined // Puedes mejorar para detectar la moneda
+        moneda: moneda._id
       });
-
       res.json({ 
         message: 'Conexión MercadoPago creada y sincronizada',
         conexion: connection
