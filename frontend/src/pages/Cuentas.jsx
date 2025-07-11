@@ -536,19 +536,20 @@ export function Cuentas() {
   const handlePagoPrueba = async () => {
     setIsProcessingPago(true);
     try {
-      // Llama a tu backend para crear la preferencia de pago
-      const response = await clienteAxios.post('/api/bankconnections/pagos/prueba', {
-        monto: 10,
-        descripcion: 'Pago de prueba para validación de app en producción'
-      });
-      const { init_point } = response.data;
-      if (init_point) {
-        window.location.href = init_point;
+      // Llamada simple al backend para crear la preferencia de pago
+      const response = await clienteAxios.post('/api/bankconnections/pagos/prueba');
+      
+      if (response.data.success && response.data.init_point) {
+        // Redirigir al usuario a MercadoPago para completar el pago
+        window.location.href = response.data.init_point;
       } else {
-        enqueueSnackbar('No se pudo obtener la URL de pago', { variant: 'error' });
+        console.error('Error: No se recibió la URL de pago');
+        alert('Error al generar el pago. Intenta nuevamente.');
       }
     } catch (error) {
-      enqueueSnackbar('Error al iniciar pago de prueba: ' + (error.response?.data?.message || error.message), { variant: 'error' });
+      console.error('Error en pago de prueba:', error);
+      alert('Error al procesar el pago. Intenta nuevamente.');
+    } finally {
       setIsProcessingPago(false);
     }
   };
