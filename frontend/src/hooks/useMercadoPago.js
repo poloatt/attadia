@@ -3,6 +3,18 @@ import { useSnackbar } from 'notistack';
 import mercadopagoService from '../services/mercadopagoService';
 
 export const useMercadoPago = () => {
+  if (!import.meta.env.PROD) {
+    // Mock para desarrollo: no hacer nada
+    return {
+      loading: false,
+      connecting: false,
+      connect: () => { throw new Error('Mercado Pago solo disponible en producción'); },
+      processCallback: () => { throw new Error('Mercado Pago solo disponible en producción'); },
+      syncConnection: () => { throw new Error('Mercado Pago solo disponible en producción'); },
+      verifyConnection: () => { throw new Error('Mercado Pago solo disponible en producción'); }
+    };
+  }
+
   const [loading, setLoading] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const { enqueueSnackbar } = useSnackbar();

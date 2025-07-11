@@ -135,6 +135,18 @@ export function MercadoPagoCallbackPage() {
     }
   }, [status, navigate]);
 
+  if (!import.meta.env.PROD) {
+    return (
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
+        <Box sx={{ maxWidth: 400, width: '100%', mx: 2, bgcolor: 'background.paper', borderRadius: 0, boxShadow: 1, p: 3 }}>
+          <Alert severity="info">
+            <Typography variant="h6">Mercado Pago solo está disponible en producción</Typography>
+          </Alert>
+        </Box>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ 
       minHeight: '100vh', 
