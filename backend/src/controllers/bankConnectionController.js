@@ -413,24 +413,7 @@ class BankConnectionController extends BaseController {
         throw new Error(`Error obteniendo información del usuario: ${userRes.status}`);
       }
       const userData = await userRes.json();
-      // --- NUEVO: Validar y loguear currency_id ---
-      const currencyId = userData.currency_id?.toUpperCase();
-      if (!currencyId) {
-        console.error('[MercadoPago] Respuesta de /users/me sin currency_id:', JSON.stringify(userData, null, 2));
-        throw new Error('No se pudo obtener la moneda de tu cuenta Mercado Pago. Por favor, revisa que tu cuenta esté completamente configurada y activa. Si el problema persiste, contacta soporte.');
-      }
-      // --- NUEVO: Obtener currency_id y buscar/crear moneda ---
-      let moneda = await Monedas.findOne({ codigo: currencyId });
-      if (!moneda) {
-        // Usar la tabla ISO_4217 para autocompletar nombre y símbolo
-        const ref = ISO_4217[currencyId] || { nombre: currencyId, simbolo: currencyId };
-        moneda = await Monedas.create({
-          codigo: currencyId,
-          nombre: ref.nombre,
-          simbolo: ref.simbolo,
-          esGlobal: true
-        });
-      }
+      // Ya no validamos ni requerimos currency_id aquí
       // Modular: usar BankIntegrationService
       const connection = await BankIntegrationService.connect({
         tipo: 'MERCADOPAGO',
@@ -440,7 +423,7 @@ class BankConnectionController extends BaseController {
           refreshToken: tokenData.refresh_token,
           userId: userData.id?.toString() || ''
         },
-        moneda: moneda._id
+        moneda: undefined // Se resolverá por transacción
       });
       res.json({ 
         message: 'Conexión MercadoPago creada y sincronizada',

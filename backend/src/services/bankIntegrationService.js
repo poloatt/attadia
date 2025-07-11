@@ -2,6 +2,7 @@ import { Cuentas } from '../models/Cuentas.js';
 import { BankConnection } from '../models/BankConnection.js';
 import { Transacciones } from '../models/Transacciones.js';
 import { MercadoPagoAdapter } from './adapters/mercadoPagoAdapter.js';
+import { Monedas, ISO_4217 } from '../models/Monedas.js';
 
 const adapters = {
   MERCADOPAGO: MercadoPagoAdapter,
@@ -65,7 +66,22 @@ export class BankIntegrationService {
       if (mov.collector_id === adapter.userId) {
         tipo = 'INGRESO'; // Si el usuario es el cobrador, es un ingreso
       }
-      
+      // --- NUEVO: Obtener moneda de la transacción ---
+      let monedaId = undefined;
+      const currencyId = mov.currency_id?.toUpperCase();
+      if (currencyId) {
+        let moneda = await Monedas.findOne({ codigo: currencyId });
+        if (!moneda) {
+          const ref = ISO_4217[currencyId] || { nombre: currencyId, simbolo: currencyId };
+          moneda = await Monedas.create({
+            codigo: currencyId,
+            nombre: ref.nombre,
+            simbolo: ref.simbolo,
+            esGlobal: true
+          });
+        }
+        monedaId = moneda._id;
+      }
       // Crea transacción si no existe
       await Transacciones.findOneAndUpdate(
         { 
@@ -80,7 +96,7 @@ export class BankIntegrationService {
           estado: mov.status === 'approved' ? 'COMPLETADA' : 'PENDIENTE',
           tipo: tipo,
           usuario: connection.usuario,
-          moneda: connection.cuenta.moneda,
+          moneda: monedaId,
           cuenta: connection.cuenta._id,
           origen: {
             tipo: 'MERCADOPAGO',
