@@ -52,7 +52,7 @@ const generateTokens = (user) => {
 export const authController = {
   register: async (req, res) => {
     try {
-      const { nombre, email, password } = req.body;
+      const { nombre, email, password, pais } = req.body;
 
       // Validación de campos
       if (!nombre || !email || !password) {
@@ -92,7 +92,8 @@ export const authController = {
         nombre,
         email,
         password: hashedPassword,
-        role: 'USER'
+        role: 'USER',
+        pais: pais || 'AR'
       });
 
       // Inicializar datos de ejemplo para el nuevo usuario
@@ -261,6 +262,17 @@ export const authController = {
       if (!req.user) {
         console.error('No se recibió información del usuario');
         return res.redirect(`${config.frontendUrl}/auth/callback?error=no_user_info`);
+      }
+
+      // Obtener país del perfil de Google, sesión o body (si está disponible)
+      let pais = req.body?.pais || req.session?.pais || req.user.pais || 'AR';
+      // Si el usuario ya existe, actualizar el país si es necesario
+      if (req.user && req.user._id) {
+        const userDoc = await Users.findById(req.user._id);
+        if (userDoc && userDoc.pais !== pais) {
+          userDoc.pais = pais;
+          await userDoc.save();
+        }
       }
 
       // Generar tokens

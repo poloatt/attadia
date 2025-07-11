@@ -91,6 +91,15 @@ const userSchema = new mongoose.Schema({
   },
   telefono: String,
   googleId: String,
+  // --- NUEVO: país del usuario (código ISO 2 letras, ej: 'AR', 'BR', 'US') ---
+  pais: {
+    type: String,
+    uppercase: true,
+    minlength: 2,
+    maxlength: 2,
+    default: 'AR', // Puedes cambiar el default según tu público
+    description: 'Código de país ISO 3166-1 alfa-2 (ej: AR, BR, US)'
+  },
   preferences: {
     theme: {
       type: String,

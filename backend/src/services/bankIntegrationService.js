@@ -2,7 +2,8 @@ import { Cuentas } from '../models/Cuentas.js';
 import { BankConnection } from '../models/BankConnection.js';
 import { Transacciones } from '../models/Transacciones.js';
 import { MercadoPagoAdapter } from './adapters/mercadoPagoAdapter.js';
-import { Monedas, ISO_4217 } from '../models/Monedas.js';
+import { Monedas, ISO_4217, PAISES_MONEDAS } from '../models/Monedas.js';
+import { Users } from '../models/Users.js';
 
 const adapters = {
   MERCADOPAGO: MercadoPagoAdapter,
@@ -25,11 +26,29 @@ export class BankIntegrationService {
     const cuentaTipo = tipoToCuentaTipo[tipo] || tipo;
     let cuenta = await Cuentas.findOne({ usuario, tipo: cuentaTipo });
     if (!cuenta) {
+      let monedaId = moneda;
+      if (!monedaId) {
+        // Buscar el país del usuario
+        const userDoc = await Users.findById(usuario);
+        let pais = userDoc?.pais || 'AR';
+        let monedaCodigo = PAISES_MONEDAS[pais]?.moneda || 'ARS';
+        let monedaDoc = await Monedas.findOne({ codigo: monedaCodigo });
+        if (!monedaDoc) {
+          const ref = ISO_4217[monedaCodigo] || { nombre: monedaCodigo, simbolo: monedaCodigo };
+          monedaDoc = await Monedas.create({
+            codigo: monedaCodigo,
+            nombre: ref.nombre,
+            simbolo: ref.simbolo,
+            esGlobal: true
+          });
+        }
+        monedaId = monedaDoc._id;
+      }
       cuenta = await Cuentas.create({ 
         usuario, 
         tipo: cuentaTipo, 
         nombre: tipo === 'MERCADOPAGO' ? 'Mercado Pago' : tipo, 
-        moneda 
+        moneda: monedaId
       });
     }
 
@@ -66,7 +85,7 @@ export class BankIntegrationService {
       if (mov.collector_id === adapter.userId) {
         tipo = 'INGRESO'; // Si el usuario es el cobrador, es un ingreso
       }
-      // --- NUEVO: Obtener moneda de la transacción ---
+      // --- NUEVO: Obtener moneda de la transacción o usar fallback ---
       let monedaId = undefined;
       const currencyId = mov.currency_id?.toUpperCase();
       if (currencyId) {
@@ -81,6 +100,15 @@ export class BankIntegrationService {
           });
         }
         monedaId = moneda._id;
+      } else {
+        // Fallback: usar la moneda de la cuenta y loguear warning
+        monedaId = connection.cuenta.moneda;
+        console.warn('[MercadoPago] Movimiento sin currency_id, usando moneda de la cuenta:', {
+          movId: mov.id,
+          descripcion: mov.description,
+          cuenta: connection.cuenta._id,
+          monedaFallback: monedaId
+        });
       }
       // Crea transacción si no existe
       await Transacciones.findOneAndUpdate(
