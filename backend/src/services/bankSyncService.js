@@ -273,98 +273,52 @@ export class BankSyncService {
   async sincronizarConMercadoPago(bankConnection) {
     try {
       console.log(`Sincronizando con MercadoPago para conexión: ${bankConnection.nombre}`);
+      
+      // Importar el servicio de datos completos de MercadoPago
+      const { MercadoPagoDataService } = await import('./mercadoPagoDataService.js');
+      
       // Desencriptar credenciales de MercadoPago
       let accessToken = this.decrypt(bankConnection.credenciales.accessToken);
       let refreshToken = this.decrypt(bankConnection.credenciales.refreshToken);
       const userId = this.decrypt(bankConnection.credenciales.userId);
       
-      // Obtener usuario usando la API REST directamente
-      const userRes = await fetch('https://api.mercadopago.com/users/me', {
-        headers: { 
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        }
+      // Crear instancia del servicio de datos completos
+      const mpDataService = new MercadoPagoDataService({
+        accessToken,
+        refreshToken,
+        userId,
+        usuarioId: bankConnection.usuario
       });
 
-      if (!userRes.ok) {
-        throw new Error(`Error obteniendo información del usuario: ${userRes.status}`);
-      }
+      // Obtener datos completos de Mercado Pago (últimos 30 días)
+      const fechaDesde = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const datosCompletos = await mpDataService.obtenerDatosCompletos({
+        fechaDesde: fechaDesde.toISOString(),
+        limit: 100
+      });
 
-      const userInfo = await userRes.json();
+      console.log('Datos completos obtenidos:', {
+        pagos: datosCompletos.pagos.length,
+        movimientos: datosCompletos.movimientosCuenta.length,
+        ordenes: datosCompletos.ordenesComerciante.length,
+        errores: datosCompletos.errores.length
+      });
 
-      // Obtener pagos recientes usando la API REST directamente
-      const paymentsRes = await fetch(
-        `https://api.mercadopago.com/v1/payments/search?date_created.from=${new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()}`,
-        {
-          headers: { 
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          }
-        }
+      // Procesar pagos
+      const resultadoPagos = await mpDataService.procesarPagos(
+        datosCompletos.pagos, 
+        bankConnection.cuenta
       );
 
-      if (!paymentsRes.ok) {
-        throw new Error(`Error obteniendo pagos: ${paymentsRes.status}`);
-      }
+      // Procesar movimientos de cuenta
+      const resultadoMovimientos = await mpDataService.procesarMovimientosCuenta(
+        datosCompletos.movimientosCuenta, 
+        bankConnection.cuenta
+      );
 
-      const paymentsData = await paymentsRes.json();
-      const pagos = paymentsData.results || [];
-      
-      let transaccionesNuevas = 0;
-      let transaccionesActualizadas = 0;
-
-      for (const pago of pagos) {
-        // Verificar si la transacción ya existe
-        const transaccionExistente = await Transacciones.findOne({
-          cuenta: bankConnection.cuenta,
-          'origen.transaccionId': pago.id.toString(),
-          'origen.tipo': 'MERCADOPAGO'
-        });
-
-        if (!transaccionExistente) {
-          // Determinar tipo de transacción
-          let tipo = 'EGRESO';
-          let monto = pago.transaction_amount;
-          
-          // Si es un pago recibido (como vendedor), es un INGRESO
-          if (pago.collector_id === userId) {
-            tipo = 'INGRESO';
-          }
-          
-          // Si es un pago enviado (como comprador), es un EGRESO
-          if (pago.payer.id === userId) {
-            tipo = 'EGRESO';
-            monto = Math.abs(monto); // Asegurar que sea positivo para EGRESO
-          }
-
-          // Crear nueva transacción
-          const nuevaTransaccion = new Transacciones({
-            descripcion: this.formatearDescripcionMercadoPago(pago),
-            monto: monto,
-            fecha: new Date(pago.date_created),
-            categoria: bankConnection.configuracion.categorizacionAutomatica ? 
-              this.categorizarTransaccion(this.formatearDescripcionMercadoPago(pago)) : 'Otro',
-            estado: this.mapearEstadoMercadoPago(pago.status),
-            tipo: tipo,
-            usuario: bankConnection.usuario,
-            cuenta: bankConnection.cuenta,
-            origen: {
-              tipo: 'MERCADOPAGO',
-              conexionId: bankConnection._id,
-              transaccionId: pago.id.toString(),
-              metadata: {
-                paymentId: pago.id,
-                status: pago.status,
-                paymentMethod: pago.payment_method?.type,
-                installments: pago.installments
-              }
-            }
-          });
-
-          await nuevaTransaccion.save();
-          transaccionesNuevas++;
-        }
-      }
+      // Calcular totales
+      const transaccionesNuevas = resultadoPagos.nuevas + resultadoMovimientos.nuevas;
+      const transaccionesActualizadas = resultadoPagos.actualizadas + resultadoMovimientos.actualizadas;
 
       // Actualizar estado de la conexión
       await bankConnection.actualizarSincronizacion(
@@ -376,7 +330,12 @@ export class BankSyncService {
       return {
         exito: true,
         transaccionesNuevas,
-        transaccionesActualizadas
+        transaccionesActualizadas,
+        detalles: {
+          pagos: resultadoPagos,
+          movimientos: resultadoMovimientos,
+          errores: datosCompletos.errores
+        }
       };
 
     } catch (error) {
@@ -396,24 +355,26 @@ export class BankSyncService {
     }
   }
 
-  // Obtener pagos de MercadoPago (método actualizado para usar API REST)
+  // Obtener pagos de MercadoPago (método actualizado para usar el adaptador)
   async obtenerPagosMercadoPago(accessToken, fechaDesde) {
     try {
-      const url = `https://api.mercadopago.com/v1/payments/search?date_created.from=${fechaDesde.toISOString()}`;
+      // Importar el adaptador de MercadoPago
+      const { MercadoPagoAdapter } = await import('./adapters/mercadoPagoAdapter.js');
       
-      const response = await fetch(url, {
-        headers: { 
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        }
+      // Crear instancia del adaptador
+      const mpAdapter = new MercadoPagoAdapter({
+        accessToken,
+        refreshToken: null, // No necesario para este método
+        userId: null // No necesario para este método
+      });
+
+      // Obtener pagos usando el adaptador corregido
+      const pagos = await mpAdapter.getMovimientos({
+        since: fechaDesde.toISOString(),
+        limit: 100
       });
       
-      if (!response.ok) {
-        throw new Error(`Error obteniendo pagos: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      return data.results || [];
+      return pagos;
     } catch (error) {
       console.error('Error obteniendo pagos de MercadoPago:', error);
       throw error;

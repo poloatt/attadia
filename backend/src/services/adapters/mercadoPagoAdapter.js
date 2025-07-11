@@ -101,7 +101,11 @@ export class MercadoPagoAdapter {
       const params = new URLSearchParams();
       
       if (since) {
-        params.append('date_created.from', since);
+        // Usar los parámetros correctos para el endpoint /v1/payments/search
+        // Según la documentación oficial de Mercado Pago
+        params.append('range', 'date_created');
+        params.append('begin_date', since);
+        // end_date se puede omitir para obtener hasta la fecha actual
       }
       
       // Agregar límite para evitar respuestas muy grandes
@@ -113,6 +117,8 @@ export class MercadoPagoAdapter {
       if (params.toString()) {
         url += `?${params.toString()}`;
       }
+      
+      console.log('URL de consulta MercadoPago:', url);
       
       const response = await fetch(url, {
         headers: { 
@@ -148,6 +154,152 @@ export class MercadoPagoAdapter {
       const results = data.results || [];
       
       console.log(`Movimientos obtenidos: ${results.length}`, {
+        userId: this.userId,
+        since,
+        limit,
+        totalResults: results.length,
+        hasPaging: !!data.paging
+      });
+      
+      return results;
+    });
+  }
+
+  // Método para obtener movimientos usando el endpoint de account/movements (alternativo)
+  async getAccountMovements({ since, limit = 100 }) {
+    return this.withRetry(async () => {
+      console.log('Obteniendo movimientos de cuenta MercadoPago...', {
+        since: since || 'sin filtro de fecha',
+        limit,
+        userId: this.userId
+      });
+      
+      // Construir URL para el endpoint de movimientos de cuenta
+      let url = 'https://api.mercadopago.com/v1/account/movements/search';
+      const params = new URLSearchParams();
+      
+      if (since) {
+        // Para este endpoint usamos date_created_from y date_created_to
+        params.append('date_created_from', since);
+        // end_date se puede omitir para obtener hasta la fecha actual
+      }
+      
+      // Agregar límite para evitar respuestas muy grandes
+      params.append('limit', limit.toString());
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      console.log('URL de consulta movimientos de cuenta:', url);
+      
+      const response = await fetch(url, {
+        headers: { 
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json',
+          'User-Agent': 'PresentApp/1.0'
+        }
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response from MercadoPago account movements:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText,
+          userId: this.userId,
+          url
+        });
+        
+        // Manejar errores específicos de MercadoPago
+        if (response.status === 401) {
+          throw new Error('Token de acceso expirado o inválido');
+        } else if (response.status === 403) {
+          throw new Error('Acceso denegado - verificar permisos de la aplicación');
+        } else if (response.status === 429) {
+          throw new Error('Rate limit excedido - intentar más tarde');
+        }
+        
+        throw new Error(`Error obteniendo movimientos de cuenta: ${response.status} - ${errorText}`);
+      }
+      
+      const data = await response.json();
+      const results = data.results || [];
+      
+      console.log(`Movimientos de cuenta obtenidos: ${results.length}`, {
+        userId: this.userId,
+        since,
+        limit,
+        totalResults: results.length,
+        hasPaging: !!data.paging
+      });
+      
+      return results;
+    });
+  }
+
+  // Método para obtener transacciones usando el endpoint de merchant_orders
+  async getMerchantOrders({ since, limit = 100 }) {
+    return this.withRetry(async () => {
+      console.log('Obteniendo órdenes de comerciante MercadoPago...', {
+        since: since || 'sin filtro de fecha',
+        limit,
+        userId: this.userId
+      });
+      
+      // Construir URL para el endpoint de merchant_orders
+      let url = 'https://api.mercadopago.com/v1/merchant_orders/search';
+      const params = new URLSearchParams();
+      
+      if (since) {
+        // Para este endpoint usamos date_created_from y date_created_to
+        params.append('date_created_from', since);
+        // end_date se puede omitir para obtener hasta la fecha actual
+      }
+      
+      // Agregar límite para evitar respuestas muy grandes
+      params.append('limit', limit.toString());
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      console.log('URL de consulta órdenes de comerciante:', url);
+      
+      const response = await fetch(url, {
+        headers: { 
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json',
+          'User-Agent': 'PresentApp/1.0'
+        }
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response from MercadoPago merchant orders:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText,
+          userId: this.userId,
+          url
+        });
+        
+        // Manejar errores específicos de MercadoPago
+        if (response.status === 401) {
+          throw new Error('Token de acceso expirado o inválido');
+        } else if (response.status === 403) {
+          throw new Error('Acceso denegado - verificar permisos de la aplicación');
+        } else if (response.status === 429) {
+          throw new Error('Rate limit excedido - intentar más tarde');
+        }
+        
+        throw new Error(`Error obteniendo órdenes de comerciante: ${response.status} - ${errorText}`);
+      }
+      
+      const data = await response.json();
+      const results = data.results || [];
+      
+      console.log(`Órdenes de comerciante obtenidas: ${results.length}`, {
         userId: this.userId,
         since,
         limit,

@@ -7,6 +7,8 @@ import { BankIntegrationService } from '../services/bankIntegrationService.js';
 import fetch from 'node-fetch';
 import logger from '../utils/logger.js';
 import { Monedas, ISO_4217 } from '../models/Monedas.js';
+import { Cuentas } from '../models/Cuentas.js';
+import config from '../config/config.js';
 
 class BankConnectionController extends BaseController {
   constructor() {
@@ -138,29 +140,29 @@ class BankConnectionController extends BaseController {
 
       const userInfo = await userRes.json();
 
+            // Importar el adaptador de MercadoPago
+      const { MercadoPagoAdapter } = await import('../services/adapters/mercadoPagoAdapter.js');
+      
+      // Crear instancia del adaptador
+      const mpAdapter = new MercadoPagoAdapter({
+        accessToken: credenciales.accessToken,
+        refreshToken: null,
+        userId: null
+      });
+
       // Obtener algunos pagos recientes para verificar el token
-      const paymentsRes = await fetch(
-        `https://api.mercadopago.com/v1/payments/search?date_created.from=${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()}`,
-        {
-          headers: { 
-            'Authorization': `Bearer ${credenciales.accessToken}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (!paymentsRes.ok) {
-        throw new Error(`Error obteniendo pagos: ${paymentsRes.status}`);
-          }
-
-      const paymentsData = await paymentsRes.json();
+      const fechaDesde = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const paymentsData = await mpAdapter.getMovimientos({
+        since: fechaDesde.toISOString(),
+        limit: 10
+      });
 
       return {
         exito: true,
         mensaje: 'Conexión con MercadoPago verificada exitosamente',
         datos: {
           usuario: userInfo,
-          pagosRecientes: paymentsData.results?.length || 0
+          pagosRecientes: paymentsData.length || 0
         }
       };
     } catch (error) {
@@ -396,43 +398,246 @@ class BankConnectionController extends BaseController {
           expectedState: req.session.mercadopagoState,
           userId: req.user?.id
         });
-        return res.status(400).json({ message: 'Invalid state parameter' });
+        return res.status(400).json({ message: 'Parámetro state inválido' });
       }
-      // Limpiar el state de la sesión después de validarlo
+
+      // Intercambiar código por token
+      const redirectUri = `${config.frontendUrl}/mercadopago-callback`;
+      const { accessToken, refreshToken, userId } = await exchangeCodeForToken({ code, redirectUri });
+
+      // Obtener información del usuario de MercadoPago
+      const userInfo = await this.obtenerInformacionUsuarioMercadoPago(accessToken);
+
+      // Obtener país del usuario (por defecto Argentina)
+      const pais = userInfo.country_id || 'AR';
+      
+      // Obtener moneda asociada al país
+      const moneda = await this.obtenerMonedaPorPais(pais);
+
+      // Crear cuenta para MercadoPago
+      const cuenta = new Cuentas({
+        nombre: `MercadoPago - ${userInfo.nickname || userInfo.email}`,
+        tipo: 'DIGITAL',
+        moneda: moneda._id,
+        usuario: req.user.id,
+        saldo: 0,
+        activa: true,
+        configuracion: {
+          categorizacionAutomatica: true,
+          sincronizacionAutomatica: true
+        }
+      });
+
+      await cuenta.save();
+
+      // Crear conexión bancaria
+      const conexion = new BankConnection({
+        nombre: `MercadoPago - ${userInfo.nickname || userInfo.email}`,
+        tipo: 'MERCADOPAGO',
+        usuario: req.user.id,
+        cuenta: cuenta._id,
+        credenciales: {
+          accessToken: this.encrypt(accessToken),
+          refreshToken: this.encrypt(refreshToken),
+          userId: this.encrypt(userId.toString())
+        },
+        configuracion: {
+          categorizacionAutomatica: true,
+          sincronizacionAutomatica: true,
+          sincronizacionIntervalo: 3600 // 1 hora
+        },
+        estado: 'ACTIVA',
+        ultimaSincronizacion: new Date(),
+        proximaSincronizacion: new Date(Date.now() + 3600 * 1000)
+      });
+
+      await conexion.save();
+
+      // Limpiar el state de la sesión
       if (req.session) {
         delete req.session.mercadopagoState;
       }
-      // Usar la redirect_uri EXACTA registrada en MercadoPago
-      const redirectUri = 'https://admin.attadia.com/mercadopago/callback';
-      // Intercambiar code por token y userId
-      const tokenData = await exchangeCodeForToken({ code, redirectUri });
-      const userRes = await fetch('https://api.mercadopago.com/users/me', {
-        headers: { Authorization: `Bearer ${tokenData.access_token}` }
+
+      logger.mercadopago('CONNECTION_CREATED', 'Conexión MercadoPago creada exitosamente', {
+        userId: req.user.id,
+        mercadopagoUserId: userId,
+        cuentaId: cuenta._id,
+        conexionId: conexion._id
       });
-      if (!userRes.ok) {
-        throw new Error(`Error obteniendo información del usuario: ${userRes.status}`);
-      }
-      const userData = await userRes.json();
-      // Ya no validamos ni requerimos currency_id aquí
-      // Modular: usar BankIntegrationService
-      const connection = await BankIntegrationService.connect({
-        tipo: 'MERCADOPAGO',
-        usuario: req.user.id,
-        credenciales: {
-          accessToken: tokenData.access_token,
-          refreshToken: tokenData.refresh_token,
-          userId: userData.id?.toString() || ''
+
+      res.json({
+        message: 'Conexión con MercadoPago establecida exitosamente',
+        conexion: {
+          id: conexion._id,
+          nombre: conexion.nombre,
+          tipo: conexion.tipo,
+          estado: conexion.estado
         },
-        moneda: undefined // Se resolverá por transacción
-      });
-      res.json({ 
-        message: 'Conexión MercadoPago creada y sincronizada',
-        conexion: connection
+        cuenta: {
+          id: cuenta._id,
+          nombre: cuenta.nombre,
+          moneda: {
+            codigo: moneda.codigo,
+            simbolo: moneda.simbolo
+          }
+        }
       });
     } catch (error) {
       console.error('Error en callback MercadoPago:', error);
       res.status(500).json({ 
-        message: 'Error conectando con MercadoPago', 
+        message: 'Error procesando autorización de MercadoPago',
+        error: error.message 
+      });
+    }
+  }
+
+  // GET /api/bankconnections/mercadopago/datos-completos/:conexionId
+  async obtenerDatosCompletosMercadoPago(req, res) {
+    try {
+      const { conexionId } = req.params;
+      const { fechaDesde, limit = 100 } = req.query;
+
+      // Verificar que la conexión existe y pertenece al usuario
+      const conexion = await BankConnection.findOne({
+        _id: conexionId,
+        usuario: req.user.id,
+        tipo: 'MERCADOPAGO'
+      });
+
+      if (!conexion) {
+        return res.status(404).json({ message: 'Conexión no encontrada' });
+      }
+
+      // Importar el servicio de datos completos
+      const { MercadoPagoDataService } = await import('../services/mercadoPagoDataService.js');
+
+      // Desencriptar credenciales
+      const accessToken = this.decrypt(conexion.credenciales.accessToken);
+      const refreshToken = this.decrypt(conexion.credenciales.refreshToken);
+      const userId = this.decrypt(conexion.credenciales.userId);
+
+      // Crear instancia del servicio
+      const mpDataService = new MercadoPagoDataService({
+        accessToken,
+        refreshToken,
+        userId,
+        usuarioId: req.user.id
+      });
+
+      // Obtener datos completos
+      const datosCompletos = await mpDataService.obtenerDatosCompletos({
+        fechaDesde: fechaDesde || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        limit: parseInt(limit)
+      });
+
+      res.json({
+        message: 'Datos completos obtenidos exitosamente',
+        datos: datosCompletos,
+        resumen: {
+          totalPagos: datosCompletos.pagos.length,
+          totalMovimientos: datosCompletos.movimientosCuenta.length,
+          totalOrdenes: datosCompletos.ordenesComerciante.length,
+          errores: datosCompletos.errores.length
+        }
+      });
+
+    } catch (error) {
+      console.error('Error obteniendo datos completos de MercadoPago:', error);
+      res.status(500).json({ 
+        message: 'Error obteniendo datos completos',
+        error: error.message 
+      });
+    }
+  }
+
+  // POST /api/bankconnections/mercadopago/procesar-datos/:conexionId
+  async procesarDatosMercadoPago(req, res) {
+    try {
+      const { conexionId } = req.params;
+      const { procesarPagos = true, procesarMovimientos = true } = req.body;
+
+      // Verificar que la conexión existe y pertenece al usuario
+      const conexion = await BankConnection.findOne({
+        _id: conexionId,
+        usuario: req.user.id,
+        tipo: 'MERCADOPAGO'
+      });
+
+      if (!conexion) {
+        return res.status(404).json({ message: 'Conexión no encontrada' });
+      }
+
+      // Importar el servicio de datos completos
+      const { MercadoPagoDataService } = await import('../services/mercadoPagoDataService.js');
+
+      // Desencriptar credenciales
+      const accessToken = this.decrypt(conexion.credenciales.accessToken);
+      const refreshToken = this.decrypt(conexion.credenciales.refreshToken);
+      const userId = this.decrypt(conexion.credenciales.userId);
+
+      // Crear instancia del servicio
+      const mpDataService = new MercadoPagoDataService({
+        accessToken,
+        refreshToken,
+        userId,
+        usuarioId: req.user.id
+      });
+
+      // Obtener datos completos (últimos 30 días)
+      const fechaDesde = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const datosCompletos = await mpDataService.obtenerDatosCompletos({
+        fechaDesde: fechaDesde.toISOString(),
+        limit: 100
+      });
+
+      const resultados = {
+        pagos: { nuevas: 0, actualizadas: 0 },
+        movimientos: { nuevas: 0, actualizadas: 0 },
+        errores: datosCompletos.errores
+      };
+
+      // Procesar pagos si se solicita
+      if (procesarPagos) {
+        const resultadoPagos = await mpDataService.procesarPagos(
+          datosCompletos.pagos, 
+          conexion.cuenta
+        );
+        resultados.pagos = resultadoPagos;
+      }
+
+      // Procesar movimientos si se solicita
+      if (procesarMovimientos) {
+        const resultadoMovimientos = await mpDataService.procesarMovimientosCuenta(
+          datosCompletos.movimientosCuenta, 
+          conexion.cuenta
+        );
+        resultados.movimientos = resultadoMovimientos;
+      }
+
+      // Actualizar estado de la conexión
+      const totalNuevas = resultados.pagos.nuevas + resultados.movimientos.nuevas;
+      const totalActualizadas = resultados.pagos.actualizadas + resultados.movimientos.actualizadas;
+
+      await conexion.actualizarSincronizacion(
+        'EXITOSA',
+        totalNuevas,
+        totalActualizadas
+      );
+
+      res.json({
+        message: 'Datos procesados exitosamente',
+        resultados,
+        resumen: {
+          totalNuevas,
+          totalActualizadas,
+          totalErrores: datosCompletos.errores.length
+        }
+      });
+
+    } catch (error) {
+      console.error('Error procesando datos de MercadoPago:', error);
+      res.status(500).json({ 
+        message: 'Error procesando datos',
         error: error.message 
       });
     }
