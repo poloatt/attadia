@@ -3,6 +3,8 @@ import { Transacciones } from '../models/Transacciones.js';
 import { Cuentas } from '../models/Cuentas.js';
 import crypto from 'crypto';
 import { refreshAccessToken } from '../oauth/mercadoPagoOAuth.js';
+import pkg from 'mercadopago';
+const mercadopago = pkg.default || pkg;
 
 export class BankSyncService {
   constructor() {
@@ -277,7 +279,6 @@ export class BankSyncService {
       let refreshToken = this.decrypt(bankConnection.credenciales.refreshToken);
       const userId = this.decrypt(bankConnection.credenciales.userId);
       // Configurar cliente de MercadoPago
-      let mercadopago = require('mercadopago');
       mercadopago.configure({ access_token: accessToken });
       // Obtener fecha de última sincronización
       const ultimaSincronizacion = bankConnection.ultimaSincronizacion || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -295,7 +296,6 @@ export class BankSyncService {
           bankConnection.credenciales.refreshToken = this.encrypt(refreshToken);
           await bankConnection.save();
           // Reconfigura el cliente y reintenta
-          mercadopago = require('mercadopago');
           mercadopago.configure({ access_token: accessToken });
           pagos = await this.obtenerPagosMercadoPago(mercadopago, ultimaSincronizacion);
         } else {

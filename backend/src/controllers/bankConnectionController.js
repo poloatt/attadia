@@ -4,6 +4,8 @@ import { BankSyncService } from '../services/bankSyncService.js';
 import crypto from 'crypto';
 import { getAuthUrl, exchangeCodeForToken } from '../oauth/mercadoPagoOAuth.js';
 import { BankIntegrationService } from '../services/bankIntegrationService.js';
+import pkg from 'mercadopago';
+const mercadopago = pkg.default || pkg;
 
 class BankConnectionController extends BaseController {
   constructor() {
@@ -113,7 +115,6 @@ class BankConnectionController extends BaseController {
   // Verificar conexión con MercadoPago
   async verificarMercadoPago(credenciales) {
     try {
-      const mercadopago = require('mercadopago');
       mercadopago.configure({
         access_token: credenciales.accessToken
       });
