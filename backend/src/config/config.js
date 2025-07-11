@@ -86,13 +86,13 @@ const configs = {
     ...baseConfig,
     env: 'production',
     mongoUrl: process.env.MONGO_PUBLIC_URL || process.env.MONGO_URL || process.env.MONGODB_URI || `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@mongodb:27017/${process.env.MONGO_DB}?authSource=admin`,
-    frontendUrl: process.env.FRONTEND_URL,
-    backendUrl: process.env.BACKEND_URL,
+    frontendUrl: process.env.FRONTEND_URL || 'https://admin.attadia.com',
+    backendUrl: process.env.BACKEND_URL || 'https://api.admin.attadia.com',
     corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['https://admin.attadia.com'],
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackUrl: process.env.GOOGLE_CALLBACK_URL
+      callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'https://api.admin.attadia.com/api/auth/google/callback'
     }
   }
 };
