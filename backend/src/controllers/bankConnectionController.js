@@ -402,7 +402,7 @@ class BankConnectionController extends BaseController {
       }
 
       // Intercambiar código por token
-      const redirectUri = `${config.frontendUrl}/mercadopago-callback`;
+      const redirectUri = `${config.frontendUrl}/mercadopago/callback`;
       const { accessToken, refreshToken, userId } = await exchangeCodeForToken({ code, redirectUri });
 
       // Obtener información del usuario de MercadoPago
