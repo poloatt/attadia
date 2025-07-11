@@ -649,7 +649,7 @@ class BankConnectionController extends BaseController {
       const { monto = 10, descripcion = 'Pago de prueba para validación de app en producción' } = req.body;
 
       // Importar el SDK de MercadoPago de forma dinámica compatible con ES Modules
-      const mercadopago = (await import('mercadopago')).default;
+      const { default: mercadopago } = await import('mercadopago');
       mercadopago.configure({
         access_token: process.env.MERCADOPAGO_ACCESS_TOKEN || config.mercadopago.accessToken
       });
