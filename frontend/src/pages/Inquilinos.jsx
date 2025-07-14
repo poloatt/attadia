@@ -5,7 +5,7 @@ import {
   Chip
 } from '@mui/material';
 import { useSnackbar } from 'notistack';
-import { InquilinoList, InquilinoForm } from '../components/inquilinos';
+import { InquilinoList, InquilinoForm } from '../components/propiedades/inquilinos';
 import EntityDetails from '../components/EntityViews/EntityDetails';
 
 import {
@@ -16,7 +16,7 @@ import {
 } from '@mui/icons-material';
 import clienteAxios from '../config/axios';
 import { useNavigate } from 'react-router-dom';
-import ContratoForm from '../components/contratos/ContratoForm';
+import ContratoForm from '../components/propiedades/contratos/ContratoForm';
 
 export function Inquilinos() {
   const [inquilinos, setInquilinos] = useState([]);

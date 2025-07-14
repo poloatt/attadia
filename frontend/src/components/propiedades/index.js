@@ -1,0 +1,9 @@
+export { default as PropiedadCard } from './PropiedadCard';
+export { default as PropiedadListView } from './PropiedadListView';
+export { default as PropiedadGridView } from './PropiedadGridView';
+export { default as PropiedadForm } from './PropiedadForm';
+export { default as BarraEstadoPropiedad } from './BarraEstadoPropiedad';
+export { default as SeccionesPropiedad } from './SeccionesPropiedad';
+export * from './propiedadUtils';
+export * as contratos from './contratos';
+export * as inquilinos from './inquilinos'; 

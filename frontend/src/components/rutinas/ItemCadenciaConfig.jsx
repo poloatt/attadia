@@ -51,7 +51,7 @@ import SyncIcon from '@mui/icons-material/Sync';
 import CircularProgress from '@mui/material/CircularProgress';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import { logSaveOperation } from './DEBUG.js';
+
 
 const DIAS_SEMANA = [
   { value: 0, label: 'Domingo' },
@@ -359,7 +359,7 @@ const ItemCadenciaConfig = ({
       });
       
       // Usar la herramienta de depuración para registrar el guardado
-      logSaveOperation('ItemCadenciaConfig', itemId, newConfig);
+
       
       console.log(`[ItemCadenciaConfig] 🔄 Guardando configuración para ${itemId}:`, JSON.stringify(newConfig));
       console.log(`[ItemCadenciaConfig] 🔍 Tipo enviado: ${newConfig.tipo}, periodo: ${newConfig.periodo}`);

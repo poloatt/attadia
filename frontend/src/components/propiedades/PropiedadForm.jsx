@@ -15,7 +15,8 @@ import {
   Grid,
   Chip,
   Autocomplete,
-  InputAdornment
+  InputAdornment,
+  Alert
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
@@ -38,6 +39,7 @@ import {
   BookmarkAdded,
   Description as DescriptionIcon,
   Flag as FlagIcon,
+  Info as InfoIcon
 } from '@mui/icons-material';
 import { snackbar } from '../common/snackbarUtils';
 import { useRelationalData } from '../../hooks/useRelationalData';
@@ -166,12 +168,11 @@ const PropiedadForm = ({
 }) => {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
-    titulo: initialData.titulo || '',
+    alias: initialData.alias || '',
     tipo: initialData.tipo || 'CASA',
     direccion: initialData.direccion || '',
     ciudad: initialData.ciudad || '',
     estado: Array.isArray(initialData.estado) ? initialData.estado : (initialData.estado ? [initialData.estado] : ['DISPONIBLE']),
-    montoMensual: initialData.montoMensual?.toString() || '',
     metrosCuadrados: initialData.metrosCuadrados?.toString() || '',
     caracteristicas: initialData.caracteristicas || [],
     descripcion: initialData.descripcion || '',
@@ -181,7 +182,6 @@ const PropiedadForm = ({
 
   const [errors, setErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
-  // Usar snackbar unificado
   
   const relatedFields = [
     { 
@@ -211,12 +211,11 @@ const PropiedadForm = ({
   useEffect(() => {
     if (open) {
       setFormData({
-        titulo: initialData.titulo || '',
+        alias: initialData.alias || '',
         tipo: initialData.tipo || 'CASA',
         direccion: initialData.direccion || '',
         ciudad: initialData.ciudad || '',
         estado: Array.isArray(initialData.estado) ? initialData.estado : (initialData.estado ? [initialData.estado] : ['DISPONIBLE']),
-        montoMensual: initialData.montoMensual?.toString() || '',
         metrosCuadrados: initialData.metrosCuadrados?.toString() || '',
         caracteristicas: initialData.caracteristicas || [],
         descripcion: initialData.descripcion || '',
@@ -259,7 +258,7 @@ const PropiedadForm = ({
 
   const handleChange = (name, value) => {
     // Convertir valores numéricos
-    const numericFields = ['montoMensual', 'metrosCuadrados'];
+    const numericFields = ['metrosCuadrados'];
     let finalValue = value;
     
     if (numericFields.includes(name)) {
@@ -307,13 +306,12 @@ const PropiedadForm = ({
 
     // Preparar datos para enviar, siendo explícito sobre los campos
     const dataToSubmit = {
-      titulo: formData.titulo,
+      alias: formData.alias,
       descripcion: formData.descripcion,
       direccion: formData.direccion,
       ciudad: formData.ciudad,
       tipo: formData.tipo,
       estado: formData.estado,
-      montoMensual: formData.montoMensual ? Number(formData.montoMensual) : 0,
       metrosCuadrados: formData.metrosCuadrados ? Number(formData.metrosCuadrados) : 0,
       caracteristicas: formData.caracteristicas || [],
       moneda: formData.moneda || null,
@@ -383,14 +381,13 @@ const PropiedadForm = ({
     const newErrors = {};
     
     // Validación de campos requeridos
-    if (!formData.titulo?.trim()) newErrors.titulo = 'El título es requerido';
+    if (!formData.alias?.trim()) newErrors.alias = 'El alias es requerido';
     if (!formData.descripcion?.trim()) newErrors.descripcion = 'La descripción es requerida';
     if (!formData.direccion?.trim()) newErrors.direccion = 'La dirección es requerida';
     if (!formData.ciudad?.trim()) newErrors.ciudad = 'La ciudad es requerida';
     
     // Validación de campos numéricos (solo si se proporciona valor)
     const numericFields = {
-      montoMensual: 'El monto mensual',
       metrosCuadrados: 'Los metros cuadrados'
     };
 
@@ -403,10 +400,6 @@ const PropiedadForm = ({
         }
       }
     });
-
-    // Validación de moneda y cuenta - Según el modelo, estos campos son opcionales
-    // Los campos moneda y cuenta son opcionales según el modelo
-    // No validar estos campos ya que son opcionales
 
     return newErrors;
   };
@@ -468,11 +461,11 @@ const PropiedadForm = ({
             <Grid item xs={12}>
               <StyledTextField
                 fullWidth
-                label="Nombre de la Propiedad"
-                value={formData.titulo}
-                onChange={(e) => handleChange('titulo', e.target.value)}
-                error={!!errors.titulo}
-                helperText={errors.titulo}
+                label="Alias de la Propiedad"
+                value={formData.alias}
+                onChange={(e) => handleChange('alias', e.target.value)}
+                error={!!errors.alias}
+                helperText={errors.alias}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -504,23 +497,24 @@ const PropiedadForm = ({
               />
             </Grid>
             
-            {/* Precio y Cuenta */}
+            {/* Información sobre alquiler mensual */}
             <Grid item xs={12}>
-              <Box sx={{ display: 'flex', gap: 2, '& .MuiAutocomplete-root': { mt: -1 } }}>
-                <StyledTextField
-                  sx={{ flex: 1 }}
-                  label="Monto Mensual"
-                  type="number"
-                  value={formData.montoMensual}
-                  onChange={(e) => handleChange('montoMensual', e.target.value)}
-                  error={!!errors.montoMensual}
-                  helperText={errors.montoMensual}
-                  InputProps={{
-                    startAdornment: <AttachMoney sx={{ mr: 1, color: 'text.secondary' }} />
-                  }}
-                />
+              <Alert 
+                severity="info" 
+                icon={<InfoIcon />}
+                sx={{ borderRadius: 0 }}
+              >
+                <Typography variant="body2">
+                  <strong>Alquiler Mensual:</strong> Se calcula automáticamente desde los contratos activos. 
+                  Para establecer el precio, crea un contrato para esta propiedad.
+                </Typography>
+              </Alert>
+            </Grid>
+            
+            {/* Cuenta */}
+            <Grid item xs={12}>
                 <Autocomplete
-                  sx={{ flex: 2 }}
+                fullWidth
                   value={selectedCuenta}
                   onChange={(_, newValue) => {
                     setSelectedCuenta(newValue);
@@ -549,7 +543,6 @@ const PropiedadForm = ({
                     option?.id === value?.id
                   }
                 />
-              </Box>
             </Grid>
 
             {/* Dirección y Ciudad */}

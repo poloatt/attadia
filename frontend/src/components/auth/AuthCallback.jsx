@@ -3,10 +3,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import clienteAxios from '../../config/axios';
-import { logEnvironment } from '../../config/envConfig';
+// import { logEnvironment } from '../../config/envConfig';
 
 // Registrar información del entorno para depuración
-logEnvironment();
+// logEnvironment();
 
 const ERROR_MESSAGES = {
   'auth_failed': 'La autenticación con Google falló',

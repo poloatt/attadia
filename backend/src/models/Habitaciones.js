@@ -1,6 +1,23 @@
 import mongoose from 'mongoose';
 import { createSchema, commonFields } from './BaseSchema.js';
 
+// Mapeo de tipos de habitación a íconos
+const ICONOS_POR_TIPO = {
+  'BAÑO': 'wc',
+  'TOILETTE': 'wc',
+  'DORMITORIO_DOBLE': 'bed',
+  'DORMITORIO_SIMPLE': 'single_bed',
+  'ESTUDIO': 'desktop_mac',
+  'COCINA': 'kitchen',
+  'DESPENSA': 'inventory_2',
+  'SALA_PRINCIPAL': 'weekend',
+  'PATIO': 'yard',
+  'JARDIN': 'park',
+  'TERRAZA': 'deck',
+  'LAVADERO': 'local_laundry_service',
+  'OTRO': 'room'
+};
+
 const habitacionSchema = createSchema({
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
@@ -44,14 +61,34 @@ const habitacionSchema = createSchema({
       message: 'El nombre personalizado es requerido cuando el tipo es OTRO'
     }
   },
+  icono: {
+    type: String,
+    default: function() {
+      return ICONOS_POR_TIPO[this.tipo] || 'room';
+    }
+  },
   ...commonFields
 });
+
+// Método estático para obtener el ícono por tipo
+habitacionSchema.statics.getIconoPorTipo = function(tipo) {
+  return ICONOS_POR_TIPO[tipo] || 'room';
+};
+
+// Método estático para obtener todos los tipos con sus íconos
+habitacionSchema.statics.getTiposConIconos = function() {
+  return Object.keys(ICONOS_POR_TIPO).map(tipo => ({
+    tipo,
+    icono: ICONOS_POR_TIPO[tipo]
+  }));
+};
 
 // Agregar relación virtual con inventarios
 habitacionSchema.virtual('inventarios', {
   ref: 'Inventarios',
   localField: '_id',
-  foreignField: 'habitacion'
+  foreignField: 'habitacion',
+  justOne: false // Un inventario puede o no estar asociado a una habitación
 });
 
 // Asegurar que los virtuals se incluyan cuando se convierte a JSON/Object
@@ -77,6 +114,15 @@ habitacionSchema.pre('save', async function(next) {
     } catch (error) {
       next(error);
     }
+  }
+  next();
+});
+
+// Middleware para asegurar que el ícono se asigne correctamente
+habitacionSchema.pre('save', function(next) {
+  // Asignar el ícono si no está definido o si el tipo cambió
+  if (!this.icono || this.isModified('tipo')) {
+    this.icono = ICONOS_POR_TIPO[this.tipo] || 'room';
   }
   next();
 });

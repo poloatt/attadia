@@ -89,25 +89,22 @@ export const initializeSampleData = async (userId) => {
         nombre: 'Habitación Principal',
         propiedad: propiedades[0]._id,
         usuario: userId,
-        estado: 'disponible',
-        montoMensual: 800,
-        moneda: usdMoneda._id
+        tipo: 'DORMITORIO_DOBLE',
+        nombrePersonalizado: 'Habitación Principal'
       },
       {
         nombre: 'Habitación Secundaria',
         propiedad: propiedades[0]._id,
         usuario: userId,
-        estado: 'disponible',
-        montoMensual: 600,
-        moneda: usdMoneda._id
+        tipo: 'DORMITORIO_SIMPLE',
+        nombrePersonalizado: 'Habitación Secundaria'
       },
       {
         nombre: 'Habitación Master',
         propiedad: propiedades[1]._id,
         usuario: userId,
-        estado: 'ocupada',
-        montoMensual: 1200,
-        moneda: usdMoneda._id
+        tipo: 'DORMITORIO_DOBLE',
+        nombrePersonalizado: 'Habitación Master'
       }
     ]);
 
@@ -140,7 +137,7 @@ export const initializeSampleData = async (userId) => {
         usuario: userId,
         fechaInicio: new Date('2024-01-01'),
         fechaFin: new Date('2024-12-31'),
-        montoMensual: 1200,
+        precioTotal: 1200,
         moneda: usdMoneda._id,
         estado: 'activo',
         diaVencimiento: 5

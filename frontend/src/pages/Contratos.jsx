@@ -1,46 +1,41 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { 
-  Container, 
-  Button,
   Box,
-  Grid,
-  Paper,
-  Chip,
   Typography,
-  Dialog,
   IconButton,
-  Tooltip,
   Collapse,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControlLabel,
+  Switch
 } from '@mui/material';
-import { Add as AddIcon, Refresh as RefreshIcon, ViewList as ListIcon, GridView as GridIcon, ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon } from '@mui/icons-material';
+import { ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon } from '@mui/icons-material';
 import { 
-  ApartmentOutlined as BuildingIcon,
-  BedOutlined as BedIcon,
-  PeopleOutlined as PeopleIcon,
-  Inventory2Outlined as InventoryIcon,
   DescriptionOutlined as DescriptionIcon,
   CalendarTodayOutlined as CalendarIcon,
   AttachMoneyOutlined as MoneyIcon,
   HomeWorkOutlined as HomeIcon,
-  PersonOutlineOutlined as PersonIcon
+  PersonOutlineOutlined as PersonIcon,
+  AutoAwesome as WizardIcon,
+  Edit as EditIcon
 } from '@mui/icons-material';
 
-import EntityDetails from '../components/EntityViews/EntityDetails';
-import ContratoForm from '../components/contratos/ContratoForm';
+import ContratoForm from '../components/propiedades/contratos/ContratoForm';
+import { ContratoWizard } from '../components/propiedades/contratos';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '../config/axios';
 import EmptyState from '../components/EmptyState';
-import { EntityActions } from '../components/EntityViews/EntityActions';
-import EntityCards from '../components/EntityViews/EntityCards';
-import ContratosView from '../components/contratos/ContratosView';
+import { ContratosContainer, useContratoData } from '../components/propiedades/contratos';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { calcularAlquilerMensualPromedio } from '../components/propiedades/contratos/contratoUtils';
 
 export function Contratos() {
   const [contratos, setContratos] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [editingContrato, setEditingContrato] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [relatedData, setRelatedData] = useState({
@@ -52,24 +47,24 @@ export function Contratos() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeFilter, setActiveFilter] = useState('activos'); // 'activos', 'finalizados' o 'todos'
-  const [viewMode, setViewMode] = useState('grid'); // 'list' o 'grid'
+  const [useWizard, setUseWizard] = useState(true); // Por defecto usar wizard
+  const [showFormChoice, setShowFormChoice] = useState(false);
+
+  const [viewMode] = useState('grid'); // 'list' o 'grid'
   const [isActiveContractsExpanded, setIsActiveContractsExpanded] = useState(true);
   const [isFinishedContractsExpanded, setIsFinishedContractsExpanded] = useState(false);
+  const [isPlannedContractsExpanded, setIsPlannedContractsExpanded] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleBack = () => {
-    navigate('/');
-  };
-
-  // Escuchar el evento del Header para abrir el formulario
+  // Escuchar el evento del Header para abrir el selector de formulario
   useEffect(() => {
     const handleHeaderAddButton = (event) => {
       if (event.detail.type === 'contrato') {
         setEditingContrato(null);
-        setIsFormOpen(true);
+        // Abrir el selector de formulario en lugar de abrir directamente
+        setShowFormChoice(true);
       }
     };
 
@@ -85,8 +80,6 @@ export function Contratos() {
     try {
       setIsLoading(true);
       setError(null);
-
-      console.log('Cargando datos relacionados...');
 
       // Todas las llamadas en paralelo
       const [
@@ -111,34 +104,6 @@ export function Contratos() {
       const habitaciones = habitacionesRes.data.docs || [];
       const cuentas = cuentasRes.data.docs || [];
       const monedas = monedasRes.data.docs || [];
-
-      console.log('Datos cargados:', {
-        contratos: contratos.length,
-        propiedades: propiedades.length,
-        inquilinos: inquilinos.length,
-        habitaciones: habitaciones.length,
-        cuentas: cuentas.length,
-        monedas: monedas.length
-      });
-
-      // Debug: Verificar si montoMensual está presente en los contratos
-      console.log('Debug montoMensual en contratos:', contratos.map(c => ({
-        id: c._id,
-        montoMensual: c.montoMensual,
-        tipo: typeof c.montoMensual,
-        esMantenimiento: c.esMantenimiento
-      })));
-
-      // Debug: Verificar estados de contratos
-      console.log('Debug estados de contratos:', contratos.map(c => ({
-        id: c._id,
-        estado: c.estado,
-        estadoActual: c.estadoActual,
-        fechaInicio: c.fechaInicio,
-        fechaFin: c.fechaFin,
-        esMantenimiento: c.esMantenimiento,
-        tipoContrato: c.tipoContrato
-      })));
 
       setContratos(contratos);
       setRelatedData({
@@ -180,12 +145,16 @@ export function Contratos() {
       const checkDataAndOpenForm = () => {
         if (relatedData.propiedades.length > 0 && relatedData.cuentas.length > 0) {
           // Configurar el contrato con el inquilino pre-seleccionado
-          setEditingContrato({
+          const initialData = {
             inquilino: [inquilinoData],
             esMantenimiento: false,
             tipoContrato: 'ALQUILER'
-          });
-          setIsFormOpen(true);
+          };
+          
+          setEditingContrato(initialData);
+          
+          // Abrir el selector de formulario
+          setShowFormChoice(true);
           
           // Limpiar el state de navegación para evitar que se abra nuevamente
           navigate(location.pathname, { replace: true });
@@ -211,6 +180,7 @@ export function Contratos() {
           const contrato = contratos.find(c => c._id === contratoId);
           if (contrato) {
             setEditingContrato(contrato);
+            // Para edición, siempre usar el formulario tradicional
             setIsFormOpen(true);
           }
           
@@ -227,20 +197,10 @@ export function Contratos() {
   }, [location.state, contratos, relatedData, navigate, location.pathname]);
 
   const handleEdit = useCallback((contrato) => {
-    console.log('Editando contrato:', contrato);
-    
-    if (relatedData.propiedades.length === 0 || 
-        relatedData.inquilinos.length === 0 || 
-        relatedData.cuentas.length === 0) {
-      loadData().then(() => {
-        setEditingContrato(contrato);
-        setIsFormOpen(true);
-      });
-    } else {
-      setEditingContrato(contrato);
-      setIsFormOpen(true);
-    }
-  }, [relatedData, loadData]);
+    setEditingContrato(contrato);
+    // Para edición, siempre usar el formulario tradicional
+    setIsFormOpen(true);
+  }, []);
 
   const handleDelete = useCallback(async (id) => {
     try {
@@ -256,15 +216,53 @@ export function Contratos() {
   const handleFormSubmit = async (formData) => {
     try {
       setIsSaving(true);
-      console.log('Datos a enviar:', formData);
+      console.log('=== HANDLE FORM SUBMIT ===');
+      console.log('formData completo:', JSON.stringify(formData, null, 2));
+      console.log('precioTotal en formData:', formData.precioTotal);
+      console.log('tipoContrato en formData:', formData.tipoContrato);
+      console.log('esMantenimiento en formData:', formData.esMantenimiento);
       
       // Asegurarse de que la cuenta esté presente si no es un contrato de mantenimiento
       if (!formData.esMantenimiento && !formData.cuenta && editingContrato?.cuenta) {
-        console.log('Agregando cuenta del contrato existente:', editingContrato.cuenta);
         formData.cuenta = typeof editingContrato.cuenta === 'object' ? 
           (editingContrato.cuenta._id || editingContrato.cuenta.id) : 
           editingContrato.cuenta;
       }
+      
+      let response;
+      if (editingContrato && (editingContrato._id || editingContrato.id)) {
+        const contratoId = editingContrato._id || editingContrato.id;
+        console.log('Enviando PUT a:', `/api/contratos/${contratoId}`);
+        console.log('Datos finales a enviar:', JSON.stringify(formData, null, 2));
+        response = await clienteAxios.put(`/api/contratos/${contratoId}`, formData);
+        enqueueSnackbar('Contrato actualizado exitosamente', { variant: 'success' });
+      } else {
+        console.log('Enviando POST a:', '/api/contratos');
+        console.log('Datos finales a enviar:', JSON.stringify(formData, null, 2));
+        response = await clienteAxios.post('/api/contratos', formData);
+        enqueueSnackbar('Contrato creado exitosamente', { variant: 'success' });
+      }
+
+      await loadData();
+      setIsFormOpen(false);
+      setEditingContrato(null);
+    } catch (error) {
+      console.error('Error al guardar contrato:', error);
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          error.message || 
+                          'Error al guardar el contrato';
+      enqueueSnackbar(errorMessage, { variant: 'error' });
+      throw error;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleWizardSubmit = async (formData) => {
+    try {
+      setIsSaving(true);
+      console.log('Datos del wizard a enviar:', formData);
       
       let response;
       if (editingContrato && (editingContrato._id || editingContrato.id)) {
@@ -277,10 +275,10 @@ export function Contratos() {
       }
 
       await loadData();
-      setIsFormOpen(false);
+      setIsWizardOpen(false);
       setEditingContrato(null);
     } catch (error) {
-      console.error('Error al guardar contrato:', error);
+      console.error('Error al guardar contrato desde wizard:', error);
       const errorMessage = error.response?.data?.message || 
                           error.response?.data?.error || 
                           error.message || 
@@ -313,49 +311,36 @@ export function Contratos() {
     }
   }, [enqueueSnackbar, loadData]);
 
-  // Filtrar contratos según el filtro activo
-  const contratosFiltrados = useMemo(() => {
-    if (activeFilter === 'activos') {
-      return contratos.filter(contrato => {
-        const estado = contrato.estadoActual || contrato.estado;
-        return ['ACTIVO', 'RESERVADO', 'PLANEADO', 'MANTENIMIENTO'].includes(estado);
-      });
-    } else if (activeFilter === 'finalizados') {
-      return contratos.filter(contrato => {
-        const estado = contrato.estadoActual || contrato.estado;
-        return estado === 'FINALIZADO';
-      });
+  // Función para abrir el selector de formulario
+  const handleOpenFormChoice = () => {
+    setShowFormChoice(true);
+  };
+
+  // Función para cerrar el selector de formulario
+  const handleCloseFormChoice = () => {
+    setShowFormChoice(false);
+  };
+
+  // Función para seleccionar el tipo de formulario
+  const handleSelectFormType = (useWizardMode) => {
+    setUseWizard(useWizardMode);
+    setShowFormChoice(false);
+    setEditingContrato(null);
+    
+    if (useWizardMode) {
+      setIsWizardOpen(true);
+    } else {
+      setIsFormOpen(true);
     }
-    return contratos.filter(contrato => {
-      const estado = contrato.estadoActual || contrato.estado;
-      return ['ACTIVO', 'RESERVADO', 'PLANEADO', 'MANTENIMIENTO'].includes(estado);
-    });
-  }, [contratos, activeFilter]);
+  };
 
-  // Separar contratos activos y finalizados
-  const contratosActivos = useMemo(() => {
-    const activos = contratos.filter(contrato => {
-      // Usar estadoActual si existe, sino usar estado
-      const estado = contrato.estadoActual || contrato.estado;
-      console.log(`Contrato ${contrato._id}: estado=${contrato.estado}, estadoActual=${contrato.estadoActual}, filtrado=${['ACTIVO', 'RESERVADO', 'PLANEADO', 'MANTENIMIENTO'].includes(estado)}`);
-      return ['ACTIVO', 'RESERVADO', 'PLANEADO', 'MANTENIMIENTO'].includes(estado);
-    });
-    console.log('Contratos activos encontrados:', activos.length);
-    return activos;
-  }, [contratos]);
+  // Usar hook personalizado para datos de contratos
+  const { contratosPorEstado } = useContratoData(contratos, relatedData);
+  const contratosActivos = contratosPorEstado.ACTIVO || [];
+  const contratosFinalizados = contratosPorEstado.FINALIZADO || [];
+  const contratosPlaneados = contratosPorEstado.PLANEADO || [];
 
-  const contratosFinalizados = useMemo(() => {
-    const finalizados = contratos.filter(contrato => {
-      // Usar estadoActual si existe, sino usar estado
-      const estado = contrato.estadoActual || contrato.estado;
-      console.log(`Contrato ${contrato._id}: estado=${contrato.estado}, estadoActual=${contrato.estadoActual}, filtrado=${estado === 'FINALIZADO'}`);
-      return estado === 'FINALIZADO';
-    });
-    console.log('Contratos finalizados encontrados:', finalizados.length);
-    return finalizados;
-  }, [contratos]);
-
-  const cardConfig = {
+  const cardConfig = useMemo(() => ({
     renderIcon: () => <DescriptionIcon />,
     getTitle: (contrato) => {
       const propiedad = relatedData.propiedades.find(p => p._id === contrato.propiedad);
@@ -378,7 +363,7 @@ export function Contratos() {
         icon: <MoneyIcon />,
         text: (() => {
           const moneda = relatedData.monedas.find(m => m._id === contrato.moneda);
-          return `${moneda?.simbolo || ''} ${contrato.montoMensual}`;
+          return `${moneda?.simbolo || ''} ${calcularAlquilerMensualPromedio(contrato)}`;
         })()
       },
       {
@@ -401,84 +386,124 @@ export function Contratos() {
         }
       })()
     })
-  };
-
-  const handleToggleView = () => {
-    setViewMode((prev) => (prev === 'list' ? 'grid' : 'list'));
-  };
+  }), [relatedData]);
 
   return (
-    <Box sx={{ px: 0, width: '100%' }}>
-
-
+    <Box
+      sx={{
+        width: '100%',
+        maxWidth: 1200,
+        mx: 'auto',
+        px: { xs: 1, sm: 2, md: 3 },
+        py: 2,
+        pb: { xs: 12, sm: 4 }, // Espacio para BottomNavigation en mobile
+        minHeight: 'calc(100vh - 88px)',
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2
+      }}
+    >
       {/* Sección de Contratos Activos */}
-        <Box>
+      <Box>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 1, borderColor: 'divider' }}>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Contratos Activos ({contratosActivos.length})
-            </Typography>
-            <IconButton
-              onClick={() => setIsActiveContractsExpanded(!isActiveContractsExpanded)}
-              size="small"
-            >
-              {isActiveContractsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </IconButton>
-          </Box>
-          <Collapse in={isActiveContractsExpanded}>
-            {contratosActivos.length === 0 ? (
-              <EmptyState
-                icon={DescriptionIcon}
-                title="No hay contratos activos"
-                description="No hay contratos activos, reservados, planeados o en mantenimiento"
-              />
-            ) : (
-              <ContratosView
-                contratos={contratosActivos}
-                relatedData={relatedData}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                viewMode={viewMode}
-                onToggleView={handleToggleView}
-              />
-            )}
-          </Collapse>
+          <Typography variant="subtitle2" color="text.secondary">
+            Contratos Activos ({contratosActivos.length})
+          </Typography>
+          <IconButton
+            onClick={() => setIsActiveContractsExpanded(!isActiveContractsExpanded)}
+            size="small"
+          >
+            {isActiveContractsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          </IconButton>
+        </Box>
+        <Collapse in={isActiveContractsExpanded}>
+          {contratosActivos.length === 0 ? (
+            <EmptyState
+              icon={DescriptionIcon}
+              title="No hay contratos activos"
+              description="No hay contratos activos, reservados, planeados o en mantenimiento"
+            />
+          ) : (
+            <ContratosContainer
+              contratos={contratosActivos}
+              relatedData={relatedData}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              viewMode={viewMode}
+            />
+          )}
+        </Collapse>
+      </Box>
+
+      {/* Sección de Contratos Planeados */}
+      <Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 1, borderColor: 'divider' }}>
+          <Typography variant="subtitle2" color="text.secondary">
+            Contratos Planeados ({contratosPlaneados.length})
+          </Typography>
+          <IconButton
+            onClick={() => setIsPlannedContractsExpanded && setIsPlannedContractsExpanded(prev => !prev)}
+            size="small"
+          >
+            {typeof isPlannedContractsExpanded !== 'undefined' && isPlannedContractsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          </IconButton>
+        </Box>
+        <Collapse in={typeof isPlannedContractsExpanded !== 'undefined' ? isPlannedContractsExpanded : true}>
+          {contratosPlaneados.length === 0 ? (
+            <EmptyState
+              icon={DescriptionIcon}
+              title="No hay contratos planeados"
+              description="No hay contratos planeados para mostrar"
+            />
+          ) : (
+            <ContratosContainer
+              contratos={contratosPlaneados}
+              relatedData={relatedData}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              viewMode={viewMode}
+            />
+          )}
+        </Collapse>
       </Box>
 
       {/* Sección de Contratos Finalizados */}
-        <Box>
+      <Box>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 1, borderColor: 'divider' }}>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Contratos Finalizados ({contratosFinalizados.length})
-            </Typography>
-            <IconButton
-              onClick={() => setIsFinishedContractsExpanded(!isFinishedContractsExpanded)}
-              size="small"
-            >
-              {isFinishedContractsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </IconButton>
-          </Box>
-          <Collapse in={isFinishedContractsExpanded}>
-            {contratosFinalizados.length === 0 ? (
-              <EmptyState
-                icon={DescriptionIcon}
-                title="No hay contratos finalizados"
-                description="No hay contratos finalizados"
-              />
-            ) : (
-              <ContratosView
-                contratos={contratosFinalizados}
-                relatedData={relatedData}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                viewMode={viewMode}
-                onToggleView={handleToggleView}
-              />
-            )}
-          </Collapse>
+          <Typography variant="subtitle2" color="text.secondary">
+            Contratos Finalizados ({contratosFinalizados.length})
+          </Typography>
+          <IconButton
+            onClick={() => setIsFinishedContractsExpanded(!isFinishedContractsExpanded)}
+            size="small"
+          >
+            {isFinishedContractsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          </IconButton>
+        </Box>
+        <Collapse in={isFinishedContractsExpanded}>
+          {contratosFinalizados.length === 0 ? (
+            <EmptyState
+              icon={DescriptionIcon}
+              title="No hay contratos finalizados"
+              description="No hay contratos finalizados"
+            />
+          ) : (
+            <ContratosContainer
+              contratos={contratosFinalizados}
+              relatedData={relatedData}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              viewMode={viewMode}
+            />
+          )}
+        </Collapse>
       </Box>
 
+      {/* Formulario tradicional */}
       {isFormOpen && (
         <ContratoForm
+          open={isFormOpen}
           initialData={editingContrato || {}}
           relatedData={relatedData}
           onSubmit={handleFormSubmit}
@@ -491,6 +516,88 @@ export function Contratos() {
           isSaving={isSaving}
         />
       )}
+
+      {/* Wizard de contratos */}
+      {isWizardOpen && (
+        <ContratoWizard
+          open={isWizardOpen}
+          initialData={editingContrato || {}}
+          relatedData={relatedData}
+          onSubmit={handleWizardSubmit}
+          onClose={() => {
+            if (!isSaving) {
+              setIsWizardOpen(false);
+              setEditingContrato(null);
+            }
+          }}
+          isSaving={isSaving}
+        />
+      )}
+
+      {/* Diálogo para seleccionar tipo de formulario */}
+      <Dialog
+        open={showFormChoice}
+        onClose={handleCloseFormChoice}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 0 }
+        }}
+      >
+        <DialogTitle sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          Seleccionar método de creación
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Button
+              variant="outlined"
+              startIcon={<WizardIcon />}
+              onClick={() => handleSelectFormType(true)}
+              sx={{ 
+                justifyContent: 'flex-start', 
+                p: 2, 
+                borderRadius: 0,
+                borderWidth: 2
+              }}
+            >
+              <Box sx={{ textAlign: 'left' }}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Wizard Asistido
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Flujo paso a paso guiado para crear contratos de forma sencilla
+                </Typography>
+              </Box>
+            </Button>
+            
+            <Button
+              variant="outlined"
+              startIcon={<EditIcon />}
+              onClick={() => handleSelectFormType(false)}
+              sx={{ 
+                justifyContent: 'flex-start', 
+                p: 2, 
+                borderRadius: 0,
+                borderWidth: 2
+              }}
+            >
+              <Box sx={{ textAlign: 'left' }}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Formulario Completo
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Formulario tradicional con todas las opciones disponibles
+                </Typography>
+              </Box>
+            </Button>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ borderTop: 1, borderColor: 'divider' }}>
+          <Button onClick={handleCloseFormChoice} sx={{ borderRadius: 0 }}>
+            Cancelar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

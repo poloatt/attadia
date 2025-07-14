@@ -37,7 +37,7 @@ export function Layout() {
         sx={{
           flexGrow: 1,
           pt: showEntityToolbarNavigation ? '45px' : '45px',
-          pb: { xs: isMobile ? '140px' : '70px', sm: isMobile ? '140px' : '70px', md: '70px' },
+          pb: isMobile ? '88px' : '70px',
           minHeight: '100vh',
           height: '100vh',
           width: showSidebar ? 

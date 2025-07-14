@@ -1,4 +1,4 @@
-# Sistema de Gestión de Rutinas
+cd atta# Sistema de Gestión de Rutinas
 
 ## 📋 Descripción
 Sistema modular para la gestión y seguimiento de rutinas diarias, con soporte para diferentes tipos de hábitos y configuraciones personalizadas.
