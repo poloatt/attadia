@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import { calculateCompletionPercentage, calculateSectionStats, calculateVisibleItems } from '../utils/rutinaCalculations.jsx';
-import { useRutinasHistorical } from './rutinasHistoricalContext.jsx';
+import { useRutinasHistorical } from './RutinasHistoryContext';
 
 // Crear el contexto
 const RutinasStatisticsContext = createContext();
@@ -17,7 +17,7 @@ export const useRutinasStatistics = () => {
 // Provider del contexto
 export const RutinasStatisticsProvider = ({ children }) => {
   // Tratar de obtener el contexto histórico si está disponible
-  const historicalContext = useContext(useRutinasHistorical);
+  const historicalContext = useRutinasHistorical();
   
   // Optimización para evitar logs excesivos
   const logTimers = useRef({});
