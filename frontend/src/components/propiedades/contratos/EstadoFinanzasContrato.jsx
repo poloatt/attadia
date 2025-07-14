@@ -12,7 +12,8 @@ import {
   ExpandLess as ExpandLessIcon,
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
-  Payment as PaymentIcon
+  Payment as PaymentIcon,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 import EditIcon from '@mui/icons-material/Edit';
 import DoneIcon from '@mui/icons-material/Done';
@@ -22,7 +23,7 @@ import { useCuotasContext } from './context/CuotasContext';
 import { calcularEstadoCuotasContrato } from './contratoUtils';
 
 const EstadoFinanzasContrato = ({ 
-  estadoFinanzas, 
+  contrato, // Recibo el contrato completo, no un estado calculado
   contratoId,
   showTitle = true, 
   compact = false,
@@ -37,20 +38,15 @@ const EstadoFinanzasContrato = ({
     updateCuota, 
     guardarCuotasEnBackend, 
     isLoading,
-    syncCuotas 
+    syncCuotas,
+    refrescarCuotasDesdeBackend,
+    setCuotas
   } = useCuotasContext();
 
-  // Sincronizar cuotas desde el prop inicial si el contexto está vacío
-  useEffect(() => {
-    if (estadoFinanzas?.estadoCuotas?.cuotasMensuales && cuotas.length === 0) {
-      syncCuotas(estadoFinanzas.estadoCuotas.cuotasMensuales, estadoFinanzas.contrato || {});
-    }
-  }, [estadoFinanzas, cuotas.length, syncCuotas]);
-
-  // Calcular estado de cuotas dinámicamente desde el contexto
+  // Calcular estado de cuotas dinámicamente desde el contexto y el contrato
   const estadoCuotasCalculado = useMemo(() => {
-    if (!estadoFinanzas?.contrato || cuotas.length === 0) {
-      return estadoFinanzas?.estadoCuotas || {
+    if (!contrato || cuotas.length === 0) {
+      return {
         cuotasPagadas: 0,
         cuotasTotales: 0,
         montoPagado: 0,
@@ -61,21 +57,19 @@ const EstadoFinanzasContrato = ({
         cuotasMensuales: []
       };
     }
-    
     // Usar las cuotas del contexto para calcular el estado actual
     const contratoConCuotasActualizadas = {
-      ...estadoFinanzas.contrato,
+      ...contrato,
       cuotasMensuales: cuotas
     };
-    
     return calcularEstadoCuotasContrato(contratoConCuotasActualizadas);
-  }, [cuotas, estadoFinanzas?.contrato, estadoFinanzas?.estadoCuotas]);
+  }, [cuotas, contrato]);
 
   // Extraer datos del estado calculado
   const { cuotasPagadas, cuotasTotales, montoPagado, montoTotal, porcentajePagado, proximaCuota, cuotasVencidas } = estadoCuotasCalculado;
-  const simboloMoneda = estadoFinanzas?.simboloMoneda || '$';
+  const simboloMoneda = contrato?.cuenta?.moneda?.simbolo || contrato?.moneda?.simbolo || '$';
 
-  if (!estadoFinanzas || !estadoFinanzas.tieneContrato) {
+  if (!contrato) {
     return null;
   }
 
@@ -145,25 +139,57 @@ const EstadoFinanzasContrato = ({
             p: compact ? 0.25 : 0.5,
             bgcolor: 'background.default',
             borderRadius: 0,
-            border: t => `1px solid ${t.palette.error.main}`
+            border: t => `1px solid ${t.palette.error.main}`,
+            justifyContent: 'space-between'
           }}
         >
-          <MoneyIcon sx={{ fontSize: compact ? '0.6rem' : '0.7rem', color: 'error.main' }} />
-          <CuotaInlineEditor
-            cuota={{ estado: 'VENCIDA' }}
-            editable={false}
-            tipo="estado"
-            sx={{ minWidth: 120 }}
-          />
-          <Typography variant="caption" sx={{ fontSize: compact ? '0.6rem' : '0.65rem', color: 'error.main', fontWeight: 600 }}>
-            {cuotasVencidas} cuota{cuotasVencidas > 1 ? 's' : ''} vencida{cuotasVencidas > 1 ? 's' : ''}
-          </Typography>
-          <StyledCuotasIconButton size="small" sx={{ color: 'error.main', ml: 1 }} onClick={() => setShowCuotas((prev) => !prev)}>
-            {showCuotas ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-          </StyledCuotasIconButton>
-          <StyledCuotasIconButton size="small" sx={{ color: editInline ? 'success.main' : 'text.secondary', ml: 0.5 }} onClick={() => setEditInline((v) => !v)} disabled={isLoading}>
-            {editInline ? <DoneIcon fontSize="small" /> : <EditIcon fontSize="small" />}
-          </StyledCuotasIconButton>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <MoneyIcon sx={{ fontSize: compact ? '0.6rem' : '0.7rem', color: 'error.main' }} />
+            <CuotaInlineEditor
+              cuota={{ estado: 'VENCIDA' }}
+              editable={false}
+              tipo="estado"
+              sx={{ minWidth: 120 }}
+            />
+            <Typography variant="caption" sx={{ fontSize: compact ? '0.6rem' : '0.65rem', color: 'error.main', fontWeight: 600 }}>
+              {cuotasVencidas} cuota{cuotasVencidas > 1 ? 's' : ''} vencida{cuotasVencidas > 1 ? 's' : ''}
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
+            <StyledCuotasIconButton size="small" sx={{ color: 'text.secondary' }}
+              onClick={async () => {
+                // Forzar refresh y sobrescribir el estado local con el backend
+                const ok = await refrescarCuotasDesdeBackend();
+                if (ok && typeof window !== 'undefined') {
+                  // Opcional: podrías mostrar una notificación de éxito aquí
+                }
+              }}
+              disabled={isLoading || editInline}
+            >
+              <RefreshIcon fontSize="small" />
+            </StyledCuotasIconButton>
+            <StyledCuotasIconButton size="small" sx={{ color: 'error.main' }} onClick={() => setShowCuotas((prev) => !prev)}>
+              {showCuotas ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+            </StyledCuotasIconButton>
+            <StyledCuotasIconButton size="small" sx={{ color: editInline ? 'success.main' : 'text.secondary' }}
+              onClick={async () => {
+                if (editInline) {
+                  // Siempre guardar al salir del modo edición
+                  const exito = await guardarCuotasEnBackend(cuotas);
+                  if (exito) {
+                    setEditInline(false);
+                  } else {
+                    alert('Error al guardar cuotas');
+                  }
+                } else {
+                  setEditInline(true);
+                }
+              }}
+              disabled={isLoading}
+            >
+              {editInline ? <DoneIcon fontSize="small" /> : <EditIcon fontSize="small" />}
+            </StyledCuotasIconButton>
+          </Box>
         </Box>
       )}
       {cuotasVencidas === 0 && cuotasTotales > 0 && (
@@ -180,35 +206,43 @@ const EstadoFinanzasContrato = ({
                 p: compact ? 0.25 : 0.5,
                 bgcolor: 'background.default',
                 borderRadius: 0,
-                border: t => `1px solid ${t.palette.success.main}`
+                border: t => `1px solid ${t.palette.success.main}`,
+                justifyContent: 'space-between'
               }}
             >
-              <MoneyIcon sx={{ fontSize: compact ? '0.6rem' : '0.7rem', color: 'success.main' }} />
-              <CuotaInlineEditor
-                cuota={{ estado: 'PAGADO' }}
-                editable={false}
-                tipo="estado"
-                sx={{ minWidth: 120 }}
-              />
-              <Typography variant="caption" sx={{ fontSize: compact ? '0.6rem' : '0.65rem', color: 'success.main', fontWeight: 600 }}>
-                {pagadas} cuota{pagadas !== 1 ? 's' : ''} pagada{pagadas !== 1 ? 's' : ''}
-                {pendientes > 0 && (
-                  <span style={{ color: '#888', fontWeight: 400 }}>
-                    {' · '}{pendientes} pendiente{pendientes !== 1 ? 's' : ''}
-                    {proximaCuota && (
-                      <span style={{ color: '#888', fontWeight: 400 }}>
-                        {' · próxima cuota '}{proximaCuota.index} en {proximaCuota.diasRestantes} días
-                      </span>
-                    )}
-                  </span>
-                )}
-              </Typography>
-              <StyledCuotasIconButton size="small" sx={{ color: 'success.main', ml: 1 }} onClick={() => setShowCuotas((prev) => !prev)}>
-                {showCuotas ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-              </StyledCuotasIconButton>
-              <StyledCuotasIconButton size="small" sx={{ color: editInline ? 'success.main' : 'text.secondary', ml: 0.5 }} onClick={() => setEditInline((v) => !v)} disabled={isLoading}>
-                {editInline ? <DoneIcon fontSize="small" /> : <EditIcon fontSize="small" />}
-              </StyledCuotasIconButton>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <MoneyIcon sx={{ fontSize: compact ? '0.6rem' : '0.7rem', color: 'success.main' }} />
+                <CuotaInlineEditor
+                  cuota={{ estado: 'PAGADO' }}
+                  editable={false}
+                  tipo="estado"
+                  sx={{ minWidth: 120 }}
+                />
+                <Typography variant="caption" sx={{ fontSize: compact ? '0.6rem' : '0.65rem', color: 'success.main', fontWeight: 600 }}>
+                  {pagadas} cuota{pagadas !== 1 ? 's' : ''} pagada{pagadas !== 1 ? 's' : ''}
+                  {pendientes > 0 && (
+                    <span style={{ color: '#888', fontWeight: 400 }}>
+                      {' · '}{pendientes} pendiente{pendientes !== 1 ? 's' : ''}
+                      {proximaCuota && (
+                        <span style={{ color: '#888', fontWeight: 400 }}>
+                          {' · próxima cuota '}{proximaCuota.index} en {proximaCuota.diasRestantes} días
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
+                <StyledCuotasIconButton size="small" sx={{ color: 'text.secondary' }} onClick={refrescarCuotasDesdeBackend} disabled={isLoading}>
+                  <RefreshIcon fontSize="small" />
+                </StyledCuotasIconButton>
+                <StyledCuotasIconButton size="small" sx={{ color: 'success.main' }} onClick={() => setShowCuotas((prev) => !prev)}>
+                  {showCuotas ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                </StyledCuotasIconButton>
+                <StyledCuotasIconButton size="small" sx={{ color: editInline ? 'success.main' : 'text.secondary' }} onClick={() => setEditInline((v) => !v)} disabled={isLoading}>
+                  {editInline ? <DoneIcon fontSize="small" /> : <EditIcon fontSize="small" />}
+                </StyledCuotasIconButton>
+              </Box>
             </Box>
           );
         })()
@@ -230,7 +264,7 @@ const EstadoFinanzasContrato = ({
                     updateCuota(idx, nuevoCuota);
                   }}
                   editable={editInline}
-                  formData={estadoFinanzas?.contrato || {}}
+                  formData={contrato || {}}
                 />
                 <Box sx={{ flex: 1 }} />
               </Box>
@@ -241,8 +275,9 @@ const EstadoFinanzasContrato = ({
           {/* Botón para guardar cambios si está en modo edición */}
           {editInline && (
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-              <button
-                style={{ background: '#1976d2', color: 'white', border: 'none', borderRadius: 0, padding: '4px 12px', fontSize: '0.85rem', cursor: 'pointer' }}
+              <StyledCuotasIconButton
+                size="small"
+                sx={{ color: 'success.main' }}
                 disabled={isLoading}
                 onClick={async () => {
                   // Usar el contexto para guardar las cuotas
@@ -254,8 +289,8 @@ const EstadoFinanzasContrato = ({
                   }
                 }}
               >
-                Guardar cambios
-              </button>
+                <DoneIcon fontSize="small" />
+              </StyledCuotasIconButton>
             </Box>
           )}
         </Box>

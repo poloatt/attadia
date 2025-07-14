@@ -36,7 +36,7 @@ const ContratoCuotasSection = ({
   sx = {}
 }) => {
   const theme = useTheme();
-  const { cuotas, updateAllCuotas, updateCuota, updateCuotaMonto, updateCuotaEstado, syncCuotas } = useCuotasContext();
+  const { cuotas, updateAllCuotas, updateCuota, updateCuotaMonto, updateCuotaEstado, syncCuotas, refrescarCuotasDesdeBackend, isLoading } = useCuotasContext();
   const [totalCalculado, setTotalCalculado] = useState(0);
   const [diferencia, setDiferencia] = useState(0);
   const [editingIndex, setEditingIndex] = useState(null);
@@ -166,17 +166,25 @@ const ContratoCuotasSection = ({
             Cuotas Mensuales
           </Typography>
         </Box>
-        
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             Promedio: ${alquilerMensualPromedio.toLocaleString()}
           </Typography>
+          <Tooltip title="Refrescar cuotas desde backend">
+            <StyledCuotasIconButton
+              size="small"
+              onClick={refrescarCuotasDesdeBackend}
+              disabled={isLoading}
+            >
+              <RefreshIcon sx={{ fontSize: '1rem' }} />
+            </StyledCuotasIconButton>
+          </Tooltip>
           <Tooltip title="Regenerar cuotas automáticamente">
             <StyledCuotasIconButton
               size="small"
               onClick={regenerarCuotas}
             >
-              <RefreshIcon sx={{ fontSize: '1rem' }} />
+              <RefreshIcon sx={{ fontSize: '1rem', transform: 'rotate(-90deg)' }} />
             </StyledCuotasIconButton>
           </Tooltip>
         </Box>

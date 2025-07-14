@@ -328,20 +328,16 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
   // Componente para mostrar el estado de las cuotas
   const renderSeccionFinanzas = () => {
     if (!progresoOcupacion.tieneContrato) return null;
-    
     // Buscar contrato activo
     const contratoActivo = contratos.find(contrato => getEstadoContrato(contrato) === 'ACTIVO');
     if (!contratoActivo) return null;
-    
-    const estadoFinanzas = calcularEstadoFinanzasContrato(contratoActivo, simbolo);
-    
     return (
       <CuotasProvider 
         contratoId={contratoActivo._id || contratoActivo.id}
         formData={contratoActivo}
       >
         <EstadoFinanzasContrato 
-          estadoFinanzas={estadoFinanzas} 
+          contrato={contratoActivo} 
           contratoId={contratoActivo._id || contratoActivo.id} 
         />
       </CuotasProvider>
