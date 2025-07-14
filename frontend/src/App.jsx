@@ -36,7 +36,7 @@ import { NavigationBarProvider } from './context/NavigationBarContext';
 import { useAuth } from './context/AuthContext';
 import AuthError from './components/auth/AuthError';
 import { RutinasProvider } from './components/rutinas/context/RutinasContext.jsx';
-import { RutinasHistoricalProvider } from './components/rutinas/context/rutinasHistoricalContext.jsx';
+import { RutinasHistoryProvider } from './components/rutinas/context/RutinasHistoryContext';
 import PropiedadDocumentos from './components/propiedades/PropiedadDocumentos';
 import Inversiones from './pages/Inversiones';
 import Autos from './pages/Autos';
@@ -56,7 +56,8 @@ function App() {
       <Toaster position="top-right" />
       <ValuesVisibilityProvider>
         <NavigationBarProvider>
-          <ErrorBoundary>
+          <RutinasHistoryProvider>
+            <ErrorBoundary>
             <Routes>
               {/* Rutas públicas */}
               <Route path="/login" element={user ? <Navigate to="/assets" replace /> : <Login />} />
@@ -116,6 +117,7 @@ function App() {
               <Route path="*" element={<Navigate to="/assets" replace />} />
             </Routes>
           </ErrorBoundary>
+            </RutinasHistoryProvider>
         </NavigationBarProvider>
       </ValuesVisibilityProvider>
     </ThemeProvider>

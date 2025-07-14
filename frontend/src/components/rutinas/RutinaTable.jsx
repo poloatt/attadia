@@ -38,7 +38,7 @@ import { RutinaNavigation } from './RutinaNavigation';
 import ItemCadenciaConfig from './ItemCadenciaConfig';
 import shouldShowItemUtil from './utils/shouldShowItem';
 import HistoricalAlert from './HistoricalAlert';
-import { useRutinasHistorical } from './context/rutinasHistoricalContext.jsx';
+import { useRutinasHistorical } from './context/RutinasHistoryContext';
 import { getNormalizedToday, toISODateString } from './utils/dateUtils';
 
 // Exportación nombrada para compatibilidad
