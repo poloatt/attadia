@@ -448,12 +448,12 @@ const ContratoForm = ({
                 />
 
                 <CuotasProvider contratoId={initialData._id || initialData.id || 'temp-form'} formData={formData}>
-                  <ContratoCuotasSection
-                    formData={formData}
-                    onCuotasChange={handleCuotasChange}
-                    errors={errors}
-                    theme={theme}
-                  />
+                <ContratoCuotasSection
+                  formData={formData}
+                  onCuotasChange={handleCuotasChange}
+                  errors={errors}
+                  theme={theme}
+                />
                 </CuotasProvider>
               </>
             )}

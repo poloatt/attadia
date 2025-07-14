@@ -120,9 +120,8 @@ export const CuotasProvider = ({ children, contratoId, formData }) => {
     try {
       // Normalizar las cuotas antes de guardar para asegurar consistencia
       const cuotasNormalizadas = normalizarCuotas(cuotasActualizadas);
-      
-      await clienteAxios.put(`/api/contratos/${contratoId}/cuotas`, { cuotas: cuotasNormalizadas });
-      
+      // CORREGIDO: Enviar a /api/contratos/:id y en el campo cuotasMensuales
+      await clienteAxios.put(`/api/contratos/${contratoId}`, { cuotasMensuales: cuotasNormalizadas });
       // Actualizar el estado local con las cuotas normalizadas
       setCuotas(cuotasNormalizadas);
       setIsLoading(false);

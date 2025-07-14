@@ -260,12 +260,12 @@ const ContratoDetail = ({
               return (
                 <GeometricPaper>
                   <CuotasProvider contratoId={contrato._id || contrato.id}>
-                    <EstadoFinanzasContrato 
-                      estadoFinanzas={estadoFinanzas} 
-                      showTitle={true}
-                      compact={false}
-                      sx={{ mt: 0, p: 0, bgcolor: 'transparent' }}
-                    />
+                  <EstadoFinanzasContrato 
+                    estadoFinanzas={estadoFinanzas} 
+                    showTitle={true}
+                    compact={false}
+                    sx={{ mt: 0, p: 0, bgcolor: 'transparent' }}
+                  />
                   </CuotasProvider>
                 </GeometricPaper>
               );

@@ -408,15 +408,15 @@ const SECTION_CONFIGS = {
     const habitacionesConItems = contarItemsPorHabitacion(habitaciones, inventarios);
 
     return {
-      type: 'habitaciones',
+    type: 'habitaciones',
       data: habitacionesConItems.map(habitacion => ({
         icon: getHabitacionIcon(habitacion.tipo),
-        label: habitacion.tipo || 'Habitación',
+      label: habitacion.tipo || 'Habitación',
         value: habitacion.nombrePersonalizado || (habitacion.tipo?.replace('_', ' ') || 'Sin nombre').toLowerCase().replace(/\b\w/g, l => l.toUpperCase()),
-        color: habitacion.color || 'text.secondary',
+      color: habitacion.color || 'text.secondary',
         metrosCuadrados: habitacion.metrosCuadrados,
         itemsCount: habitacion.itemsCount
-      }))
+    }))
     };
   }
 };
@@ -1476,38 +1476,38 @@ const HabitacionesRenderer = ({ section, isCollapsed = false }) => {
                 minWidth: 0,
                 flex: 1
               }}>
-                {/* Nombre */}
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: 500,
-                    fontSize: '0.7rem',
-                    textAlign: 'left',
-                    lineHeight: 1,
-                    overflow: 'hidden',
-                    whiteSpace: 'nowrap',
-                    textOverflow: 'ellipsis',
-                    m: 0,
-                    p: 0
-                  }}
-                >
-                  {habitacion.value}
-                </Typography>
+              {/* Nombre */}
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 500,
+                  fontSize: '0.7rem',
+                  textAlign: 'left',
+                  lineHeight: 1,
+                  overflow: 'hidden',
+                  whiteSpace: 'nowrap',
+                  textOverflow: 'ellipsis',
+                  m: 0,
+                  p: 0
+                }}
+              >
+                {habitacion.value}
+              </Typography>
                 {/* Metros cuadrados y cantidad de items */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  {habitacion.metrosCuadrados && (
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        fontSize: '0.6rem',
-                        color: 'text.secondary',
-                        textAlign: 'left',
+              {habitacion.metrosCuadrados && (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontSize: '0.6rem',
+                    color: 'text.secondary',
+                    textAlign: 'left',
                         lineHeight: 1
-                      }}
-                    >
-                      {habitacion.metrosCuadrados}m²
-                    </Typography>
-                  )}
+                  }}
+                >
+                  {habitacion.metrosCuadrados}m²
+                </Typography>
+              )}
                   {habitacion.itemsCount !== undefined && (
                     <>
                       {habitacion.metrosCuadrados && (

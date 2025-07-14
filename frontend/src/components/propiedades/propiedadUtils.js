@@ -349,7 +349,7 @@ export const StatusChip = styled(Box)(({ theme, customcolor }) => ({
   '& .MuiSvgIcon-root': {
     fontSize: '0.9rem'
   }
-}));
+})); 
 
 // Función para contar items de inventario por habitación
 export function contarItemsPorHabitacion(habitaciones = [], inventarios = []) {

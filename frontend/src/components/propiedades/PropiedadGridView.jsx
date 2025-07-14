@@ -78,13 +78,13 @@ const inquilinosConfig = {
 const habitacionesConfig = {
   getIcon: (habitacion) => {
     // Mapeo completo según el modelo de Habitaciones.js
-    const iconMap = {
+  const iconMap = {
       'BAÑO': BathtubIcon,
       'TOILETTE': BathtubIcon,
       'DORMITORIO_DOBLE': KingBed,
       'DORMITORIO_SIMPLE': SingleBed,
       'ESTUDIO': ChairOutlined, // desktop_mac -> ChairOutlined
-      'COCINA': KitchenOutlined,
+    'COCINA': KitchenOutlined,
       'DESPENSA': InventoryIcon, // inventory_2 -> InventoryIcon
       'SALA_PRINCIPAL': ChairOutlined, // weekend -> ChairOutlined
       'PATIO': HomeOutlined, // yard -> HomeOutlined
@@ -92,7 +92,7 @@ const habitacionesConfig = {
       'TERRAZA': HomeOutlined, // deck -> HomeOutlined
       'LAVADERO': LocalLaundryServiceOutlined,
       'OTRO': BedIcon // room -> BedIcon
-    };
+  };
     return iconMap[habitacion.tipo] || BedIcon;
   },
   getTitle: (habitacion) => habitacion.nombrePersonalizado || habitacion.tipo.replace('_', ' '),
