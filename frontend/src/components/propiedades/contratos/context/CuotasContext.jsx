@@ -73,7 +73,7 @@ export const CuotasProvider = ({ children, contratoId, formData }) => {
     return [];
   }, []);
 
-  // Función para actualizar una cuota específica
+  // Función para actualizar una cuota específica (sin guardado automático)
   const updateCuota = useCallback((index, updates) => {
     setCuotas(prevCuotas => {
       const newCuotas = [...prevCuotas];
@@ -82,12 +82,12 @@ export const CuotasProvider = ({ children, contratoId, formData }) => {
     });
   }, []);
 
-  // Función para actualizar el monto de una cuota
+  // Función para actualizar el monto de una cuota (sin guardado automático)
   const updateCuotaMonto = useCallback((index, monto) => {
     updateCuota(index, { monto: parseFloat(monto) || 0 });
   }, [updateCuota]);
 
-  // Función para actualizar el estado de una cuota
+  // Función para actualizar el estado de una cuota (sin guardado automático)
   const updateCuotaEstado = useCallback((index, estado) => {
     updateCuota(index, { estado });
   }, [updateCuota]);

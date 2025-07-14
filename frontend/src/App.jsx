@@ -57,7 +57,7 @@ function App() {
       <ValuesVisibilityProvider>
         <NavigationBarProvider>
           <RutinasHistoryProvider>
-            <ErrorBoundary>
+          <ErrorBoundary>
             <Routes>
               {/* Rutas públicas */}
               <Route path="/login" element={user ? <Navigate to="/assets" replace /> : <Login />} />

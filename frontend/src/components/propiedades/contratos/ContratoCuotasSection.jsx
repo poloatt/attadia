@@ -53,10 +53,15 @@ const ContratoCuotasSection = ({
     setDiferencia(precioTotal - total);
   }, [cuotas, formData.precioTotal]);
 
-  // Notificar cambios en las cuotas al componente padre
+  // Notificar cambios en las cuotas al componente padre (optimizado para evitar loops)
   useEffect(() => {
     if (onCuotasChange && cuotas.length > 0) {
-      onCuotasChange(cuotas);
+      // Usar setTimeout para evitar llamadas síncronas que puedan causar loops
+      const timeoutId = setTimeout(() => {
+        onCuotasChange(cuotas);
+      }, 0);
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [cuotas, onCuotasChange]);
 

@@ -1,173 +1,67 @@
-# Changelog - Sistema de Cuotas
+# Changelog - Gestión de Cuotas de Contratos
 
-## [2024-01-XX] - Corrección de Sincronización de Estado en Tarjetas de Propiedades
+## [2024-01-XX] - Corrección de cálculo de meses y optimización de loops
 
-### ✅ Problema Resuelto
+### 🔧 Correcciones
+- **Cálculo de meses corregido**: Se creó la función `calcularMesesEntreFechas()` para centralizar y corregir el cálculo de meses entre fechas
+- **Función `calcularAlquilerMensualPromedio()` corregida**: Ahora usa la función centralizada para calcular correctamente los meses
+- **Función `generarCuotasMensuales()` corregida**: Usa el cálculo correcto de meses para generar la cantidad adecuada de cuotas
+- **Otras funciones corregidas**: `calcularPrecioTranscurridoMeses()`, `calcularEstadisticasContrato()`, `calcularMontoTotalEstimado()`
 
-**Problema**: Los cambios inline en las cuotas se guardaban correctamente en el backend, pero el estado visual de las tarjetas de propiedades no se actualizaba automáticamente. Era necesario hacer refresh para ver los cambios.
+### ⚡ Optimizaciones
+- **Prevención de loops infinitos**: Se optimizó el efecto `onCuotasChange` en `ContratoCuotasSection` usando `setTimeout` para evitar llamadas síncronas
+- **Contexto de cuotas optimizado**: Se removieron guardados automáticos en las funciones de actualización de cuotas
+- **Comentarios mejorados**: Se agregaron comentarios explicativos sobre las funciones sin guardado automático
 
-### ✅ Solución Implementada
+### 🐛 Problemas resueltos
+- **Cálculo incorrecto de período**: El promedio mensual ahora se calcula correctamente dividiendo el precio total por la cantidad real de meses
+- **Loops en producción**: Se eliminaron los triggers automáticos que causaban loops infinitos al editar cuotas inline
+- **Inconsistencia entre cuotas generadas y promedio**: Ahora ambos usan el mismo cálculo de meses
 
-#### 1. **Refactorización de EstadoFinanzasContrato**
-- **Archivo**: `EstadoFinanzasContrato.jsx`
-- **Cambios**:
-  - Eliminado estado local `cuotas` y `saving`
-  - Integrado completamente con `CuotasContext`
-  - Cálculos dinámicos usando `useMemo` basados en el estado del contexto
-  - Actualización automática cuando cambian las cuotas en el contexto
+### 📝 Notas técnicas
+- La función `calcularMesesEntreFechas()` normaliza las fechas al primer día del mes para cálculos consistentes
+- Las funciones de actualización de cuotas (`updateCuota`, `updateCuotaMonto`, `updateCuotaEstado`) ya no hacen guardado automático
+- El guardado debe realizarse manualmente al hacer submit del formulario principal
 
-#### 2. **Conexión Correcta con CuotasProvider**
-- **Archivo**: `PropiedadCard.jsx`
-- **Cambio**: Agregado `formData={contratoActivo}` al `CuotasProvider`
-- **Beneficio**: El contexto tiene acceso a los datos del contrato para cálculos correctos
-
-#### 3. **Estado Reactivo Completo**
-- **Características**:
-  - Los cambios inline actualizan inmediatamente el estado local
-  - El estado visual se recalcula automáticamente
-  - Los colores y leyendas se actualizan sin refresh
-  - Sincronización automática con el backend
-
-#### 4. **Ejemplo de Uso**
-- **Archivo**: `examples/ExamplePropiedadCardWithCuotas.jsx`
-- **Demuestra**: Cómo implementar correctamente el sistema reactivo
-
-### 🔧 Cómo Funciona Ahora
-
-1. **Cambio Inline**: Usuario modifica una cuota
-2. **Actualización Local**: El contexto actualiza inmediatamente el estado
-3. **Recálculo Visual**: `EstadoFinanzasContrato` recalcula automáticamente los datos
-4. **Actualización UI**: Colores, leyendas y progreso se actualizan instantáneamente
-5. **Persistencia**: Los cambios se guardan en el backend automáticamente
-
-### 📋 Resultado
-
-- ✅ **Sin Refresh**: Los cambios se ven inmediatamente
-- ✅ **Estado Consistente**: Todos los componentes muestran el mismo estado
-- ✅ **Reactividad**: UI se actualiza automáticamente
-- ✅ **Persistencia**: Cambios se guardan correctamente
+### 🚀 Para producción
+- Verificar que el build incluya todos los cambios
+- Limpiar cache del navegador en producción
+- Verificar que no haya referencias a hooks viejos (`useCuotasState.js`)
+- Confirmar que el endpoint `/api/contratos/{id}/cuotas` existe y responde correctamente
 
 ---
 
-## [2024-01-XX] - Mejoras en Guardado y Sincronización de Estado
+## [2024-01-XX] - Reactividad y sincronización de cuotas
 
-### ✅ Mejoras Implementadas
+### ✨ Nuevas características
+- **Contexto de cuotas reactivo**: Las cuotas se actualizan automáticamente cuando cambian las fechas o precio del contrato
+- **Sincronización automática**: Las cuotas existentes se sincronizan con el estado calculado
+- **Edición inline mejorada**: Los editores inline de cuotas están integrados con el contexto
 
-#### 1. **Normalización Automática en Guardado**
-- **Archivo**: `CuotasContext.jsx`
-- **Cambio**: La función `guardarCuotasEnBackend` ahora normaliza automáticamente las cuotas antes de guardarlas
-- **Beneficio**: Asegura consistencia en el estado y evita inconsistencias entre frontend y backend
+### 🔄 Cambios en el flujo
+- **Generación automática**: Las cuotas se generan automáticamente al completar fechas y precio
+- **Sincronización de estado**: Las cuotas existentes mantienen su estado (PAGADO, PENDIENTE, VENCIDA)
+- **Notificación al padre**: Los cambios en cuotas se notifican al componente padre para sincronización
 
-#### 2. **Función de Refresco desde Backend**
-- **Archivo**: `CuotasContext.jsx`
-- **Nueva función**: `refrescarCuotasDesdeBackend()` para sincronizar datos desde el servidor
-- **Uso**: Útil para casos donde otros componentes modifican las cuotas
-
-#### 3. **Hook Personalizado para Guardado**
-- **Archivo**: `hooks/useCuotaGuardado.js`
-- **Nueva función**: `actualizarYGuardarCuota()` que combina actualización local + guardado automático
-- **Beneficio**: Simplifica el uso del contexto y asegura consistencia
-
-#### 4. **Ejemplo de Implementación**
-- **Archivo**: `examples/ExampleCuotaInlineEditor.jsx`
-- **Demuestra**: Cómo usar correctamente el contexto para guardado automático
-- **Características**: 
-  - Actualización inmediata del estado local
-  - Guardado automático en backend
-  - Manejo de errores
-  - Indicador de loading
-
-### 🔧 Cómo Usar el Sistema de Guardado
-
-#### Opción 1: Hook Personalizado (Recomendado)
-```jsx
-import { useCuotaGuardado } from '../hooks/useCuotaGuardado';
-
-const MiComponente = () => {
-  const { actualizarYGuardarCuota, isLoading } = useCuotaGuardado();
-  
-  const handleChange = async (index, cambios) => {
-    const exito = await actualizarYGuardarCuota(index, cambios);
-    if (!exito) {
-      // Manejar error
-    }
-  };
-};
-```
-
-#### Opción 2: Contexto Directo
-```jsx
-import { useCuotasContext } from '../context/CuotasContext';
-
-const MiComponente = () => {
-  const { updateCuota, guardarCuotasEnBackend, cuotas } = useCuotasContext();
-  
-  const handleChange = async (index, cambios) => {
-    updateCuota(index, cambios);
-    const cuotasActualizadas = [...cuotas];
-    cuotasActualizadas[index] = { ...cuotasActualizadas[index], ...cambios };
-    await guardarCuotasEnBackend(cuotasActualizadas);
-  };
-};
-```
-
-### 🎯 Flujo de Sincronización
-
-1. **Cambio Local**: El estado se actualiza inmediatamente para UI reactiva
-2. **Normalización**: Las cuotas se normalizan (estados calculados correctamente)
-3. **Guardado Backend**: Se envían al servidor
-4. **Confirmación**: El estado local se actualiza con la respuesta normalizada
-5. **Sincronización**: Todos los componentes que usen el contexto se actualizan automáticamente
-
-### 📋 Estado Actual del Sistema
-
-- ✅ **Centralización**: Toda la lógica de cuotas está en `CuotasContext`
-- ✅ **Modularidad**: Componentes reutilizables (`CuotaInlineEditor`, `EstadoFinanzasContrato`)
-- ✅ **Reactividad**: Cambios se propagan automáticamente a todos los componentes
-- ✅ **Persistencia**: Cambios se guardan automáticamente en el backend
-- ✅ **Consistencia**: Normalización automática de estados
-- ✅ **Error Handling**: Manejo básico de errores implementado
-
-### 🚀 Próximos Pasos Sugeridos
-
-1. **Notificaciones**: Agregar feedback visual (snackbar) para éxito/error
-2. **Optimistic Updates**: Implementar rollback en caso de error
-3. **Debouncing**: Agregar debounce para evitar múltiples requests
-4. **Cache**: Implementar cache local para mejorar performance
+### 🎯 Mejoras en UX
+- **Feedback visual**: Se muestra el promedio mensual calculado
+- **Validación en tiempo real**: Se calcula la diferencia entre precio total y suma de cuotas
+- **Regeneración manual**: Botón para regenerar cuotas si es necesario
 
 ---
 
-## [2024-01-XX] - Unificación de Estilos y Componentes
+## [2024-01-XX] - Eliminación de títulos redundantes
 
-### ✅ Mejoras Implementadas
+### 🧹 Limpieza de UI
+- **Títulos eliminados**: Se removieron títulos redundantes como "Habitaciones" y "Estado de cuotas"
+- **Consistencia visual**: La UI ahora sigue un patrón uniforme sin títulos innecesarios
+- **Mejor jerarquía**: La información se presenta de forma más limpia y organizada
 
-#### 1. **Componente de Colapso Unificado**
-- **Archivo**: `ContratoCollapse.jsx`
-- **Beneficio**: Elimina duplicación de estilos de colapso
+### 🎨 Mejoras visuales
+- **Alineación de íconos**: Los íconos de habitaciones ahora están alineados correctamente con el texto
+- **Tamaño consistente**: Se aumentó el tamaño de los íconos para mejor visibilidad
+- **Formato de nombres**: Los nombres de habitaciones ahora usan Mayúsculas Iniciales en lugar de MAYÚSCULAS
 
-#### 2. **Barra de Progreso Unificada**
-- **Archivo**: `ProgressBar.jsx`
-- **Beneficio**: Estilo geométrico consistente en toda la app
-
-#### 3. **Eliminación de Duplicación Visual**
-- **Archivo**: `EstadoFinanzasContrato.jsx`
-- **Cambio**: Usa solo `CuotaInlineEditor` para visualización de estado
-- **Beneficio**: Consistencia visual y eliminación de lógica duplicada
-
----
-
-## [2024-01-XX] - Centralización de Lógica de Cuotas
-
-### ✅ Mejoras Implementadas
-
-#### 1. **Contexto Centralizado**
-- **Archivo**: `CuotasContext.jsx`
-- **Funcionalidad**: Toda la lógica de cuotas centralizada
-
-#### 2. **Componentes Modulares**
-- **Archivos**: `CuotaInlineEditor.jsx`, `EstadoFinanzasContrato.jsx`
-- **Beneficio**: Reutilización y consistencia
-
-#### 3. **Eliminación de Duplicación**
-- **Archivos eliminados**: `useCuotasState.js`, `PropiedadCardWithCuotasContext.jsx`
-- **Beneficio**: Código más limpio y mantenible 
+### 📊 Información adicional
+- **Conteo de inventarios**: Se muestra la cantidad de items de inventario por habitación
+- **Relaciones mejoradas**: Se utiliza la relación entre habitaciones e inventarios para mostrar información relevante 

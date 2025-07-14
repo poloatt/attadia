@@ -121,14 +121,31 @@ export const calcularRangoMesesContrato = (fechaInicio, fechaFin) => {
   return `${meses[inicio.getMonth()]} ${inicio.getFullYear()} - ${meses[fin.getMonth()]} ${fin.getFullYear()}`;
 };
 
+// Función centralizada para calcular meses entre dos fechas
+export const calcularMesesEntreFechas = (fechaInicio, fechaFin) => {
+  if (!fechaInicio || !fechaFin) return 0;
+  
+  const inicio = new Date(fechaInicio);
+  const fin = new Date(fechaFin);
+  
+  // Normalizar fechas al primer día del mes para cálculos consistentes
+  inicio.setDate(1);
+  fin.setDate(1);
+  
+  // Calcular diferencia en meses
+  const meses = (fin.getFullYear() - inicio.getFullYear()) * 12 + 
+                (fin.getMonth() - inicio.getMonth());
+  
+  // Si la fecha fin es posterior o igual a la fecha inicio, sumar 1 para incluir ambos meses
+  return fin >= inicio ? meses + 1 : 0;
+};
+
 // Función para calcular el alquiler mensual promedio basado en precio total y duración
 export const calcularAlquilerMensualPromedio = (contrato) => {
   if (!contrato || !contrato.precioTotal || contrato.esMantenimiento) return 0;
   
-  const inicio = new Date(contrato.fechaInicio);
-  const fin = new Date(contrato.fechaFin);
-  const mesesTotales = (fin.getFullYear() - inicio.getFullYear()) * 12 + 
-                      (fin.getMonth() - inicio.getMonth()) + 1;
+  const mesesTotales = calcularMesesEntreFechas(contrato.fechaInicio, contrato.fechaFin);
+  if (mesesTotales === 0) return 0;
   
   return Math.round((contrato.precioTotal / mesesTotales) * 100) / 100;
 };
@@ -182,8 +199,7 @@ export const calcularPrecioTranscurridoMeses = (contrato) => {
   }
   
   // Si el contrato está activo
-  const mesesTranscurridos = (hoy.getFullYear() - inicio.getFullYear()) * 12 + 
-                            (hoy.getMonth() - inicio.getMonth()) + 1;
+  const mesesTranscurridos = calcularMesesEntreFechas(contrato.fechaInicio, hoy);
   const alquilerMensual = calcularAlquilerMensualPromedio(contrato);
   
   return mesesTranscurridos * alquilerMensual;
@@ -355,8 +371,7 @@ export const generarCuotasMensuales = (contrato) => {
   
   const inicio = new Date(contrato.fechaInicio);
   const fin = new Date(contrato.fechaFin);
-  const mesesTotales = (fin.getFullYear() - inicio.getFullYear()) * 12 + 
-                      (fin.getMonth() - inicio.getMonth()) + 1;
+  const mesesTotales = calcularMesesEntreFechas(contrato.fechaInicio, contrato.fechaFin);
   
   const alquilerMensual = calcularAlquilerMensualPromedio(contrato);
   const cuotas = [];
@@ -427,15 +442,13 @@ export const calcularEstadisticasContrato = (contrato) => {
   const diasTotales = Math.max(0, Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24)));
   const diasTranscurridos = Math.max(0, Math.min(diasTotales, Math.ceil((hoy - inicio) / (1000 * 60 * 60 * 24))));
   
-  const mesesTotales = (fin.getFullYear() - inicio.getFullYear()) * 12 + 
-                      (fin.getMonth() - inicio.getMonth()) + 1;
+  const mesesTotales = calcularMesesEntreFechas(contrato.fechaInicio, contrato.fechaFin);
   
   let mesesTranscurridos = 0;
   if (hoy >= inicio) {
     if (hoy <= fin) {
       // Contrato activo
-      mesesTranscurridos = (hoy.getFullYear() - inicio.getFullYear()) * 12 + 
-                          (hoy.getMonth() - inicio.getMonth()) + 1;
+      mesesTranscurridos = calcularMesesEntreFechas(contrato.fechaInicio, hoy);
     } else {
       // Contrato finalizado
       mesesTranscurridos = mesesTotales;
@@ -615,7 +628,7 @@ export const calcularMontoTotalEstimado = (contrato) => {
   const montoMensual = calcularAlquilerMensualPromedio(contrato);
   const inicio = new Date(contrato.fechaInicio);
   const fin = new Date(contrato.fechaFin);
-  const meses = (fin.getFullYear() - inicio.getFullYear()) * 12 + (fin.getMonth() - inicio.getMonth());
+  const meses = calcularMesesEntreFechas(contrato.fechaInicio, contrato.fechaFin);
   const dias = Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24));
   
   if (meses > 0) {
