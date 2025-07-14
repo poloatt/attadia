@@ -50,6 +50,10 @@ class ContratosController extends BaseController {
     this.getActivoByInquilino = this.getActivoByInquilino.bind(this);
     this.getHistorialByInquilino = this.getHistorialByInquilino.bind(this);
     this.update = this.update.bind(this);
+    this.getById = this.getById.bind(this);
+    this.delete = this.delete.bind(this);
+    this.toggleActive = this.toggleActive.bind(this);
+    this.getSelectOptions = this.getSelectOptions.bind(this);
   }
 
   // Método auxiliar para formatear la respuesta
@@ -120,10 +124,11 @@ class ContratosController extends BaseController {
       // Debug: Verificar la respuesta antes de enviarla
       const originalJson = res.json;
       res.json = function(data) {
-        console.log('Debug montoMensual en respuesta API:', data.docs?.map(c => ({
+        console.log('Debug precioTotal en respuesta API:', data.docs?.map(c => ({
           id: c._id,
-          montoMensual: c.montoMensual,
-          tipo: typeof c.montoMensual,
+          precioTotal: c.precioTotal,
+          alquilerMensualPromedio: c.alquilerMensualPromedio,
+          tipo: typeof c.precioTotal,
           esMantenimiento: c.esMantenimiento
         })));
         return originalJson.call(this, data);
@@ -246,7 +251,7 @@ class ContratosController extends BaseController {
       let cuenta = null;
 
       // Solo buscar cuenta y moneda si no es mantenimiento
-      if (!req.body.esMantenimiento) {
+      if (req.body.tipoContrato !== 'MANTENIMIENTO') {
         // Obtener la cuenta y su moneda
         const Cuentas = mongoose.model('Cuentas');
         cuenta = await Cuentas.findById(req.body.cuenta).populate('moneda');
@@ -260,13 +265,13 @@ class ContratosController extends BaseController {
         ...req.body,
         fechaInicio: new Date(req.body.fechaInicio),
         fechaFin: req.body.fechaFin ? new Date(req.body.fechaFin) : null,
-        montoMensual: parseFloat(req.body.montoMensual),
+        precioTotal: parseFloat(req.body.precioTotal || req.body.montoMensual),
         deposito: req.body.deposito ? parseFloat(req.body.deposito) : null,
         propiedad: req.body.propiedadId || req.body.propiedad,
         inquilino: req.body.inquilinoId || req.body.inquilino,
         habitacion: req.body.habitacionId || req.body.habitacion,
-        cuenta: req.body.esMantenimiento ? null : (req.body.cuentaId || req.body.cuenta),
-        moneda: req.body.esMantenimiento ? null : moneda
+        cuenta: req.body.tipoContrato === 'MANTENIMIENTO' ? null : (req.body.cuentaId || req.body.cuenta),
+        moneda: req.body.tipoContrato === 'MANTENIMIENTO' ? null : moneda
       };
 
       // Solo agregar el usuario si está disponible
@@ -275,7 +280,6 @@ class ContratosController extends BaseController {
       }
 
       console.log('Datos procesados:', data);
-
       const contrato = await this.Model.create(data);
       // Sincronizar campo 'contrato' en cada inquilino asociado
       if (Array.isArray(data.inquilino)) {
@@ -687,11 +691,25 @@ class ContratosController extends BaseController {
   async update(req, res) {
     try {
       const { id } = req.params;
+      console.log('=== UPDATE CONTRATO ===');
+      console.log('ID del contrato:', id);
+      console.log('Datos recibidos en req.body:', JSON.stringify(req.body, null, 2));
+      console.log('req.body.precioTotal:', req.body.precioTotal, 'tipo:', typeof req.body.precioTotal);
+      console.log('req.body.tipoContrato:', req.body.tipoContrato, 'tipo:', typeof req.body.tipoContrato);
+      console.log('req.body.esMantenimiento:', req.body.esMantenimiento, 'tipo:', typeof req.body.esMantenimiento);
+      
       const contrato = await this.Model.findById(id);
       
       if (!contrato) {
         return res.status(404).json({ error: 'Contrato no encontrado' });
       }
+
+      console.log('Contrato original:', {
+        _id: contrato._id,
+        precioTotal: contrato.precioTotal,
+        tipoContrato: contrato.tipoContrato,
+        esMantenimiento: contrato.esMantenimiento
+      });
 
       // Si se están actualizando los inquilinos, validar que existan
       if (req.body.inquilino && !contrato.esMantenimiento) {
@@ -713,20 +731,52 @@ class ContratosController extends BaseController {
         usuario: new mongoose.Types.ObjectId(req.user._id) || contrato.usuario, // Preservar el usuario o usar el autenticado
         fechaInicio: req.body.fechaInicio ? new Date(req.body.fechaInicio) : contrato.fechaInicio,
         fechaFin: req.body.fechaFin ? new Date(req.body.fechaFin) : contrato.fechaFin,
-        montoMensual: req.body.montoMensual !== undefined ? parseFloat(req.body.montoMensual) : contrato.montoMensual,
+        precioTotal: req.body.precioTotal !== undefined ? parseFloat(req.body.precioTotal) : 
+                    req.body.montoMensual !== undefined ? parseFloat(req.body.montoMensual) : 
+                    contrato.precioTotal, // Preservar el precioTotal original si no se envía
         deposito: req.body.deposito !== undefined ? parseFloat(req.body.deposito) : contrato.deposito,
         cuenta: req.body.cuenta !== undefined ? req.body.cuenta : contrato.cuenta,
         moneda: req.body.moneda !== undefined ? req.body.moneda : contrato.moneda
       };
 
+      console.log('=== UPDATE DATA PREPARADO ===');
+      console.log('updateData.precioTotal:', updateData.precioTotal, 'tipo:', typeof updateData.precioTotal);
+      console.log('updateData.tipoContrato:', updateData.tipoContrato, 'tipo:', typeof updateData.tipoContrato);
+      console.log('updateData.esMantenimiento:', updateData.esMantenimiento, 'tipo:', typeof updateData.esMantenimiento);
+      console.log('updateData completo:', JSON.stringify(updateData, null, 2));
+
       // Si el contrato no es de mantenimiento, asegurarse que los campos requeridos existan
-      if (!updateData.esMantenimiento && updateData.tipoContrato !== 'MANTENIMIENTO') {
-        if (!updateData.montoMensual) {
-          return res.status(400).json({ error: 'El monto mensual es requerido para contratos de alquiler' });
+      console.log('=== VALIDACIÓN DE CONTRATO ===');
+      console.log('updateData.esMantenimiento:', updateData.esMantenimiento, 'tipo:', typeof updateData.esMantenimiento);
+      console.log('updateData.tipoContrato:', updateData.tipoContrato, 'tipo:', typeof updateData.tipoContrato);
+      console.log('updateData.precioTotal:', updateData.precioTotal, 'tipo:', typeof updateData.precioTotal);
+      console.log('updateData.cuenta:', updateData.cuenta, 'tipo:', typeof updateData.cuenta);
+      
+      const noEsMantenimiento = !updateData.esMantenimiento;
+      const noEsTipoMantenimiento = updateData.tipoContrato !== 'MANTENIMIENTO';
+      const debeValidar = noEsMantenimiento && noEsTipoMantenimiento;
+      
+      console.log('Validación lógica:', {
+        noEsMantenimiento,
+        noEsTipoMantenimiento,
+        debeValidar
+      });
+      
+      if (debeValidar) {
+        console.log('Contrato NO es de mantenimiento, validando campos requeridos...');
+        console.log('precioTotal a validar:', updateData.precioTotal, 'es truthy:', !!updateData.precioTotal, 'es > 0:', updateData.precioTotal > 0);
+        
+        if (!updateData.precioTotal || updateData.precioTotal <= 0) {
+          console.log('ERROR: precioTotal inválido:', updateData.precioTotal);
+          return res.status(400).json({ error: 'El precio total es requerido y debe ser mayor a 0 para contratos de alquiler' });
         }
         if (!updateData.cuenta) {
+          console.log('ERROR: cuenta faltante');
           return res.status(400).json({ error: 'La cuenta es requerida para contratos de alquiler' });
         }
+        console.log('Validación exitosa');
+      } else {
+        console.log('Contrato ES de mantenimiento o tipo MANTENIMIENTO, saltando validación de precioTotal');
       }
 
       // Asegurarse de que el usuario esté presente
@@ -734,8 +784,35 @@ class ContratosController extends BaseController {
         updateData.usuario = new mongoose.Types.ObjectId(req.user._id);
       }
 
+      console.log('=== ANTES DE OBJECT.ASSIGN ===');
+      console.log('contrato.precioTotal antes:', contrato.precioTotal);
+      console.log('updateData.precioTotal:', updateData.precioTotal);
+      
       Object.assign(contrato, updateData);
-      await contrato.save();
+      
+      console.log('=== DESPUÉS DE OBJECT.ASSIGN ===');
+      console.log('contrato.precioTotal después:', contrato.precioTotal);
+      console.log('contrato.tipoContrato:', contrato.tipoContrato);
+      console.log('contrato.esMantenimiento:', contrato.esMantenimiento);
+      
+      console.log('=== ANTES DE SAVE ===');
+      try {
+        await contrato.save();
+        console.log('=== SAVE EXITOSO ===');
+      } catch (saveError) {
+        console.log('=== ERROR EN SAVE ===');
+        console.log('Error completo:', saveError);
+        console.log('Error message:', saveError.message);
+        console.log('Error name:', saveError.name);
+        if (saveError.errors) {
+          console.log('Errores de validación:', Object.keys(saveError.errors).map(key => ({
+            field: key,
+            message: saveError.errors[key].message,
+            value: saveError.errors[key].value
+          })));
+        }
+        throw saveError;
+      }
       // Sincronizar campo 'contrato' en cada inquilino asociado tras update
       if (Array.isArray(contrato.inquilino)) {
         for (const inquilinoId of contrato.inquilino) {
@@ -746,6 +823,24 @@ class ContratosController extends BaseController {
       res.json(this.formatResponse(updated));
     } catch (error) {
       console.error('Error al actualizar contrato:', error);
+      console.error('Error stack:', error.stack);
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      
+      // Si es un error de validación de Mongoose, mostrar más detalles
+      if (error.name === 'ValidationError') {
+        console.error('Errores de validación:', error.errors);
+        const validationErrors = {};
+        for (const field in error.errors) {
+          validationErrors[field] = error.errors[field].message;
+        }
+        return res.status(400).json({ 
+          error: 'Error de validación al actualizar contrato',
+          details: error.message,
+          validationErrors
+        });
+      }
+      
       res.status(400).json({ 
         error: 'Error al actualizar contrato',
         details: error.message 
@@ -769,6 +864,504 @@ class ContratosController extends BaseController {
         error: 'Error al actualizar estados de contratos',
         details: error.message
       });
+    }
+  }
+
+  // POST /api/contratos/wizard/validate-step
+  async validateWizardStep(req, res) {
+    try {
+      const { step, data } = req.body;
+      const errors = {};
+
+      switch (step) {
+        case 'basic':
+          if (!data.tipoContrato) {
+            errors.tipoContrato = 'El tipo de contrato es requerido';
+          }
+          if (!data.fechaInicio) {
+            errors.fechaInicio = 'La fecha de inicio es requerida';
+          }
+          break;
+
+        case 'property':
+          if (!data.propiedad) {
+            errors.propiedad = 'La propiedad es requerida';
+          }
+          if (data.tipoContrato !== 'MANTENIMIENTO' && (!data.inquilino || data.inquilino.length === 0)) {
+            errors.inquilino = 'Al menos un inquilino es requerido para contratos de alquiler';
+          }
+          break;
+
+        case 'financial':
+          if (data.tipoContrato !== 'MANTENIMIENTO') {
+            if (!data.precioTotal || data.precioTotal <= 0) {
+              errors.precioTotal = 'El precio total debe ser mayor a 0';
+            }
+            if (!data.cuenta) {
+              errors.cuenta = 'La cuenta es requerida para contratos de alquiler';
+            }
+          }
+          break;
+
+        case 'payments':
+          if (data.tipoContrato !== 'MANTENIMIENTO' && data.deposito && data.deposito < 0) {
+            errors.deposito = 'El depósito no puede ser negativo';
+          }
+          break;
+
+        default:
+          errors.general = 'Paso no válido';
+      }
+
+      res.json({
+        isValid: Object.keys(errors).length === 0,
+        errors
+      });
+    } catch (error) {
+      console.error('Error al validar paso del wizard:', error);
+      res.status(500).json({ error: 'Error al validar paso del wizard' });
+    }
+  }
+
+  // POST /api/contratos/wizard/preview
+  async previewWizardContract(req, res) {
+    try {
+      const { data } = req.body;
+      
+      // Calcular resumen financiero
+      const resumen = {
+        precioTotal: parseFloat(data.precioTotal || 0),
+        deposito: parseFloat(data.deposito || 0),
+        duracionMeses: 0,
+        alquilerMensual: 0,
+        totalConDeposito: 0
+      };
+
+      if (data.fechaInicio && data.fechaFin) {
+        const inicio = new Date(data.fechaInicio);
+        const fin = new Date(data.fechaFin);
+        const diffTime = Math.abs(fin - inicio);
+        resumen.duracionMeses = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30));
+        resumen.alquilerMensual = resumen.precioTotal / resumen.duracionMeses;
+      }
+
+      resumen.totalConDeposito = resumen.precioTotal + resumen.deposito;
+
+      // Obtener datos relacionados para el preview
+      const propiedad = data.propiedad ? await this.Model.db.models.Propiedades.findById(data.propiedad) : null;
+      const inquilinos = data.inquilino ? await this.Model.db.models.Inquilinos.find({ _id: { $in: data.inquilino } }) : [];
+      const cuenta = data.cuenta ? await this.Model.db.models.Cuentas.findById(data.cuenta).populate('moneda') : null;
+
+      res.json({
+        resumen,
+        propiedad: propiedad ? this.formatResponse(propiedad) : null,
+        inquilinos: inquilinos.map(inq => this.formatResponse(inq)),
+        cuenta: cuenta ? this.formatResponse(cuenta) : null
+      });
+    } catch (error) {
+      console.error('Error al generar preview del contrato:', error);
+      res.status(500).json({ error: 'Error al generar preview del contrato' });
+    }
+  }
+
+  // GET /api/contratos/wizard/suggestions
+  async getWizardSuggestions(req, res) {
+    try {
+      const { propiedadId, inquilinoId } = req.query;
+      const suggestions = {};
+
+      if (propiedadId) {
+        // Sugerencias basadas en la propiedad
+        const propiedad = await this.Model.db.models.Propiedades.findById(propiedadId);
+        if (propiedad) {
+          suggestions.precioTotal = propiedad.precio || propiedad.montoMensual;
+          suggestions.deposito = propiedad.deposito || (propiedad.precio * 2);
+          suggestions.cuenta = propiedad.cuenta;
+          suggestions.habitaciones = await this.Model.db.models.Habitaciones.find({ propiedad: propiedadId });
+        }
+      }
+
+      if (inquilinoId) {
+        // Sugerencias basadas en el inquilino
+        const inquilino = await this.Model.db.models.Inquilinos.findById(inquilinoId);
+        if (inquilino) {
+          suggestions.propiedad = inquilino.propiedad;
+          // Buscar contratos previos del inquilino para sugerir términos similares
+          const contratosPrevios = await this.Model.find({ inquilino: inquilinoId })
+            .sort({ fechaInicio: -1 })
+            .limit(1);
+          
+          if (contratosPrevios.length > 0) {
+            const ultimoContrato = contratosPrevios[0];
+            suggestions.precioTotal = ultimoContrato.precioTotal;
+            suggestions.deposito = ultimoContrato.deposito;
+          }
+        }
+      }
+
+      res.json(suggestions);
+    } catch (error) {
+      console.error('Error al obtener sugerencias del wizard:', error);
+      res.status(500).json({ error: 'Error al obtener sugerencias' });
+    }
+  }
+
+  // POST /api/contratos/bulk-update
+  async bulkUpdate(req, res) {
+    try {
+      const { ids, updates } = req.body;
+      
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: 'Se requieren IDs válidos' });
+      }
+
+      const result = await this.Model.updateMany(
+        { _id: { $in: ids }, usuario: new mongoose.Types.ObjectId(req.user._id) },
+        updates
+      );
+
+      res.json({
+        message: `${result.modifiedCount} contratos actualizados exitosamente`,
+        modifiedCount: result.modifiedCount
+      });
+    } catch (error) {
+      console.error('Error en actualización masiva:', error);
+      res.status(500).json({ error: 'Error en actualización masiva' });
+    }
+  }
+
+  // GET /api/contratos/stats/summary
+  async getSummaryStats(req, res) {
+    try {
+      const userId = new mongoose.Types.ObjectId(req.user._id);
+      const now = new Date();
+
+      const [
+        totalContratos,
+        contratosActivos,
+        contratosFinalizados,
+        contratosPlaneados,
+        contratosMantenimiento
+      ] = await Promise.all([
+        this.Model.countDocuments({ usuario: userId }),
+        this.Model.countDocuments({
+          usuario: userId,
+          fechaInicio: { $lte: now },
+          fechaFin: { $gt: now },
+          esMantenimiento: false
+        }),
+        this.Model.countDocuments({
+          usuario: userId,
+          fechaFin: { $lt: now }
+        }),
+        this.Model.countDocuments({
+          usuario: userId,
+          fechaInicio: { $gt: now }
+        }),
+        this.Model.countDocuments({
+          usuario: userId,
+          esMantenimiento: true,
+          fechaInicio: { $lte: now },
+          fechaFin: { $gt: now }
+        })
+      ]);
+
+      res.json({
+        total: totalContratos,
+        activos: contratosActivos,
+        finalizados: contratosFinalizados,
+        planeados: contratosPlaneados,
+        mantenimiento: contratosMantenimiento
+      });
+    } catch (error) {
+      console.error('Error al obtener estadísticas resumidas:', error);
+      res.status(500).json({ error: 'Error al obtener estadísticas' });
+    }
+  }
+
+  // GET /api/contratos/stats/financial
+  async getFinancialStats(req, res) {
+    try {
+      const userId = new mongoose.Types.ObjectId(req.user._id);
+      const now = new Date();
+
+      const contratosActivos = await this.Model.find({
+        usuario: userId,
+        fechaInicio: { $lte: now },
+        fechaFin: { $gt: now },
+        esMantenimiento: false
+      }).populate('moneda');
+
+      const stats = {
+        ingresosMensuales: 0,
+        depositosTotales: 0,
+        contratosPorMoneda: {}
+      };
+
+      contratosActivos.forEach(contrato => {
+        const moneda = contrato.moneda?.simbolo || 'USD';
+        const precio = parseFloat(contrato.precioTotal || 0);
+        const deposito = parseFloat(contrato.deposito || 0);
+
+        stats.ingresosMensuales += precio;
+        stats.depositosTotales += deposito;
+
+        if (!stats.contratosPorMoneda[moneda]) {
+          stats.contratosPorMoneda[moneda] = {
+            cantidad: 0,
+            ingresosMensuales: 0,
+            depositosTotales: 0
+          };
+        }
+
+        stats.contratosPorMoneda[moneda].cantidad++;
+        stats.contratosPorMoneda[moneda].ingresosMensuales += precio;
+        stats.contratosPorMoneda[moneda].depositosTotales += deposito;
+      });
+
+      res.json(stats);
+    } catch (error) {
+      console.error('Error al obtener estadísticas financieras:', error);
+      res.status(500).json({ error: 'Error al obtener estadísticas financieras' });
+    }
+  }
+
+  // POST /api/contratos/:id/renovar
+  async renovarContrato(req, res) {
+    try {
+      const { id } = req.params;
+      const { nuevaFechaFin, nuevoPrecio } = req.body;
+
+      const contrato = await this.Model.findById(id);
+      if (!contrato) {
+        return res.status(404).json({ error: 'Contrato no encontrado' });
+      }
+
+      // Crear nuevo contrato basado en el actual
+      const nuevoContrato = new this.Model({
+        ...contrato.toObject(),
+        _id: undefined,
+        fechaInicio: contrato.fechaFin,
+        fechaFin: nuevaFechaFin ? new Date(nuevaFechaFin) : null,
+        precioTotal: nuevoPrecio || contrato.precioTotal,
+        estado: 'PLANEADO',
+        contratoAnterior: contrato._id
+      });
+
+      // Finalizar contrato actual
+      contrato.estado = 'FINALIZADO';
+      contrato.contratoSiguiente = nuevoContrato._id;
+      await contrato.save();
+
+      await nuevoContrato.save();
+      const populated = await nuevoContrato.populate(['propiedad', 'inquilino', 'cuenta']);
+
+      res.json({
+        message: 'Contrato renovado exitosamente',
+        contrato: this.formatResponse(populated)
+      });
+    } catch (error) {
+      console.error('Error al renovar contrato:', error);
+      res.status(500).json({ error: 'Error al renovar contrato' });
+    }
+  }
+
+  // POST /api/contratos/:id/suspender
+  async suspenderContrato(req, res) {
+    try {
+      const { id } = req.params;
+      const { motivo, fechaSuspension } = req.body;
+
+      const contrato = await this.Model.findById(id);
+      if (!contrato) {
+        return res.status(404).json({ error: 'Contrato no encontrado' });
+      }
+
+      contrato.estado = 'SUSPENDIDO';
+      contrato.motivoSuspension = motivo;
+      contrato.fechaSuspension = fechaSuspension ? new Date(fechaSuspension) : new Date();
+      await contrato.save();
+
+      res.json({
+        message: 'Contrato suspendido exitosamente',
+        contrato: this.formatResponse(contrato)
+      });
+    } catch (error) {
+      console.error('Error al suspender contrato:', error);
+      res.status(500).json({ error: 'Error al suspender contrato' });
+    }
+  }
+
+  // POST /api/contratos/:id/reactivar
+  async reactivarContrato(req, res) {
+    try {
+      const { id } = req.params;
+
+      const contrato = await this.Model.findById(id);
+      if (!contrato) {
+        return res.status(404).json({ error: 'Contrato no encontrado' });
+      }
+
+      contrato.estado = 'ACTIVO';
+      contrato.motivoSuspension = undefined;
+      contrato.fechaSuspension = undefined;
+      await contrato.save();
+
+      res.json({
+        message: 'Contrato reactivado exitosamente',
+        contrato: this.formatResponse(contrato)
+      });
+    } catch (error) {
+      console.error('Error al reactivar contrato:', error);
+      res.status(500).json({ error: 'Error al reactivar contrato' });
+    }
+  }
+
+  // GET /api/contratos/search/advanced
+  async advancedSearch(req, res) {
+    try {
+      const { 
+        query, 
+        estado, 
+        fechaInicio, 
+        fechaFin, 
+        propiedad, 
+        inquilino,
+        precioMin,
+        precioMax,
+        esMantenimiento
+      } = req.query;
+
+      const filtros = { usuario: new mongoose.Types.ObjectId(req.user._id) };
+
+      if (query) {
+        filtros.$or = [
+          { observaciones: { $regex: query, $options: 'i' } },
+          { tipoContrato: { $regex: query, $options: 'i' } }
+        ];
+      }
+
+      if (estado) filtros.estado = estado;
+      if (propiedad) filtros.propiedad = propiedad;
+      if (inquilino) filtros.inquilino = inquilino;
+      if (esMantenimiento !== undefined) filtros.esMantenimiento = esMantenimiento === 'true';
+
+      if (fechaInicio || fechaFin) {
+        filtros.fechaInicio = {};
+        if (fechaInicio) filtros.fechaInicio.$gte = new Date(fechaInicio);
+        if (fechaFin) filtros.fechaInicio.$lte = new Date(fechaFin);
+      }
+
+      if (precioMin || precioMax) {
+        filtros.precioTotal = {};
+        if (precioMin) filtros.precioTotal.$gte = parseFloat(precioMin);
+        if (precioMax) filtros.precioTotal.$lte = parseFloat(precioMax);
+      }
+
+      const result = await this.Model.paginate(filtros, {
+        populate: ['propiedad', 'inquilino', 'cuenta'],
+        sort: { fechaInicio: 'desc' }
+      });
+
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...result, docs });
+    } catch (error) {
+      console.error('Error en búsqueda avanzada:', error);
+      res.status(500).json({ error: 'Error en búsqueda avanzada' });
+    }
+  }
+
+  // GET /api/contratos/filter/by-status
+  async filterByStatus(req, res) {
+    try {
+      const { estado } = req.query;
+      const filtros = { usuario: new mongoose.Types.ObjectId(req.user._id) };
+      
+      if (estado) {
+        filtros.estado = estado;
+      }
+
+      const result = await this.Model.paginate(filtros, {
+        populate: ['propiedad', 'inquilino', 'cuenta'],
+        sort: { fechaInicio: 'desc' }
+      });
+
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...result, docs });
+    } catch (error) {
+      console.error('Error al filtrar por estado:', error);
+      res.status(500).json({ error: 'Error al filtrar por estado' });
+    }
+  }
+
+  // GET /api/contratos/filter/by-date-range
+  async filterByDateRange(req, res) {
+    try {
+      const { fechaInicio, fechaFin } = req.query;
+      const filtros = { usuario: new mongoose.Types.ObjectId(req.user._id) };
+
+      if (fechaInicio || fechaFin) {
+        filtros.fechaInicio = {};
+        if (fechaInicio) filtros.fechaInicio.$gte = new Date(fechaInicio);
+        if (fechaFin) filtros.fechaInicio.$lte = new Date(fechaFin);
+      }
+
+      const result = await this.Model.paginate(filtros, {
+        populate: ['propiedad', 'inquilino', 'cuenta'],
+        sort: { fechaInicio: 'desc' }
+      });
+
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...result, docs });
+    } catch (error) {
+      console.error('Error al filtrar por rango de fechas:', error);
+      res.status(500).json({ error: 'Error al filtrar por rango de fechas' });
+    }
+  }
+
+  // GET /api/contratos/filter/by-property
+  async filterByProperty(req, res) {
+    try {
+      const { propiedad } = req.query;
+      const filtros = { usuario: new mongoose.Types.ObjectId(req.user._id) };
+
+      if (propiedad) {
+        filtros.propiedad = propiedad;
+      }
+
+      const result = await this.Model.paginate(filtros, {
+        populate: ['propiedad', 'inquilino', 'cuenta'],
+        sort: { fechaInicio: 'desc' }
+      });
+
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...result, docs });
+    } catch (error) {
+      console.error('Error al filtrar por propiedad:', error);
+      res.status(500).json({ error: 'Error al filtrar por propiedad' });
+    }
+  }
+
+  // GET /api/contratos/filter/by-tenant
+  async filterByTenant(req, res) {
+    try {
+      const { inquilino } = req.query;
+      const filtros = { usuario: new mongoose.Types.ObjectId(req.user._id) };
+
+      if (inquilino) {
+        filtros.inquilino = inquilino;
+      }
+
+      const result = await this.Model.paginate(filtros, {
+        populate: ['propiedad', 'inquilino', 'cuenta'],
+        sort: { fechaInicio: 'desc' }
+      });
+
+      const docs = result.docs.map(doc => this.formatResponse(doc));
+      res.json({ ...result, docs });
+    } catch (error) {
+      console.error('Error al filtrar por inquilino:', error);
+      res.status(500).json({ error: 'Error al filtrar por inquilino' });
     }
   }
 }

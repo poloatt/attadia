@@ -9,7 +9,7 @@ import {
   StoreOutlined as ServicesIcon
 } from '@mui/icons-material';
 import { IconButton } from '@mui/material';
-import { getEstadoLabel, getEstadoColor, getEstadoContrato } from '../contratos/contratoUtils';
+import { getEstadoLabel, getEstadoColor, getEstadoContrato } from '../propiedades/contratos/contratoUtils';
 
 // Funciones auxiliares para propiedades
 const getPropiedadIcon = (tipo) => {

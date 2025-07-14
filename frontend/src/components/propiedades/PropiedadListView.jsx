@@ -21,10 +21,73 @@ import {
   OpenInNew as OpenInNewIcon,
   Visibility as VisibilityIcon
 } from '@mui/icons-material';
-import ContratoDetail from '../contratos/ContratoDetail';
+import ContratoDetail from './contratos/ContratoDetail';
 import BarraEstadoPropiedad from './BarraEstadoPropiedad';
-import { pluralizar, getEstadoContrato, getInquilinoStatusColor, agruparHabitaciones, calcularProgresoOcupacion } from './propiedadUtils';
-import { SeccionInquilinos, SeccionHabitaciones, SeccionInventario, SeccionDocumentos } from './SeccionesPropiedad';
+import {
+  pluralizar,
+  getEstadoContrato,
+  getInquilinoStatusColor,
+  agruparHabitaciones,
+  calcularProgresoOcupacion,
+  getCuentaYMoneda
+} from './propiedadUtils';
+
+// Función para calcular el monto mensual promedio desde contratos activos
+const calcularMontoMensualDesdeContratos = (contratos = []) => {
+  if (!contratos || contratos.length === 0) return 0;
+
+  // Buscar contrato activo (no de mantenimiento)
+  let contratoReferencia = contratos.find(contrato =>
+    contrato.estado === 'ACTIVO' &&
+    !contrato.esMantenimiento &&
+    contrato.tipoContrato === 'ALQUILER'
+  );
+
+  // Si no hay activo, buscar planeado
+  if (!contratoReferencia) {
+    contratoReferencia = contratos.find(contrato =>
+      contrato.estado === 'PLANEADO' &&
+      !contrato.esMantenimiento &&
+      contrato.tipoContrato === 'ALQUILER'
+    );
+  }
+
+  // Si no hay planeado, buscar reservado
+  if (!contratoReferencia) {
+    contratoReferencia = contratos.find(contrato =>
+      contrato.estado === 'RESERVADO' &&
+      !contrato.esMantenimiento &&
+      contrato.tipoContrato === 'ALQUILER'
+    );
+  }
+
+  // Si no hay reservado, buscar cualquier contrato de alquiler
+  if (!contratoReferencia) {
+    contratoReferencia = contratos.find(contrato =>
+      !contrato.esMantenimiento &&
+      contrato.tipoContrato === 'ALQUILER'
+    );
+  }
+
+  if (!contratoReferencia) return 0;
+
+  // Si el contrato tiene alquilerMensualPromedio calculado, usarlo
+  if (contratoReferencia.alquilerMensualPromedio) {
+    return contratoReferencia.alquilerMensualPromedio;
+  }
+
+  // Si no, calcularlo manualmente
+  if (contratoReferencia.precioTotal && contratoReferencia.fechaInicio && contratoReferencia.fechaFin) {
+    const inicio = new Date(contratoReferencia.fechaInicio);
+    const fin = new Date(contratoReferencia.fechaFin);
+    const mesesTotales = (fin.getFullYear() - inicio.getFullYear()) * 12 +
+                        (fin.getMonth() - inicio.getMonth()) + 1;
+
+    return Math.round((contratoReferencia.precioTotal / mesesTotales) * 100) / 100;
+  }
+
+  return 0;
+};
 
 // Sección: Progreso de ocupación
 const ProgresoOcupacion = ({ propiedad }) => {
@@ -45,9 +108,9 @@ const ProgresoOcupacion = ({ propiedad }) => {
   const diasTranscurridos = Math.max(0, Math.min(diasTotales, Math.ceil((hoy - inicio) / (1000 * 60 * 60 * 24))));
   const diasRestantes = Math.max(0, Math.ceil((fin - hoy) / (1000 * 60 * 60 * 24)));
   const porcentaje = diasTotales > 0 ? Math.min(100, (diasTranscurridos / diasTotales) * 100) : 0;
-  const montoMensual = propiedad.montoMensual || 0;
+  const montoMensual = propiedad.alquilerMensualPromedio || 0;
   const montoAcumulado = (diasTranscurridos / 30) * montoMensual;
-  const montoTotal = (diasTotales / 30) * montoMensual;
+  const montoTotal = contratoActivo?.precioTotal || 0;
   return (
     <Box sx={{ mb: 2 }}>
       <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Progreso de ocupación</Typography>
@@ -65,7 +128,7 @@ const ProgresoOcupacion = ({ propiedad }) => {
 // Sección: Financiera
 const Financiera = ({ propiedad }) => {
   const simboloMoneda = propiedad.cuenta?.moneda?.simbolo || propiedad.moneda?.simbolo || '$';
-  const montoMensual = propiedad.montoMensual || 0;
+  const montoMensual = calcularMontoMensualDesdeContratos(propiedad.contratos);
   return (
     <Box sx={{ mb: 2 }}>
       <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Financiera</Typography>
@@ -220,9 +283,11 @@ const PropiedadListView = ({ propiedad, inquilinos = [], inquilinosActivos = [],
   const direccion = propiedad.direccion || '';
   const ciudad = propiedad.ciudad || '';
   const metrosCuadrados = propiedad.metrosCuadrados || 0;
-  const montoMensual = propiedad.montoMensual || 0;
-  const simboloMoneda = propiedad.cuenta?.moneda?.simbolo || propiedad.moneda?.simbolo || '$';
-  const nombreCuenta = propiedad.cuenta?.nombre || 'No especificada';
+  const montoMensual = propiedad.alquilerMensualPromedio || 0;
+
+  // Usar la función centralizada para obtener cuenta y moneda
+  const { simboloMoneda, nombreCuenta } = getCuentaYMoneda(propiedad, {});
+
   const totalHabitaciones = (propiedad.habitaciones || []).length;
   const dormitorios = (propiedad.habitaciones || []).filter(h => h.tipo === 'DORMITORIO_SIMPLE' || h.tipo === 'DORMITORIO_DOBLE').length;
   const totalInventarios = (propiedad.inventarios || []).length;
@@ -238,7 +303,7 @@ const PropiedadListView = ({ propiedad, inquilinos = [], inquilinosActivos = [],
     const inicio = new Date(contratoActivo.fechaInicio);
     const fin = new Date(contratoActivo.fechaFin);
     const diasTotales = Math.max(0, Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24)));
-    return ((diasTotales / 30) * montoMensual);
+    return contratoActivo.precioTotal || 0;
   })() : 0;
 
   const [openContrato, setOpenContrato] = React.useState(false);
@@ -285,8 +350,6 @@ const PropiedadListView = ({ propiedad, inquilinos = [], inquilinosActivos = [],
           <Typography variant="caption" color="text.secondary">total</Typography>
         </Box>
       </Box>
-      {/* Inquilinos */}
-      <SeccionInquilinos inquilinos={_inquilinos} inquilinosActivos={_inquilinosActivos} inquilinosFinalizados={_inquilinosFinalizados} />
       {/* Habitaciones */}
       <SeccionHabitaciones habitaciones={_habitaciones} />
       {/* Documentos (incluye contratos) */}
@@ -297,7 +360,6 @@ const PropiedadListView = ({ propiedad, inquilinos = [], inquilinosActivos = [],
         url: contrato.documentoUrl || `/contratos/${contrato._id}`
       }))]} />
       {/* Inventario */}
-      <SeccionInventario inventario={_inventarios} />
     </Box>
   );
 };

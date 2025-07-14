@@ -10,8 +10,9 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { Link } from 'react-router-dom';
-import ContratoDetail from '../contratos/ContratoDetail';
-import InquilinoDetail from '../inquilinos/InquilinoDetail';
+import InquilinoDetail from '../propiedades/inquilinos/InquilinoDetail';
+import { getInquilinosByPropiedad, getInquilinosByContrato } from '../propiedades/inquilinos';
+import ContratoDetail from '../propiedades/contratos/ContratoDetail';
 import {
   LocationOnOutlined as AddressIcon,
   LocationCityOutlined as CityIcon,
@@ -24,6 +25,7 @@ import {
   CalendarToday as CalendarIcon,
   Schedule as ScheduleIcon,
   Home as HomeIcon,
+  HomeOutlined,
   Apartment as ApartmentIcon,
   Description as ContractIcon,
   ExpandMore as ExpandMoreIcon,
@@ -34,10 +36,18 @@ import {
   Visibility as ViewIcon,
   InfoOutlined as InfoIcon,
   Description as DescriptionIcon,
-  DriveFolderUpload as DriveIcon
+  DriveFolderUpload as DriveIcon,
+  // Íconos para habitaciones
+  BathtubOutlined as BathtubIcon,
+  KingBed,
+  SingleBed,
+  ChairOutlined,
+  KitchenOutlined,
+  LocalLaundryServiceOutlined
 } from '@mui/icons-material';
-import { getInquilinosByPropiedad, getInquilinosByContrato } from '../inquilinos/utils';
-import { getEstadoContrato, calcularDuracionTotal, getApellidoInquilinoContrato, calcularRangoMesesContrato } from '../contratos/contratoUtils';
+import { getEstadoContrato, calcularDuracionTotal, getApellidoInquilinoContrato, calcularRangoMesesContrato } from '../propiedades/contratos/contratoUtils';
+import { contarItemsPorHabitacion } from '../propiedades/propiedadUtils';
+import { icons } from '../../navigation/menuIcons';
 
 // Constantes de estilo jerárquicas para alineación y separadores
 const SECTION_PADDING_X = 1;
@@ -51,7 +61,7 @@ const SEPARATOR_WIDTH = '1px';
 // Componente Paper estilizado minimalista con fondo del tema
 const GeometricPaper = styled(Paper)(({ theme }) => ({
   borderRadius: 0,
-  padding: theme.spacing(0.05, 0.7),
+  padding: theme.spacing(0.05, 1.5), // padding horizontal unificado
   border: 'none',
   backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30,30,30,0.98)' : 'rgba(240,240,240,1)',
   boxShadow: '0 1px 0 0 rgba(0,0,0,0.18)',
@@ -351,37 +361,12 @@ const SECTION_CONFIGS = {
   // Sección de resumen de inventario (primaria)
   resumenInventario: (inventario = []) => {
     const totalItems = inventario.length;
-    
-    // Calcular total de cantidad si los items tienen propiedad cantidad
-    const totalCantidad = inventario.reduce((sum, item) => {
-      return sum + (item.cantidad || 1);
-    }, 0);
-    
-    // Agrupar por categoría si existe
-    const categorias = inventario.reduce((acc, item) => {
-      const categoria = item.categoria || item.tipo || 'Sin categoría';
-      if (!acc[categoria]) {
-        acc[categoria] = 0;
-      }
-      acc[categoria]++;
-      return acc;
-    }, {});
-
-    const numCategorias = Object.keys(categorias).length;
-    
     // Determinar el texto a mostrar
     const textoInventario = totalItems === 0 
       ? 'Sin inventario' 
       : totalItems === 1 
         ? '1 elemento' 
         : `${totalItems} elementos`;
-    
-    const textoCategorias = numCategorias === 0 
-      ? 'Sin categorías' 
-      : numCategorias === 1 
-        ? '1 categoría' 
-        : `${numCategorias} categorías`;
-
     return {
       type: 'primary',
       left: [
@@ -392,30 +377,48 @@ const SECTION_CONFIGS = {
           color: 'text.secondary',
           position: 'left'
         }
-      ],
-      right: [
-        {
-          icon: DepositIcon,
-          label: 'Categorías',
-          value: textoCategorias,
-          color: 'text.secondary',
-          position: 'right'
-        }
       ]
+      // No right column
     };
   },
 
   // Sección de habitaciones en cuadrados (especial)
-  habitaciones: (habitaciones = []) => ({
-    type: 'habitaciones',
-    data: habitaciones.map(habitacion => ({
-      icon: habitacion.icon || BedIcon,
-      label: habitacion.tipo || 'Habitación',
-      value: habitacion.nombre || habitacion.tipo || 'Sin nombre',
-      color: habitacion.color || 'text.secondary',
-      metrosCuadrados: habitacion.metrosCuadrados
-    }))
-  })
+  habitaciones: (habitaciones = [], inventarios = []) => {
+    // Función para mapear tipos de habitación a íconos de Material-UI
+    const getHabitacionIcon = (tipo) => {
+      const iconMap = {
+        'BAÑO': BathtubIcon,
+        'TOILETTE': BathtubIcon,
+        'DORMITORIO_DOBLE': KingBed,
+        'DORMITORIO_SIMPLE': SingleBed,
+        'ESTUDIO': ChairOutlined,
+        'COCINA': KitchenOutlined,
+        'DESPENSA': InventoryIcon,
+        'SALA_PRINCIPAL': ChairOutlined,
+        'PATIO': HomeOutlined,
+        'JARDIN': HomeOutlined,
+        'TERRAZA': HomeOutlined,
+        'LAVADERO': LocalLaundryServiceOutlined,
+        'OTRO': BedIcon
+      };
+      return iconMap[tipo] || BedIcon;
+    };
+
+    // Usar la función centralizada para contar items por habitación
+    const habitacionesConItems = contarItemsPorHabitacion(habitaciones, inventarios);
+
+    return {
+      type: 'habitaciones',
+      data: habitacionesConItems.map(habitacion => ({
+        icon: getHabitacionIcon(habitacion.tipo),
+        label: habitacion.tipo || 'Habitación',
+        value: habitacion.nombrePersonalizado || (habitacion.tipo?.replace('_', ' ') || 'Sin nombre').toLowerCase().replace(/\b\w/g, l => l.toUpperCase()),
+        color: habitacion.color || 'text.secondary',
+        metrosCuadrados: habitacion.metrosCuadrados,
+        itemsCount: habitacion.itemsCount
+      }))
+    };
+  }
 };
 
 // Componente para renderizar sección con layout izquierda/derecha
@@ -461,43 +464,17 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
         </GeometricPaper>
       );
     }
-    // Mostrar los inquilinos en un grid de máximo dos columnas por fila
-    const rows = [];
-    for (let i = 0; i < inquilinosArr.length; i += 2) {
-      rows.push(inquilinosArr.slice(i, i + 2));
-    }
+    // Mostrar los inquilinos en una sola línea friendly
+    const maxToShow = 3;
+    const nombres = inquilinosArr.map(i => `${i.nombre} ${i.apellido}`.trim()).filter(Boolean);
+    const friendly = nombres.slice(0, maxToShow).join(', ') + (nombres.length > maxToShow ? ` +${nombres.length - maxToShow} más` : '');
     return (
       <GeometricPaper sx={{ minHeight: '40px' }}>
-        <Box sx={{ width: '100%', py: 0.5 }}>
-          {rows.map((row, rowIdx) => (
-            <Box key={rowIdx} sx={{ display: 'flex', gap: 1, mb: 0.2 }}>
-              {row.map((inq, idx) => (
-                <Box key={inq._id || idx} sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
-                  <PeopleIcon sx={{ fontSize: '1.1rem', color: 'text.secondary', flexShrink: 0 }} />
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: 500,
-                      color: 'text.primary',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      fontSize: '0.85rem'
-                    }}
-                  >
-                    {inq.nombre} {inq.apellido}
-                  </Typography>
-                  {onInquilinoDetail && inq._id && (
-                    <IconButton size="small" onClick={() => onInquilinoDetail(inq._id)} sx={{ p: 0.2, color: 'primary.main' }}>
-                      <ViewIcon sx={{ fontSize: '0.8rem' }} />
-                    </IconButton>
-                  )}
-                </Box>
-              ))}
-              {/* Si la fila tiene solo un inquilino, agrego un espacio vacío para mantener la grilla */}
-              {row.length === 1 && <Box sx={{ flex: 1 }} />}
-            </Box>
-          ))}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.5 }}>
+          <PeopleIcon sx={{ fontSize: '1.2rem', color: 'text.secondary', flexShrink: 0 }} />
+          <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '0.85rem' }}>
+            {friendly}
+          </Typography>
         </Box>
       </GeometricPaper>
     );
@@ -834,81 +811,70 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
     } else if (Array.isArray(ubicacionValue)) {
       [direccion, ciudad] = ubicacionValue;
     }
-    const iconRight = section.right?.[0]?.icon;
-    const colorRight = section.right?.[0]?.color;
-    const valuesRight = Array.isArray(section.right?.[0]?.value) ? section.right?.[0]?.value : [section.right?.[0]?.value];
+    const metrosCuadrados = section.right?.[0]?.value || '';
     return (
-      <GeometricPaper sx={{ minHeight: '40px' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', width: '100%' }}>
-          {/* Ícono izquierda */}
-          {iconLeft && (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', pr: 1.5, minWidth: 28 }}>
-              {React.createElement(iconLeft, { sx: { fontSize: '1.05rem', color: 'rgba(255,255,255,0.7)' } })}
-            </Box>
-          )}
-          {/* Dirección y ciudad */}
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0, justifyContent: 'center' }}>
-            {direccion && (
-              <Typography
-                variant="body2"
-                sx={{
-                  fontWeight: 500,
-                  fontSize: '0.7rem',
-                  lineHeight: 1,
-                  m: 0,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {direccion}
-              </Typography>
+      <GeometricPaper sx={{ minHeight: '40px', px: 1.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          {/* Izquierda: ícono + dirección/ciudad */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+            {iconLeft && (
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                {React.createElement(iconLeft, { sx: { fontSize: '1.05rem', color: 'rgba(255,255,255,0.7)' } })}
+              </Box>
             )}
-            {ciudad && (
-              <Typography
-                variant="caption"
-                sx={{
-                  fontWeight: 400,
-                  fontSize: '0.68rem',
-                  color: 'text.secondary',
-                  lineHeight: 1,
-                  m: 0,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {ciudad}
-              </Typography>
-            )}
-          </Box>
-          {/* Ícono derecha */}
-          {iconRight && (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', pl: 1.5, minWidth: 28 }}>
-              {React.createElement(iconRight, { sx: { fontSize: '1.05rem', color: 'rgba(255,255,255,0.7)' } })}
+            <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+              {direccion && (
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: 500,
+                    fontSize: '0.7rem',
+                    lineHeight: 1,
+                    m: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    maxWidth: { xs: 120, sm: 200, md: 260 }
+                  }}
+                >
+                  {direccion}
+                </Typography>
+              )}
+              {ciudad && (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 400,
+                    fontSize: '0.68rem',
+                    color: 'text.secondary',
+                    lineHeight: 1,
+                    m: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    maxWidth: { xs: 120, sm: 200, md: 260 }
+                  }}
+                >
+                  {ciudad}
+                </Typography>
+              )}
             </Box>
-          )}
-          {/* Valores derecha */}
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0, justifyContent: 'center', alignItems: 'flex-start' }}>
-            {valuesRight.map((value, idx) => (
-              <Typography
-                key={idx}
-                variant="body2"
-                sx={{
-                  fontWeight: 500,
-                  fontSize: '0.7rem',
-                  lineHeight: 1,
-                  m: 0,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  color: idx === 1 ? 'text.secondary' : 'inherit'
-                }}
-              >
-                {value}
-              </Typography>
-            ))}
           </Box>
+          {/* Derecha: metros cuadrados */}
+          {metrosCuadrados && (
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 500,
+                fontSize: '0.7rem',
+                color: 'text.secondary',
+                textAlign: 'right',
+                minWidth: 60
+              }}
+            >
+              {metrosCuadrados}
+            </Typography>
+          )}
         </Box>
       </GeometricPaper>
     );
@@ -918,11 +884,30 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
   const isDocumentos = section.left && section.left.length === 1 && section.left[0]?.icon === DescriptionIcon;
   if (isDocumentos) {
     const documentos = section.documentos || section.left[0].documentos || [];
+    const [inquilinoDetailOpen, setInquilinoDetailOpen] = React.useState(false);
+    const [selectedInquilino, setSelectedInquilino] = React.useState(null);
+    const [contratoDetailOpen, setContratoDetailOpen] = React.useState(false);
+    const [selectedContrato, setSelectedContrato] = React.useState(null);
+    const handleOpenInquilino = (inquilino) => {
+      setSelectedInquilino(inquilino);
+      setInquilinoDetailOpen(true);
+    };
+    const handleCloseInquilino = () => {
+      setInquilinoDetailOpen(false);
+      setSelectedInquilino(null);
+    };
+    const handleOpenContrato = (contrato) => {
+      setSelectedContrato(contrato);
+      setContratoDetailOpen(true);
+    };
+    const handleCloseContrato = () => {
+      setContratoDetailOpen(false);
+      setSelectedContrato(null);
+    };
     return (
       <GeometricPaper sx={{ minHeight: SECTION_MIN_HEIGHT, px: SECTION_PADDING_X, py: SECTION_PADDING_Y, display: 'flex', flexDirection: 'column', gap: SECTION_GAP }}>
-        <PrimarySectionHeader icon={DriveIcon} title="Documentos" />
         {documentos.length === 0 ? (
-          <Typography variant="caption" color="text.secondary" sx={{ pl: 3 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ pl: 1 }}>
             No hay documentos
           </Typography>
         ) : (
@@ -932,28 +917,64 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
               let label = doc.nombre;
               let secondary = '';
               if (doc.categoria === 'CONTRATO' || doc.tipo === 'CONTRATO') {
-                IconoDoc = ContractIcon;
+                IconoDoc = DriveIcon;
                 const apellido = getApellidoInquilinoContrato(doc);
                 const rango = doc.fechaInicio && doc.fechaFin ? calcularRangoMesesContrato(doc.fechaInicio, doc.fechaFin) : '';
                 label = apellido;
                 secondary = rango;
               }
+              // Iconos de acción a la derecha
+              const inquilino = doc.inquilino && Array.isArray(doc.inquilino) ? doc.inquilino[0] : doc.inquilino;
+              const contrato = doc;
               return (
                 <EntitySectionRow
                   key={doc._id || idx}
                   icon={IconoDoc}
                   primary={label}
                   secondary={secondary}
-                  children={doc.url && (
-                    <IconButton size="small" href={doc.url} target="_blank" rel="noopener noreferrer" sx={{ p: 0.2 }}>
-                      <ViewIcon sx={{ fontSize: '1rem', color: 'primary.main' }} />
-                    </IconButton>
-                  )}
-                  sx={{ minHeight: ROW_MIN_HEIGHT, pl: 2 }}
+                  children={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      {(doc.categoria === 'CONTRATO' || doc.tipo === 'CONTRATO') && (
+                        <>
+                          {inquilino && (
+                            <IconButton size="small" sx={{ p: 0.2 }} onClick={() => handleOpenInquilino(inquilino)}>
+                              {React.createElement(icons.person, { sx: { fontSize: '1rem', color: 'primary.main' } })}
+                            </IconButton>
+                          )}
+                          <IconButton size="small" sx={{ p: 0.2 }} onClick={() => handleOpenContrato(contrato)}>
+                            {React.createElement(icons.description, { sx: { fontSize: '1rem', color: 'primary.main' } })}
+                          </IconButton>
+                          {/* Botón de inventario */}
+                          {doc.inventario ? (
+                            <IconButton size="small" sx={{ p: 0.2, color: 'text.secondary' }} onClick={() => onInventarioClick && onInventarioClick(doc)}>
+                              {React.createElement(icons.inventario, { sx: { fontSize: '1rem' } })}
+                            </IconButton>
+                          ) : (
+                            <Box sx={{ display: 'flex', alignItems: 'center', p: 0.2, color: 'text.disabled' }}>
+                              {React.createElement(icons.inventario, { sx: { fontSize: '1rem' } })}
+                            </Box>
+                          )}
+                        </>
+                      )}
+                      {doc.url && (doc.categoria !== 'CONTRATO' && doc.tipo !== 'CONTRATO') && (
+                        <IconButton size="small" href={doc.url} target="_blank" rel="noopener noreferrer" sx={{ p: 0.2 }}>
+                          <ViewIcon sx={{ fontSize: '1rem', color: 'primary.main' }} />
+                        </IconButton>
+                      )}
+                    </Box>
+                  }
+                  sx={{ minHeight: ROW_MIN_HEIGHT, pl: 1 }}
                 />
               );
             })}
           </Box>
+        )}
+        {/* Popups de detalle */}
+        {selectedInquilino && (
+          <InquilinoDetail open={inquilinoDetailOpen} onClose={handleCloseInquilino} inquilino={selectedInquilino} />
+        )}
+        {selectedContrato && (
+          <ContratoDetail open={contratoDetailOpen} onClose={handleCloseContrato} contrato={selectedContrato} />
         )}
       </GeometricPaper>
     );
@@ -1428,109 +1449,95 @@ const HabitacionesRenderer = ({ section, isCollapsed = false }) => {
         height: '100%',
         width: '100%'
       }}>
-        {/* Título de la sección */}
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 1,
-          mb: 0.5,
-          px: 0.5
-        }}>
-          <BedIcon sx={{ fontSize: '1.1rem', color: 'text.secondary' }} />
-          <Typography variant="body2" sx={{ 
-            fontWeight: 500,
-            fontSize: '0.75rem',
-            color: 'text.secondary'
-          }}>
-            Habitaciones ({section.data.length})
-          </Typography>
-        </Box>
+
 
         {/* Grid de habitaciones */}
-        <Box sx={{ 
-          display: 'grid',
-          gridTemplateColumns: 'repeat(6, 1fr)',
-          gap: 0.2,
-          px: 0.5,
-          flex: 1
-        }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, px: 1.5, py: 1, flex: 1 }}>
           {currentItems.map((habitacion, index) => (
             <Box
               key={index}
               sx={{
-                minHeight: '48px',
-                height: '48px',
-                aspectRatio: '1',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                backgroundColor: 'rgba(255, 255, 255, 0.02)',
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'center',
-                gap: 0.1,
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                  borderColor: 'rgba(255, 255, 255, 0.2)'
-                }
+                gap: 0.5,
+                minHeight: '32px',
+                px: 0,
+                py: 0.5
               }}
             >
               {/* Ícono */}
+              <Box sx={{ fontSize: '1rem', color: habitacion.color, flexShrink: 0 }}>
+                {(habitacion.icon || InfoIcon) && React.createElement(habitacion.icon || InfoIcon, { sx: { fontSize: '1rem' } })}
+              </Box>
+              {/* Contenido: nombre y metros cuadrados */}
               <Box sx={{ 
                 display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                fontSize: '0.7rem',
-                color: habitacion.color
+                flexDirection: 'column', 
+                minWidth: 0,
+                flex: 1
               }}>
-                {(habitacion.icon || InfoIcon) && React.createElement(habitacion.icon || InfoIcon, { sx: { fontSize: '0.7rem' } })}
-              </Box>
-              {/* Nombre */}
-              {(() => {
-                // Procesar el nombre para máximo dos líneas y capitalizar
-                const raw = habitacion.value || '';
-                const clean = raw.replace(/_/g, ' ');
-                const words = clean.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
-                let displayName = '';
-                if (words.length === 1) {
-                  displayName = words[0];
-                } else {
-                  displayName = words[0] + '\n' + words.slice(1).join(' ');
-                }
-                return (
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      fontSize: '0.52rem',
-                      fontWeight: 500,
-                      textAlign: 'center',
-                      lineHeight: 1,
-                      overflow: 'hidden',
-                      whiteSpace: 'pre-line',
-                      maxHeight: '2em',
-                      px: 0.1,
-                      m: 0,
-                      p: 0
-                    }}
-                  >
-                    {displayName}
-                  </Typography>
-                );
-              })()}
-              {/* Metros cuadrados */}
-              {habitacion.metrosCuadrados && (
+                {/* Nombre */}
                 <Typography
-                  variant="caption"
+                  variant="body2"
                   sx={{
-                    fontSize: '0.45rem',
-                    color: 'text.secondary',
-                    textAlign: 'center',
-                    lineHeight: 1
+                    fontWeight: 500,
+                    fontSize: '0.7rem',
+                    textAlign: 'left',
+                    lineHeight: 1,
+                    overflow: 'hidden',
+                    whiteSpace: 'nowrap',
+                    textOverflow: 'ellipsis',
+                    m: 0,
+                    p: 0
                   }}
                 >
-                  {habitacion.metrosCuadrados}m²
+                  {habitacion.value}
                 </Typography>
-              )}
+                {/* Metros cuadrados y cantidad de items */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  {habitacion.metrosCuadrados && (
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontSize: '0.6rem',
+                        color: 'text.secondary',
+                        textAlign: 'left',
+                        lineHeight: 1
+                      }}
+                    >
+                      {habitacion.metrosCuadrados}m²
+                    </Typography>
+                  )}
+                  {habitacion.itemsCount !== undefined && (
+                    <>
+                      {habitacion.metrosCuadrados && (
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontSize: '0.6rem',
+                            color: 'text.secondary',
+                            lineHeight: 1
+                          }}
+                        >
+                          •
+                        </Typography>
+                      )}
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontSize: '0.6rem',
+                          color: 'text.secondary',
+                          textAlign: 'left',
+                          lineHeight: 1,
+                          opacity: 0.8
+                        }}
+                      >
+                        {habitacion.itemsCount} {habitacion.itemsCount === 1 ? 'item' : 'items'}
+                      </Typography>
+                    </>
+                  )}
+                </Box>
+              </Box>
             </Box>
           ))}
         </Box>
@@ -1542,7 +1549,7 @@ const HabitacionesRenderer = ({ section, isCollapsed = false }) => {
             alignItems: 'center', 
             justifyContent: 'space-between',
             mt: 0.5,
-            px: 0.5
+            px: 1.5
           }}>
             {/* Botón anterior */}
             <IconButton
@@ -1626,7 +1633,8 @@ const EntityGridView = ({
   contratos = [],
   onEditContrato = null,
   onDeleteContrato = null,
-  inquilinos = []
+  inquilinos = [],
+  onInventarioClick = null // Nuevo prop para manejar el clic en el botón de inventario
 }) => {
   const [collapsed, setCollapsed] = useState(isCollapsed);
   const [detailOpen, setDetailOpen] = useState(false);

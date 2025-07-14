@@ -1,47 +1,41 @@
 import React from 'react';
-import { Box, Typography, LinearProgress } from '@mui/material';
+import ProgressBar from '../common/ProgressBar';
 
 const BarraEstadoPropiedad = ({
   diasTranscurridos = 0,
   diasTotales = 0,
   porcentaje = 0,
   simboloMoneda = '$',
-  montoAcumulado = 0,
+  montoMensual = 0,
   montoTotal = 0,
-  color = 'primary.main',
+  color = 'primary',
   estado = 'OCUPADA',
   sx = {}
-}) => (
-  <Box sx={{ mb: 1, ...sx }}>
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-      <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
-        {diasTranscurridos}/{diasTotales} días
-      </Typography>
-      <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
-        {Math.round(porcentaje)}%
-      </Typography>
-    </Box>
-    <LinearProgress 
-      variant="determinate" 
-      value={porcentaje}
-      sx={{ 
-        height: 3,
-        borderRadius: 0,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        '& .MuiLinearProgress-bar': {
-          backgroundColor: estado === 'MANTENIMIENTO' ? 'warning.main' : color
-        }
-      }}
+}) => {
+  // Asegurar que los valores sean números válidos
+  const diasTranscurridosNum = Number(diasTranscurridos) || 0;
+  const diasTotalesNum = Number(diasTotales) || 0;
+  const porcentajeNum = Math.min(100, Math.max(0, Number(porcentaje) || 0));
+  const montoMensualNum = Number(montoMensual) || 0;
+  const montoTotalNum = Number(montoTotal) || 0;
+  
+  // Determinar el color basado en el estado
+  const finalColor = estado === 'MANTENIMIENTO' ? 'warning' : color;
+  
+  return (
+    <ProgressBar
+      dataType="days"
+      diasTranscurridos={diasTranscurridosNum}
+      diasTotales={diasTotalesNum}
+      simboloMoneda={simboloMoneda}
+      montoMensual={montoMensualNum}
+      montoTotal={montoTotalNum}
+      percentage={porcentajeNum}
+      color={finalColor}
+      variant="default"
+      sx={sx}
     />
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-      <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
-        {simboloMoneda} {montoAcumulado.toLocaleString()}
-      </Typography>
-      <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
-        {simboloMoneda} {montoTotal.toLocaleString()}
-      </Typography>
-    </Box>
-  </Box>
-);
+  );
+};
 
 export default BarraEstadoPropiedad; 

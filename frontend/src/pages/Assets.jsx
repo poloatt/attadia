@@ -31,8 +31,15 @@ import {
 } from '@mui/icons-material';
 import { toast } from 'react-hot-toast';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
-import { StatusChip } from '../components/propiedades/propiedadUtils';
-import { STATUS_ICONS, STATUS_COLORS, calcularProgresoOcupacion } from '../components/propiedades/propiedadUtils';
+import { 
+  StatusChip, 
+  STATUS_ICONS, 
+  STATUS_COLORS, 
+  calcularProgresoOcupacion,
+  calcularEstadisticasPropiedad,
+  getEstadoContrato,
+  getCuentaYMoneda
+} from '../components/propiedades/propiedadUtils';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EngineeringIcon from '@mui/icons-material/Engineering';
@@ -87,37 +94,15 @@ export function Assets() {
       const propiedades = propiedadesRes.data.docs || [];
       setPropiedades(propiedades);
       
-      // Calcular estadísticas de propiedades
+      // Usar la función centralizada para calcular estadísticas de propiedades
       const propiedadesStats = propiedades.reduce((stats, propiedad) => {
-        stats.total++;
+        const propiedadStats = calcularEstadisticasPropiedad(propiedad);
         
-        // Determinar estado actual
-        const hoy = new Date();
-        hoy.setHours(0, 0, 0, 0);
-        
-        // Verificar contratos activos
-        const tieneContratoActivo = (propiedad.contratos || []).some(contrato => {
-          return contrato.estado === 'ACTIVO';
-        });
-
-        // Verificar contratos reservados
-        const tieneContratoReservado = (propiedad.contratos || []).some(contrato => {
-          return contrato.estado === 'PLANEADO';
-        });
-
-        // Determinar estado
-        if (tieneContratoActivo) {
-          stats.ocupadas++;
-          stats.disponibles = Math.max(0, stats.disponibles - 1);
-        } else if (propiedad.estado === 'MANTENIMIENTO') {
-          stats.mantenimiento++;
-          stats.disponibles = Math.max(0, stats.disponibles - 1);
-        } else if (tieneContratoReservado || propiedad.estado === 'RESERVADA') {
-          stats.reservadas++;
-          stats.disponibles = Math.max(0, stats.disponibles - 1);
-        } else {
-          stats.disponibles++;
-        }
+        stats.total += propiedadStats.total;
+        stats.ocupadas += propiedadStats.ocupadas;
+        stats.disponibles += propiedadStats.disponibles;
+        stats.mantenimiento += propiedadStats.mantenimiento;
+        stats.reservadas += propiedadStats.reservadas;
         
         return stats;
       }, {
@@ -128,7 +113,7 @@ export function Assets() {
         reservadas: 0
       });
 
-      // Calcular porcentaje de ocupación
+      // Calcular porcentaje de ocupación usando la lógica centralizada
       const porcentajeOcupacion = propiedadesStats.total > 0 
         ? Math.round((propiedadesStats.ocupadas / (propiedadesStats.total - propiedadesStats.mantenimiento)) * 100)
         : 0;
@@ -492,61 +477,68 @@ export function Assets() {
                 No hay propiedades registradas.
               </Typography>
             )}
-            {propiedades.map((prop) => (
-              <Paper key={prop._id} sx={{ p: 2, mb: 2, bgcolor: '#111', borderRadius: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <BuildingIcon sx={{ fontSize: 18 }} />
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{prop.titulo || 'Sin título'}</Typography>
-                  <StatusChip customcolor={STATUS_COLORS[prop.estado] || 'text.secondary'}>
-                    {ICON_COMPONENTS[STATUS_ICONS[prop.estado]] || null}
-                    {prop.estado ? prop.estado.charAt(0) + prop.estado.slice(1).toLowerCase() : 'N/A'}
-                  </StatusChip>
-                </Box>
-                {/* Inquilinos con icono individual */}
-                {Array.isArray(prop.inquilinos) && prop.inquilinos.length > 0 && (
-                  <Box sx={{ mb: 1 }}>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                      {prop.inquilinos.map((inq) => (
-                        <Box key={inq._id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <PeopleIcon sx={{ fontSize: 18, color: 'primary.main' }} />
-                          <Typography variant="body2" color="primary.main">
-                            {inq.nombre} {inq.apellido}
-                          </Typography>
-                        </Box>
-                      ))}
-                    </Box>
+            {propiedades.map((prop) => {
+              const progresoOcupacion = calcularProgresoOcupacion(prop);
+              
+              // Obtener información de moneda del contrato si existe
+              let simboloMoneda = '$';
+              if (progresoOcupacion.contrato) {
+                try {
+                  const { simbolo } = getCuentaYMoneda(progresoOcupacion.contrato);
+                  simboloMoneda = simbolo || '$';
+                } catch (error) {
+                  console.warn('Error al obtener información de moneda:', error);
+                  simboloMoneda = '$';
+                }
+              }
+              
+              return (
+                <Paper key={prop._id} sx={{ p: 2, mb: 2, bgcolor: '#111', borderRadius: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <BuildingIcon sx={{ fontSize: 18 }} />
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                      {prop.alias || prop.titulo || 'Sin alias'}
+                    </Typography>
+                    <StatusChip customcolor={STATUS_COLORS[prop.estado] || 'text.secondary'}>
+                      {ICON_COMPONENTS[STATUS_ICONS[prop.estado]] || null}
+                      {prop.estado ? prop.estado.charAt(0) + prop.estado.slice(1).toLowerCase() : 'N/A'}
+                    </StatusChip>
                   </Box>
-                )}
-                {/* Barra de estado de la propiedad */}
-                {(() => {
-                  const progresoOcupacion = calcularProgresoOcupacion(prop);
-                  const simboloMoneda = prop.cuenta?.moneda?.simbolo || 
-                                      prop.moneda?.simbolo || 
-                                      prop.contratos[0]?.moneda?.simbolo || 
-                                      prop.contratos[0]?.cuenta?.moneda?.simbolo || '$';
-                  
-                  if (progresoOcupacion.tieneContrato) {
-                    return (
-                      <Box sx={{ mt: 1 }}>
-                        <BarraEstadoPropiedad
-                          diasTranscurridos={progresoOcupacion.diasTranscurridos}
-                          diasTotales={progresoOcupacion.diasTotales}
-                          porcentaje={progresoOcupacion.porcentaje}
-                          simboloMoneda={simboloMoneda}
-                          montoAcumulado={progresoOcupacion.montoAcumulado}
-                          montoTotal={progresoOcupacion.montoTotal}
-                          color={progresoOcupacion.estado === 'MANTENIMIENTO' ? 'warning.main' : 'primary.main'}
-                          estado={progresoOcupacion.estado}
-                        />
+                  {/* Inquilinos con icono individual */}
+                  {Array.isArray(prop.inquilinos) && prop.inquilinos.length > 0 && (
+                    <Box sx={{ mb: 1 }}>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                        {prop.inquilinos.map((inq) => (
+                          <Box key={inq._id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <PeopleIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+                            <Typography variant="body2" color="primary.main">
+                              {inq.nombre} {inq.apellido}
+                            </Typography>
+                          </Box>
+                        ))}
                       </Box>
-                    );
-                  }
-                  return null;
-                })()}
-                
+                    </Box>
+                  )}
+                  {/* Barra de estado de la propiedad usando función centralizada */}
+                  {progresoOcupacion.tieneContrato && progresoOcupacion.montoMensual > 0 && (
+                    <Box sx={{ mt: 1 }}>
+                      <BarraEstadoPropiedad
+                        diasTranscurridos={progresoOcupacion.diasTranscurridos || 0}
+                        diasTotales={progresoOcupacion.diasTotales || 0}
+                        porcentaje={progresoOcupacion.porcentaje || 0}
+                        simboloMoneda={simboloMoneda}
+                        montoMensual={progresoOcupacion.montoMensual || 0}
+                        montoTotal={progresoOcupacion.montoTotal || 0}
+                        color={progresoOcupacion.estado === 'MANTENIMIENTO' ? 'warning.main' : 'primary.main'}
+                        estado={progresoOcupacion.estado}
+                      />
+                    </Box>
+                  )}
+                  
 
-              </Paper>
-            ))}
+                </Paper>
+              );
+            })}
           </Box>
         </Collapse>
       </Box>

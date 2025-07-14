@@ -23,6 +23,34 @@ const transaccionRecurrenteSchema = createSchema({
   }
 });
 
+const cuotaMensualSchema = createSchema({
+  mes: {
+    type: Number,
+    required: true,
+    min: 1,
+    max: 12
+  },
+  año: {
+    type: Number,
+    required: true
+  },
+  monto: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  fechaVencimiento: {
+    type: Date,
+    required: true
+  },
+  estado: {
+    type: String,
+    enum: ['PENDIENTE', 'PAGADO', 'VENCIDO', 'VENCIDA'],
+    default: 'PENDIENTE'
+  },
+  observaciones: String
+});
+
 const contratoSchema = createSchema({
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
@@ -36,7 +64,17 @@ const contratoSchema = createSchema({
     }],
     validate: {
       validator: function(v) {
-        return !this.esMantenimiento || (Array.isArray(v) && v.length === 0);
+        const esMantenimiento = this.tipoContrato === 'MANTENIMIENTO' || this.esMantenimiento === true;
+        console.log('Validando inquilino:', {
+          tipoContrato: this.tipoContrato,
+          esMantenimiento: this.esMantenimiento,
+          esMantenimientoCalculado: esMantenimiento,
+          inquilinos: v,
+          esArray: Array.isArray(v),
+          longitud: Array.isArray(v) ? v.length : 'no es array',
+          resultado: !esMantenimiento || (Array.isArray(v) && v.length === 0)
+        });
+        return !esMantenimiento || (Array.isArray(v) && v.length === 0);
       },
       message: 'No se pueden asignar inquilinos a un contrato de mantenimiento'
     }
@@ -61,14 +99,28 @@ const contratoSchema = createSchema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Cuentas',
     required: function() {
-      return !this.esMantenimiento;
+      const esMantenimiento = this.tipoContrato === 'MANTENIMIENTO' || this.esMantenimiento === true;
+      console.log('Validando required cuenta:', {
+        tipoContrato: this.tipoContrato,
+        esMantenimiento: this.esMantenimiento,
+        esMantenimientoCalculado: esMantenimiento,
+        resultado: !esMantenimiento
+      });
+      return !esMantenimiento;
     }
   },
   moneda: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Monedas',
     required: function() {
-      return !this.esMantenimiento;
+      const esMantenimiento = this.tipoContrato === 'MANTENIMIENTO' || this.esMantenimiento === true;
+      console.log('Validando required moneda:', {
+        tipoContrato: this.tipoContrato,
+        esMantenimiento: this.esMantenimiento,
+        esMantenimientoCalculado: esMantenimiento,
+        resultado: !esMantenimiento
+      });
+      return !esMantenimiento;
     }
   },
   fechaInicio: {
@@ -78,23 +130,60 @@ const contratoSchema = createSchema({
   fechaFin: {
     type: Date
   },
-  esMantenimiento: {
-    type: Boolean,
-    default: false
-  },
   tipoContrato: {
     type: String,
     enum: ['ALQUILER', 'MANTENIMIENTO'],
-    default: 'ALQUILER'
+    default: 'ALQUILER',
+    required: true
+  },
+  esMantenimiento: {
+    type: Boolean,
+    default: false
   },
   estado: {
     type: String,
     enum: ['ACTIVO', 'PLANEADO', 'FINALIZADO', 'MANTENIMIENTO'],
     default: 'PLANEADO'
   },
-  montoMensual: {
+  // Nuevo campo: precio total del contrato
+  precioTotal: {
     type: Number,
-    required: true,
+    required: function() {
+      const esMantenimiento = this.tipoContrato === 'MANTENIMIENTO' || this.esMantenimiento === true;
+      console.log('Validando required precioTotal:', {
+        tipoContrato: this.tipoContrato,
+        esMantenimiento: this.esMantenimiento,
+        esMantenimientoCalculado: esMantenimiento,
+        resultado: !esMantenimiento
+      });
+      return !esMantenimiento;
+    },
+    min: 0,
+    validate: {
+      validator: function(v) {
+        const esMantenimiento = this.tipoContrato === 'MANTENIMIENTO' || this.esMantenimiento === true;
+        console.log('Validando precioTotal:', v, 'tipo:', typeof v, 'es number:', typeof v === 'number', 'es >= 0:', v >= 0, 'esMantenimiento:', esMantenimiento);
+        
+        // Si es mantenimiento, permitir 0 o null/undefined
+        if (esMantenimiento) {
+          return v === null || v === undefined || v === 0 || (typeof v === 'number' && v >= 0);
+        }
+        
+        // Si no es mantenimiento, debe ser un número mayor a 0
+        return typeof v === 'number' && v > 0;
+      },
+      message: function(props) {
+        const esMantenimiento = this.tipoContrato === 'MANTENIMIENTO' || this.esMantenimiento === true;
+        if (esMantenimiento) {
+          return 'El precio total debe ser 0 para contratos de mantenimiento';
+        }
+        return 'El precio total debe ser un número mayor a 0 para contratos de alquiler';
+      }
+    }
+  },
+  // Campo calculado: alquiler mensual promedio
+  alquilerMensualPromedio: {
+    type: Number,
     min: 0
   },
   deposito: {
@@ -104,14 +193,106 @@ const contratoSchema = createSchema({
   observaciones: String,
   documentoUrl: String,
   transaccionesRecurrentes: [transaccionRecurrenteSchema],
+  // Nuevo campo: cuotas mensuales autogeneradas
+  cuotasMensuales: [cuotaMensualSchema],
   ...commonFields
 }, {
   timestamps: true
 });
 
+// Función auxiliar para determinar si un contrato es de mantenimiento
+function esContratoMantenimiento(contrato) {
+  const resultado = contrato.tipoContrato === 'MANTENIMIENTO' || contrato.esMantenimiento === true;
+  console.log('esContratoMantenimiento DEBUG:', {
+    tipoContrato: contrato.tipoContrato,
+    tipoTipoContrato: typeof contrato.tipoContrato,
+    esMantenimiento: contrato.esMantenimiento,
+    tipoEsMantenimiento: typeof contrato.esMantenimiento,
+    condicion1: contrato.tipoContrato === 'MANTENIMIENTO',
+    condicion2: contrato.esMantenimiento === true,
+    resultado: resultado
+  });
+  return resultado;
+}
+
+// Middleware para calcular alquiler mensual promedio y generar cuotas
+contratoSchema.pre('save', async function(next) {
+  try {
+    console.log('=== MIDDLEWARE PRE-SAVE 1 ===');
+    console.log('this.tipoContrato:', this.tipoContrato);
+    console.log('this.esMantenimiento:', this.esMantenimiento);
+    console.log('esContratoMantenimiento(this):', esContratoMantenimiento(this));
+    console.log('this.precioTotal antes:', this.precioTotal);
+    
+    // Si es mantenimiento, no generar cuotas
+    if (esContratoMantenimiento(this)) {
+      console.log('Contrato es de mantenimiento, estableciendo precioTotal = 0');
+      this.precioTotal = 0;
+      this.alquilerMensualPromedio = 0;
+      this.cuotasMensuales = [];
+      next();
+      return;
+    }
+
+    // Calcular duración del contrato en meses
+    if (this.fechaInicio && this.fechaFin && this.precioTotal) {
+      const inicio = new Date(this.fechaInicio);
+      const fin = new Date(this.fechaFin);
+      const mesesTotales = (fin.getFullYear() - inicio.getFullYear()) * 12 + 
+                          (fin.getMonth() - inicio.getMonth()) + 1;
+      
+      // Calcular alquiler mensual promedio
+      this.alquilerMensualPromedio = Math.round((this.precioTotal / mesesTotales) * 100) / 100;
+      
+      // Generar cuotas mensuales si no existen o si las fechas cambiaron
+      if (!this.cuotasMensuales || this.cuotasMensuales.length === 0 || 
+          this.isModified('fechaInicio') || this.isModified('fechaFin') || this.isModified('precioTotal')) {
+        
+        this.cuotasMensuales = [];
+        const montoPorCuota = this.alquilerMensualPromedio;
+        
+        for (let i = 0; i < mesesTotales; i++) {
+          const fechaCuota = new Date(inicio);
+          fechaCuota.setMonth(inicio.getMonth() + i);
+          
+          // Ajustar el monto de la última cuota para compensar redondeos
+          let montoCuota = montoPorCuota;
+          if (i === mesesTotales - 1) {
+            const montoAcumulado = montoPorCuota * (mesesTotales - 1);
+            montoCuota = this.precioTotal - montoAcumulado;
+          }
+          
+          this.cuotasMensuales.push({
+            mes: fechaCuota.getMonth() + 1,
+            año: fechaCuota.getFullYear(),
+            monto: Math.round(montoCuota * 100) / 100,
+            fechaVencimiento: new Date(fechaCuota.getFullYear(), fechaCuota.getMonth(), 1),
+            estado: 'PENDIENTE'
+          });
+        }
+      }
+    }
+    
+    console.log('=== FIN MIDDLEWARE PRE-SAVE 1 (DESHABILITADO) ===');
+    console.log('this.precioTotal después:', this.precioTotal);
+    
+    next();
+  } catch (error) {
+    console.log('=== ERROR EN MIDDLEWARE PRE-SAVE 1 ===');
+    console.log('Error:', error);
+    next(error);
+  }
+});
+
 // Middleware para validar y actualizar estados
 contratoSchema.pre('save', async function(next) {
   try {
+    console.log('=== MIDDLEWARE PRE-SAVE 2 ===');
+    console.log('this.tipoContrato:', this.tipoContrato);
+    console.log('this.esMantenimiento:', this.esMantenimiento);
+    console.log('esContratoMantenimiento(this):', esContratoMantenimiento(this));
+    console.log('this.precioTotal antes:', this.precioTotal);
+    
     const now = new Date();
     // Validar fechas
     if (this.fechaFin && this.fechaInicio > this.fechaFin) {
@@ -126,11 +307,11 @@ contratoSchema.pre('save', async function(next) {
     now.setHours(0,0,0,0);
     
     // Si es un contrato de mantenimiento
-    if (this.esMantenimiento || this.tipoContrato === 'MANTENIMIENTO') {
-      this.montoMensual = 0;
+    if (esContratoMantenimiento(this)) {
+      console.log('Contrato es de mantenimiento, estableciendo precioTotal = 0');
+      this.precioTotal = 0;
+      this.alquilerMensualPromedio = 0;
       this.inquilino = [];
-      this.esMantenimiento = true;
-      this.tipoContrato = 'MANTENIMIENTO';
       
       // Determinar estado del contrato de mantenimiento
       if (inicio <= now && fin > now) {
@@ -155,27 +336,31 @@ contratoSchema.pre('save', async function(next) {
     }
     
     // Para contratos de alquiler
-    this.tipoContrato = 'ALQUILER';
-    this.esMantenimiento = false;
+    this.tipoContrato = this.tipoContrato || 'ALQUILER';
     
-    // Validar que los inquilinos existan y estén asignados a la propiedad
-    const Inquilinos = mongoose.model('Inquilinos');
-    for (const inquilinoId of this.inquilino) {
-      const inquilino = await Inquilinos.findById(inquilinoId);
-      if (!inquilino) {
-        throw new Error(`El inquilino ${inquilinoId} no existe`);
+    // Validar que los inquilinos existan y estén asignados a la propiedad (solo para contratos de alquiler)
+    if (this.inquilino && this.inquilino.length > 0) {
+      const Inquilinos = mongoose.model('Inquilinos');
+      for (const inquilinoId of this.inquilino) {
+        const inquilino = await Inquilinos.findById(inquilinoId);
+        if (!inquilino) {
+          throw new Error(`El inquilino ${inquilinoId} no existe`);
+        }
       }
     }
     
     // Determinar estado del contrato de alquiler
     if (inicio <= now && fin > now) {
       this.estado = 'ACTIVO';
-      // Actualizar estado de inquilinos a ACTIVO
-      for (const inquilinoId of this.inquilino) {
-        const inquilino = await Inquilinos.findById(inquilinoId);
-        if (inquilino) {
-          inquilino.estado = 'ACTIVO';
-          await inquilino.save();
+      // Actualizar estado de inquilinos a ACTIVO (solo si hay inquilinos)
+      if (this.inquilino && this.inquilino.length > 0) {
+        const Inquilinos = mongoose.model('Inquilinos');
+        for (const inquilinoId of this.inquilino) {
+          const inquilino = await Inquilinos.findById(inquilinoId);
+          if (inquilino) {
+            inquilino.estado = 'ACTIVO';
+            await inquilino.save();
+          }
         }
       }
       // Actualizar estado de la propiedad a OCUPADA
@@ -187,12 +372,15 @@ contratoSchema.pre('save', async function(next) {
       }
     } else if (inicio > now) {
       this.estado = 'PLANEADO';
-      // Actualizar estado de inquilinos a RESERVADO
-      for (const inquilinoId of this.inquilino) {
-        const inquilino = await Inquilinos.findById(inquilinoId);
-        if (inquilino) {
-          inquilino.estado = 'RESERVADO';
-          await inquilino.save();
+      // Actualizar estado de inquilinos a RESERVADO (solo si hay inquilinos)
+      if (this.inquilino && this.inquilino.length > 0) {
+        const Inquilinos = mongoose.model('Inquilinos');
+        for (const inquilinoId of this.inquilino) {
+          const inquilino = await Inquilinos.findById(inquilinoId);
+          if (inquilino) {
+            inquilino.estado = 'RESERVADO';
+            await inquilino.save();
+          }
         }
       }
       // Actualizar estado de la propiedad a RESERVADA
@@ -204,12 +392,15 @@ contratoSchema.pre('save', async function(next) {
       }
     } else if (fin <= now) {
       this.estado = 'FINALIZADO';
-      // Actualizar estado de inquilinos a INACTIVO
-      for (const inquilinoId of this.inquilino) {
-        const inquilino = await Inquilinos.findById(inquilinoId);
-        if (inquilino) {
-          inquilino.estado = 'INACTIVO';
-          await inquilino.save();
+      // Actualizar estado de inquilinos a INACTIVO (solo si hay inquilinos)
+      if (this.inquilino && this.inquilino.length > 0) {
+        const Inquilinos = mongoose.model('Inquilinos');
+        for (const inquilinoId of this.inquilino) {
+          const inquilino = await Inquilinos.findById(inquilinoId);
+          if (inquilino) {
+            inquilino.estado = 'INACTIVO';
+            await inquilino.save();
+          }
         }
       }
       // Actualizar estado de la propiedad a DISPONIBLE
@@ -220,34 +411,79 @@ contratoSchema.pre('save', async function(next) {
         await propiedad.save();
       }
     }
+    
+    console.log('=== FIN MIDDLEWARE PRE-SAVE 2 ===');
+    console.log('this.precioTotal después:', this.precioTotal);
+    console.log('this.estado:', this.estado);
+    
     next();
   } catch (error) {
+    console.log('=== ERROR EN MIDDLEWARE PRE-SAVE 2 ===');
+    console.log('Error:', error);
     next(error);
   }
 });
 
 // Middleware para generar transacciones automáticamente
 contratoSchema.pre('save', async function(next) {
-  if ((this.isNew || this.isModified('transaccionesRecurrentes')) && this.estadoActual === 'ACTIVO') {
+  if ((this.isNew || this.isModified('transaccionesRecurrentes'))) {
     try {
-      const Transacciones = mongoose.model('Transacciones');
-      const fechaActual = new Date();
-      const fechaFin = this.fechaFin || new Date(fechaActual.getFullYear() + 1, fechaActual.getMonth(), fechaActual.getDate());
+      // Calcular el estado actual manualmente para evitar problemas con virtuals
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const inicio = new Date(this.fechaInicio);
+      inicio.setHours(0, 0, 0, 0);
       
-      // Crear transacciones para cada mes del contrato
-      for (let fecha = new Date(this.fechaInicio); fecha <= fechaFin; fecha.setMonth(fecha.getMonth() + 1)) {
-        for (const transaccion of (this.transaccionesRecurrentes || [])) {
-          await Transacciones.create({
-            descripcion: transaccion.concepto,
-            monto: transaccion.monto,
-            fecha: new Date(fecha.getFullYear(), fecha.getMonth(), transaccion.diaVencimiento),
-            categoria: 'ALQUILER',
-            estado: 'PENDIENTE',
-            tipo: 'INGRESO',
-            usuario: this.usuario,
-            moneda: transaccion.moneda,
-            contrato: this._id
-          });
+      let estadoActual = 'PLANEADO';
+      if (this.fechaFin) {
+        const fin = new Date(this.fechaFin);
+        fin.setHours(0, 0, 0, 0);
+        
+        if (this.tipoContrato === 'MANTENIMIENTO' || this.esMantenimiento === true) {
+          if (inicio <= now && fin > now) {
+            estadoActual = 'MANTENIMIENTO';
+          } else if (inicio > now) {
+            estadoActual = 'PLANEADO';
+          } else {
+            estadoActual = 'FINALIZADO';
+          }
+        } else {
+          if (inicio <= now && fin > now) {
+            estadoActual = 'ACTIVO';
+          } else if (inicio > now) {
+            estadoActual = 'PLANEADO';
+          } else {
+            estadoActual = 'FINALIZADO';
+          }
+        }
+      } else {
+        if (inicio <= now) {
+          estadoActual = this.tipoContrato === 'MANTENIMIENTO' ? 'MANTENIMIENTO' : 'ACTIVO';
+        } else {
+          estadoActual = 'PLANEADO';
+        }
+      }
+      
+      if (estadoActual === 'ACTIVO') {
+        const Transacciones = mongoose.model('Transacciones');
+        const fechaActual = new Date();
+        const fechaFin = this.fechaFin || new Date(fechaActual.getFullYear() + 1, fechaActual.getMonth(), fechaActual.getDate());
+        
+        // Crear transacciones para cada mes del contrato
+        for (let fecha = new Date(this.fechaInicio); fecha <= fechaFin; fecha.setMonth(fecha.getMonth() + 1)) {
+          for (const transaccion of (this.transaccionesRecurrentes || [])) {
+            await Transacciones.create({
+              descripcion: transaccion.concepto,
+              monto: transaccion.monto,
+              fecha: new Date(fecha.getFullYear(), fecha.getMonth(), transaccion.diaVencimiento),
+              categoria: 'ALQUILER',
+              estado: 'PENDIENTE',
+              tipo: 'INGRESO',
+              usuario: this.usuario,
+              moneda: transaccion.moneda,
+              contrato: this._id
+            });
+          }
         }
       }
     } catch (error) {
@@ -353,7 +589,7 @@ contratoSchema.virtual('estadoActual').get(function() {
     // Si no hay fecha de fin, considerar como activo si ya comenzó
     if (!this.fechaFin) {
       if (inicio <= now) {
-        return this.esMantenimiento || this.tipoContrato === 'MANTENIMIENTO' ? 'MANTENIMIENTO' : 'ACTIVO';
+        return this.tipoContrato === 'MANTENIMIENTO' ? 'MANTENIMIENTO' : 'ACTIVO';
       } else {
         return 'PLANEADO';
       }
@@ -376,7 +612,7 @@ contratoSchema.virtual('estadoActual').get(function() {
       });
     }
 
-    if (this.esMantenimiento || this.tipoContrato === 'MANTENIMIENTO') {
+    if (this.tipoContrato === 'MANTENIMIENTO' || this.esMantenimiento === true) {
       if (inicio <= now && fin > now) {
         return 'MANTENIMIENTO';
       } else if (inicio > now) {
@@ -459,7 +695,7 @@ contratoSchema.statics.actualizarEstados = async function() {
         fin.setHours(0, 0, 0, 0);
         
         let nuevoEstado;
-        if (contrato.esMantenimiento || contrato.tipoContrato === 'MANTENIMIENTO') {
+        if (contrato.tipoContrato === 'MANTENIMIENTO') {
           if (inicio <= now && fin > now) {
             nuevoEstado = 'MANTENIMIENTO';
           } else if (inicio > now) {
@@ -514,7 +750,7 @@ contratoSchema.statics.actualizarEstados = async function() {
             if (propiedad) {
               let estadoPropiedad;
               if (nuevoEstado === 'ACTIVO') {
-                estadoPropiedad = contrato.esMantenimiento ? ['MANTENIMIENTO'] : ['OCUPADA'];
+                estadoPropiedad = contrato.tipoContrato === 'MANTENIMIENTO' ? ['MANTENIMIENTO'] : ['OCUPADA'];
               } else if (nuevoEstado === 'PLANEADO') {
                 estadoPropiedad = ['RESERVADA'];
               } else if (nuevoEstado === 'MANTENIMIENTO') {

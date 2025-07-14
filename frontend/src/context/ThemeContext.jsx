@@ -298,6 +298,26 @@ const theme = createTheme({
           marginRight: 0
         }
       }
+    },
+    MuiCollapse: {
+      styleOverrides: {
+        root: {
+          borderRadius: 0,
+          overflow: 'hidden',
+          '& .MuiCollapse-wrapper': {
+            borderRadius: 0
+          },
+          '& .MuiCollapse-wrapperInner': {
+            borderRadius: 0
+          }
+        },
+        entered: {
+          borderRadius: 0
+        },
+        hidden: {
+          borderRadius: 0
+        }
+      }
     }
   },
 });

@@ -7,32 +7,32 @@ const getBaseUrl = () => {
   const hostname = window.location.hostname;
   const environment = import.meta.env.VITE_ENVIRONMENT || mode;
   
-  console.log('Configuración de Axios:', {
-    mode,
-    environment,
-    hostname,
-    apiUrl
-  });
+  // console.log('Configuración de Axios:', {
+  //   mode,
+  //   environment,
+  //   hostname,
+  //   apiUrl
+  // });
   
   // Entorno de staging (prioridad más alta)
   if (hostname.includes('staging') || environment === 'staging') {
-    console.log('Detectado entorno de staging');
+    // console.log('Detectado entorno de staging');
     return 'https://api.staging.present.attadia.com';
   }
   
   // Entorno de producción
   if (hostname === 'admin.attadia.com' || hostname === 'present.attadia.com' || environment === 'production') {
-    console.log('Detectado entorno de producción');
+    // console.log('Detectado entorno de producción');
     return 'https://api.admin.attadia.com';
   }
   
   // Entorno de desarrollo (fallback)
-  console.log('Detectado entorno de desarrollo');
+  // console.log('Detectado entorno de desarrollo');
   return apiUrl || 'http://localhost:5000';
 };
 
 const baseURL = getBaseUrl();
-console.log('URL base de Axios:', baseURL);
+// console.log('URL base de Axios:', baseURL);
 
 const clienteAxios = axios.create({
   baseURL,
@@ -92,7 +92,7 @@ clienteAxios.interceptors.request.use(
         
         // Si hay una solicitud reciente (menos de 1000ms), cancelar (aumentado de 600ms)
         if (now - lastTime < 1000) {
-          console.log(`Solicitud cancelada (demasiado frecuente): ${requestId}`);
+          // console.log(`Solicitud cancelada (demasiado frecuente): ${requestId}`);
           return Promise.reject({ 
             cancelado: true, 
             message: 'Solicitud cancelada por repetirse demasiado rápido'
@@ -122,7 +122,7 @@ clienteAxios.interceptors.response.use(
   async (error) => {
     // Si el error es de cancelación por demasiadas solicitudes, manejarlo de forma silenciosa
     if (error.cancelado) {
-      console.log('Solicitud cancelada por control de frecuencia:', error.message);
+      // console.log('Solicitud cancelada por control de frecuencia:', error.message);
       
       // Asegurarse de que el error mantiene la propiedad cancelado para que
       // los componentes puedan detectarla y manejarla adecuadamente
@@ -135,19 +135,19 @@ clienteAxios.interceptors.response.use(
     }
     
     if (error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
-      console.error('Error de conexión:', error);
+      // console.error('Error de conexión:', error);
       throw new Error('Error de conexión con el servidor. Por favor, verifica tu conexión a internet.');
     }
 
     // Log detallado en desarrollo
     if (import.meta.env.MODE === 'development') {
-      console.error('Error en la petición:', {
-        status: error.response?.status,
-        url: error.config?.url,
-        method: error.config?.method,
-        headers: error.config?.headers,
-        data: error.config?.data
-      });
+      // console.error('Error en la petición:', {
+      //   status: error.response?.status,
+      //   url: error.config?.url,
+      //   method: error.config?.method,
+      //   headers: error.config?.headers,
+      //   data: error.config?.data
+      // });
     }
 
     const originalRequest = error.config;
@@ -157,7 +157,7 @@ clienteAxios.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem('refreshToken');
         if (!refreshToken) {
-          console.warn('No hay refresh token disponible. Redirigiendo a login...');
+          // console.warn('No hay refresh token disponible. Redirigiendo a login...');
           // Solo redirigir si es una ruta protegida y no estamos ya en login
           if (!window.location.pathname.includes('/login') && 
               !window.location.pathname.includes('/auth')) {
@@ -179,7 +179,7 @@ clienteAxios.interceptors.response.use(
         
         return clienteAxios(originalRequest);
       } catch (refreshError) {
-        console.error('Error al refrescar token:', refreshError);
+        // console.error('Error al refrescar token:', refreshError);
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
         

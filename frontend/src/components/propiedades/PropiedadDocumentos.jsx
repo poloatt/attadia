@@ -37,7 +37,7 @@ export default function PropiedadDocumentos({ propiedades = [], onAddDocumento, 
 
   // Filtrar propiedades por título
   const propiedadesFiltradas = filtro
-    ? propiedades.filter(p => (p.titulo || '').toLowerCase().includes(filtro.toLowerCase()))
+    ? propiedades.filter(p => (p.alias || '').toLowerCase().includes(filtro.toLowerCase()))
     : propiedades;
 
   return (

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import clienteAxios from '../config/axios';
-import currentConfig, { logEnvironment } from '../config/envConfig';
+import currentConfig from '../config/envConfig';
 
 const AuthContext = createContext();
 
@@ -12,9 +12,6 @@ const useAuth = () => {
   }
   return context;
 };
-
-// Registrar la configuración en la consola para depuración
-logEnvironment();
 
 // Configurar axios con la URL base y credenciales
 clienteAxios.defaults.baseURL = currentConfig.baseUrl;
@@ -47,10 +44,8 @@ export function AuthProvider({ children }) {
           isAuthenticated: true,
           error: null 
         }));
-        console.log('Usuario autenticado:', data.user);
         return true;
       } else {
-        console.warn('No se recibieron datos de usuario');
         setState(prev => ({ 
           ...prev, 
           user: null, 
@@ -63,7 +58,6 @@ export function AuthProvider({ children }) {
         return false;
       }
     } catch (error) {
-      console.error('Error en checkAuth:', error);
       if (error.response?.status === 401) {
         try {
           const refreshToken = localStorage.getItem('refreshToken');
@@ -81,7 +75,6 @@ export function AuthProvider({ children }) {
             }
           }
         } catch (refreshError) {
-          console.error('Error al refrescar token:', refreshError);
         }
       }
       setState(prev => ({ 
@@ -120,7 +113,6 @@ export function AuthProvider({ children }) {
       }
       return response.data;
     } catch (error) {
-      console.error('Error al iniciar sesión:', error);
       setState(prev => ({ 
         ...prev, 
         loading: false, 
@@ -138,13 +130,11 @@ export function AuthProvider({ children }) {
       const { data } = await clienteAxios.get(`${currentConfig.authPrefix}/google/url`);
       
       if (data.url) {
-        console.log('Redirigiendo a Google OAuth...');
         window.location.href = data.url;
       } else {
         throw new Error('No se pudo obtener la URL de autenticación');
       }
     } catch (error) {
-      console.error('Error al iniciar sesión con Google:', error);
       setState(prev => ({ 
         ...prev, 
         error: error.response?.data?.message || 'Error al iniciar sesión con Google',
@@ -171,7 +161,6 @@ export function AuthProvider({ children }) {
         throw new Error('No se recibió el token de autenticación');
       }
     } catch (error) {
-      console.error('Error en callback de Google:', error);
       setState(prev => ({ 
         ...prev, 
         user: null,
@@ -191,7 +180,6 @@ export function AuthProvider({ children }) {
         });
       }
     } catch (error) {
-      console.error('Error al cerrar sesión:', error);
     } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');

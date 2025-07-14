@@ -28,7 +28,7 @@ import InlineItemConfigImproved from './InlineItemConfigImproved';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useRutinas } from './context/RutinasContext';
-import { logSaveOperation, logObjectChanges } from './DEBUG.js';
+
 import { useSnackbar } from 'notistack';
 // Importamos las utilidades de cadencia
 import { debesMostrarHabitoEnFecha, generarMensajeCadencia, getFrecuenciaLabel, obtenerUltimaCompletacion } from './utils/cadenciaUtils';

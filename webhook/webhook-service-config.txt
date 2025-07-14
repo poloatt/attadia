@@ -1,0 +1,16 @@
+[Unit]
+Description=Present App Webhook Server
+After=network.target
+
+[Service]
+Type=simple
+User=poloatt
+Environment=PORT=9000
+Environment=WEBHOOK_SECRET=StagingSecret_ATTADIA99
+WorkingDirectory=/home/poloatt/present
+ExecStart=/usr/bin/node scripts/webhook-server.js
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target 

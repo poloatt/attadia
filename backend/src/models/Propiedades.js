@@ -7,7 +7,7 @@ const propiedadSchema = createSchema({
     ref: 'Users',
     required: true
   },
-  titulo: {
+  alias: { // antes 'titulo'
     type: String,
     required: true,
     trim: true
@@ -42,11 +42,7 @@ const propiedadSchema = createSchema({
     required: false,
     default: 0
   },
-  montoMensual: {
-    type: Number,
-    required: false,
-    default: 0
-  },
+  // Eliminamos montoMensual fijo - ahora se calcula dinámicamente
   moneda: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Monedas',
@@ -159,6 +155,78 @@ propiedadSchema.virtual('inventarios', {
   foreignField: 'propiedad',
   match: { activo: true },
   options: { sort: { nombre: 1 } }
+  // Un inventario puede estar asociado solo a la propiedad o también a una habitación
+});
+
+// Virtual para calcular alquiler mensual promedio basado en contratos activos
+propiedadSchema.virtual('alquilerMensualPromedio').get(async function() {
+  try {
+    const Contratos = mongoose.model('Contratos');
+    const now = new Date();
+    
+    // Buscar contrato activo (no de mantenimiento)
+    const contratoActivo = await Contratos.findOne({
+      propiedad: this._id,
+      estado: 'ACTIVO',
+      esMantenimiento: false,
+      tipoContrato: 'ALQUILER'
+    }).populate('moneda');
+    
+    if (!contratoActivo) {
+      return 0;
+    }
+    
+    // Si el contrato tiene alquilerMensualPromedio calculado, usarlo
+    if (contratoActivo.alquilerMensualPromedio) {
+      return contratoActivo.alquilerMensualPromedio;
+    }
+    
+    // Si no, calcularlo manualmente
+    if (contratoActivo.precioTotal && contratoActivo.fechaInicio && contratoActivo.fechaFin) {
+      const inicio = new Date(contratoActivo.fechaInicio);
+      const fin = new Date(contratoActivo.fechaFin);
+      const mesesTotales = (fin.getFullYear() - inicio.getFullYear()) * 12 + 
+                          (fin.getMonth() - inicio.getMonth()) + 1;
+      
+      return Math.round((contratoActivo.precioTotal / mesesTotales) * 100) / 100;
+    }
+    
+    return 0;
+  } catch (error) {
+    console.error('Error calculando alquiler mensual promedio:', error);
+    return 0;
+  }
+});
+
+// Virtual para obtener el contrato activo actual
+propiedadSchema.virtual('contratoActivo').get(async function() {
+  try {
+    const Contratos = mongoose.model('Contratos');
+    return await Contratos.findOne({
+      propiedad: this._id,
+      estado: 'ACTIVO'
+    }).populate(['inquilino', 'moneda', 'cuenta']);
+  } catch (error) {
+    console.error('Error obteniendo contrato activo:', error);
+    return null;
+  }
+});
+
+// Virtual para obtener el próximo contrato planeado
+propiedadSchema.virtual('proximoContrato').get(async function() {
+  try {
+    const Contratos = mongoose.model('Contratos');
+    const now = new Date();
+    
+    return await Contratos.findOne({
+      propiedad: this._id,
+      estado: 'PLANEADO',
+      fechaInicio: { $gt: now }
+    }).populate(['inquilino', 'moneda', 'cuenta']).sort({ fechaInicio: 1 });
+  } catch (error) {
+    console.error('Error obteniendo próximo contrato:', error);
+    return null;
+  }
 });
 
 // Virtual para calcular número de dormitorios simples
@@ -321,10 +389,11 @@ propiedadSchema.methods.getDiasRestantes = async function() {
 
 // Método para obtener información completa de la propiedad
 propiedadSchema.methods.getFullInfo = async function() {
-  const [resumenHabitaciones, estados, diasRestantes] = await Promise.all([
+  const [resumenHabitaciones, estados, diasRestantes, alquilerMensual] = await Promise.all([
     this.getResumenHabitaciones(),
     this.calcularEstados(),
-    this.getDiasRestantes()
+    this.getDiasRestantes(),
+    this.alquilerMensualPromedio
   ]);
 
   const propiedadObj = this.toObject();
@@ -333,12 +402,53 @@ propiedadSchema.methods.getFullInfo = async function() {
     ...propiedadObj,
     estado: estados[0] || 'DISPONIBLE',
     diasRestantes,
+    alquilerMensualPromedio: alquilerMensual,
     ...resumenHabitaciones,
     inquilinos: propiedadObj.inquilinos || [],
     habitaciones: propiedadObj.habitaciones || [],
     contratos: propiedadObj.contratos || [],
     inventarios: propiedadObj.inventarios || [],
     documentos: propiedadObj.documentos || []
+  };
+};
+
+// Método para obtener estadísticas financieras de la propiedad
+propiedadSchema.methods.getEstadisticasFinancieras = async function() {
+  const Contratos = mongoose.model('Contratos');
+  const now = new Date();
+  
+  // Contrato activo
+  const contratoActivo = await Contratos.findOne({
+    propiedad: this._id,
+    estado: 'ACTIVO',
+    esMantenimiento: false
+  });
+  
+  // Próximo contrato
+  const proximoContrato = await Contratos.findOne({
+    propiedad: this._id,
+    estado: 'PLANEADO',
+    fechaInicio: { $gt: now }
+  }).sort({ fechaInicio: 1 });
+  
+  // Historial de contratos (últimos 12 meses)
+  const doceMesesAtras = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+  const historialContratos = await Contratos.find({
+    propiedad: this._id,
+    fechaFin: { $gte: doceMesesAtras },
+    esMantenimiento: false
+  }).sort({ fechaFin: -1 });
+  
+  const alquilerMensual = await this.alquilerMensualPromedio;
+  
+  return {
+    alquilerMensualPromedio: alquilerMensual,
+    contratoActivo,
+    proximoContrato,
+    historialContratos,
+    ingresosAnuales: historialContratos.reduce((sum, c) => sum + (c.precioTotal || 0), 0),
+    ingresosPromedioMensual: historialContratos.length > 0 ? 
+      historialContratos.reduce((sum, c) => sum + (c.precioTotal || 0), 0) / 12 : 0
   };
 };
 
@@ -349,7 +459,7 @@ propiedadSchema.methods.crearCarpetaGoogleDrive = async function(accessToken) {
   try {
     // Aquí se implementaría la lógica para crear carpeta en Google Drive
     // usando la API de Google Drive con el accessToken del usuario
-    const carpetaNombre = `Propiedad - ${this.titulo}`;
+    const carpetaNombre = `Propiedad - ${this.alias}`;
     
     // Simulación de creación de carpeta (implementar con Google Drive API)
     const carpetaId = `carpeta_${this._id}_${Date.now()}`;

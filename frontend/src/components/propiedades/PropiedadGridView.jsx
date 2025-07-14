@@ -38,10 +38,10 @@ import {
 import EntityGridView, { SECTION_CONFIGS, EntityHeader } from '../EntityViews/EntityGridView';
 import getEntityHeaderProps from '../EntityViews/entityHeaderProps.jsx';
 import { Link } from 'react-router-dom';
-import ContratoDetail from '../contratos/ContratoDetail';
+import ContratoDetail from './contratos/ContratoDetail';
 import { pluralizar, getEstadoContrato, getInquilinoStatusColor, agruparHabitaciones, calcularProgresoOcupacion } from './propiedadUtils';
 import { SeccionInquilinos, SeccionHabitaciones, SeccionInventario, SeccionDocumentos } from './SeccionesPropiedad';
-import { getInquilinosByPropiedad } from '../inquilinos/utils';
+import { getInquilinosByPropiedad } from './inquilinos';
 
 // Configuraciones para diferentes tipos de datos
 
@@ -77,21 +77,25 @@ const inquilinosConfig = {
 
 const habitacionesConfig = {
   getIcon: (habitacion) => {
-  const iconMap = {
-    'DORMITORIO': BedIcon,
-    'DORMITORIO_PRINCIPAL': KingBed,
-    'DORMITORIO_SECUNDARIO': SingleBed,
-    'BANO': BathtubIcon,
-    'COCINA': KitchenOutlined,
-    'SALA': ChairOutlined,
-    'COMEDOR': ChairOutlined,
-    'LAVANDERIA': LocalLaundryServiceOutlined,
-    'BALCON': HomeOutlined,
-    'TERRAZA': HomeOutlined
-  };
+    // Mapeo completo según el modelo de Habitaciones.js
+    const iconMap = {
+      'BAÑO': BathtubIcon,
+      'TOILETTE': BathtubIcon,
+      'DORMITORIO_DOBLE': KingBed,
+      'DORMITORIO_SIMPLE': SingleBed,
+      'ESTUDIO': ChairOutlined, // desktop_mac -> ChairOutlined
+      'COCINA': KitchenOutlined,
+      'DESPENSA': InventoryIcon, // inventory_2 -> InventoryIcon
+      'SALA_PRINCIPAL': ChairOutlined, // weekend -> ChairOutlined
+      'PATIO': HomeOutlined, // yard -> HomeOutlined
+      'JARDIN': HomeOutlined, // park -> HomeOutlined
+      'TERRAZA': HomeOutlined, // deck -> HomeOutlined
+      'LAVADERO': LocalLaundryServiceOutlined,
+      'OTRO': BedIcon // room -> BedIcon
+    };
     return iconMap[habitacion.tipo] || BedIcon;
   },
-  getTitle: (habitacion) => habitacion.nombre || habitacion.tipo.replace('_', ' '),
+  getTitle: (habitacion) => habitacion.nombrePersonalizado || habitacion.tipo.replace('_', ' '),
   getHoverInfo: (habitacion) => habitacion.metrosCuadrados ? `${habitacion.metrosCuadrados}m²` : 'Sin medidas'
 };
 
@@ -237,9 +241,8 @@ const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta,
   // Si es vista extendida, agregar habitaciones e inventario
   if (extendida) {
     if (habitaciones && habitaciones.length > 0) {
-      secciones.push(SECTION_CONFIGS.habitaciones(habitaciones));
+      secciones.push(SECTION_CONFIGS.habitaciones(habitaciones, inventario || []));
     }
-    secciones.push(SECTION_CONFIGS.resumenInventario(inventario || []));
     // Aquí puedes agregar otras secciones extendidas si las hubiera
   }
 
@@ -255,8 +258,7 @@ const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta,
     }))
   ];
 
-  // SIEMPRE agregar la sección de inquilinos y documentos al final
-  secciones.push(SECTION_CONFIGS.inquilinos(inquilinos));
+  // SIEMPRE agregar la sección de documentos al final
   secciones.push(SECTION_CONFIGS.documentos(documentosCompletos));
 
   return secciones;

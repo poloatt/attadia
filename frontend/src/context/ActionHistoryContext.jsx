@@ -36,10 +36,10 @@ export function ActionHistoryProvider({ children }) {
   useEffect(() => {
     try {
       const savedHistory = localStorage.getItem('actionHistory');
-      console.log('ActionHistoryContext - Loading from localStorage:', savedHistory);
+      // console.log('ActionHistoryContext - Loading from localStorage:', savedHistory);
       if (savedHistory) {
         const parsed = JSON.parse(savedHistory);
-        console.log('ActionHistoryContext - Parsed history:', parsed);
+        // console.log('ActionHistoryContext - Parsed history:', parsed);
         setActionHistory(parsed);
       }
     } catch (error) {
@@ -65,13 +65,13 @@ export function ActionHistoryProvider({ children }) {
       createdAt: Date.now()
     };
 
-    console.log('ActionHistoryContext - Adding action:', actionWithTimestamp);
+    // console.log('ActionHistoryContext - Adding action:', actionWithTimestamp);
 
     setActionHistory(prev => {
       const newHistory = [actionWithTimestamp, ...prev];
       // Mantener solo las últimas maxHistorySize acciones
       const result = newHistory.slice(0, maxHistorySize);
-      console.log('ActionHistoryContext - New history:', result);
+      // console.log('ActionHistoryContext - New history:', result);
       return result;
     });
 

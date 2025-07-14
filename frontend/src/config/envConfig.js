@@ -27,14 +27,15 @@ export const currentConfig = isStaging ? config.staging : config[env] || config.
 
 // Función para depurar la configuración
 export const logEnvironment = () => {
-  console.log('Ambiente detectado:', {
-    env,
-    baseUrl: currentConfig.baseUrl,
-    mode: import.meta.env.MODE,
-    viteApiUrl: import.meta.env.VITE_API_URL,
-    isStaging
-  });
-  console.log('Configuración completa:', currentConfig);
+  // Comentado para reducir logs en consola
+  // console.log('Ambiente detectado:', {
+  //   env,
+  //   baseUrl: currentConfig.baseUrl,
+  //   mode: import.meta.env.MODE,
+  //   viteApiUrl: import.meta.env.VITE_API_URL,
+  //   isStaging
+  // });
+  // console.log('Configuración completa:', currentConfig);
 };
 
 // Exportar configuración actual

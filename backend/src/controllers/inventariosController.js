@@ -24,7 +24,9 @@ class InventariosController extends BaseController {
       ...formatted,
       id: formatted._id,
       propiedadId: formatted.propiedad?._id || formatted.propiedad,
-      habitacionId: formatted.habitacion?._id || formatted.habitacion
+      habitacionId: formatted.habitacion?._id || formatted.habitacion,
+      contenedorId: formatted.contenedor?._id || formatted.contenedor,
+      items: formatted.items || [] // hijos directos
     };
   }
 
@@ -52,20 +54,41 @@ class InventariosController extends BaseController {
   // POST /api/inventarios
   async create(req, res) {
     try {
-      console.log('Creando item:', req.body);
       const data = {
         ...req.body,
         propiedad: req.body.propiedadId,
         habitacion: req.body.habitacionId,
+        contenedor: req.body.contenedorId,
         cantidad: parseInt(req.body.cantidad),
         valorEstimado: req.body.valorEstimado ? parseFloat(req.body.valorEstimado) : undefined
       };
 
+      // Validar que la propiedad existe
+      if (!data.propiedad) {
+        return res.status(400).json({ error: 'Debes especificar una propiedad válida' });
+      }
+      const Propiedades = require('../models/Propiedades.js').Propiedades;
+      const propiedad = await Propiedades.findById(data.propiedad);
+      if (!propiedad) {
+        return res.status(400).json({ error: 'La propiedad especificada no existe' });
+      }
+
+      // Si se pasa habitacionId, validar que la habitación pertenece a la propiedad
+      if (data.habitacion) {
+        const Habitaciones = require('../models/Habitaciones.js').Habitaciones;
+        const habitacion = await Habitaciones.findById(data.habitacion);
+        if (!habitacion) {
+          return res.status(400).json({ error: 'La habitación especificada no existe' });
+        }
+        if (String(habitacion.propiedad) !== String(data.propiedad)) {
+          return res.status(400).json({ error: 'La habitación no pertenece a la propiedad especificada' });
+        }
+      }
+
       const item = await this.Model.create(data);
       const populatedItem = await this.Model.findById(item._id)
-        .populate(['propiedad', 'habitacion']);
+        .populate(['propiedad', 'habitacion', 'contenedor', 'items']);
 
-      console.log('Item creado:', populatedItem);
       res.status(201).json(this.formatResponse(populatedItem));
     } catch (error) {
       console.error('Error al crear item:', error);

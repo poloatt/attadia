@@ -1,7 +1,8 @@
 import React from 'react';
-import { Container, Box, Typography, useTheme, Paper, Switch, FormControl, FormControlLabel, Divider } from '@mui/material';
+import { Container, Box, Typography, useTheme, Paper, Switch, FormControl, FormControlLabel, Divider, Button } from '@mui/material';
 import { useUISettings } from '../context/UISettingsContext';
 import UnderConstruction from '../components/UnderConstruction';
+import { useAuth } from '../context/AuthContext';
 
 export function Configuracion() {
   const theme = useTheme();
@@ -11,6 +12,7 @@ export function Configuracion() {
     toggleEntityToolbarNavigation, 
     toggleSidebar 
   } = useUISettings();
+  const { logout, user } = useAuth();
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
@@ -111,6 +113,34 @@ export function Configuracion() {
         </Paper>
 
         <UnderConstruction />
+
+        {/* Botón de cerrar sesión */}
+        <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={logout}
+            sx={{
+              borderRadius: 0,
+              px: 4,
+              py: 1.5,
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              boxShadow: 'none',
+              letterSpacing: '0.05em',
+              fontSize: '1rem',
+              border: '1px solid',
+              borderColor: 'error.main',
+              backgroundColor: 'error.main',
+              '&:hover': {
+                backgroundColor: 'error.dark',
+                borderColor: 'error.dark',
+              },
+            }}
+          >
+            Cerrar sesión
+          </Button>
+        </Box>
       </Box>
     </Box>
   );

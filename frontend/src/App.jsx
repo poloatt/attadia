@@ -103,6 +103,7 @@ function App() {
                   <Route path="/tiempo/archivo" element={<Archivo />} />
                   
                   {/* Rutas anidadas para Setup */}
+                  <Route path="/configuracion" element={<Configuracion />} />
                   <Route path="/configuracion/perfil" element={<Perfil />} />
                   <Route path="/configuracion/preferencias" element={<Preferencias />} />
                   

@@ -2,26 +2,27 @@
 
 import { Box } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import { 
+  calcularEstadisticasContrato, 
+  calcularAlquilerMesActual, 
+  calcularAlquilerMensualPromedio,
+  getEstadoContrato as getEstadoContratoFromUtils,
+  getCuentaYMoneda as getCuentaYMonedaFromUtils
+} from './contratos';
 
-// Pluralización
+// Función para pluralizar palabras
 export function pluralizar(cantidad, singular, plural) {
   return cantidad === 1 ? singular : plural;
 }
 
-// Estado de contrato
+// Estado de contrato - ahora reutiliza la función de contratoUtils
 export function getEstadoContrato(contrato) {
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  const inicio = new Date(contrato.fechaInicio);
-  const fin = new Date(contrato.fechaFin);
-  if (inicio <= hoy && fin >= hoy) {
-    return 'ACTIVO';
-  } else if (inicio > hoy) {
-    return contrato.estado === 'RESERVADO' ? 'RESERVADO' : 'PLANEADO';
-  } else if (fin < hoy) {
-    return 'FINALIZADO';
-  }
-  return contrato.estado || 'PENDIENTE';
+  return getEstadoContratoFromUtils(contrato);
+}
+
+// Función centralizada para obtener cuenta y moneda - reutiliza contratoUtils
+export function getCuentaYMoneda(contrato, relatedData) {
+  return getCuentaYMonedaFromUtils(contrato, relatedData);
 }
 
 // Color de estado de inquilino
@@ -51,15 +52,25 @@ export const STATUS_COLORS = {
   'RESERVADA': '#9c27b0'
 };
 
-// Calcula el progreso del contrato
+// Calcula el progreso del contrato - ahora reutiliza contratoUtils
 export function calcularProgresoContrato(contratos, montoMensual) {
+  if (!contratos || contratos.length === 0 || !montoMensual) {
+    return {
+      porcentaje: 0,
+      mesesTranscurridos: 0,
+      mesTotales: 0,
+      montoAcumulado: 0,
+      montoTotal: 0,
+      tieneContrato: false
+    };
+  }
+
+  // Buscar contrato activo
   const contratoActivo = contratos.find(contrato => {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const inicio = new Date(contrato.fechaInicio);
-    const fin = new Date(contrato.fechaFin);
-    return inicio <= hoy && fin >= hoy && contrato.estado === 'ACTIVO';
+    const estado = getEstadoContrato(contrato);
+    return estado === 'ACTIVO';
   });
+
   if (!contratoActivo) {
     return {
       porcentaje: 0,
@@ -70,24 +81,16 @@ export function calcularProgresoContrato(contratos, montoMensual) {
       tieneContrato: false
     };
   }
-  const hoy = new Date();
-  const inicio = new Date(contratoActivo.fechaInicio);
-  const fin = new Date(contratoActivo.fechaFin);
-  const mesTotales = (fin.getFullYear() - inicio.getFullYear()) * 12 + (fin.getMonth() - inicio.getMonth()) + 1;
-  const mesesTranscurridos = Math.min(
-    Math.max(0, (hoy.getFullYear() - inicio.getFullYear()) * 12 + (hoy.getMonth() - inicio.getMonth()) + 1),
-    mesTotales
-  );
-  const porcentaje = Math.min(100, (mesesTranscurridos / mesTotales) * 100);
-  montoMensual = montoMensual || 0;
-  const montoAcumulado = mesesTranscurridos * montoMensual;
-  const montoTotal = mesTotales * montoMensual;
+
+  // Usar las funciones de contratoUtils
+  const stats = calcularEstadisticasContrato(contratoActivo);
+  
   return {
-    porcentaje,
-    mesesTranscurridos,
-    mesTotales,
-    montoAcumulado,
-    montoTotal,
+    porcentaje: stats.porcentajeCompletado,
+    mesesTranscurridos: stats.mesesTranscurridos,
+    mesTotales: stats.mesesTotales,
+    montoAcumulado: stats.precioTranscurridoDias,
+    montoTotal: stats.precioTotal,
     tieneContrato: true,
     contrato: contratoActivo
   };
@@ -122,24 +125,66 @@ export function agruparHabitaciones(habitaciones) {
   }, {});
 }
 
-// Calcular progreso de ocupación
+// Función para calcular el monto mensual promedio desde contratos activos
+const calcularMontoMensualDesdeContratos = (contratos = []) => {
+  if (!contratos || contratos.length === 0) return 0;
+  
+  // Buscar contrato activo (no de mantenimiento)
+  let contratoReferencia = contratos.find(contrato => 
+    contrato.estado === 'ACTIVO' && 
+    !contrato.esMantenimiento && 
+    contrato.tipoContrato === 'ALQUILER'
+  );
+  
+  // Si no hay activo, buscar planeado
+  if (!contratoReferencia) {
+    contratoReferencia = contratos.find(contrato => 
+      contrato.estado === 'PLANEADO' && 
+      !contrato.esMantenimiento && 
+      contrato.tipoContrato === 'ALQUILER'
+    );
+  }
+  
+  // Si no hay planeado, buscar reservado
+  if (!contratoReferencia) {
+    contratoReferencia = contratos.find(contrato => 
+      contrato.estado === 'RESERVADO' && 
+      !contrato.esMantenimiento && 
+      contrato.tipoContrato === 'ALQUILER'
+    );
+  }
+  
+  // Si no hay reservado, buscar cualquier contrato de alquiler
+  if (!contratoReferencia) {
+    contratoReferencia = contratos.find(contrato => 
+      !contrato.esMantenimiento && 
+      contrato.tipoContrato === 'ALQUILER'
+    );
+  }
+  
+  if (!contratoReferencia) return 0;
+  
+  // Usar la función centralizada de contratoUtils
+  return calcularAlquilerMensualPromedio(contratoReferencia);
+};
+
+// Calcular progreso de ocupación - ahora reutiliza contratoUtils
 export function calcularProgresoOcupacion(propiedad) {
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
   const contratos = propiedad.contratos || [];
-  const montoMensual = propiedad.montoMensual || 0;
-  const montoPorDia = montoMensual / 30;
+  const montoMensual = calcularMontoMensualDesdeContratos(contratos);
 
   // Buscar contrato activo
   let contratoActivo = contratos.find(contrato => {
-    const inicio = new Date(contrato.fechaInicio);
-    const fin = new Date(contrato.fechaFin);
-    return inicio <= hoy && fin >= hoy && contrato.estado === 'ACTIVO';
+    const estado = getEstadoContrato(contrato);
+    return estado === 'ACTIVO';
   });
 
   // Buscar contrato de referencia si no hay activo
   let contratoReferencia = contratoActivo;
   if (!contratoActivo && contratos.length > 0) {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    
     // Futuro más próximo
     const futuros = contratos.filter(c => new Date(c.fechaInicio) > hoy);
     if (futuros.length > 0) {
@@ -153,72 +198,43 @@ export function calcularProgresoOcupacion(propiedad) {
     }
   }
 
-  // Si hay contrato de referencia, usar sus fechas
-  let inicio, fin, diasTotales = 30, diasTranscurridos = 0, diasRestantes = 0;
-  let montoTotal = 0, montoAcumulado = 0;
-  if (contratoReferencia) {
-    inicio = new Date(contratoReferencia.fechaInicio);
-    fin = new Date(contratoReferencia.fechaFin);
-    // Sumar 1 día para incluir el día de fin
-    diasTotales = Math.max(1, Math.round((fin - inicio) / (1000 * 60 * 60 * 24)) + 1);
-    montoTotal = Math.round((diasTotales * montoPorDia) * 100) / 100;
-
-    if (hoy < inicio) {
-      diasTranscurridos = 0;
-      diasRestantes = diasTotales;
-    } else if (hoy > fin) {
-      diasTranscurridos = diasTotales;
-      diasRestantes = 0;
-    } else {
-      diasTranscurridos = Math.round((hoy - inicio) / (1000 * 60 * 60 * 24)) + 1;
-      diasRestantes = Math.max(0, diasTotales - diasTranscurridos);
-    }
-    montoAcumulado = Math.round((diasTranscurridos * montoPorDia) * 100) / 100;
-  } else {
-    // Sin contratos, estimado de un mes si hay precio
-    montoTotal = Math.round(montoMensual * 100) / 100;
-    diasTotales = 30;
-    diasTranscurridos = 0;
-    diasRestantes = 0;
-    montoAcumulado = 0;
-  }
-
-  // Si no hay precio, todo es 0
-  if (montoMensual === 0) {
+  // Si no hay contrato de referencia
+  if (!contratoReferencia) {
     return {
       porcentaje: 0,
-      diasTranscurridos,
-      diasTotales,
-      diasRestantes,
-      estadoTiempo: 'Sin precio',
+      diasTranscurridos: 0,
+      diasTotales: 30,
+      diasRestantes: 0,
+      estadoTiempo: 'Sin contrato',
       montoMensual: 0,
       montoPorDia: 0,
       montoAcumulado: 0,
       montoTotal: 0,
-      tieneContrato: !!contratoReferencia,
+      tieneContrato: false,
       estado: propiedad.estado || 'DISPONIBLE',
-      contrato: contratoReferencia || null
+      contrato: null
     };
   }
 
+  // Usar las funciones de contratoUtils para cálculos precisos
+  const stats = calcularEstadisticasContrato(contratoReferencia);
+  const alquilerMesActual = calcularAlquilerMesActual(contratoReferencia);
+
   // Estado textual
   let estadoTiempo = '';
-  if (contratoReferencia) {
-    if (hoy < inicio) {
-      estadoTiempo = 'No iniciado';
-    } else if (hoy > fin) {
-      estadoTiempo = 'Finalizado';
-    } else {
-      estadoTiempo = `${diasRestantes} días restantes`;
-    }
+  const hoy = new Date();
+  const inicio = new Date(contratoReferencia.fechaInicio);
+  const fin = new Date(contratoReferencia.fechaFin);
+  
+  if (hoy < inicio) {
+    estadoTiempo = 'No iniciado';
+  } else if (hoy > fin) {
+    estadoTiempo = 'Finalizado';
   } else {
-    estadoTiempo = 'Sin contrato';
+    estadoTiempo = `${stats.diasTotales - stats.diasTranscurridos} días restantes`;
   }
 
-  // Porcentaje
-  const porcentaje = diasTotales > 0 ? Math.min(100, (diasTranscurridos / diasTotales) * 100) : 0;
-
-  // Estado
+  // Estado de la propiedad
   let estado = propiedad.estado || 'DISPONIBLE';
   if (contratoActivo) {
     estado = 'OCUPADA';
@@ -228,38 +244,38 @@ export function calcularProgresoOcupacion(propiedad) {
   }
 
   return {
-    porcentaje,
-    diasTranscurridos,
-    diasTotales,
-    diasRestantes,
+    porcentaje: stats.porcentajeCompletado,
+    diasTranscurridos: stats.diasTranscurridos,
+    diasTotales: stats.diasTotales,
+    diasRestantes: stats.diasTotales - stats.diasTranscurridos,
     estadoTiempo,
     montoMensual,
-    montoPorDia: Math.round(montoPorDia * 100) / 100,
-    montoAcumulado,
-    montoTotal,
-    tieneContrato: !!contratoReferencia,
+    montoPorDia: montoMensual / 30,
+    montoAcumulado: stats.precioTranscurridoDias,
+    montoTotal: stats.precioTotal,
+    alquilerMesActual,
+    tieneContrato: true,
     estado,
-    contrato: contratoReferencia || null
+    contrato: contratoReferencia
   };
 }
 
-// Calcula los días restantes de un contrato activo
+// Calcula los días restantes de un contrato activo - ahora reutiliza contratoUtils
 export function calcularDiasRestantes(contratos) {
   if (!contratos || contratos.length === 0) return null;
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
+  
   const contratoActivo = contratos.find(contrato => {
-    const fechaInicio = new Date(contrato.fechaInicio);
-    const fechaFin = new Date(contrato.fechaFin);
-    return fechaInicio <= hoy && fechaFin >= hoy && contrato.estado === 'ACTIVO';
+    const estado = getEstadoContrato(contrato);
+    return estado === 'ACTIVO';
   });
+  
   if (!contratoActivo) return null;
-  const fechaFin = new Date(contratoActivo.fechaFin);
-  const diferenciaTiempo = fechaFin.getTime() - hoy.getTime();
-  return Math.ceil(diferenciaTiempo / (1000 * 3600 * 24));
+  
+  const stats = calcularEstadisticasContrato(contratoActivo); // Solo necesitamos los días
+  return stats.diasTotales - stats.diasTranscurridos;
 }
 
-// Calcula estadísticas de la propiedad
+// Calcula estadísticas de la propiedad - ahora reutiliza contratoUtils
 export function calcularEstadisticasPropiedad(propiedad) {
   const stats = {
     total: 1,
@@ -270,14 +286,12 @@ export function calcularEstadisticasPropiedad(propiedad) {
     porcentajeOcupacion: 0,
     estado: 'DISPONIBLE'
   };
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
+
   const contratos = propiedad.contratos || [];
   let tieneContratoActivo = false;
   let tieneContratoReservado = false;
+
   for (const contrato of contratos) {
-    const inicio = new Date(contrato.fechaInicio);
-    const fin = new Date(contrato.fechaFin);
     const estado = getEstadoContrato(contrato);
     if (estado === 'ACTIVO') {
       tieneContratoActivo = true;
@@ -286,6 +300,7 @@ export function calcularEstadisticasPropiedad(propiedad) {
       tieneContratoReservado = true;
     }
   }
+
   if (tieneContratoActivo) {
     stats.ocupadas = 1;
     stats.disponibles = 0;
@@ -306,6 +321,7 @@ export function calcularEstadisticasPropiedad(propiedad) {
     stats.estado = 'DISPONIBLE';
     stats.porcentajeOcupacion = 0;
   }
+
   return stats;
 }
 
@@ -333,4 +349,47 @@ export const StatusChip = styled(Box)(({ theme, customcolor }) => ({
   '& .MuiSvgIcon-root': {
     fontSize: '0.9rem'
   }
-})); 
+}));
+
+// Función para contar items de inventario por habitación
+export function contarItemsPorHabitacion(habitaciones = [], inventarios = []) {
+  return habitaciones.map(habitacion => {
+    const itemsEnHabitacion = inventarios.filter(inv => 
+      inv.habitacion && String(inv.habitacion._id || inv.habitacion) === String(habitacion._id)
+    ).length;
+    
+    return {
+      ...habitacion,
+      itemsCount: itemsEnHabitacion
+    };
+  });
+}
+
+// Función para obtener estadísticas de inventario por habitación
+export function obtenerEstadisticasInventarioPorHabitacion(habitaciones = [], inventarios = []) {
+  const habitacionesConItems = contarItemsPorHabitacion(habitaciones, inventarios);
+  
+  return {
+    habitaciones: habitacionesConItems,
+    totalItems: inventarios.length,
+    habitacionesConItems: habitacionesConItems.filter(h => h.itemsCount > 0).length,
+    habitacionesSinItems: habitacionesConItems.filter(h => h.itemsCount === 0).length
+  };
+}
+
+// Función para obtener el total de items por propiedad
+export function obtenerTotalItemsPropiedad(inventarios = []) {
+  return inventarios.length;
+}
+
+// Función para obtener items por categoría
+export function obtenerItemsPorCategoria(inventarios = []) {
+  return inventarios.reduce((acc, item) => {
+    const categoria = item.categoria || 'Sin categoría';
+    if (!acc[categoria]) {
+      acc[categoria] = [];
+    }
+    acc[categoria].push(item);
+    return acc;
+  }, {});
+} 

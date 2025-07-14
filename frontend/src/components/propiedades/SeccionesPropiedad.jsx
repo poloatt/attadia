@@ -3,7 +3,8 @@ import { Box, Typography, IconButton, Tooltip, Collapse } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { PeopleOutlined as PeopleIcon, BedOutlined as BedIcon, Description as ContractIcon, Inventory2Outlined as InventoryIcon, MonetizationOnOutlined as MoneyIcon, OpenInNew as OpenInNewIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { pluralizar, getEstadoContrato, getInquilinoStatusColor, agruparHabitaciones } from './propiedadUtils';
-import { getInquilinosByPropiedad } from '../inquilinos/utils';
+import { getInquilinosByPropiedad } from './inquilinos';
+import { icons } from '../../navigation/menuIcons';
 
 // Sección: Inquilinos
 export const SeccionInquilinos = ({ propiedad, inquilinos = [], inquilinosActivos = [], inquilinosFinalizados = [] }) => {
@@ -14,17 +15,17 @@ export const SeccionInquilinos = ({ propiedad, inquilinos = [], inquilinosActivo
   const finalizados = inqs.filter(i => i.estado !== 'ACTIVO' && i.estado !== 'RESERVADO');
   return (
     <Box sx={{ mb: 2 }}>
-      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}><PeopleIcon sx={{ fontSize: '1.1rem', mr: 1 }} />Inquilinos</Typography>
+      <Typography variant="subtitle2" sx={{ fontSize: '0.95rem', fontWeight: 600 }}><PeopleIcon sx={{ fontSize: '1.1rem', mr: 1 }} />Inquilinos</Typography>
       {activos.length === 0 && <Typography variant="body2" color="text.secondary">Ninguno</Typography>}
       {activos.map(i => (
-        <Typography key={i._id} variant="body2">{i.nombre} {i.apellido}</Typography>
+        <Typography key={i._id} variant="body2" sx={{ fontSize: '0.85rem' }}>{i.nombre} {i.apellido}</Typography>
       ))}
-      <Typography variant="subtitle2" sx={{ mt: 1, fontWeight: 500 }}>
+      <Typography variant="subtitle2" sx={{ mt: 1, fontSize: '0.85rem', fontWeight: 500 }}>
         {finalizados.length} {pluralizar(finalizados.length, 'inquilino finalizado', 'inquilinos finalizados')}
       </Typography>
       {finalizados.length === 0 && <Typography variant="body2" color="text.secondary">Ninguno</Typography>}
       {finalizados.map(i => (
-        <Typography key={i._id} variant="body2">{i.nombre} {i.apellido} ({i.estado})</Typography>
+        <Typography key={i._id} variant="body2" sx={{ fontSize: '0.85rem' }}>{i.nombre} {i.apellido} ({i.estado})</Typography>
       ))}
     </Box>
   );
@@ -36,7 +37,6 @@ export const SeccionHabitaciones = ({ habitaciones = [] }) => {
   const agrupadas = agruparHabitaciones(habitaciones);
   return (
     <Box sx={{ mb: 2 }}>
-      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}><BedIcon sx={{ fontSize: '1.1rem', mr: 1 }} />Habitaciones</Typography>
       {Object.entries(agrupadas).map(([tipo, habs]) => (
         <Typography key={tipo} variant="body2" color="text.secondary">
           {habs.length} {tipo.replace('_', ' ')}{habs.length > 1 ? 's' : ''}
@@ -73,7 +73,7 @@ export const SeccionInventario = ({ inventario = [] }) => {
 };
 
 // Sección: Documentos
-export const SeccionDocumentos = ({ documentos = [] }) => {
+export const SeccionDocumentos = ({ documentos = [], onInventarioClick }) => {
   if (!documentos.length) return null;
   const categorias = ['CONTRATO', 'PAGO', 'COBRO', 'MANTENIMIENTO', 'GASTO_FIJO', 'GASTO_VARIABLE', 'ALQUILER'];
   const docsPorCategoria = categorias.reduce((acc, cat) => {
@@ -91,8 +91,20 @@ export const SeccionDocumentos = ({ documentos = [] }) => {
             <Typography variant="body2" sx={{ fontWeight: 500 }}>{cat.replace('_', ' ')}</Typography>
             {docs.map((doc, idx) => (
               <Box key={doc._id || `${cat}-${idx}`} sx={{ display: 'flex', alignItems: 'center', gap: 1, pl: 1 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.nombre}</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.nombre}</Typography>
                 <a href={doc.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12 }}>Abrir</a>
+                {/* Botón de inventario solo para contratos que tengan inventario */}
+                {cat === 'CONTRATO' && (
+                  doc.inventario ? (
+                    <IconButton size="small" sx={{ p: 0.2, color: 'text.secondary' }} onClick={() => onInventarioClick && onInventarioClick(doc)}>
+                      {React.createElement(icons.inventario, { sx: { fontSize: '1rem' } })}
+                    </IconButton>
+                  ) : (
+                    <Box sx={{ display: 'flex', alignItems: 'center', p: 0.2, color: 'text.disabled' }}>
+                      {React.createElement(icons.inventario, { sx: { fontSize: '1rem' } })}
+                    </Box>
+                  )
+                )}
               </Box>
             ))}
           </Box>
@@ -103,13 +115,13 @@ export const SeccionDocumentos = ({ documentos = [] }) => {
 };
 
 // Subcomponente para mostrar una categoría de documentos
-export const DocumentosCategoria = ({ titulo, icono, documentos }) => {
+export const DocumentosCategoria = ({ alias, icono, documentos }) => {
   const [expandido, setExpandido] = React.useState(false);
   const mostrarDocs = expandido ? documentos : documentos.slice(0, 2);
   return (
     <Box sx={{ mb: 0.5 }}>
       <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', fontWeight: 500, mb: 0.25 }}>
-        {titulo} {documentos.length > 2 && (
+        {alias} {documentos.length > 2 && (
           <span style={{ color: '#aaa', fontWeight: 400, fontSize: '0.7rem', cursor: 'pointer' }} onClick={() => setExpandido(e => !e)}>
             {expandido ? 'ver menos...' : 'ver más...'}
           </span>
