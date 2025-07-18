@@ -206,10 +206,6 @@ export default function Header() {
               />
             </>
           )}
-          {/* Botón de agregar siempre a la derecha, excepto en cuentas */}
-          {!location.pathname.includes('/cuentas') && showAddButton && (!isMobile || !showEntityToolbarNavigation) && (
-            <HeaderAddButton entityConfig={entityConfig} />
-          )}
         </Box>
       </Toolbar>
     </AppBar>

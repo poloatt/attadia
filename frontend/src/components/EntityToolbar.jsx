@@ -157,13 +157,13 @@ export default function EntityToolbar({ children, additionalActions = [] }) {
           </Tooltip>
         ))}
         {!isMobile && children}
-        {/* Botón de agregar en mobile - posicionado absolutamente a la derecha */}
-        {isMobile && showAddButton && !currentPath.includes('/cuentas') && (
+        {/* Botón de agregar SIEMPRE visible en la toolbar, tanto en mobile como en desktop */}
+        {showAddButton && entityConfig && (
           <Box sx={{ 
-            position: 'absolute', 
-            right: 8, 
-            top: '50%', 
-            transform: 'translateY(-50%)' 
+            position: isMobile ? 'absolute' : 'static', 
+            right: isMobile ? 8 : undefined, 
+            top: isMobile ? '50%' : undefined, 
+            transform: isMobile ? 'translateY(-50%)' : undefined
           }}>
             <HeaderAddButton entityConfig={entityConfig} buttonSx={{ ml: 1 }} />
           </Box>
