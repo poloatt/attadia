@@ -556,34 +556,7 @@ export function Cuentas() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar
-        onAdd={() => setIsBankConnectionFormOpen(true)}
-        showBackButton={true}
-        onBack={() => window.location.href = '/assets'}
-        navigationItems={[
-          {
-            icon: <CurrencyIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Monedas',
-            to: '/monedas'
-          },
-          {
-            icon: <WalletIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Transacciones',
-            to: '/transacciones'
-          },
-          {
-            icon: <RecurrentIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Recurrentes',
-            to: '/recurrente'
-          },
-          {
-            icon: <DeudoresIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Deudores',
-            to: '/deudores'
-          }
-        ]}
-        entityName="cuenta"
-      />
+      <EntityToolbar />
       {/* Modal para crear cuenta (manual o MercadoPago) */}
       <BankConnectionForm
         open={isBankConnectionFormOpen}

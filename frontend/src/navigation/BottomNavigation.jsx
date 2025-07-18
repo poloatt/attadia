@@ -57,7 +57,7 @@ export default function BottomNavigation() {
         width: '100vw',
         zIndex: 1200,
         borderRadius: 0,
-        bgcolor: 'rgba(0, 0, 0, 0.7)', // igual que Header.jsx
+        bgcolor: '#181818', // Fondo opaco
         boxShadow: '0 -2px 8px rgba(0,0,0,0.10)',
         borderTop: '1px solid',
         borderColor: 'divider',

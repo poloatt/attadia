@@ -174,31 +174,7 @@ const RutinasWithContext = () => {
   return (
     <Box sx={{ px: 0, width: '100%' }}>
       {/* EntityToolbar para navegación y acciones */}
-      <EntityToolbar
-        entityName="rutina"
-        icon={<DateIcon />}
-        title="Rutinas"
-        showAddButton={true}
-        showBackButton={false}
-        onAdd={handleAddRutina}
-        navigationItems={[
-          {
-            icon: <LabIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Lab',
-            to: '/lab'
-          },
-          {
-            icon: <DietaIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Dieta',
-            to: '/dieta'
-          },
-          {
-            icon: <WeightIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Composición Corporal',
-            to: '/datacorporal'
-          }
-        ]}
-      />
+      <EntityToolbar />
       <Box sx={{
         mt: 0,
         mb: isMobile ? 2 : 4,

@@ -36,7 +36,7 @@ export function Layout() {
         component="main"
         sx={{
           flexGrow: 1,
-          pt: showEntityToolbarNavigation ? '45px' : '45px',
+          pt: 0, // Sin padding-top
           pb: isMobile ? '88px' : '70px',
           minHeight: '100vh',
           height: '100vh',
@@ -61,7 +61,7 @@ export function Layout() {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          gap: showEntityToolbarNavigation ? 0.5 : 0,
+          gap: 0, // Sin gap
           minHeight: 0,
           border: 'none',
           outline: 'none'

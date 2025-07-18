@@ -61,7 +61,7 @@ export default function Header() {
       position="fixed" 
       sx={{ 
         zIndex: (theme) => theme.zIndex.drawer + 1, // Header siempre por encima de sidebar
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        backgroundColor: '#181818', // Fondo opaco
         borderBottom: '1px solid',
         borderColor: 'divider',
         height: 40,
@@ -89,8 +89,8 @@ export default function Header() {
           gap: 1
         }}>
           <HeaderMenuButton />
-          {/* Botón de atrás solo si no estamos en la raíz */}
-          {location.pathname !== '/' && (
+          {/* Botón de atrás solo si no estamos en la raíz y (no es mobile o la toolbar no está activa) */}
+          {location.pathname !== '/' && (!isMobile || !showEntityToolbarNavigation) && (
             <IconButton onClick={handleBack} size="small" sx={{ ml: 0, mr: 0.5 }}>
               {icons.arrowBack ? <icons.arrowBack sx={{ fontSize: 18 }} /> : <span>&larr;</span>}
             </IconButton>
@@ -189,17 +189,15 @@ export default function Header() {
                   />
                 </Box>
               </Dialog>
-              {/* Botón de agregar cuenta solo en desktop o si la toolbar no está activa */}
-              {(!isMobile || !showEntityToolbarNavigation) && (
-                <IconButton
-                  onClick={() => setIsBankConnectionFormOpen(true)}
-                  size="small"
-                  aria-label="Agregar"
-                  color="inherit"
-                >
-                  <AddOutlined sx={{ fontSize: 20, color: 'white' }} />
-                </IconButton>
-              )}
+              {/* Botón de agregar cuenta (abre BankConnectionForm) */}
+              <IconButton
+                onClick={() => setIsBankConnectionFormOpen(true)}
+                size="small"
+                aria-label="Agregar"
+                color="inherit"
+              >
+                <AddOutlined sx={{ fontSize: 20, color: 'white' }} />
+              </IconButton>
               <BankConnectionForm
                 open={isBankConnectionFormOpen}
                 onClose={() => setIsBankConnectionFormOpen(false)}

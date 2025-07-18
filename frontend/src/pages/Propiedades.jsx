@@ -443,7 +443,7 @@ export function Propiedades() {
       boxSizing: 'border-box',
       display: 'flex',
       flexDirection: 'column',
-      gap: 2
+      gap: 0
     }}>
       <EntityToolbar />
 

@@ -17,34 +17,7 @@ export function Deudores() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar
-        showBackButton={true}
-        onBack={() => window.location.href = '/assets'}
-        title="Deudores"
-        icon={<DeudoresIcon />}
-        navigationItems={[
-          {
-            icon: <BankIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Cuentas',
-            to: '/cuentas'
-          },
-          {
-            icon: <WalletIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Transacciones',
-            to: '/transacciones'
-          },
-          {
-            icon: <CurrencyIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Monedas',
-            to: '/monedas'
-          },
-          {
-            icon: <RecurrentIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Recurrentes',
-            to: '/recurrente'
-          }
-        ]}
-      />
+      <EntityToolbar />
 
       <EntityDetails title="Deudores">
         <UnderConstruction />

@@ -246,54 +246,7 @@ export function Proyectos() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar 
-        title="Proyectos"
-        icon={<ProjectIcon />}
-        onAdd={() => {
-          setEditingProyecto(null);
-          setIsFormOpen(true);
-        }}
-        showBackButton={true}
-        onBack={handleBack}
-        actions={
-          <>
-            <Tooltip title={showValues ? "Ocultar valores" : "Mostrar valores"}>
-              <IconButton 
-                onClick={toggleValuesVisibility}
-                sx={{ color: 'white' }}
-              >
-                {showValues ? <HideValuesIcon /> : <ShowValuesIcon />}
-              </IconButton>
-            </Tooltip>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => {
-                setEditingProyecto(null);
-                setIsFormOpen(true);
-              }}
-              sx={{ borderRadius: 0 }}
-            >
-              Nuevo Proyecto
-            </Button>
-          </>
-        }
-        navigationItems={[
-          { 
-            icon: <TaskIcon sx={{ fontSize: 21.6 }} />, 
-            label: 'Tareas', 
-            to: '/tareas',
-            current: location.pathname === '/tareas'
-          },
-          {
-            icon: <ArchiveIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Archivo',
-            to: '/archivo',
-            current: location.pathname === '/archivo'
-          }
-        ]}
-        entityName="proyecto"
-      />
+      <EntityToolbar />
 
       <Box 
         sx={{ 

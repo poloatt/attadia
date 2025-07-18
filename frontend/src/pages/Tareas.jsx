@@ -234,31 +234,7 @@ export function Tareas() {
   return (
     <Box sx={{ px: 0, width: '100%' }}>
       <Container maxWidth={isMobile ? "sm" : "xl"} sx={{ px: isMobile ? 1 : 3 }}>
-        <EntityToolbar 
-          title="Tareas"
-          icon={<TaskIcon sx={{ fontSize: 20 }} />}
-          onAdd={() => {
-            setEditingTarea(null);
-            setIsFormOpen(true);
-          }}
-          showBackButton={true}
-          onBack={handleBack}
-          navigationItems={[
-            { 
-              icon: <ProjectIcon sx={{ fontSize: 20 }} />, 
-              label: 'Proyectos', 
-              to: '/proyectos',
-              current: location.pathname === '/proyectos'
-            },
-            {
-              icon: <ArchiveIcon sx={{ fontSize: 20 }} />,
-              label: 'Archivo',
-              to: '/archivo',
-              current: location.pathname === '/archivo'
-            }
-          ]}
-          entityName="tarea"
-        />
+        <EntityToolbar />
 
         <Box 
           sx={{ 
