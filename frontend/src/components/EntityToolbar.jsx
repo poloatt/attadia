@@ -90,20 +90,20 @@ export default function EntityToolbar({ children, additionalActions = [] }) {
       bgcolor: 'background.default', 
       pb: 0,
       position: 'sticky',
-      top: 40, // 40px es la altura del Header
+      top: 0, // Ahora se posiciona desde el top del contenedor principal
       zIndex: 1201,
       borderBottom: '1px solid',
       borderColor: 'divider',
-      minHeight: 48, // Altura fija mínima
+      minHeight: 2, // Altura mínima extremadamente reducida
     }}>
       <Box sx={{ 
         display: 'flex', 
         alignItems: 'center', 
-        px: 1, 
-        pt: 0.5, 
+        px: 0, 
+        pt: 0, 
         pb: 0, 
         width: '100%',
-        minHeight: 48, // Altura fija mínima
+        minHeight: 2, // Altura mínima extremadamente reducida
         position: 'relative', // Para posicionamiento absoluto del botón +
       }}>
         {/* Botón de atrás en mobile, solo si la toolbar está activa y no estamos en la raíz */}
