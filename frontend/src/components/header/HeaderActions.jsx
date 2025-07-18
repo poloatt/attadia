@@ -20,6 +20,7 @@ const ADD_BUTTON_ROUTES = [
   '/tiempo/proyectos',
   '/tiempo/tareas',
   '/assets/finanzas/cuentas',
+  '/cuentas', // Agregar ruta de cuentas
   '/assets/finanzas/monedas',
   '/salud/rutinas',
   '/assets/propiedades/inquilinos',
@@ -71,6 +72,14 @@ const ENTITY_CONFIGS = {
     action: () => {
       window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
         detail: { type: 'cuenta', path: '/assets/finanzas/cuentas' }
+      }));
+    }
+  },
+  'cuentas': {
+    name: 'cuenta',
+    action: () => {
+      window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
+        detail: { type: 'cuenta', path: '/cuentas' }
       }));
     }
   },
