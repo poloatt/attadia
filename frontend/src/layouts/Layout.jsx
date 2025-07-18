@@ -21,6 +21,11 @@ export function Layout() {
     return null;
   }
 
+  // Calcular el padding-top dinámicamente según si la toolbar está activa
+  const toolbarHeight = showEntityToolbarNavigation ? 2 : 0; // 2px es la altura de EntityToolbar
+  const headerHeight = 40; // 40px es la altura del Header
+  const totalTopPadding = headerHeight + toolbarHeight;
+
   return (
     <Box sx={{ 
       display: 'flex', 
@@ -36,7 +41,7 @@ export function Layout() {
         component="main"
         sx={{
           flexGrow: 1,
-          pt: 0, // Sin padding-top
+          pt: `${totalTopPadding}px`, // Padding-top dinámico para dejar espacio al header + toolbar
           pb: isMobile ? '88px' : '70px',
           minHeight: '100vh',
           height: '100vh',
