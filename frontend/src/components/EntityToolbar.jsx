@@ -121,7 +121,17 @@ export default function EntityToolbar({ children, additionalActions = [] }) {
                   ))}
                 </Box>
               )}
-        {!isMobile && showAddButton && <HeaderAddButton entityConfig={entityConfig} buttonSx={actionButtonSx} />}
+        {/* Botón de agregar en mobile - posicionado absolutamente a la derecha */}
+        {isMobile && showAddButton && (
+          <Box sx={{ 
+            position: 'absolute', 
+            right: 8, 
+            top: '50%', 
+            transform: 'translateY(-50%)' 
+          }}>
+            <HeaderAddButton entityConfig={entityConfig} buttonSx={{ ml: 1 }} />
+          </Box>
+        )}
         {/* Renderizar acciones adicionales si existen */}
         {!isMobile && additionalActions && additionalActions.map((action, idx) => (
           <Tooltip key={idx} title={action.tooltip || action.label}>

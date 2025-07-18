@@ -189,15 +189,17 @@ export default function Header() {
                   />
                 </Box>
               </Dialog>
-              {/* Botón de agregar cuenta (abre BankConnectionForm) */}
-              <IconButton
-                onClick={() => setIsBankConnectionFormOpen(true)}
-                size="small"
-                aria-label="Agregar"
-                color="inherit"
-              >
-                <AddOutlined sx={{ fontSize: 20, color: 'white' }} />
-              </IconButton>
+              {/* Botón de agregar cuenta solo en desktop o si la toolbar no está activa */}
+              {(!isMobile || !showEntityToolbarNavigation) && (
+                <IconButton
+                  onClick={() => setIsBankConnectionFormOpen(true)}
+                  size="small"
+                  aria-label="Agregar"
+                  color="inherit"
+                >
+                  <AddOutlined sx={{ fontSize: 20, color: 'white' }} />
+                </IconButton>
+              )}
               <BankConnectionForm
                 open={isBankConnectionFormOpen}
                 onClose={() => setIsBankConnectionFormOpen(false)}
@@ -207,7 +209,7 @@ export default function Header() {
             </>
           )}
           {/* Botón de agregar siempre a la derecha, excepto en cuentas */}
-          {!location.pathname.includes('/cuentas') && showAddButton && (
+          {!location.pathname.includes('/cuentas') && showAddButton && (!isMobile || !showEntityToolbarNavigation) && (
             <HeaderAddButton entityConfig={entityConfig} />
           )}
         </Box>
