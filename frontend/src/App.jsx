@@ -42,6 +42,19 @@ import Inversiones from './pages/Inversiones';
 import Autos from './pages/Autos';
 import Preferencias from './pages/Preferencias';
 import { MercadoPagoCallbackPage } from './pages/MercadoPagoCallbackPage';
+import { menuItems } from './navigation/menuStructure';
+
+// Función utilitaria para buscar path por id
+function findPathById(id, items = menuItems) {
+  for (const item of items) {
+    if (item.id === id && item.path) return item.path;
+    if (item.subItems) {
+      const found = findPathById(id, item.subItems);
+      if (found) return found;
+    }
+  }
+  return null;
+}
 
 function App() {
   const { user, loading } = useAuth();
@@ -49,6 +62,10 @@ function App() {
   if (loading) {
     return <div>Cargando...</div>;
   }
+
+  // Usar findPathById para obtener los paths dinámicamente
+  const rutinasPath = findPathById('rutinas');
+  const autosPath = findPathById('autos');
 
   return (
     <ThemeProvider theme={theme}>
@@ -92,7 +109,7 @@ function App() {
                   
                   {/* Rutas principales y anidadas para Salud */}
                   <Route path="/salud" element={<Salud />} />
-                  <Route path="/salud/rutinas" element={<Rutinas />} />
+                  {/* <Route path="/salud/rutinas" element={<Rutinas />} /> */}
                   <Route path="/salud/lab" element={<Lab />} />
                   <Route path="/salud/dieta" element={<Dieta />} />
                   <Route path="/salud/datacorporal" element={<DataCorporal />} />
@@ -102,6 +119,9 @@ function App() {
                   <Route path="/tiempo/proyectos" element={<Proyectos />} />
                   <Route path="/tiempo/tareas" element={<Tareas />} />
                   <Route path="/tiempo/archivo" element={<Archivo />} />
+                  {/* Usar path dinámico para Rutinas y Autos */}
+                  {rutinasPath && <Route path={rutinasPath} element={<Rutinas />} />}
+                  {autosPath && <Route path={autosPath} element={<Autos />} />}
                   
                   {/* Rutas anidadas para Setup */}
                   <Route path="/configuracion" element={<Configuracion />} />

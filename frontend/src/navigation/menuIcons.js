@@ -26,7 +26,8 @@ import {
   FitnessCenterOutlined, // pesa de gym para rutinas
   ExpandLess,
   ExpandMore,
-  FiberManualRecordOutlined
+  FiberManualRecordOutlined,
+  KeyboardBackspaceOutlined
 } from '@mui/icons-material';
 
 export const icons = {
@@ -59,5 +60,6 @@ export const icons = {
   bankConnections: AccountBalanceWalletOutlined, // billetera digital
   expandLess: ExpandLess,
   expandMore: ExpandMore,
-  fiberManualRecord: FiberManualRecordOutlined
+  fiberManualRecord: FiberManualRecordOutlined,
+  arrowBack: KeyboardBackspaceOutlined
 }; 

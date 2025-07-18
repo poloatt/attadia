@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Box, Typography, Paper, Container, Grid, Chip } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
+import EntityToolbar from '../components/EntityToolbar';
 
 export default function Perfil() {
   const { user } = useAuth();
@@ -33,6 +34,7 @@ export default function Perfil() {
 
   return (
     <Container maxWidth="md">
+      <EntityToolbar />
       <Paper 
         elevation={0}
         sx={{ 

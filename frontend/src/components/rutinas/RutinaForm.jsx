@@ -71,21 +71,18 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
     }
   });
 
+  // Cambiar la inicialización de formData para que fecha sea string YYYY-MM-DD
   const [formData, setFormData] = useState(() => {
-    // Obtener la fecha actual normalizada
-    const today = getNormalizedToday();
     let initialDate;
-
     if (initialData?.fecha) {
-      // Si hay fecha inicial, normalizarla
-      const parsedInitialDate = parseAPIDate(initialData.fecha);
-      initialDate = parsedInitialDate || today;
+      // Si hay fecha inicial, usarla como string
+      initialDate = typeof initialData.fecha === 'string' ? initialData.fecha : formatDate(initialData.fecha);
     } else {
-      initialDate = today;
+      // Usar la fecha de hoy como string
+      initialDate = formatDate(getNormalizedToday());
     }
-
     return {
-      fecha: initialDate, // Guardar como Date
+      fecha: initialDate, // Guardar como string YYYY-MM-DD
       useGlobalConfig: true
     };
   });
@@ -97,12 +94,11 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
   useEffect(() => {
     if (initialData) {
       setRutinaData(initialData);
-      
-      // Normalizar la fecha del initialData
-      const parsedDate = parseAPIDate(initialData.fecha);
-      setFormData(prev => ({ 
+      // Usar la fecha como string YYYY-MM-DD
+      const parsedDate = typeof initialData.fecha === 'string' ? initialData.fecha : formatDate(initialData.fecha);
+      setFormData(prev => ({
         ...prev,
-        fecha: parsedDate || getNormalizedToday()
+        fecha: parsedDate || formatDate(getNormalizedToday())
       }));
       
       // Añadir logs para depurar el valor de completitud
@@ -150,11 +146,16 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
     validateDate();
   }, [debouncedFecha, initialData]);
 
+  // handleDateChange debe convertir el Date a string YYYY-MM-DD
   const handleDateChange = (newDate) => {
     if (!newDate || isNaN(newDate.getTime())) return;
+    const year = newDate.getFullYear();
+    const month = String(newDate.getMonth() + 1).padStart(2, '0');
+    const day = String(newDate.getDate()).padStart(2, '0');
+    const fechaString = `${year}-${month}-${day}`;
     setFormData(prev => ({
       ...prev,
-      fecha: newDate
+      fecha: fechaString
     }));
   };
 
@@ -478,8 +479,8 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
                 onChange={handleDateChange}
                 error={!!fechaError}
                 helperText={fechaError}
-                minDate={new Date(new Date().setMonth(new Date().getMonth() - 6))}
-                maxDate={new Date(new Date().setMonth(new Date().getMonth() + 6))}
+                minDate={formatDate(new Date(new Date().setMonth(new Date().getMonth() - 6)))}
+                maxDate={formatDate(new Date(new Date().setMonth(new Date().getMonth() + 6)))}
               />
             </Box>
           </Grid>

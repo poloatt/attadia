@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
+import { useUISettings } from '../context/UISettingsContext';
 import { icons } from './menuIcons';
 
 export default function Sidebar() {
@@ -28,6 +29,7 @@ export default function Sidebar() {
     selectedSecond,
     setSelectedSecond
   } = useSidebar();
+  const { showEntityToolbarNavigation, showSidebar } = useUISettings();
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -185,10 +187,8 @@ export default function Sidebar() {
     );
   }, [isOpen, isDesktop, closeSidebar, navigate, setSelectedSecond, selectedSecond, isRouteActive]);
 
-  // Renderizar encabezado de secciones principales (solo desktop)
+  // Renderizar encabezado de secciones principales (siempre, en desktop y mobile)
   const renderMainSectionsHeader = useCallback(() => {
-    if (!isDesktop) return null;
-
     return (
       <Box sx={{
         display: 'flex',
@@ -216,7 +216,7 @@ export default function Sidebar() {
                 setSelectedMain(section.id);
                 if (section.path) {
                   navigate(section.path);
-                  if (!isDesktop && isOpen) closeSidebar();
+                  if (isOpen) closeSidebar();
                 }
               }}
               color={selectedMain === section.id ? 'primary' : 'default'}
@@ -239,7 +239,7 @@ export default function Sidebar() {
         ))}
       </Box>
     );
-  }, [isDesktop, isOpen, mainSections, selectedMain, setSelectedMain, navigate, closeSidebar]);
+  }, [isOpen, mainSections, selectedMain, setSelectedMain, navigate, closeSidebar]);
 
   // Obtener la sección de configuración
   const setupSection = useMemo(() => 
@@ -268,6 +268,7 @@ export default function Sidebar() {
     </Typography>
   );
 
+  if (!showSidebar && !isOpen) return null;
   return (
     <Box sx={{ 
       width: isOpen ? 280 : 56, 
@@ -309,48 +310,53 @@ export default function Sidebar() {
           </Box>
         )}
 
-        {/* Si la sección es plana, muestra SIEMPRE todos los subitems arriba */}
-        {isFlatSection && secondLevelItems.length > 0 && (
-          <List sx={{ p: isOpen ? 1 : 0.5, mt: isDesktop ? 0.5 : 0 }}>
-            {secondLevelItems.map(item => renderMenuItem(item, 0, true))}
-          </List>
-        )}
-
-        {/* Si NO es plana, sigue la lógica de selección */}
-        {!isFlatSection && secondLevelItems.length > 0 && (
-          !selectedSecond ? (
-            <List sx={{ p: isOpen ? 1 : 0.5, mt: isDesktop ? 0.5 : 0 }}>
-              {secondLevelItems.map(item => renderMenuItem(item, 0, true))}
-            </List>
-          ) : (
-            <>
-              <List sx={{ p: isOpen ? 1 : 0.5 }}>
-                {secondLevelItems
-                  .filter(item => item.id === selectedSecond)
-                  .map(item => (
-                    <React.Fragment key={item.id}>
-                      {renderMenuItem(item, 0, true)}
-                      {/* Nivel 3: Subsecciones */}
-                      {thirdLevelItems.length > 0 && (
-                        <List sx={{ p: isOpen ? 1 : 0.5 }}>
-                          {thirdLevelItems.map(subItem => renderMenuItem(subItem, 1))}
-                        </List>
-                      )}
-                    </React.Fragment>
-                  ))}
+        {/* Mostrar subniveles y setup SIEMPRE si la sidebar está extendida (isOpen) */}
+        {(isOpen || !showEntityToolbarNavigation) && (
+          <>
+            {/* Si la sección es plana, muestra SIEMPRE todos los subitems arriba */}
+            {isFlatSection && secondLevelItems.length > 0 && (
+              <List sx={{ p: isOpen ? 1 : 0.5, mt: isDesktop ? 0.5 : 0 }}>
+                {secondLevelItems.map(item => renderMenuItem(item, 0, true))}
               </List>
-              {/* Otros elementos del nivel 2 (no seleccionados) solo si hay subniveles y hay selección específica */}
-              {secondLevelItems.length > 1 && secondLevelItems.filter(item => item.id !== selectedSecond).length > 0 && (
-                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+            )}
+
+            {/* Si NO es plana, sigue la lógica de selección */}
+            {!isFlatSection && secondLevelItems.length > 0 && (
+              !selectedSecond ? (
+                <List sx={{ p: isOpen ? 1 : 0.5, mt: isDesktop ? 0.5 : 0 }}>
+                  {secondLevelItems.map(item => renderMenuItem(item, 0, true))}
+                </List>
+              ) : (
+                <>
                   <List sx={{ p: isOpen ? 1 : 0.5 }}>
                     {secondLevelItems
-                      .filter(item => item.id !== selectedSecond)
-                      .map(item => renderMenuItem(item, 0, true))}
+                      .filter(item => item.id === selectedSecond)
+                      .map(item => (
+                        <React.Fragment key={item.id}>
+                          {renderMenuItem(item, 0, true)}
+                          {/* Nivel 3: Subsecciones */}
+                          {thirdLevelItems.length > 0 && (
+                            <List sx={{ p: isOpen ? 1 : 0.5 }}>
+                              {thirdLevelItems.map(subItem => renderMenuItem(subItem, 1))}
+                            </List>
+                          )}
+                        </React.Fragment>
+                      ))}
                   </List>
-                </Box>
-              )}
-            </>
-          )
+                  {/* Otros elementos del nivel 2 (no seleccionados) solo si hay subniveles y hay selección específica */}
+                  {secondLevelItems.length > 1 && secondLevelItems.filter(item => item.id !== selectedSecond).length > 0 && (
+                    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                      <List sx={{ p: isOpen ? 1 : 0.5 }}>
+                        {secondLevelItems
+                          .filter(item => item.id !== selectedSecond)
+                          .map(item => renderMenuItem(item, 0, true))}
+                      </List>
+                    </Box>
+                  )}
+                </>
+              )
+            )}
+          </>
         )}
 
         {/* SIEMPRE al final: Setup */}

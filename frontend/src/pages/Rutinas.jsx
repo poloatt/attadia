@@ -76,7 +76,7 @@ const RutinasWithContext = () => {
         getRutinaById(rutinaId);
       } else {
         console.log(`[Rutinas] Rutina con ID ${rutinaId} no encontrada, redireccionando`);
-        navigate('/salud/habitos/rutinas');
+        navigate('/tiempo/rutinas');
       }
     }
   }, [rutinaId, rutinas, getRutinaById, navigate]);

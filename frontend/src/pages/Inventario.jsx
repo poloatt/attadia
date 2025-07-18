@@ -29,6 +29,7 @@ import EmptyState from '../components/EmptyState';
 import { EntityActions } from '../components/EntityViews/EntityActions';
 import UnderConstruction from '../components/UnderConstruction';
 import { useNavigate } from 'react-router-dom';
+import EntityToolbar from '../components/EntityToolbar';
 
 export function Inventario() {
   const [items, setItems] = useState([]);
@@ -235,6 +236,7 @@ export function Inventario() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
+      <EntityToolbar />
 
 
       <EntityDetails

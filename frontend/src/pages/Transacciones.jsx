@@ -12,6 +12,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import PaidIcon from '@mui/icons-material/Paid';
 import FabNuevaTransaccion from '../components/transacciones/FabNuevaTransaccion';
+import EntityToolbar from '../components/EntityToolbar';
 
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
@@ -20,6 +21,19 @@ import TransaccionTable from '../components/transacciones/TransaccionTable';
 import TransaccionForm from '../components/transacciones/TransaccionForm';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 import { useAPI } from '../hooks/useAPI';
+import { menuItems } from '../navigation/menuStructure';
+
+// Función utilitaria para buscar path por id
+function findPathById(id, items = menuItems) {
+  for (const item of items) {
+    if (item.id === id && item.path) return item.path;
+    if (item.subItems) {
+      const found = findPathById(id, item.subItems);
+      if (found) return found;
+    }
+  }
+  return null;
+}
 
 export function Transacciones() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -248,7 +262,7 @@ export function Transacciones() {
 
   return (
     <Box sx={{ px: 0, width: '100%', position: 'relative', minHeight: '80vh', bgcolor: 'background.default' }}>
-
+      <EntityToolbar />
       <FabNuevaTransaccion onClick={handleOpenForm} />
 
       {isLoading ? (

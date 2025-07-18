@@ -33,8 +33,15 @@ export const menuItems = [
           { id: 'inquilinos', title: 'Inquilinos', path: '/assets/propiedades/inquilinos', icon: icons.person },
           { id: 'contratos', title: 'Contratos', path: '/assets/propiedades/contratos', icon: icons.description },
           { id: 'inventario', title: 'Inventario', path: '/assets/propiedades/inventario', icon: icons.inventario, isUnderConstruction: true },
-          { id: 'autos', title: 'Autos', path: '/assets/propiedades/autos', icon: icons.auto, isUnderConstruction: true }
         ]
+      },
+      {
+        id: 'autos',
+        title: 'Autos',
+        icon: icons.auto,
+        path: '/assets/autos',
+        hasSubItems: false,
+        isUnderConstruction: true
       }
     ]
   },
@@ -45,7 +52,6 @@ export const menuItems = [
     path: '/salud',
     hasSubItems: true,
     subItems: [
-      { id: 'rutinas', title: 'Rutina', icon: icons.fitnessCenter, path: '/salud/rutinas', hasSubItems: false },
       { id: 'datacorporal', title: 'Data corporal', icon: icons.monitorHeart, path: '/salud/datacorporal', hasSubItems: false, isUnderConstruction: true },
       { id: 'dieta', title: 'Dieta', icon: icons.restaurant, path: '/salud/dieta', hasSubItems: false, isUnderConstruction: true },
       { id: 'lab', title: 'Lab', icon: icons.science, path: '/salud/lab', hasSubItems: false, isUnderConstruction: true }
@@ -60,7 +66,8 @@ export const menuItems = [
     subItems: [
       { id: 'proyectos', title: 'Proyectos', icon: icons.folder, path: '/tiempo/proyectos', hasSubItems: false },
       { id: 'tareas', title: 'Tareas', icon: icons.task, path: '/tiempo/tareas', hasSubItems: false },
-      { id: 'archivo', title: 'Archivo', icon: icons.archive, path: '/tiempo/archivo', hasSubItems: false }
+      { id: 'archivo', title: 'Archivo', icon: icons.archive, path: '/tiempo/archivo', hasSubItems: false },
+      { id: 'rutinas', title: 'Rutinas', icon: icons.fitnessCenter, path: '/tiempo/rutinas', hasSubItems: false }
     ]
   },
   {

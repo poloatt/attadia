@@ -51,6 +51,7 @@ import { EntityActions } from '../components/EntityViews/EntityActions';
 import PropiedadForm from '../components/propiedades/PropiedadForm';
 import PropiedadList from '../components/propiedades/PropiedadList';
 import { usePageWithHistory } from '../hooks/useGlobalActionHistory';
+import EntityToolbar from '../components/EntityToolbar';
 
 // Cambiamos a exportación nombrada para coincidir con App.jsx
 export function Propiedades() {
@@ -433,6 +434,7 @@ export function Propiedades() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
+      <EntityToolbar />
 
 
       <EntityDetails 

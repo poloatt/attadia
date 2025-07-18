@@ -44,6 +44,7 @@ import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EngineeringIcon from '@mui/icons-material/Engineering';
 import BookmarkAddedIcon from '@mui/icons-material/BookmarkAdded';
+import EntityToolbar from '../components/EntityToolbar';
 
 // Mapeo de nombre a componente de ícono
 const ICON_COMPONENTS = {
@@ -569,8 +570,7 @@ export function Assets() {
 
   return (
     <Box sx={{ width: '100%' }}>
-
-
+      <EntityToolbar />
       {/* Contenido principal */}
       <Box sx={{ 
         width: '100%', 

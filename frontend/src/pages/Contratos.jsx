@@ -31,6 +31,7 @@ import EmptyState from '../components/EmptyState';
 import { ContratosContainer, useContratoData } from '../components/propiedades/contratos';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { calcularAlquilerMensualPromedio } from '../components/propiedades/contratos/contratoUtils';
+import EntityToolbar from '../components/EntityToolbar';
 
 export function Contratos() {
   const [contratos, setContratos] = useState([]);
@@ -404,6 +405,7 @@ export function Contratos() {
         gap: 2
       }}
     >
+      <EntityToolbar />
       {/* Sección de Contratos Activos */}
       <Box>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 1, borderColor: 'divider' }}>

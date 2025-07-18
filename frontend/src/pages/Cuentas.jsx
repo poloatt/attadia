@@ -556,17 +556,6 @@ export function Cuentas() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      {/* Botón temporal para pago de prueba */}
-      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
-        <Button
-          variant="contained"
-          color="success"
-          onClick={handlePagoPrueba}
-          disabled={isProcessingPago}
-        >
-          {isProcessingPago ? 'Redirigiendo...' : 'Pago de prueba $10'}
-        </Button>
-      </Box>
       <EntityToolbar
         onAdd={() => setIsBankConnectionFormOpen(true)}
         showBackButton={true}
@@ -593,8 +582,6 @@ export function Cuentas() {
             to: '/deudores'
           }
         ]}
-        showSyncButton={true}
-        onSync={() => setIsSyncModalOpen(true)}
         entityName="cuenta"
       />
       {/* Modal para crear cuenta (manual o MercadoPago) */}

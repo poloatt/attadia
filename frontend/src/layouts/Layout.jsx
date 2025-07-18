@@ -31,7 +31,7 @@ export function Layout() {
       outline: 'none'
     }}>
       <Header />
-      {showSidebar && <Sidebar />}
+      <Sidebar />
       <Box
         component="main"
         sx={{
@@ -40,7 +40,7 @@ export function Layout() {
           pb: isMobile ? '88px' : '70px',
           minHeight: '100vh',
           height: '100vh',
-          width: showSidebar ? 
+          width: isOpen && showSidebar ? 
             (isMobile ? `calc(100vw - 56px)` : '100%') :
             '100vw',
           display: 'flex',
@@ -71,7 +71,7 @@ export function Layout() {
         {/* Mostrar BottomNavigation en mobile, Footer siempre */}
         {isMobile && <BottomNavigation />}
         <Box sx={{ position: 'fixed', left: 0, bottom: 0, width: '100vw', zIndex: 1300 }}>
-          <Footer isDesktop={isDesktop} isSidebarOpen={showSidebar && isDesktop} />
+          <Footer isDesktop={isDesktop} isSidebarOpen={isOpen && showSidebar && isDesktop} />
         </Box>
         <CustomSnackbarProvider />
       </Box>

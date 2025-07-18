@@ -196,8 +196,8 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
           
           // Esperar un breve momento para asegurar que el cierre del formulario se complete
           setTimeout(() => {
-            console.log('[RutinaForm] Redireccionando a la rutina recién creada:', rutinaId);
-            navigate(`/rutinas/${rutinaId}`);
+            console.log('[RutinaForm] Redireccionando a la lista de rutinas');
+            navigate('/salud/rutinas');
           }, 100);
         }
       } catch (httpError) {

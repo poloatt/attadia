@@ -7,6 +7,7 @@ import {
 import { useSnackbar } from 'notistack';
 import { InquilinoList, InquilinoForm } from '../components/propiedades/inquilinos';
 import EntityDetails from '../components/EntityViews/EntityDetails';
+import EntityToolbar from '../components/EntityToolbar';
 
 import {
   ApartmentOutlined as BuildingIcon,
@@ -212,6 +213,7 @@ export function Inquilinos() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
+      <EntityToolbar />
 
 
       {/* Filtros de grupos */}
