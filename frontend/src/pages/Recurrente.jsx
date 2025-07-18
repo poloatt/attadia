@@ -347,35 +347,7 @@ export function Recurrente() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar
-        onAdd={() => setIsFormOpen(true)}
-        showBackButton={true}
-        onBack={() => window.location.href = '/assets'}
-        navigationItems={[
-          {
-            icon: <WalletIcon sx={{ fontSize: 20 }} />,
-            label: 'Transacciones',
-            to: '/transacciones'
-          },
-          {
-            icon: <BankIcon sx={{ fontSize: 20 }} />,
-            label: 'Cuentas',
-            to: '/cuentas'
-          },
-          {
-            icon: <CurrencyIcon sx={{ fontSize: 20 }} />,
-            label: 'Monedas',
-            to: '/monedas'
-          },
-          {
-            icon: <PersonOutlineOutlined sx={{ fontSize: 20 }} />,
-            label: 'Deudores',
-            to: '/deudores'
-          }
-        ]}
-        showValues={showValues}
-        onToggleValues={toggleValuesVisibility}
-      />
+      <EntityToolbar />
 
       <EntityDetails
         title="Transacciones Recurrentes"

@@ -61,7 +61,7 @@ export default function Header() {
       position="fixed" 
       sx={{ 
         zIndex: (theme) => theme.zIndex.drawer + 1, // Header siempre por encima de sidebar
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        backgroundColor: '#181818', // Fondo opaco
         borderBottom: '1px solid',
         borderColor: 'divider',
         height: 40,
@@ -89,8 +89,8 @@ export default function Header() {
           gap: 1
         }}>
           <HeaderMenuButton />
-          {/* Botón de atrás solo si no estamos en la raíz */}
-          {location.pathname !== '/' && (
+          {/* Botón de atrás solo si no estamos en la raíz y (no es mobile o la toolbar no está activa) */}
+          {location.pathname !== '/' && (!isMobile || !showEntityToolbarNavigation) && (
             <IconButton onClick={handleBack} size="small" sx={{ ml: 0, mr: 0.5 }}>
               {icons.arrowBack ? <icons.arrowBack sx={{ fontSize: 18 }} /> : <span>&larr;</span>}
             </IconButton>
@@ -207,7 +207,7 @@ export default function Header() {
             </>
           )}
           {/* Botón de agregar siempre a la derecha, excepto en cuentas */}
-          {!location.pathname.includes('/cuentas') && showAddButton && (
+          {!location.pathname.includes('/cuentas') && showAddButton && (!isMobile || !showEntityToolbarNavigation) && (
             <HeaderAddButton entityConfig={entityConfig} />
           )}
         </Box>

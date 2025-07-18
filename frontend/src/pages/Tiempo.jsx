@@ -310,49 +310,7 @@ export function Tiempo() {
   return (
     <Box sx={{ px: 0, width: '100%' }}>
       <Container maxWidth="xl">
-        <EntityToolbar 
-          title="Tiempo"
-          icon={null}
-          onAdd={() => enqueueSnackbar('Función no implementada', { variant: 'info' })}
-          showBackButton={false}
-          actions={
-            <>
-              <Tooltip title={showValues ? "Ocultar valores" : "Mostrar valores"}>
-                <IconButton 
-                  onClick={toggleValuesVisibility}
-                  sx={{ color: 'white' }}
-                >
-                  {showValues ? <HideValuesIcon /> : <ShowValuesIcon />}
-                </IconButton>
-              </Tooltip>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => enqueueSnackbar('Función no implementada', { variant: 'info' })}
-                sx={{ borderRadius: 0 }}
-              >
-                Nueva Tarea
-              </Button>
-            </>
-          }
-          navigationItems={[
-            { 
-              icon: <ProjectIcon sx={{ fontSize: 21.6 }} />, 
-              label: 'Proyectos', 
-              to: '/proyectos'
-            },
-            {
-              icon: <TaskIcon sx={{ fontSize: 21.6 }} />,
-              label: 'Tareas',
-              to: '/tareas'
-            },
-            {
-              icon: <ArchiveIcon sx={{ fontSize: 21.6 }} />,
-              label: 'Archivo',
-              to: '/archivo'
-            }
-          ]}
-        />
+        <EntityToolbar />
 
         <Box 
           sx={{ 

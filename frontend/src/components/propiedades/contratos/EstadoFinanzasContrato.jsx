@@ -3,7 +3,9 @@ import {
   Box,
   Typography,
   Collapse,
-  IconButton
+  IconButton,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import ProgressBar from '../../common/ProgressBar';
 import {
@@ -68,6 +70,9 @@ const EstadoFinanzasContrato = ({
   // Extraer datos del estado calculado
   const { cuotasPagadas, cuotasTotales, montoPagado, montoTotal, porcentajePagado, proximaCuota, cuotasVencidas } = estadoCuotasCalculado;
   const simboloMoneda = contrato?.cuenta?.moneda?.simbolo || contrato?.moneda?.simbolo || '$';
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   if (!contrato) {
     return null;
@@ -145,12 +150,14 @@ const EstadoFinanzasContrato = ({
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <MoneyIcon sx={{ fontSize: compact ? '0.6rem' : '0.7rem', color: 'error.main' }} />
-            <CuotaInlineEditor
-              cuota={{ estado: 'VENCIDA' }}
-              editable={false}
-              tipo="estado"
-              sx={{ minWidth: 120 }}
-            />
+            {!isMobile && (
+              <CuotaInlineEditor
+                cuota={{ estado: 'VENCIDA' }}
+                editable={false}
+                tipo="estado"
+                sx={{ minWidth: 120 }}
+              />
+            )}
             <Typography variant="caption" sx={{ fontSize: compact ? '0.6rem' : '0.65rem', color: 'error.main', fontWeight: 600 }}>
               {cuotasVencidas} cuota{cuotasVencidas > 1 ? 's' : ''} vencida{cuotasVencidas > 1 ? 's' : ''}
             </Typography>
@@ -212,12 +219,14 @@ const EstadoFinanzasContrato = ({
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <MoneyIcon sx={{ fontSize: compact ? '0.6rem' : '0.7rem', color: 'success.main' }} />
-                <CuotaInlineEditor
-                  cuota={{ estado: 'PAGADO' }}
-                  editable={false}
-                  tipo="estado"
-                  sx={{ minWidth: 120 }}
-                />
+                {!isMobile && (
+                  <CuotaInlineEditor
+                    cuota={{ estado: 'PAGADO' }}
+                    editable={false}
+                    tipo="estado"
+                    sx={{ minWidth: 120 }}
+                  />
+                )}
                 <Typography variant="caption" sx={{ fontSize: compact ? '0.6rem' : '0.65rem', color: 'success.main', fontWeight: 600 }}>
                   {pagadas} cuota{pagadas !== 1 ? 's' : ''} pagada{pagadas !== 1 ? 's' : ''}
                   {pendientes > 0 && (

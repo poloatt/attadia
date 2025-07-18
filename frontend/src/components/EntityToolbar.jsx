@@ -53,23 +53,18 @@ export default function EntityToolbar({ children, additionalActions = [] }) {
 
   // Decide qué subitems mostrar (hermanos)
   const siblings = useMemo(() => {
-    // Si hay una subsección activa y tiene subitems, muestra sus subitems (nivel 3)
     if (subSection?.subItems && subSection.subItems.length > 0) {
       return subSection.subItems;
     }
-    // Si estamos en un subitem (nivel 2), muestra los hermanos de ese subitem
     if (mainSection?.subItems && subSection) {
       return mainSection.subItems;
-      }
-    // Si estamos en el nivel principal, muestra los subitems del mainSection
+    }
     if (mainSection?.subItems) {
       return mainSection.subItems;
-      }
+    }
     return [];
   }, [mainSection, subSection]);
 
-  // Botón de atrás: ir al path del menú padre, si existe
-  // Ahora solo muestra el botón si hay un mainSection y subSection (es decir, no en la raíz)
   const handleBack = () => {
     if (mainSection?.path) {
       navigate(mainSection.path);
@@ -90,45 +85,89 @@ export default function EntityToolbar({ children, additionalActions = [] }) {
 
   // Render
   return (
-    <Box sx={{ width: '100%', bgcolor: 'background.default', pb: 0.5 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', px: 1, pt: 0.5, pb: 0, width: '100%' }}>
-        {/* Hermanos centrados en mobile y desktop */}
-        {siblings.length > 1 && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flex: 1, justifyContent: 'center' }}>
-            {siblings.map(item => (
-              <Tooltip key={item.path} title={item.title}>
-                      <IconButton
-                        component={Link}
-                  to={item.path}
-                        size="small"
-                        sx={{
-                    bgcolor: isRouteActive(item.path, currentPath) ? 'action.selected' : 'transparent',
-                    color: isRouteActive(item.path, currentPath) ? 'primary.main' : 'text.secondary',
-                    borderRadius: 1,
-                    fontSize: 18
-                  }}
-                  disabled={isRouteActive(item.path, currentPath)}
-                >
-                  {item.icon
-                    ? typeof item.icon === 'string'
-                      ? icons[item.icon]
-                        ? React.createElement(icons[item.icon])
-                        : null
-                      : React.createElement(item.icon)
-                    : null}
-                      </IconButton>
-                    </Tooltip>
-                  ))}
-                </Box>
-              )}
-        {!isMobile && showAddButton && <HeaderAddButton entityConfig={entityConfig} buttonSx={actionButtonSx} />}
-        {/* Renderizar acciones adicionales si existen */}
+    <Box sx={{ 
+      width: '100%', 
+      bgcolor: 'background.default', 
+      pb: 0,
+      position: 'sticky',
+      top: 40, // 40px es la altura del Header
+      zIndex: 1201,
+      borderBottom: '1px solid',
+      borderColor: 'divider',
+      minHeight: 48, // Altura fija mínima
+    }}>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        px: 1, 
+        pt: 0.5, 
+        pb: 0, 
+        width: '100%',
+        minHeight: 48, // Altura fija mínima
+        position: 'relative', // Para posicionamiento absoluto del botón +
+      }}>
+        {/* Botón de atrás en mobile, solo si la toolbar está activa y no estamos en la raíz */}
+        {isMobile && location.pathname !== '/' && (
+          <IconButton onClick={handleBack} size="small" sx={{ mr: 1 }}>
+            {icons.arrowBack ? React.createElement(icons.arrowBack, { sx: { fontSize: 18 } }) : <span>&larr;</span>}
+          </IconButton>
+        )}
+        {/* Hermanos centrados en mobile y desktop - siempre ocupan el mismo espacio */}
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 0.5, 
+          flex: 1, 
+          justifyContent: 'center',
+          minHeight: 40, // Altura fija para evitar saltos
+        }}>
+          {siblings.length > 1 ? siblings.map(item => (
+            <Tooltip key={item.path} title={item.title}>
+              <IconButton
+                component={Link}
+                to={item.path}
+                size="small"
+                sx={{
+                  bgcolor: isRouteActive(item.path, currentPath) ? 'action.selected' : 'transparent',
+                  color: isRouteActive(item.path, currentPath) ? 'primary.main' : 'text.secondary',
+                  borderRadius: 1,
+                  fontSize: 18
+                }}
+                disabled={isRouteActive(item.path, currentPath)}
+              >
+                {item.icon
+                  ? typeof item.icon === 'string'
+                    ? icons[item.icon]
+                      ? React.createElement(icons[item.icon])
+                      : null
+                    : React.createElement(item.icon)
+                  : null}
+              </IconButton>
+            </Tooltip>
+          )) : (
+            // Espacio vacío para mantener el layout cuando no hay hermanos
+            <Box sx={{ width: '100%', height: 40 }} />
+          )}
+        </Box>
+        
+        {/* Acciones adicionales y children en desktop */}
         {!isMobile && additionalActions && additionalActions.map((action, idx) => (
           <Tooltip key={idx} title={action.tooltip || action.label}>
             <span>{action.icon}</span>
           </Tooltip>
         ))}
         {!isMobile && children}
+        {/* Botón de agregar en mobile - posicionado absolutamente a la derecha */}
+        {isMobile && showAddButton && !currentPath.includes('/cuentas') && (
+          <Box sx={{ 
+            position: 'absolute', 
+            right: 8, 
+            top: '50%', 
+            transform: 'translateY(-50%)' 
+          }}>
+            <HeaderAddButton entityConfig={entityConfig} buttonSx={{ ml: 1 }} />
+          </Box>
+        )}
       </Box>
     </Box>
   );

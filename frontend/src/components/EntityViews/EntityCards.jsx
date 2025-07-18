@@ -23,7 +23,7 @@ const EntityCards = ({
   const itemsToRender = items || data;
 
   return (
-    <Grid container spacing={1} sx={{ mt: 1 }}>
+    <Grid container spacing={1}>
       {itemsToRender?.map((item) => {
         const itemId = item.id || item._id;
         return (
@@ -32,7 +32,7 @@ const EntityCards = ({
               elevation={0}
               sx={{ 
                 p: 1,
-                pb: 0.5,
+                pb: 0,
                 height: '100%',
                 border: 'none',
                 backgroundColor: 'background.default',

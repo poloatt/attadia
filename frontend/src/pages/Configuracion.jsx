@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container, Box, Typography, useTheme, Paper, Switch, FormControl, FormControlLabel, Divider, Button } from '@mui/material';
+import { Container, Box, Typography, useTheme, Paper, Switch, FormControl, FormControlLabel, Divider, Button, useMediaQuery } from '@mui/material';
 import { useUISettings } from '../context/UISettingsContext';
 import UnderConstruction from '../components/UnderConstruction';
 import { useAuth } from '../context/AuthContext';
@@ -7,6 +7,7 @@ import EntityToolbar from '../components/EntityToolbar';
 
 export function Configuracion() {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { 
     showEntityToolbarNavigation, 
     showSidebar, 
@@ -14,6 +15,21 @@ export function Configuracion() {
     toggleSidebar 
   } = useUISettings();
   const { logout, user } = useAuth();
+
+  // Lógica para aplicar valores por defecto según dispositivo
+  React.useEffect(() => {
+    // Solo aplicar si el usuario no ha cambiado la configuración manualmente
+    // (esto requiere que el contexto UISettings tenga una forma de saber si el usuario ya cambió algo)
+    // Aquí asumimos que si está en el valor por defecto, lo podemos setear
+    if (isMobile) {
+      if (showSidebar) toggleSidebar(); // Apagar sidebar si está prendido
+      if (!showEntityToolbarNavigation) toggleEntityToolbarNavigation(); // Prender toolbar si está apagada
+    } else {
+      if (!showSidebar) toggleSidebar(); // Prender sidebar si está apagado
+      if (showEntityToolbarNavigation) toggleEntityToolbarNavigation(); // Apagar toolbar si está prendida
+    }
+    // Nota: Esto puede causar un pequeño "parpadeo" si el valor cambia al montar
+  }, [isMobile]);
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>

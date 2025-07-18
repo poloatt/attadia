@@ -43,7 +43,7 @@ const EntityDetails = ({
         </Box>
       )}
       <Box sx={{ 
-        p: 2,
+        p: 1,
         minHeight: 100
       }}>
         {children || (
