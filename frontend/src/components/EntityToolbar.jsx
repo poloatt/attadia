@@ -86,6 +86,8 @@ export default function EntityToolbar({ children, additionalActions = [] }) {
   } = useHeaderActions();
   const entityConfig = getEntityConfig();
 
+  const actionButtonSx = { fontSize: 18, color: 'text.secondary', borderRadius: 1, p: 0.5 };
+
   // Render
   return (
     <Box sx={{ width: '100%', bgcolor: 'background.default', pb: 0.5 }}>
@@ -119,17 +121,13 @@ export default function EntityToolbar({ children, additionalActions = [] }) {
                   ))}
                 </Box>
               )}
-        {!isMobile && showVisibilityButton && <HeaderVisibilityButton />}
-        {!isMobile && showUndoButton && <HeaderUndoMenu />}
-        {!isMobile && <HeaderRefreshButton />}
-        {!isMobile && showAddButton && <HeaderAddButton entityConfig={entityConfig} />}
-        {!isMobile && additionalActions.map((action, idx) => (
+        {!isMobile && showAddButton && <HeaderAddButton entityConfig={entityConfig} buttonSx={actionButtonSx} />}
+        {/* Renderizar acciones adicionales si existen */}
+        {!isMobile && additionalActions && additionalActions.map((action, idx) => (
           <Tooltip key={idx} title={action.tooltip || action.label}>
-            <IconButton onClick={action.onClick} size="small" color={action.color || 'default'}>
-              {action.icon}
-                      </IconButton>
-                    </Tooltip>
-                  ))}
+            <span>{action.icon}</span>
+          </Tooltip>
+        ))}
         {!isMobile && children}
       </Box>
     </Box>

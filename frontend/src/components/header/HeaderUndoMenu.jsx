@@ -20,7 +20,7 @@ import { useState } from 'react';
 import { useActionHistory, ACTION_TYPES } from '../../context/ActionHistoryContext';
 import { useLocation } from 'react-router-dom';
 
-export default function HeaderUndoMenu() {
+export default function HeaderUndoMenu({ iconSx }) {
   const { 
     canUndo, 
     undoLastAction, 
@@ -36,15 +36,15 @@ export default function HeaderUndoMenu() {
   const getActionIcon = (actionType) => {
     switch (actionType) {
       case ACTION_TYPES.CREATE:
-        return <CreateIcon sx={{ fontSize: 16 }} />;
+        return <CreateIcon sx={iconSx || { fontSize: 16 }} />;
       case ACTION_TYPES.UPDATE:
-        return <EditIcon sx={{ fontSize: 16 }} />;
+        return <EditIcon sx={iconSx || { fontSize: 16 }} />;
       case ACTION_TYPES.DELETE:
-        return <DeleteIcon sx={{ fontSize: 16 }} />;
+        return <DeleteIcon sx={iconSx || { fontSize: 16 }} />;
       case ACTION_TYPES.MOVE:
-        return <MoveIcon sx={{ fontSize: 16 }} />;
+        return <MoveIcon sx={iconSx || { fontSize: 16 }} />;
       default:
-        return <HistoryIcon sx={{ fontSize: 16 }} />;
+        return <HistoryIcon sx={iconSx || { fontSize: 16 }} />;
     }
   };
 
@@ -92,7 +92,7 @@ export default function HeaderUndoMenu() {
             }}
             disabled={!canUndo()}
           >
-            <UndoIcon sx={{ fontSize: 20 }} />
+            <UndoIcon sx={iconSx || { fontSize: 20 }} />
             {canUndo() && getUndoCount() > 0 && (
               <span
                 style={{
@@ -122,7 +122,7 @@ export default function HeaderUndoMenu() {
             '&:hover': { color: 'text.primary' }
           }}
         >
-          <HistoryIcon sx={{ fontSize: 20 }} />
+          <HistoryIcon sx={iconSx || { fontSize: 20 }} />
         </IconButton>
       </Tooltip>
 

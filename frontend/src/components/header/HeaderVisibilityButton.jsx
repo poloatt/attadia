@@ -5,7 +5,7 @@ import {
 } from '@mui/icons-material';
 import { useValuesVisibility } from '../../context/ValuesVisibilityContext';
 
-export default function HeaderVisibilityButton() {
+export default function HeaderVisibilityButton({ iconSx }) {
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
 
   return (
@@ -19,8 +19,8 @@ export default function HeaderVisibilityButton() {
         }}
       >
         {showValues ? 
-          <HideValuesIcon sx={{ fontSize: 20 }} /> : 
-          <ShowValuesIcon sx={{ fontSize: 20 }} />
+          <HideValuesIcon sx={iconSx} /> : 
+          <ShowValuesIcon sx={iconSx} />
         }
       </IconButton>
     </Tooltip>

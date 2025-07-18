@@ -1,7 +1,7 @@
 import { IconButton, Tooltip } from '@mui/material';
 import { Refresh as RefreshIcon } from '@mui/icons-material';
 
-export default function HeaderRefreshButton() {
+export default function HeaderRefreshButton({ iconSx }) {
   return (
     <Tooltip title="Recargar app">
       <IconButton 
@@ -9,7 +9,7 @@ export default function HeaderRefreshButton() {
         onClick={() => window.location.reload()}
         sx={{ color: 'inherit', '&:hover': { color: 'text.primary' } }}
       >
-        <RefreshIcon sx={{ fontSize: 20 }} />
+        <RefreshIcon sx={iconSx} />
       </IconButton>
     </Tooltip>
   );

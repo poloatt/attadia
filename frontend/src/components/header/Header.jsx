@@ -104,8 +104,21 @@ export default function Header() {
                   : last.icon
                 : null;
               return (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  {Icon && <Icon sx={{ fontSize: 16, color: 'primary.main' }} />}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    width: '100%',
+                    height: 40,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    pointerEvents: 'none',
+                    zIndex: 1
+                  }}
+                >
+                  {Icon && <Icon sx={{ fontSize: 16, color: 'primary.main', mr: 0.5 }} />}
                   <Typography color="inherit" sx={{ fontWeight: 500 }}>
                     {last?.title}
                   </Typography>
@@ -141,66 +154,62 @@ export default function Header() {
         <Box sx={{ flexGrow: 1 }} />
 
         <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-          {(!showEntityToolbarNavigation || isMobile) ? (
+          {showVisibilityButton && <HeaderVisibilityButton />}
+          {showUndoButton && <HeaderUndoMenu />}
+          <HeaderRefreshButton />
+          {/* Botón de acceso rápido a configuración solo si la sidebar está oculta */}
+          {showSidebar === false && (
+            <IconButton
+              component={Link}
+              to="/configuracion"
+              size="small"
+              aria-label="Configuración"
+              color="inherit"
+            >
+              {icons.settings ? <icons.settings sx={{ fontSize: 20 }} /> : <span>⚙️</span>}
+            </IconButton>
+          )}
+          {/* Botón de sincronizar solo en la página de cuentas */}
+          {location.pathname.includes('/cuentas') && (
             <>
-              {showVisibilityButton && <HeaderVisibilityButton />}
-              {showUndoButton && <HeaderUndoMenu />}
-              <HeaderRefreshButton />
-              {/* Botón de acceso rápido a configuración solo si la sidebar está oculta */}
-              {showSidebar === false && (
-                <IconButton
-                  component={Link}
-                  to="/configuracion"
-                  size="small"
-                  aria-label="Configuración"
-                  color="inherit"
-                >
-                  {icons.settings ? <icons.settings sx={{ fontSize: 20 }} /> : <span>⚙️</span>}
-                </IconButton>
-              )}
-              {/* Botón de sincronizar solo en la página de cuentas */}
-              {location.pathname.includes('/cuentas') && (
-                <>
-                  <IconButton
-                    onClick={() => setIsSyncModalOpen(true)}
-                    size="small"
-                    aria-label="Sincronizar"
-                    color="inherit"
-                  >
-                    <AutorenewOutlined sx={{ fontSize: 20, color: 'white' }} />
-                  </IconButton>
-                  <Dialog open={isSyncModalOpen} onClose={() => setIsSyncModalOpen(false)} maxWidth="xs" fullWidth>
-                    <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <Typography variant="h6" sx={{ mb: 2 }}>Sincronizar nueva cuenta</Typography>
-                      <MercadoPagoConnectButton
-                        onSuccess={() => setIsSyncModalOpen(false)}
-                        onError={() => setIsSyncModalOpen(false)}
-                      />
-                    </Box>
-                  </Dialog>
-                  {/* Botón de agregar cuenta (abre BankConnectionForm) */}
-                  <IconButton
-                    onClick={() => setIsBankConnectionFormOpen(true)}
-                    size="small"
-                    aria-label="Agregar"
-                    color="inherit"
-                  >
-                    <AddOutlined sx={{ fontSize: 20, color: 'white' }} />
-                  </IconButton>
-                  <BankConnectionForm
-                    open={isBankConnectionFormOpen}
-                    onClose={() => setIsBankConnectionFormOpen(false)}
-                    onSubmit={() => setIsBankConnectionFormOpen(false)}
-                    isEditing={false}
+              <IconButton
+                onClick={() => setIsSyncModalOpen(true)}
+                size="small"
+                aria-label="Sincronizar"
+                color="inherit"
+              >
+                <AutorenewOutlined sx={{ fontSize: 20, color: 'white' }} />
+              </IconButton>
+              <Dialog open={isSyncModalOpen} onClose={() => setIsSyncModalOpen(false)} maxWidth="xs" fullWidth>
+                <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <Typography variant="h6" sx={{ mb: 2 }}>Sincronizar nueva cuenta</Typography>
+                  <MercadoPagoConnectButton
+                    onSuccess={() => setIsSyncModalOpen(false)}
+                    onError={() => setIsSyncModalOpen(false)}
                   />
-                </>
-              )}
-              {/* Botón de agregar siempre a la derecha, excepto en cuentas */}
-              {!location.pathname.includes('/cuentas') && showAddButton && (
-                <HeaderAddButton entityConfig={entityConfig} />
-              )}
+                </Box>
+              </Dialog>
+              {/* Botón de agregar cuenta (abre BankConnectionForm) */}
+              <IconButton
+                onClick={() => setIsBankConnectionFormOpen(true)}
+                size="small"
+                aria-label="Agregar"
+                color="inherit"
+              >
+                <AddOutlined sx={{ fontSize: 20, color: 'white' }} />
+              </IconButton>
+              <BankConnectionForm
+                open={isBankConnectionFormOpen}
+                onClose={() => setIsBankConnectionFormOpen(false)}
+                onSubmit={() => setIsBankConnectionFormOpen(false)}
+                isEditing={false}
+              />
             </>
-          ) : null}
+          )}
+          {/* Botón de agregar siempre a la derecha, excepto en cuentas */}
+          {!location.pathname.includes('/cuentas') && showAddButton && (
+            <HeaderAddButton entityConfig={entityConfig} />
+          )}
         </Box>
       </Toolbar>
     </AppBar>

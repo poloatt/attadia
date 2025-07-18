@@ -8,6 +8,7 @@ import { useSnackbar } from 'notistack';
 import { InquilinoList, InquilinoForm } from '../components/propiedades/inquilinos';
 import EntityDetails from '../components/EntityViews/EntityDetails';
 import EntityToolbar from '../components/EntityToolbar';
+import { EntityActions } from '../components/EntityViews/EntityActions';
 
 import {
   ApartmentOutlined as BuildingIcon,
@@ -185,67 +186,31 @@ export function Inquilinos() {
     setOpenContratoForm(true);
   };
 
-  // Filtrar inquilinos según el filtro activo
-  const inquilinosFiltrados = useMemo(() => {
-    if (activeFilter === 'activos') {
-      return inquilinos.filter(inquilino => {
-        const estado = inquilino.estado || 'PENDIENTE';
-        return ['ACTIVO', 'RESERVADO', 'PENDIENTE'].includes(estado);
-      });
-    } else if (activeFilter === 'inactivos') {
-      return inquilinos.filter(inquilino => {
-        const estado = inquilino.estado || 'PENDIENTE';
-        return ['INACTIVO', 'SIN_CONTRATO'].includes(estado);
-      });
-    }
-    return inquilinos.filter(inquilino => {
-      const estado = inquilino.estado || 'PENDIENTE';
-      return ['ACTIVO', 'RESERVADO', 'PENDIENTE'].includes(estado);
-    });
-  }, [inquilinos, activeFilter]);
-
-  // Memorizar conteos para evitar recálculos en cada renderizado
-  const conteoInquilinos = useMemo(() => {
-    const activos = inquilinos.filter(i => ['ACTIVO', 'RESERVADO', 'PENDIENTE'].includes(i.estado || 'PENDIENTE')).length;
-    const inactivos = inquilinos.filter(i => ['INACTIVO', 'SIN_CONTRATO'].includes(i.estado || 'PENDIENTE')).length;
-    return { activos, inactivos };
-  }, [inquilinos]);
-
   return (
-    <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar />
+    <Box sx={{
+      width: '100%',
+      maxWidth: 900,
+      mx: 'auto',
+      px: { xs: 1, sm: 2, md: 3 },
+      py: 2,
+      pb: { xs: 10, sm: 4 },
+      boxSizing: 'border-box',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 2
+    }}>
+      <EntityToolbar additionalActions={[{
+        icon: <EntityActions onEdit={() => {}} onDelete={() => {}} />, // Puedes personalizar las acciones
+        label: 'Acciones'
+      }]} />
 
 
       {/* Filtros de grupos */}
-      <Box sx={{ mt: 2, mb: 2, display: 'flex', gap: 1 }}>
-        <Chip
-          label={`Inquilinos Activos (${conteoInquilinos.activos})`}
-          onClick={() => setActiveFilter('activos')}
-          color={activeFilter === 'activos' ? 'primary' : 'default'}
-          variant={activeFilter === 'activos' ? 'filled' : 'outlined'}
-          sx={{ 
-            borderRadius: 0,
-            clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)',
-            fontWeight: 500
-          }}
-        />
-        <Chip
-          label={`Inquilinos Inactivos (${conteoInquilinos.inactivos})`}
-          onClick={() => setActiveFilter('inactivos')}
-          color={activeFilter === 'inactivos' ? 'primary' : 'default'}
-          variant={activeFilter === 'inactivos' ? 'filled' : 'outlined'}
-          sx={{ 
-            borderRadius: 0,
-            clipPath: 'polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%)',
-            fontWeight: 500
-          }}
-        />
-      </Box>
 
       <Box sx={{ py: 2 }}>
         <EntityDetails>
           <InquilinoList
-            inquilinos={inquilinosFiltrados}
+            inquilinos={inquilinos}
             onEdit={handleEdit}
             onDelete={handleDelete}
             onCreateContract={handleCreateContract}
