@@ -156,6 +156,10 @@ export default function Header() {
           {showVisibilityButton && <HeaderVisibilityButton />}
           {showUndoButton && <HeaderUndoMenu />}
           <HeaderRefreshButton />
+          {/* Botón de agregar - mostrar solo cuando no hay toolbar y hay configuración */}
+          {showAddButton && !showEntityToolbarNavigation && (
+            <HeaderAddButton entityConfig={entityConfig} />
+          )}
           {/* Botón de acceso rápido a configuración solo si la sidebar está oculta */}
           {showSidebar === false && (
             <IconButton

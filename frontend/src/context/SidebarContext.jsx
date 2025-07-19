@@ -14,6 +14,12 @@ export function SidebarProvider({ children }) {
   const [expandedSections, setExpandedSections] = useState(new Set()); // Todas las secciones colapsadas por defecto
   const [selectedMain, setSelectedMain] = useState(null);
   const [selectedSecond, setSelectedSecond] = useState(null);
+  
+  // Estado para el ancho dinámico de la sidebar
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const savedWidth = localStorage.getItem('sidebarWidth');
+    return savedWidth ? parseInt(savedWidth, 10) : 280;
+  });
 
   // Obtener las secciones principales (excluyendo setup) - estabilizado con useMemo
   const mainSections = useMemo(() => menuItems.filter(item => item.id !== 'setup'), []);
@@ -154,6 +160,12 @@ export function SidebarProvider({ children }) {
     setSelectedSecond(id);
   }, []);
 
+  // Función para manejar el resize de la sidebar
+  const handleSidebarResize = useCallback((newWidth) => {
+    setSidebarWidth(newWidth);
+    localStorage.setItem('sidebarWidth', newWidth.toString());
+  }, []);
+
   return (
     <SidebarContext.Provider value={{ 
       isOpen, 
@@ -171,7 +183,9 @@ export function SidebarProvider({ children }) {
       selectedMain,
       setSelectedMain: handleSetSelectedMain,
       selectedSecond,
-      setSelectedSecond: handleSetSelectedSecond
+      setSelectedSecond: handleSetSelectedSecond,
+      sidebarWidth,
+      handleSidebarResize
     }}>
       {children}
     </SidebarContext.Provider>

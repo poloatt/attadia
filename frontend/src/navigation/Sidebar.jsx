@@ -16,6 +16,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import { useUISettings } from '../context/UISettingsContext';
 import { icons } from './menuIcons';
+import SidebarResizer from './SidebarResizer';
 
 export default function Sidebar() {
   const { 
@@ -27,7 +28,9 @@ export default function Sidebar() {
     selectedMain,
     setSelectedMain,
     selectedSecond,
-    setSelectedSecond
+    setSelectedSecond,
+    sidebarWidth,
+    handleSidebarResize
   } = useSidebar();
   const { showEntityToolbarNavigation, showSidebar } = useUISettings();
   
@@ -279,7 +282,7 @@ export default function Sidebar() {
   if (!showSidebar && !isOpen) return null;
   return (
     <Box sx={{ 
-      width: isOpen ? 280 : 56, 
+      width: isOpen ? sidebarWidth : 56, 
       transition: 'width 0.3s ease', 
       flexShrink: 0, 
       pb: { xs: '88px', sm: '88px', md: 0 } 
@@ -291,7 +294,7 @@ export default function Sidebar() {
           '& .MuiDrawer-paper': {
             position: 'fixed',
             top: '40px',
-            width: isOpen ? 280 : 56,
+            width: isOpen ? sidebarWidth : 56,
             height: 'calc(100vh - 40px)',
             transition: 'width 0.3s ease',
             overflowX: 'hidden',
@@ -311,12 +314,29 @@ export default function Sidebar() {
         {/* Encabezado de secciones principales */}
         {renderMainSectionsHeader()}
 
-        {/* Título de sección (ejemplo: ASSETS) */}
-        {isOpen && currentMainSection && currentMainSection.title && (
-          <Box sx={{ mt: 2, mb: 0.5, pl: 2 }}>
-            {renderSectionTitle(currentMainSection.title)}
-          </Box>
-        )}
+        {/* Título de sección - muestra el subgrupo child si está seleccionado */}
+        {isOpen && (() => {
+          // Si hay una selección de nivel 2, mostrar su título
+          if (selectedSecond && !isFlatSection) {
+            const selectedSecondItem = secondLevelItems.find(item => item.id === selectedSecond);
+            if (selectedSecondItem && selectedSecondItem.title) {
+              return (
+                <Box sx={{ mt: 2, mb: 0.5, pl: 2 }}>
+                  {renderSectionTitle(selectedSecondItem.title)}
+                </Box>
+              );
+            }
+          }
+          // Si no hay selección de nivel 2, mostrar el título de la sección principal
+          if (currentMainSection && currentMainSection.title) {
+            return (
+              <Box sx={{ mt: 2, mb: 0.5, pl: 2 }}>
+                {renderSectionTitle(currentMainSection.title)}
+              </Box>
+            );
+          }
+          return null;
+        })()}
 
         {/* Mostrar subniveles y setup SIEMPRE si la sidebar está extendida (isOpen) */}
         {(isOpen || !showEntityToolbarNavigation) && (
@@ -336,31 +356,19 @@ export default function Sidebar() {
                 </List>
               ) : (
                 <>
-                  <List sx={{ p: isOpen ? 1 : 0.5 }}>
-                    {secondLevelItems
-                      .filter(item => item.id === selectedSecond)
-                      .map(item => (
-                        <React.Fragment key={item.id}>
-                          {renderMenuItem(item, 0, true)}
-                          {/* Nivel 3: Subsecciones */}
-                          {thirdLevelItems.length > 0 && (
-                            <List sx={{ p: isOpen ? 1 : 0.5 }}>
-                              {thirdLevelItems.map(subItem => renderMenuItem(subItem, 1))}
-                            </List>
-                          )}
-                        </React.Fragment>
-                      ))}
-                  </List>
-                  {/* Otros elementos del nivel 2 (no seleccionados) solo si hay subniveles y hay selección específica */}
-                  {secondLevelItems.length > 1 && secondLevelItems.filter(item => item.id !== selectedSecond).length > 0 && (
-                    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-                      <List sx={{ p: isOpen ? 1 : 0.5 }}>
-                        {secondLevelItems
-                          .filter(item => item.id !== selectedSecond)
-                          .map(item => renderMenuItem(item, 0, true))}
-                      </List>
-                    </Box>
+                  {/* Nivel 3: Subsecciones del elemento seleccionado */}
+                  {thirdLevelItems.length > 0 && (
+                    <List sx={{ p: isOpen ? 1 : 0.5 }}>
+                      {thirdLevelItems.map(subItem => renderMenuItem(subItem, 1))}
+                    </List>
                   )}
+                  
+                  {/* Elementos del nivel 2 alineados al margen inferior */}
+                  <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                    <List sx={{ p: isOpen ? 1 : 0.5 }}>
+                      {secondLevelItems.map(item => renderMenuItem(item, 0, true))}
+                    </List>
+                  </Box>
                 </>
               )
             )}
@@ -378,6 +386,15 @@ export default function Sidebar() {
             </>
           )}
         </Box>
+        
+        {/* Sidebar Resizer */}
+        <SidebarResizer 
+          onResize={handleSidebarResize}
+          isOpen={isOpen}
+          minWidth={200}
+          maxWidth={400}
+          defaultWidth={sidebarWidth}
+        />
       </Drawer>
     </Box>
   );

@@ -619,7 +619,7 @@ contratoSchema.virtual('estadoActual').get(function() {
         this._estadoActualCache = 'PLANEADO';
       } else {
         this._estadoActualCache = 'FINALIZADO';
-      }
+    }
     }
     
     return this._estadoActualCache;

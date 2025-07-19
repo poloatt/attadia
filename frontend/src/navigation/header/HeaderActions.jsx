@@ -30,7 +30,9 @@ const ADD_BUTTON_ROUTES = [
   '/assets/finanzas',
   '/assets/propiedades/inventario',
   '/salud/datacorporal',
-  '/salud/dieta'
+  '/salud/dieta',
+  '/salud/lab',
+  '/assets/propiedades/habitaciones'
 ];
 
 // Configuración de entidades por ruta
@@ -144,6 +146,22 @@ const ENTITY_CONFIGS = {
     action: () => {
       window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
         detail: { type: 'dieta', path: '/salud/dieta' }
+      }));
+    }
+  },
+  'salud/lab': {
+    name: 'medición',
+    action: () => {
+      window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
+        detail: { type: 'medicion', path: '/salud/lab' }
+      }));
+    }
+  },
+  'assets/propiedades/habitaciones': {
+    name: 'habitación',
+    action: () => {
+      window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
+        detail: { type: 'habitacion', path: '/assets/propiedades/habitaciones' }
       }));
     }
   }

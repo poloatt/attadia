@@ -1,4 +1,5 @@
 export { default as Sidebar } from './Sidebar';
+export { default as SidebarResizer } from './SidebarResizer';
 export { default as BottomNavigation } from './BottomNavigation';
 export { default as Footer } from './Footer';
 export { PrivateRoute } from './PrivateRoute';
