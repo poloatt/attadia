@@ -122,6 +122,7 @@ export default function Sidebar() {
             onClick={() => {
               if (item.path && !isDisabled) {
                 navigate(item.path);
+                // Solo cerrar sidebar en móvil, no en desktop
                 if (!isDesktop && isOpen) closeSidebar();
               }
               if (isSubItem) {
@@ -220,7 +221,8 @@ export default function Sidebar() {
                 setSelectedMain(section.id);
                 if (section.path) {
                   navigate(section.path);
-                  if (isOpen) closeSidebar();
+                  // Solo cerrar sidebar en móvil, no en desktop
+                  if (!isDesktop && isOpen) closeSidebar();
                 }
               }}
               color={selectedMain === section.id ? 'primary' : 'default'}
