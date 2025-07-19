@@ -7,7 +7,7 @@ import {
   useTheme,
   useMediaQuery
 } from '@mui/material';
-import ProgressBar from '../../common/ProgressBar';
+import { ProgressBar } from '../../common';
 import {
   MonetizationOnOutlined as MoneyIcon,
   ExpandMore as ExpandMoreIcon,
@@ -75,6 +75,11 @@ const EstadoFinanzasContrato = ({
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   if (!contrato) {
+    return null;
+  }
+
+  // Si no hay cuotas válidas, no mostrar nada
+  if (cuotasTotales === 0) {
     return null;
   }
 

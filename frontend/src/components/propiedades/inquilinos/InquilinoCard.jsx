@@ -31,6 +31,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import InquilinoDetail from './InquilinoDetail';
 import { ContratoDetail } from '../contratos';
+import { getEstadoColor, getEstadoText, getEstadoIcon, getStatusIconComponent } from '../../common/StatusSystem';
 
 // Componentes estilizados siguiendo la estética geométrica
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -68,18 +69,7 @@ const StyledIconButton = styled(IconButton)(({ theme }) => ({
   }
 }));
 
-const STATUS_COLORS = {
-  'ACTIVO': '#4caf50',
-  'RESERVADO': '#ff9800',
-  'PENDIENTE': '#2196f3',
-  'INACTIVO': '#9e9e9e'
-};
-const STATUS_ICONS = {
-  'ACTIVO': <CheckIcon sx={{ fontSize: '0.9rem', color: STATUS_COLORS['ACTIVO'] }} />,
-  'RESERVADO': <ReservedIcon sx={{ fontSize: '0.9rem', color: STATUS_COLORS['RESERVADO'] }} />,
-  'PENDIENTE': <PendingIcon sx={{ fontSize: '0.9rem', color: STATUS_COLORS['PENDIENTE'] }} />,
-  'INACTIVO': <PersonIcon sx={{ fontSize: '0.9rem', color: STATUS_COLORS['INACTIVO'] }} />
-};
+
 
 const InfoRow = styled(Box)(({ theme }) => ({
   display: 'flex',
@@ -139,14 +129,7 @@ const InquilinoCard = ({
   };
 
   const getStatusColor = (status) => {
-    const statusColors = {
-      'ACTIVO': '#4caf50',
-      'RESERVADO': '#ff9800',
-      'INACTIVO': '#9e9e9e',
-      'PENDIENTE': '#2196f3',
-      'SIN_CONTRATO': '#2196f3'
-    };
-    return statusColors[status] || '#9e9e9e';
+    return getEstadoColor(status, 'INQUILINO');
   };
 
   const getInitials = () => {
@@ -284,14 +267,14 @@ const InquilinoCard = ({
                   gap: '4px',
                   padding: '2px 4px',
                   fontSize: '0.75rem',
-                  color: STATUS_COLORS[estadoActual] || '#9e9e9e',
+                  color: getEstadoColor(estadoActual, 'INQUILINO'),
                   height: '20px',
                   marginTop: 0.5,
                   marginBottom: 0.5
                 }}
               >
-                {STATUS_ICONS[estadoActual]}
-                {inquilino.estadoLabel || estadoActual}
+                {getStatusIconComponent(estadoActual, 'INQUILINO')}
+                {inquilino.estadoLabel || getEstadoText(estadoActual, 'INQUILINO')}
               </Box>
             </Tooltip>
             {/* Información de contacto */}

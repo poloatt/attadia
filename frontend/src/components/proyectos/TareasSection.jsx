@@ -158,7 +158,7 @@ const TareasSection = ({ tareas = [], onChange }) => {
               }
               sx={{ 
                 borderLeft: 3, 
-                borderColor: getEstadoColor(tarea.estado),
+                borderColor: getEstadoColor(tarea.estado, 'TAREA'),
                 '&:hover': {
                   backgroundColor: 'action.hover'
                 }
@@ -173,8 +173,8 @@ const TareasSection = ({ tareas = [], onChange }) => {
                       size="small"
                       sx={{ 
                         height: 20,
-                        backgroundColor: `${getEstadoColor(tarea.estado)}20`,
-                        color: getEstadoColor(tarea.estado),
+                                        backgroundColor: `${getEstadoColor(tarea.estado, 'TAREA')}20`,
+                color: getEstadoColor(tarea.estado, 'TAREA'),
                         borderRadius: 1
                       }}
                     />
@@ -192,7 +192,7 @@ const TareasSection = ({ tareas = [], onChange }) => {
                   mr: 1,
                   '& .MuiOutlinedInput-root': {
                     '& fieldset': {
-                      borderColor: getEstadoColor(tarea.estado)
+                      borderColor: getEstadoColor(tarea.estado, 'TAREA')
                     }
                   }
                 }}

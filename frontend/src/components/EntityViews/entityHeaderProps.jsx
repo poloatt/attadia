@@ -9,7 +9,8 @@ import {
   StoreOutlined as ServicesIcon
 } from '@mui/icons-material';
 import { IconButton } from '@mui/material';
-import { getEstadoLabel, getEstadoColor, getEstadoContrato } from '../propiedades/contratos/contratoUtils';
+import { getEstadoLabel, getEstadoContrato } from '../propiedades/contratos/contratoUtils';
+import { getEstadoColor } from '../common/StatusSystem';
 
 // Funciones auxiliares para propiedades
 const getPropiedadIcon = (tipo) => {
@@ -21,15 +22,7 @@ const getPropiedadIcon = (tipo) => {
   };
   return iconMap[tipo?.toUpperCase()] || HomeIcon;
 };
-const getPropiedadEstadoColor = (estado) => {
-  const statusColors = {
-    'DISPONIBLE': '#4caf50',
-    'OCUPADA': '#ff9800',
-    'MANTENIMIENTO': '#2196f3',
-    'RESERVADA': '#9c27b0'
-  };
-  return statusColors[estado] || '#9e9e9e';
-};
+
 
 // Funciones auxiliares para contratos
 const getContratoIcon = (tipo) => {
@@ -49,9 +42,9 @@ const getEntityHeaderProps = ({ entity, type, onView, onEdit, onDelete, onExpand
       title: entity.titulo || entity.direccion || 'Sin título',
       subtitle: entity.ciudad || '',
       statusLabel: entity.estado || 'SIN ESTADO',
-      statusColor: getPropiedadEstadoColor(entity.estado),
+      statusColor: getEstadoColor(entity.estado, 'PROPIEDAD'),
       icon: getPropiedadIcon(entity.tipo),
-      iconColor: getPropiedadEstadoColor(entity.estado),
+      iconColor: getEstadoColor(entity.estado, 'PROPIEDAD'),
       actions: (
         <>
           <IconButton size="small" onClick={() => onView && onView(entity)}>
@@ -77,9 +70,9 @@ const getEntityHeaderProps = ({ entity, type, onView, onEdit, onDelete, onExpand
       title: entity.propiedad?.titulo || 'Sin propiedad',
       subtitle: entity.propiedad?.ciudad || '',
       statusLabel: getEstadoLabel(estado),
-      statusColor: getEstadoColor(estado),
+      statusColor: getEstadoColor(estado, 'CONTRATO'),
       icon: getContratoIcon(entity.tipoContrato),
-      iconColor: getEstadoColor(estado),
+      iconColor: getEstadoColor(estado, 'CONTRATO'),
       actions: (
         <>
           <IconButton size="small" onClick={() => onView && onView(entity)}>

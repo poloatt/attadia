@@ -350,7 +350,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
             top: 0,
             bottom: 0,
             width: 4,
-            backgroundColor: getEstadoColor(estadoLocal)
+            backgroundColor: getEstadoColor(estadoLocal, 'TAREA')
           }
         }}
         onClick={() => setOpen(!open)}

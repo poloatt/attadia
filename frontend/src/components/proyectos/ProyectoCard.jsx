@@ -2,7 +2,6 @@ import React from 'react';
 import {
   Box,
   Typography,
-  Chip,
   IconButton,
   Stack,
   Tooltip
@@ -11,18 +10,18 @@ import {
   Task as TaskIcon,
   Schedule as ScheduleIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  PendingActions as PendingActionsIcon,
+  CheckCircle as CheckCircleIcon,
+  Engineering as EngineeringIcon,
+  BookmarkAdded as BookmarkAddedIcon,
+  Cancel as CancelIcon
 } from '@mui/icons-material';
+import { StatusChip } from '../propiedades/PropiedadStyles';
+import { getEstadoColor, getEstadoText, getEstadoIcon, getStatusIconComponent } from '../common/StatusSystem';
 
 const ProyectoCard = ({ proyecto, onEdit, onDelete }) => {
-  const getEstadoColor = (estado) => {
-    const colors = {
-      PENDIENTE: '#FFA726',
-      EN_PROGRESO: '#42A5F5',
-      COMPLETADO: '#66BB6A'
-    };
-    return colors[estado] || '#757575';
-  };
+
 
   return (
     <Stack spacing={2}>
@@ -30,15 +29,10 @@ const ProyectoCard = ({ proyecto, onEdit, onDelete }) => {
         <Typography variant="h6" component="div">
           {proyecto.titulo}
         </Typography>
-        <Chip 
-          label={proyecto.estado}
-          size="small"
-          sx={{ 
-            backgroundColor: `${getEstadoColor(proyecto.estado)}20`,
-            color: getEstadoColor(proyecto.estado),
-            borderRadius: 1
-          }}
-        />
+        <StatusChip customcolor={getEstadoColor(proyecto.estado, 'PROYECTO')}>
+          {getStatusIconComponent(proyecto.estado, 'PROYECTO')}
+          <span>{getEstadoText(proyecto.estado, 'PROYECTO')}</span>
+        </StatusChip>
       </Box>
 
       {proyecto.descripcion && (

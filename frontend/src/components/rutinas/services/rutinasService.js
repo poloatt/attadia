@@ -488,9 +488,9 @@ class RutinasService {
   async getHistorialCompletaciones(section, itemId, fechaInicio, fechaFin) {
     try {
       if (!section || !itemId) {
-        console.log(`[rutinasService] Obteniendo historial completo de todas las rutinas`);
+
       } else {
-        console.log(`[rutinasService] Obteniendo historial para ${section}.${itemId}`);
+        
       }
       
       // Normalizar fechas
@@ -512,7 +512,7 @@ class RutinasService {
       const inicioStr = inicio.toLocaleDateString('es-ES');
       const finStr = fin.toLocaleDateString('es-ES');
       
-      console.log(`[rutinasService] Rango de fechas para consulta: {inicio: '${inicioStr}', fin: '${finStr}'}`);
+
       
       // CORRECCIÓN: Usar UTC puro en lugar de zona horaria local
       // Crear fechas UTC para el rango completo del día
@@ -528,7 +528,7 @@ class RutinasService {
         url = `/api/rutinas/historial-completaciones/${section}/${itemId}?fechaInicio=${fechaInicioUTC.toISOString()}&fechaFin=${fechaFinUTC.toISOString()}`;
       }
       
-      console.log(`[rutinasService] URL de consulta: ${url}`);
+
       
       const response = await clienteAxios.get(url);
       

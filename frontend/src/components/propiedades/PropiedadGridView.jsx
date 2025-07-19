@@ -39,9 +39,10 @@ import { EntityGridView, SECTION_CONFIGS } from '../EntityViews';
 import { entityHeaderProps as getEntityHeaderProps } from '../EntityViews';
 import { Link } from 'react-router-dom';
 import ContratoDetail from './contratos/ContratoDetail';
-import { pluralizar, getEstadoContrato, getInquilinoStatusColor, agruparHabitaciones, calcularProgresoOcupacion } from './propiedadUtils';
+import { pluralizar, getEstadoContrato, agruparHabitaciones, calcularProgresoOcupacion } from './propiedadUtils';
 import { SeccionInquilinos, SeccionHabitaciones, SeccionInventario, SeccionDocumentos } from './SeccionesPropiedad';
 import { getInquilinosByPropiedad } from './inquilinos';
+import { getEstadoColor, getEstadoText, getStatusIconComponent } from '../common/StatusSystem';
 
 // Configuraciones para diferentes tipos de datos
 
@@ -57,13 +58,7 @@ const inquilinosConfig = {
     return statusIcons[inquilino.estado] || Person;
   },
   getIconColor: (inquilino) => {
-  const statusColors = {
-    'ACTIVO': '#4caf50',
-    'RESERVADO': '#ff9800',
-    'PENDIENTE': '#2196f3',
-    'INACTIVO': '#9e9e9e'
-  };
-    return statusColors[inquilino.estado] || '#9e9e9e';
+    return getEstadoColor(inquilino.estado, 'INQUILINO');
   },
   getTitle: (inquilino) => `${inquilino.nombre} ${inquilino.apellido}`,
   getSubtitle: (inquilino) => inquilino.estado,
@@ -119,21 +114,14 @@ const contratosConfig = {
     if (inicio <= hoy && fin > hoy) {
       estado = 'ACTIVO';
     } else if (inicio > hoy) {
-      estado = contrato.estado === 'RESERVADO' ? 'RESERVADO' : 'PLANEADO';
+      estado = 'PLANEADO';
     } else if (fin < hoy) {
       estado = 'FINALIZADO';
     } else {
       estado = contrato.estado || 'PENDIENTE';
     }
     
-    const statusColors = {
-      'ACTIVO': '#4caf50',
-      'RESERVADO': '#ff9800',
-      'PLANEADO': '#2196f3',
-      'FINALIZADO': '#9e9e9e',
-      'PENDIENTE': '#f44336'
-    };
-    return statusColors[estado] || '#9e9e9e';
+    return getEstadoColor(estado, 'CONTRATO');
   },
   getTitle: (contrato, index) => (
     <Link to={`/contratos/${contrato._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
@@ -149,7 +137,7 @@ const contratosConfig = {
     if (inicio <= hoy && fin > hoy) {
       return 'ACTIVO';
     } else if (inicio > hoy) {
-      return contrato.estado === 'RESERVADO' ? 'RESERVADO' : 'PLANEADO';
+      return 'PLANEADO';
     } else if (fin < hoy) {
       return 'FINALIZADO';
     }
@@ -293,16 +281,7 @@ const getPropiedadEstado = (propiedad) => {
   return propiedad.estado || 'DISPONIBLE';
 };
 
-// Función para obtener el color del estado
-const getPropiedadEstadoColor = (estado) => {
-  const statusColors = {
-    'DISPONIBLE': '#4caf50',
-    'OCUPADA': '#ff9800',
-    'MANTENIMIENTO': '#2196f3',
-    'RESERVADA': '#9c27b0'
-  };
-  return statusColors[estado] || '#9e9e9e';
-};
+
 
 // Render personalizado para la sección de contratos activos
 function ContratosActivosSection({ contratos }) {

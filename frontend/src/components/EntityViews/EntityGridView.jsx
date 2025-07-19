@@ -48,6 +48,7 @@ import {
 import { getEstadoContrato, calcularDuracionTotal, getApellidoInquilinoContrato, calcularRangoMesesContrato } from '../propiedades/contratos/contratoUtils';
 import { contarItemsPorHabitacion } from '../propiedades/propiedadUtils';
 import { icons } from '../../navigation/menuIcons';
+import { getStatusIconComponent, getEstadoColor, getEstadoText } from '../common/StatusSystem';
 
 // Constantes de estilo jerárquicas para alineación y separadores
 const SECTION_PADDING_X = 1;
@@ -166,7 +167,7 @@ const EntitySectionRow = ({
 );
 
 // Componente estandarizado para encabezado de entidad con título y estado y acciones a la derecha
-const EntityHeader = ({ title, status, statusLabel, statusColor, icon: Icon, iconColor, actions }) => (
+const EntityHeader = ({ title, estado, tipoEntidad = 'PROPIEDAD', icon: Icon, iconColor, actions }) => (
   <Box sx={{ mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
     {/* Columna izquierda: ícono, título, chip de estado */}
     <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, flex: 1 }}>
@@ -177,21 +178,7 @@ const EntityHeader = ({ title, status, statusLabel, statusColor, icon: Icon, ico
         <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1rem', color: 'text.primary', lineHeight: 1.2 }}>
           {title}
         </Typography>
-        {status && (
-          <GeometricChip
-            label={statusLabel || status}
-            sx={{
-              backgroundColor: statusColor,
-              color: 'white',
-              fontWeight: 600,
-              fontSize: '0.75rem',
-              borderRadius: 0,
-              height: 24,
-              minWidth: 'fit-content',
-              mt: 0.2
-            }}
-          />
-        )}
+        {estado && <EstadoChip estado={estado} tipo={tipoEntidad} />}
       </Box>
     </Box>
     {/* Columna derecha: acciones */}

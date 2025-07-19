@@ -31,7 +31,6 @@ import {
 import { EntityGridView } from '../../EntityViews';
 import { 
   getEstadoLabel, 
-  getEstadoColor, 
   getEstadoContrato, 
   calcularTiempoRestante, 
   calcularDuracionTotal, 
@@ -44,6 +43,7 @@ import {
   calcularMontoTotalEstimado,
   obtenerDatosRelacionados
 } from './contratoUtils';
+import { getEstadoColor } from '../../common/StatusSystem';
 import { entityHeaderProps as getEntityHeaderProps } from '../../EntityViews';
 import { Link } from 'react-router-dom';
 
@@ -59,13 +59,7 @@ const inquilinosConfig = {
     return statusIcons[inquilino.estado] || PersonIcon;
   },
   getIconColor: (inquilino) => {
-    const statusColors = {
-      'ACTIVO': '#4caf50',
-      'RESERVADO': '#ff9800',
-      'PENDIENTE': '#2196f3',
-      'INACTIVO': '#9e9e9e'
-    };
-    return statusColors[inquilino.estado] || '#9e9e9e';
+    return getEstadoColor(inquilino.estado, 'INQUILINO');
   },
   getTitle: (inquilino) => `${inquilino.nombre} ${inquilino.apellido}`,
   getSubtitle: (inquilino) => inquilino.estado,
@@ -138,17 +132,7 @@ const getContratoEstado = (contrato) => {
   }
 };
 
-// Función para obtener el color del estado
-const getContratoEstadoColor = (estado) => {
-  const statusColors = {
-    'ACTIVO': '#4caf50',
-    'PLANEADO': '#2196f3',
-    'FINALIZADO': '#9e9e9e',
-    'MANTENIMIENTO': '#ff9800',
-    'RESERVADO': '#9c27b0'
-  };
-  return statusColors[estado] || '#9e9e9e';
-};
+
 
 // Función para calcular duración del contrato
 const calcularDuracionContrato = (fechaInicio, fechaFin) => {

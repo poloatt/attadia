@@ -30,7 +30,6 @@ import { useValuesVisibility } from '../../../context/ValuesVisibilityContext';
 import { maskNumber } from '../../../context/ValuesVisibilityContext';
 import { 
   getEstadoLabel, 
-  getEstadoColor, 
   getEstadoColorTheme, 
   getEstadoContrato, 
   calcularTiempoRestante, 
@@ -62,7 +61,6 @@ const ContratosListView = ({
     const grupos = {
       alquiler: {
         activos: [],
-        reservados: [],
         planeados: [],
         finalizados: []
       },
@@ -80,9 +78,6 @@ const ContratosListView = ({
       switch (estado) {
         case 'ACTIVO':
           grupos[tipo].activos.push(contrato);
-          break;
-        case 'RESERVADO':
-          grupos.alquiler.reservados.push(contrato);
           break;
         case 'PLANEADO':
           grupos[tipo].planeados.push(contrato);
@@ -114,10 +109,9 @@ const ContratosListView = ({
     const estadoB = b.estadoActual;
     const orden = {
       'ACTIVO': 0,
-      'RESERVADO': 1,
-      'PLANEADO': 2,
-      'FINALIZADO': 3,
-      'MANTENIMIENTO': 4
+      'PLANEADO': 1,
+      'FINALIZADO': 2,
+      'MANTENIMIENTO': 3
     };
     return (orden[estadoA] ?? 99) - (orden[estadoB] ?? 99);
   });

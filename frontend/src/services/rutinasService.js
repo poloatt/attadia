@@ -468,9 +468,9 @@ class RutinasService {
   async getHistorialCompletaciones(section, itemId, fechaInicio, fechaFin) {
     try {
       if (!section || !itemId) {
-        console.log(`[rutinasService] Obteniendo historial completo de todas las rutinas`);
+    
       } else {
-        console.log(`[rutinasService] Obteniendo historial para ${section}.${itemId}`);
+
       }
       
       // CORRECCIÓN: Usar UTC puro en lugar de formatDateForAPI
@@ -482,10 +482,7 @@ class RutinasService {
       const fechaInicioUTC = new Date(Date.UTC(inicio.getFullYear(), inicio.getMonth(), inicio.getDate(), 0, 0, 0, 0));
       const fechaFinUTC = new Date(Date.UTC(fin.getFullYear(), fin.getMonth(), fin.getDate(), 23, 59, 59, 999));
       
-      console.log(`[rutinasService] Rango de fechas para consulta:`, {
-        inicio: fechaInicioUTC.toISOString(),
-        fin: fechaFinUTC.toISOString()
-      });
+
       
       // Construir URL con parámetros
       const params = new URLSearchParams({
@@ -504,7 +501,7 @@ class RutinasService {
 
   async getRutinasHistoricas(days = 30) {
     try {
-      console.log('[rutinasService] Obteniendo historial de rutinas para los últimos', days, 'días');
+
       
       // Calcular rango de fechas
       const fechaFin = new Date();

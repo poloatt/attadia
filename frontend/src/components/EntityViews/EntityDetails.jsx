@@ -1,5 +1,29 @@
 import React from 'react';
 import { Box, Typography, Paper } from '@mui/material';
+import { getStatusIconComponent, getEstadoColor, getEstadoText } from '../common/StatusSystem';
+
+const EstadoChip = ({ estado, tipo = 'PROPIEDAD', sx = {} }) => (
+  <Box
+    sx={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 0.5,
+      px: 1,
+      py: 0.5,
+      fontSize: '0.75rem',
+      color: getEstadoColor(estado, tipo),
+      bgcolor: 'transparent',
+      borderRadius: 0,
+      fontWeight: 600,
+      height: 24,
+      minWidth: 'fit-content',
+      ...sx
+    }}
+  >
+    {getStatusIconComponent(estado, tipo)}
+    <span>{getEstadoText(estado, tipo)}</span>
+  </Box>
+);
 
 const EntityDetails = ({ 
   title, 

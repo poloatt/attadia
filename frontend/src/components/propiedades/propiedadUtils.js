@@ -26,36 +26,14 @@ export function getCuentaYMoneda(contrato, relatedData) {
   return getCuentaYMonedaFromUtils(contrato, relatedData);
 }
 
-// Color de estado de inquilino
-export function getInquilinoStatusColor(estado) {
-  const statusColors = {
-    'ACTIVO': '#4caf50',
-    'RESERVADO': '#ff9800',
-    'PENDIENTE': '#2196f3',
-    'INACTIVO': '#9e9e9e'
-  };
-  return statusColors[estado] || '#9e9e9e';
-}
-
-// Mapeo de iconos para estados
-export const STATUS_ICONS = {
-  'DISPONIBLE': 'PendingActions',
-  'OCUPADA': 'CheckCircle',
-  'MANTENIMIENTO': 'Engineering',
-  'RESERVADA': 'BookmarkAdded'
-};
+// Nota: Las funciones de colores e iconos de estado se han movido a StatusSystem.js
+// para unificar el sistema de estados en toda la aplicación
 
 
 
 
 
-// Mapeo de colores para estados
-export const STATUS_COLORS = {
-  'DISPONIBLE': '#4caf50',
-  'OCUPADA': '#2196f3',
-  'MANTENIMIENTO': '#ff9800',
-  'RESERVADA': '#673ab7'
-};
+// STATUS_COLORS movido a StatusSystem.js
 
 // Calcula el progreso del contrato - ahora reutiliza contratoUtils
 export function calcularProgresoContrato(contratos, montoMensual) {
@@ -150,16 +128,7 @@ const calcularMontoMensualDesdeContratos = (contratos = []) => {
     );
   }
   
-  // Si no hay planeado, buscar reservado
-  if (!contratoReferencia) {
-    contratoReferencia = contratos.find(contrato => 
-      contrato.estado === 'RESERVADO' && 
-      !contrato.esMantenimiento && 
-      contrato.tipoContrato === 'ALQUILER'
-    );
-  }
-  
-  // Si no hay reservado, buscar cualquier contrato de alquiler
+  // Si no hay planeado, buscar cualquier contrato de alquiler
   if (!contratoReferencia) {
     contratoReferencia = contratos.find(contrato => 
       !contrato.esMantenimiento && 
@@ -216,7 +185,7 @@ export function calcularProgresoOcupacion(propiedad) {
       montoAcumulado: 0,
       montoTotal: 0,
       tieneContrato: false,
-      estado: propiedad.estado || 'DISPONIBLE',
+      estado: propiedad.estado?.[0] || 'DISPONIBLE',
       contrato: null
     };
   }
@@ -239,9 +208,11 @@ export function calcularProgresoOcupacion(propiedad) {
     estadoTiempo = `${stats.diasTotales - stats.diasTranscurridos} días restantes`;
   }
 
-  // Estado de la propiedad
-  let estado = propiedad.estado || 'DISPONIBLE';
-  if (contratoActivo) {
+  // Estado de la propiedad - RESPETAR el estado real de la propiedad
+  let estado = propiedad.estado?.[0] || 'DISPONIBLE';
+  
+  // Solo cambiar a OCUPADA si la propiedad no está RESERVADA y hay contrato activo
+  if (contratoActivo && estado !== 'RESERVADA') {
     estado = 'OCUPADA';
     if (contratoActivo.esMantenimiento || contratoActivo.tipoContrato === 'MANTENIMIENTO') {
       estado = 'MANTENIMIENTO';
@@ -282,6 +253,7 @@ export function calcularDiasRestantes(contratos) {
 
 // Calcula estadísticas de la propiedad - ahora reutiliza contratoUtils
 export function calcularEstadisticasPropiedad(propiedad) {
+  
   const stats = {
     total: 1,
     ocupadas: 0,
@@ -294,29 +266,26 @@ export function calcularEstadisticasPropiedad(propiedad) {
 
   const contratos = propiedad.contratos || [];
   let tieneContratoActivo = false;
-  let tieneContratoReservado = false;
 
   for (const contrato of contratos) {
     const estado = getEstadoContrato(contrato);
     if (estado === 'ACTIVO') {
       tieneContratoActivo = true;
       break;
-    } else if (estado === 'RESERVADO') {
-      tieneContratoReservado = true;
     }
   }
 
-  if (tieneContratoActivo) {
+  if (tieneContratoActivo && !propiedad.estado?.includes('RESERVADA')) {
     stats.ocupadas = 1;
     stats.disponibles = 0;
     stats.estado = 'OCUPADA';
     stats.porcentajeOcupacion = 100;
-  } else if (propiedad.estado === 'MANTENIMIENTO') {
+  } else if (propiedad.estado?.includes('MANTENIMIENTO')) {
     stats.mantenimiento = 1;
     stats.disponibles = 0;
     stats.estado = 'MANTENIMIENTO';
     stats.porcentajeOcupacion = 0;
-  } else if (tieneContratoReservado || propiedad.estado === 'RESERVADA') {
+  } else if (propiedad.estado?.includes('RESERVADA')) {
     stats.reservadas = 1;
     stats.disponibles = 0;
     stats.estado = 'RESERVADA';
@@ -330,31 +299,7 @@ export function calcularEstadisticasPropiedad(propiedad) {
   return stats;
 }
 
-// Devuelve el ícono del estado del inquilino
-export function getInquilinoStatusIcon(estado) {
-  const statusIcons = {
-    'ACTIVO': 'CheckCircle',
-    'RESERVADO': 'BookmarkAdded',
-    'PENDIENTE': 'PendingActions',
-    'INACTIVO': 'DescriptionIcon'
-  };
-  return statusIcons[estado] || statusIcons['INACTIVO'];
-}
-
-// Chip de estado estilizado
-export const StatusChip = styled(Box)(({ theme, customcolor }) => ({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 4,
-  padding: '2px 6px',
-  fontSize: '0.75rem',
-  color: customcolor || theme.palette.text.secondary,
-  height: 24,
-  marginLeft: theme.spacing(1),
-  '& .MuiSvgIcon-root': {
-    fontSize: '0.9rem'
-  }
-})); 
+// StatusChip movido a PropiedadStyles.jsx 
 
 // Función para contar items de inventario por habitación
 export function contarItemsPorHabitacion(habitaciones = [], inventarios = []) {

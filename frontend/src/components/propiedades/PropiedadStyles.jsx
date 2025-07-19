@@ -9,7 +9,6 @@ export const StyledCard = styled(Card)(({ theme }) => ({
   boxShadow: 'none',
   border: 'none',
   transition: 'all 0.2s ease',
-  height: '100%',
   display: 'flex',
   flexDirection: 'column',
   position: 'relative',
@@ -129,4 +128,32 @@ export const StyledSectionTitle = styled(Typography)(({ theme }) => ({
   marginBottom: theme.spacing(1),
   borderBottom: `1px solid ${theme.palette.divider}`,
   paddingBottom: theme.spacing(0.5)
-})); 
+}));
+
+// Chip de estado estilizado
+export const StatusChip = ({ children, customcolor, ...props }) => {
+  return (
+    <Box
+      sx={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 1,
+        padding: '2px 6px',
+        fontSize: '0.75rem',
+        color: customcolor || 'text.secondary',
+        height: 24,
+        marginLeft: 1,
+        borderRadius: 0,
+        backgroundColor: 'transparent',
+        border: 'none',
+        fontWeight: 500,
+        '& .MuiSvgIcon-root': {
+          fontSize: '0.9rem'
+        }
+      }}
+      {...props}
+    >
+      {children}
+    </Box>
+  );
+}; 

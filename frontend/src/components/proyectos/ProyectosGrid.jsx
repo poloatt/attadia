@@ -331,7 +331,7 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory })
           top: 0,
           bottom: 0,
           width: 3,
-          backgroundColor: getEstadoColor(tareaLocal.estado)
+                          backgroundColor: getEstadoColor(tareaLocal.estado, 'TAREA')
         }
       }}
     >
@@ -379,7 +379,7 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory })
         <Typography 
           variant="caption" 
           sx={{ 
-            color: getEstadoColor(tareaLocal.estado)
+            color: getEstadoColor(tareaLocal.estado, 'TAREA')
           }}
         >
           {tareaLocal.estado === 'COMPLETADA' 

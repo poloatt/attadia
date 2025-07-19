@@ -26,11 +26,11 @@ import BarraEstadoPropiedad from './BarraEstadoPropiedad';
 import {
   pluralizar,
   getEstadoContrato,
-  getInquilinoStatusColor,
   agruparHabitaciones,
   calcularProgresoOcupacion,
   getCuentaYMoneda
 } from './propiedadUtils';
+import { getEstadoColor, getEstadoText, getStatusIconComponent } from '../common/StatusSystem';
 
 // Función para calcular el monto mensual promedio desde contratos activos
 const calcularMontoMensualDesdeContratos = (contratos = []) => {
@@ -52,16 +52,7 @@ const calcularMontoMensualDesdeContratos = (contratos = []) => {
     );
   }
 
-  // Si no hay planeado, buscar reservado
-  if (!contratoReferencia) {
-    contratoReferencia = contratos.find(contrato =>
-      contrato.estado === 'RESERVADO' &&
-      !contrato.esMantenimiento &&
-      contrato.tipoContrato === 'ALQUILER'
-    );
-  }
-
-  // Si no hay reservado, buscar cualquier contrato de alquiler
+  // Si no hay planeado, buscar cualquier contrato de alquiler
   if (!contratoReferencia) {
     contratoReferencia = contratos.find(contrato =>
       !contrato.esMantenimiento &&
@@ -165,12 +156,18 @@ const ContratosList = ({ contratos }) => {
       <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Contratos</Typography>
       {contratos.map((contrato, idx) => {
           const estado = getEstadoContrato(contrato);
+          const color = getEstadoColor(estado, 'CONTRATO');
+          const icon = getStatusIconComponent(estado, 'CONTRATO');
+          const text = getEstadoText(estado, 'CONTRATO');
           return (
           <Box key={contrato._id} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-            <Typography component={Link} to={`/contratos/${contrato._id}`} variant="body2" sx={{ color: getInquilinoStatusColor(estado), textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+            <Typography component={Link} to={`/contratos/${contrato._id}`} variant="body2" sx={{ color: color, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
               Contrato {idx + 1}
               </Typography>
-            <Typography variant="caption" sx={{ color: getInquilinoStatusColor(estado) }}>{estado}</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              {icon}
+              <Typography variant="caption" sx={{ color: color }}>{text}</Typography>
+            </Box>
             </Box>
           );
         })}

@@ -27,26 +27,20 @@ import {
   OpenInNew as OpenIcon,
   Visibility as ViewIcon
 } from '@mui/icons-material';
+import { getEstadoColor, getEstadoText } from '../../common/StatusSystem';
 
 const getStatusColor = (status) => {
-  const statusColors = {
-    'ACTIVO': 'success',
-    'RESERVADO': 'warning',
-    'INACTIVO': 'default',
-    'PENDIENTE': 'info',
-    'SIN_CONTRATO': 'info'
-  };
-  return statusColors[status] || 'default';
+  const color = getEstadoColor(status, 'INQUILINO');
+  // Convertir color hex a nombre de color de Material-UI
+  if (color === '#4caf50') return 'success';
+  if (color === '#ff9800') return 'warning';
+  if (color === '#9e9e9e') return 'default';
+  if (color === '#2196f3') return 'info';
+  return 'default';
 };
 
 const getStatusLabel = (status) => {
-  const statusLabels = {
-    'ACTIVO': 'Activo',
-    'RESERVADO': 'Reservado',
-    'INACTIVO': 'Inactivo',
-    'PENDIENTE': 'Pendiente'
-  };
-  return statusLabels[status] || status;
+  return getEstadoText(status, 'INQUILINO');
 };
 
 const getInitials = (nombre, apellido) => {

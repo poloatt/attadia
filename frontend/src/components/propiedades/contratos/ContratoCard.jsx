@@ -37,7 +37,6 @@ import ContratoDetail from './ContratoDetail';
 import { Link } from 'react-router-dom';
 import { 
   getEstadoLabel, 
-  getEstadoColor, 
   getEstadoContrato, 
   calcularDuracionTotal, 
   calcularTiempoRestante,
@@ -51,41 +50,14 @@ import {
 import { useValuesVisibility } from '../../../context/ValuesVisibilityContext';
 import { EntityActions } from '../../EntityViews';
 import BarraEstadoPropiedad from '../BarraEstadoPropiedad';
+import { StyledCard, StatusChip } from '../PropiedadStyles';
+import { getEstadoColor, getEstadoText, getEstadoIcon, getStatusIconComponent } from '../../common/StatusSystem';
 
-// Componente estilizado para las tarjetas con estilo angular
-const StyledCard = styled(Card)(({ theme }) => ({
-  borderRadius: 0,
-  backgroundColor: 'transparent',
-  backgroundImage: 'none',
-  boxShadow: 'none',
-  border: 'none',
-  transition: 'all 0.2s ease',
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  position: 'relative',
-  overflow: 'visible',
-  '&:hover': {
-    transform: 'none',
-    boxShadow: 'none'
-  }
-}));
 
-// Mapeo de iconos para estados
-const STATUS_ICONS = {
-  'ACTIVO': <CheckCircleOutline fontSize="small" />,
-  'PLANEADO': <PendingActions fontSize="small" />,
-  'FINALIZADO': <BookmarkAdded fontSize="small" />,
-  'MANTENIMIENTO': <PendingActions fontSize="small" />
-};
 
-// Mapeo de colores para estados
-const STATUS_COLORS = {
-  'ACTIVO': '#4caf50',
-  'PLANEADO': '#2196f3',
-  'FINALIZADO': '#9e9e9e',
-  'MANTENIMIENTO': '#ff9800'
-};
+
+
+// STATUS_COLORS movido a StatusSystem.js
 
 // Color blanco para la barra de estado
 const colorBarraEstado = 'common.white';
@@ -111,8 +83,8 @@ const ContratoCard = ({
 
   // Usar el estado del backend
   const estado = getEstadoContrato(contrato) || 'PLANEADO';
-  const color = STATUS_COLORS[estado] || '#9e9e9e';
-  const icon = STATUS_ICONS[estado] || <ScheduleIcon fontSize="small" />;
+  const color = getEstadoColor(estado, 'CONTRATO');
+  const icon = getStatusIconComponent(estado, 'CONTRATO');
 
   // Extraer valores para mostrar
   let titulo = 'Sin inquilino';
@@ -202,35 +174,21 @@ const ContratoCard = ({
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.2 }}>
             {/* Título del contrato */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              {React.cloneElement(icon, { sx: { fontSize: '1.1rem', color: 'common.white', mr: 0.5 } })}
               <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                <Typography variant="subtitle1" sx={{ 
-                  fontWeight: 500, 
-                  fontSize: '0.9rem',
-                  lineHeight: 1.2,
-                  ml: 0.5
-                }}>
-                  {titulo}
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontSize: '0.6rem',
-                    color: color,
-                    fontWeight: 400,
-                    p: 0,
-                    lineHeight: 1,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    verticalAlign: 'middle',
-                    bgcolor: 'transparent',
-                    border: 'none',
-                    boxShadow: 'none',
-                    ml: 0.5
-                  }}
-                >
-                  {getEstadoLabel(estado)}
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <ContractIcon sx={{ fontSize: '1.1rem', color: 'text.primary' }} />
+                  <Typography variant="subtitle1" sx={{ 
+                    fontWeight: 500, 
+                    fontSize: '0.9rem',
+                    lineHeight: 1.2
+                  }}>
+                    {titulo}
+                  </Typography>
+                </Box>
+                <StatusChip customcolor={color}>
+                  {icon}
+                  <span>{getEstadoText(estado, 'CONTRATO')}</span>
+                </StatusChip>
               </Box>
             </Box>
           </Box>

@@ -64,20 +64,16 @@ import BarraEstadoPropiedad from './BarraEstadoPropiedad';
 import { 
   pluralizar, 
   getEstadoContrato, 
-  getInquilinoStatusColor, 
   agruparHabitaciones, 
   calcularProgresoOcupacion, 
-  getCuentaYMoneda,
-  obtenerTotalItemsPropiedad,
-  obtenerItemsPorCategoria,
-  StatusChip
+  getCuentaYMoneda
 } from './propiedadUtils';
 import { SeccionInquilinos, SeccionHabitaciones, SeccionDocumentos } from './SeccionesPropiedad';
 import { calcularAlquilerMensualPromedio, calcularEstadoFinanzasContrato, calcularEstadoCuotasContrato } from './contratos/contratoUtils';
 import EstadoFinanzasContrato from './contratos/EstadoFinanzasContrato';
 import { CuotasProvider } from './contratos/context/CuotasContext';
-import InventarioDetail from './inventario/InventarioDetail';
-import { STATUS_COLORS } from './propiedadUtils';
+import { getEstadoColor, getEstadoText, getStatusIconComponent } from '../common/StatusSystem';
+import { StyledCard, StatusChip } from './PropiedadStyles';
 
 // Función para calcular el monto mensual promedio desde contratos activos
 const calcularMontoMensualDesdeContratos = (contratos = []) => {
@@ -99,16 +95,7 @@ const calcularMontoMensualDesdeContratos = (contratos = []) => {
     );
   }
   
-  // Si no hay planeado, buscar reservado
-  if (!contratoReferencia) {
-    contratoReferencia = contratos.find(contrato => 
-      contrato.estado === 'RESERVADO' && 
-      !contrato.esMantenimiento && 
-      contrato.tipoContrato === 'ALQUILER'
-    );
-  }
-  
-  // Si no hay reservado, buscar cualquier contrato de alquiler
+  // Si no hay planeado, buscar cualquier contrato de alquiler
   if (!contratoReferencia) {
     contratoReferencia = contratos.find(contrato => 
       !contrato.esMantenimiento && 
@@ -122,38 +109,12 @@ const calcularMontoMensualDesdeContratos = (contratos = []) => {
   return calcularAlquilerMensualPromedio(contratoReferencia);
 };
 
-// Componente estilizado para las tarjetas con estilo angular
-const StyledCard = styled(Card)(({ theme }) => ({
-  borderRadius: 0,
-  backgroundColor: 'transparent',
-  backgroundImage: 'none',
-  boxShadow: 'none',
-  border: 'none',
-  transition: 'all 0.2s ease',
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  position: 'relative',
-  overflow: 'visible',
-  '&:hover': {
-    transform: 'none',
-    boxShadow: 'none'
-  }
-}));
+
 
 
 
 const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpanded = false, onToggleExpand, viewMode = 'grid', setViewMode = () => {} }) => {
-  // Función local para obtener el icono de estado
-  const getStatusIcon = (estado) => {
-    const iconMap = {
-      'DISPONIBLE': <PendingActions fontSize="small" />,
-      'OCUPADA': <CheckCircleOutline fontSize="small" />,
-      'MANTENIMIENTO': <Engineering fontSize="small" />,
-      'RESERVADA': <BookmarkAdded fontSize="small" />
-    };
-    return iconMap[estado] || <PendingActions fontSize="small" />;
-  };
+
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -163,7 +124,6 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
     contratos: false,
     detalles: false,
     habitaciones: false,
-    inventario: false,
     price: false
   });
 
@@ -176,8 +136,15 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
 
   // Usar el estado del backend
   const estado = propiedad.estado || 'DISPONIBLE';
-  const color = STATUS_COLORS[estado] || '#9e9e9e';
-  const icon = getStatusIcon(estado);
+  const color = getEstadoColor(estado, 'PROPIEDAD');
+  const icon = getStatusIconComponent(estado, 'PROPIEDAD');
+  
+  // Debug: verificar qué se está pasando
+  console.log('PropiedadCard - Propiedad completa:', propiedad);
+  console.log('PropiedadCard - Estado del backend:', propiedad.estado);
+  console.log('PropiedadCard - Estado calculado:', estado);
+  console.log('PropiedadCard - Color:', color);
+  console.log('PropiedadCard - Icon:', icon);
 
   // Extraer valores para mostrar
   const alias = propiedad.alias || 'Sin alias';
@@ -199,9 +166,6 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
   const banos = habitaciones.filter(h => h.tipo === 'BAÑO' || h.tipo === 'TOILETTE').length;
   const inquilinos = propiedad.inquilinos || [];
   const contratos = propiedad.contratos || [];
-  const inventarios = propiedad.inventarios || [];
-  const totalInventarios = obtenerTotalItemsPropiedad(inventarios);
-  const itemsPorCategoria = obtenerItemsPorCategoria(inventarios);
 
   // Filtrar activos y finalizados
   const inquilinosActivos = (propiedad.inquilinos || []).filter(i => i.estado === 'ACTIVO');
@@ -296,8 +260,6 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
   };
 
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  // Estado para popup de inventario
-  const [inventarioDialog, setInventarioDialog] = useState({ open: false, inventario: null });
 
   // Componente reutilizable para la barra de progreso
   const renderBarraProgreso = () => {
@@ -359,7 +321,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
         {/* Estado de la propiedad */}
         <StatusChip customcolor={color}>
           {icon}
-          {estado.charAt(0) + estado.slice(1).toLowerCase()}
+          <span>{getEstadoText(estado, 'PROPIEDAD')}</span>
         </StatusChip>
       </Box>
       <Box sx={{ display: 'flex', gap: 0.5 }}>
@@ -440,7 +402,6 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
           propiedad={propiedad}
           habitaciones={habitaciones}
           contratos={contratos}
-          inventario={inventarios}
           documentos={documentosCombinados}
           precio={montoMensual}
           simboloMoneda={simbolo}
@@ -453,7 +414,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
           onDelete={onDelete}
         />
       )}
-      <SeccionDocumentos documentos={documentosCombinados} onInventarioClick={doc => setInventarioDialog({ open: true, inventario: doc.inventario })} />
+      <SeccionDocumentos documentos={documentosCombinados} />
     </>
   );
 
@@ -500,7 +461,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
           </Button>
         </DialogActions>
       </Dialog>
-      <InventarioDetail open={inventarioDialog.open} onClose={() => setInventarioDialog({ open: false, inventario: null })} inventario={inventarioDialog.inventario} />
+
     </StyledCard>
   );
 };

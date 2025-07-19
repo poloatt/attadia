@@ -5,29 +5,16 @@ export const getEstadoLabel = (estado) => {
     case 'FINALIZADO': return 'Contrato finalizado';
     case 'PLANEADO': return 'Contrato planeado';
     case 'MANTENIMIENTO': return 'Contrato de mantenimiento';
-    case 'RESERVADO': return 'Contrato reservado';
     default: return estado;
   }
 };
 
-// Función para obtener el color del estado
-export const getEstadoColor = (estado) => {
-  switch (estado) {
-    case 'ACTIVO': return '#4caf50';
-    case 'RESERVADO': return '#ff9800';
-    case 'PLANEADO': return '#2196f3';
-    case 'FINALIZADO': return '#9e9e9e';
-    case 'PENDIENTE': return '#f44336';
-    case 'MANTENIMIENTO': return '#ff9800';
-    default: return '#9e9e9e';
-  }
-};
+
 
 // Función para obtener el color del estado (versión para tema)
 export const getEstadoColorTheme = (estado) => {
   switch (estado) {
     case 'ACTIVO': return 'success.main';
-    case 'RESERVADO': return 'warning.main';
     case 'PLANEADO': return 'info.main';
     case 'FINALIZADO': return 'text.secondary';
     case 'PENDIENTE': return 'error.main';
@@ -52,7 +39,7 @@ export const getEstadoContrato = (contrato) => {
   if (inicio <= hoy && fin >= hoy) {
     return 'ACTIVO';
   } else if (inicio > hoy) {
-    return contrato.estado === 'RESERVADO' ? 'RESERVADO' : 'PLANEADO';
+    return 'PLANEADO';
   } else if (fin < hoy) {
     return 'FINALIZADO';
   }

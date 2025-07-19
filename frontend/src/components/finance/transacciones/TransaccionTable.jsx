@@ -223,7 +223,7 @@ const TransaccionTable = ({ transacciones, onEdit, onDelete, showValues = true }
                             Estado
                           </Typography>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            {getEstadoIcon(transaccion.estado)}
+                            {getEstadoIcon(transaccion.estado, 'TRANSACCION')}
                             <Typography variant="body2" sx={{ 
                               fontSize: '0.875rem',
                               color: 'text.secondary'

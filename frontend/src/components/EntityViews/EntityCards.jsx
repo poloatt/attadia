@@ -8,6 +8,30 @@ import {
   Avatar
 } from '@mui/material';
 import { EntityActions } from './EntityActions';
+import { getStatusIconComponent, getEstadoColor, getEstadoText } from '../common/StatusSystem';
+
+const EstadoChip = ({ estado, tipo = 'PROPIEDAD', sx = {} }) => (
+  <Box
+    sx={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 0.5,
+      px: 1,
+      py: 0.5,
+      fontSize: '0.75rem',
+      color: getEstadoColor(estado, tipo),
+      bgcolor: 'transparent',
+      borderRadius: 0,
+      fontWeight: 600,
+      height: 24,
+      minWidth: 'fit-content',
+      ...sx
+    }}
+  >
+    {getStatusIconComponent(estado, tipo)}
+    <span>{getEstadoText(estado, tipo)}</span>
+  </Box>
+);
 
 const EntityCards = ({ 
   data,
@@ -72,18 +96,7 @@ const EntityCards = ({
                   </Typography>
                   {/* Chip de estado si existe */}
                   {config.getStatus && (
-                    <Chip
-                      label={config.getStatus(item).label}
-                      color={config.getStatus(item).color}
-                      size="small"
-                      icon={null}
-                      sx={{ 
-                        borderRadius: 0,
-                        minWidth: 80,
-                        justifyContent: 'center',
-                        mt: 0.2
-                      }}
-                    />
+                    <EstadoChip estado={config.getStatus(item).estado} tipo={config.getStatus(item).tipo} />
                   )}
                 </Box>
               </Box>

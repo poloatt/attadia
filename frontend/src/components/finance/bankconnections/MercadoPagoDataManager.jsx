@@ -294,7 +294,7 @@ export default function MercadoPagoDataManager({ conexionId, onDataProcessed }) 
                       <TableCell>
                         <Chip
                           label={pago.status}
-                          color={getEstadoColor(pago.status)}
+                          color={getEstadoColor(pago.status, 'PAGO')}
                           size="small"
                         />
                       </TableCell>
@@ -349,7 +349,7 @@ export default function MercadoPagoDataManager({ conexionId, onDataProcessed }) 
                       <TableCell>
                         <Chip
                           label={movimiento.status}
-                          color={getEstadoColor(movimiento.status)}
+                          color={getEstadoColor(movimiento.status, 'MOVIMIENTO')}
                           size="small"
                         />
                       </TableCell>
@@ -395,7 +395,7 @@ export default function MercadoPagoDataManager({ conexionId, onDataProcessed }) 
                       <TableCell>
                         <Chip
                           label={orden.status}
-                          color={getEstadoColor(orden.status)}
+                          color={getEstadoColor(orden.status, 'ORDEN')}
                           size="small"
                         />
                       </TableCell>

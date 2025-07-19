@@ -36,7 +36,6 @@ import {
 } from '@mui/icons-material';
 import { 
   getEstadoLabel, 
-  getEstadoColor, 
   getEstadoContrato, 
   calcularTiempoRestante, 
   calcularDuracionTotal,
@@ -48,6 +47,7 @@ import {
 } from './contratoUtils';
 import EstadoFinanzasContrato from './EstadoFinanzasContrato';
 import { CuotasProvider } from './context/CuotasContext';
+import { getEstadoColor, getEstadoText, getEstadoIcon, getStatusIconComponent } from '../../common/StatusSystem';
 
 // Componente Paper estilizado geométrico
 const GeometricPaper = styled(Paper)(({ theme }) => ({
@@ -63,21 +63,9 @@ const GeometricPaper = styled(Paper)(({ theme }) => ({
   }
 }));
 
-// Mapeo de iconos para estados
-const STATUS_ICONS = {
-  'ACTIVO': <CheckCircle fontSize="small" />,
-  'PLANEADO': <PendingActions fontSize="small" />,
-  'FINALIZADO': <BookmarkAdded fontSize="small" />,
-  'MANTENIMIENTO': <PendingActions fontSize="small" />
-};
 
-// Mapeo de colores para estados
-const STATUS_COLORS = {
-  'ACTIVO': '#4caf50',
-  'PLANEADO': '#2196f3',
-  'FINALIZADO': '#9e9e9e',
-  'MANTENIMIENTO': '#ff9800'
-};
+
+// STATUS_COLORS movido a StatusSystem.js
 
 const ContratoDetail = ({ 
   open, 
@@ -94,8 +82,8 @@ const ContratoDetail = ({
 
   // Usar el estado del backend
   const estado = getEstadoContrato(contrato) || 'PLANEADO';
-  const color = STATUS_COLORS[estado] || '#9e9e9e';
-  const icon = STATUS_ICONS[estado] || <PendingActions fontSize="small" />;
+  const color = getEstadoColor(estado, 'CONTRATO');
+  const icon = getStatusIconComponent(estado, 'CONTRATO');
 
   // Extraer valores para mostrar
   let titulo = 'Sin inquilino';

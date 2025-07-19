@@ -605,8 +605,8 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing, 
                     label={tarea.estado}
                     size="small"
                     sx={{ 
-                      backgroundColor: `${getEstadoColor(tarea.estado)}20`,
-                      color: getEstadoColor(tarea.estado),
+                                      backgroundColor: `${getEstadoColor(tarea.estado, 'TAREA')}20`,
+                color: getEstadoColor(tarea.estado, 'TAREA'),
                       borderRadius: 1
                     }}
                   />

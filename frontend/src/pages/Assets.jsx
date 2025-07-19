@@ -34,19 +34,18 @@ import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 // Importaciones modulares de propiedades
 import { 
   StatusChip, 
-  STATUS_ICONS, 
-  STATUS_COLORS, 
   calcularProgresoOcupacion,
   calcularEstadisticasPropiedad,
   getEstadoContrato,
   getCuentaYMoneda,
   calcularProgresoContrato,
-  StyledCard,
   StyledDialog,
   StyledTextField,
   CategoryChip,
-  StyledSectionTitle
+  StyledSectionTitle,
+  PropiedadDetail
 } from '../components/propiedades';
+import { getEstadoColor, getEstadoText, getStatusIconComponent } from '../components/common/StatusSystem';
 
 // Importaciones modulares de contratos
 import { 
@@ -65,16 +64,7 @@ import EngineeringIcon from '@mui/icons-material/Engineering';
 import BookmarkAddedIcon from '@mui/icons-material/BookmarkAdded';
 
 export function Assets() {
-  // Función local para obtener el icono de estado
-  const getStatusIcon = (estado) => {
-    const iconMap = {
-      'DISPONIBLE': <PendingActionsIcon sx={{ fontSize: 18 }} />,
-      'OCUPADA': <CheckCircleIcon sx={{ fontSize: 18 }} />,
-      'MANTENIMIENTO': <EngineeringIcon sx={{ fontSize: 18 }} />,
-      'RESERVADA': <BookmarkAddedIcon sx={{ fontSize: 18 }} />
-    };
-    return iconMap[estado] || null;
-  };
+
 
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState(30);
@@ -86,6 +76,8 @@ export function Assets() {
   const [contratos, setContratos] = useState([]);
   const [isDaylistOpen, setIsDaylistOpen] = useState(false);
   const [propiedades, setPropiedades] = useState([]);
+  const [selectedPropiedad, setSelectedPropiedad] = useState(null);
+  const [propiedadDetailOpen, setPropiedadDetailOpen] = useState(false);
 
 
   const [stats, setStats] = useState({
@@ -109,7 +101,7 @@ export function Assets() {
   const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('Iniciando fetchStats...');
+
       
       // Obtener propiedades y calcular estadísticas
       const propiedadesRes = await clienteAxios.get('/api/propiedades');
@@ -140,10 +132,7 @@ export function Assets() {
         ? Math.round((propiedadesStats.ocupadas / (propiedadesStats.total - propiedadesStats.mantenimiento)) * 100)
         : 0;
 
-      console.log('Estadísticas calculadas:', {
-        ...propiedadesStats,
-        porcentajeOcupacion
-      });
+
 
       // Intentamos obtener las estadísticas de transacciones
       let transaccionesData = {
@@ -156,7 +145,7 @@ export function Assets() {
 
       try {
         const transaccionesStats = await clienteAxios.get('/api/transacciones/stats');
-        console.log('Estadísticas de transacciones:', transaccionesStats.data);
+
         transaccionesData = transaccionesStats.data;
       } catch (transaccionesError) {
         console.error('Error al obtener estadísticas de transacciones:', transaccionesError);
@@ -176,7 +165,7 @@ export function Assets() {
     } catch (error) {
       // Ignorar errores por cancelación, son parte del control de flujo
       if (error.cancelado) {
-        console.log('Petición de estadísticas cancelada para evitar múltiples solicitudes');
+
         return;
       }
       
@@ -190,16 +179,16 @@ export function Assets() {
 
   const fetchAccounts = useCallback(async () => {
     try {
-      console.log('Obteniendo cuentas...');
+
       const response = await clienteAxios.get('/api/cuentas');
       const cuentas = response.data.docs || [];
-      console.log('Cuentas obtenidas:', cuentas);
+
       
       // Obtener los balances de cada cuenta
       const cuentasConBalance = await Promise.all(cuentas.map(async (cuenta) => {
         try {
           const today = new Date().toISOString().split('T')[0];
-          console.log(`Obteniendo transacciones para cuenta ${cuenta.nombre} (${cuenta._id})`);
+
           
           const transaccionesResponse = await clienteAxios.get(`/api/transacciones/by-cuenta/${cuenta._id || cuenta.id}`, {
             params: {
@@ -209,7 +198,7 @@ export function Assets() {
           });
           
           const transacciones = transaccionesResponse.data.docs || [];
-          console.log(`Transacciones obtenidas para ${cuenta.nombre}:`, transacciones);
+
 
           const balance = transacciones.reduce((acc, trans) => {
             const monto = parseFloat(trans.monto) || 0;
@@ -231,7 +220,7 @@ export function Assets() {
     } catch (error) {
       // Ignorar errores por cancelación, son parte del control de flujo
       if (error.cancelado) {
-        console.log('Petición de cuentas cancelada para evitar múltiples solicitudes');
+
         return;
       }
       
@@ -243,7 +232,7 @@ export function Assets() {
 
   const fetchInquilinosYContratos = useCallback(async () => {
     try {
-      console.log('Iniciando fetchInquilinosYContratos...');
+
       const [inquilinosResponse, contratosResponse] = await Promise.all([
         clienteAxios.get('/api/inquilinos/activos'),
         clienteAxios.get('/api/contratos/activos')
@@ -257,7 +246,7 @@ export function Assets() {
     } catch (error) {
       // Ignorar errores por cancelación, son parte del control de flujo
       if (error.cancelado) {
-        console.log('Petición de inquilinos/contratos cancelada para evitar múltiples solicitudes');
+
         return;
       }
       
@@ -316,6 +305,37 @@ export function Assets() {
     const currentIndex = periods.indexOf(selectedPeriod);
     const nextIndex = (currentIndex + 1) % periods.length;
     setSelectedPeriod(periods[nextIndex]);
+  };
+
+  const handlePropiedadClick = (propiedad) => {
+    setSelectedPropiedad(propiedad);
+    setPropiedadDetailOpen(true);
+  };
+
+  const handlePropiedadDetailClose = () => {
+    setPropiedadDetailOpen(false);
+    setSelectedPropiedad(null);
+  };
+
+  const handlePropiedadEdit = () => {
+    // Redirigir a la página de edición de propiedades
+    window.location.href = `/propiedades/${selectedPropiedad._id}/edit`;
+  };
+
+  const handlePropiedadDelete = async () => {
+    if (!selectedPropiedad) return;
+    
+    if (window.confirm('¿Estás seguro de que quieres eliminar esta propiedad?')) {
+      try {
+        await clienteAxios.delete(`/api/propiedades/${selectedPropiedad._id}`);
+        toast.success('Propiedad eliminada correctamente');
+        handlePropiedadDetailClose();
+        fetchStats(); // Recargar datos
+      } catch (error) {
+        console.error('Error al eliminar propiedad:', error);
+        toast.error('Error al eliminar la propiedad');
+      }
+    }
   };
 
   const FinanceSection = () => (
@@ -501,6 +521,7 @@ export function Assets() {
             )}
             {propiedades.map((prop) => {
               const progresoOcupacion = calcularProgresoOcupacion(prop);
+              const estadisticasPropiedad = calcularEstadisticasPropiedad(prop);
               
               // Calcular progreso financiero real basado en cuotas pagadas
               const contratoActivo = prop.contratos?.find(contrato => getEstadoContrato(contrato) === 'ACTIVO');
@@ -526,31 +547,28 @@ export function Assets() {
               
               return (
                 <Paper key={prop._id} sx={{ p: 2, mb: 2, bgcolor: '#111', borderRadius: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                  <Box 
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 1, 
+                      mb: 1,
+                      cursor: 'pointer',
+                      '&:hover': {
+                        opacity: 0.8
+                      }
+                    }}
+                    onClick={() => handlePropiedadClick(prop)}
+                  >
                     <BuildingIcon sx={{ fontSize: 18 }} />
                     <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                       {prop.alias || prop.titulo || 'Sin alias'}
                     </Typography>
-                    <StatusChip customcolor={STATUS_COLORS[prop.estado] || 'text.secondary'}>
-                      {getStatusIcon(prop.estado)}
-                      {prop.estado ? prop.estado.charAt(0) + prop.estado.slice(1).toLowerCase() : 'N/A'}
+                    <StatusChip customcolor={getEstadoColor(estadisticasPropiedad.estado, 'PROPIEDAD')}>
+                      {getStatusIconComponent(estadisticasPropiedad.estado, 'PROPIEDAD')}
+                      <span>{getEstadoText(estadisticasPropiedad.estado, 'PROPIEDAD')}</span>
                     </StatusChip>
                   </Box>
-                  {/* Inquilinos con icono individual */}
-                  {Array.isArray(prop.inquilinos) && prop.inquilinos.length > 0 && (
-                    <Box sx={{ mb: 1 }}>
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                        {prop.inquilinos.map((inq) => (
-                          <Box key={inq._id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <PeopleIcon sx={{ fontSize: 18, color: 'primary.main' }} />
-                            <Typography variant="body2" color="primary.main">
-                              {inq.nombre} {inq.apellido}
-                            </Typography>
-                          </Box>
-                        ))}
-                      </Box>
-                    </Box>
-                  )}
                   {/* Barra de estado de la propiedad usando progreso financiero real */}
                   {progresoOcupacion.tieneContrato && progresoOcupacion.montoMensual > 0 && (
                     <Box sx={{ mt: 1 }}>
@@ -641,6 +659,16 @@ export function Assets() {
         </Grid>
       </Box>
 
+      {/* Modal de detalle de propiedad */}
+      {selectedPropiedad && (
+        <PropiedadDetail
+          propiedad={selectedPropiedad}
+          open={propiedadDetailOpen}
+          onClose={handlePropiedadDetailClose}
+          onEdit={handlePropiedadEdit}
+          onDelete={handlePropiedadDelete}
+        />
+      )}
 
     </Box>
   );
