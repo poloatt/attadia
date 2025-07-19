@@ -18,7 +18,7 @@ import {
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import EditIcon from '@mui/icons-material/Edit';
-import DoneIcon from '@mui/icons-material/Done';
+import SaveIcon from '@mui/icons-material/Save';
 import { StyledCuotasIconButton } from './ContratoFormStyles';
 import CuotaInlineEditor from './CuotaInlineEditor';
 import { useCuotasContext } from './context/CuotasContext';
@@ -84,8 +84,14 @@ const EstadoFinanzasContrato = ({
       p: compact ? 0.5 : 1, 
       bgcolor: 'background.paper', 
       borderRadius: 0,
+      cursor: 'pointer',
+      '&:hover': {
+        bgcolor: 'action.hover'
+      },
       ...sx
-    }}>
+    }}
+    onClick={() => setShowCuotas((prev) => !prev)}
+    >
 
       
       {/* Progreso de cuotas */}
@@ -164,7 +170,8 @@ const EstadoFinanzasContrato = ({
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
             <StyledCuotasIconButton size="small" sx={{ color: 'text.secondary' }}
-              onClick={async () => {
+              onClick={async (e) => {
+                e.stopPropagation();
                 // Forzar refresh y sobrescribir el estado local con el backend
                 const ok = await refrescarCuotasDesdeBackend();
                 if (ok && typeof window !== 'undefined') {
@@ -175,11 +182,9 @@ const EstadoFinanzasContrato = ({
             >
               <RefreshIcon fontSize="small" />
             </StyledCuotasIconButton>
-            <StyledCuotasIconButton size="small" sx={{ color: 'error.main' }} onClick={() => setShowCuotas((prev) => !prev)}>
-              {showCuotas ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-            </StyledCuotasIconButton>
-            <StyledCuotasIconButton size="small" sx={{ color: editInline ? 'success.main' : 'text.secondary' }}
-              onClick={async () => {
+            <StyledCuotasIconButton size="small" sx={{ color: 'text.secondary' }}
+              onClick={async (e) => {
+                e.stopPropagation();
                 if (editInline) {
                   // Siempre guardar al salir del modo edición
                   const exito = await guardarCuotasEnBackend(cuotas);
@@ -190,11 +195,25 @@ const EstadoFinanzasContrato = ({
                   }
                 } else {
                   setEditInline(true);
+                  // Si está colapsado, expandir automáticamente
+                  if (!showCuotas) {
+                    setShowCuotas(true);
+                  }
                 }
               }}
               disabled={isLoading}
             >
-              {editInline ? <DoneIcon fontSize="small" /> : <EditIcon fontSize="small" />}
+              {editInline ? <SaveIcon fontSize="small" /> : <EditIcon fontSize="small" />}
+            </StyledCuotasIconButton>
+            <StyledCuotasIconButton 
+              size="small" 
+              sx={{ color: 'error.main' }} 
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowCuotas((prev) => !prev);
+              }}
+            >
+              {showCuotas ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
             </StyledCuotasIconButton>
           </Box>
         </Box>
@@ -242,14 +261,45 @@ const EstadoFinanzasContrato = ({
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
-                <StyledCuotasIconButton size="small" sx={{ color: 'text.secondary' }} onClick={refrescarCuotasDesdeBackend} disabled={isLoading}>
+                <StyledCuotasIconButton 
+                  size="small" 
+                  sx={{ color: 'text.secondary' }} 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    refrescarCuotasDesdeBackend();
+                  }} 
+                  disabled={isLoading}
+                >
                   <RefreshIcon fontSize="small" />
                 </StyledCuotasIconButton>
-                <StyledCuotasIconButton size="small" sx={{ color: 'success.main' }} onClick={() => setShowCuotas((prev) => !prev)}>
-                  {showCuotas ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                <StyledCuotasIconButton 
+                  size="small" 
+                  sx={{ color: 'text.secondary' }} 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (editInline) {
+                      setEditInline(false);
+                    } else {
+                      setEditInline(true);
+                      // Si está colapsado, expandir automáticamente
+                      if (!showCuotas) {
+                        setShowCuotas(true);
+                      }
+                    }
+                  }} 
+                  disabled={isLoading}
+                >
+                  {editInline ? <SaveIcon fontSize="small" /> : <EditIcon fontSize="small" />}
                 </StyledCuotasIconButton>
-                <StyledCuotasIconButton size="small" sx={{ color: editInline ? 'success.main' : 'text.secondary' }} onClick={() => setEditInline((v) => !v)} disabled={isLoading}>
-                  {editInline ? <DoneIcon fontSize="small" /> : <EditIcon fontSize="small" />}
+                <StyledCuotasIconButton 
+                  size="small" 
+                  sx={{ color: 'success.main' }} 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowCuotas((prev) => !prev);
+                  }}
+                >
+                  {showCuotas ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
                 </StyledCuotasIconButton>
               </Box>
             </Box>
@@ -259,7 +309,10 @@ const EstadoFinanzasContrato = ({
       
       {/* Lista expandible de cuotas */}
       <Collapse in={showCuotas && cuotasTotales > 0}>
-        <Box sx={{ mt: 1, mb: 1, bgcolor: '#222', borderRadius: 0, p: 1 }}>
+        <Box 
+          sx={{ mt: 1, mb: 1, bgcolor: '#222', borderRadius: 0, p: 1 }}
+          onClick={(e) => e.stopPropagation()}
+        >
           {cuotas && cuotas.length > 0 ? (
             cuotas.map((cuota, idx) => (
               <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
@@ -286,9 +339,10 @@ const EstadoFinanzasContrato = ({
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
               <StyledCuotasIconButton
                 size="small"
-                sx={{ color: 'success.main' }}
+                sx={{ color: 'text.secondary' }}
                 disabled={isLoading}
-                onClick={async () => {
+                onClick={async (e) => {
+                  e.stopPropagation();
                   // Usar el contexto para guardar las cuotas
                   const exito = await guardarCuotasEnBackend(cuotas);
                   if (exito) {
@@ -298,7 +352,7 @@ const EstadoFinanzasContrato = ({
                   }
                 }}
               >
-                <DoneIcon fontSize="small" />
+                <SaveIcon fontSize="small" />
               </StyledCuotasIconButton>
             </Box>
           )}

@@ -20,7 +20,7 @@ import {
   VisibilityOff as HideValuesIcon,
   AccessTimeOutlined as TimeIcon,
 } from '@mui/icons-material';
-import EntityToolbar from '../components/EntityToolbar';
+import { EntityToolbar } from '../components/EntityViews';
 import TareasTable from '../components/proyectos/TareasTable';
 import TareaForm from '../components/proyectos/TareaForm';
 import clienteAxios from '../config/axios';

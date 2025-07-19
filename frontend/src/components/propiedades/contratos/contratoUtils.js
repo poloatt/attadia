@@ -514,13 +514,17 @@ export const calcularProgresoContrato = (contrato) => {
     estadoTiempo = `${diasRestantes} días restantes`;
   }
 
-  // Calcular porcentaje
-  const porcentaje = diasTotales > 0 ? Math.min(100, (diasTranscurridos / diasTotales) * 100) : 0;
+  // Calcular porcentaje temporal
+  const porcentajeTemporal = diasTotales > 0 ? Math.min(100, (diasTranscurridos / diasTotales) * 100) : 0;
 
-  // Calcular montos
-  const montoMensual = calcularAlquilerMensualPromedio(contrato);
-  const montoAcumulado = (diasTranscurridos / 30) * montoMensual;
-  const montoTotal = (diasTotales / 30) * montoMensual;
+  // Calcular montos basados en cuotas pagadas (progreso financiero real)
+  const estadoCuotas = calcularEstadoCuotasContrato(contrato);
+  const montoAcumulado = estadoCuotas.montoPagado;
+  const montoTotal = estadoCuotas.montoTotal;
+  const porcentajeFinanciero = estadoCuotas.porcentajePagado;
+
+  // Usar el porcentaje financiero si hay cuotas, sino el temporal
+  const porcentaje = estadoCuotas.cuotasTotales > 0 ? porcentajeFinanciero : porcentajeTemporal;
 
   return {
     porcentaje,
@@ -530,9 +534,39 @@ export const calcularProgresoContrato = (contrato) => {
     estadoTiempo,
     montoAcumulado,
     montoTotal,
-    tieneContrato: true
+    tieneContrato: true,
+    // Información adicional para debugging
+    porcentajeTemporal,
+    porcentajeFinanciero,
+    cuotasPagadas: estadoCuotas.cuotasPagadas,
+    cuotasTotales: estadoCuotas.cuotasTotales
   };
 }; 
+
+// Función para calcular el progreso financiero basado en cuotas pagadas
+export const calcularProgresoFinancieroContrato = (contrato) => {
+  if (!contrato || !contrato.precioTotal || contrato.esMantenimiento) {
+    return {
+      porcentaje: 0,
+      montoAcumulado: 0,
+      montoTotal: 0,
+      cuotasPagadas: 0,
+      cuotasTotales: 0,
+      tieneContrato: false
+    };
+  }
+
+  const estadoCuotas = calcularEstadoCuotasContrato(contrato);
+  
+  return {
+    porcentaje: estadoCuotas.porcentajePagado,
+    montoAcumulado: estadoCuotas.montoPagado,
+    montoTotal: estadoCuotas.montoTotal,
+    cuotasPagadas: estadoCuotas.cuotasPagadas,
+    cuotasTotales: estadoCuotas.cuotasTotales,
+    tieneContrato: true
+  };
+};
 
 // Crea las secciones de información para un contrato, usando datos relacionados y permitiendo extensión
 export const crearSeccionesContrato = (contrato, relatedData = {}, extraSections = []) => {

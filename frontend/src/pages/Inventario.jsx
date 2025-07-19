@@ -13,9 +13,6 @@ import {
   Paper
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
-
-import EntityDetails from '../components/EntityViews/EntityDetails';
-import EntityForm from '../components/EntityViews/EntityForm';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '../config/axios';
 import { 
@@ -25,11 +22,9 @@ import {
   DescriptionOutlined as DescriptionIcon,
   AccountBalanceWalletOutlined as WalletIcon
 } from '@mui/icons-material';
-import EmptyState from '../components/EmptyState';
-import { EntityActions } from '../components/EntityViews/EntityActions';
-import UnderConstruction from '../components/UnderConstruction';
+import { EmptyState, UnderConstruction } from '../components/common';
 import { useNavigate } from 'react-router-dom';
-import EntityToolbar from '../components/EntityToolbar';
+import { EntityToolbar, EntityDetails, EntityForm, EntityActions } from '../components/EntityViews';
 
 export function Inventario() {
   const [items, setItems] = useState([]);
@@ -136,7 +131,7 @@ export function Inventario() {
 
   const handleDelete = useCallback(async (id) => {
     try {
-      await clienteAxios.delete(`/inventarios/${id}`);
+      await clienteAxios.delete(`/api/inventarios/${id}`);
       enqueueSnackbar('Item eliminado exitosamente', { variant: 'success' });
       await fetchInventario();
     } catch (error) {
@@ -248,7 +243,6 @@ export function Inventario() {
       gap: 0
     }}>
       <EntityToolbar />
-
 
       <EntityDetails
         title="Inventario"

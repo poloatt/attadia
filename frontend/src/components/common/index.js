@@ -1,3 +1,6 @@
 // Componentes comunes reutilizables
 export { default as ProgressBar } from './ProgressBar';
-export { default as snackbarUtils } from './snackbarUtils'; 
+export { snackbar, CustomSnackbarProvider, SnackbarUtilsConfigurator } from './snackbarUtils';
+export { default as EmptyState } from './EmptyState';
+export { default as UnderConstruction } from './UnderConstruction';
+export { default as ErrorBoundary } from './ErrorBoundary'; 

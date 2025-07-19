@@ -17,7 +17,7 @@ import {
   Engineering as MaintenanceIcon,
   Info as InfoIcon
 } from '@mui/icons-material';
-import EntityDateSelect from '../../../EntityViews/EntityDateSelect';
+import { EntityDateSelect } from '../../../EntityViews';
 
 const StyledTextField = styled(TextField)(({ theme }) => ({
   '& .MuiOutlinedInput-root': {

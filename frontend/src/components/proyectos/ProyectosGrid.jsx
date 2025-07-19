@@ -27,7 +27,7 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import EmptyState from '../EmptyState';
+import { EmptyState } from '../common';
 import clienteAxios from '../../config/axios';
 import { useSnackbar } from 'notistack';
 import TareaActions from './TareaActions';

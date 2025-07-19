@@ -7,7 +7,8 @@ import {
   calcularAlquilerMesActual, 
   calcularAlquilerMensualPromedio,
   getEstadoContrato as getEstadoContratoFromUtils,
-  getCuentaYMoneda as getCuentaYMonedaFromUtils
+  getCuentaYMoneda as getCuentaYMonedaFromUtils,
+  calcularProgresoFinancieroContrato
 } from './contratos';
 
 // Función para pluralizar palabras
@@ -44,12 +45,16 @@ export const STATUS_ICONS = {
   'RESERVADA': 'BookmarkAdded'
 };
 
+
+
+
+
 // Mapeo de colores para estados
 export const STATUS_COLORS = {
   'DISPONIBLE': '#4caf50',
   'OCUPADA': '#2196f3',
   'MANTENIMIENTO': '#ff9800',
-  'RESERVADA': '#9c27b0'
+  'RESERVADA': '#673ab7'
 };
 
 // Calcula el progreso del contrato - ahora reutiliza contratoUtils
@@ -82,15 +87,15 @@ export function calcularProgresoContrato(contratos, montoMensual) {
     };
   }
 
-  // Usar las funciones de contratoUtils
-  const stats = calcularEstadisticasContrato(contratoActivo);
+  // Usar las funciones de contratoUtils para progreso financiero real
+  const progresoFinanciero = calcularProgresoFinancieroContrato(contratoActivo);
   
   return {
-    porcentaje: stats.porcentajeCompletado,
-    mesesTranscurridos: stats.mesesTranscurridos,
-    mesTotales: stats.mesesTotales,
-    montoAcumulado: stats.precioTranscurridoDias,
-    montoTotal: stats.precioTotal,
+    porcentaje: progresoFinanciero.porcentaje,
+    mesesTranscurridos: progresoFinanciero.cuotasPagadas,
+    mesTotales: progresoFinanciero.cuotasTotales,
+    montoAcumulado: progresoFinanciero.montoAcumulado,
+    montoTotal: progresoFinanciero.montoTotal,
     tieneContrato: true,
     contrato: contratoActivo
   };
@@ -341,10 +346,10 @@ export const StatusChip = styled(Box)(({ theme, customcolor }) => ({
   display: 'inline-flex',
   alignItems: 'center',
   gap: 4,
-  padding: '2px 4px',
+  padding: '2px 6px',
   fontSize: '0.75rem',
   color: customcolor || theme.palette.text.secondary,
-  height: 20,
+  height: 24,
   marginLeft: theme.spacing(1),
   '& .MuiSvgIcon-root': {
     fontSize: '0.9rem'

@@ -13,9 +13,7 @@ import {
   Box,
   Typography
 } from '@mui/material';
-import EntityToolbar from '../components/EntityToolbar';
-import EntityDetails from '../components/EntityViews/EntityDetails';
-import EntityForm from '../components/EntityViews/EntityForm';
+import { EntityToolbar, EntityDetails, EntityForm, EntityActions } from '../components/EntityViews';
 import AddIcon from '@mui/icons-material/Add';
 import { 
   RestaurantOutlined as DietaIcon,
@@ -25,8 +23,7 @@ import {
 } from '@mui/icons-material';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
-import UnderConstruction from '../components/UnderConstruction';
-import { EntityActions } from '../components/EntityViews/EntityActions';
+import { UnderConstruction } from '../components/common';
 import { useNavigate } from 'react-router-dom';
 
 export function Lab() {

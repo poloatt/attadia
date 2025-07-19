@@ -43,7 +43,8 @@ import {
   calcularEstadoFinanzasContrato,
   getCuentaYMoneda,
   calcularProgresoContrato,
-  calcularAlquilerMensualPromedio
+  calcularAlquilerMensualPromedio,
+  calcularEstadoCuotasContrato
 } from './contratoUtils';
 import EstadoFinanzasContrato from './EstadoFinanzasContrato';
 import { CuotasProvider } from './context/CuotasContext';
@@ -131,6 +132,9 @@ const ContratoDetail = ({
 
   // Calcular progreso del contrato usando la función centralizada
   const progresoContrato = calcularProgresoContrato(contrato);
+  
+  // Calcular estado de cuotas para progreso financiero
+  const estadoCuotas = calcularEstadoCuotasContrato(contrato);
 
   const handleEdit = () => {
     onEdit(contrato);
@@ -243,10 +247,10 @@ const ContratoDetail = ({
                 />
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
                   <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
-                    Acumulado: {simboloMoneda} {progresoContrato.montoAcumulado.toLocaleString()}
+                    Pagado: {simboloMoneda} {estadoCuotas.montoPagado.toLocaleString()}
                   </Typography>
                   <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
-                    Total: {simboloMoneda} {progresoContrato.montoTotal.toLocaleString()}
+                    Total: {simboloMoneda} {estadoCuotas.montoTotal.toLocaleString()}
                   </Typography>
                 </Box>
               </Box>
@@ -259,13 +263,14 @@ const ContratoDetail = ({
             if (estadoFinanzas.tieneContrato) {
               return (
                 <GeometricPaper>
-                  <CuotasProvider contratoId={contrato._id || contrato.id}>
-                  <EstadoFinanzasContrato 
-                    estadoFinanzas={estadoFinanzas} 
-                    showTitle={true}
-                    compact={false}
-                    sx={{ mt: 0, p: 0, bgcolor: 'transparent' }}
-                  />
+                  <CuotasProvider contratoId={contrato._id || contrato.id} formData={contrato}>
+                    <EstadoFinanzasContrato 
+                      contrato={contrato}
+                      contratoId={contrato._id || contrato.id}
+                      showTitle={true}
+                      compact={false}
+                      sx={{ mt: 0, p: 0, bgcolor: 'transparent' }}
+                    />
                   </CuotasProvider>
                 </GeometricPaper>
               );

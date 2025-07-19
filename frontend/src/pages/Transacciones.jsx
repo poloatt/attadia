@@ -11,14 +11,13 @@ import {
 } from '@mui/icons-material';
 import AddIcon from '@mui/icons-material/Add';
 import PaidIcon from '@mui/icons-material/Paid';
-import FabNuevaTransaccion from '../components/transacciones/FabNuevaTransaccion';
-import EntityToolbar from '../components/EntityToolbar';
+import { FabNuevaTransaccion } from '../components/finance';
+import { EntityToolbar } from '../components/EntityViews';
 
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
-import EmptyState from '../components/EmptyState';
-import TransaccionTable from '../components/transacciones/TransaccionTable';
-import TransaccionForm from '../components/transacciones/TransaccionForm';
+import { EmptyState } from '../components/common';
+import { TransaccionTable, TransaccionForm } from '../components/finance';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 import { useAPI } from '../hooks/useAPI';
 import { menuItems } from '../navigation/menuStructure';

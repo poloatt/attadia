@@ -34,24 +34,19 @@ import {
   HomeWork,
   AccountBalanceWalletOutlined as WalletIcon
 } from '@mui/icons-material';
-import { snackbar } from '../components/common/snackbarUtils';
+import { snackbar } from '../components/common';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '@mui/material/styles';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import SquareFootIcon from '@mui/icons-material/SquareFoot';
 import BathtubOutlinedIcon from '@mui/icons-material/BathtubOutlined';
-import EntityForm from '../components/EntityViews/EntityForm';
 import { useNavigate } from 'react-router-dom';
 import clienteAxios from '../config/axios';
-
-import EntityDetails from '../components/EntityViews/EntityDetails';
-import EntityCards from '../components/EntityViews/EntityCards';
-import EmptyState from '../components/EmptyState';
-import { EntityActions } from '../components/EntityViews/EntityActions';
+import { EmptyState } from '../components/common';
 import PropiedadForm from '../components/propiedades/PropiedadForm';
 import PropiedadList from '../components/propiedades/PropiedadList';
 import { usePageWithHistory } from '../hooks/useGlobalActionHistory';
-import EntityToolbar from '../components/EntityToolbar';
+import { EntityToolbar, EntityForm, EntityDetails, EntityCards, EntityActions } from '../components/EntityViews';
 
 // Cambiamos a exportación nombrada para coincidir con App.jsx
 export function Propiedades() {

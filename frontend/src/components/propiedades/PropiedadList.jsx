@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Grid, Box, Typography, IconButton } from '@mui/material';
 import { ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon } from '@mui/icons-material';
 import PropiedadCard from './PropiedadCard';
-import EmptyState from '../EmptyState';
+import { EmptyState } from '../common';
 // Si corresponde, importa { SeccionInquilinos, SeccionHabitaciones, SeccionContratos, SeccionInventario, SeccionDocumentos } from './SeccionesPropiedad';
 
 const PropiedadList = ({ isAssets = false, ...props }) => {

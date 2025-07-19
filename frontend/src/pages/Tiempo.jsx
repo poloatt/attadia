@@ -23,7 +23,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   AccessTimeOutlined as TimeIcon
 } from '@mui/icons-material';
-import EntityToolbar from '../components/EntityToolbar';
+import { EntityToolbar } from '../components/EntityViews';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import { useNavigationBar } from '../context/NavigationBarContext';

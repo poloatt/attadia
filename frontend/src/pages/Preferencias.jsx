@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import EntityToolbar from '../components/EntityToolbar';
+import { EntityToolbar } from '../components/EntityViews';
 
 export default function Preferencias() {
   return (

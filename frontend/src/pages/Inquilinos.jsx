@@ -6,9 +6,7 @@ import {
 } from '@mui/material';
 import { useSnackbar } from 'notistack';
 import { InquilinoList, InquilinoForm } from '../components/propiedades/inquilinos';
-import EntityDetails from '../components/EntityViews/EntityDetails';
-import EntityToolbar from '../components/EntityToolbar';
-import { EntityActions } from '../components/EntityViews/EntityActions';
+import { EntityDetails, EntityToolbar, EntityActions } from '../components/EntityViews';
 
 import {
   ApartmentOutlined as BuildingIcon,

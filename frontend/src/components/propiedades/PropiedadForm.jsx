@@ -41,7 +41,7 @@ import {
   Flag as FlagIcon,
   Info as InfoIcon
 } from '@mui/icons-material';
-import { snackbar } from '../common/snackbarUtils';
+import { snackbar } from '../common';
 import { useRelationalData } from '../../hooks/useRelationalData';
 import { useAuth } from '../../context/AuthContext';
 import clienteAxios from '../../config/axios';

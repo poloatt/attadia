@@ -27,11 +27,11 @@ import ContratoForm from '../components/propiedades/contratos/ContratoForm';
 import { ContratoWizard } from '../components/propiedades/contratos';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '../config/axios';
-import EmptyState from '../components/EmptyState';
+import { EmptyState } from '../components/common';
 import { ContratosContainer, useContratoData } from '../components/propiedades/contratos';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { calcularAlquilerMensualPromedio } from '../components/propiedades/contratos/contratoUtils';
-import EntityToolbar from '../components/EntityToolbar';
+import { EntityToolbar } from '../components/EntityViews';
 
 export function Contratos() {
   const [contratos, setContratos] = useState([]);

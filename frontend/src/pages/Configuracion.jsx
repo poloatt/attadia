@@ -1,9 +1,9 @@
 import React from 'react';
 import { Container, Box, Typography, useTheme, Paper, Switch, FormControl, FormControlLabel, Divider, Button, useMediaQuery } from '@mui/material';
 import { useUISettings } from '../context/UISettingsContext';
-import UnderConstruction from '../components/UnderConstruction';
+import { UnderConstruction } from '../components/common';
 import { useAuth } from '../context/AuthContext';
-import EntityToolbar from '../components/EntityToolbar';
+import { EntityToolbar } from '../components/EntityViews';
 
 export function Configuracion() {
   const theme = useTheme();

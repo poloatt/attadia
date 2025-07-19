@@ -18,8 +18,8 @@ import {
   AccordionSummary,
   AccordionDetails,
 } from '@mui/material';
-import EntityToolbar from '../components/EntityToolbar';
-import EntityForm from '../components/EntityViews/EntityForm';
+import { EntityToolbar } from '../components/EntityViews';
+import { EntityForm } from '../components/EntityViews';
 import { 
   CurrencyExchangeOutlined as CurrencyIcon,
   AccountBalanceWalletOutlined as WalletIcon,
@@ -32,12 +32,11 @@ import {
 } from '@mui/icons-material';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
-import EmptyState from '../components/EmptyState';
-import { EntityActions } from '../components/EntityViews/EntityActions';
+import { EmptyState } from '../components/common';
+import { EntityActions } from '../components/EntityViews';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 import { useAPI } from '../hooks/useAPI';
-import MercadoPagoConnectButton from '../components/bankconnections/MercadoPagoConnectButton';
-import BankConnectionForm from '../components/bankconnections/BankConnectionForm';
+import { MercadoPagoConnectButton, BankConnectionForm } from '../components/finance';
 
 export function Cuentas() {
   const [isFormOpen, setIsFormOpen] = useState(false);

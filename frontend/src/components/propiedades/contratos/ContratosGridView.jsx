@@ -28,7 +28,7 @@ import {
   SquareFootOutlined as AreaIcon,
   AccountBalanceWalletOutlined as DepositIcon
 } from '@mui/icons-material';
-import EntityGridView, { SECTION_CONFIGS, EntityHeader } from '../../EntityViews/EntityGridView';
+import { EntityGridView } from '../../EntityViews';
 import { 
   getEstadoLabel, 
   getEstadoColor, 
@@ -44,7 +44,7 @@ import {
   calcularMontoTotalEstimado,
   obtenerDatosRelacionados
 } from './contratoUtils';
-import getEntityHeaderProps from '../../EntityViews/entityHeaderProps';
+import { entityHeaderProps as getEntityHeaderProps } from '../../EntityViews';
 import { Link } from 'react-router-dom';
 
 // Configuraciones para diferentes tipos de datos

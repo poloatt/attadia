@@ -11,7 +11,7 @@ import {
   Tooltip,
   Box
 } from '@mui/material';
-import { EntityActions } from '../EntityViews/EntityActions';
+import { EntityActions } from '../EntityViews';
 
 const formatDate = (date) => {
   const d = new Date(date);

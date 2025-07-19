@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Grid, Box, Typography, IconButton } from '@mui/material';
 import { ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon } from '@mui/icons-material';
 import ContratoCard from './ContratoCard';
-import EmptyState from '../../EmptyState';
+import { EmptyState } from '../../common';
 
 const ContratoList = ({ isAssets = false, contratos = [], onAdd, onEdit, onDelete, relatedData }) => {
   // Estado global para la vista grid/list

@@ -29,14 +29,14 @@ import CloseIcon from '@mui/icons-material/Close';
 import EventIcon from '@mui/icons-material/Event';
 import SaveIcon from '@mui/icons-material/Save';
 import clienteAxios from '../../config/axios';
-import { snackbar } from '../common/snackbarUtils.jsx';
+import { snackbar } from '../common';
 import { useDebounce } from './utils/hooks';
 import { formatDate, iconConfig } from './utils/iconConfig';
 import { useRutinasCRUD } from '../../hooks/useRutinasCRUD';
 import { useAuth } from '../../hooks/useAuth';
 import { useTimezone } from '../../hooks/useTimezone';
 import ChecklistSection from './ChecklistSection';
-import EntityDateSelect from '../EntityViews/EntityDateSelect';
+import { EntityDateSelect } from '../EntityViews';
 import { formatDateForAPI, getNormalizedToday, parseAPIDate } from '../../utils/dateUtils';
 
 export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => {

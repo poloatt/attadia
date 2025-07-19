@@ -4,7 +4,7 @@ import RutinaTable from '../components/rutinas/RutinaTable';
 import { RutinasProvider, useRutinas } from '../components/rutinas/context/RutinasContext';
 import { RutinaForm } from '../components/rutinas/RutinaForm';
 import { MemoizedRutinaNavigation as RutinaNavigation } from '../components/rutinas/RutinaNavigation';
-import EntityToolbar from '../components/EntityToolbar';
+import { EntityToolbar } from '../components/EntityViews';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTimezone } from '../hooks/useTimezone';
 import { 

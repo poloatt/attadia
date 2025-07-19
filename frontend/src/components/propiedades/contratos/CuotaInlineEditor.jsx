@@ -13,12 +13,14 @@ const CuotaInlineEditor = ({
 }) => {
   // Handler para monto
   const handleMontoChange = (e) => {
+    e.stopPropagation();
     const nuevoMonto = parseFloat(e.target.value) || 0;
     onChange({ ...cuota, monto: nuevoMonto });
   };
 
   // Handler para estado
   const handleEstadoChange = (e) => {
+    e.stopPropagation();
     const nuevoEstado = e.target.checked ? 'PAGADO' : 'PENDIENTE';
     onChange({ ...cuota, estado: nuevoEstado });
   };
@@ -40,6 +42,8 @@ const CuotaInlineEditor = ({
       <InputBase
         value={cuota.monto}
         onChange={handleMontoChange}
+        onClick={(e) => e.stopPropagation()}
+        onFocus={(e) => e.stopPropagation()}
         type="number"
         disabled={!editable}
         inputProps={{ min: 0, step: 0.01, style: { width: 70, textAlign: 'right' } }}
@@ -55,6 +59,7 @@ const CuotaInlineEditor = ({
           <Checkbox
             checked={cuota.estado === 'PAGADO'}
             onChange={handleEstadoChange}
+            onClick={(e) => e.stopPropagation()}
             color="success"
             sx={{ p: 0.5 }}
           />
@@ -75,6 +80,7 @@ const CuotaInlineEditor = ({
       <Checkbox
         checked={cuota.estado === 'PAGADO'}
         onChange={handleEstadoChange}
+        onClick={(e) => e.stopPropagation()}
         color="success"
         disabled={!editable}
         sx={{ p: 0.5 }}
@@ -82,6 +88,8 @@ const CuotaInlineEditor = ({
       <InputBase
         value={cuota.monto}
         onChange={handleMontoChange}
+        onClick={(e) => e.stopPropagation()}
+        onFocus={(e) => e.stopPropagation()}
         type="number"
         disabled={!editable}
         inputProps={{ min: 0, step: 0.01, style: { width: 70, textAlign: 'right' } }}

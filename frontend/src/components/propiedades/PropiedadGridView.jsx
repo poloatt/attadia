@@ -35,8 +35,8 @@ import {
   AttachMoney as CurrencyIcon,
   Visibility as VisibilityIcon
 } from '@mui/icons-material';
-import EntityGridView, { SECTION_CONFIGS, EntityHeader } from '../EntityViews/EntityGridView';
-import getEntityHeaderProps from '../EntityViews/entityHeaderProps.jsx';
+import { EntityGridView, SECTION_CONFIGS } from '../EntityViews';
+import { entityHeaderProps as getEntityHeaderProps } from '../EntityViews';
 import { Link } from 'react-router-dom';
 import ContratoDetail from './contratos/ContratoDetail';
 import { pluralizar, getEstadoContrato, getInquilinoStatusColor, agruparHabitaciones, calcularProgresoOcupacion } from './propiedadUtils';

@@ -56,7 +56,7 @@ import {
   InsertDriveFile as InsertDriveFileIcon,
   OpenInNew as OpenInNewIcon
 } from '@mui/icons-material';
-import { EntityActions } from '../EntityViews/EntityActions';
+import { EntityActions } from '../EntityViews';
 import PropiedadGridView, { crearSeccionesPropiedad } from './PropiedadGridView';
 import PropiedadListView from './PropiedadListView';
 import { Link } from 'react-router-dom';
@@ -69,13 +69,15 @@ import {
   calcularProgresoOcupacion, 
   getCuentaYMoneda,
   obtenerTotalItemsPropiedad,
-  obtenerItemsPorCategoria
+  obtenerItemsPorCategoria,
+  StatusChip
 } from './propiedadUtils';
 import { SeccionInquilinos, SeccionHabitaciones, SeccionDocumentos } from './SeccionesPropiedad';
-import { calcularAlquilerMensualPromedio, calcularEstadoFinanzasContrato } from './contratos/contratoUtils';
+import { calcularAlquilerMensualPromedio, calcularEstadoFinanzasContrato, calcularEstadoCuotasContrato } from './contratos/contratoUtils';
 import EstadoFinanzasContrato from './contratos/EstadoFinanzasContrato';
 import { CuotasProvider } from './contratos/context/CuotasContext';
 import InventarioDetail from './inventario/InventarioDetail';
+import { STATUS_COLORS } from './propiedadUtils';
 
 // Función para calcular el monto mensual promedio desde contratos activos
 const calcularMontoMensualDesdeContratos = (contratos = []) => {
@@ -139,38 +141,20 @@ const StyledCard = styled(Card)(({ theme }) => ({
   }
 }));
 
-// Chip de estado estilizado
-const StatusChip = styled(Box)(({ theme, customcolor }) => ({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 4,
-  padding: '2px 4px',
-  fontSize: '0.75rem',
-  color: customcolor || theme.palette.text.secondary,
-  height: 20,
-  marginLeft: theme.spacing(1),
-  '& .MuiSvgIcon-root': {
-    fontSize: '0.9rem'
-  }
-}));
 
-// Mapeo de iconos para estados
-const STATUS_ICONS = {
-  'DISPONIBLE': <PendingActions fontSize="small" />, 
-  'OCUPADA': <CheckCircleOutline fontSize="small" />, 
-  'MANTENIMIENTO': <Engineering fontSize="small" />, 
-  'RESERVADA': <BookmarkAdded fontSize="small" />
-};
-
-// Mapeo de colores para estados
-const STATUS_COLORS = {
-  'DISPONIBLE': '#4caf50',
-  'OCUPADA': '#4caf50',
-  'MANTENIMIENTO': '#ff9800',
-  'RESERVADA': '#2196f3'
-};
 
 const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpanded = false, onToggleExpand, viewMode = 'grid', setViewMode = () => {} }) => {
+  // Función local para obtener el icono de estado
+  const getStatusIcon = (estado) => {
+    const iconMap = {
+      'DISPONIBLE': <PendingActions fontSize="small" />,
+      'OCUPADA': <CheckCircleOutline fontSize="small" />,
+      'MANTENIMIENTO': <Engineering fontSize="small" />,
+      'RESERVADA': <BookmarkAdded fontSize="small" />
+    };
+    return iconMap[estado] || <PendingActions fontSize="small" />;
+  };
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
@@ -193,7 +177,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
   // Usar el estado del backend
   const estado = propiedad.estado || 'DISPONIBLE';
   const color = STATUS_COLORS[estado] || '#9e9e9e';
-  const icon = STATUS_ICONS[estado] || <PendingActions fontSize="small" />;
+  const icon = getStatusIcon(estado);
 
   // Extraer valores para mostrar
   const alias = propiedad.alias || 'Sin alias';
@@ -279,6 +263,14 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
 
   // Calcular progreso de ocupación de la propiedad
   const progresoOcupacion = calcularProgresoOcupacion(propiedad);
+  
+  // Calcular estado de cuotas para progreso financiero real
+  const contratoActivo = contratos.find(contrato => getEstadoContrato(contrato) === 'ACTIVO');
+  const estadoCuotas = contratoActivo ? calcularEstadoCuotasContrato(contratoActivo) : {
+    montoPagado: 0,
+    cuotasPagadas: 0,
+    cuotasTotales: 0
+  };
 
   // Combinar documentos y contratos para la sección de documentos
   const documentosCombinados = [
@@ -321,6 +313,10 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
         montoTotal={progresoOcupacion.montoTotal}
         color={progresoOcupacion.estado === 'MANTENIMIENTO' ? 'warning.main' : 'primary.main'}
         estado={progresoOcupacion.estado}
+        // Datos de cuotas para progreso financiero real
+        montoAcumulado={estadoCuotas.montoPagado}
+        cuotasPagadas={estadoCuotas.cuotasPagadas}
+        cuotasTotales={estadoCuotas.cuotasTotales}
       />
     );
   };
@@ -329,7 +325,6 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
   const renderSeccionFinanzas = () => {
     if (!progresoOcupacion.tieneContrato) return null;
     // Buscar contrato activo
-    const contratoActivo = contratos.find(contrato => getEstadoContrato(contrato) === 'ACTIVO');
     if (!contratoActivo) return null;
     return (
       <CuotasProvider 
@@ -356,34 +351,25 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
         {/* Título de la propiedad */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <HomeWork sx={{ fontSize: '1.1rem', color: 'text.primary' }} />
-          <Typography variant="subtitle1" sx={{ fontWeight: 500, fontSize: '0.95rem', lineHeight: 1.2 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 500, fontSize: '0.9rem', lineHeight: 1.2 }}>
             {alias}
           </Typography>
         </Box>
         
         {/* Estado de la propiedad */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ 
-            fontSize: '1.1rem', 
-            color: color,
-            display: 'flex',
-            alignItems: 'center',
-            '& .MuiSvgIcon-root': {
-              fontSize: '1.1rem'
-            }
-          }}>
-            {icon}
-          </Box>
-          <Typography variant="body2" sx={{ fontSize: '0.85rem', color: color, fontWeight: 500 }}>
-            {estado.charAt(0) + estado.slice(1).toLowerCase()}
-          </Typography>
-        </Box>
+        <StatusChip customcolor={color}>
+          {icon}
+          {estado.charAt(0) + estado.slice(1).toLowerCase()}
+        </StatusChip>
       </Box>
       <Box sx={{ display: 'flex', gap: 0.5 }}>
         <Tooltip title={viewMode === 'list' ? "Cambiar a Vista Grid" : "Cambiar a Vista Lista"}>
           <IconButton
             size="small"
-            onClick={() => setViewMode(viewMode === 'list' ? 'grid' : 'list')}
+            onClick={(e) => {
+              e.stopPropagation();
+              setViewMode(viewMode === 'list' ? 'grid' : 'list');
+            }}
             sx={{
               color: viewMode === 'grid' ? 'primary.main' : 'text.secondary',
               padding: 0.25,
@@ -411,7 +397,10 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
         <Tooltip title={isExpanded ? "Colapsar" : "Expandir"}>
           <IconButton
             size="small"
-            onClick={onToggleExpand}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleExpand();
+            }}
             sx={{ 
               color: 'text.secondary',
               padding: 0.25,
@@ -471,14 +460,21 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
   return (
     <StyledCard sx={{ bgcolor: 'background.default' }}>
       {/* Header con título y acciones */}
-      <Box sx={{ 
-        p: 1.5, 
-        pb: 1,
-        display: 'flex', 
-        flexDirection: 'column',
-        gap: 1,
-        bgcolor: 'background.default'
-      }}>
+      <Box 
+        sx={{ 
+          p: 1.5, 
+          pb: 1,
+          display: 'flex', 
+          flexDirection: 'column',
+          gap: 1,
+          bgcolor: 'background.default',
+          cursor: 'pointer',
+          '&:hover': {
+            bgcolor: 'action.hover'
+          }
+        }}
+        onClick={onToggleExpand}
+      >
         {renderHeader()}
         {/* Vista compacta solo en colapsado - solo barra de progreso */}
         {!isExpanded && (

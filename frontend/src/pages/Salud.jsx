@@ -6,9 +6,8 @@ import {
   RestaurantOutlined as DietaIcon,
   MonitorWeightOutlined as WeightIcon
 } from '@mui/icons-material';
-import EntityToolbar from '../components/EntityToolbar';
-import EntityDetails from '../components/EntityViews/EntityDetails';
-import UnderConstruction from '../components/UnderConstruction';
+import { EntityToolbar, EntityDetails } from '../components/EntityViews';
+import { UnderConstruction } from '../components/common';
 
 export function Salud() {
   return (

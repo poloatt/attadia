@@ -6,9 +6,8 @@ import {
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 
-import EntityDetails from '../components/EntityViews/EntityDetails';
-import EntityForm from '../components/EntityViews/EntityForm';
-import { snackbar } from '../components/common/snackbarUtils';
+import { EntityDetails, EntityToolbar, EntityForm, EntityActions, EntityGroupedCards } from '../components/EntityViews';
+import { snackbar } from '../components/common';
 import clienteAxios from '../config/axios';
 import { 
   ApartmentOutlined as BuildingIcon,
@@ -29,9 +28,7 @@ import {
   StorefrontOutlined as StoreIcon,
   LandscapeOutlined as LandIcon
 } from '@mui/icons-material';
-import EmptyState from '../components/EmptyState';
-import { EntityActions } from '../components/EntityViews/EntityActions';
-import EntityGroupedCards from '../components/EntityViews/EntityGroupedCards';
+import { EmptyState } from '../components/common';
 import { useNavigate } from 'react-router-dom';
 
 export function Habitaciones() {

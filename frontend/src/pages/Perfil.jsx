@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Box, Typography, Paper, Container, Grid, Chip } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
-import EntityToolbar from '../components/EntityToolbar';
+import { EntityToolbar } from '../components/EntityViews';
 
 export default function Perfil() {
   const { user } = useAuth();

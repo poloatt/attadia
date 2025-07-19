@@ -31,6 +31,7 @@ import {
 } from '@mui/icons-material';
 import { toast } from 'react-hot-toast';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
+// Importaciones modulares de propiedades
 import { 
   StatusChip, 
   STATUS_ICONS, 
@@ -38,23 +39,43 @@ import {
   calcularProgresoOcupacion,
   calcularEstadisticasPropiedad,
   getEstadoContrato,
-  getCuentaYMoneda
-} from '../components/propiedades/propiedadUtils';
+  getCuentaYMoneda,
+  calcularProgresoContrato,
+  StyledCard,
+  StyledDialog,
+  StyledTextField,
+  CategoryChip,
+  StyledSectionTitle
+} from '../components/propiedades';
+
+// Importaciones modulares de contratos
+import { 
+  calcularEstadoCuotasContrato,
+  StyledTableContainer,
+  StyledCuotasTextField,
+  StyledCuotasChip,
+  StyledCuotasIconButton,
+  StyledCuotasCheckbox
+} from '../components/propiedades/contratos';
+
+import { EntityToolbar } from '../components/EntityViews';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EngineeringIcon from '@mui/icons-material/Engineering';
 import BookmarkAddedIcon from '@mui/icons-material/BookmarkAdded';
-import EntityToolbar from '../components/EntityToolbar';
-
-// Mapeo de nombre a componente de ícono
-const ICON_COMPONENTS = {
-  PendingActions: <PendingActionsIcon sx={{ fontSize: 18 }} />, 
-  CheckCircle: <CheckCircleIcon sx={{ fontSize: 18 }} />, 
-  Engineering: <EngineeringIcon sx={{ fontSize: 18 }} />, 
-  BookmarkAdded: <BookmarkAddedIcon sx={{ fontSize: 18 }} />
-};
 
 export function Assets() {
+  // Función local para obtener el icono de estado
+  const getStatusIcon = (estado) => {
+    const iconMap = {
+      'DISPONIBLE': <PendingActionsIcon sx={{ fontSize: 18 }} />,
+      'OCUPADA': <CheckCircleIcon sx={{ fontSize: 18 }} />,
+      'MANTENIMIENTO': <EngineeringIcon sx={{ fontSize: 18 }} />,
+      'RESERVADA': <BookmarkAddedIcon sx={{ fontSize: 18 }} />
+    };
+    return iconMap[estado] || null;
+  };
+
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState(30);
   const { showValues } = useValuesVisibility();
@@ -481,6 +502,16 @@ export function Assets() {
             {propiedades.map((prop) => {
               const progresoOcupacion = calcularProgresoOcupacion(prop);
               
+              // Calcular progreso financiero real basado en cuotas pagadas
+              const contratoActivo = prop.contratos?.find(contrato => getEstadoContrato(contrato) === 'ACTIVO');
+              const estadoCuotas = contratoActivo ? calcularEstadoCuotasContrato(contratoActivo) : {
+                montoPagado: 0,
+                cuotasPagadas: 0,
+                cuotasTotales: 0,
+                montoTotal: 0,
+                porcentajePagado: 0
+              };
+              
               // Obtener información de moneda del contrato si existe
               let simboloMoneda = '$';
               if (progresoOcupacion.contrato) {
@@ -501,7 +532,7 @@ export function Assets() {
                       {prop.alias || prop.titulo || 'Sin alias'}
                     </Typography>
                     <StatusChip customcolor={STATUS_COLORS[prop.estado] || 'text.secondary'}>
-                      {ICON_COMPONENTS[STATUS_ICONS[prop.estado]] || null}
+                      {getStatusIcon(prop.estado)}
                       {prop.estado ? prop.estado.charAt(0) + prop.estado.slice(1).toLowerCase() : 'N/A'}
                     </StatusChip>
                   </Box>
@@ -520,18 +551,22 @@ export function Assets() {
                       </Box>
                     </Box>
                   )}
-                  {/* Barra de estado de la propiedad usando función centralizada */}
+                  {/* Barra de estado de la propiedad usando progreso financiero real */}
                   {progresoOcupacion.tieneContrato && progresoOcupacion.montoMensual > 0 && (
                     <Box sx={{ mt: 1 }}>
                       <BarraEstadoPropiedad
                         diasTranscurridos={progresoOcupacion.diasTranscurridos || 0}
                         diasTotales={progresoOcupacion.diasTotales || 0}
-                        porcentaje={progresoOcupacion.porcentaje || 0}
+                        porcentaje={estadoCuotas.porcentajePagado || progresoOcupacion.porcentaje || 0}
                         simboloMoneda={simboloMoneda}
                         montoMensual={progresoOcupacion.montoMensual || 0}
-                        montoTotal={progresoOcupacion.montoTotal || 0}
+                        montoTotal={estadoCuotas.montoTotal || progresoOcupacion.montoTotal || 0}
                         color={progresoOcupacion.estado === 'MANTENIMIENTO' ? 'warning.main' : 'primary.main'}
                         estado={progresoOcupacion.estado}
+                        // Datos de cuotas para progreso financiero real
+                        montoAcumulado={estadoCuotas.montoPagado}
+                        cuotasPagadas={estadoCuotas.cuotasPagadas}
+                        cuotasTotales={estadoCuotas.cuotasTotales}
                       />
                     </Box>
                   )}

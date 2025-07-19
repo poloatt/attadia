@@ -18,9 +18,7 @@ import {
   Switch,
   Chip
 } from '@mui/material';
-import EntityToolbar from '../components/EntityToolbar';
-import EntityDetails from '../components/EntityViews/EntityDetails';
-import EntityForm from '../components/EntityViews/EntityForm';
+import { EntityToolbar, EntityDetails, EntityForm } from '../components/EntityViews';
 import { 
   AccountBalanceOutlined as BankIcon,
   AccountBalanceWalletOutlined as WalletIcon,
@@ -37,7 +35,7 @@ import {
 } from '@mui/icons-material';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
-import EmptyState from '../components/EmptyState';
+import { EmptyState } from '../components/common';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 import { useAPI } from '../hooks/useAPI';
 

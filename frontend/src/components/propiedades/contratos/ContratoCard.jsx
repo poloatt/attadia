@@ -49,7 +49,7 @@ import {
   calcularEstadoCuotasContrato
 } from './contratoUtils';
 import { useValuesVisibility } from '../../../context/ValuesVisibilityContext';
-import { EntityActions } from '../../EntityViews/EntityActions';
+import { EntityActions } from '../../EntityViews';
 import BarraEstadoPropiedad from '../BarraEstadoPropiedad';
 
 // Componente estilizado para las tarjetas con estilo angular
@@ -179,12 +179,19 @@ const ContratoCard = ({
   return (
     <StyledCard sx={{ bgcolor: 'background.default' }}>
       {/* Header con título y acciones */}
-      <Box sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 1,
-        bgcolor: 'background.default'
-      }}>
+      <Box 
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1,
+          bgcolor: 'background.default',
+          cursor: 'pointer',
+          '&:hover': {
+            bgcolor: 'action.hover'
+          }
+        }}
+        onClick={() => setDetailOpen(true)}
+      >
         {/* Título y botones de acción */}
         <Box sx={{
           display: 'flex',
@@ -231,7 +238,10 @@ const ContratoCard = ({
             <Tooltip title="Ver detalle">
               <IconButton
                 size="small"
-                onClick={() => setDetailOpen(true)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDetailOpen(true);
+                }}
                 sx={{ 
                   color: 'text.secondary',
                   padding: 0.25
@@ -242,8 +252,14 @@ const ContratoCard = ({
             </Tooltip>
             {/* Elimino los botones de cambiar vista y colapsar */}
             <EntityActions 
-              onEdit={() => onEdit(contrato)}
-              onDelete={() => onDelete(contrato._id || contrato.id)}
+              onEdit={(e) => {
+                e.stopPropagation();
+                onEdit(contrato);
+              }}
+              onDelete={(e) => {
+                e.stopPropagation();
+                onDelete(contrato._id || contrato.id);
+              }}
               itemName={titulo}
             />
           </Box>
@@ -262,6 +278,10 @@ const ContratoCard = ({
                 montoTotal={progresoContrato.montoTotal}
                 color={colorBarraEstado}
                 estado={estado}
+                // Datos de cuotas para progreso financiero real
+                montoAcumulado={estadoCuotas.montoPagado}
+                cuotasPagadas={estadoCuotas.cuotasPagadas}
+                cuotasTotales={estadoCuotas.cuotasTotales}
               />
             )}
             {localViewMode === 'grid' ? (
@@ -364,6 +384,10 @@ const ContratoCard = ({
                     montoTotal={progresoContrato.montoTotal}
                     color={colorBarraEstado}
                     estado={estado}
+                    // Datos de cuotas para progreso financiero real
+                    montoAcumulado={estadoCuotas.montoPagado}
+                    cuotasPagadas={estadoCuotas.cuotasPagadas}
+                    cuotasTotales={estadoCuotas.cuotasTotales}
                   />
                 )}
                 <ContratosGridView

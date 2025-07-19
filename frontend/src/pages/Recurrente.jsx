@@ -13,8 +13,7 @@ import {
   CardActions
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import EntityToolbar from '../components/EntityToolbar';
-import EntityDetails from '../components/EntityViews/EntityDetails';
+import { EntityToolbar, EntityDetails } from '../components/EntityViews';
 import { 
   AccountBalanceOutlined as BankIcon,
   AccountBalanceWalletOutlined as WalletIcon,
@@ -29,8 +28,8 @@ import {
 } from '@mui/icons-material';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
-import EmptyState from '../components/EmptyState';
-import TransaccionRecurrenteForm from '../components/transaccionesrecurrentes/TransaccionRecurrenteForm';
+import { EmptyState } from '../components/common';
+import { TransaccionRecurrenteForm } from '../components/finance';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 import { api } from '../services/api';
 

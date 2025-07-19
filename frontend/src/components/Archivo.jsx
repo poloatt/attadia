@@ -1,5 +1,5 @@
 import React from 'react';
-import { EntityToolbar } from '../components/EntityToolbar';
+import { EntityToolbar } from './EntityViews';
 import { Box, IconButton, Tooltip } from '@mui/material';
 import { ArchiveIcon, ProjectIcon, TaskIcon, FilterListIcon } from '../icons';
 

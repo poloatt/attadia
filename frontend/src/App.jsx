@@ -22,7 +22,7 @@ import DataCorporal from './pages/DataCorporal';
 import { Deudores } from './pages/Deudores';
 import { Salud } from './pages/Salud';
 import { Configuracion } from './pages/Configuracion';
-import ErrorBoundary from './components/ErrorBoundary';
+import { ErrorBoundary } from './components/common';
 import theme from './context/ThemeContext';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';

@@ -4,7 +4,7 @@ import { GridOn as GridIcon, List as ListIcon } from '@mui/icons-material';
 import ContratoCard from './ContratoCard';
 import ContratosGridView from './ContratosGridView';
 import ContratosListView from './ContratosListView';
-import EmptyState from '../../EmptyState';
+import { EmptyState } from '../../common';
 import { useContratoData } from './hooks/useContratoData';
 import { useContratoExpansion } from './hooks/useContratoExpansion';
 

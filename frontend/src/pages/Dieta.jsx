@@ -20,14 +20,11 @@ import {
   MonitorWeightOutlined as WeightIcon,
   HealthAndSafety as HealthIcon
 } from '@mui/icons-material';
-import EntityToolbar from '../components/EntityToolbar';
-import EntityDetails from '../components/EntityViews/EntityDetails';
-import EntityForm from '../components/EntityViews/EntityForm';
-import UnderConstruction from '../components/UnderConstruction';
+import { EntityToolbar, EntityDetails, EntityForm, EntityActions } from '../components/EntityViews';
+import { UnderConstruction } from '../components/common';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '../config/axios';
-import EmptyState from '../components/EmptyState';
-import { EntityActions } from '../components/EntityViews/EntityActions';
+import { EmptyState } from '../components/common';
 import { useNavigate } from 'react-router-dom';
 
 export function Dieta() {

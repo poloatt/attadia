@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import clienteAxios from '../config/axios';
-import { snackbar } from '../components/common/snackbarUtils.jsx';
+import { snackbar } from '../components/common';
 
 export function useRutinas() {
   const [rutinas, setRutinas] = useState([]);

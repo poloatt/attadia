@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Button, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import EntityToolbar from '../components/EntityToolbar';
-import EntityDetails from '../components/EntityViews/EntityDetails';
+import { EntityToolbar, EntityDetails } from '../components/EntityViews';
 import { DataCorporalTable } from '../components/bodycomposition/DataCorporalTable';
 import { DataCorporalForm } from '../components/bodycomposition/DataCorporalForm';
-import UnderConstruction from '../components/UnderConstruction';
+import { UnderConstruction } from '../components/common';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import AddIcon from '@mui/icons-material/Add';

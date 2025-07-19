@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box } from '@mui/material';
 import { FormSection } from './ContratoFormStyles';
-import EntityDateSelect from '../../EntityViews/EntityDateSelect';
+import { EntityDateSelect } from '../../EntityViews';
 
 const ContratoFechasSection = ({
   formData,

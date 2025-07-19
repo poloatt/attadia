@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Container, Dialog } from '@mui/material';
-import EntityToolbar from '../components/EntityToolbar';
+import { EntityToolbar } from '../components/EntityViews';
 import { 
   ScienceOutlined as LabIcon,
   RestaurantOutlined as DietaIcon,
@@ -10,7 +10,7 @@ import {
   Add as AddIcon
 } from '@mui/icons-material';
 import { Button } from '@mui/material';
-import EntityDetails from '../components/EntityViews/EntityDetails';
+import { EntityDetails } from '../components/EntityViews';
 import { RutinaProvider } from '../components/rutinas/context/RutinasContext';
 import { RutinaTable } from '../components/rutinas/RutinaTable';
 import { RutinaForm } from '../components/rutinas/RutinaForm';

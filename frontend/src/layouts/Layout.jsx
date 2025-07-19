@@ -3,10 +3,10 @@ import { useUISettings } from '../context/UISettingsContext';
 import { useNavigate, Outlet } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import { useAuth } from '../context/AuthContext';
-import { Header } from '../components/header';
-import Footer from '../components/Footer';
+import { Header } from '../navigation';
+import { Footer } from '../navigation';
 import { Sidebar, BottomNavigation } from '../navigation';
-import { CustomSnackbarProvider } from '../components/common/snackbarUtils.jsx';
+import { CustomSnackbarProvider } from '../components/common';
 
 export function Layout() {
   const theme = useTheme();
