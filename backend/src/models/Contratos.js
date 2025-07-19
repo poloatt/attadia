@@ -573,11 +573,16 @@ contratoSchema.virtual('transacciones', {
 
 // Virtual para calcular el estado actual basado en fechas
 contratoSchema.virtual('estadoActual').get(function() {
+  // Usar cache si está disponible
+  if (this._estadoActualCache) {
+    return this._estadoActualCache;
+  }
+
   try {
     // Verificar que las fechas existan
     if (!this.fechaInicio) {
-      console.warn('[estadoActual] fechaInicio no definida para contrato:', this._id?.toString());
-      return this.estado || 'PLANEADO';
+      this._estadoActualCache = this.estado || 'PLANEADO';
+      return this._estadoActualCache;
     }
 
     // Normalizar fechas a medianoche
@@ -589,48 +594,38 @@ contratoSchema.virtual('estadoActual').get(function() {
     // Si no hay fecha de fin, considerar como activo si ya comenzó
     if (!this.fechaFin) {
       if (inicio <= now) {
-        return this.tipoContrato === 'MANTENIMIENTO' ? 'MANTENIMIENTO' : 'ACTIVO';
+        this._estadoActualCache = this.tipoContrato === 'MANTENIMIENTO' ? 'MANTENIMIENTO' : 'ACTIVO';
       } else {
-        return 'PLANEADO';
+        this._estadoActualCache = 'PLANEADO';
       }
+      return this._estadoActualCache;
     }
     
     const fin = new Date(this.fechaFin);
     fin.setHours(0, 0, 0, 0);
 
-    // LOG de depuración
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[estadoActual] Contrato:', this._id?.toString());
-      console.log('  fechaInicio:', inicio.toISOString());
-      console.log('  fechaFin:', fin.toISOString());
-      console.log('  now:', now.toISOString());
-      console.log('  esMantenimiento:', this.esMantenimiento, 'tipoContrato:', this.tipoContrato);
-      console.log('  Comparaciones:', {
-        inicioMenorIgualNow: inicio <= now,
-        finMayorNow: fin > now,
-        finMenorIgualNow: fin <= now
-      });
-    }
-
     if (this.tipoContrato === 'MANTENIMIENTO' || this.esMantenimiento === true) {
       if (inicio <= now && fin > now) {
-        return 'MANTENIMIENTO';
+        this._estadoActualCache = 'MANTENIMIENTO';
       } else if (inicio > now) {
-        return 'PLANEADO';
+        this._estadoActualCache = 'PLANEADO';
       } else {
-        return 'FINALIZADO';
+        this._estadoActualCache = 'FINALIZADO';
+      }
+    } else {
+      if (inicio <= now && fin > now) {
+        this._estadoActualCache = 'ACTIVO';
+      } else if (inicio > now) {
+        this._estadoActualCache = 'PLANEADO';
+      } else {
+        this._estadoActualCache = 'FINALIZADO';
       }
     }
-    if (inicio <= now && fin > now) {
-      return 'ACTIVO';
-    } else if (inicio > now) {
-      return 'PLANEADO';
-    } else {
-      return 'FINALIZADO';
-    }
+    
+    return this._estadoActualCache;
   } catch (error) {
-    console.error('[estadoActual] Error calculando estado actual:', error);
-    return this.estado || 'PLANEADO';
+    this._estadoActualCache = this.estado || 'PLANEADO';
+    return this._estadoActualCache;
   }
 });
 

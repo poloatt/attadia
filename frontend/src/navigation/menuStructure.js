@@ -13,9 +13,10 @@ export const menuItems = [
         id: 'finanzas',
         title: 'Finanzas', // nombre para mostrar
         icon: icons.wallet,
-        path: '/assets/finanzas',
+        path: '/assets/finanzas', // Ahora tiene su propio path
         hasSubItems: true,
         subItems: [
+          { id: 'transacciones', title: 'Transacciones', path: '/assets/finanzas/transacciones', icon: icons.moneyBag },
           { id: 'cuentas', title: 'Cuentas', path: '/assets/finanzas/cuentas', icon: icons.accountBalance },
           { id: 'monedas', title: 'Monedas', path: '/assets/finanzas/monedas', icon: icons.currency },
           { id: 'inversiones', title: 'Inversiones', path: '/assets/finanzas/inversiones', icon: icons.inversiones, isUnderConstruction: true },
@@ -88,4 +89,45 @@ export const menuItems = [
       { id: 'preferencias', title: 'Preferencias', path: '/configuracion/preferencias', icon: icons.manageAccounts, hasSubItems: false }
     ]
   }
-]; 
+];
+
+// Configuración de navegación inferior - elementos principales para acceso rápido
+export const bottomNavigationItems = [
+  {
+    id: 'assets',
+    title: 'Assets',
+    icon: icons.dollarSign,
+    path: '/assets',
+    activePaths: ['/', '/assets']
+  },
+  {
+    id: 'salud',
+    title: 'Salud',
+    icon: icons.health,
+    path: '/salud',
+    activePaths: ['/salud']
+  },
+  {
+    id: 'tiempo',
+    title: 'Tiempo',
+    icon: icons.accessTime,
+    path: '/tiempo',
+    activePaths: ['/tiempo']
+  }
+];
+
+// Función helper para obtener elementos de navegación inferior con iconos resueltos
+export const getBottomNavigationItems = () => {
+  return bottomNavigationItems.map(item => ({
+    ...item,
+    icon: item.icon // Los iconos ya están resueltos en la definición
+  }));
+};
+
+// Función helper para obtener elementos de menú con iconos resueltos
+export const getMenuItems = () => {
+  return menuItems.map(item => ({
+    ...item,
+    icon: item.icon // Los iconos ya están resueltos en la definición
+  }));
+}; 

@@ -52,10 +52,26 @@ export function Layout() {
           flexDirection: 'column',
           bgcolor: 'background.default',
           overflowY: 'auto',
+          overflowX: 'hidden', // Evitar scroll horizontal
+          scrollbarGutter: 'stable', // Reservar espacio para scrollbar
           position: 'relative',
           ml: 0,
           border: 'none',
-          outline: 'none'
+          outline: 'none',
+          // Estilos para el scrollbar
+          '&::-webkit-scrollbar': {
+            width: '8px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: 'transparent',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: 'rgba(255, 255, 255, 0.1)',
+            borderRadius: '4px',
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            background: 'rgba(255, 255, 255, 0.2)',
+          }
         }}
       >
         <Box sx={{ 

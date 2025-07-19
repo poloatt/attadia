@@ -185,54 +185,52 @@ export function Inquilinos() {
   };
 
   return (
-    <Box sx={{
-      width: '100%',
-      maxWidth: 900,
-      mx: 'auto',
-      px: { xs: 1, sm: 2, md: 3 },
-      py: 2,
-      pb: { xs: 10, sm: 4 },
-      boxSizing: 'border-box',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 0
-    }}>
-      <EntityToolbar additionalActions={[{
-        icon: <EntityActions onEdit={() => {}} onDelete={() => {}} />, // Puedes personalizar las acciones
-        label: 'Acciones'
-      }]} />
+    <Box sx={{ px: 0, width: '100%' }}>
+      <EntityToolbar />
 
+      <Box sx={{
+        width: '100%',
+        maxWidth: 900,
+        mx: 'auto',
+        px: { xs: 1, sm: 2, md: 3 },
+        py: 2,
+        pb: { xs: 10, sm: 4 },
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 0
+      }}>
+        {/* Filtros de grupos */}
 
-      {/* Filtros de grupos */}
+        <Box sx={{ py: 2 }}>
+          <EntityDetails>
+            <InquilinoList
+              inquilinos={inquilinos}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onCreateContract={handleCreateContract}
+            />
+          </EntityDetails>
+        </Box>
 
-      <Box sx={{ py: 2 }}>
-        <EntityDetails>
-          <InquilinoList
-            inquilinos={inquilinos}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onCreateContract={handleCreateContract}
-          />
-        </EntityDetails>
-      </Box>
-
-      <InquilinoForm
-        open={openForm}
-        onClose={handleCloseForm}
-        onSubmit={handleSubmit}
-        initialData={selectedInquilino}
-        propiedades={propiedades}
-      />
-
-      {/* Formulario de contrato autopopulado */}
-      {openContratoForm && (
-        <ContratoForm
-          initialData={contratoInitialData}
-          relatedData={{ propiedades, inquilinos, cuentas, monedas }}
-          onClose={() => setOpenContratoForm(false)}
-          onSubmit={() => { setOpenContratoForm(false); fetchInquilinos(); }}
+        <InquilinoForm
+          open={openForm}
+          onClose={handleCloseForm}
+          onSubmit={handleSubmit}
+          initialData={selectedInquilino}
+          propiedades={propiedades}
         />
-      )}
+
+        {/* Formulario de contrato autopopulado */}
+        {openContratoForm && (
+          <ContratoForm
+            initialData={contratoInitialData}
+            relatedData={{ propiedades, inquilinos, cuentas, monedas }}
+            onClose={() => setOpenContratoForm(false)}
+            onSubmit={() => { setOpenContratoForm(false); fetchInquilinos(); }}
+          />
+        )}
+      </Box>
     </Box>
   );
 }

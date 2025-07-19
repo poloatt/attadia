@@ -28,7 +28,8 @@ import {
   ExpandMore,
   FiberManualRecordOutlined,
   KeyboardBackspaceOutlined,
-  MonetizationOnOutlined // icono "$" dentro de círculo para assets
+  MonetizationOnOutlined, // icono "$" dentro de círculo para assets
+  AddCircleOutline // cruz médica dentro de círculo para salud
 } from '@mui/icons-material';
 
 export const icons = {
@@ -41,7 +42,7 @@ export const icons = {
   person: PersonOutlined,
   description: DescriptionOutlined,
   hotel: HotelOutlined,
-  health: LocalHospitalOutlined, // health icon para la sección salud
+  health: AddCircleOutline, // cruz médica dentro de círculo para la sección salud
   monitorHeart: MonitorHeartOutlined, // monitor heart para data corporal
   science: ScienceOutlined,
   restaurant: RestaurantOutlined,
@@ -64,4 +65,22 @@ export const icons = {
   fiberManualRecord: FiberManualRecordOutlined,
   arrowBack: KeyboardBackspaceOutlined,
   dollarSign: MonetizationOnOutlined // icono "$" dentro de círculo para assets
+};
+
+// Función helper para obtener el icono por clave
+export const getIconByKey = (iconKey) => {
+  return icons[iconKey] || icons.folder; // fallback a folder si no existe
+};
+
+// Función helper para verificar si una ruta está activa
+export const isRouteActive = (currentPath, activePaths) => {
+  if (Array.isArray(activePaths)) {
+    return activePaths.some(path => {
+      if (path === '/') {
+        return currentPath === '/' || currentPath.startsWith('/assets/');
+      }
+      return currentPath === path || currentPath.startsWith(path + '/');
+    });
+  }
+  return currentPath === activePaths || currentPath.startsWith(activePaths + '/');
 }; 

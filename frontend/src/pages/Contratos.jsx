@@ -390,138 +390,141 @@ export function Contratos() {
   }), [relatedData]);
 
   return (
-    <Box
-      sx={{
-        width: '100%',
-        maxWidth: 900,
-        mx: 'auto',
-        px: { xs: 1, sm: 2, md: 3 },
-        py: 2,
-        pb: { xs: 10, sm: 4 },
-        boxSizing: 'border-box',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 0
-      }}
-    >
+    <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar />
-      {/* Mostrar todos los contratos juntos */}
-      <Box>
-        {contratos.length === 0 ? (
-          <EmptyState
-            icon={DescriptionIcon}
-            title="No hay contratos"
-            description="No hay contratos para mostrar"
-          />
-        ) : (
-          <ContratosContainer
-            contratos={contratos}
-            relatedData={relatedData}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            viewMode={viewMode}
-          />
-        )}
-      </Box>
-
-      {/* Formulario tradicional */}
-      {isFormOpen && (
-        <ContratoForm
-          open={isFormOpen}
-          initialData={editingContrato || {}}
-          relatedData={relatedData}
-          onSubmit={handleFormSubmit}
-          onClose={() => {
-            if (!isSaving) {
-              setIsFormOpen(false);
-              setEditingContrato(null);
-            }
-          }}
-          isSaving={isSaving}
-        />
-      )}
-
-      {/* Wizard de contratos */}
-      {isWizardOpen && (
-        <ContratoWizard
-          open={isWizardOpen}
-          initialData={editingContrato || {}}
-          relatedData={relatedData}
-          onSubmit={handleWizardSubmit}
-          onClose={() => {
-            if (!isSaving) {
-              setIsWizardOpen(false);
-              setEditingContrato(null);
-            }
-          }}
-          isSaving={isSaving}
-        />
-      )}
-
-      {/* Diálogo para seleccionar tipo de formulario */}
-      <Dialog
-        open={showFormChoice}
-        onClose={handleCloseFormChoice}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: { borderRadius: 0 }
+      
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: 900,
+          mx: 'auto',
+          px: { xs: 1, sm: 2, md: 3 },
+          py: 2,
+          pb: { xs: 10, sm: 4 },
+          boxSizing: 'border-box',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 0
         }}
       >
-        <DialogTitle sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          Seleccionar método de creación
-        </DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Button
-              variant="outlined"
-              startIcon={<WizardIcon />}
-              onClick={() => handleSelectFormType(true)}
-              sx={{ 
-                justifyContent: 'flex-start', 
-                p: 2, 
-                borderRadius: 0,
-                borderWidth: 2
-              }}
-            >
-              <Box sx={{ textAlign: 'left' }}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Wizard Asistido
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Flujo paso a paso guiado para crear contratos de forma sencilla
-                </Typography>
-              </Box>
+        {/* Mostrar todos los contratos juntos */}
+        <Box>
+          {contratos.length === 0 ? (
+            <EmptyState
+              icon={DescriptionIcon}
+              title="No hay contratos"
+              description="No hay contratos para mostrar"
+            />
+          ) : (
+            <ContratosContainer
+              contratos={contratos}
+              relatedData={relatedData}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              viewMode={viewMode}
+            />
+          )}
+        </Box>
+
+        {/* Formulario tradicional */}
+        {isFormOpen && (
+          <ContratoForm
+            open={isFormOpen}
+            initialData={editingContrato || {}}
+            relatedData={relatedData}
+            onSubmit={handleFormSubmit}
+            onClose={() => {
+              if (!isSaving) {
+                setIsFormOpen(false);
+                setEditingContrato(null);
+              }
+            }}
+            isSaving={isSaving}
+          />
+        )}
+
+        {/* Wizard de contratos */}
+        {isWizardOpen && (
+          <ContratoWizard
+            open={isWizardOpen}
+            initialData={editingContrato || {}}
+            relatedData={relatedData}
+            onSubmit={handleWizardSubmit}
+            onClose={() => {
+              if (!isSaving) {
+                setIsWizardOpen(false);
+                setEditingContrato(null);
+              }
+            }}
+            isSaving={isSaving}
+          />
+        )}
+
+        {/* Diálogo para seleccionar tipo de formulario */}
+        <Dialog
+          open={showFormChoice}
+          onClose={handleCloseFormChoice}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: { borderRadius: 0 }
+          }}
+        >
+          <DialogTitle sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            Seleccionar método de creación
+          </DialogTitle>
+          <DialogContent sx={{ pt: 2 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Button
+                variant="outlined"
+                startIcon={<WizardIcon />}
+                onClick={() => handleSelectFormType(true)}
+                sx={{ 
+                  justifyContent: 'flex-start', 
+                  p: 2, 
+                  borderRadius: 0,
+                  borderWidth: 2
+                }}
+              >
+                <Box sx={{ textAlign: 'left' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Wizard Asistido
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Flujo paso a paso guiado para crear contratos de forma sencilla
+                  </Typography>
+                </Box>
+              </Button>
+              
+              <Button
+                variant="outlined"
+                startIcon={<EditIcon />}
+                onClick={() => handleSelectFormType(false)}
+                sx={{ 
+                  justifyContent: 'flex-start', 
+                  p: 2, 
+                  borderRadius: 0,
+                  borderWidth: 2
+                }}
+              >
+                <Box sx={{ textAlign: 'left' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Formulario Completo
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Formulario tradicional con todas las opciones disponibles
+                  </Typography>
+                </Box>
+              </Button>
+            </Box>
+          </DialogContent>
+          <DialogActions sx={{ borderTop: 1, borderColor: 'divider' }}>
+            <Button onClick={handleCloseFormChoice} sx={{ borderRadius: 0 }}>
+              Cancelar
             </Button>
-            
-            <Button
-              variant="outlined"
-              startIcon={<EditIcon />}
-              onClick={() => handleSelectFormType(false)}
-              sx={{ 
-                justifyContent: 'flex-start', 
-                p: 2, 
-                borderRadius: 0,
-                borderWidth: 2
-              }}
-            >
-              <Box sx={{ textAlign: 'left' }}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Formulario Completo
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Formulario tradicional con todas las opciones disponibles
-                </Typography>
-              </Box>
-            </Button>
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ borderTop: 1, borderColor: 'divider' }}>
-          <Button onClick={handleCloseFormChoice} sx={{ borderRadius: 0 }}>
-            Cancelar
-          </Button>
-        </DialogActions>
-      </Dialog>
+          </DialogActions>
+        </Dialog>
+      </Box>
     </Box>
   );
 }

@@ -163,26 +163,7 @@ export function Dieta() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar
-        onAdd={() => {
-          setEditingComida(null);
-          setIsFormOpen(true);
-        }}
-        showBackButton={true}
-        onBack={handleBack}
-        navigationItems={[
-          {
-            icon: <LabIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Lab',
-            to: '/lab'
-          },
-          {
-            icon: <WeightIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Composición Corporal',
-            to: '/datacorporal'
-          }
-        ]}
-      />
+      <EntityToolbar />
 
       <EntityDetails
         title="Dieta"

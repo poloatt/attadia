@@ -96,23 +96,7 @@ export function DataCorporal() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar
-        onAdd={() => handleOpenDialog()}
-        showBackButton={true}
-        onBack={handleBack}
-        navigationItems={[
-          {
-            icon: <LabIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Lab',
-            to: '/lab'
-          },
-          {
-            icon: <DietaIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Dieta',
-            to: '/dieta'
-          }
-        ]}
-      />
+      <EntityToolbar />
       
       <EntityDetails 
         title="Composición Corporal"

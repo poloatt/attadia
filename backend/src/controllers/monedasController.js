@@ -19,21 +19,6 @@ class MonedasController extends BaseController {
     this.getSelectOptions = this.getSelectOptions.bind(this);
     this.getColores = this.getColores.bind(this);
     this.getBalance = this.getBalance.bind(this);
-
-    // Log para verificar la estructura del controlador
-    console.log('MonedasController methods:', {
-      getByCode: typeof this.getByCode,
-      getActive: typeof this.getActive,
-      getAll: typeof this.getAll,
-      getById: typeof this.getById,
-      create: typeof this.create,
-      update: typeof this.update,
-      delete: typeof this.delete,
-      toggleActive: typeof this.toggleActive,
-      getSelectOptions: typeof this.getSelectOptions,
-      getColores: typeof this.getColores,
-      getBalance: typeof this.getBalance
-    });
   }
 
   // GET /api/monedas/by-code/:codigo
@@ -41,7 +26,7 @@ class MonedasController extends BaseController {
     console.log('MonedasController.getByCode called');
     return this.Model.findOne({ 
       codigo: req.params.codigo.toUpperCase(),
-      activo: true
+      activa: true // Corregido: usar 'activa' en lugar de 'activo'
     })
       .then(moneda => {
         if (!moneda) {
@@ -58,7 +43,7 @@ class MonedasController extends BaseController {
   // GET /api/monedas/active
   getActive(req, res) {
     console.log('MonedasController.getActive called');
-    return this.Model.find({ activo: true })
+    return this.Model.find({ activa: true }) // Corregido: usar 'activa' en lugar de 'activo'
       .sort('codigo')
       .then(monedas => res.json(monedas))
       .catch(error => {
@@ -74,7 +59,7 @@ class MonedasController extends BaseController {
 
   // Sobrescribir create para manejar validaciones específicas
   create(req, res) {
-    console.log('MonedasController.create called');
+    console.log('MonedasController.create called with body:', req.body);
     const { codigo, color } = req.body;
     
     // Validar que el color sea válido si se proporciona
@@ -94,11 +79,15 @@ class MonedasController extends BaseController {
 
         const moneda = new this.Model({
           ...req.body,
-          codigo: codigo.toUpperCase()
+          codigo: codigo.toUpperCase(),
+          activa: true // Asegurar que se use 'activa'
         });
         
         return moneda.save()
-          .then(savedMoneda => res.status(201).json(savedMoneda))
+          .then(savedMoneda => {
+            console.log('Moneda creada exitosamente:', savedMoneda);
+            res.status(201).json(savedMoneda);
+          })
           .catch(error => {
             console.error('Error al guardar moneda:', error);
             res.status(400).json({ error: error.message });
@@ -112,7 +101,7 @@ class MonedasController extends BaseController {
 
   // Sobrescribir update para manejar validaciones específicas
   update(req, res) {
-    console.log('MonedasController.update called');
+    console.log('MonedasController.update called with body:', req.body);
     const { codigo, color } = req.body;
     
     // Validar que el color sea válido si se proporciona
@@ -144,6 +133,7 @@ class MonedasController extends BaseController {
               if (!moneda) {
                 return res.status(404).json({ message: 'Moneda no encontrada' });
               }
+              console.log('Moneda actualizada exitosamente:', moneda);
               res.json(moneda);
             });
         })
@@ -162,11 +152,50 @@ class MonedasController extends BaseController {
         if (!moneda) {
           return res.status(404).json({ message: 'Moneda no encontrada' });
         }
+        console.log('Moneda actualizada exitosamente:', moneda);
         res.json(moneda);
       })
       .catch(error => {
         console.error('Error en update:', error);
         res.status(400).json({ error: error.message });
+      });
+  }
+
+  // Sobrescribir delete para mejor manejo de errores
+  delete(req, res) {
+    console.log('MonedasController.delete called for ID:', req.params.id);
+    return this.Model.findByIdAndDelete(req.params.id)
+      .then(moneda => {
+        if (!moneda) {
+          return res.status(404).json({ message: 'Moneda no encontrada' });
+        }
+        console.log('Moneda eliminada exitosamente:', moneda);
+        res.json({ message: 'Moneda eliminada correctamente' });
+      })
+      .catch(error => {
+        console.error('Error en delete:', error);
+        res.status(500).json({ error: error.message });
+      });
+  }
+
+  // Sobrescribir toggleActive para usar 'activa' en lugar de 'activo'
+  toggleActive(req, res) {
+    console.log('MonedasController.toggleActive called for ID:', req.params.id);
+    return this.Model.findById(req.params.id)
+      .then(moneda => {
+        if (!moneda) {
+          return res.status(404).json({ message: 'Moneda no encontrada' });
+        }
+        moneda.activa = !moneda.activa; // Corregido: usar 'activa' en lugar de 'activo'
+        return moneda.save();
+      })
+      .then(updatedMoneda => {
+        console.log('Estado de moneda actualizado:', updatedMoneda);
+        res.json(updatedMoneda);
+      })
+      .catch(error => {
+        console.error('Error en toggleActive:', error);
+        res.status(500).json({ error: error.message });
       });
   }
 
@@ -220,5 +249,4 @@ class MonedasController extends BaseController {
 }
 
 const monedasController = new MonedasController();
-console.log('Exported monedasController:', monedasController);
 export { monedasController }; 

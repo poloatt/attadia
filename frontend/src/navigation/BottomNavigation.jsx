@@ -1,51 +1,19 @@
 import React from 'react';
 import { Box, Paper, Typography } from '@mui/material';
 import { useLocation, Link } from 'react-router-dom';
-import { icons } from './menuIcons';
+import { getBottomNavigationItems } from './menuStructure';
+import { isRouteActive } from './menuIcons';
 
 /**
  * Componente de navegación inferior con diseño geométrico
  * Este componente muestra botones para acceder rápidamente a Assets, Salud y Tiempo
+ * Utiliza configuración modular desde menuStructure.js
  */
 export default function BottomNavigation() {
   const location = useLocation();
   
-  // Verificar si estamos en una ruta específica
-  const isActive = (path) => {
-    if (path === '/assets') {
-      return location.pathname === '/' || 
-             location.pathname === '/assets' || 
-             location.pathname.startsWith('/assets/');
-    }
-    if (path === '/salud') {
-      return location.pathname === '/salud' || 
-             location.pathname.startsWith('/salud/');
-    }
-    if (path === '/tiempo') {
-      return location.pathname === '/tiempo' || 
-             location.pathname.startsWith('/tiempo/');
-    }
-    return location.pathname === path;
-  };
-
-  // Lista de elementos de navegación usando los componentes de icono directamente
-  const navItems = [
-    { 
-      icon: icons.trendingUp, 
-      label: 'Assets', 
-      path: '/assets' 
-    },
-    { 
-      icon: icons.health, 
-      label: 'Salud', 
-      path: '/salud' 
-    },
-    { 
-      icon: icons.accessTime, 
-      label: 'Tiempo', 
-      path: '/tiempo' 
-    }
-  ];
+  // Obtener elementos de navegación desde la configuración modular
+  const navItems = getBottomNavigationItems();
 
   return (
     <Paper 
@@ -87,63 +55,66 @@ export default function BottomNavigation() {
             height: '56px',
           }}
         >
-          {navItems.map((item, index) => (
-            <Box
-              key={item.path}
-              component={Link}
-              to={item.path}
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative',
-                textDecoration: 'none',
-                py: 1,
-                px: 2,
-                '&:hover': {
-                  bgcolor: 'action.hover',
-                },
-                '&::after': index < navItems.length - 1 ? {
-                  content: '""',
-                  position: 'absolute',
-                  top: '50%',
-                  right: -16,
-                  transform: 'translateY(-50%)',
-                  height: '60%',
-                  width: '1px',
-                  backgroundColor: 'divider',
-                  clipPath: 'polygon(0% 0%, 100% 10%, 100% 90%, 0% 100%)'
-                } : {}
-              }}
-            >
+          {navItems.map((item, index) => {
+            const isActive = isRouteActive(location.pathname, item.activePaths);
+            
+            return (
               <Box
+                key={item.path}
+                component={Link}
+                to={item.path}
                 sx={{
-                  color: isActive(item.path) ? 'primary.main' : 'text.secondary',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  clipPath: 'polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%)',
-                  bgcolor: isActive(item.path) ? 'action.selected' : 'transparent',
-                  p: 0.5,
+                  justifyContent: 'center',
+                  position: 'relative',
+                  textDecoration: 'none',
+                  py: 1,
+                  px: 2,
+                  '&:hover': {
+                    bgcolor: 'action.hover',
+                  },
+                  '&::after': index < navItems.length - 1 ? {
+                    content: '""',
+                    position: 'absolute',
+                    top: '50%',
+                    right: -16,
+                    transform: 'translateY(-50%)',
+                    height: '60%',
+                    width: '1px',
+                    backgroundColor: 'divider',
+                    clipPath: 'polygon(0% 0%, 100% 10%, 100% 90%, 0% 100%)'
+                  } : {}
                 }}
               >
-                {/* Usar el componente de icono directamente como JSX */}
-                <item.icon sx={{ fontSize: 18 }} />
+                <Box
+                  sx={{
+                    color: isActive ? 'primary.main' : 'text.secondary',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    clipPath: 'polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%)',
+                    bgcolor: isActive ? 'action.selected' : 'transparent',
+                    p: 0.5,
+                  }}
+                >
+                  <item.icon sx={{ fontSize: 18 }} />
+                </Box>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: isActive ? 'primary.main' : 'text.secondary',
+                    fontSize: '0.65rem',
+                    fontWeight: isActive ? 500 : 400,
+                    mt: 0.2
+                  }}
+                >
+                  {item.title}
+                </Typography>
               </Box>
-              <Typography
-                variant="caption"
-                sx={{
-                  color: isActive(item.path) ? 'primary.main' : 'text.secondary',
-                  fontSize: '0.65rem',
-                  fontWeight: isActive(item.path) ? 500 : 400,
-                  mt: 0.2
-                }}
-              >
-                {item.label}
-              </Typography>
-            </Box>
-          ))}
+            );
+          })}
         </Box>
       </Box>
     </Paper>

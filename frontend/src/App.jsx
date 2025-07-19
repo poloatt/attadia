@@ -5,6 +5,7 @@ import { Propiedades } from './pages/Propiedades';
 import { Layout } from './layouts/Layout';
 import { Register } from './components/Register';
 import Assets from './pages/Assets';
+import Finanzas from './pages/Finanzas';
 import Transacciones from './pages/Transacciones';
 import { Recurrente } from './pages/Recurrente';
 import Rutinas from './pages/Rutinas';
@@ -94,7 +95,8 @@ function App() {
                   <Route path="/assets/propiedades" element={<Propiedades />} />
                   
                   {/* Rutas anidadas para Assets/Finanzas */}
-                  <Route path="/assets/finanzas" element={<Transacciones />} />
+                  <Route path="/assets/finanzas" element={<Finanzas />} />
+                  <Route path="/assets/finanzas/transacciones" element={<Transacciones />} />
                   <Route path="/assets/finanzas/cuentas" element={<Cuentas />} />
                   <Route path="/assets/finanzas/monedas" element={<Monedas />} />
                   <Route path="/assets/finanzas/inversiones" element={<Inversiones />} />

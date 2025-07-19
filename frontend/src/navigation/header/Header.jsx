@@ -88,8 +88,8 @@ export default function Header() {
           gap: 1
         }}>
           <HeaderMenuButton />
-          {/* Botón de atrás solo si no estamos en la raíz y (no es mobile o la toolbar no está activa) */}
-          {location.pathname !== '/' && (!isMobile || !showEntityToolbarNavigation) && (
+          {/* Botón de atrás solo si no estamos en la raíz y la toolbar no está activa */}
+          {location.pathname !== '/' && !showEntityToolbarNavigation && (
             <IconButton onClick={handleBack} size="small" sx={{ ml: 0, mr: 0.5 }}>
               {icons.arrowBack ? <icons.arrowBack sx={{ fontSize: 18 }} /> : <span>&larr;</span>}
             </IconButton>

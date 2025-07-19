@@ -92,9 +92,12 @@ const monedaSchema = createSchema({
   ...commonFields
 });
 
-// Middleware para filtrar por usuario en las consultas
+// Middleware para filtrar por usuario solo en consultas de lectura (find)
+// No aplicar en operaciones de escritura (create, update, delete)
 monedaSchema.pre(/^find/, function() {
-  if (this._conditions.usuario) {
+  // Solo aplicar filtro si hay condiciones de usuario específicas
+  // y no estamos en una operación de administración
+  if (this._conditions.usuario && !this._conditions.esGlobal) {
     const userId = this._conditions.usuario;
     this._conditions.$or = [
       { usuario: userId },

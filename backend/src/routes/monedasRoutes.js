@@ -1,8 +1,6 @@
 import express from 'express';
 import { monedasController } from '../controllers/monedasController.js';
 import { checkAuth } from '../middleware/auth.js';
-import { checkRole } from '../middleware/checkRole.js';
-import { ROLES } from '../config/constants.js';
 
 const router = express.Router();
 
@@ -22,8 +20,8 @@ router.post('/', monedasController.create);
 // Rutas con parámetros (deben ir al final)
 router.get('/:id', monedasController.getById);
 router.get('/:id/balance', monedasController.getBalance);
-router.put('/:id', [checkRole([ROLES.ADMIN])], monedasController.update);
-router.delete('/:id', [checkRole([ROLES.ADMIN])], monedasController.delete);
+router.put('/:id', monedasController.update);
+router.delete('/:id', monedasController.delete);
 router.patch('/:id/toggle-active', monedasController.toggleActive);
 
 export default router; 

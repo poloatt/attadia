@@ -18,20 +18,21 @@ import {
   Switch,
   Chip
 } from '@mui/material';
-import { EntityToolbar, EntityDetails, EntityForm } from '../components/EntityViews';
+import EntityToolbar from '../components/EntityViews/EntityToolbar';
+import { EntityDetails, EntityForm } from '../components/EntityViews';
 import { 
   AccountBalanceOutlined as BankIcon,
   AccountBalanceWalletOutlined as WalletIcon,
   CurrencyExchangeOutlined as CurrencyIcon,
+  AutorenewOutlined as RecurrentIcon,
+  PersonOutlineOutlined,
   MoreVertOutlined as MoreIcon,
   EditOutlined as EditIcon,
   DeleteOutlineOutlined as DeleteIcon,
   CheckOutlined as CheckIcon,
   CloseOutlined as CloseIcon,
   AddOutlined as AddIcon,
-  RefreshOutlined as RefreshIcon,
-  AutorenewOutlined as RecurrentIcon,
-  PersonOutlineOutlined
+  RefreshOutlined as RefreshIcon
 } from '@mui/icons-material';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
@@ -605,15 +606,7 @@ export function Monedas() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar
-        onAdd={() => {
-          setEditingMoneda(null);
-          setIsFormOpen(true);
-        }}
-        showBackButton={true}
-        onBack={() => window.location.href = '/assets'}
-        navigationItems={navigationItems}
-      />
+      <EntityToolbar />
       
       <EntityDetails 
         title="Monedas"

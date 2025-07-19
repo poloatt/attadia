@@ -145,75 +145,57 @@ export function Archivo() {
   };
 
   return (
-    <Container maxWidth="xl">
-      <EntityToolbar 
-        title="Archivo"
-        icon={<ArchiveIcon sx={{ fontSize: 20 }} />}
-        showAddButton={false}
-        showBackButton={true}
-        onBack={handleBack}
-        navigationItems={[
-          { 
-            icon: <ProjectIcon sx={{ fontSize: 20 }} />, 
-            label: 'Proyectos', 
-            to: '/proyectos',
-            current: location.pathname === '/proyectos'
-          },
-          {
-            icon: <TaskIcon sx={{ fontSize: 20 }} />,
-            label: 'Tareas',
-            to: '/tareas',
-            current: location.pathname === '/tareas'
-          }
-        ]}
-        entityName="archivo"
-      />
+    <Box sx={{ px: 0, width: '100%' }}>
+      <Container maxWidth={isMobile ? "sm" : "xl"} sx={{ px: isMobile ? 1 : 3 }}>
+        <EntityToolbar />
 
-      <Box 
-        sx={{ 
-          py: 2,
-          height: 'calc(100vh - 190px)', // Aumentado para evitar que pase por debajo de BottomNavigation
-          overflowY: 'auto',
-          '&::-webkit-scrollbar': {
-            width: '8px',
-          },
-          '&::-webkit-scrollbar-track': {
-            backgroundColor: 'rgba(0,0,0,0.1)',
-          },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: 'rgba(0,0,0,0.2)',
-            borderRadius: '4px',
-          },
-          '&::-webkit-scrollbar-thumb:hover': {
-            backgroundColor: 'rgba(0,0,0,0.3)',
-          },
-        }}
-      >
-        <TareasTable
-          tareas={tareas}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onUpdateEstado={handleUpdateEstado}
-          isArchive={true}
-          showValues={showValues}
-        />
-      </Box>
-
-      {isFormOpen && (
-        <TareaForm
-          open={isFormOpen}
-          onClose={() => {
-            setIsFormOpen(false);
-            setEditingTarea(null);
+        <Box 
+          sx={{ 
+            py: isMobile ? 1 : 2,
+            px: isMobile ? 0 : 1,
+            height: isMobile ? 'calc(100vh - 180px)' : 'calc(100vh - 190px)', // Ajustado para móvil
+            overflowY: 'auto',
+            '&::-webkit-scrollbar': {
+              width: isMobile ? '4px' : '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: 'rgba(0,0,0,0.1)',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: 'rgba(0,0,0,0.2)',
+              borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb:hover': {
+              backgroundColor: 'rgba(0,0,0,0.3)',
+            },
           }}
-          onSubmit={handleFormSubmit}
-          initialData={editingTarea}
-          isEditing={!!editingTarea}
-          proyectos={proyectos}
-          onProyectosUpdate={fetchProyectos}
-        />
-      )}
-    </Container>
+        >
+          <TareasTable
+            tareas={tareas}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onUpdateEstado={handleUpdateEstado}
+            isArchive={true}
+            showValues={showValues}
+          />
+        </Box>
+
+        {isFormOpen && (
+          <TareaForm
+            open={isFormOpen}
+            onClose={() => {
+              setIsFormOpen(false);
+              setEditingTarea(null);
+            }}
+            onSubmit={handleFormSubmit}
+            initialData={editingTarea}
+            isEditing={!!editingTarea}
+            proyectos={proyectos}
+            onProyectosUpdate={fetchProyectos}
+          />
+        )}
+      </Container>
+    </Box>
   );
 }
 

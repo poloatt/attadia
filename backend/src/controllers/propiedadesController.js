@@ -1,5 +1,6 @@
 import { BaseController } from './BaseController.js';
 import { Propiedades, Habitaciones, Inquilinos, Contratos, Inventarios } from '../models/index.js';
+import statusCache from '../utils/statusCache.js';
 
 class PropiedadesController extends BaseController {
   constructor() {
@@ -86,22 +87,22 @@ class PropiedadesController extends BaseController {
   // GET /api/propiedades
   async getAll(req, res) {
     try {
-      console.log('Obteniendo propiedades...');
-      
       // Verificar si hay un usuario autenticado
       if (!req.user) {
-        console.log('No hay usuario autenticado');
         return res.status(401).json({ error: 'Usuario no autenticado' });
       }
       
-      const { usuario } = req.query;
+      const { usuario, withRelated } = req.query;
       
       // Si no se proporciona un usuario en la query, usar el ID del usuario autenticado
       const filtros = {
         usuario: usuario || req.user.id
       };
       
-      console.log('Filtros aplicados:', filtros);
+      // Si se solicita con datos relacionados, usar el método optimizado
+      if (withRelated === 'true') {
+        return this.getAllWithRelated(req, res);
+      }
       
       // Obtener propiedades con populate
       const propiedades = await this.Model.find(filtros)
@@ -117,6 +118,89 @@ class PropiedadesController extends BaseController {
         error: 'Error al obtener propiedades',
         details: error.message,
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+    }
+  }
+
+  // GET /api/propiedades?withRelated=true - Método optimizado
+  async getAllWithRelated(req, res) {
+    try {
+      const { usuario } = req.query;
+      const filtros = {
+        usuario: usuario || req.user.id
+      };
+      
+      // Obtener propiedades básicas
+      const propiedades = await this.Model.find(filtros)
+        .populate(['moneda', 'cuenta'])
+        .lean();
+      
+      // Obtener todos los datos relacionados en paralelo
+      const propiedadesIds = propiedades.map(p => p._id);
+      
+      const [habitaciones, inquilinos, contratos, inventarios] = await Promise.all([
+        Habitaciones.find({ propiedad: { $in: propiedadesIds } }).lean(),
+        Inquilinos.find({ propiedad: { $in: propiedadesIds } }).lean(),
+        Contratos.find({ propiedad: { $in: propiedadesIds } }).populate(['inquilino', 'moneda']).lean(),
+        Inventarios.find({ propiedad: { $in: propiedadesIds }, activo: true }).lean()
+      ]);
+      
+      // Usar el cache optimizado para calcular estados
+      const contratosConEstado = statusCache.procesarContratos(contratos);
+      
+      // Agrupar datos relacionados por propiedad
+      const habitacionesPorPropiedad = {};
+      const inquilinosPorPropiedad = {};
+      const contratosPorPropiedad = {};
+      const inventariosPorPropiedad = {};
+      
+      habitaciones.forEach(h => {
+        if (!habitacionesPorPropiedad[h.propiedad]) {
+          habitacionesPorPropiedad[h.propiedad] = [];
+        }
+        habitacionesPorPropiedad[h.propiedad].push(h);
+      });
+      
+      inquilinos.forEach(i => {
+        if (!inquilinosPorPropiedad[i.propiedad]) {
+          inquilinosPorPropiedad[i.propiedad] = [];
+        }
+        inquilinosPorPropiedad[i.propiedad].push(i);
+      });
+      
+      contratosConEstado.forEach(c => {
+        if (!contratosPorPropiedad[c.propiedad]) {
+          contratosPorPropiedad[c.propiedad] = [];
+        }
+        contratosPorPropiedad[c.propiedad].push(c);
+      });
+      
+      inventarios.forEach(inv => {
+        if (!inventariosPorPropiedad[inv.propiedad]) {
+          inventariosPorPropiedad[inv.propiedad] = [];
+        }
+        inventariosPorPropiedad[inv.propiedad].push(inv);
+      });
+      
+      // Combinar datos
+      const propiedadesEnriquecidas = propiedades.map(propiedad => {
+        const propiedadId = propiedad._id.toString();
+        return {
+          ...propiedad,
+          habitaciones: habitacionesPorPropiedad[propiedadId] || [],
+          inquilinos: inquilinosPorPropiedad[propiedadId] || [],
+          contratos: contratosPorPropiedad[propiedadId] || [],
+          inventario: inventariosPorPropiedad[propiedadId] || []
+        };
+      });
+      
+      res.json({ docs: propiedadesEnriquecidas });
+      
+    } catch (error) {
+      console.error('Error al obtener propiedades con datos relacionados:', error);
+      res.status(500).json({ 
+        error: 'Error al obtener propiedades',
+        details: error.message
       });
     }
   }

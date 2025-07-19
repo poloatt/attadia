@@ -71,31 +71,7 @@ const RutinasContent = () => {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar
-        onAdd={() => handleOpenDialog()}
-        navigationItems={[
-          {
-            icon: <LabIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Lab',
-            to: '/lab'
-          },
-          {
-            icon: <HealthIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Salud',
-            to: '/salud'
-          },
-          {
-            icon: <DietaIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Dieta',
-            to: '/dieta'
-          },
-          {
-            icon: <WeightIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Composición Corporal',
-            to: '/datacorporal'
-          }
-        ]}
-      />
+      <EntityToolbar />
       
       <EntityDetails 
         title="Rutinas"

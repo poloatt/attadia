@@ -18,17 +18,12 @@ import {
   AccordionSummary,
   AccordionDetails,
 } from '@mui/material';
-import { EntityToolbar } from '../components/EntityViews';
+import EntityToolbar from '../components/EntityViews/EntityToolbar';
 import { EntityForm } from '../components/EntityViews';
 import { 
-  CurrencyExchangeOutlined as CurrencyIcon,
-  AccountBalanceWalletOutlined as WalletIcon,
   AccountBalanceOutlined as BankIcon,
   CreditCardOutlined as CardIcon,
-  AttachMoneyOutlined as MoneyIcon,
-  ExpandMore as ExpandMoreIcon,
-  AutorenewOutlined as RecurrentIcon,
-  PersonOutlineOutlined as DeudoresIcon
+  AttachMoneyOutlined as MoneyIcon
 } from '@mui/icons-material';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';

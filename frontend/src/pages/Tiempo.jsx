@@ -309,16 +309,17 @@ export function Tiempo() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <Container maxWidth="xl">
+      <Container maxWidth={isMobile ? "sm" : "xl"} sx={{ px: isMobile ? 1 : 3 }}>
         <EntityToolbar />
 
         <Box 
           sx={{ 
-            py: 2,
-            height: 'calc(100vh - 190px)',
+            py: isMobile ? 1 : 2,
+            px: isMobile ? 0 : 1,
+            height: isMobile ? 'calc(100vh - 180px)' : 'calc(100vh - 190px)', // Ajustado para móvil
             overflowY: 'auto',
             '&::-webkit-scrollbar': {
-              width: '8px',
+              width: isMobile ? '4px' : '8px',
             },
             '&::-webkit-scrollbar-track': {
               backgroundColor: 'rgba(0,0,0,0.1)',

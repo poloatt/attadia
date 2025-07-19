@@ -1,6 +1,7 @@
 import { BaseController } from './BaseController.js';
 import { Contratos, Inquilinos, Propiedades } from '../models/index.js';
 import mongoose from 'mongoose';
+import statusCache from '../utils/statusCache.js';
 
 class ContratosController extends BaseController {
   constructor() {
@@ -146,85 +147,24 @@ class ContratosController extends BaseController {
   // GET /api/contratos/estado-actual
   async getConEstadoActual(req, res) {
     try {
-      console.log('Obteniendo contratos con estado actual...');
-      console.log('Usuario autenticado:', req.user);
       // Verificar si hay un usuario autenticado
       if (!req.user) {
-        console.log('No hay usuario autenticado');
         return res.status(401).json({ error: 'Usuario no autenticado' });
       }
+      
       const { usuario } = req.query;
-      // Si no se proporciona un usuario en la query, usar el ID del usuario autenticado
       const filtros = {
         usuario: new mongoose.Types.ObjectId(usuario || req.user.id)
       };
-      console.log('Filtros aplicados:', filtros);
-      console.log('ID del usuario:', req.user.id);
-      console.log('Tipo de ID del usuario:', typeof req.user.id);
-      // LOG: contar todos los contratos
-      const totalContratos = await this.Model.countDocuments();
-      console.log('Total de contratos en la base de datos:', totalContratos);
-      // LOG: contar contratos que matchean el filtro
-      const totalFiltrados = await this.Model.countDocuments(filtros);
-      console.log('Contratos que matchean el filtro:', totalFiltrados);
-      // LOG: verificar algunos contratos para debug
-      const algunosContratos = await this.Model.find().limit(5);
-      console.log('Algunos contratos en la BD:', algunosContratos.map(c => ({
-        id: c._id,
-        usuario: c.usuario,
-        tipoUsuario: typeof c.usuario,
-        esString: typeof c.usuario === 'string',
-        esObjectId: c.usuario instanceof mongoose.Types.ObjectId
-      })));
-      // Obtener contratos con populate pero sin lean para mantener virtuals
+      
+      // Obtener contratos con populate usando lean() para mejor rendimiento
       const contratos = await this.Model.find(filtros)
-        .populate(this.options.populate);
-      // Convertir a objetos planos y calcular estado actual manualmente
-      const contratosFormateados = contratos.map(contrato => {
-        const contratoObj = contrato.toObject();
-        // Calcular estado actual manualmente
-        try {
-          if (!contratoObj.fechaInicio) {
-            contratoObj.estadoActual = contratoObj.estado || 'PLANEADO';
-          } else {
-            const now = new Date();
-            now.setHours(0, 0, 0, 0);
-            const inicio = new Date(contratoObj.fechaInicio);
-            inicio.setHours(0, 0, 0, 0);
-            if (!contratoObj.fechaFin) {
-              if (inicio <= now) {
-                contratoObj.estadoActual = contratoObj.esMantenimiento || contratoObj.tipoContrato === 'MANTENIMIENTO' ? 'MANTENIMIENTO' : 'ACTIVO';
-              } else {
-                contratoObj.estadoActual = 'PLANEADO';
-              }
-            } else {
-              const fin = new Date(contratoObj.fechaFin);
-              fin.setHours(0, 0, 0, 0);
-              if (contratoObj.esMantenimiento || contratoObj.tipoContrato === 'MANTENIMIENTO') {
-                if (inicio <= now && fin > now) {
-                  contratoObj.estadoActual = 'MANTENIMIENTO';
-                } else if (inicio > now) {
-                  contratoObj.estadoActual = 'PLANEADO';
-                } else {
-                  contratoObj.estadoActual = 'FINALIZADO';
-                }
-              } else {
-                if (inicio <= now && fin > now) {
-                  contratoObj.estadoActual = 'ACTIVO';
-                } else if (inicio > now) {
-                  contratoObj.estadoActual = 'PLANEADO';
-                } else {
-                  contratoObj.estadoActual = 'FINALIZADO';
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Error calculando estado actual para contrato:', contratoObj._id, error);
-          contratoObj.estadoActual = contratoObj.estado || 'PLANEADO';
-        }
-        return contratoObj;
-      });
+        .populate(this.options.populate)
+        .lean();
+      
+      // Usar el cache optimizado para calcular estados
+      const contratosFormateados = statusCache.procesarContratos(contratos);
+      
       res.json({
         docs: contratosFormateados,
         totalDocs: contratosFormateados.length,

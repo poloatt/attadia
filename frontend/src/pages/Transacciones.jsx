@@ -4,15 +4,10 @@ import { Container, Box, Button, Fab } from '@mui/material';
 import { 
   AccountBalanceOutlined as BankIcon,
   CurrencyExchangeOutlined as MoneyIcon,
-  AutorenewOutlined as RecurrentIcon,
-  PersonOutlineOutlined,
-  ApartmentOutlined as BuildingIcon,
-  Inventory2Outlined as InventoryIcon
+  AutorenewOutlined as RecurrentIcon
 } from '@mui/icons-material';
-import AddIcon from '@mui/icons-material/Add';
-import PaidIcon from '@mui/icons-material/Paid';
 import { FabNuevaTransaccion } from '../components/finance';
-import { EntityToolbar } from '../components/EntityViews';
+import EntityToolbar from '../components/EntityViews/EntityToolbar';
 
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
@@ -21,18 +16,6 @@ import { TransaccionTable, TransaccionForm } from '../components/finance';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 import { useAPI } from '../hooks/useAPI';
 import { menuItems } from '../navigation/menuStructure';
-
-// Función utilitaria para buscar path por id
-function findPathById(id, items = menuItems) {
-  for (const item of items) {
-    if (item.id === id && item.path) return item.path;
-    if (item.subItems) {
-      const found = findPathById(id, item.subItems);
-      if (found) return found;
-    }
-  }
-  return null;
-}
 
 export function Transacciones() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -239,7 +222,9 @@ export function Transacciones() {
   // Escuchar evento del Header para abrir formulario
   useEffect(() => {
     const handleHeaderAddButton = (event) => {
+      console.log('🔍 Transacciones: Evento headerAddButtonClicked recibido:', event.detail);
       if (event.detail?.type === 'transaccion') {
+        console.log('🔍 Transacciones: Abriendo formulario de transacción');
         handleOpenForm();
       }
     };

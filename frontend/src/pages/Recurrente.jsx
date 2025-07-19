@@ -13,18 +13,15 @@ import {
   CardActions
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { EntityToolbar, EntityDetails } from '../components/EntityViews';
+import EntityToolbar from '../components/EntityViews/EntityToolbar';
+import { EntityDetails } from '../components/EntityViews';
 import { 
-  AccountBalanceOutlined as BankIcon,
-  AccountBalanceWalletOutlined as WalletIcon,
-  CurrencyExchangeOutlined as CurrencyIcon,
   AutorenewOutlined as RecurrentIcon,
   AddOutlined as AddIcon,
   EditOutlined as EditIcon,
   DeleteOutlineOutlined as DeleteIcon,
   PauseOutlined as PauseIcon,
-  PlayArrowOutlined as PlayIcon,
-  PersonOutlineOutlined
+  PlayArrowOutlined as PlayIcon
 } from '@mui/icons-material';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';

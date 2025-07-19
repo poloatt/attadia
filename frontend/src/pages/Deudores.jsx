@@ -1,11 +1,7 @@
 import React from 'react';
 import { Container, Box } from '@mui/material';
-import { EntityToolbar } from '../components/EntityViews';
+import EntityToolbar from '../components/EntityViews/EntityToolbar';
 import { 
-  AccountBalanceOutlined as BankIcon,
-  AccountBalanceWalletOutlined as WalletIcon,
-  CurrencyExchangeOutlined as CurrencyIcon,
-  AutorenewOutlined as RecurrentIcon,
   PersonOutlineOutlined as DeudoresIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';

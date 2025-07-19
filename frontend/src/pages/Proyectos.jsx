@@ -246,69 +246,72 @@ export function Proyectos() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar />
+      <Container maxWidth={isMobile ? "sm" : "xl"} sx={{ px: isMobile ? 1 : 3 }}>
+        <EntityToolbar />
 
-      <Box 
-        sx={{ 
-          py: 2,
-          height: 'calc(100vh - 190px)', // Aumentado para evitar que pase por debajo de BottomNavigation
-          overflowY: 'auto',
-          '&::-webkit-scrollbar': {
-            width: '8px',
-          },
-          '&::-webkit-scrollbar-track': {
-            backgroundColor: 'rgba(0,0,0,0.1)',
-          },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: 'rgba(0,0,0,0.2)',
-            borderRadius: '4px',
-          },
-          '&::-webkit-scrollbar-thumb:hover': {
-            backgroundColor: 'rgba(0,0,0,0.3)',
-          },
-        }}
-      >
-        <ProyectosGrid
-          proyectos={proyectos}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onAdd={() => {
-            setEditingProyecto(null);
-            setIsFormOpen(true);
+        <Box 
+          sx={{ 
+            py: isMobile ? 1 : 2,
+            px: isMobile ? 0 : 1,
+            height: isMobile ? 'calc(100vh - 180px)' : 'calc(100vh - 190px)', // Ajustado para móvil
+            overflowY: 'auto',
+            '&::-webkit-scrollbar': {
+              width: isMobile ? '4px' : '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: 'rgba(0,0,0,0.1)',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: 'rgba(0,0,0,0.2)',
+              borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb:hover': {
+              backgroundColor: 'rgba(0,0,0,0.3)',
+            },
           }}
-          onUpdateTarea={handleUpdateTarea}
-          onAddTarea={handleAddTarea}
-          showValues={showValues}
+        >
+          <ProyectosGrid
+            proyectos={proyectos}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onAdd={() => {
+              setEditingProyecto(null);
+              setIsFormOpen(true);
+            }}
+            onUpdateTarea={handleUpdateTarea}
+            onAddTarea={handleAddTarea}
+            showValues={showValues}
+            updateWithHistory={updateWithHistory}
+            updateTareaWithHistory={updateTareaWithHistory}
+          />
+        </Box>
+
+        <ProyectoForm
+          open={isFormOpen}
+          onClose={() => setIsFormOpen(false)}
+          onSubmit={handleFormSubmit}
+          isEditing={!!editingProyecto}
+          initialData={editingProyecto}
+          // Pasar funciones de historial para operaciones CRUD
+          createWithHistory={createWithHistory}
           updateWithHistory={updateWithHistory}
-          updateTareaWithHistory={updateTareaWithHistory}
+          deleteWithHistory={deleteWithHistory}
         />
-      </Box>
 
-      <ProyectoForm
-        open={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        onSubmit={handleFormSubmit}
-        isEditing={!!editingProyecto}
-        initialData={editingProyecto}
-        // Pasar funciones de historial para operaciones CRUD
-        createWithHistory={createWithHistory}
-        updateWithHistory={updateWithHistory}
-        deleteWithHistory={deleteWithHistory}
-      />
-
-      {isTareaFormOpen && (
-        <TareaForm
-          open={isTareaFormOpen}
-          onClose={() => {
-            setIsTareaFormOpen(false);
-            setSelectedProyecto(null);
-          }}
-          onSubmit={handleTareaSubmit}
-          initialData={{ proyecto: selectedProyecto }}
-          isEditing={false}
-          proyectos={[selectedProyecto]}
-        />
-      )}
+        {isTareaFormOpen && (
+          <TareaForm
+            open={isTareaFormOpen}
+            onClose={() => {
+              setIsTareaFormOpen(false);
+              setSelectedProyecto(null);
+            }}
+            onSubmit={handleTareaSubmit}
+            initialData={{ proyecto: selectedProyecto }}
+            isEditing={false}
+            proyectos={[selectedProyecto]}
+          />
+        )}
+      </Container>
     </Box>
   );
 }

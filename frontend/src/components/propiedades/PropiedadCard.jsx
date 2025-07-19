@@ -140,12 +140,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
   const color = getEstadoColor(estado, 'PROPIEDAD');
   const icon = getStatusIconComponent(estado, 'PROPIEDAD');
   
-  // Debug: verificar qué se está pasando
-  console.log('PropiedadCard - Propiedad completa:', propiedad);
-  console.log('PropiedadCard - Estado del backend:', propiedad.estado);
-  console.log('PropiedadCard - Estado calculado:', estado);
-  console.log('PropiedadCard - Color:', color);
-  console.log('PropiedadCard - Icon:', icon);
+
 
   // Extraer valores para mostrar
   const alias = propiedad.alias || 'Sin alias';

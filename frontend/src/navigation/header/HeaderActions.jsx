@@ -21,6 +21,7 @@ const ADD_BUTTON_ROUTES = [
   '/tiempo/tareas',
   '/assets/finanzas/cuentas',
   '/assets/finanzas/monedas',
+  '/assets/finanzas/transacciones',
   '/salud/rutinas',
   '/assets/propiedades/inquilinos',
   '/assets/propiedades/contratos',
@@ -63,6 +64,14 @@ const ENTITY_CONFIGS = {
     action: () => {
       window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
         detail: { type: 'transaccion', path: '/assets/finanzas' }
+      }));
+    }
+  },
+  'assets/finanzas/transacciones': {
+    name: 'transacción',
+    action: () => {
+      window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
+        detail: { type: 'transaccion', path: '/assets/finanzas/transacciones' }
       }));
     }
   },
@@ -166,6 +175,18 @@ export const useHeaderActions = () => {
   const showAddButton = ADD_BUTTON_ROUTES.includes(location.pathname);
 
   const showUndoButton = SUPPORTED_ROUTES.some(route => location.pathname.startsWith(route));
+
+  // Debug: solo mostrar en desarrollo
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔍 HeaderActions Debug:', {
+      currentPath: location.pathname,
+      showAddButton,
+      entityConfig: getEntityConfig(),
+      showVisibilityButton,
+      showUndoButton,
+      addButtonRoutes: ADD_BUTTON_ROUTES
+    });
+  }
 
   return {
     getRouteTitle,

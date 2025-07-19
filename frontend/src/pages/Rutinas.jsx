@@ -173,37 +173,30 @@ const RutinasWithContext = () => {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      {/* EntityToolbar para navegación y acciones */}
-      <EntityToolbar />
-      <Box sx={{
-        mt: 0,
-        mb: isMobile ? 2 : 4,
-        pb: isMobile ? '90px' : '104px',
-        minHeight: isMobile ? 'calc(100vh - 90px)' : 'calc(100vh - 104px)',
-        px: 0,
-        maxWidth: '100%',
-        width: '100%'
-      }}>
-        <Box sx={{
-          position: 'relative',
-          maxHeight: isMobile ? 'calc(100vh - 180px)' : 'calc(100vh - 190px)',
-          overflow: 'auto',
-          '&::-webkit-scrollbar': {
-            width: isMobile ? '4px' : '8px',
-          },
-          '&::-webkit-scrollbar-track': {
-            backgroundColor: 'transparent',
-          },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: '4px',
-          },
-          '&::-webkit-scrollbar-thumb:hover': {
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-          },
-          scrollbarWidth: 'thin',
-          scrollbarColor: 'rgba(255, 255, 255, 0.1) transparent'
-        }}>
+      <Container maxWidth={isMobile ? "sm" : "xl"} sx={{ px: isMobile ? 1 : 3 }}>
+        <EntityToolbar />
+        
+        <Box 
+          sx={{ 
+            py: isMobile ? 1 : 2,
+            px: isMobile ? 0 : 1,
+            height: isMobile ? 'calc(100vh - 180px)' : 'calc(100vh - 190px)', // Ajustado para móvil
+            overflowY: 'auto',
+            '&::-webkit-scrollbar': {
+              width: isMobile ? '4px' : '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: 'rgba(0,0,0,0.1)',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: 'rgba(0,0,0,0.2)',
+              borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb:hover': {
+              backgroundColor: 'rgba(0,0,0,0.3)',
+            },
+          }}
+        >
           {/* Loader cuando se están cargando datos */}
           {loading && (
             <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
@@ -243,7 +236,7 @@ const RutinasWithContext = () => {
             />
           )}
         </Box>
-      </Box>
+      </Container>
     </Box>
   );
 };

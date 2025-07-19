@@ -191,19 +191,23 @@ export default function Sidebar() {
   const renderMainSectionsHeader = useCallback(() => {
     return (
       <Box sx={{
-        display: 'flex',
-        flexDirection: isOpen ? 'row' : 'column',
-        alignItems: 'center',
-        justifyContent: isOpen ? 'center' : 'flex-start',
-        gap: isOpen ? 2 : 1.5,
         width: '100%',
-        minHeight: 48,
+        bgcolor: 'background.paper',
         borderBottom: '1px solid',
         borderColor: 'divider',
-        bgcolor: 'background.paper',
-        px: 1,
-        py: isOpen ? 0.5 : 1
+        minHeight: 2, // Misma estructura que EntityToolbar
       }}>
+        <Box sx={{
+          display: 'flex',
+          flexDirection: isOpen ? 'row' : 'column',
+          alignItems: 'center',
+          justifyContent: isOpen ? 'center' : 'flex-start',
+          gap: isOpen ? 2 : 1.5,
+          width: '100%',
+          minHeight: 40, // Misma altura que EntityToolbar
+          px: 1,
+          py: 0.15, // Padding mínimo para alineación perfecta
+        }}>
         {mainSections.map(section => (
           <Tooltip 
             key={section.id} 
@@ -222,21 +226,23 @@ export default function Sidebar() {
               color={selectedMain === section.id ? 'primary' : 'default'}
               sx={{
                 bgcolor: selectedMain === section.id ? '#232323' : 'transparent',
-                borderRadius: 2,
-                width: 40,
-                height: 40,
+                borderRadius: 1, // Cambiado a 1 para seguir el estilo geométrico
+                width: 32,
+                height: 32,
                 m: 0.5,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 transition: 'background 0.2s',
                 color: selectedMain === section.id ? '#fff' : '#bdbdbd',
+                p: 0, // Sin padding interno para alineación perfecta
               }}
             >
-              {section.icon && React.createElement(section.icon, { fontSize: 'medium' })}
+              {section.icon && React.createElement(section.icon, { fontSize: 'small' })}
             </IconButton>
           </Tooltip>
         ))}
+        </Box>
       </Box>
     );
   }, [isOpen, mainSections, selectedMain, setSelectedMain, navigate, closeSidebar]);

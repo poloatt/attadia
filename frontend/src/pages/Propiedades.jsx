@@ -47,6 +47,7 @@ import PropiedadForm from '../components/propiedades/PropiedadForm';
 import PropiedadList from '../components/propiedades/PropiedadList';
 import { usePageWithHistory } from '../hooks/useGlobalActionHistory';
 import { EntityToolbar, EntityForm, EntityDetails, EntityCards, EntityActions } from '../components/EntityViews';
+import { usePropiedadesOptimizadas } from '../hooks/useStatusOptimizer.js';
 
 // Cambiamos a exportación nombrada para coincidir con App.jsx
 export function Propiedades() {
@@ -84,9 +85,11 @@ export function Propiedades() {
   // Referencia estable para fetchPropiedades
   const fetchPropiedadesRef = useRef();
   
-  // Cache y control de requests
-  const requestCacheRef = useRef(new Map());
+  // Control de debounce
   const debounceTimerRef = useRef(null);
+  
+  // Hook para optimizar propiedades
+  const propiedadesOptimizadas = usePropiedadesOptimizadas(propiedades);
 
   // Hook automático de historial
   const { createWithHistory, updateWithHistory, deleteWithHistory } = usePageWithHistory(
@@ -105,84 +108,25 @@ export function Propiedades() {
     navigate('/');
   };
 
-  // Función auxiliar para hacer requests con cache
-  const getCachedRequest = useCallback((url) => {
-    const cache = requestCacheRef.current;
-    
-    if (cache.has(url)) {
-      // console.log(`🎯 Cache HIT para: ${url}`);
-      return cache.get(url);
-    }
-    
-    // console.log(`🔄 Cache MISS para: ${url}`);
-    const request = clienteAxios.get(url).finally(() => {
-      // Limpiar cache después de 3 segundos
-      setTimeout(() => {
-        cache.delete(url);
-        // console.log(`🗑️ Cache limpiado para: ${url}`);
-      }, 3000);
-    });
-    
-    cache.set(url, request);
-    return request;
-  }, []);
+
 
   // Función para cargar propiedades con debouncing y cache
   const fetchPropiedades = useCallback(async () => {
     try {
       setLoading(true);
       
-      const response = await clienteAxios.get('/api/propiedades');
+      // Usar el endpoint optimizado que trae todos los datos relacionados
+      const response = await clienteAxios.get('/api/propiedades?withRelated=true');
       
       const propiedadesData = response.data.docs || [];
-      // OPTIMIZACIÓN: Procesar todas las propiedades en paralelo
-      const propiedadesEnriquecidas = await Promise.all(propiedadesData.map(async (propiedad) => {
-        try {
-          const propiedadId = propiedad._id || propiedad.id;
-
-          // Todas las requests en paralelo con cache
-          const [
-            inquilinosResponse,
-            habitacionesResponse,
-            contratosResponse,
-            inventarioResponse
-          ] = await Promise.all([
-            getCachedRequest(`/api/inquilinos/propiedad/${propiedadId}`),
-            getCachedRequest(`/api/habitaciones/propiedad/${propiedadId}`),
-            getCachedRequest(`/api/contratos/propiedad/${propiedadId}`),
-            getCachedRequest(`/api/inventarios/propiedad/${propiedadId}`)
-          ]);
-
-          const habitaciones = habitacionesResponse.data.docs || [];
-          const inquilinos = Array.isArray(inquilinosResponse.data.docs) 
-            ? inquilinosResponse.data.docs 
-            : [];
-          const contratos = contratosResponse.data.docs || [];
-          const inventario = inventarioResponse.data.docs || [];
-
-
-
-          return {
-            ...propiedad,
-            inquilinos,
-            habitaciones,
-            contratos,
-            inventario
-          };
-        } catch (error) {
-          // Solo mostrar error si no es por cancelación de request
-          if (error.name !== 'CanceledError' && !error.message?.includes('cancelada')) {
-            console.error(`Error al cargar datos relacionados para propiedad ${propiedad._id || propiedad.id}:`, error.message);
-          }
-          // Si hay error, agregamos la propiedad con arrays vacíos
-          return {
-            ...propiedad,
-            inquilinos: [],
-            habitaciones: [],
-            contratos: [],
-            inventario: []
-          };
-        }
+      
+      // Los datos ya vienen con todos los relacionados
+      const propiedadesEnriquecidas = propiedadesData.map(propiedad => ({
+        ...propiedad,
+        inquilinos: propiedad.inquilinos || [],
+        habitaciones: propiedad.habitaciones || [],
+        contratos: propiedad.contratos || [],
+        inventario: propiedad.inventario || []
       }));
 
       setPropiedades(propiedadesEnriquecidas);
@@ -195,7 +139,7 @@ export function Propiedades() {
     } finally {
       setLoading(false);
     }
-  }, [getCachedRequest]);
+  }, []);
 
   // Función con debouncing para evitar llamadas múltiples
   const debouncedFetchPropiedades = useCallback(() => {
@@ -206,9 +150,8 @@ export function Propiedades() {
     
     // Configurar nuevo timer
     debounceTimerRef.current = setTimeout(() => {
-      // console.log('🔄 Ejecutando fetchPropiedades con debounce');
       fetchPropiedades();
-    }, 300); // 300ms de debounce
+    }, 150); // Reducido a 150ms para respuesta más rápida
   }, [fetchPropiedades]);
   
   // Mantener referencia actualizada
@@ -256,7 +199,6 @@ export function Propiedades() {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
-      requestCacheRef.current.clear();
     };
   }, []); // Solo ejecutar una vez al montar
 
@@ -428,66 +370,52 @@ export function Propiedades() {
   }
 
   return (
-    <Box sx={{
-      width: '100%',
-      maxWidth: 900,
-      mx: 'auto',
-      px: { xs: 1, sm: 2, md: 3 },
-      py: 2,
-      pb: { xs: 10, sm: 4 },
-      boxSizing: 'border-box',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 0
-    }}>
+    <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar />
+      
+      <Box sx={{
+        width: '100%',
+        maxWidth: 900,
+        mx: 'auto',
+        px: { xs: 1, sm: 2, md: 3 },
+        py: 2,
+        pb: { xs: 10, sm: 4 },
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 0
+      }}>
+        <EntityDetails 
+          title="Propiedades"
+        >
+          <PropiedadList
+            propiedades={propiedadesOptimizadas}
+            filteredPropiedades={filteredPropiedades}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onAdd={() => setIsFormOpen(true)}
+          />
+        </EntityDetails>
 
-
-      <EntityDetails 
-        title="Propiedades"
-        action={
-          <Button 
-            variant="contained" 
-            startIcon={<AddIcon />} 
-            size="small"
-            onClick={() => {
-              setEditingPropiedad(null);
-              setIsFormOpen(true);
-            }}
-            sx={{ borderRadius: 0 }}
-          >
-            Nueva Propiedad
-          </Button>
-        }
-      >
-        <PropiedadList
-          propiedades={propiedades}
-          filteredPropiedades={filteredPropiedades}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onAdd={() => setIsFormOpen(true)}
+        <PropiedadForm
+          open={isFormOpen}
+          onClose={() => {
+            setIsFormOpen(false);
+            setEditingPropiedad(null);
+          }}
+          onSubmit={() => {
+            // PropiedadForm maneja la creación internamente y dispara evento 'entityUpdated'
+            // El listener 'entityUpdated' se encarga de actualizar la lista
+            // Solo cerrar el formulario
+            setIsFormOpen(false);
+            setEditingPropiedad(null);
+          }}
+          initialData={editingPropiedad || {}}
+          isEditing={!!editingPropiedad}
+          createWithHistory={createWithHistory}
+          updateWithHistory={updateWithHistory}
         />
-      </EntityDetails>
-
-      <PropiedadForm
-        open={isFormOpen}
-        onClose={() => {
-          setIsFormOpen(false);
-          setEditingPropiedad(null);
-        }}
-        onSubmit={() => {
-          // PropiedadForm maneja la creación internamente y dispara evento 'entityUpdated'
-          // El listener 'entityUpdated' se encarga de actualizar la lista
-          // Solo cerrar el formulario
-          setIsFormOpen(false);
-          setEditingPropiedad(null);
-        }}
-        initialData={editingPropiedad || {}}
-        isEditing={!!editingPropiedad}
-        createWithHistory={createWithHistory}
-        updateWithHistory={updateWithHistory}
-      />
-
+      </Box>
     </Box>
   );
 }

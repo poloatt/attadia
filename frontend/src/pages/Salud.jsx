@@ -12,25 +12,7 @@ import { UnderConstruction } from '../components/common';
 export function Salud() {
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar
-        navigationItems={[
-          {
-            icon: <LabIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Lab',
-            to: '/lab'
-          },
-          {
-            icon: <DietaIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Dieta',
-            to: '/dieta'
-          },
-          {
-            icon: <WeightIcon sx={{ fontSize: 21.6 }} />,
-            label: 'Composición Corporal',
-            to: '/datacorporal'
-          }
-        ]}
-      />
+      <EntityToolbar />
 
       <EntityDetails
         title="Salud"
