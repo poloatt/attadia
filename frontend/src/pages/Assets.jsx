@@ -4,8 +4,8 @@ import { Link } from 'react-router-dom';
 
 import BarraEstadoPropiedad from '../components/propiedades/BarraEstadoPropiedad';
 import clienteAxios from '../config/axios';
-import { 
-  ApartmentOutlined as BuildingIcon,
+import {
+  HomeWork,
   AccountBalanceOutlined as BankIcon,
   CreditCardOutlined as CardIcon,
   AttachMoneyOutlined as MoneyIcon,
@@ -43,7 +43,8 @@ import {
   StyledTextField,
   CategoryChip,
   StyledSectionTitle,
-  PropiedadDetail
+  PropiedadDetail,
+  PropiedadHeader
 } from '../components/propiedades';
 import { getEstadoColor, getEstadoText, getStatusIconComponent } from '../components/common/StatusSystem';
 
@@ -472,7 +473,8 @@ export function Assets() {
           {/* Métricas de propiedades */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <BuildingIcon sx={{ fontSize: 18 }} />
+              {/* Icono genérico para el resumen de propiedades */}
+              <HomeWork sx={{ fontSize: 18 }} />
               <Typography
                 component={Link}
                 to="/propiedades"
@@ -551,7 +553,7 @@ export function Assets() {
                     sx={{ 
                       display: 'flex', 
                       alignItems: 'center', 
-                      gap: 1, 
+                      justifyContent: 'space-between',
                       mb: 1,
                       cursor: 'pointer',
                       '&:hover': {
@@ -560,14 +562,13 @@ export function Assets() {
                     }}
                     onClick={() => handlePropiedadClick(prop)}
                   >
-                    <BuildingIcon sx={{ fontSize: 18 }} />
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                      {prop.alias || prop.titulo || 'Sin alias'}
-                    </Typography>
-                    <StatusChip customcolor={getEstadoColor(estadisticasPropiedad.estado, 'PROPIEDAD')}>
-                      {getStatusIconComponent(estadisticasPropiedad.estado, 'PROPIEDAD')}
-                      <span>{getEstadoText(estadisticasPropiedad.estado, 'PROPIEDAD')}</span>
-                    </StatusChip>
+                    <PropiedadHeader 
+                      propiedad={prop} 
+                      showEstado={true}
+                      iconSize="18px"
+                      titleSize="subtitle1"
+                      titleWeight={600}
+                    />
                   </Box>
                   {/* Barra de estado de la propiedad usando progreso financiero real */}
                   {progresoOcupacion.tieneContrato && progresoOcupacion.montoMensual > 0 && (

@@ -8,7 +8,7 @@ import {
   PersonOutlined,
   DescriptionOutlined,
   HotelOutlined,
-  HealthAndSafetyOutlined,
+  LocalHospitalOutlined,
   MonitorHeartOutlined,
   ScienceOutlined,
   RestaurantOutlined,
@@ -27,7 +27,8 @@ import {
   ExpandLess,
   ExpandMore,
   FiberManualRecordOutlined,
-  KeyboardBackspaceOutlined
+  KeyboardBackspaceOutlined,
+  MonetizationOnOutlined // icono "$" dentro de círculo para assets
 } from '@mui/icons-material';
 
 export const icons = {
@@ -40,7 +41,7 @@ export const icons = {
   person: PersonOutlined,
   description: DescriptionOutlined,
   hotel: HotelOutlined,
-  health: HealthAndSafetyOutlined, // health icon para la sección salud
+  health: LocalHospitalOutlined, // health icon para la sección salud
   monitorHeart: MonitorHeartOutlined, // monitor heart para data corporal
   science: ScienceOutlined,
   restaurant: RestaurantOutlined,
@@ -61,5 +62,6 @@ export const icons = {
   expandLess: ExpandLess,
   expandMore: ExpandMore,
   fiberManualRecord: FiberManualRecordOutlined,
-  arrowBack: KeyboardBackspaceOutlined
+  arrowBack: KeyboardBackspaceOutlined,
+  dollarSign: MonetizationOnOutlined // icono "$" dentro de círculo para assets
 }; 

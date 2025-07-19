@@ -68,6 +68,7 @@ import {
   calcularProgresoOcupacion, 
   getCuentaYMoneda
 } from './propiedadUtils';
+import PropiedadHeader from './PropiedadHeader';
 import { SeccionInquilinos, SeccionHabitaciones, SeccionDocumentos } from './SeccionesPropiedad';
 import { calcularAlquilerMensualPromedio, calcularEstadoFinanzasContrato, calcularEstadoCuotasContrato } from './contratos/contratoUtils';
 import EstadoFinanzasContrato from './contratos/EstadoFinanzasContrato';
@@ -310,19 +311,13 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
       width: '100%'
     }}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-        {/* Título de la propiedad */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <HomeWork sx={{ fontSize: '1.1rem', color: 'text.primary' }} />
-          <Typography variant="subtitle1" sx={{ fontWeight: 500, fontSize: '0.9rem', lineHeight: 1.2 }}>
-            {alias}
-          </Typography>
-        </Box>
-        
-        {/* Estado de la propiedad */}
-        <StatusChip customcolor={color}>
-          {icon}
-          <span>{getEstadoText(estado, 'PROPIEDAD')}</span>
-        </StatusChip>
+        <PropiedadHeader 
+          propiedad={propiedad} 
+          showEstado={true}
+          iconSize="1.1rem"
+          titleSize="subtitle1"
+          titleWeight={500}
+        />
       </Box>
       <Box sx={{ display: 'flex', gap: 0.5 }}>
         <Tooltip title={viewMode === 'list' ? "Cambiar a Vista Grid" : "Cambiar a Vista Lista"}>

@@ -38,6 +38,7 @@ import BarraEstadoPropiedad from './BarraEstadoPropiedad';
 import { 
   pluralizar
 } from './propiedadUtils';
+import TipoPropiedadIcon from './TipoPropiedadIcon';
 import { getEstadoColor, getEstadoText, getStatusIconComponent } from '../common/StatusSystem';
 import { 
   getEstadoContrato as getEstadoContratoFromUtils,
@@ -150,14 +151,7 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
 
   // Función para obtener el icono de tipo de propiedad
   const getTipoIcon = (tipo) => {
-    const iconMap = {
-      'CASA': <HomeWork />,
-      'DEPARTAMENTO': <HomeWork />,
-      'OFICINA': <HomeWork />,
-      'LOCAL': <HomeWork />,
-      'TERRENO': <HomeWork />
-    };
-    return iconMap[tipo] || <HomeWork />;
+    return <TipoPropiedadIcon tipo={tipo} />;
   };
 
 
@@ -184,7 +178,10 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
   const renderHeader = () => (
     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <HomeWork sx={{ fontSize: 32, color: 'primary.main' }} />
+        <TipoPropiedadIcon 
+          tipo={propiedadCompleta?.tipo} 
+          sx={{ fontSize: 32, color: 'primary.main' }} 
+        />
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 600 }}>
             {propiedadCompleta?.alias || 'Sin alias'}

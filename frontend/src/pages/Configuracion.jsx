@@ -16,20 +16,8 @@ export function Configuracion() {
   } = useUISettings();
   const { logout, user } = useAuth();
 
-  // Lógica para aplicar valores por defecto según dispositivo
-  React.useEffect(() => {
-    // Solo aplicar si el usuario no ha cambiado la configuración manualmente
-    // (esto requiere que el contexto UISettings tenga una forma de saber si el usuario ya cambió algo)
-    // Aquí asumimos que si está en el valor por defecto, lo podemos setear
-    if (isMobile) {
-      if (showSidebar) toggleSidebar(); // Apagar sidebar si está prendido
-      if (!showEntityToolbarNavigation) toggleEntityToolbarNavigation(); // Prender toolbar si está apagada
-    } else {
-      if (!showSidebar) toggleSidebar(); // Prender sidebar si está apagado
-      if (showEntityToolbarNavigation) toggleEntityToolbarNavigation(); // Apagar toolbar si está prendida
-    }
-    // Nota: Esto puede causar un pequeño "parpadeo" si el valor cambia al montar
-  }, [isMobile]);
+  // La configuración automática por dispositivo ahora se maneja en UISettingsContext
+  // No necesitamos lógica adicional aquí ya que los valores por defecto se establecen correctamente
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>

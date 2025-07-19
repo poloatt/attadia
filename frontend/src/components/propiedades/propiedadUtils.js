@@ -11,9 +11,40 @@ import {
   calcularProgresoFinancieroContrato
 } from './contratos';
 
+// Importaciones de iconos para tipos de propiedad
+import HomeWork from '@mui/icons-material/HomeWork';
+import ApartmentOutlined from '@mui/icons-material/ApartmentOutlined';
+import BusinessOutlined from '@mui/icons-material/BusinessOutlined';
+import StorefrontOutlined from '@mui/icons-material/StorefrontOutlined';
+import ParkOutlined from '@mui/icons-material/ParkOutlined';
+
 // Función para pluralizar palabras
 export function pluralizar(cantidad, singular, plural) {
   return cantidad === 1 ? singular : plural;
+}
+
+// Función para obtener el icono según el tipo de propiedad
+export function getTipoPropiedadIcon(tipo) {
+  const iconMap = {
+    'CASA': HomeWork,
+    'DEPARTAMENTO': ApartmentOutlined,
+    'OFICINA': BusinessOutlined,
+    'LOCAL': StorefrontOutlined,
+    'TERRENO': ParkOutlined
+  };
+  
+  return iconMap[tipo] || HomeWork; // Default a HomeWork si no se encuentra el tipo
+}
+
+// Función para obtener el componente de icono con props predefinidas
+export function getTipoPropiedadIconComponent(tipo, props = {}) {
+  const IconComponent = getTipoPropiedadIcon(tipo);
+  const defaultProps = { 
+    sx: { fontSize: '1.1rem', color: 'text.primary' },
+    ...props 
+  };
+  
+  return { IconComponent, props: defaultProps };
 }
 
 // Estado de contrato - ahora reutiliza la función de contratoUtils

@@ -5,14 +5,14 @@ export const menuItems = [
   {
     id: 'assets',
     title: 'Assets',
-    icon: icons.trendingUp,
+    icon: icons.dollarSign,
     path: '/assets',
     hasSubItems: true,
     subItems: [
       {
         id: 'finanzas',
         title: 'Finanzas', // nombre para mostrar
-        icon: icons.moneyBag,
+        icon: icons.wallet,
         path: '/assets/finanzas',
         hasSubItems: true,
         subItems: [
@@ -32,7 +32,6 @@ export const menuItems = [
         subItems: [
           { id: 'inquilinos', title: 'Inquilinos', path: '/assets/propiedades/inquilinos', icon: icons.person },
           { id: 'contratos', title: 'Contratos', path: '/assets/propiedades/contratos', icon: icons.description },
-          { id: 'inventario', title: 'Inventario', path: '/assets/propiedades/inventario', icon: icons.inventario, isUnderConstruction: true },
         ]
       },
       {
@@ -40,6 +39,14 @@ export const menuItems = [
         title: 'Autos',
         icon: icons.auto,
         path: '/assets/autos',
+        hasSubItems: false,
+        isUnderConstruction: true
+      },
+      {
+        id: 'inventario',
+        title: 'Inventario',
+        icon: icons.inventario,
+        path: '/assets/inventario',
         hasSubItems: false,
         isUnderConstruction: true
       }

@@ -19,22 +19,22 @@ import WarningIcon from '@mui/icons-material/Warning';
 export const PROPIEDAD_ESTADOS = {
   DISPONIBLE: {
     icon: 'PendingActions',
-    color: '#4caf50', // Verde - disponible
+    color: '#81c784', // Verde pastel - disponible
     text: 'Disponible'
   },
   OCUPADA: {
     icon: 'CheckCircle',
-    color: '#2196f3', // Azul - ocupada
+    color: '#64b5f6', // Azul pastel - ocupada
     text: 'Ocupada'
   },
   MANTENIMIENTO: {
     icon: 'Engineering',
-    color: '#ff9800', // Naranja - mantenimiento
+    color: '#ffb74d', // Naranja pastel - mantenimiento
     text: 'Mantenimiento'
   },
   RESERVADA: {
     icon: 'BookmarkAdded',
-    color: '#673ab7', // Púrpura - reservada
+    color: '#f8bbd9', // Rosa pastel - reservada
     text: 'Reservada'
   }
 };
@@ -43,22 +43,22 @@ export const PROPIEDAD_ESTADOS = {
 export const CONTRATO_ESTADOS = {
   ACTIVO: {
     icon: 'CheckCircle',
-    color: '#2196f3', // Azul - activo (coherente con OCUPADA)
+    color: '#64b5f6', // Azul pastel - activo (coherente con OCUPADA)
     text: 'Activo'
   },
   PLANEADO: {
     icon: 'PendingActions',
-    color: '#673ab7', // Púrpura - planeado (coherente con RESERVADA/RESERVADO)
+    color: '#f8bbd9', // Rosa pastel - planeado (coherente con RESERVADA/RESERVADO)
     text: 'Planeado'
   },
   FINALIZADO: {
     icon: 'BookmarkAdded',
-    color: '#9e9e9e', // Gris - finalizado
+    color: '#bdbdbd', // Gris pastel - finalizado
     text: 'Finalizado'
   },
   MANTENIMIENTO: {
     icon: 'Engineering',
-    color: '#ff9800', // Naranja - mantenimiento (coherente)
+    color: '#ffb74d', // Naranja pastel - mantenimiento (coherente)
     text: 'Mantenimiento'
   }
 };
@@ -67,27 +67,27 @@ export const CONTRATO_ESTADOS = {
 export const INQUILINO_ESTADOS = {
   ACTIVO: {
     icon: 'CheckCircle',
-    color: '#2196f3', // Azul - activo (coherente con OCUPADA/ACTIVO)
+    color: '#64b5f6', // Azul pastel - activo (coherente con OCUPADA/ACTIVO)
     text: 'Activo'
   },
   RESERVADO: {
     icon: 'BookmarkAdded',
-    color: '#673ab7', // Púrpura - reservado (coherente con RESERVADA)
+    color: '#f8bbd9', // Rosa pastel - reservado (coherente con RESERVADA)
     text: 'Reservado'
   },
   PENDIENTE: {
     icon: 'PendingActions',
-    color: '#4caf50', // Verde - pendiente (coherente con DISPONIBLE/PLANEADO)
+    color: '#81c784', // Verde pastel - pendiente (coherente con DISPONIBLE/PLANEADO)
     text: 'Pendiente'
   },
   INACTIVO: {
     icon: 'DescriptionIcon',
-    color: '#9e9e9e', // Gris - inactivo (coherente con FINALIZADO)
+    color: '#bdbdbd', // Gris pastel - inactivo (coherente con FINALIZADO)
     text: 'Inactivo'
   },
   SIN_CONTRATO: {
     icon: 'DescriptionIcon',
-    color: '#9e9e9e', // Gris - sin contrato (coherente con INACTIVO)
+    color: '#bdbdbd', // Gris pastel - sin contrato (coherente con INACTIVO)
     text: 'Sin Contrato'
   }
 };
@@ -96,17 +96,17 @@ export const INQUILINO_ESTADOS = {
 export const PROYECTO_ESTADOS = {
   PENDIENTE: {
     icon: 'PendingActions',
-    color: '#4caf50', // Verde - pendiente (coherente con DISPONIBLE/PLANEADO)
+    color: '#81c784', // Verde pastel - pendiente (coherente con DISPONIBLE/PLANEADO)
     text: 'Pendiente'
   },
   EN_PROGRESO: {
     icon: 'Engineering',
-    color: '#2196f3', // Azul - en progreso (coherente con OCUPADA/ACTIVO)
+    color: '#64b5f6', // Azul pastel - en progreso (coherente con OCUPADA/ACTIVO)
     text: 'En Progreso'
   },
   COMPLETADO: {
     icon: 'CheckCircle',
-    color: '#9e9e9e', // Gris - completado (coherente con FINALIZADO/INACTIVO)
+    color: '#bdbdbd', // Gris pastel - completado (coherente con FINALIZADO/INACTIVO)
     text: 'Completado'
   }
 };
@@ -115,22 +115,22 @@ export const PROYECTO_ESTADOS = {
 export const TAREA_ESTADOS = {
   PENDIENTE: {
     icon: 'PendingActions',
-    color: '#4caf50', // Verde - pendiente (coherente con DISPONIBLE/PLANEADO)
+    color: '#81c784', // Verde pastel - pendiente (coherente con DISPONIBLE/PLANEADO)
     text: 'Pendiente'
   },
   EN_PROGRESO: {
     icon: 'Engineering',
-    color: '#2196f3', // Azul - en progreso (coherente con OCUPADA/ACTIVO)
+    color: '#64b5f6', // Azul pastel - en progreso (coherente con OCUPADA/ACTIVO)
     text: 'En Progreso'
   },
   COMPLETADA: {
     icon: 'CheckCircle',
-    color: '#9e9e9e', // Gris - completada (coherente con FINALIZADO/INACTIVO)
+    color: '#bdbdbd', // Gris pastel - completada (coherente con FINALIZADO/INACTIVO)
     text: 'Completada'
   },
   CANCELADA: {
     icon: 'Cancel',
-    color: '#f44336', // Rojo - cancelada (coherente con ERROR)
+    color: '#e57373', // Rojo pastel - cancelada (coherente con ERROR)
     text: 'Cancelada'
   }
 };
@@ -139,22 +139,22 @@ export const TAREA_ESTADOS = {
 export const TRANSACCION_ESTADOS = {
   PENDIENTE: {
     icon: 'PendingActions',
-    color: '#4caf50', // Verde - pendiente (coherente con DISPONIBLE/PLANEADO)
+    color: '#81c784', // Verde pastel - pendiente (coherente con DISPONIBLE/PLANEADO)
     text: 'Pendiente'
   },
   PAGADO: {
     icon: 'CheckCircle',
-    color: '#2196f3', // Azul - pagado (coherente con OCUPADA/ACTIVO)
+    color: '#64b5f6', // Azul pastel - pagado (coherente con OCUPADA/ACTIVO)
     text: 'Pagado'
   },
   COMPLETADA: {
     icon: 'CheckCircle',
-    color: '#2196f3', // Azul - completada (coherente con OCUPADA/ACTIVO)
+    color: '#64b5f6', // Azul pastel - completada (coherente con OCUPADA/ACTIVO)
     text: 'Completada'
   },
   CANCELADA: {
     icon: 'Cancel',
-    color: '#f44336', // Rojo - cancelada (coherente con ERROR)
+    color: '#e57373', // Rojo pastel - cancelada (coherente con ERROR)
     text: 'Cancelada'
   }
 };
@@ -163,17 +163,17 @@ export const TRANSACCION_ESTADOS = {
 export const TRANSACCION_RECURRENTE_ESTADOS = {
   ACTIVO: {
     icon: 'CheckCircle',
-    color: '#2196f3', // Azul - activo (coherente con OCUPADA/ACTIVO)
+    color: '#64b5f6', // Azul pastel - activo (coherente con OCUPADA/ACTIVO)
     text: 'Activo'
   },
   PAUSADO: {
     icon: 'Pause',
-    color: '#ff9800', // Naranja - pausado (coherente con MANTENIMIENTO)
+    color: '#ffb74d', // Naranja pastel - pausado (coherente con MANTENIMIENTO)
     text: 'Pausado'
   },
   FINALIZADO: {
     icon: 'BookmarkAdded',
-    color: '#9e9e9e', // Gris - finalizado (coherente con FINALIZADO/INACTIVO)
+    color: '#bdbdbd', // Gris pastel - finalizado (coherente con FINALIZADO/INACTIVO)
     text: 'Finalizado'
   }
 };
@@ -182,22 +182,22 @@ export const TRANSACCION_RECURRENTE_ESTADOS = {
 export const BANK_CONNECTION_ESTADOS = {
   ACTIVA: {
     icon: 'CheckCircle',
-    color: '#2196f3', // Azul - activa (coherente con OCUPADA/ACTIVO)
+    color: '#64b5f6', // Azul pastel - activa (coherente con OCUPADA/ACTIVO)
     text: 'Activa'
   },
   INACTIVA: {
     icon: 'Cancel',
-    color: '#9e9e9e', // Gris - inactiva (coherente con INACTIVO/FINALIZADO)
+    color: '#bdbdbd', // Gris pastel - inactiva (coherente con INACTIVO/FINALIZADO)
     text: 'Inactiva'
   },
   ERROR: {
     icon: 'Error',
-    color: '#f44336', // Rojo - error (coherente con ERROR/CANCELADA)
+    color: '#e57373', // Rojo pastel - error (coherente con ERROR/CANCELADA)
     text: 'Error'
   },
   PENDIENTE_VERIFICACION: {
     icon: 'PendingActions',
-    color: '#4caf50', // Verde - pendiente (coherente con PENDIENTE)
+    color: '#81c784', // Verde pastel - pendiente (coherente con PENDIENTE)
     text: 'Pendiente de Verificación'
   }
 };
@@ -206,27 +206,27 @@ export const BANK_CONNECTION_ESTADOS = {
 export const INVENTARIO_ESTADOS = {
   NUEVO: {
     icon: 'NewReleases',
-    color: '#4caf50', // Verde - nuevo (coherente con DISPONIBLE/NUEVO)
+    color: '#81c784', // Verde pastel - nuevo (coherente con DISPONIBLE/NUEVO)
     text: 'Nuevo'
   },
   BUEN_ESTADO: {
     icon: 'CheckCircle',
-    color: '#2196f3', // Azul - buen estado (coherente con ACTIVO)
+    color: '#64b5f6', // Azul pastel - buen estado (coherente con ACTIVO)
     text: 'Buen Estado'
   },
   REGULAR: {
     icon: 'Warning',
-    color: '#ff9800', // Naranja - regular (coherente con MANTENIMIENTO)
+    color: '#ffb74d', // Naranja pastel - regular (coherente con MANTENIMIENTO)
     text: 'Regular'
   },
   MALO: {
     icon: 'Error',
-    color: '#f44336', // Rojo - malo (coherente con ERROR/CANCELADA)
+    color: '#e57373', // Rojo pastel - malo (coherente con ERROR/CANCELADA)
     text: 'Malo'
   },
   REPARACION: {
     icon: 'Engineering',
-    color: '#ff9800', // Naranja - reparación (coherente con MANTENIMIENTO)
+    color: '#ffb74d', // Naranja pastel - reparación (coherente con MANTENIMIENTO)
     text: 'En Reparación'
   }
 };
@@ -235,22 +235,22 @@ export const INVENTARIO_ESTADOS = {
 export const OBJETIVO_ESTADOS = {
   PENDIENTE: {
     icon: 'PendingActions',
-    color: '#4caf50', // Verde - pendiente (coherente con DISPONIBLE/PLANEADO)
+    color: '#81c784', // Verde pastel - pendiente (coherente con DISPONIBLE/PLANEADO)
     text: 'Pendiente'
   },
   EN_PROGRESO: {
     icon: 'Engineering',
-    color: '#2196f3', // Azul - en progreso (coherente con OCUPADA/ACTIVO)
+    color: '#64b5f6', // Azul pastel - en progreso (coherente con OCUPADA/ACTIVO)
     text: 'En Progreso'
   },
   COMPLETADO: {
     icon: 'CheckCircle',
-    color: '#9e9e9e', // Gris - completado (coherente con FINALIZADO/INACTIVO)
+    color: '#bdbdbd', // Gris pastel - completado (coherente con FINALIZADO/INACTIVO)
     text: 'Completado'
   },
   CANCELADO: {
     icon: 'Cancel',
-    color: '#f44336', // Rojo - cancelado (coherente con ERROR)
+    color: '#e57373', // Rojo pastel - cancelado (coherente con ERROR)
     text: 'Cancelado'
   }
 };
@@ -273,7 +273,7 @@ export function getEstadoInfo(estado, tipo = 'PROPIEDAD') {
   const estados = estadosMap[tipo];
   return estados[estado] || {
     icon: 'PendingActions',
-    color: '#9e9e9e',
+    color: '#bdbdbd', // Gris pastel
     text: estado || 'Desconocido'
   };
 }
