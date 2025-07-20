@@ -57,17 +57,15 @@ const ProgressBar = ({
           left: diasTranscurridos !== null && diasTotales !== null 
             ? `${diasTranscurridos}/${diasTotales} días`
             : leftLabel,
-          right: montoMensual !== null && montoTotal !== null
-            ? `${simboloMoneda} ${montoMensual.toLocaleString()}/${montoTotal.toLocaleString()}`
-            : rightLabel
+          right: null // No mostrar información financiera en progreso temporal
         };
       
       case 'cuotas':
         return {
-          left: cuotasPagadas !== null && cuotasTotales !== null
+          left: cuotasPagadas !== null && cuotasTotales !== null && cuotasPagadas > 0
             ? `${cuotasPagadas}/${cuotasTotales} cuotas`
             : leftLabel,
-          right: montoPagado !== null && montoTotalCuotas !== null
+          right: montoPagado !== null && montoTotalCuotas !== null && montoPagado > 0
             ? `${simboloMoneda} ${montoPagado.toLocaleString()}/${montoTotalCuotas.toLocaleString()}`
             : rightLabel
         };

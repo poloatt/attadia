@@ -10,19 +10,12 @@ import {
   Task as TaskIcon,
   Schedule as ScheduleIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon,
-  PendingActions as PendingActionsIcon,
-  CheckCircle as CheckCircleIcon,
-  Engineering as EngineeringIcon,
-  BookmarkAdded as BookmarkAddedIcon,
-  Cancel as CancelIcon
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import { StatusChip } from '../propiedades/PropiedadStyles';
-import { getEstadoColor, getEstadoText, getEstadoIcon, getStatusIconComponent } from '../common/StatusSystem';
+import { getEstadoColor, getEstadoText, getStatusIconComponent } from '../common/StatusSystem';
 
 const ProyectoCard = ({ proyecto, onEdit, onDelete }) => {
-
-
   return (
     <Stack spacing={2}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>

@@ -35,14 +35,18 @@ import {
   AttachMoney as CurrencyIcon,
   Visibility as VisibilityIcon
 } from '@mui/icons-material';
-import { EntityGridView, SECTION_CONFIGS } from '../EntityViews';
+import { EntityGridView, SECTION_CONFIGS, formatCompactNumber } from '../EntityViews';
 import { entityHeaderProps as getEntityHeaderProps } from '../EntityViews';
 import { Link } from 'react-router-dom';
 import ContratoDetail from './contratos/ContratoDetail';
-import { pluralizar, getEstadoContrato, agruparHabitaciones, calcularProgresoOcupacion } from './propiedadUtils';
+import { pluralizar, getEstadoContrato, agruparHabitaciones, calcularProgresoOcupacion, calcularYearToDate, calcularYearToGo } from './propiedadUtils';
 import { SeccionInquilinos, SeccionHabitaciones, SeccionInventario, SeccionDocumentos } from './SeccionesPropiedad';
 import { getInquilinosByPropiedad } from './inquilinos';
 import { getEstadoColor, getEstadoText, getStatusIconComponent } from '../common/StatusSystem';
+import EstadoFinanzasContrato from './contratos/EstadoFinanzasContrato';
+import { CuotasProvider } from './contratos/context/CuotasContext';
+
+
 
 // Configuraciones para diferentes tipos de datos
 
@@ -199,30 +203,194 @@ const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta,
   // Obtener el array de inquilinos usando el helper
   const inquilinos = getInquilinosByPropiedad(propiedad);
 
+  // Usar SeccionFinanzas modular para obtener datos financieros
   const datosFinancierosAdicionales = [
     {
       icon: MoneyIcon,
-      label: 'Mensual',
-      value: `${simboloMoneda} ${precio.toLocaleString()}`,
-      color: 'text.secondary'
-    },
-    {
-      icon: DepositIcon,
-      label: 'Depósito',
-      value: `${simboloMoneda} ${(precio * 2).toLocaleString()}`,
+      label: 'YTG',
+      value: calcularYearToGo(propiedad),
+      subtitle: 'YTG',
       color: 'text.secondary'
     },
     {
       icon: MoneyIcon,
-      label: 'Total',
-      value: `${simboloMoneda} ${progresoOcupacion.montoTotal.toLocaleString()}`,
+      label: 'YTD',
+      value: calcularYearToDate(propiedad),
+      subtitle: 'YTD',
       color: 'text.secondary'
     }
   ];
 
+  // Crear sección financiera personalizada que incluya EstadoFinanzasContrato
+  const seccionFinancieraPersonalizada = {
+    type: 'primary', // Cambiar a 'primary' para que se renderice PRIMERA
+    render: () => {
+      // Recalcular YTD y YTG en cada render para asegurar datos actualizados
+      const ytdActual = calcularYearToDate(propiedad);
+      const ytgActual = calcularYearToGo(propiedad);
+      
+      return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3, width: '100%', bgcolor: '#181818', p: 0, m: 0 }}>
+        {/* Boxes de YTD, YTG y Cuenta (PRIMERO) */}
+        <Box sx={{ display: 'flex', gap: 1, width: '100%', p: 0, m: 0 }}>
+          {/* Box YTG */}
+          <Box sx={{ 
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            gap: 0.3,
+            minHeight: '40px'
+          }}>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 500,
+                fontSize: '0.9rem',
+                lineHeight: 1,
+                m: 0,
+                color: 'text.primary'
+              }}
+            >
+              {formatCompactNumber(ytgActual)}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 400,
+                fontSize: '0.65rem',
+                color: 'rgba(255,255,255,0.7)',
+                lineHeight: 1,
+                m: 0,
+                textAlign: 'center'
+              }}
+            >
+              YTG
+            </Typography>
+          </Box>
+          
+          {/* Box YTD */}
+          <Box sx={{ 
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            gap: 0.3,
+            minHeight: '40px'
+          }}>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 500,
+                fontSize: '0.9rem',
+                lineHeight: 1,
+                m: 0,
+                color: 'text.primary'
+              }}
+            >
+              {formatCompactNumber(ytdActual)}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 400,
+                fontSize: '0.65rem',
+                color: 'rgba(255,255,255,0.7)',
+                lineHeight: 1,
+                m: 0,
+                textAlign: 'center'
+              }}
+            >
+              YTD
+            </Typography>
+          </Box>
+          
+          {/* Box Cuenta */}
+          <Box sx={{ 
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            gap: 0.3,
+            minHeight: '40px'
+          }}>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 600,
+                fontSize: '1.2rem',
+                lineHeight: 1,
+                m: 0,
+                color: 'text.primary'
+              }}
+            >
+              {simboloMoneda || '$'}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 400,
+                fontSize: '0.65rem',
+                color: 'rgba(255,255,255,0.7)',
+                lineHeight: 1,
+                m: 0,
+                textAlign: 'center'
+              }}
+            >
+              {nombreCuenta || 'No especificada'}
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Separador sutil entre boxes y estado de cuotas */}
+        {contratos && contratos.length > 0 && (
+          <Box sx={{ 
+            height: '1px', 
+            bgcolor: 'rgba(255,255,255,0.08)', 
+            mx: 1, 
+            my: 0.2,
+            borderRadius: '0.5px'
+          }} />
+        )}
+
+        {/* Estado de finanzas de contratos (SEGUNDO - AL FINAL) */}
+        {contratos && contratos.length > 0 && (
+          <Box sx={{ width: '100%', p: 0, m: 0 }}>
+            {contratos.map((contrato, index) => {
+              // Solo mostrar contratos de alquiler (no mantenimiento)
+              if (contrato.tipoContrato === 'MANTENIMIENTO') return null;
+              
+              return (
+                <Box key={contrato._id || contrato.id || `contrato-${index}`} sx={{ width: '100%', p: 0, m: 0 }}>
+                  <CuotasProvider 
+                    contratoId={contrato._id || contrato.id}
+                    formData={contrato}
+                  >
+                    <EstadoFinanzasContrato 
+                      contrato={contrato} 
+                      contratoId={contrato._id || contrato.id}
+                      showTitle={false}
+                      compact={true}
+                      sx={{ width: '100%', p: 0, m: 0 }}
+                    />
+                  </CuotasProvider>
+                </Box>
+              );
+            })}
+          </Box>
+        )}
+
+      </Box>
+      );
+    }
+  };
+
   // Crear secciones base (sin documentos ni inquilinos)
   let secciones = [
-    SECTION_CONFIGS.financiero(simboloMoneda, nombreCuenta, datosFinancierosAdicionales),
+    seccionFinancieraPersonalizada,
     SECTION_CONFIGS.ubicacion(propiedad)
   ];
 
@@ -394,7 +562,8 @@ const PropiedadGridView = ({
   onView,
   onEdit,
   onDelete,
-  onExpand
+  onExpand,
+  isExpanded = false
 }) => {
   const renderContent = () => {
     switch (type) {
@@ -404,7 +573,11 @@ const PropiedadGridView = ({
           return (
             <Box sx={{ 
               p: 1.5, 
-              textAlign: 'center'
+              textAlign: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: '40px'
             }}>
               <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
                 No hay información de ubicación disponible
@@ -423,20 +596,14 @@ const PropiedadGridView = ({
         const datosFinancierosAdicionales = [
           {
             icon: MoneyIcon,
-            label: 'Mensual',
-            value: `${simboloMoneda} ${precio.toLocaleString()}`,
-            color: 'text.secondary'
-          },
-          {
-            icon: DepositIcon,
-            label: 'Depósito',
-            value: `${simboloMoneda} ${(precio * 2).toLocaleString()}`,
+            label: 'YTG',
+            value: calcularYearToGo(propiedad),
             color: 'text.secondary'
           },
           {
             icon: MoneyIcon,
-            label: 'Total',
-            value: `${simboloMoneda} ${calcularProgresoOcupacion(propiedad).montoTotal.toLocaleString()}`,
+            label: 'YTD',
+            value: calcularYearToDate(propiedad),
             color: 'text.secondary'
           }
         ];
@@ -479,8 +646,8 @@ const PropiedadGridView = ({
             showCollapseButton={false}
             isCollapsed={false}
             contratos={contratos}
-            onEditContrato={onEdit}
-            onDeleteContrato={onDelete}
+            onEditContrato={isExpanded ? onEdit : undefined}
+            onDeleteContrato={isExpanded ? onDelete : undefined}
           />
         );
       case 'compact':
@@ -512,8 +679,8 @@ const PropiedadGridView = ({
             showCollapseButton={false}
             isCollapsed={false}
             contratos={contratos}
-            onEditContrato={onEdit}
-            onDeleteContrato={onDelete}
+            onEditContrato={isExpanded ? onEdit : undefined}
+            onDeleteContrato={isExpanded ? onDelete : undefined}
           />
         );
       default:

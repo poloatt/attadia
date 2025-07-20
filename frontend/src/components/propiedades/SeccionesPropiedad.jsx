@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
 import { Box, Typography, IconButton, Tooltip, Collapse } from '@mui/material';
 import { Link } from 'react-router-dom';
-import { PeopleOutlined as PeopleIcon, BedOutlined as BedIcon, Description as ContractIcon, Inventory2Outlined as InventoryIcon, MonetizationOnOutlined as MoneyIcon, OpenInNew as OpenInNewIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
-import { pluralizar, getEstadoContrato, agruparHabitaciones } from './propiedadUtils';
+import { 
+  PeopleOutlined as PeopleIcon, 
+  Inventory2Outlined as InventoryIcon, 
+  MonetizationOnOutlined as MoneyIcon, 
+  OpenInNew as OpenInNewIcon, 
+  Visibility as VisibilityIcon 
+} from '@mui/icons-material';
+import { agruparHabitaciones } from './propiedadUtils';
 import { getInquilinosByPropiedad } from './inquilinos';
 import { icons } from '../../navigation/menuIcons';
 import InquilinoDetail from './inquilinos/InquilinoDetail';

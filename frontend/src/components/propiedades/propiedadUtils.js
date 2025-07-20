@@ -8,7 +8,9 @@ import {
   calcularAlquilerMensualPromedio,
   getEstadoContrato as getEstadoContratoFromUtils,
   getCuentaYMoneda as getCuentaYMonedaFromUtils,
-  calcularProgresoFinancieroContrato
+  calcularProgresoFinancieroContrato,
+  calcularYearToDate as calcularYearToDateFromUtils,
+  calcularYearToGo as calcularYearToGoFromUtils
 } from './contratos';
 
 // Importaciones de iconos para tipos de propiedad
@@ -373,4 +375,34 @@ export function obtenerItemsPorCategoria(inventarios = []) {
     acc[categoria].push(item);
     return acc;
   }, {});
+} 
+
+// Función para calcular Year-to-Date (YTD) para una propiedad
+export function calcularYearToDate(propiedad) {
+  const contratos = propiedad.contratos || [];
+  
+  // Buscar contrato activo
+  const contratoActivo = contratos.find(contrato => {
+    const estado = getEstadoContrato(contrato);
+    return estado === 'ACTIVO';
+  });
+  
+  if (!contratoActivo) return 0;
+  
+  return calcularYearToDateFromUtils(contratoActivo);
+}
+
+// Función para calcular Year-to-Go (YTG) para una propiedad
+export function calcularYearToGo(propiedad) {
+  const contratos = propiedad.contratos || [];
+  
+  // Buscar contrato activo
+  const contratoActivo = contratos.find(contrato => {
+    const estado = getEstadoContrato(contrato);
+    return estado === 'ACTIVO';
+  });
+  
+  if (!contratoActivo) return 0;
+  
+  return calcularYearToGoFromUtils(contratoActivo);
 } 

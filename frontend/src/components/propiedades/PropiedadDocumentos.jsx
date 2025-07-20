@@ -61,7 +61,7 @@ export default function PropiedadDocumentos({ propiedades = [], onAddDocumento, 
         propiedadesFiltradas.map((propiedad, idx) => {
           const grupos = agruparDocumentos(propiedad.documentos || []);
           return (
-            <Paper key={propiedad._id || idx} sx={{ mb: 3, p: 2, borderRadius: 2, bgcolor: 'background.paper', boxShadow: 'none' }}>
+            <Paper key={propiedad._id || idx} sx={{ mb: 3, p: 2, borderRadius: 2, bgcolor: '#181818', boxShadow: 'none' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                 <Box sx={{ flex: 1 }}>
                   <PropiedadCard propiedad={propiedad} isExpanded={false} viewMode="grid" />

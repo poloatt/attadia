@@ -38,7 +38,8 @@ import {
   ChairOutlined,
   KitchenOutlined,
   LocalLaundryServiceOutlined,
-  HomeOutlined
+  HomeOutlined,
+  OpenInNew as OpenInNewIcon
 } from '@mui/icons-material';
 import clienteAxios from '../../config/axios';
 import { toast } from 'react-hot-toast';
@@ -66,6 +67,8 @@ import { CuotasProvider } from './contratos/context/CuotasContext';
 import InventarioDetail from './inventario/InventarioDetail';
 import { SeccionInquilinos, SeccionHabitaciones, SeccionDocumentos } from './SeccionesPropiedad';
 import { EntityActions } from '../EntityViews/EntityActions';
+import ContratoDetail from './contratos/ContratoDetail';
+import { EntityGridView, SECTION_CONFIGS } from '../EntityViews';
 
 // Función para calcular el monto mensual promedio desde contratos activos
 const calcularMontoMensualDesdeContratos = (contratos = []) => {
@@ -135,8 +138,9 @@ const StyledAccordion = styled(Accordion)(({ theme }) => ({
 const StyledAccordionSummary = styled(AccordionSummary)(({ theme }) => ({
   borderRadius: 0,
   backgroundColor: '#1a1a1a',
+  minHeight: 20, // Reducido aún más para los encabezados de sección
   '&.Mui-expanded': {
-    minHeight: 48
+    minHeight: 20
   }
 }));
 
@@ -157,6 +161,10 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
   });
 
   const [propiedadCompleta, setPropiedadCompleta] = useState(propiedad);
+  
+  // Estado para el modal de detalle del contrato
+  const [contratoDetailOpen, setContratoDetailOpen] = useState(false);
+  const [selectedContrato, setSelectedContrato] = useState(null);
 
   useEffect(() => {
     if (open && propiedad?._id) {
@@ -199,6 +207,16 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
       });
       return newState;
     });
+  };
+
+  const handleOpenContratoDetail = (contrato) => {
+    setSelectedContrato(contrato);
+    setContratoDetailOpen(true);
+  };
+
+  const handleCloseContratoDetail = () => {
+    setContratoDetailOpen(false);
+    setSelectedContrato(null);
   };
 
 
@@ -290,96 +308,73 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
     </Box>
   );
 
-  const renderInformacionBasica = () => (
-    <StyledAccordion 
-      expanded={expandedSections.informacionBasica}
-      onChange={() => toggleSection('informacionBasica')}
-    >
-      <StyledAccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <DescriptionIcon />
-          <Typography variant="h6">
-            Información Básica
-          </Typography>
-        </Box>
-      </StyledAccordionSummary>
-      <AccordionDetails>
-        
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <LocationOn sx={{ fontSize: 18, color: 'text.secondary' }} />
-              <Typography variant="body2" color="text.secondary">
-                Dirección:
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 3 }}>
-              <LocationOn sx={{ fontSize: 18, color: 'text.secondary' }} />
-              <Typography variant="body1">
-                {propiedadCompleta?.direccion || 'No especificada'}
-              </Typography>
-            </Box>
-          </Grid>
-          
-          <Grid item xs={12} sm={6}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <CategoryIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-              <Typography variant="body2" color="text.secondary">
-                Tipo:
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 3 }}>
-              {getTipoIcon(propiedadCompleta?.tipo)}
-              <Typography variant="body1">
-                {propiedadCompleta?.tipo || 'No especificado'}
-              </Typography>
-            </Box>
-          </Grid>
-          
-          <Grid item xs={12} sm={6}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <SquareFootIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-              <Typography variant="body2" color="text.secondary">
-                Metros cuadrados:
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 3 }}>
-              <SquareFootIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-              <Typography variant="body1">
-                {propiedadCompleta?.metrosCuadrados || 0} m²
-              </Typography>
-            </Box>
-          </Grid>
-          
-          <Grid item xs={12} sm={6}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <AttachMoney sx={{ fontSize: 18, color: 'text.secondary' }} />
-              <Typography variant="body2" color="text.secondary">
-                Moneda:
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 3 }}>
-              <AttachMoney sx={{ fontSize: 18, color: 'text.secondary' }} />
-              <Typography variant="body1">
-                {propiedadCompleta?.moneda?.nombre || 'No especificada'}
-              </Typography>
-            </Box>
-          </Grid>
-        </Grid>
-        
-        {propiedadCompleta?.descripcion && (
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              Descripción:
-            </Typography>
-            <Typography variant="body1">
-              {propiedadCompleta.descripcion}
+  const renderInformacionBasica = () => {
+    // Crear sección de ubicación usando SECTION_CONFIGS
+    const seccionUbicacion = SECTION_CONFIGS.ubicacion(propiedadCompleta);
+    
+    // Crear sección financiera básica
+    const seccionFinanciera = SECTION_CONFIGS.financiero(
+      propiedadCompleta?.moneda?.simbolo || '$',
+      propiedadCompleta?.cuenta?.nombre || 'No especificada',
+      []
+    );
+    
+    return (
+      <StyledAccordion 
+        expanded={expandedSections.informacionBasica}
+        onChange={() => toggleSection('informacionBasica')}
+      >
+        <StyledAccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <DescriptionIcon />
+            <Typography variant="h6">
+              Información Básica
             </Typography>
           </Box>
-        )}
-      </AccordionDetails>
-    </StyledAccordion>
-  );
+        </StyledAccordionSummary>
+        <AccordionDetails sx={{ pt: 1, pb: 1 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {/* Sección de ubicación */}
+            {!seccionUbicacion.hidden && (
+              <EntityGridView
+                type="sections"
+                sections={[seccionUbicacion]}
+                sectionGridSize={{ xs: 12, sm: 12, md: 12, lg: 12 }}
+                showCollapseButton={false}
+                isCollapsed={false}
+              />
+            )}
+            
+            {/* Sección financiera básica */}
+            <EntityGridView
+              type="sections"
+              sections={[seccionFinanciera]}
+              sectionGridSize={{ xs: 12, sm: 12, md: 12, lg: 12 }}
+              showCollapseButton={false}
+              isCollapsed={false}
+            />
+            
+            {/* Descripción si existe */}
+            {propiedadCompleta?.descripcion && (
+              <Box sx={{ 
+                p: 1.5, 
+                bgcolor: 'background.paper', 
+                borderRadius: 0,
+                border: '1px solid #333'
+              }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, fontWeight: 500 }}>
+                  Descripción:
+                </Typography>
+                <Typography variant="body2">
+                  {propiedadCompleta.descripcion}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </AccordionDetails>
+      </StyledAccordion>
+    );
+  };
 
   const renderSeccionEstadoFinanciero = () => {
     const contratos = propiedadCompleta?.contratos || [];
@@ -431,7 +426,7 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
             </Typography>
           </Box>
         </StyledAccordionSummary>
-        <AccordionDetails>
+        <AccordionDetails sx={{ pt: 1, pb: 1 }}>
           <Box>
             {/* Estado de cuotas para cada contrato */}
             {contratos.length > 0 ? (
@@ -441,7 +436,7 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
                   if (contrato.tipoContrato === 'MANTENIMIENTO') return null;
                   
                   return (
-                    <Box key={contrato._id || contrato.id || `contrato-${index}`} sx={{ mb: 2 }}>
+                    <Box key={contrato._id || contrato.id || `contrato-${index}`} sx={{ mb: 1.5 }}>
                       <CuotasProvider 
                         contratoId={contrato._id || contrato.id}
                         formData={contrato}
@@ -459,7 +454,7 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
               </Box>
             ) : (
               <Box sx={{ 
-                p: 2, 
+                p: 1.5, 
                 textAlign: 'center',
                 color: 'text.secondary'
               }}>
@@ -487,9 +482,9 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
           </Typography>
         </Box>
       </StyledAccordionSummary>
-      <AccordionDetails>
-        <SeccionInquilinos propiedad={propiedadCompleta} inquilinos={inquilinos} />
-      </AccordionDetails>
+              <AccordionDetails sx={{ pt: 1, pb: 1 }}>
+          <SeccionInquilinos propiedad={propiedadCompleta} inquilinos={inquilinos} />
+        </AccordionDetails>
     </StyledAccordion>
   );
 
@@ -561,7 +556,7 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
             </Typography>
           </Box>
         </StyledAccordionSummary>
-        <AccordionDetails>
+        <AccordionDetails sx={{ pt: 1, pb: 1 }}>
           <CuotasProvider>
             <Box>
               {contratos.map((contrato, index) => {
@@ -571,39 +566,64 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
                 const estadoContrato = getEstadoContratoFromUtils(contrato);
                 const colorEstado = getEstadoColorTheme(estadoContrato);
                 
+                // Calcular estado de cuotas para determinar si mostrar EstadoFinanzasContrato
+                const estadoCuotas = calcularEstadoCuotasContrato(contrato);
+                
                 // Memoizar valores del chip del contrato para evitar re-renderizados
                 const contratoChipColor = getEstadoColor(estadoContrato, 'CONTRATO');
                 const contratoChipIcon = getStatusIconComponent(estadoContrato, 'CONTRATO');
                 const contratoChipText = getEstadoText(estadoContrato, 'CONTRATO');
                 
                 return (
-                  <Box key={contrato._id || contrato.id || `contrato-${index}`} sx={{ mb: 2, p: 2, border: '1px solid #333', borderRadius: 0 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                        {contrato.tipoContrato} - {estadoContrato}
-                      </Typography>
+                  <Box key={contrato._id || contrato.id || `contrato-${index}`} sx={{ mb: 1.5, p: 1.5, border: '1px solid #333', borderRadius: 0 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                          {contrato.tipoContrato}
+                        </Typography>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleOpenContratoDetail(contrato)}
+                          sx={{ 
+                            color: 'text.secondary',
+                            '&:hover': {
+                              color: 'primary.main'
+                            },
+                            minWidth: '24px',
+                            width: '24px',
+                            height: '24px'
+                          }}
+                        >
+                          <OpenInNewIcon sx={{ fontSize: '0.8rem' }} />
+                        </IconButton>
+                      </Box>
                       <StatusChip customcolor={contratoChipColor}>
                         {contratoChipIcon}
                         <span>{contratoChipText}</span>
                       </StatusChip>
                     </Box>
                     
-                    <Grid container spacing={2} sx={{ mb: 2 }}>
-                      <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" color="text.secondary">
-                          Fecha Inicio: {new Date(contrato.fechaInicio).toLocaleDateString()}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <Typography variant="body2" color="text.secondary">
-                          Fecha Fin: {new Date(contrato.fechaFin).toLocaleDateString()}
-                        </Typography>
-                      </Grid>
-                    </Grid>
+                    {/* Fechas del contrato */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                        {new Date(contrato.fechaInicio).toLocaleDateString('es-ES', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric'
+                        })}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                        {new Date(contrato.fechaFin).toLocaleDateString('es-ES', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric'
+                        })}
+                      </Typography>
+                    </Box>
                     
                     {/* Barra de estado del contrato */}
                     {progresoContrato.tieneContrato && (
-                      <Box sx={{ mb: 2 }}>
+                      <Box sx={{ mb: 1.5 }}>
                         <BarraEstadoPropiedad
                           diasTranscurridos={progresoContrato.diasTranscurridos || 0}
                           diasTotales={progresoContrato.diasTotales || 0}
@@ -617,7 +637,10 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
                       </Box>
                     )}
                     
-                    <EstadoFinanzasContrato contrato={contrato} />
+                    {/* Solo mostrar EstadoFinanzasContrato si no hay barra de progreso o si hay cuotas específicas */}
+                    {(!progresoContrato.tieneContrato || estadoCuotas.cuotasTotales > 0) && (
+                      <EstadoFinanzasContrato contrato={contrato} />
+                    )}
                   </Box>
                 );
               })}
@@ -683,10 +706,10 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
             </Typography>
           </Box>
         </StyledAccordionSummary>
-        <AccordionDetails>
+        <AccordionDetails sx={{ pt: 1, pb: 1 }}>
           {habitaciones.length === 0 ? (
             <Box sx={{ 
-              p: 2, 
+              p: 1.5, 
               textAlign: 'center',
               color: 'text.secondary'
             }}>
@@ -872,8 +895,8 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
         {renderHeader()}
       </DialogTitle>
       
-      <DialogContent sx={{ p: 3, pt: 1 }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+      <DialogContent sx={{ p: 2, pt: 1 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
           <div key="informacionBasica">{renderInformacionBasica()}</div>
           <div key="estadoFinanciero">{renderSeccionEstadoFinanciero()}</div>
           <div key="inquilinos">{renderSeccionInquilinos()}</div>
@@ -885,6 +908,22 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
         
         {renderAcciones()}
       </DialogContent>
+      
+      {/* Modal de detalle del contrato */}
+      <ContratoDetail
+        open={contratoDetailOpen}
+        onClose={handleCloseContratoDetail}
+        contrato={selectedContrato}
+        relatedData={propiedadCompleta}
+        onEdit={() => {
+          // Aquí podrías implementar la edición del contrato
+          console.log('Editar contrato:', selectedContrato);
+        }}
+        onDelete={() => {
+          // Aquí podrías implementar la eliminación del contrato
+          console.log('Eliminar contrato:', selectedContrato);
+        }}
+      />
     </StyledDialog>
   );
 };

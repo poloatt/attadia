@@ -659,6 +659,115 @@ export const calcularMontoTotalEstimado = (contrato) => {
   }
 };
 
+// Función para calcular Year-to-Date (YTD) - monto acumulado en el año actual
+export const calcularYearToDate = (contrato) => {
+  if (!contrato || !contrato.precioTotal || contrato.esMantenimiento) return 0;
+  
+  const hoy = new Date();
+  const añoActual = hoy.getFullYear();
+  const inicioAño = new Date(añoActual, 0, 1); // 1 de enero del año actual
+  const finAño = new Date(añoActual, 11, 31); // 31 de diciembre del año actual
+  
+  const inicioContrato = new Date(contrato.fechaInicio);
+  const finContrato = new Date(contrato.fechaFin);
+  
+  // Si el contrato no se superpone con el año actual
+  if (finContrato < inicioAño || inicioContrato > finAño) {
+    return 0;
+  }
+  
+  // Calcular el período de superposición con el año actual
+  const fechaInicioYTD = inicioContrato > inicioAño ? inicioContrato : inicioAño;
+  const fechaFinYTD = finContrato < finAño ? finContrato : finAño;
+  
+  // Calcular meses de superposición en el año actual
+  const mesesYTD = calcularMesesEntreFechas(fechaInicioYTD, fechaFinYTD);
+  const alquilerMensual = calcularAlquilerMensualPromedio(contrato);
+  
+  // Si hay superposición parcial de meses, calcular proporcionalmente
+  let montoYTD = mesesYTD * alquilerMensual;
+  
+  // Ajustar para meses parciales
+  if (inicioContrato > inicioAño) {
+    // El contrato comenzó después del 1 de enero
+    const diasEnPrimerMes = new Date(añoActual, inicioContrato.getMonth() + 1, 0).getDate();
+    const diasCubiertos = diasEnPrimerMes - inicioContrato.getDate() + 1;
+    const montoPrimerMes = (alquilerMensual / diasEnPrimerMes) * diasCubiertos;
+    montoYTD = montoYTD - alquilerMensual + montoPrimerMes;
+  }
+  
+  if (finContrato < finAño) {
+    // El contrato terminó antes del 31 de diciembre
+    const diasEnUltimoMes = finContrato.getDate();
+    const diasEnMes = new Date(añoActual, finContrato.getMonth() + 1, 0).getDate();
+    const montoUltimoMes = (alquilerMensual / diasEnMes) * diasEnUltimoMes;
+    montoYTD = montoYTD - alquilerMensual + montoUltimoMes;
+  }
+  
+  return Math.round(montoYTD * 100) / 100;
+};
+
+// Función para calcular Year-to-Go (YTG) - monto restante en el año actual
+export const calcularYearToGo = (contrato) => {
+  if (!contrato || !contrato.precioTotal || contrato.esMantenimiento) return 0;
+  
+  const hoy = new Date();
+  const añoActual = hoy.getFullYear();
+  const finAño = new Date(añoActual, 11, 31); // 31 de diciembre del año actual
+  
+  const finContrato = new Date(contrato.fechaFin);
+  
+  // Si el contrato ya terminó o termina antes de hoy
+  if (finContrato <= hoy) {
+    return 0;
+  }
+  
+  // Si el contrato termina después del año actual
+  if (finContrato > finAño) {
+    // Calcular desde hoy hasta fin de año
+    const fechaInicioYTG = hoy;
+    const fechaFinYTG = finAño;
+    
+    const mesesYTG = calcularMesesEntreFechas(fechaInicioYTG, fechaFinYTG);
+    const alquilerMensual = calcularAlquilerMensualPromedio(contrato);
+    
+    // Ajustar para el mes actual (desde hoy hasta fin de mes)
+    const diasEnMesActual = new Date(añoActual, hoy.getMonth() + 1, 0).getDate();
+    const diasRestantesMes = diasEnMesActual - hoy.getDate() + 1;
+    const montoMesActual = (alquilerMensual / diasEnMesActual) * diasRestantesMes;
+    
+    let montoYTG = (mesesYTG - 1) * alquilerMensual + montoMesActual;
+    
+    return Math.round(montoYTG * 100) / 100;
+  } else {
+    // El contrato termina dentro del año actual
+    const fechaInicioYTG = hoy;
+    const fechaFinYTG = finContrato;
+    
+    const mesesYTG = calcularMesesEntreFechas(fechaInicioYTG, fechaFinYTG);
+    const alquilerMensual = calcularAlquilerMensualPromedio(contrato);
+    
+    // Ajustar para el mes actual
+    const diasEnMesActual = new Date(añoActual, hoy.getMonth() + 1, 0).getDate();
+    const diasRestantesMes = diasEnMesActual - hoy.getDate() + 1;
+    const montoMesActual = (alquilerMensual / diasEnMesActual) * diasRestantesMes;
+    
+    // Ajustar para el último mes del contrato
+    const diasEnUltimoMes = finContrato.getDate();
+    const diasEnMesUltimo = new Date(añoActual, finContrato.getMonth() + 1, 0).getDate();
+    const montoUltimoMes = (alquilerMensual / diasEnMesUltimo) * diasEnUltimoMes;
+    
+    let montoYTG = (mesesYTG - 2) * alquilerMensual + montoMesActual + montoUltimoMes;
+    
+    // Si solo hay un mes, ajustar
+    if (mesesYTG === 1) {
+      montoYTG = montoMesActual;
+    }
+    
+    return Math.round(montoYTG * 100) / 100;
+  }
+};
+
 // Función para obtener datos relacionados de un contrato
 export const obtenerDatosRelacionados = (contrato, relatedData) => {
   // Obtener datos de propiedad

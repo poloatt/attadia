@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { SECTION_PADDING_X } from '../../EntityViews/EntityGridView';
 import {
   Box,
   Typography,
@@ -84,7 +85,7 @@ const EstadoFinanzasContrato = ({
       <Box sx={{ 
         mt: 1, 
         p: 1, 
-        bgcolor: 'background.paper', 
+        bgcolor: compact ? '#181818' : 'background.paper', 
         borderRadius: 0,
         border: '1px solid #333',
         ...sx
@@ -94,21 +95,29 @@ const EstadoFinanzasContrato = ({
           color: 'text.secondary',
           fontStyle: 'italic'
         }}>
-          Contrato sin cuotas generadas
+          Sin cuotas mensuales configuradas
         </Typography>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
           <Typography variant="caption" sx={{ 
             fontSize: compact ? '0.55rem' : '0.6rem', 
             color: 'text.secondary' 
           }}>
-            {simboloMoneda} {(contrato.precioTotal || 0).toLocaleString()}
+            Monto total: {simboloMoneda} {(contrato.precioTotal || 0).toLocaleString()}
           </Typography>
           <Typography variant="caption" sx={{ 
             fontSize: compact ? '0.55rem' : '0.6rem', 
             color: 'text.secondary' 
           }}>
             {contrato.fechaInicio && contrato.fechaFin ? 
-              `${new Date(contrato.fechaInicio).toLocaleDateString()} - ${new Date(contrato.fechaFin).toLocaleDateString()}` : 
+              `${new Date(contrato.fechaInicio).toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+              })} - ${new Date(contrato.fechaFin).toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+              })}` : 
               'Fechas no especificadas'
             }
           </Typography>
@@ -119,13 +128,14 @@ const EstadoFinanzasContrato = ({
 
   return (
     <Box sx={{ 
-      mt: 1, 
+      mt: compact ? 0 : 0.2, 
       p: 0, 
-      bgcolor: 'transparent', 
+      m: 0,
+      bgcolor: compact ? '#181818' : 'transparent', 
       borderRadius: 0,
       cursor: 'pointer',
       '&:hover': {
-        bgcolor: 'transparent'
+        bgcolor: compact ? '#181818' : 'transparent'
       },
       ...sx
     }}
@@ -133,52 +143,56 @@ const EstadoFinanzasContrato = ({
     >
 
       
-      {/* Progreso de cuotas */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5, px: compact ? 0.5 : 1 }}>
-        <Typography variant="caption" sx={{ 
-          fontSize: compact ? '0.6rem' : '0.65rem', 
-          color: 'text.secondary' 
-        }}>
-          {cuotasPagadas}/{cuotasTotales} cuotas
-        </Typography>
-        <Typography variant="caption" sx={{ 
-          fontSize: compact ? '0.6rem' : '0.65rem', 
-          color: 'text.secondary' 
-        }}>
-          {porcentajePagado}% pagado
-        </Typography>
-      </Box>
-      
-      {/* Barra de progreso de cuotas */}
-      <Box sx={{ px: compact ? 0.5 : 1 }}>
-        <ProgressBar
-          dataType="cuotas"
-          cuotasPagadas={cuotasPagadas}
-          cuotasTotales={cuotasTotales}
-          montoPagado={montoPagado}
-          montoTotalCuotas={montoTotal}
-          percentage={porcentajePagado}
-          color="primary"
-          variant={compact ? 'compact' : 'default'}
-          showLabels={false}
-          sx={{ mb: 0.5 }}
-        />
-      </Box>
-      {/* Montos */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, px: compact ? 0.5 : 1 }}>
-        <Typography variant="caption" sx={{ 
-          fontSize: compact ? '0.55rem' : '0.6rem', 
-          color: 'text.secondary' 
-        }}>
-          {simboloMoneda} {montoPagado.toLocaleString()}
-        </Typography>
-        <Typography variant="caption" sx={{ 
-          fontSize: compact ? '0.55rem' : '0.6rem', 
-          color: 'text.secondary' 
-        }}>
-          {simboloMoneda} {montoTotal.toLocaleString()}
-        </Typography>
-      </Box>
+      {/* Progreso de cuotas - Solo mostrar si NO es compacto */}
+      {!compact && (
+        <>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5, px: SECTION_PADDING_X }}>
+            <Typography variant="caption" sx={{ 
+              fontSize: '0.65rem', 
+              color: 'text.secondary' 
+            }}>
+              {cuotasPagadas}/{cuotasTotales} cuotas
+            </Typography>
+            <Typography variant="caption" sx={{ 
+              fontSize: '0.65rem', 
+              color: 'text.secondary' 
+            }}>
+              {porcentajePagado}% pagado
+            </Typography>
+          </Box>
+          
+          {/* Barra de progreso de cuotas */}
+          <Box sx={{ px: SECTION_PADDING_X }}>
+            <ProgressBar
+              dataType="cuotas"
+              cuotasPagadas={cuotasPagadas}
+              cuotasTotales={cuotasTotales}
+              montoPagado={montoPagado}
+              montoTotalCuotas={montoTotal}
+              percentage={porcentajePagado}
+              color="primary"
+              variant="default"
+              showLabels={false}
+              sx={{ mb: 0.5 }}
+            />
+          </Box>
+          {/* Montos */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, px: SECTION_PADDING_X }}>
+            <Typography variant="caption" sx={{ 
+              fontSize: '0.6rem', 
+              color: 'text.secondary' 
+            }}>
+              {simboloMoneda} {montoPagado.toLocaleString()}
+            </Typography>
+            <Typography variant="caption" sx={{ 
+              fontSize: '0.6rem', 
+              color: 'text.secondary' 
+            }}>
+              {simboloMoneda} {montoTotal.toLocaleString()}
+            </Typography>
+          </Box>
+        </>
+      )}
 
       {/* Chips de cuotas vencidas o al día */}
       {cuotasVencidas > 0 && (
@@ -187,59 +201,60 @@ const EstadoFinanzasContrato = ({
             display: 'flex',
             alignItems: 'center',
             gap: 0.5,
-            mt: 0.5,
-            p: compact ? 0.25 : 0.5,
-            px: compact ? 0.5 : 1,
-            bgcolor: 'background.default',
+            mt: compact ? 0 : 0.2,
+            py: 0.2,
+            px: SECTION_PADDING_X,
+            bgcolor: compact ? 'transparent' : 'background.default',
             borderRadius: 0,
-            border: t => `1px solid ${t.palette.error.main}`,
+            border: compact ? 'none' : t => `1px solid ${t.palette.error.main}`,
             justifyContent: 'space-between',
-            width: '100%'
+            width: '100%',
+            m: 0
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <MoneyIcon sx={{ fontSize: compact ? '0.6rem' : '0.7rem', color: 'error.main' }} />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, pl: 1 }}>
+            <MoneyIcon sx={{ fontSize: '1.2rem', color: 'error.main', flexShrink: 0 }} />
             <Typography variant="caption" sx={{ fontSize: compact ? '0.6rem' : '0.65rem', color: 'error.main', fontWeight: 600 }}>
               {cuotasVencidas} cuota{cuotasVencidas > 1 ? 's' : ''} vencida{cuotasVencidas > 1 ? 's' : ''}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
-            <StyledCuotasIconButton size="small" sx={{ color: 'text.secondary' }}
-              onClick={async (e) => {
-                e.stopPropagation();
-                // Forzar refresh y sobrescribir el estado local con el backend
-                const ok = await refrescarCuotasDesdeBackend();
-                if (ok && typeof window !== 'undefined') {
-                  // Opcional: podrías mostrar una notificación de éxito aquí
-                }
-              }}
-              disabled={isLoading || editInline}
-            >
-              <RefreshIcon fontSize="small" />
-            </StyledCuotasIconButton>
-            <StyledCuotasIconButton size="small" sx={{ color: 'text.secondary' }}
-              onClick={async (e) => {
-                e.stopPropagation();
-                if (editInline) {
-                  // Siempre guardar al salir del modo edición
-                  const exito = await guardarCuotasEnBackend(cuotas);
-                  if (exito) {
-                    setEditInline(false);
-                  } else {
-                    alert('Error al guardar cuotas');
-                  }
-                } else {
-                  setEditInline(true);
-                  // Si está colapsado, expandir automáticamente
-                  if (!showCuotas) {
-                    setShowCuotas(true);
-                  }
-                }
-              }}
-              disabled={isLoading}
-            >
-              {editInline ? <SaveIcon fontSize="small" /> : <EditIcon fontSize="small" />}
-            </StyledCuotasIconButton>
+            {showCuotas && (
+              <>
+                <StyledCuotasIconButton size="small" sx={{ color: 'text.secondary' }}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    // Forzar refresh y sobrescribir el estado local con el backend
+                    const ok = await refrescarCuotasDesdeBackend();
+                    if (ok && typeof window !== 'undefined') {
+                      // Opcional: podrías mostrar una notificación de éxito aquí
+                    }
+                  }}
+                  disabled={isLoading || editInline}
+                >
+                  <RefreshIcon sx={{ fontSize: '0.75rem' }} />
+                </StyledCuotasIconButton>
+                <StyledCuotasIconButton size="small" sx={{ color: 'text.secondary' }}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (editInline) {
+                      // Siempre guardar al salir del modo edición
+                      const exito = await guardarCuotasEnBackend(cuotas);
+                      if (exito) {
+                        setEditInline(false);
+                      } else {
+                        alert('Error al guardar cuotas');
+                      }
+                    } else {
+                      setEditInline(true);
+                    }
+                  }}
+                  disabled={isLoading}
+                >
+                  {editInline ? <SaveIcon sx={{ fontSize: '0.75rem' }} /> : <EditIcon sx={{ fontSize: '0.75rem' }} />}
+                </StyledCuotasIconButton>
+              </>
+            )}
             <StyledCuotasIconButton 
               size="small" 
               sx={{ color: 'error.main' }} 
@@ -248,7 +263,7 @@ const EstadoFinanzasContrato = ({
                 setShowCuotas((prev) => !prev);
               }}
             >
-              {showCuotas ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+              {showCuotas ? <ExpandLessIcon sx={{ fontSize: '0.75rem' }} /> : <ExpandMoreIcon sx={{ fontSize: '0.75rem' }} />}
             </StyledCuotasIconButton>
           </Box>
         </Box>
@@ -263,63 +278,66 @@ const EstadoFinanzasContrato = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: 0.5,
-                mt: 0.5,
-                p: compact ? 0.25 : 0.5,
-                px: compact ? 0.5 : 1,
-                bgcolor: 'background.default',
+                mt: compact ? 0 : 0.2,
+                py: 0.2,
+                px: SECTION_PADDING_X,
+                bgcolor: compact ? 'transparent' : 'background.default',
                 borderRadius: 0,
-                border: t => `1px solid ${t.palette.divider}`,
+                border: compact ? 'none' : t => `1px solid ${t.palette.divider}`,
                 justifyContent: 'space-between',
-                width: '100%'
+                width: '100%',
+                m: 0
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <MoneyIcon sx={{ fontSize: compact ? '0.6rem' : '0.7rem', color: 'text.secondary' }} />
-                <Typography variant="caption" sx={{ fontSize: compact ? '0.6rem' : '0.65rem', color: 'text.secondary', fontWeight: 600 }}>
-                  {pagadas} cuota{pagadas !== 1 ? 's' : ''} pagada{pagadas !== 1 ? 's' : ''}
-                  {pendientes > 0 && (
-                    <span style={{ color: '#888', fontWeight: 400 }}>
-                      {' · '}{pendientes} pendiente{pendientes !== 1 ? 's' : ''}
-                      {proximaCuota && (
-                        <span style={{ color: '#888', fontWeight: 400 }}>
-                          {' · próxima cuota '}{proximaCuota.index} en {proximaCuota.diasRestantes} días
-                        </span>
-                      )}
-                    </span>
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, pl: 1 }}>
+                <MoneyIcon sx={{ fontSize: '1.2rem', color: 'text.secondary', flexShrink: 0, mt: 0.1 }} />
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.1 }}>
+                  <Typography variant="caption" sx={{ fontSize: compact ? '0.6rem' : '0.65rem', color: 'text.secondary', fontWeight: 600 }}>
+                    {pagadas} cuota{pagadas !== 1 ? 's' : ''} pagada{pagadas !== 1 ? 's' : ''}
+                    {pendientes > 0 && (
+                      <span style={{ color: '#888', fontWeight: 400 }}>
+                        {' · '}{pendientes} pendiente{pendientes !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </Typography>
+                  {proximaCuota && (
+                    <Typography variant="caption" sx={{ fontSize: compact ? '0.55rem' : '0.6rem', color: '#888', fontWeight: 400 }}>
+                      próxima cuota {proximaCuota.index} en {proximaCuota.diasRestantes} días
+                    </Typography>
                   )}
-                </Typography>
+                </Box>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
-                <StyledCuotasIconButton 
-                  size="small" 
-                  sx={{ color: 'text.secondary' }} 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    refrescarCuotasDesdeBackend();
-                  }} 
-                  disabled={isLoading}
-                >
-                  <RefreshIcon fontSize="small" />
-                </StyledCuotasIconButton>
-                <StyledCuotasIconButton 
-                  size="small" 
-                  sx={{ color: 'text.secondary' }} 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (editInline) {
-                      setEditInline(false);
-                    } else {
-                      setEditInline(true);
-                      // Si está colapsado, expandir automáticamente
-                      if (!showCuotas) {
-                        setShowCuotas(true);
-                      }
-                    }
-                  }} 
-                  disabled={isLoading}
-                >
-                  {editInline ? <SaveIcon fontSize="small" /> : <EditIcon fontSize="small" />}
-                </StyledCuotasIconButton>
+                {showCuotas && (
+                  <>
+                    <StyledCuotasIconButton 
+                      size="small" 
+                      sx={{ color: 'text.secondary' }} 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        refrescarCuotasDesdeBackend();
+                      }} 
+                      disabled={isLoading}
+                    >
+                      <RefreshIcon sx={{ fontSize: '0.75rem' }} />
+                    </StyledCuotasIconButton>
+                    <StyledCuotasIconButton 
+                      size="small" 
+                      sx={{ color: 'text.secondary' }} 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (editInline) {
+                          setEditInline(false);
+                        } else {
+                          setEditInline(true);
+                        }
+                      }} 
+                      disabled={isLoading}
+                    >
+                      {editInline ? <SaveIcon sx={{ fontSize: '0.75rem' }} /> : <EditIcon sx={{ fontSize: '0.75rem' }} />}
+                    </StyledCuotasIconButton>
+                  </>
+                )}
                 <StyledCuotasIconButton 
                   size="small" 
                   sx={{ color: 'text.secondary' }} 
@@ -328,7 +346,7 @@ const EstadoFinanzasContrato = ({
                     setShowCuotas((prev) => !prev);
                   }}
                 >
-                  {showCuotas ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                  {showCuotas ? <ExpandLessIcon sx={{ fontSize: '0.75rem' }} /> : <ExpandMoreIcon sx={{ fontSize: '0.75rem' }} />}
                 </StyledCuotasIconButton>
               </Box>
             </Box>
@@ -381,7 +399,7 @@ const EstadoFinanzasContrato = ({
                   }
                 }}
               >
-                <SaveIcon fontSize="small" />
+                <SaveIcon sx={{ fontSize: '0.75rem' }} />
               </StyledCuotasIconButton>
             </Box>
           )}

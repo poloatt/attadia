@@ -59,12 +59,33 @@ const ROW_MIN_HEIGHT = '32px';
 const SEPARATOR_COLOR = 'divider';
 const SEPARATOR_WIDTH = '1px';
 
+// Función para formatear números de forma compacta (k, M, B)
+const formatCompactNumber = (value) => {
+  if (!value || isNaN(value)) return '0';
+  
+  const num = parseFloat(value);
+  if (num === 0) return '0';
+  
+  const absNum = Math.abs(num);
+  const sign = num < 0 ? '-' : '';
+  
+  if (absNum >= 1000000000) {
+    return `${sign}${(absNum / 1000000000).toFixed(1)}B`;
+  } else if (absNum >= 1000000) {
+    return `${sign}${(absNum / 1000000).toFixed(1)}M`;
+  } else if (absNum >= 1000) {
+    return `${sign}${(absNum / 1000).toFixed(1)}k`;
+  } else {
+    return `${sign}${absNum.toFixed(0)}`;
+  }
+};
+
 // Componente Paper estilizado minimalista con fondo del tema
 const GeometricPaper = styled(Paper)(({ theme }) => ({
   borderRadius: 0,
   padding: theme.spacing(0.05, 1.5), // padding horizontal unificado
   border: 'none',
-  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30,30,30,0.98)' : 'rgba(240,240,240,1)',
+  backgroundColor: theme.palette.mode === 'dark' ? '#181818' : 'rgba(240,240,240,1)',
   boxShadow: '0 1px 0 0 rgba(0,0,0,0.18)',
   borderBottom: '1px solid rgba(255,255,255,0.04)',
   transition: 'all 0.2s ease',
@@ -83,7 +104,7 @@ const CompactPaper = styled(Paper)(({ theme }) => ({
   borderRadius: 0,
   padding: theme.spacing(0.03, 0.5),
   border: 'none',
-  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30,30,30,0.98)' : 'rgba(240,240,240,1)',
+  backgroundColor: theme.palette.mode === 'dark' ? '#181818' : 'rgba(240,240,240,1)',
   boxShadow: '0 1px 0 0 rgba(0,0,0,0.18)',
   borderBottom: '1px solid rgba(255,255,255,0.04)',
   transition: 'all 0.2s ease',
@@ -118,30 +139,42 @@ const EntitySectionRow = ({
   secondary,
   children,
   sx = {},
+  showLargeCurrency = false,
   ...props
 }) => (
   <Box
     sx={{
       display: 'flex',
       alignItems: 'center',
+      justifyContent: 'flex-start',
       gap: 1,
       minHeight: '32px',
       px: 1,
-      py: 0.5,
+      py: 0.2,
       ...sx
     }}
     {...props}
   >
-    <Icon sx={{ fontSize: '1.2rem', color: 'text.secondary', flexShrink: 0 }} />
-    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+    {Icon && !showLargeCurrency && <Icon sx={{ fontSize: '1.2rem', color: 'text.secondary', flexShrink: 0 }} />}
+    <Box sx={{ 
+      flex: 1, 
+      display: 'flex', 
+      flexDirection: 'column', 
+      justifyContent: 'center',
+      minWidth: 0 
+    }}>
       <Typography
-        variant="body2"
+        variant={showLargeCurrency ? "h5" : "body2"}
         sx={{
-          fontWeight: 500,
+          fontWeight: showLargeCurrency ? 600 : 500,
           color: 'text.primary',
           whiteSpace: 'nowrap',
           overflow: 'hidden',
-          textOverflow: 'ellipsis'
+          textOverflow: 'ellipsis',
+          fontSize: showLargeCurrency ? '1.2rem' : undefined,
+          lineHeight: showLargeCurrency ? 1 : undefined,
+          textAlign: showLargeCurrency ? 'center' : 'left',
+          m: 0
         }}
       >
         {primary}
@@ -151,11 +184,13 @@ const EntitySectionRow = ({
           variant="caption"
           sx={{
             color: 'text.secondary',
-            fontSize: '0.75rem',
+            fontSize: '0.65rem',
             lineHeight: 1.1,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
-            textOverflow: 'ellipsis'
+            textOverflow: 'ellipsis',
+            textAlign: showLargeCurrency ? 'center' : 'left',
+            m: 0
           }}
         >
           {secondary}
@@ -228,32 +263,132 @@ const PrimarySectionHeader = ({ icon: Icon, title }) => (
 const SECTION_CONFIGS = {
   // Sección financiera estándar (primaria)
   financiero: (simboloMoneda, nombreCuenta, datosAdicionales = []) => {
-    // Extraer datos adicionales
-    const montoMensual = datosAdicionales[0]?.value || '';
-    const deposito = datosAdicionales[1]?.value || '';
-    const totalContrato = datosAdicionales[2]?.value || '';
+    // Extraer datos adicionales (YTD y YTG) y formatear de forma compacta
+    const ytd = datosAdicionales[0]?.value || '';
+    const ytg = datosAdicionales[1]?.value || '';
+    
+    // Formatear valores de forma compacta
+    const formatValue = (value) => {
+      if (!value || typeof value === 'string') return value;
+      return formatCompactNumber(value);
+    };
+    
     return {
-      type: 'primary',
-      left: [
-        {
-          icon: null, // Sin ícono, solo el símbolo de moneda
-          label: 'Moneda',
-          value: simboloMoneda || '$',
-          subtitle: nombreCuenta || 'No especificada',
-          color: 'text.secondary',
-          position: 'left',
-          showLargeCurrency: true // Flag especial para mostrar moneda grande
-        }
-      ],
-      right: [
-        {
-          icon: MoneyIcon,
-          label: 'Montos',
-          value: [montoMensual, totalContrato], // Ahora muestra mensual y total
-          color: 'text.secondary',
-          position: 'right'
-        }
-      ]
+      type: 'custom', // Usar tipo custom para renderizado personalizado
+      render: () => (
+        <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
+          {/* Box YTG */}
+          <Box sx={{ 
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            gap: 0.3,
+            minHeight: '40px'
+          }}>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 500,
+                fontSize: '0.9rem',
+                lineHeight: 1,
+                m: 0,
+                color: 'text.primary'
+              }}
+            >
+              {formatValue(ytg)}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 400,
+                fontSize: '0.65rem',
+                color: 'rgba(255,255,255,0.7)',
+                lineHeight: 1,
+                m: 0,
+                textAlign: 'center'
+              }}
+            >
+              YTG
+            </Typography>
+          </Box>
+          
+          {/* Box YTD */}
+          <Box sx={{ 
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            gap: 0.3,
+            minHeight: '40px'
+          }}>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 500,
+                fontSize: '0.9rem',
+                lineHeight: 1,
+                m: 0,
+                color: 'text.primary'
+              }}
+            >
+              {formatValue(ytd)}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 400,
+                fontSize: '0.65rem',
+                color: 'rgba(255,255,255,0.7)',
+                lineHeight: 1,
+                m: 0,
+                textAlign: 'center'
+              }}
+            >
+              YTD
+            </Typography>
+          </Box>
+          
+          {/* Box Cuenta */}
+          <Box sx={{ 
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            gap: 0.3,
+            minHeight: '40px'
+          }}>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 600,
+                fontSize: '1.2rem',
+                lineHeight: 1,
+                m: 0,
+                color: 'text.primary'
+              }}
+            >
+              {simboloMoneda || '$'}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 400,
+                fontSize: '0.65rem',
+                color: 'rgba(255,255,255,0.7)',
+                lineHeight: 1,
+                m: 0,
+                textAlign: 'center'
+              }}
+            >
+              {nombreCuenta || 'No especificada'}
+            </Typography>
+          </Box>
+        </Box>
+      )
     };
   },
 
@@ -465,14 +600,14 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
     // Si no hay inquilinos, mostrar mensaje
     if (!inquilinosArr.length) {
       return (
-        <GeometricPaper sx={{ minHeight: '40px' }}>
+        <Box sx={{ minHeight: '40px', bgcolor: '#181818', p: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.5 }}>
             <PeopleIcon sx={{ fontSize: '1.2rem', color: 'text.secondary', flexShrink: 0 }} />
             <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.secondary' }}>
               Sin inquilinos
             </Typography>
           </Box>
-        </GeometricPaper>
+        </Box>
       );
     }
     // Mostrar los inquilinos en una sola línea friendly
@@ -480,156 +615,44 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
     const nombres = inquilinosArr.map(i => `${i.nombre} ${i.apellido}`.trim()).filter(Boolean);
     const friendly = nombres.slice(0, maxToShow).join(', ') + (nombres.length > maxToShow ? ` +${nombres.length - maxToShow} más` : '');
     return (
-      <GeometricPaper sx={{ minHeight: '40px' }}>
+      <Box sx={{ minHeight: '40px', bgcolor: '#181818', p: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.5 }}>
           <PeopleIcon sx={{ fontSize: '1.2rem', color: 'text.secondary', flexShrink: 0 }} />
           <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '0.85rem' }}>
             {friendly}
           </Typography>
         </Box>
-      </GeometricPaper>
+      </Box>
     );
   } else if (isFinancieraLarge) {
-    // Nueva versión con símbolo de moneda grande a la izquierda
-    const simboloMoneda = section.left[0]?.value || '$';
-    const nombreCuenta = section.left[0]?.subtitle || 'No especificada';
-    const iconRight = section.right?.[0]?.icon;
-    const valuesRight = Array.isArray(section.right?.[0]?.value) ? section.right?.[0]?.value : [section.right?.[0]?.value];
+    // Usar el estilo estándar como las otras secciones
+    const hasLeft = (section.left || []).length > 0;
+    const hasRight = (section.right || []).length > 0;
     
     return (
-      <GeometricPaper sx={{ minHeight: '40px' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', width: '100%' }}>
-          {/* Columna 1: Símbolo de moneda y cuenta */}
-          <Box sx={{ 
-            flex: 1, 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            gap: 0.3
-          }}>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 600,
-                fontSize: '1.2rem',
-                lineHeight: 1,
-                m: 0,
-                color: 'text.primary'
-              }}
-            >
-              {simboloMoneda}
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: 400,
-                fontSize: '0.65rem',
-                color: 'rgba(255,255,255,0.7)',
-                lineHeight: 1,
-                m: 0,
-                textAlign: 'center'
-              }}
-            >
-              {nombreCuenta}
-            </Typography>
+      <Box sx={{ minHeight: SECTION_MIN_HEIGHT, px: SECTION_PADDING_X, py: 0.2, display: 'flex', flexDirection: 'column', gap: SECTION_GAP, bgcolor: '#181818' }}>
+        <PrimarySectionHeader icon={section.left[0]?.icon} title={section.left[0]?.label || ''} />
+        <Box sx={{ display: 'flex', width: '100%' }}>
+          {/* Columna izquierda */}
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0 }}>
+            {(section.left || []).map((item, index) => (
+              <EntitySectionRow key={index} icon={item.icon} primary={item.value} secondary={item.subtitle} sx={{ minHeight: ROW_MIN_HEIGHT }} />
+            ))}
           </Box>
-          
-          {/* Separador vertical */}
-          <Box sx={{ 
-            width: '1px', 
-            backgroundColor: 'divider',
-            mx: 1,
-            height: '60%'
-          }} />
-          
-          {/* Columna 2: Monto mensual */}
-          <Box sx={{ 
-            flex: 1, 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            gap: 0.3
-          }}>
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: 500,
-                fontSize: '0.8rem',
-                lineHeight: 1,
-                m: 0,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                textAlign: 'center'
-              }}
-            >
-              {valuesRight[0] || ''}
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: 400,
-                fontSize: '0.65rem',
-                color: 'rgba(255,255,255,0.7)',
-                lineHeight: 1,
-                m: 0,
-                textAlign: 'center'
-              }}
-            >
-              mensual
-            </Typography>
+          {/* Separador vertical solo si hay ambas columnas */}
+          {hasLeft && hasRight && (
+            <Box sx={{ width: SEPARATOR_WIDTH, backgroundColor: SEPARATOR_COLOR, mx: 1 }} />
+          )}
+          {/* Columna derecha */}
+          {hasRight && (
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0 }}>
+              {(section.right || []).map((item, index) => (
+                <EntitySectionRow key={index} icon={item.icon} primary={item.value} secondary={item.subtitle} sx={{ minHeight: ROW_MIN_HEIGHT }} />
+              ))}
           </Box>
-          
-          {/* Separador vertical */}
-          <Box sx={{ 
-            width: '1px', 
-            backgroundColor: 'divider',
-            mx: 1,
-            height: '60%'
-          }} />
-          
-          {/* Columna 3: Monto total */}
-          <Box sx={{ 
-            flex: 1, 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            gap: 0.3
-          }}>
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: 500,
-                fontSize: '0.8rem',
-                lineHeight: 1,
-                m: 0,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                textAlign: 'center'
-              }}
-            >
-              {valuesRight[1] || ''}
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: 400,
-                fontSize: '0.65rem',
-                color: 'rgba(255,255,255,0.7)',
-                lineHeight: 1,
-                m: 0,
-                textAlign: 'center'
-              }}
-            >
-              total
-            </Typography>
+          )}
           </Box>
         </Box>
-      </GeometricPaper>
     );
   } else if (isTiempoLarge) {
     // Nueva versión con números grandes para la sección de tiempo
@@ -639,7 +662,7 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
     const subtituloDerecha = section.right?.[0]?.subtitle || '';
     
     return (
-      <GeometricPaper sx={{ minHeight: '40px' }}>
+      <Box sx={{ minHeight: '40px', bgcolor: '#181818' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', width: '100%' }}>
           {/* Número grande y etiqueta izquierda */}
           <Box sx={{ 
@@ -712,7 +735,7 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
             </Typography>
           </Box>
         </Box>
-      </GeometricPaper>
+      </Box>
     );
   } else if (isFinanciera) {
     const iconLeft = section.left[0]?.icon;
@@ -721,11 +744,11 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
     const iconRight = section.right?.[0]?.icon;
     const colorRight = section.right?.[0]?.color;
     const valuesRight = Array.isArray(section.right?.[0]?.value) ? section.right?.[0]?.value : [section.right?.[0]?.value];
-    // Monto mensual y depósito
-    const montoMensual = valuesRight[0] || '';
-    const deposito = valuesRight[1] || '';
+    // YTD y YTG
+    const ytd = valuesRight[0] || '';
+    const ytg = valuesRight[1] || '';
     return (
-      <GeometricPaper sx={{ minHeight: '40px' }}>
+      <Box sx={{ minHeight: '40px', bgcolor: '#181818' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', width: '100%' }}>
           {/* Ícono izquierda */}
           {iconLeft && (
@@ -771,7 +794,7 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
               {React.createElement(iconRight, { sx: { fontSize: '1.05rem', color: 'rgba(255,255,255,0.7)' } })}
             </Box>
           )}
-          {/* Monto mensual y depósito en dos líneas */}
+          {/* YTD y YTG en dos líneas */}
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.4, justifyContent: 'center', alignItems: 'flex-start' }}>
               <Typography
                 variant="body2"
@@ -804,7 +827,7 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
             )}
           </Box>
         </Box>
-      </GeometricPaper>
+      </Box>
     );
   }
 
@@ -824,10 +847,10 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
     }
     const metrosCuadrados = section.right?.[0]?.value || '';
     return (
-      <GeometricPaper sx={{ minHeight: '40px', px: 1.5 }}>
+      <Box sx={{ minHeight: '28px', px: SECTION_PADDING_X, bgcolor: '#181818' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
           {/* Izquierda: ícono + dirección/ciudad */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, px: 1, py: 0.2 }}>
             {iconLeft && (
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
                 {React.createElement(iconLeft, { sx: { fontSize: '1.05rem', color: 'rgba(255,255,255,0.7)' } })}
@@ -887,7 +910,7 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
             </Typography>
           )}
         </Box>
-      </GeometricPaper>
+      </Box>
     );
   }
 
@@ -916,7 +939,7 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
       setSelectedContrato(null);
     };
     return (
-      <GeometricPaper sx={{ minHeight: SECTION_MIN_HEIGHT, px: SECTION_PADDING_X, py: SECTION_PADDING_Y, display: 'flex', flexDirection: 'column', gap: SECTION_GAP }}>
+      <Box sx={{ minHeight: SECTION_MIN_HEIGHT, px: SECTION_PADDING_X, py: 0.2, display: 'flex', flexDirection: 'column', gap: SECTION_GAP, bgcolor: '#181818' }}>
         {documentos.length === 0 ? (
           <Typography variant="caption" color="text.secondary" sx={{ pl: 1 }}>
             No hay documentos
@@ -987,7 +1010,7 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
         {selectedContrato && (
           <ContratoDetail open={contratoDetailOpen} onClose={handleCloseContrato} contrato={selectedContrato} />
         )}
-      </GeometricPaper>
+      </Box>
     );
   }
 
@@ -997,13 +1020,13 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
     const hasLeft = (section.left || []).length > 0;
     const hasRight = (section.right || []).length > 0;
     return (
-      <GeometricPaper sx={{ minHeight: SECTION_MIN_HEIGHT, px: SECTION_PADDING_X, py: SECTION_PADDING_Y, display: 'flex', flexDirection: 'column', gap: SECTION_GAP }}>
+      <Box sx={{ minHeight: SECTION_MIN_HEIGHT, px: SECTION_PADDING_X, py: 0.2, display: 'flex', flexDirection: 'column', gap: SECTION_GAP, bgcolor: '#181818' }}>
         <PrimarySectionHeader icon={section.left[0]?.icon} title={section.left[0]?.label || ''} />
         <Box sx={{ display: 'flex', width: '100%' }}>
           {/* Columna izquierda */}
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0 }}>
             {(section.left || []).map((item, index) => (
-              <EntitySectionRow key={index} icon={item.icon} primary={item.value} secondary={item.subtitle} sx={{ minHeight: ROW_MIN_HEIGHT }} />
+              <EntitySectionRow key={index} icon={item.icon} primary={item.value} secondary={item.subtitle} showLargeCurrency={item.showLargeCurrency} sx={{ minHeight: ROW_MIN_HEIGHT }} />
             ))}
           </Box>
           {/* Separador vertical solo si hay ambas columnas */}
@@ -1014,12 +1037,12 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
           {hasRight && (
             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0 }}>
               {(section.right || []).map((item, index) => (
-                <EntitySectionRow key={index} icon={item.icon} primary={item.value} secondary={item.subtitle} sx={{ minHeight: ROW_MIN_HEIGHT }} />
+                <EntitySectionRow key={index} icon={item.icon} primary={item.value} secondary={item.subtitle} showLargeCurrency={item.showLargeCurrency} sx={{ minHeight: ROW_MIN_HEIGHT }} />
               ))}
             </Box>
           )}
         </Box>
-      </GeometricPaper>
+      </Box>
     );
   }
 
@@ -1039,7 +1062,7 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
           pr: 1
         }}>
           {(section.left || []).map((item, index) => (
-            <EntitySectionRow key={index} icon={item.icon} primary={item.value} secondary={item.subtitle} />
+            <EntitySectionRow key={index} icon={item.icon} primary={item.value} secondary={item.subtitle} showLargeCurrency={item.showLargeCurrency} />
           ))}
         </Box>
         {/* Separador vertical solo si hay ambas columnas */}
@@ -1060,7 +1083,7 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
             pl: 1
           }}>
             {(section.right || []).map((item, index) => (
-              <EntitySectionRow key={index} icon={item.icon} primary={item.value} secondary={item.subtitle} />
+              <EntitySectionRow key={index} icon={item.icon} primary={item.value} secondary={item.subtitle} showLargeCurrency={item.showLargeCurrency} />
             ))}
           </Box>
         )}
@@ -1088,6 +1111,7 @@ const SecondarySectionRenderer = ({ section, isCollapsed = false }) => {
             icon={item.icon}
             primary={item.value}
             secondary={item.label}
+            showLargeCurrency={item.showLargeCurrency}
           />
         ))}
       </Box>
@@ -1101,47 +1125,135 @@ const StandardSections = ({ sections, gridSize = { xs: 6, sm: 6, md: 6, lg: 6 },
   const seccionesPrimarias = sections.filter(s => s.type === 'primary' && !s.hidden);
   const seccionesSecundarias = sections.filter(s => s.type === 'secondary');
   const seccionesHabitaciones = sections.filter(s => s.type === 'habitaciones');
-  // Secciones custom (con campo render)
-  const seccionesCustom = sections.filter(s => typeof s.render === 'function');
+  // Secciones custom (con campo render) - excluir las que ya están en primarias
+  const seccionesCustom = sections.filter(s => typeof s.render === 'function' && s.type !== 'primary');
 
   return (
     <Box>
       {/* Fila para cada sección primaria */}
       {seccionesPrimarias.map((section, sectionIndex) => (
-        <Grid container spacing={0.3} sx={{ p: 0, mb: 1 }} key={`primary-row-${section.type}-${section.left?.[0]?.label || sectionIndex}`}>
-          <Grid item {...gridSize}>
-            <SectionRenderer section={section} isCollapsed={isCollapsed} onContratoDetail={onContratoDetail} inquilinos={inquilinos} onInquilinoDetail={onInquilinoDetail} />
+        <React.Fragment key={`primary-row-${section.type}-${section.left?.[0]?.label || sectionIndex}`}>
+          <Grid container spacing={0.3} sx={{ p: 0, mb: 0.3 }}>
+            <Grid item {...gridSize}>
+              {/* Si la sección primaria tiene render, usarlo directamente */}
+              {typeof section.render === 'function' ? (
+                <Box sx={{ bgcolor: 'transparent', p: 0, m: 0 }}>
+                  {section.render()}
+                </Box>
+              ) : (
+                <SectionRenderer section={section} isCollapsed={isCollapsed} onContratoDetail={onContratoDetail} inquilinos={inquilinos} onInquilinoDetail={onInquilinoDetail} />
+              )}
+            </Grid>
           </Grid>
-        </Grid>
+          {/* Separador sutil después de secciones primarias */}
+          {sectionIndex < seccionesPrimarias.length - 1 && (
+            <Box sx={{ 
+              height: '1px', 
+              bgcolor: 'rgba(255,255,255,0.08)', 
+              mx: 1, 
+              my: 0.5,
+              borderRadius: '0.5px'
+            }} />
+          )}
+        </React.Fragment>
       ))}
+
+      {/* Separador principal entre secciones primarias y habitaciones */}
+      {seccionesPrimarias.length > 0 && seccionesHabitaciones.length > 0 && (
+        <Box sx={{ 
+          height: '1px', 
+          bgcolor: 'rgba(255,255,255,0.12)', 
+          mx: 1, 
+          my: 1,
+          borderRadius: '0.5px'
+        }} />
+      )}
 
       {/* Fila para cada sección de habitaciones */}
       {seccionesHabitaciones.map((section, sectionIndex) => (
-        <Grid container spacing={0.3} sx={{ p: 0, mb: 1 }} key={`habitaciones-row-${sectionIndex}`}>
-          <Grid item xs={12}>
-            <HabitacionesRenderer section={section} isCollapsed={isCollapsed} />
+        <React.Fragment key={`habitaciones-row-${sectionIndex}`}>
+          <Grid container spacing={0.3} sx={{ p: 0, mb: 1 }}>
+            <Grid item xs={12}>
+              <HabitacionesRenderer section={section} isCollapsed={isCollapsed} />
+            </Grid>
           </Grid>
-        </Grid>
+          {/* Separador sutil después de secciones de habitaciones */}
+          {sectionIndex < seccionesHabitaciones.length - 1 && (
+            <Box sx={{ 
+              height: '1px', 
+              bgcolor: 'rgba(255,255,255,0.08)', 
+              mx: 1, 
+              my: 0.5,
+              borderRadius: '0.5px'
+            }} />
+          )}
+        </React.Fragment>
       ))}
+
+      {/* Separador principal entre habitaciones y secundarias */}
+      {seccionesHabitaciones.length > 0 && seccionesSecundarias.length > 0 && (
+        <Box sx={{ 
+          height: '1px', 
+          bgcolor: 'rgba(255,255,255,0.12)', 
+          mx: 1, 
+          my: 1,
+          borderRadius: '0.5px'
+        }} />
+      )}
 
       {/* Fila para cada sección secundaria */}
       {seccionesSecundarias.map((section, sectionIndex) => (
-        <Grid container spacing={0.3} sx={{ p: 0, mb: 1 }} key={`secondary-row-${sectionIndex}`}>
-          <Grid item {...gridSize}>
-            <SecondarySectionRenderer section={section} isCollapsed={isCollapsed} />
+        <React.Fragment key={`secondary-row-${sectionIndex}`}>
+          <Grid container spacing={0.3} sx={{ p: 0, mb: 1 }}>
+            <Grid item {...gridSize}>
+              <SecondarySectionRenderer section={section} isCollapsed={isCollapsed} />
+            </Grid>
           </Grid>
-        </Grid>
+          {/* Separador sutil después de secciones secundarias */}
+          {sectionIndex < seccionesSecundarias.length - 1 && (
+            <Box sx={{ 
+              height: '1px', 
+              bgcolor: 'rgba(255,255,255,0.08)', 
+              mx: 1, 
+              my: 0.5,
+              borderRadius: '0.5px'
+            }} />
+          )}
+        </React.Fragment>
       ))}
+
+      {/* Separador principal entre secundarias y custom */}
+      {seccionesSecundarias.length > 0 && seccionesCustom.length > 0 && (
+        <Box sx={{ 
+          height: '1px', 
+          bgcolor: 'rgba(255,255,255,0.12)', 
+          mx: 1, 
+          my: 1,
+          borderRadius: '0.5px'
+        }} />
+      )}
 
       {/* Fila para cada sección custom */}
       {seccionesCustom.map((section, sectionIndex) => (
-        <Grid container spacing={0.3} sx={{ p: 0, mb: 1 }} key={`custom-row-${sectionIndex}`}>
-          <Grid item xs={12}>
-            <GeometricPaper>
-              {section.render()}
-            </GeometricPaper>
+        <React.Fragment key={`custom-row-${sectionIndex}`}>
+          <Grid container spacing={0.3} sx={{ p: 0, mb: 1 }}>
+            <Grid item xs={12}>
+              <Box sx={{ bgcolor: 'transparent', p: 0, m: 0 }}>
+                {section.render()}
+              </Box>
+            </Grid>
           </Grid>
-        </Grid>
+          {/* Separador sutil después de secciones custom */}
+          {sectionIndex < seccionesCustom.length - 1 && (
+            <Box sx={{ 
+              height: '1px', 
+              bgcolor: 'rgba(255,255,255,0.08)', 
+              mx: 1, 
+              my: 0.5,
+              borderRadius: '0.5px'
+            }} />
+          )}
+        </React.Fragment>
       ))}
     </Box>
   );
@@ -1806,5 +1918,7 @@ export {
   CompactPaper, 
   GeometricChip, 
   EntityHeader,
-  SECTION_CONFIGS 
+  SECTION_CONFIGS,
+  formatCompactNumber,
+  SECTION_PADDING_X
 }; 

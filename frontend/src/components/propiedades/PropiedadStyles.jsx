@@ -2,9 +2,11 @@ import { styled } from '@mui/material/styles';
 import { Card, Box, Dialog, TextField, Chip, Typography } from '@mui/material';
 
 // Componente estilizado para las tarjetas con estilo angular
-export const StyledCard = styled(Card)(({ theme, isAssets }) => ({
+export const StyledCard = styled(Card, {
+  shouldForwardProp: (prop) => prop !== 'isAssets'
+})(({ theme, isAssets }) => ({
   borderRadius: 0,
-  backgroundColor: isAssets ? '#181818' : 'transparent',
+  backgroundColor: '#181818',
   backgroundImage: 'none',
   boxShadow: 'none',
   border: 'none',
@@ -38,7 +40,7 @@ export const StyledStatusChip = styled(Box)(({ theme, customcolor }) => ({
 export const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
     borderRadius: 0,
-    backgroundColor: theme.palette.background.default,
+    backgroundColor: '#181818',
     [theme.breakpoints.down('sm')]: {
       margin: 0,
       maxHeight: '100%',
@@ -57,7 +59,7 @@ export const StyledDialog = styled(Dialog)(({ theme }) => ({
 export const StyledTextField = styled(TextField)(({ theme }) => ({
   '& .MuiOutlinedInput-root': {
     borderRadius: 0,
-    backgroundColor: theme.palette.background.paper,
+    backgroundColor: '#181818',
     '& fieldset': {
       borderColor: theme.palette.divider
     },

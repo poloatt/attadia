@@ -79,7 +79,7 @@ const PropiedadList = ({ isAssets = false, ...props }) => {
             sx={{ 
               mb: 1,
               pb: 1,
-              bgcolor: 'background.default',
+              bgcolor: '#181818',
               '&:last-child': {
                 mb: 0,
                 pb: 0

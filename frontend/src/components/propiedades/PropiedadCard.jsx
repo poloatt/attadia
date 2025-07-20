@@ -48,8 +48,7 @@ import {
   BookmarkAdded,
   EditOutlined as EditIcon,
   DeleteOutlined as DeleteIcon,
-  ViewListOutlined as ListViewIcon,
-  GridViewOutlined as GridViewIcon,
+
   AccountBalanceWalletOutlined as DepositIcon,
   AccountBalance as BankIcon,
   MonetizationOnOutlined as MoneyIcon,
@@ -66,13 +65,13 @@ import {
   getEstadoContrato, 
   agruparHabitaciones, 
   calcularProgresoOcupacion, 
-  getCuentaYMoneda
+  getCuentaYMoneda,
+  calcularYearToDate,
+  calcularYearToGo
 } from './propiedadUtils';
 import PropiedadHeader from './PropiedadHeader';
 import { SeccionInquilinos, SeccionHabitaciones, SeccionDocumentos } from './SeccionesPropiedad';
-import { calcularAlquilerMensualPromedio, calcularEstadoFinanzasContrato, calcularEstadoCuotasContrato } from './contratos/contratoUtils';
-import EstadoFinanzasContrato from './contratos/EstadoFinanzasContrato';
-import { CuotasProvider } from './contratos/context/CuotasContext';
+import { calcularAlquilerMensualPromedio, calcularEstadoCuotasContrato } from './contratos/contratoUtils';
 import { getEstadoColor, getEstadoText, getStatusIconComponent } from '../common/StatusSystem';
 import { StyledCard, StatusChip } from './PropiedadStyles';
 import EstadoIcon from '../common/EstadoIcon';
@@ -270,6 +269,10 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
     cuotasPagadas: 0,
     cuotasTotales: 0
   };
+  
+  // Calcular YTD y YTG para la propiedad
+  const ytd = calcularYearToDate(propiedad);
+  const ytg = calcularYearToGo(propiedad);
 
 
 
@@ -298,9 +301,9 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
 
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
-  // Componente reutilizable para la barra de progreso
+  // Componente reutilizable para la barra de progreso (solo progreso temporal, sin info financiera)
   const renderBarraProgreso = () => {
-    // Mostrar barra siempre, pero con diferentes datos según el estado
+    // Mostrar progreso temporal y financiero si hay datos disponibles
     if (progresoOcupacion.tieneContrato) {
       return (
         <BarraEstadoPropiedad
@@ -309,13 +312,13 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
           porcentaje={progresoOcupacion.porcentaje}
           simboloMoneda={simbolo}
           montoMensual={montoMensual}
-          montoTotal={progresoOcupacion.montoTotal}
+          montoTotal={progresoOcupacion.montoTotal || 0}
           color={progresoOcupacion.estado === 'MANTENIMIENTO' ? 'warning.main' : 'primary.main'}
           estado={progresoOcupacion.estado}
-          // Datos de cuotas para progreso financiero real
-          montoAcumulado={estadoCuotas.montoPagado}
-          cuotasPagadas={estadoCuotas.cuotasPagadas}
-          cuotasTotales={estadoCuotas.cuotasTotales}
+          // Mostrar datos de cuotas si están disponibles
+          montoAcumulado={estadoCuotas.montoPagado || progresoOcupacion.montoAcumulado || null}
+          cuotasPagadas={estadoCuotas.cuotasPagadas || null}
+          cuotasTotales={estadoCuotas.cuotasTotales || null}
           isCompact={isAssets && !isExpanded}
           isAssets={isAssets}
         />
@@ -328,14 +331,14 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
           diasTotales={30}
           porcentaje={0}
           simboloMoneda={simbolo}
-          montoMensual={0}
+          montoMensual={montoMensual}
           montoTotal={0}
           color="text.secondary"
           estado={estado}
           // Sin datos de cuotas
-          montoAcumulado={0}
-          cuotasPagadas={0}
-          cuotasTotales={0}
+          montoAcumulado={null}
+          cuotasPagadas={null}
+          cuotasTotales={null}
           isCompact={isAssets && !isExpanded}
           isAssets={isAssets}
         />
@@ -343,22 +346,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
     }
   };
 
-  // Componente para mostrar el estado de las cuotas
-  const renderSeccionFinanzas = () => {
-    // Solo mostrar si hay contrato activo
-    if (!contratoActivo) return null;
-    return (
-      <CuotasProvider 
-        contratoId={contratoActivo._id || contratoActivo.id}
-        formData={contratoActivo}
-      >
-        <EstadoFinanzasContrato 
-          contrato={contratoActivo} 
-          contratoId={contratoActivo._id || contratoActivo.id} 
-        />
-      </CuotasProvider>
-    );
-  };
+
 
   // Componente reutilizable para el header de la propiedad
   const renderHeader = () => (
@@ -379,37 +367,13 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
       </Box>
       {!isAssets && (
         <Box sx={{ display: 'flex', gap: 0.5 }}>
-          <Tooltip title={viewMode === 'list' ? "Cambiar a Vista Grid" : "Cambiar a Vista Lista"}>
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                setViewMode(viewMode === 'list' ? 'grid' : 'list');
-              }}
-              sx={{
-                color: viewMode === 'grid' ? 'primary.main' : 'text.secondary',
-                padding: 0.25,
-                bgcolor: 'transparent',
-                border: 'none',
-                transition: 'color 0.2s',
-                '&:hover': {
-                  bgcolor: 'action.hover',
-                  color: 'primary.main'
-                }
-              }}
-            >
-              {viewMode === 'list' ? (
-                <GridViewIcon sx={{ fontSize: '0.9rem' }} />
-              ) : (
-                <ListViewIcon sx={{ fontSize: '0.9rem' }} />
-              )}
-            </IconButton>
-          </Tooltip>
-          <EntityActions 
-            onEdit={() => onEdit(propiedad)}
-            onDelete={() => setOpenDeleteDialog(true)}
-            itemName={alias}
-          />
+          {isExpanded && (
+            <EntityActions 
+              onEdit={() => onEdit(propiedad)}
+              onDelete={() => setOpenDeleteDialog(true)}
+              itemName={alias}
+            />
+          )}
           <Tooltip title={isExpanded ? "Colapsar" : "Expandir"}>
             <IconButton
               size="small"
@@ -467,41 +431,49 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
   // Componente reutilizable para el contenido expandido
   const renderContenidoExpandido = () => (
     <>
-      {renderSeccionFinanzas()}
-      {/* Renderizado de vista seleccionada (grid/list) */}
-              {viewMode === 'list' ? (
-          <PropiedadListView
-            propiedad={propiedad}
-            habitaciones={habitaciones}
-            habitacionesAgrupadas={habitacionesAgrupadas}
-            totalHabitaciones={totalHabitaciones}
-            getNombreTipoHabitacion={getNombreTipoHabitacion}
-            ciudad={ciudad}
-            metrosCuadrados={metrosCuadrados}
-            direccion={direccion}
-            documentos={documentosCombinados}
-            contratos={contratos}
-          />
-              ) : (
-          <PropiedadGridView
-            type="sections"
-            data={{ extendida: true }}
-            propiedad={propiedad}
-            habitaciones={habitaciones}
-            contratos={contratos}
-            documentos={documentosCombinados}
-            precio={montoMensual}
-            simboloMoneda={simbolo}
-            nombreCuenta={nombreCuenta}
-            moneda={moneda}
-            ciudad={ciudad}
-            metrosCuadrados={metrosCuadrados}
-            direccion={direccion}
-            onEdit={onEdit}
-            onDelete={onDelete}
-          />
-              )}
-        <SeccionDocumentos documentos={documentosCombinados} />
+      {/* 1. Barra de estado (PRIMERA) */}
+      <Box sx={{ 
+        px: isAssets ? 0.25 : 1.5,
+        pt: isAssets ? 0.25 : 0.5,
+        pb: 0.5
+      }}>
+        {renderBarraProgreso()}
+      </Box>
+      
+      {/* 2. Renderizado de vista seleccionada (grid/list) */}
+      {viewMode === 'list' ? (
+        <PropiedadListView
+          propiedad={propiedad}
+          habitaciones={habitaciones}
+          habitacionesAgrupadas={habitacionesAgrupadas}
+          totalHabitaciones={totalHabitaciones}
+          getNombreTipoHabitacion={getNombreTipoHabitacion}
+          ciudad={ciudad}
+          metrosCuadrados={metrosCuadrados}
+          direccion={direccion}
+          documentos={documentosCombinados}
+          contratos={contratos}
+        />
+      ) : (
+        <PropiedadGridView
+          type="sections"
+          data={{ extendida: true }}
+          propiedad={propiedad}
+          habitaciones={habitaciones}
+          contratos={contratos}
+          documentos={documentosCombinados}
+          precio={montoMensual}
+          simboloMoneda={simbolo}
+          nombreCuenta={nombreCuenta}
+          moneda={moneda}
+          ciudad={ciudad}
+          metrosCuadrados={metrosCuadrados}
+          direccion={direccion}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          isExpanded={isExpanded}
+        />
+      )}
     </>
   );
 

@@ -29,24 +29,27 @@ const BarraEstadoPropiedad = ({
   const finalColor = estado === 'MANTENIMIENTO' ? 'warning' : color;
   
   // Si tenemos datos de cuotas, usar progreso financiero
-  const usarProgresoFinanciero = cuotasPagadas !== null && cuotasTotales !== null && montoAcumulado !== null;
+  const usarProgresoFinanciero = cuotasPagadas !== null && cuotasTotales !== null && montoAcumulado !== null && cuotasPagadas > 0;
+  
+  // Determinar el tipo de datos a mostrar
+  const dataType = usarProgresoFinanciero ? 'cuotas' : 'days';
   
   return (
     <ProgressBar
-      dataType={usarProgresoFinanciero ? "cuotas" : "days"}
+      dataType={dataType}
       diasTranscurridos={diasTranscurridosNum}
       diasTotales={diasTotalesNum}
       simboloMoneda={simboloMoneda}
       montoMensual={montoMensualNum}
-      montoTotal={usarProgresoFinanciero ? montoTotalNum : montoTotalNum}
+      montoTotal={montoTotalNum}
       percentage={porcentajeNum}
       color={finalColor}
       variant={isCompact ? "compact" : "default"}
-      // Datos de cuotas para progreso financiero
+      // Mostrar datos de cuotas si están disponibles
       cuotasPagadas={usarProgresoFinanciero ? cuotasPagadas : null}
       cuotasTotales={usarProgresoFinanciero ? cuotasTotales : null}
       montoPagado={usarProgresoFinanciero ? montoAcumulado : null}
-      montoTotalCuotas={usarProgresoFinanciero ? montoTotalNum : null}
+      montoTotalCuotas={usarProgresoFinanciero ? montoTotal : null}
       isAssets={isAssets}
       sx={sx}
     />

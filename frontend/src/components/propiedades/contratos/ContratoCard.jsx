@@ -149,14 +149,14 @@ const ContratoCard = ({
   };
 
   return (
-    <StyledCard sx={{ bgcolor: 'background.default' }}>
+    <StyledCard sx={{ bgcolor: '#181818' }}>
       {/* Header con título y acciones */}
       <Box 
         sx={{
           display: 'flex',
           flexDirection: 'column',
           gap: 1,
-          bgcolor: 'background.default',
+          bgcolor: '#181818',
           cursor: 'pointer',
           '&:hover': {
             bgcolor: 'action.hover'
@@ -306,7 +306,7 @@ const ContratoCard = ({
           maxHeight: 400,
           overflowY: 'auto',
           '&:last-child': { pb: 0.5 },
-          bgcolor: 'background.default',
+          bgcolor: '#181818',
           // Estilos para la barra de desplazamiento
           '&::-webkit-scrollbar': {
             width: '4px',
