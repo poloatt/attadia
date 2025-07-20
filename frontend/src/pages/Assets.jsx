@@ -340,11 +340,12 @@ export function Assets() {
   };
 
   const FinanceSection = () => (
-    <Box>
+    <Box sx={{ bgcolor: '#181818' }}>
       <Box sx={{ 
         display: 'flex', 
         alignItems: 'center',
         justifyContent: 'space-between',
+        bgcolor: '#181818'
       }}>
         {/* Métricas principales */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -464,11 +465,12 @@ export function Assets() {
     };
 
     return (
-      <Box>
+      <Box sx={{ bgcolor: '#181818' }}>
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center',
           justifyContent: 'space-between',
+          bgcolor: '#181818'
         }}>
           {/* Métricas de propiedades */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -481,7 +483,10 @@ export function Assets() {
                 variant="body2"
                 sx={{
                   color: 'text.secondary',
-                  '&:hover': { cursor: 'pointer' }
+                  '&:hover': { 
+                    cursor: 'pointer',
+                    color: 'text.secondary'
+                  }
                 }}
               >
                 {pluralize(stats.propiedades.total, 'Propiedad', 'Propiedades')}
@@ -514,7 +519,15 @@ export function Assets() {
 
         {/* Sección colapsable */}
         <Collapse in={isPropertiesDetailOpen}>
-          <Box sx={{ pt: 0.25, mt: 0.25, pb: 0, borderTop: 1, borderColor: 'divider' }}>
+          <Box sx={{ 
+            pt: 0.25, 
+            mt: 0.25, 
+            pb: 0, 
+            borderTop: 1, 
+            borderColor: 'divider',
+            bgcolor: '#181818'
+          }}>
+            <Box sx={{ bgcolor: '#181818' }}>
             {/* Listado de propiedades detallado */}
             {propiedades.length === 0 && (
               <Typography variant="body2" color="text.secondary" sx={{ my: 1 }}>
@@ -538,6 +551,7 @@ export function Assets() {
                 />
               </Box>
             ))}
+            </Box>
           </Box>
         </Collapse>
       </Box>
@@ -547,7 +561,7 @@ export function Assets() {
   const StatBox = ({ title, value, loading }) => (
     <Box sx={{ 
       p: 2, 
-      bgcolor: 'background.paper',
+      bgcolor: '#181818',
       borderRadius: 1,
       boxShadow: '0 1px 3px rgba(0,0,0,0.12)'
     }}>
@@ -567,13 +581,14 @@ export function Assets() {
 
 
   return (
-    <Box sx={{ width: '100%' }}>
+    <Box sx={{ width: '100%', bgcolor: '#181818' }}>
       <EntityToolbar />
       {/* Contenido principal */}
       <Box sx={{ 
         width: '100%', 
         px: { xs: 1, sm: 2, md: 3 },
-        py: 1
+        py: 1,
+        bgcolor: '#181818'
       }}>
         <Grid container spacing={2}>
           {/* Sección de Propiedades */}
@@ -583,9 +598,11 @@ export function Assets() {
               height: '100%',
               borderRadius: 1,
               boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
-              bgcolor: '#1a1a1a'
+              bgcolor: '#181818'
             }}>
-              <PropertiesSection />
+              <Box sx={{ bgcolor: '#181818' }}>
+                <PropertiesSection />
+              </Box>
             </Paper>
           </Grid>
 
@@ -596,9 +613,11 @@ export function Assets() {
               height: '100%',
               borderRadius: 1,
               boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
-              bgcolor: '#111'
+              bgcolor: '#181818'
             }}>
-              <FinanceSection />
+              <Box sx={{ bgcolor: '#181818' }}>
+                <FinanceSection />
+              </Box>
             </Paper>
           </Grid>
         </Grid>

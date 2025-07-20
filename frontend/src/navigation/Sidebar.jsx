@@ -196,7 +196,7 @@ export default function Sidebar() {
     return (
       <Box sx={{
         width: '100%',
-        bgcolor: 'background.paper',
+        bgcolor: '#181818',
         borderBottom: '1px solid',
         borderColor: 'divider',
         minHeight: 2, // Misma estructura que EntityToolbar

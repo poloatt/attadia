@@ -346,9 +346,9 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
     if (!contratoActivo) return null;
     return (
       <Box sx={{ 
-        bgcolor: isAssets ? '#111' : 'transparent',
+        bgcolor: isAssets ? '#181818' : 'transparent',
         '& .MuiPaper-root': {
-          bgcolor: isAssets ? '#111' : undefined
+          bgcolor: isAssets ? '#181818' : undefined
         }
       }}>
         <CuotasProvider 
@@ -465,13 +465,13 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
     <>
       {renderSeccionFinanzas()}
       {/* Renderizado de vista seleccionada (grid/list) */}
-      {viewMode === 'list' ? (
-        <Box sx={{ 
-          bgcolor: isAssets ? '#222' : 'transparent',
-          '& .MuiPaper-root': {
-            bgcolor: isAssets ? '#222' : undefined
-          }
-        }}>
+              {viewMode === 'list' ? (
+          <Box sx={{ 
+            bgcolor: isAssets ? '#181818' : 'transparent',
+            '& .MuiPaper-root': {
+              bgcolor: isAssets ? '#181818' : undefined
+            }
+          }}>
           <PropiedadListView
             propiedad={propiedad}
             habitaciones={habitaciones}
@@ -485,13 +485,13 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
             contratos={contratos}
           />
         </Box>
-      ) : (
-        <Box sx={{ 
-          bgcolor: isAssets ? '#222' : 'transparent',
-          '& .MuiPaper-root': {
-            bgcolor: isAssets ? '#222' : undefined
-          }
-        }}>
+              ) : (
+          <Box sx={{ 
+            bgcolor: isAssets ? '#181818' : 'transparent',
+            '& .MuiPaper-root': {
+              bgcolor: isAssets ? '#181818' : undefined
+            }
+          }}>
           <PropiedadGridView
             type="sections"
             data={{ extendida: true }}
@@ -512,9 +512,9 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
         </Box>
               )}
         <Box sx={{ 
-          bgcolor: isAssets ? '#222' : 'transparent',
+          bgcolor: isAssets ? '#181818' : 'transparent',
           '& .MuiPaper-root': {
-            bgcolor: isAssets ? '#222' : undefined
+            bgcolor: isAssets ? '#181818' : undefined
           }
         }}>
           <SeccionDocumentos documentos={documentosCombinados} />
@@ -524,7 +524,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
 
   return (
     <StyledCard sx={{ 
-      bgcolor: isAssets ? '#222' : 'background.default',
+      bgcolor: isAssets ? '#181818' : 'background.default',
       borderRadius: isAssets ? 1 : undefined
     }}>
       {/* Header con título y acciones */}
@@ -535,10 +535,10 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
             display: 'flex', 
             flexDirection: 'column',
             gap: isAssets ? (isExpanded ? 1 : 0.5) : 1,
-            bgcolor: isAssets ? '#222' : 'background.default',
+            bgcolor: isAssets ? '#181818' : 'background.default',
             cursor: 'pointer',
             '&:hover': {
-              bgcolor: isAssets ? 'rgba(255,255,255,0.05)' : 'action.hover'
+              bgcolor: isAssets ? '#181818' : 'action.hover'
             }
           }}
           onClick={onToggleExpand}
@@ -550,7 +550,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
               <Box sx={{ 
                 px: 0.25,
                 pt: 0.25,
-                bgcolor: '#222'
+                bgcolor: '#181818'
               }}>
                 {renderBarraProgreso()}
               </Box>
@@ -567,7 +567,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
       </Box>
       {isExpanded && (
         <Box sx={{ 
-          bgcolor: isAssets ? '#222' : 'transparent',
+          bgcolor: isAssets ? '#181818' : 'transparent',
           p: isAssets ? 2 : 0
         }}>
           {renderContenidoExpandido()}

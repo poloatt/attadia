@@ -229,7 +229,7 @@ export default function EntityToolbar({ children, additionalActions = [] }) {
   return (
     <Box sx={{ 
       width: '100%', 
-      bgcolor: 'background.default', 
+      bgcolor: '#181818', 
       pb: 0,
       position: 'sticky',
       top: 0,
