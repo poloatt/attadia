@@ -129,8 +129,7 @@ propiedadSchema.virtual('habitaciones', {
 propiedadSchema.virtual('inquilinos', {
   ref: 'Inquilinos',
   localField: '_id',
-  foreignField: 'propiedad',
-  match: { estado: 'ACTIVO' }
+  foreignField: 'propiedad'
 });
 
 // Agregar relación virtual con contratos
@@ -142,7 +141,8 @@ propiedadSchema.virtual('contratos', {
     $or: [
       { estado: 'ACTIVO' },
       { estado: 'PLANEADO' },
-      { estado: 'MANTENIMIENTO' }
+      { estado: 'MANTENIMIENTO' },
+      { estado: 'FINALIZADO' }
     ]
   },
   options: { sort: { fechaInicio: 1 } }
@@ -288,8 +288,7 @@ propiedadSchema.methods.getResumenHabitaciones = async function() {
 propiedadSchema.methods.actualizarInquilinos = async function() {
   const Inquilinos = mongoose.model('Inquilinos');
   const inquilinos = await Inquilinos.find({
-    propiedad: this._id,
-    estado: 'ACTIVO'
+    propiedad: this._id
   });
   
   // Actualizar estados de inquilinos basado en sus contratos

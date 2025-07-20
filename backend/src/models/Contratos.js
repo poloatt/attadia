@@ -74,9 +74,20 @@ const contratoSchema = createSchema({
           longitud: Array.isArray(v) ? v.length : 'no es array',
           resultado: !esMantenimiento || (Array.isArray(v) && v.length === 0)
         });
-        return !esMantenimiento || (Array.isArray(v) && v.length === 0);
+        // Si es mantenimiento, debe tener array vacío
+        if (esMantenimiento) {
+          return Array.isArray(v) && v.length === 0;
+        }
+        // Si no es mantenimiento, debe tener al menos un inquilino
+        return Array.isArray(v) && v.length > 0;
       },
-      message: 'No se pueden asignar inquilinos a un contrato de mantenimiento'
+      message: function(props) {
+        const esMantenimiento = this.tipoContrato === 'MANTENIMIENTO' || this.esMantenimiento === true;
+        if (esMantenimiento) {
+          return 'Los contratos de mantenimiento no pueden tener inquilinos';
+        }
+        return 'Debe seleccionar al menos un inquilino para contratos de alquiler';
+      }
     }
   },
   propiedad: {
@@ -505,14 +516,25 @@ contratoSchema.pre('save', async function(next) {
         throw new Error('La propiedad especificada no existe');
       }
       
-      if (propiedad.usuario.toString() !== this.usuario.toString()) {
+      // Verificar que la propiedad tenga un usuario asignado
+      if (!propiedad.usuario) {
+        throw new Error('La propiedad no tiene un usuario asignado');
+      }
+      
+      // Comparar los IDs de usuario
+      const propiedadUserId = propiedad.usuario.toString();
+      const contratoUserId = this.usuario.toString();
+      
+      if (propiedadUserId !== contratoUserId) {
         throw new Error('No tienes permiso para crear contratos en esta propiedad');
       }
     } catch (error) {
+      console.error('Error en validación de propiedad:', error);
       next(error);
     }
+  } else {
+    next();
   }
-  next();
 });
 
 // Middleware para filtrar por usuario en las consultas

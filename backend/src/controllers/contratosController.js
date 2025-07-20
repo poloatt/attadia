@@ -201,25 +201,49 @@ class ContratosController extends BaseController {
         moneda = cuenta.moneda._id;
       }
 
+      // Debug: Verificar valores antes del procesamiento
+      console.log('=== DEBUG PRECIO TOTAL ===');
+      console.log('req.body.precioTotal:', req.body.precioTotal, 'tipo:', typeof req.body.precioTotal);
+      console.log('req.body.montoMensual:', req.body.montoMensual, 'tipo:', typeof req.body.montoMensual);
+      console.log('req.body.tipoContrato:', req.body.tipoContrato);
+      console.log('req.body.esMantenimiento:', req.body.esMantenimiento);
+      
+      // Calcular precioTotal de forma segura
+      let precioTotalCalculado = 0;
+      if (req.body.tipoContrato === 'MANTENIMIENTO' || req.body.esMantenimiento === true) {
+        precioTotalCalculado = 0;
+      } else {
+        const precioTotalRaw = req.body.precioTotal || req.body.montoMensual || 0;
+        console.log('precioTotalRaw:', precioTotalRaw, 'tipo:', typeof precioTotalRaw);
+        precioTotalCalculado = parseFloat(precioTotalRaw) || 0;
+      }
+      console.log('precioTotalCalculado:', precioTotalCalculado);
+      
       const data = {
         ...req.body,
         fechaInicio: new Date(req.body.fechaInicio),
         fechaFin: req.body.fechaFin ? new Date(req.body.fechaFin) : null,
-        precioTotal: parseFloat(req.body.precioTotal || req.body.montoMensual),
+        precioTotal: precioTotalCalculado,
         deposito: req.body.deposito ? parseFloat(req.body.deposito) : null,
         propiedad: req.body.propiedadId || req.body.propiedad,
-        inquilino: req.body.inquilinoId || req.body.inquilino,
+        inquilino: req.body.tipoContrato === 'MANTENIMIENTO' ? [] : (req.body.inquilinoId || req.body.inquilino || []),
         habitacion: req.body.habitacionId || req.body.habitacion,
         cuenta: req.body.tipoContrato === 'MANTENIMIENTO' ? null : (req.body.cuentaId || req.body.cuenta),
-        moneda: req.body.tipoContrato === 'MANTENIMIENTO' ? null : moneda
+        moneda: req.body.tipoContrato === 'MANTENIMIENTO' ? null : moneda,
+        esMantenimiento: req.body.tipoContrato === 'MANTENIMIENTO' || req.body.esMantenimiento === true
       };
 
-      // Solo agregar el usuario si está disponible
+      // Agregar el usuario (requerido)
       if (req.user && req.user.id) {
         data.usuario = new mongoose.Types.ObjectId(req.user.id);
+      } else if (req.user && req.user._id) {
+        data.usuario = new mongoose.Types.ObjectId(req.user._id);
+      } else {
+        throw new Error('Usuario no autenticado');
       }
 
       console.log('Datos procesados:', data);
+      console.log('Datos procesados JSON:', JSON.stringify(data, null, 2));
       const contrato = await this.Model.create(data);
       // Sincronizar campo 'contrato' en cada inquilino asociado
       if (Array.isArray(data.inquilino)) {
@@ -242,6 +266,24 @@ class ContratosController extends BaseController {
       res.status(201).json(this.formatResponse(populatedContrato));
     } catch (error) {
       console.error('Error al crear contrato:', error);
+      console.error('Error stack:', error.stack);
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      
+      // Si es un error de validación de Mongoose, mostrar más detalles
+      if (error.name === 'ValidationError') {
+        console.error('Errores de validación:', error.errors);
+        const validationErrors = {};
+        for (const field in error.errors) {
+          validationErrors[field] = error.errors[field].message;
+        }
+        return res.status(400).json({ 
+          error: 'Error de validación al crear contrato',
+          details: error.message,
+          validationErrors
+        });
+      }
+      
       res.status(400).json({ 
         error: 'Error al crear contrato',
         details: error.message 

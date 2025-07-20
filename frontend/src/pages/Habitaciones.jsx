@@ -7,6 +7,7 @@ import {
 import { Add as AddIcon } from '@mui/icons-material';
 
 import { EntityDetails, EntityToolbar, EntityForm, EntityActions, EntityGroupedCards } from '../components/EntityViews';
+import { HabitacionesForm } from '../components/propiedades';
 import { snackbar } from '../components/common';
 import clienteAxios from '../config/axios';
 import { 
@@ -35,6 +36,7 @@ export function Habitaciones() {
   const [habitaciones, setHabitaciones] = useState([]);
   const [propiedades, setPropiedades] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isMultipleFormOpen, setIsMultipleFormOpen] = useState(false);
   const [editingHabitacion, setEditingHabitacion] = useState(null);
   const [loading, setLoading] = useState(true);
   // Usar snackbar unificado
@@ -49,7 +51,7 @@ export function Habitaciones() {
     const handleHeaderAddButton = (event) => {
       if (event.detail.type === 'habitacion') {
         setEditingHabitacion(null);
-        setIsFormOpen(true);
+        setIsMultipleFormOpen(true);
       }
     };
 
@@ -123,6 +125,28 @@ export function Habitaciones() {
     } catch (error) {
       console.error('Error:', error);
       snackbar.error(error.response?.data?.error || 'Error al guardar la habitación');
+    }
+  };
+
+  const handleMultipleHabitacionesSubmit = async (habitacionesData) => {
+    try {
+      console.log('Enviando múltiples habitaciones:', habitacionesData);
+      
+      // Crear todas las habitaciones en paralelo
+      const promises = habitacionesData.map(habitacionData => 
+        clienteAxios.post('/api/habitaciones', habitacionData)
+      );
+      
+      const responses = await Promise.all(promises);
+      const nuevasHabitaciones = responses.map(response => response.data);
+      
+      setHabitaciones(prev => [...prev, ...nuevasHabitaciones]);
+      setIsMultipleFormOpen(false);
+      
+      await fetchHabitaciones();
+    } catch (error) {
+      console.error('Error al crear múltiples habitaciones:', error);
+      throw error;
     }
   };
 
@@ -331,26 +355,41 @@ export function Habitaciones() {
   return (
     <Box sx={{ px: 0, width: '100%' }}>
 
+      <EntityToolbar />
 
       <EntityDetails
         title="Habitaciones"
         action={
-          <Button 
-            variant="contained" 
-            startIcon={<AddIcon />} 
-            size="small"
-            onClick={() => {
-              setEditingHabitacion(null);
-              setIsFormOpen(true);
-            }}
-            sx={{ borderRadius: 0 }}
-          >
-            Nueva Habitación
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button 
+              variant="outlined" 
+              startIcon={<AddIcon />} 
+              size="small"
+              onClick={() => {
+                setEditingHabitacion(null);
+                setIsMultipleFormOpen(true);
+              }}
+              sx={{ borderRadius: 0 }}
+            >
+              Múltiples
+            </Button>
+            <Button 
+              variant="contained" 
+              startIcon={<AddIcon />} 
+              size="small"
+              onClick={() => {
+                setEditingHabitacion(null);
+                setIsFormOpen(true);
+              }}
+              sx={{ borderRadius: 0 }}
+            >
+              Nueva Habitación
+            </Button>
+          </Box>
         }
       >
         {habitaciones.length === 0 ? (
-          <EmptyState onAdd={() => setIsFormOpen(true)} />
+          <EmptyState onAdd={() => setIsMultipleFormOpen(true)} />
         ) : (
           <EntityGroupedCards 
             data={habitaciones}
@@ -376,6 +415,13 @@ export function Habitaciones() {
         fields={formFields}
         initialData={editingHabitacion || {}}
         isEditing={!!editingHabitacion}
+      />
+
+      <HabitacionesForm
+        open={isMultipleFormOpen}
+        onClose={() => setIsMultipleFormOpen(false)}
+        onSubmit={handleMultipleHabitacionesSubmit}
+        propiedades={propiedades}
       />
     </Box>
   );

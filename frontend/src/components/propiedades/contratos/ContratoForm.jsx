@@ -229,7 +229,7 @@ const ContratoForm = ({
     try {
       const dataToSubmit = {
         ...formData,
-        propiedad: formData.propiedad || null,
+        propiedad: formData.propiedad || selectedPropiedad?._id || null,
         habitacion: formData.habitacion || null,
         inquilino: formData.tipoContrato === 'MANTENIMIENTO' ? [] : (formData.inquilino || []),
         cuenta: formData.tipoContrato === 'MANTENIMIENTO' ? null : (formData.cuenta || (selectedCuenta ? selectedCuenta._id : null)),
@@ -275,6 +275,12 @@ const ContratoForm = ({
         }
       });
 
+      console.log('=== DATOS FINALES A ENVIAR ===');
+      console.log('selectedPropiedad:', selectedPropiedad);
+      console.log('formData.propiedad:', formData.propiedad);
+      console.log('propiedad final:', dataToSubmit.propiedad);
+      console.log('dataToSubmit completo:', dataToSubmit);
+
       await onSubmit(dataToSubmit);
       onClose();
     } catch (error) {
@@ -299,7 +305,7 @@ const ContratoForm = ({
       newErrors.fechaFin = 'La fecha de fin debe ser posterior a la fecha de inicio';
     }
 
-    if (!formData.propiedad) {
+    if (!formData.propiedad && !selectedPropiedad) {
       newErrors.propiedad = 'La propiedad es requerida';
     }
     if (formData.esPorHabitacion && !formData.habitacion) {

@@ -78,9 +78,43 @@ const EstadoFinanzasContrato = ({
     return null;
   }
 
-  // Si no hay cuotas válidas, no mostrar nada
+  // Si no hay cuotas válidas, mostrar información básica del contrato
   if (cuotasTotales === 0) {
-    return null;
+    return (
+      <Box sx={{ 
+        mt: 1, 
+        p: 1, 
+        bgcolor: 'background.paper', 
+        borderRadius: 0,
+        border: '1px solid #333',
+        ...sx
+      }}>
+        <Typography variant="caption" sx={{ 
+          fontSize: compact ? '0.6rem' : '0.65rem', 
+          color: 'text.secondary',
+          fontStyle: 'italic'
+        }}>
+          Contrato sin cuotas generadas
+        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+          <Typography variant="caption" sx={{ 
+            fontSize: compact ? '0.55rem' : '0.6rem', 
+            color: 'text.secondary' 
+          }}>
+            {simboloMoneda} {(contrato.precioTotal || 0).toLocaleString()}
+          </Typography>
+          <Typography variant="caption" sx={{ 
+            fontSize: compact ? '0.55rem' : '0.6rem', 
+            color: 'text.secondary' 
+          }}>
+            {contrato.fechaInicio && contrato.fechaFin ? 
+              `${new Date(contrato.fechaInicio).toLocaleDateString()} - ${new Date(contrato.fechaFin).toLocaleDateString()}` : 
+              'Fechas no especificadas'
+            }
+          </Typography>
+        </Box>
+      </Box>
+    );
   }
 
   return (

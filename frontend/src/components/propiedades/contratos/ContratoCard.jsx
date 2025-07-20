@@ -214,8 +214,7 @@ const ContratoCard = ({
                 e.stopPropagation();
                 onEdit(contrato);
               }}
-              onDelete={(e) => {
-                e.stopPropagation();
+              onDelete={() => {
                 onDelete(contrato._id || contrato.id);
               }}
               itemName={titulo}

@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import { Monedas, COLORES_MONEDA } from './src/models/Monedas.js';
-import { config } from './src/config/config.js';
+import { Monedas, COLORES_MONEDA } from '../src/models/Monedas.js';
+import { config } from '../src/config/config.js';
 
 // Conectar a la base de datos
 await mongoose.connect(config.mongoUri);
