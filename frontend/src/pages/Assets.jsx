@@ -340,12 +340,11 @@ export function Assets() {
   };
 
   const FinanceSection = () => (
-    <Box sx={{ bgcolor: '#181818' }}>
+    <Box>
       <Box sx={{ 
         display: 'flex', 
         alignItems: 'center',
-        justifyContent: 'space-between',
-        bgcolor: '#181818'
+        justifyContent: 'space-between'
       }}>
         {/* Métricas principales */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -398,14 +397,14 @@ export function Assets() {
         </Box>
       </Box>
 
-      {/* Cuentas colapsables */}
-      <Collapse in={isAccountsOpen}>
-        <Box sx={{ 
-          mt: 0.5,
-          pt: 0.5,
-          borderTop: 1,
-          borderColor: 'divider'
-        }}>
+              {/* Cuentas colapsables */}
+        <Collapse in={isAccountsOpen}>
+          <Box sx={{ 
+            mt: 0.5,
+            pt: 0.5,
+            borderTop: 1,
+            borderColor: 'divider'
+          }}>
           {accounts.map((account) => {
             const monedaSymbol = account.moneda?.simbolo || '$';
             const saldo = parseFloat(account.saldo) || 0;
@@ -465,55 +464,61 @@ export function Assets() {
     };
 
     return (
-      <Box sx={{ bgcolor: '#181818' }}>
+      <Box>
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center',
-          justifyContent: 'space-between',
-          bgcolor: '#181818'
+          justifyContent: 'space-between'
         }}>
           {/* Métricas de propiedades */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              {/* Icono genérico para el resumen de propiedades */}
-              <HomeWork sx={{ fontSize: 18 }} />
-              <Typography
-                component={Link}
-                to="/propiedades"
-                variant="body2"
-                sx={{
-                  color: 'text.secondary',
-                  '&:hover': { 
-                    cursor: 'pointer',
-                    color: 'text.secondary'
-                  }
-                }}
-              >
-                {pluralize(stats.propiedades.total, 'Propiedad', 'Propiedades')}
-              </Typography>
-            </Box>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <PercentIcon sx={{ fontSize: 18 }} />
-              <Typography variant="body2" color="text.secondary">
-                {`${stats.propiedades.porcentajeOcupacion}% Ocupación`}
-              </Typography>
-            </Box>
-          </Box>
-
-          {/* Controles */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <IconButton 
-              size="small" 
-              onClick={() => setIsPropertiesDetailOpen(!isPropertiesDetailOpen)}
+            {/* Icono genérico para el resumen de propiedades */}
+            <HomeWork sx={{ fontSize: 18, color: 'text.secondary' }} />
+            <Typography
+              variant="body2"
               sx={{
-                p: 0.5,
-                transform: isPropertiesDetailOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.2s'
+                color: 'text.secondary',
+                fontWeight: 500,
+                textDecoration: 'none'
               }}
             >
-              <ExpandMoreIcon sx={{ fontSize: 18 }} />
-            </IconButton>
+              {pluralize(stats.propiedades.total, 'Propiedad', 'Propiedades')}
+            </Typography>
+          </Box>
+
+          {/* Controles y ocupación */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 0.5,
+              px: 0.75,
+              py: 0.25,
+              bgcolor: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: 1,
+              border: '1px solid',
+              borderColor: 'divider'
+            }}>
+              <PercentIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400, fontSize: '0.7rem' }}>
+                {`${stats.propiedades.porcentajeOcupacion}%`}
+              </Typography>
+            </Box>
+
+            {/* Controles */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <IconButton 
+                size="small" 
+                onClick={() => setIsPropertiesDetailOpen(!isPropertiesDetailOpen)}
+                sx={{
+                  p: 0.5,
+                  transform: isPropertiesDetailOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s'
+                }}
+              >
+                <ExpandMoreIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Box>
           </Box>
         </Box>
 
@@ -524,10 +529,8 @@ export function Assets() {
             mt: 0.25, 
             pb: 0, 
             borderTop: 1, 
-            borderColor: 'divider',
-            bgcolor: '#181818'
+            borderColor: 'divider'
           }}>
-            <Box sx={{ bgcolor: '#181818' }}>
             {/* Listado de propiedades detallado */}
             {propiedades.length === 0 && (
               <Typography variant="body2" color="text.secondary" sx={{ my: 1 }}>
@@ -536,7 +539,7 @@ export function Assets() {
             )}
             {propiedades.map((prop, index) => (
               <Box key={prop._id} sx={{ 
-                mb: index === propiedades.length - 1 ? 0 : 0.75 
+                mb: index === propiedades.length - 1 ? 0 : 0.75
               }}>
                 <PropiedadCard
                   propiedad={prop}
@@ -551,7 +554,6 @@ export function Assets() {
                 />
               </Box>
             ))}
-            </Box>
           </Box>
         </Collapse>
       </Box>
@@ -561,7 +563,6 @@ export function Assets() {
   const StatBox = ({ title, value, loading }) => (
     <Box sx={{ 
       p: 2, 
-      bgcolor: '#181818',
       borderRadius: 1,
       boxShadow: '0 1px 3px rgba(0,0,0,0.12)'
     }}>
@@ -581,14 +582,13 @@ export function Assets() {
 
 
   return (
-    <Box sx={{ width: '100%', bgcolor: '#181818' }}>
+    <Box sx={{ width: '100%' }}>
       <EntityToolbar />
       {/* Contenido principal */}
       <Box sx={{ 
         width: '100%', 
         px: { xs: 1, sm: 2, md: 3 },
-        py: 1,
-        bgcolor: '#181818'
+        py: 1
       }}>
         <Grid container spacing={2}>
           {/* Sección de Propiedades */}
@@ -597,12 +597,9 @@ export function Assets() {
               p: 1.5, 
               height: '100%',
               borderRadius: 1,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
-              bgcolor: '#181818'
+              boxShadow: '0 1px 3px rgba(0,0,0,0.12)'
             }}>
-              <Box sx={{ bgcolor: '#181818' }}>
-                <PropertiesSection />
-              </Box>
+              <PropertiesSection />
             </Paper>
           </Grid>
 
@@ -612,12 +609,9 @@ export function Assets() {
               p: 2, 
               height: '100%',
               borderRadius: 1,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
-              bgcolor: '#181818'
+              boxShadow: '0 1px 3px rgba(0,0,0,0.12)'
             }}>
-              <Box sx={{ bgcolor: '#181818' }}>
-                <FinanceSection />
-              </Box>
+              <FinanceSection />
             </Paper>
           </Grid>
         </Grid>

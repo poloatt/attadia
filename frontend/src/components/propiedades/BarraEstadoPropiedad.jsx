@@ -15,6 +15,7 @@ const BarraEstadoPropiedad = ({
   cuotasPagadas = null,
   cuotasTotales = null,
   isCompact = false,
+  isAssets = false,
   sx = {}
 }) => {
   // Asegurar que los valores sean números válidos
@@ -46,6 +47,7 @@ const BarraEstadoPropiedad = ({
       cuotasTotales={usarProgresoFinanciero ? cuotasTotales : null}
       montoPagado={usarProgresoFinanciero ? montoAcumulado : null}
       montoTotalCuotas={usarProgresoFinanciero ? montoTotalNum : null}
+      isAssets={isAssets}
       sx={sx}
     />
   );

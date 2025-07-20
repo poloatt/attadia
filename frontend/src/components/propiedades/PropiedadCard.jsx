@@ -316,6 +316,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
           cuotasPagadas={estadoCuotas.cuotasPagadas}
           cuotasTotales={estadoCuotas.cuotasTotales}
           isCompact={isAssets && !isExpanded}
+          isAssets={isAssets}
         />
       );
     } else {
@@ -335,6 +336,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
           cuotasPagadas={0}
           cuotasTotales={0}
           isCompact={isAssets && !isExpanded}
+          isAssets={isAssets}
         />
       );
     }
@@ -345,22 +347,15 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
     // Solo mostrar si hay contrato activo
     if (!contratoActivo) return null;
     return (
-      <Box sx={{ 
-        bgcolor: isAssets ? '#181818' : 'transparent',
-        '& .MuiPaper-root': {
-          bgcolor: isAssets ? '#181818' : undefined
-        }
-      }}>
-        <CuotasProvider 
-          contratoId={contratoActivo._id || contratoActivo.id}
-          formData={contratoActivo}
-        >
-          <EstadoFinanzasContrato 
-            contrato={contratoActivo} 
-            contratoId={contratoActivo._id || contratoActivo.id} 
-          />
-        </CuotasProvider>
-      </Box>
+      <CuotasProvider 
+        contratoId={contratoActivo._id || contratoActivo.id}
+        formData={contratoActivo}
+      >
+        <EstadoFinanzasContrato 
+          contrato={contratoActivo} 
+          contratoId={contratoActivo._id || contratoActivo.id} 
+        />
+      </CuotasProvider>
     );
   };
 
@@ -466,12 +461,6 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
       {renderSeccionFinanzas()}
       {/* Renderizado de vista seleccionada (grid/list) */}
               {viewMode === 'list' ? (
-          <Box sx={{ 
-            bgcolor: isAssets ? '#181818' : 'transparent',
-            '& .MuiPaper-root': {
-              bgcolor: isAssets ? '#181818' : undefined
-            }
-          }}>
           <PropiedadListView
             propiedad={propiedad}
             habitaciones={habitaciones}
@@ -484,14 +473,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
             documentos={documentosCombinados}
             contratos={contratos}
           />
-        </Box>
               ) : (
-          <Box sx={{ 
-            bgcolor: isAssets ? '#181818' : 'transparent',
-            '& .MuiPaper-root': {
-              bgcolor: isAssets ? '#181818' : undefined
-            }
-          }}>
           <PropiedadGridView
             type="sections"
             data={{ extendida: true }}
@@ -509,36 +491,29 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
             onEdit={onEdit}
             onDelete={onDelete}
           />
-        </Box>
               )}
-        <Box sx={{ 
-          bgcolor: isAssets ? '#181818' : 'transparent',
-          '& .MuiPaper-root': {
-            bgcolor: isAssets ? '#181818' : undefined
-          }
-        }}>
-          <SeccionDocumentos documentos={documentosCombinados} />
-        </Box>
+        <SeccionDocumentos documentos={documentosCombinados} />
     </>
   );
 
   return (
-    <StyledCard sx={{ 
-      bgcolor: isAssets ? '#181818' : 'background.default',
-      borderRadius: isAssets ? 1 : undefined
-    }}>
+    <StyledCard 
+      isAssets={isAssets}
+      sx={{ 
+        borderRadius: isAssets ? 1 : undefined
+      }}
+    >
       {/* Header con título y acciones */}
               <Box 
           sx={{ 
-            p: isAssets ? (isExpanded ? 2 : 1) : 1.5, 
-            pb: isAssets ? (isExpanded ? 1 : 0.5) : 1,
+            p: isAssets ? (isExpanded ? 1 : 1) : 1.5, 
+            pb: isAssets ? (isExpanded ? 0.5 : 0.5) : 1,
             display: 'flex', 
             flexDirection: 'column',
-            gap: isAssets ? (isExpanded ? 1 : 0.5) : 1,
-            bgcolor: isAssets ? '#181818' : 'background.default',
+            gap: isAssets ? (isExpanded ? 0.5 : 0.5) : 1,
             cursor: 'pointer',
             '&:hover': {
-              bgcolor: isAssets ? '#181818' : 'action.hover'
+              bgcolor: isAssets ? 'transparent' : 'action.hover'
             }
           }}
           onClick={onToggleExpand}
@@ -549,8 +524,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
                       isAssets ? (
               <Box sx={{ 
                 px: 0.25,
-                pt: 0.25,
-                bgcolor: '#181818'
+                pt: 0.25
               }}>
                 {renderBarraProgreso()}
               </Box>
@@ -567,8 +541,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
       </Box>
       {isExpanded && (
         <Box sx={{ 
-          bgcolor: isAssets ? '#181818' : 'transparent',
-          p: isAssets ? 2 : 0
+          p: isAssets ? 1 : 0
         }}>
           {renderContenidoExpandido()}
         </Box>

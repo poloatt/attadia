@@ -2,9 +2,9 @@ import { styled } from '@mui/material/styles';
 import { Card, Box, Dialog, TextField, Chip, Typography } from '@mui/material';
 
 // Componente estilizado para las tarjetas con estilo angular
-export const StyledCard = styled(Card)(({ theme }) => ({
+export const StyledCard = styled(Card)(({ theme, isAssets }) => ({
   borderRadius: 0,
-  backgroundColor: 'transparent',
+  backgroundColor: isAssets ? '#181818' : 'transparent',
   backgroundImage: 'none',
   boxShadow: 'none',
   border: 'none',

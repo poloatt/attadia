@@ -10,9 +10,9 @@ const theme = createTheme({
       main: '#cccccc',
     },
     background: {
-      default: '#1a1a1a',
-      paper: '#1a1a1a',
-      toolbar: 'rgba(26, 26, 26, 0.8)'
+      default: '#181818',
+      paper: '#181818',
+      toolbar: 'rgba(24, 24, 24, 0.8)'
     },
     text: {
       primary: '#e6e6e6',
@@ -54,7 +54,7 @@ const theme = createTheme({
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: 'rgba(26, 26, 26, 0.8)',
+          backgroundColor: 'rgba(24, 24, 24, 0.8)',
           borderBottom: '1px solid rgba(140, 140, 140, 0.15)',
           boxShadow: 'none',
           height: 48,
@@ -78,7 +78,7 @@ const theme = createTheme({
     MuiDrawer: {
       styleOverrides: {
         paper: {
-          backgroundColor: '#1a1a1a',
+          backgroundColor: '#181818',
           borderRight: '1px solid rgba(140, 140, 140, 0.15)',
           '& .MuiListItemButton-root': {
             minHeight: 40,
@@ -179,7 +179,7 @@ const theme = createTheme({
     MuiDialog: {
       styleOverrides: {
         paper: {
-          backgroundColor: '#1a1a1a'
+          backgroundColor: '#181818'
         }
       }
     },

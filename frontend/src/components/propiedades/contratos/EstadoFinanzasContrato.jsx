@@ -86,12 +86,12 @@ const EstadoFinanzasContrato = ({
   return (
     <Box sx={{ 
       mt: 1, 
-      p: compact ? 0.5 : 1, 
-      bgcolor: 'background.paper', 
+      p: 0, 
+      bgcolor: 'transparent', 
       borderRadius: 0,
       cursor: 'pointer',
       '&:hover': {
-        bgcolor: 'action.hover'
+        bgcolor: 'transparent'
       },
       ...sx
     }}
@@ -100,7 +100,7 @@ const EstadoFinanzasContrato = ({
 
       
       {/* Progreso de cuotas */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5, px: compact ? 0.5 : 1 }}>
         <Typography variant="caption" sx={{ 
           fontSize: compact ? '0.6rem' : '0.65rem', 
           color: 'text.secondary' 
@@ -116,20 +116,22 @@ const EstadoFinanzasContrato = ({
       </Box>
       
       {/* Barra de progreso de cuotas */}
-      <ProgressBar
-        dataType="cuotas"
-        cuotasPagadas={cuotasPagadas}
-        cuotasTotales={cuotasTotales}
-        montoPagado={montoPagado}
-        montoTotalCuotas={montoTotal}
-        percentage={porcentajePagado}
-        color="primary"
-        variant={compact ? 'compact' : 'default'}
-        showLabels={false}
-        sx={{ mb: 0.5 }}
-      />
+      <Box sx={{ px: compact ? 0.5 : 1 }}>
+        <ProgressBar
+          dataType="cuotas"
+          cuotasPagadas={cuotasPagadas}
+          cuotasTotales={cuotasTotales}
+          montoPagado={montoPagado}
+          montoTotalCuotas={montoTotal}
+          percentage={porcentajePagado}
+          color="primary"
+          variant={compact ? 'compact' : 'default'}
+          showLabels={false}
+          sx={{ mb: 0.5 }}
+        />
+      </Box>
       {/* Montos */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, px: compact ? 0.5 : 1 }}>
         <Typography variant="caption" sx={{ 
           fontSize: compact ? '0.55rem' : '0.6rem', 
           color: 'text.secondary' 
@@ -153,10 +155,12 @@ const EstadoFinanzasContrato = ({
             gap: 0.5,
             mt: 0.5,
             p: compact ? 0.25 : 0.5,
+            px: compact ? 0.5 : 1,
             bgcolor: 'background.default',
             borderRadius: 0,
             border: t => `1px solid ${t.palette.error.main}`,
-            justifyContent: 'space-between'
+            justifyContent: 'space-between',
+            width: '100%'
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -227,15 +231,17 @@ const EstadoFinanzasContrato = ({
                 gap: 0.5,
                 mt: 0.5,
                 p: compact ? 0.25 : 0.5,
+                px: compact ? 0.5 : 1,
                 bgcolor: 'background.default',
                 borderRadius: 0,
-                border: t => `1px solid ${t.palette.success.main}`,
-                justifyContent: 'space-between'
+                border: t => `1px solid ${t.palette.divider}`,
+                justifyContent: 'space-between',
+                width: '100%'
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <MoneyIcon sx={{ fontSize: compact ? '0.6rem' : '0.7rem', color: 'success.main' }} />
-                <Typography variant="caption" sx={{ fontSize: compact ? '0.6rem' : '0.65rem', color: 'success.main', fontWeight: 600 }}>
+                <MoneyIcon sx={{ fontSize: compact ? '0.6rem' : '0.7rem', color: 'text.secondary' }} />
+                <Typography variant="caption" sx={{ fontSize: compact ? '0.6rem' : '0.65rem', color: 'text.secondary', fontWeight: 600 }}>
                   {pagadas} cuota{pagadas !== 1 ? 's' : ''} pagada{pagadas !== 1 ? 's' : ''}
                   {pendientes > 0 && (
                     <span style={{ color: '#888', fontWeight: 400 }}>
@@ -282,7 +288,7 @@ const EstadoFinanzasContrato = ({
                 </StyledCuotasIconButton>
                 <StyledCuotasIconButton 
                   size="small" 
-                  sx={{ color: 'success.main' }} 
+                  sx={{ color: 'text.secondary' }} 
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowCuotas((prev) => !prev);
@@ -299,7 +305,7 @@ const EstadoFinanzasContrato = ({
       {/* Lista expandible de cuotas */}
       <Collapse in={showCuotas && cuotasTotales > 0}>
         <Box 
-          sx={{ mt: 1, mb: 1, bgcolor: '#222', borderRadius: 0, p: 1 }}
+          sx={{ mt: 1, mb: 1, bgcolor: '#222', borderRadius: 0, p: 1, width: '100%' }}
           onClick={(e) => e.stopPropagation()}
         >
           {cuotas && cuotas.length > 0 ? (
