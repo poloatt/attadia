@@ -75,6 +75,7 @@ import EstadoFinanzasContrato from './contratos/EstadoFinanzasContrato';
 import { CuotasProvider } from './contratos/context/CuotasContext';
 import { getEstadoColor, getEstadoText, getStatusIconComponent } from '../common/StatusSystem';
 import { StyledCard, StatusChip } from './PropiedadStyles';
+import EstadoIcon from '../common/EstadoIcon';
 
 // Función para calcular el monto mensual promedio desde contratos activos
 const calcularMontoMensualDesdeContratos = (contratos = []) => {
@@ -370,7 +371,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
         <PropiedadHeader 
           propiedad={propiedad} 
-          showEstado={true}
+          showEstado={!isAssets}
           iconSize={isAssets ? "18px" : "1.1rem"}
           titleSize={isAssets ? "subtitle1" : "subtitle1"}
           titleWeight={isAssets ? 600 : 500}
@@ -428,28 +429,36 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
           </Tooltip>
         </Box>
       )}
-      {isAssets && onOpenDetail && (
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
-          <Tooltip title="Ver detalles completos">
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenDetail(propiedad);
-              }}
-              sx={{ 
-                color: 'text.secondary',
-                padding: 0.25,
-                transition: 'color 0.2s',
-                '&:hover': {
-                  bgcolor: 'action.hover',
-                  color: 'primary.main'
-                }
-              }}
-            >
-              <OpenInNewIcon sx={{ fontSize: '0.9rem' }} />
-            </IconButton>
-          </Tooltip>
+      {isAssets && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          {/* Chip de estado para Assets */}
+          <StatusChip customcolor={getEstadoColor(estado, 'PROPIEDAD')}>
+            <EstadoIcon estado={estado} tipo="PROPIEDAD" />
+            <span>{getEstadoText(estado, 'PROPIEDAD')}</span>
+          </StatusChip>
+          
+          {onOpenDetail && (
+            <Tooltip title="Ver detalles completos">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenDetail(propiedad);
+                }}
+                sx={{ 
+                  color: 'text.secondary',
+                  padding: 0.25,
+                  transition: 'color 0.2s',
+                  '&:hover': {
+                    bgcolor: 'action.hover',
+                    color: 'primary.main'
+                  }
+                }}
+              >
+                <OpenInNewIcon sx={{ fontSize: '0.9rem' }} />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
       )}
     </Box>
