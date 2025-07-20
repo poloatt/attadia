@@ -481,7 +481,8 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
     <StyledCard 
       isAssets={isAssets}
       sx={{ 
-        borderRadius: isAssets ? 1 : undefined
+        borderRadius: isAssets ? 1 : undefined,
+        backgroundColor: isAssets ? '#181818 !important' : undefined
       }}
     >
       {/* Header con título y acciones */}

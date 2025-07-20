@@ -79,8 +79,39 @@ const EstadoFinanzasContrato = ({
     return null;
   }
 
-  // Si no hay cuotas válidas, mostrar información básica del contrato
+  // Determinar el estado del contrato
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const fechaInicio = contrato.fechaInicio ? new Date(contrato.fechaInicio) : null;
+  const fechaFin = contrato.fechaFin ? new Date(contrato.fechaFin) : null;
+  
+  let estadoContrato = 'PENDIENTE';
+  if (fechaInicio && fechaFin) {
+    if (fechaInicio <= hoy && fechaFin > hoy) {
+      estadoContrato = 'ACTIVO';
+    } else if (fechaInicio > hoy) {
+      estadoContrato = 'PLANEADO';
+    } else if (fechaFin < hoy) {
+      estadoContrato = 'FINALIZADO';
+    }
+  }
+
+  // Si no hay cuotas válidas, mostrar información según el estado del contrato
   if (cuotasTotales === 0) {
+    let mensaje = 'Sin cuotas mensuales configuradas';
+    let color = 'text.secondary';
+    
+    if (estadoContrato === 'PLANEADO') {
+      mensaje = 'Contrato planeado - Inicia en el futuro';
+      color = 'warning.main';
+    } else if (estadoContrato === 'FINALIZADO') {
+      mensaje = 'Contrato finalizado';
+      color = 'text.disabled';
+    } else if (estadoContrato === 'ACTIVO') {
+      mensaje = 'Sin cuotas mensuales configuradas';
+      color = 'error.main';
+    }
+    
     return (
       <Box sx={{ 
         mt: 1, 
@@ -92,10 +123,10 @@ const EstadoFinanzasContrato = ({
       }}>
         <Typography variant="caption" sx={{ 
           fontSize: compact ? '0.6rem' : '0.65rem', 
-          color: 'text.secondary',
+          color: color,
           fontStyle: 'italic'
         }}>
-          Sin cuotas mensuales configuradas
+          {mensaje}
         </Typography>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
           <Typography variant="caption" sx={{ 

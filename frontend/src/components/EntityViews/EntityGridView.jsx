@@ -922,6 +922,8 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
     const [selectedInquilino, setSelectedInquilino] = React.useState(null);
     const [contratoDetailOpen, setContratoDetailOpen] = React.useState(false);
     const [selectedContrato, setSelectedContrato] = React.useState(null);
+    const [showAllContratos, setShowAllContratos] = React.useState(false);
+    
     const handleOpenInquilino = (inquilino) => {
       setSelectedInquilino(inquilino);
       setInquilinoDetailOpen(true);
@@ -938,6 +940,14 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
       setContratoDetailOpen(false);
       setSelectedContrato(null);
     };
+    
+    // Separar contratos de otros documentos
+    const contratos = documentos.filter(doc => doc.categoria === 'CONTRATO' || doc.tipo === 'CONTRATO');
+    const otrosDocumentos = documentos.filter(doc => doc.categoria !== 'CONTRATO' && doc.tipo !== 'CONTRATO');
+    
+    // Limitar contratos mostrados inicialmente
+    const contratosAMostrar = showAllContratos ? contratos : contratos.slice(0, 2);
+    const contratosOcultos = contratos.length - contratosAMostrar.length;
     return (
       <Box sx={{ minHeight: SECTION_MIN_HEIGHT, px: SECTION_PADDING_X, py: 0.2, display: 'flex', flexDirection: 'column', gap: SECTION_GAP, bgcolor: '#181818' }}>
         {documentos.length === 0 ? (
@@ -946,20 +956,12 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
           </Typography>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.2 }}>
-            {documentos.map((doc, idx) => {
+            {/* Mostrar otros documentos primero */}
+            {otrosDocumentos.map((doc, idx) => {
               let IconoDoc = DescriptionIcon;
               let label = doc.nombre;
               let secondary = '';
-              if (doc.categoria === 'CONTRATO' || doc.tipo === 'CONTRATO') {
-                IconoDoc = DriveIcon;
-                const apellido = getApellidoInquilinoContrato(doc);
-                const rango = doc.fechaInicio && doc.fechaFin ? calcularRangoMesesContrato(doc.fechaInicio, doc.fechaFin) : '';
-                label = apellido;
-                secondary = rango;
-              }
-              // Iconos de acción a la derecha
-              const inquilino = doc.inquilino && Array.isArray(doc.inquilino) ? doc.inquilino[0] : doc.inquilino;
-              const contrato = doc;
+              
               return (
                 <EntitySectionRow
                   key={doc._id || idx}
@@ -968,31 +970,9 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
                   secondary={secondary}
                   children={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      {(doc.categoria === 'CONTRATO' || doc.tipo === 'CONTRATO') && (
-                        <>
-                          {inquilino && (
-                            <IconButton size="small" sx={{ p: 0.2 }} onClick={() => handleOpenInquilino(inquilino)}>
-                              {React.createElement(icons.person, { sx: { fontSize: '1rem', color: 'primary.main' } })}
-                            </IconButton>
-                          )}
-                          <IconButton size="small" sx={{ p: 0.2 }} onClick={() => handleOpenContrato(contrato)}>
-                            {React.createElement(icons.description, { sx: { fontSize: '1rem', color: 'primary.main' } })}
-                          </IconButton>
-                          {/* Botón de inventario */}
-                          {doc.inventario ? (
-                            <IconButton size="small" sx={{ p: 0.2, color: 'text.secondary' }} onClick={() => onInventarioClick && onInventarioClick(doc)}>
-                              {React.createElement(icons.inventario, { sx: { fontSize: '1rem' } })}
-                            </IconButton>
-                          ) : (
-                            <Box sx={{ display: 'flex', alignItems: 'center', p: 0.2, color: 'text.disabled' }}>
-                              {React.createElement(icons.inventario, { sx: { fontSize: '1rem' } })}
-                            </Box>
-                          )}
-                        </>
-                      )}
-                      {doc.url && (doc.categoria !== 'CONTRATO' && doc.tipo !== 'CONTRATO') && (
+                      {doc.url && (
                         <IconButton size="small" href={doc.url} target="_blank" rel="noopener noreferrer" sx={{ p: 0.2 }}>
-                          <ViewIcon sx={{ fontSize: '1rem', color: 'primary.main' }} />
+                          <ViewIcon sx={{ fontSize: '1rem', color: 'primary.main' }}/>
                         </IconButton>
                       )}
                     </Box>
@@ -1001,6 +981,93 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
                 />
               );
             })}
+            
+            {/* Mostrar contratos limitados */}
+            {contratosAMostrar.map((doc, idx) => {
+              let IconoDoc = DriveIcon;
+              const apellido = getApellidoInquilinoContrato(doc);
+              const rango = doc.fechaInicio && doc.fechaFin ? calcularRangoMesesContrato(doc.fechaInicio, doc.fechaFin) : '';
+              const label = apellido;
+              const secondary = rango;
+              
+              // Iconos de acción a la derecha
+              const inquilino = doc.inquilino && Array.isArray(doc.inquilino) ? doc.inquilino[0] : doc.inquilino;
+              const contrato = doc;
+              
+              return (
+                <EntitySectionRow
+                  key={doc._id || idx}
+                  icon={IconoDoc}
+                  primary={label}
+                  secondary={secondary}
+                  children={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      {inquilino && (
+                        <IconButton size="small" sx={{ p: 0.2 }} onClick={() => handleOpenInquilino(inquilino)}>
+                          {React.createElement(icons.person, { sx: { fontSize: '1rem', color: 'primary.main' } })}
+                        </IconButton>
+                      )}
+                      <IconButton size="small" sx={{ p: 0.2 }} onClick={() => handleOpenContrato(contrato)}>
+                        {React.createElement(icons.description, { sx: { fontSize: '1rem', color: 'primary.main' } })}
+                      </IconButton>
+                      {/* Botón de inventario */}
+                      {doc.inventario ? (
+                        <IconButton size="small" sx={{ p: 0.2, color: 'text.secondary' }} onClick={() => onInventarioClick && onInventarioClick(doc)}>
+                          {React.createElement(icons.inventario, { sx: { fontSize: '1rem' } })}
+                        </IconButton>
+                      ) : (
+                        <Box sx={{ display: 'flex', alignItems: 'center', p: 0.2, color: 'text.disabled' }}>
+                          {React.createElement(icons.inventario, { sx: { fontSize: '1rem' } })}
+                        </Box>
+                      )}
+                    </Box>
+                  }
+                  sx={{ minHeight: ROW_MIN_HEIGHT, pl: 1 }}
+                />
+              );
+            })}
+            
+            {/* Link para mostrar más contratos */}
+            {contratosOcultos > 0 && (
+              <Box sx={{ pl: 1, pt: 0.5 }}>
+                <Typography 
+                  variant="caption" 
+                  color="primary.main" 
+                  sx={{ 
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    fontSize: '0.65rem',
+                    '&:hover': {
+                      color: 'primary.light'
+                    }
+                  }}
+                  onClick={() => setShowAllContratos(true)}
+                >
+                  Ver {contratosOcultos} contrato{contratosOcultos > 1 ? 's' : ''} más
+                </Typography>
+              </Box>
+            )}
+            
+            {/* Link para ocultar contratos */}
+            {showAllContratos && contratos.length > 2 && (
+              <Box sx={{ pl: 1, pt: 0.5 }}>
+                <Typography 
+                  variant="caption" 
+                  color="primary.main" 
+                  sx={{ 
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    fontSize: '0.65rem',
+                    '&:hover': {
+                      color: 'primary.light'
+                    }
+                  }}
+                  onClick={() => setShowAllContratos(false)}
+                >
+                  Mostrar menos
+                </Typography>
+              </Box>
+            )}
           </Box>
         )}
         {/* Popups de detalle */}

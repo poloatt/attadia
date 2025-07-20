@@ -596,8 +596,12 @@ export function Assets() {
             <Paper sx={{ 
               p: 1.5, 
               height: '100%',
-              borderRadius: 1,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.12)'
+              borderRadius: 2,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+              backgroundColor: '#181818 !important',
+              '&.MuiPaper-root': {
+                backgroundColor: '#181818 !important'
+              }
             }}>
               <PropertiesSection />
             </Paper>
@@ -608,8 +612,12 @@ export function Assets() {
             <Paper sx={{ 
               p: 2, 
               height: '100%',
-              borderRadius: 1,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.12)'
+              borderRadius: 2,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+              backgroundColor: '#181818 !important',
+              '&.MuiPaper-root': {
+                backgroundColor: '#181818 !important'
+              }
             }}>
               <FinanceSection />
             </Paper>

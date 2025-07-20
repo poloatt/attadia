@@ -229,6 +229,28 @@ const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta,
       const ytdActual = calcularYearToDate(propiedad);
       const ytgActual = calcularYearToGo(propiedad);
       
+      // Estado para controlar la expansión de contratos
+      const [showAllContratos, setShowAllContratos] = React.useState(false);
+      
+      // Filtrar contratos válidos (no mantenimiento y sin pagos completos)
+      const contratosValidos = (contratos || []).filter(contrato => {
+        if (contrato.tipoContrato === 'MANTENIMIENTO') return false;
+        
+        // Verificar si el contrato tiene pagos completos
+        if (!contrato.cuotasMensuales || contrato.cuotasMensuales.length === 0) {
+          return true; // Mostrar si no hay cuotas configuradas
+        }
+        
+        const cuotasPagadas = contrato.cuotasMensuales.filter(cuota => cuota.estado === 'PAGADO').length;
+        const cuotasTotales = contrato.cuotasMensuales.length;
+        
+        return !(cuotasPagadas === cuotasTotales && cuotasTotales > 0);
+      });
+      
+      // Limitar contratos mostrados inicialmente
+      const contratosAMostrar = showAllContratos ? contratosValidos : contratosValidos.slice(0, 2);
+      const contratosOcultos = contratosValidos.length - contratosAMostrar.length;
+      
       return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3, width: '100%', bgcolor: '#181818', p: 0, m: 0 }}>
         {/* Boxes de YTD, YTG y Cuenta (PRIMERO) */}
@@ -346,7 +368,7 @@ const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta,
         </Box>
 
         {/* Separador sutil entre boxes y estado de cuotas */}
-        {contratos && contratos.length > 0 && (
+        {contratosValidos.length > 0 && (
           <Box sx={{ 
             height: '1px', 
             bgcolor: 'rgba(255,255,255,0.08)', 
@@ -357,29 +379,66 @@ const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta,
         )}
 
         {/* Estado de finanzas de contratos (SEGUNDO - AL FINAL) */}
-        {contratos && contratos.length > 0 && (
+        {contratosValidos.length > 0 && (
           <Box sx={{ width: '100%', p: 0, m: 0 }}>
-            {contratos.map((contrato, index) => {
-              // Solo mostrar contratos de alquiler (no mantenimiento)
-              if (contrato.tipoContrato === 'MANTENIMIENTO') return null;
-              
-              return (
-                <Box key={contrato._id || contrato.id || `contrato-${index}`} sx={{ width: '100%', p: 0, m: 0 }}>
-                  <CuotasProvider 
+            {contratosAMostrar.map((contrato, index) => (
+              <Box key={contrato._id || contrato.id || `contrato-${index}`} sx={{ width: '100%', p: 0, m: 0 }}>
+                <CuotasProvider 
+                  contratoId={contrato._id || contrato.id}
+                  formData={contrato}
+                >
+                  <EstadoFinanzasContrato 
+                    contrato={contrato} 
                     contratoId={contrato._id || contrato.id}
-                    formData={contrato}
-                  >
-                    <EstadoFinanzasContrato 
-                      contrato={contrato} 
-                      contratoId={contrato._id || contrato.id}
-                      showTitle={false}
-                      compact={true}
-                      sx={{ width: '100%', p: 0, m: 0 }}
-                    />
-                  </CuotasProvider>
-                </Box>
-              );
-            })}
+                    showTitle={false}
+                    compact={true}
+                    sx={{ width: '100%', p: 0, m: 0 }}
+                  />
+                </CuotasProvider>
+              </Box>
+            ))}
+            
+            {/* Link para mostrar más contratos */}
+            {contratosOcultos > 0 && (
+              <Box sx={{ px: 1, pt: 0.5, pb: 0.5 }}>
+                <Typography 
+                  variant="caption" 
+                  color="primary.main" 
+                  sx={{ 
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    fontSize: '0.65rem',
+                    '&:hover': {
+                      color: 'primary.light'
+                    }
+                  }}
+                  onClick={() => setShowAllContratos(true)}
+                >
+                  Ver {contratosOcultos} contrato{contratosOcultos > 1 ? 's' : ''} más
+                </Typography>
+              </Box>
+            )}
+            
+            {/* Link para ocultar contratos */}
+            {showAllContratos && contratosValidos.length > 2 && (
+              <Box sx={{ px: 1, pt: 0.5, pb: 0.5 }}>
+                <Typography 
+                  variant="caption" 
+                  color="primary.main" 
+                  sx={{ 
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    fontSize: '0.65rem',
+                    '&:hover': {
+                      color: 'primary.light'
+                    }
+                  }}
+                  onClick={() => setShowAllContratos(false)}
+                >
+                  Mostrar menos
+                </Typography>
+              </Box>
+            )}
           </Box>
         )}
 
