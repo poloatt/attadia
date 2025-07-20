@@ -1,3 +1,5 @@
+import statusCache from '../utils/statusCache.js';
+
 export class BaseController {
   constructor(Model, options = {}) {
     this.Model = Model;
@@ -110,14 +112,67 @@ export class BaseController {
 
   // GET /api/resource/:id
   getById(req, res) {
-    console.log('BaseController.getById called');
     let queryExec = this.Model.findById(req.params.id);
     
-    // Agregar populate si está configurado
-    if (this.options.populate && this.options.populate.length > 0) {
-      this.options.populate.forEach(pop => {
-        queryExec = queryExec.populate(pop);
+    // Manejar populate dinámico desde query params
+    const { populate } = req.query;
+    
+    if (populate) {
+      // Si se especifica populate en la query, usarlo
+      const populateFields = populate.split(',');
+      populateFields.forEach(field => {
+        if (field === 'contratos') {
+          // Populate especial para contratos con sus relaciones
+          queryExec = queryExec.populate({
+            path: 'contratos',
+            populate: [
+              'inquilino',
+              'moneda',
+              {
+                path: 'cuenta',
+                populate: {
+                  path: 'moneda'
+                }
+              }
+            ]
+          });
+        } else if (field === 'inquilinos') {
+          queryExec = queryExec.populate({
+            path: 'inquilinos',
+            select: 'nombre apellido email telefono estado'
+          });
+        } else if (field === 'habitaciones') {
+          queryExec = queryExec.populate({
+            path: 'habitaciones',
+            select: 'tipo nombrePersonalizado activo'
+          });
+        } else if (field === 'inventarios') {
+          queryExec = queryExec.populate({
+            path: 'inventarios',
+            match: { activo: true },
+            select: 'nombre descripcion activo'
+          });
+        } else if (field === 'cuenta') {
+          queryExec = queryExec.populate({
+            path: 'cuenta',
+            populate: {
+              path: 'moneda'
+            }
+          });
+        } else if (field === 'moneda') {
+          queryExec = queryExec.populate('moneda');
+        } else {
+          // Populate genérico para otros campos
+          queryExec = queryExec.populate(field);
+        }
       });
+    } else {
+      // Usar populate configurado por defecto
+      if (this.options.populate && this.options.populate.length > 0) {
+        this.options.populate.forEach(pop => {
+          queryExec = queryExec.populate(pop);
+        });
+      }
     }
     
     return queryExec
@@ -125,6 +180,13 @@ export class BaseController {
         if (!item) {
           return res.status(404).json({ message: 'Recurso no encontrado' });
         }
+        
+        // Si se solicitaron contratos, procesarlos con el cache de estados
+        if (populate && populate.includes('contratos') && item.contratos) {
+          const contratosConEstado = statusCache.procesarContratos(item.contratos);
+          item.contratos = contratosConEstado;
+        }
+        
         res.json(item);
       })
       .catch(error => {

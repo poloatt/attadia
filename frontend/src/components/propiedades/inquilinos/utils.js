@@ -13,7 +13,16 @@ export function getInquilinosByPropiedad(propiedad) {
   }
   // Si la propiedad tiene contratos, buscar inquilinos en los contratos
   if (Array.isArray(propiedad.contratos)) {
-    const inquilinos = propiedad.contratos.flatMap(c => Array.isArray(c.inquilino) ? c.inquilino : []).filter(Boolean);
+    const inquilinos = propiedad.contratos.flatMap(c => {
+      // El inquilino puede ser un array o un objeto individual
+      if (Array.isArray(c.inquilino)) {
+        return c.inquilino;
+      } else if (c.inquilino && typeof c.inquilino === 'object') {
+        return [c.inquilino];
+      }
+      return [];
+    }).filter(Boolean);
+    
     // Eliminar duplicados por _id
     const unique = [];
     const ids = new Set();

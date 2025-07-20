@@ -123,7 +123,7 @@ const EstadoFinanzasContrato = ({
         montoPagado={montoPagado}
         montoTotalCuotas={montoTotal}
         percentage={porcentajePagado}
-        color="success"
+        color="primary"
         variant={compact ? 'compact' : 'default'}
         showLabels={false}
         sx={{ mb: 0.5 }}
@@ -161,14 +161,6 @@ const EstadoFinanzasContrato = ({
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <MoneyIcon sx={{ fontSize: compact ? '0.6rem' : '0.7rem', color: 'error.main' }} />
-            {!isMobile && (
-              <CuotaInlineEditor
-                cuota={{ estado: 'VENCIDA' }}
-                editable={false}
-                tipo="estado"
-                sx={{ minWidth: 120 }}
-              />
-            )}
             <Typography variant="caption" sx={{ fontSize: compact ? '0.6rem' : '0.65rem', color: 'error.main', fontWeight: 600 }}>
               {cuotasVencidas} cuota{cuotasVencidas > 1 ? 's' : ''} vencida{cuotasVencidas > 1 ? 's' : ''}
             </Typography>
@@ -243,14 +235,6 @@ const EstadoFinanzasContrato = ({
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <MoneyIcon sx={{ fontSize: compact ? '0.6rem' : '0.7rem', color: 'success.main' }} />
-                {!isMobile && (
-                  <CuotaInlineEditor
-                    cuota={{ estado: 'PAGADO' }}
-                    editable={false}
-                    tipo="estado"
-                    sx={{ minWidth: 120 }}
-                  />
-                )}
                 <Typography variant="caption" sx={{ fontSize: compact ? '0.6rem' : '0.65rem', color: 'success.main', fontWeight: 600 }}>
                   {pagadas} cuota{pagadas !== 1 ? 's' : ''} pagada{pagadas !== 1 ? 's' : ''}
                   {pendientes > 0 && (

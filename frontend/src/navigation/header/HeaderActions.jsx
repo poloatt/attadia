@@ -190,19 +190,19 @@ export const useHeaderActions = () => {
     return ENTITY_CONFIGS[path] || null;
   };
 
+  // LÓGICA SIMPLIFICADA: Si la ruta está en ADD_BUTTON_ROUTES, mostrar el botón
   const showAddButton = ADD_BUTTON_ROUTES.includes(location.pathname);
 
   const showUndoButton = SUPPORTED_ROUTES.some(route => location.pathname.startsWith(route));
 
-  // Debug: solo mostrar en desarrollo
-  if (process.env.NODE_ENV === 'development') {
+  // Debug: solo mostrar en desarrollo y cuando cambie la ruta
+  if (process.env.NODE_ENV === 'development' && false) { // Deshabilitado temporalmente
     console.log('🔍 HeaderActions Debug:', {
       currentPath: location.pathname,
       showAddButton,
       entityConfig: getEntityConfig(),
       showVisibilityButton,
-      showUndoButton,
-      addButtonRoutes: ADD_BUTTON_ROUTES
+      showUndoButton
     });
   }
 

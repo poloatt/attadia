@@ -210,10 +210,8 @@ export default function EntityToolbar({ children, additionalActions = [] }) {
 
   if (!showEntityToolbarNavigation) return null;
 
-  const actionButtonSx = { fontSize: 18, color: 'text.secondary', borderRadius: 1, p: 0.5 };
-
   // Debug: solo mostrar en desarrollo y cuando cambie la ruta
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === 'development' && false) { // Deshabilitado temporalmente
     console.log('🔍 EntityToolbar Debug:', {
       currentPath,
       shouldShowBack,
@@ -225,86 +223,46 @@ export default function EntityToolbar({ children, additionalActions = [] }) {
       entityConfig,
       showEntityToolbarNavigation
     });
-    
-    // Log específico para el botón de agregar
-    if (currentPath === '/assets/finanzas/transacciones') {
-      console.log('🔍 EntityToolbar: En página de transacciones, showAddButton:', showAddButton);
-    }
-    
-    // Log específico para Assets.jsx
-    if (currentPath === '/' || currentPath === '/assets') {
-      console.log('🔍 EntityToolbar: En Assets, shouldShowBack:', shouldShowBack, 'showAddButton:', showAddButton, 'siblingsCount:', siblings.length);
-    }
-    
-    // Log específico para páginas principales
-    if (currentPath === '/tiempo' || currentPath === '/salud') {
-      console.log('🔍 EntityToolbar: En página principal', currentPath, 'shouldShowBack:', shouldShowBack, 'siblingsCount:', siblings.length);
-    }
-    
-    // Log específico para páginas de Tiempo
-    if (currentPath.startsWith('/tiempo/')) {
-      console.log('🔍 EntityToolbar: En página de Tiempo', currentPath, {
-        shouldShowBack,
-        siblingsCount: siblings.length,
-        siblings: siblings.map(s => ({ title: s.title, path: s.path })),
-        showAddButton,
-        entityConfig: entityConfig?.name
-      });
-    }
-    
-    // Log específico para verificar distribución fija
-    console.log('🔍 EntityToolbar: Distribución fija - Back:', shouldShowBack, 'Siblings:', siblings.length, 'Actions:', showAddButton);
-    
-    // Log específico para verificar que todas las páginas de Tiempo tengan la misma estructura
-    if (currentPath.startsWith('/tiempo')) {
-      console.log('🔍 EntityToolbar: Verificación Tiempo - Grid:', shouldShowBack ? 'auto 1fr 48px' : '1fr 48px', 'Path:', currentPath);
-    }
   }
 
   // Render
   return (
     <Box sx={{ 
-      width: '100vw', // Ancho fijo del viewport
+      width: '100%', 
       bgcolor: 'background.default', 
       pb: 0,
       position: 'sticky',
-      top: 0, // Ahora se posiciona desde el top del contenedor principal
+      top: 0,
       zIndex: 1201,
       borderBottom: '1px solid',
       borderColor: 'divider',
-      minHeight: 2, // Altura mínima extremadamente reducida
-      left: 0, // Asegurar posición fija
-      right: 0, // Asegurar posición fija
+      minHeight: 2, // Revertido a altura mínima original
     }}>
-      {/* Distribución fija de 3 boxes - NUNCA CAMBIA */}
+      {/* Layout simplificado y flexible */}
       <Box sx={{ 
-        display: 'grid', 
-        gridTemplateColumns: '120px 1fr 120px', // Distribución fija: back | siblings | actions
+        display: 'flex', 
         alignItems: 'center', 
-        px: 0, 
-        pt: 0, 
-        pb: 0, 
+        px: 0, // Revertido a padding horizontal original
+        pt: 0, // Revertido a padding vertical original
+        pb: 0, // Revertido a padding vertical original
         width: '100%',
-        minHeight: 40, // Altura fija para evitar saltos
+        minHeight: 2, // Revertido a altura mínima original
         gap: 1
       }}>
         
-        {/* BOX 1: BACK - Siempre alineado a la izquierda */}
+        {/* Sección izquierda: Botón de atrás */}
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
-          justifyContent: 'flex-start',
-          minWidth: 120,
-          height: 40,
+          flexShrink: 0,
+          minWidth: 'fit-content',
           pl: 1
         }}>
           {shouldShowBack ? (
             <Box sx={{ 
               display: 'flex', 
               alignItems: 'center', 
-              gap: 0.5, 
-              minWidth: 'fit-content',
-              flexShrink: 0
+              gap: 0.5
             }}>
               <Tooltip title={parentInfo.title || 'Volver'}>
                 <IconButton onClick={handleBack} size="small">
@@ -328,29 +286,63 @@ export default function EntityToolbar({ children, additionalActions = [] }) {
               )}
             </Box>
           ) : (
-            // Espacio vacío para mantener el layout
-            <Box sx={{ width: '100%', height: 40 }} />
+            // Botón de atrás con color de background para difuminarse
+            <Box sx={{ 
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 32,
+              height: 32,
+              opacity: 0.1, // Muy baja opacidad para difuminarse
+              color: 'background.default', // Color del background
+              pointerEvents: 'none', // No clickeable
+              '& .MuiSvgIcon-root': {
+                fontSize: 18,
+                color: 'background.default'
+              }
+            }}>
+              <Box component="span" sx={{ 
+                fontSize: 18,
+                color: 'background.default',
+                fontWeight: 300, // Más delgado para parecer plano
+                lineHeight: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transform: 'rotate(180deg)' // Rotar para que apunte hacia la derecha (inactivo)
+              }}>
+                →
+              </Box>
+            </Box>
           )}
         </Box>
         
-        {/* BOX 2: SIBLINGS - Siempre centrado absolutamente */}
+        {/* Sección central: Hermanos (siblings) - centrados considerando el padding del Container */}
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center',
-          minHeight: 40,
-          width: '100%',
-          position: 'relative'
+          flex: 1,
+          minHeight: 40, // Altura fija para mantener centrado
+          position: 'relative' // Para posicionamiento absoluto de los siblings
         }}>
           {siblings.length > 1 ? (
             <Box sx={{
               display: 'flex',
               alignItems: 'center',
               gap: 0.5,
-              position: 'absolute',
+              position: 'absolute', // Posicionamiento absoluto para centrado perfecto
               left: '50%',
               transform: 'translateX(-50%)',
-              zIndex: 1
+              zIndex: 1,
+              // Ajuste para alinear con el contenido del Container
+              ...(isMobile ? {
+                // En mobile, el Container tiene px: 1, así que ajustamos
+                left: 'calc(50% + 8px)', // 8px = 1 * theme.spacing(1)
+              } : {
+                // En desktop, el Container tiene px: 3, así que ajustamos
+                left: 'calc(50% + 24px)', // 24px = 3 * theme.spacing(1)
+              })
             }}>
               {siblings.map(item => {
                 const isActive = isRouteActive(item.path, currentPath);
@@ -381,18 +373,16 @@ export default function EntityToolbar({ children, additionalActions = [] }) {
                 );
               })}
             </Box>
-          ) : (
-            // Espacio vacío para mantener el layout cuando no hay hermanos
-            <Box sx={{ width: '100%', height: 40 }} />
-          )}
+          ) : null}
         </Box>
         
-        {/* BOX 3: ACTIONS - Siempre alineado a la derecha */}
+        {/* Sección derecha: Acciones - con ancho fijo para mantener centrado de siblings */}
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'flex-end',
-          minWidth: 120,
+          flexShrink: 0,
+          minWidth: 48, // Ancho fijo para mantener centrado de siblings
           height: 40,
           pr: 1
         }}>
@@ -406,12 +396,42 @@ export default function EntityToolbar({ children, additionalActions = [] }) {
           {/* Children */}
           {!isMobile && children}
           
-          {/* Botón de agregar */}
+          {/* Botón de agregar - LÓGICA SIMPLIFICADA */}
           {showAddButton && entityConfig ? (
             <HeaderAddButton entityConfig={entityConfig} buttonSx={{ ml: 1 }} />
           ) : (
-            // Espacio invisible para mantener el layout
-            <Box sx={{ width: 48, height: 40 }} />
+            // Botón + con color de background para difuminarse - MISMO TAMAÑO que el activo
+            <Box sx={{ 
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 32, // Mismo tamaño que IconButton small
+              height: 32, // Mismo tamaño que IconButton small
+              ml: 1,
+              opacity: 0.1, // Muy baja opacidad para difuminarse
+              color: 'background.default', // Color del background
+              pointerEvents: 'none', // No clickeable
+              borderRadius: 1, // Mismo border radius que el activo
+              padding: 0.5, // Mismo padding que el activo
+              '& .MuiSvgIcon-root': {
+                fontSize: 18, // Mismo fontSize que el activo
+                color: 'background.default'
+              }
+            }}>
+              <Box component="span" sx={{ 
+                fontSize: 18, // Mismo fontSize que el AddIcon activo
+                color: 'background.default',
+                fontWeight: 300, // Más delgado para parecer plano
+                lineHeight: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 18, // Mismo ancho que el icono
+                height: 18 // Mismo alto que el icono
+              }}>
+                +
+              </Box>
+            </Box>
           )}
         </Box>
       </Box>

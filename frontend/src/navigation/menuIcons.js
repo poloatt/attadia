@@ -29,7 +29,8 @@ import {
   FiberManualRecordOutlined,
   KeyboardBackspaceOutlined,
   MonetizationOnOutlined, // icono "$" dentro de círculo para assets
-  AddCircleOutline // cruz médica dentro de círculo para salud
+  AddCircleOutline, // cruz médica dentro de círculo para salud
+  BedOutlined // icono de cama para habitaciones
 } from '@mui/icons-material';
 
 export const icons = {
@@ -64,7 +65,8 @@ export const icons = {
   expandMore: ExpandMore,
   fiberManualRecord: FiberManualRecordOutlined,
   arrowBack: KeyboardBackspaceOutlined,
-  dollarSign: MonetizationOnOutlined // icono "$" dentro de círculo para assets
+  dollarSign: MonetizationOnOutlined, // icono "$" dentro de círculo para assets
+  bed: BedOutlined // icono de cama para habitaciones
 };
 
 // Función helper para obtener el icono por clave

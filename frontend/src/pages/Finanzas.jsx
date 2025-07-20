@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography, Grid, Card, CardContent, CardActionArea } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import EntityToolbar from '../components/EntityViews/EntityToolbar';
+import { EntityToolbar } from '../components/EntityViews';
 import { 
   AccountBalanceOutlined as BankIcon,
   CurrencyExchangeOutlined as CurrencyIcon,

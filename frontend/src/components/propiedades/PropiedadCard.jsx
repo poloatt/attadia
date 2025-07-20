@@ -114,7 +114,7 @@ const calcularMontoMensualDesdeContratos = (contratos = []) => {
 
 
 
-const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpanded = false, onToggleExpand, viewMode = 'grid', setViewMode = () => {} }) => {
+const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpanded = false, onToggleExpand, viewMode = 'grid', setViewMode = () => {}, onOpenDetail = null }) => {
 
 
   const theme = useTheme();
@@ -147,12 +147,52 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
   const direccion = propiedad.direccion || '';
   const ciudad = propiedad.ciudad || '';
   const metrosCuadrados = propiedad.metrosCuadrados || 0;
-  const montoMensual = calcularMontoMensualDesdeContratos(propiedad.contratos);
+  const contratos = propiedad.contratos || [];
+  const montoMensual = calcularMontoMensualDesdeContratos(contratos);
   
-  // Usar la función centralizada para obtener cuenta y moneda
-  const { simbolo, nombreCuenta } = getCuentaYMoneda(propiedad, {});
+  // Buscar contrato activo para obtener cuenta y moneda
+  const contratoActivo = contratos.find(contrato => 
+    getEstadoContrato(contrato) === 'ACTIVO' && 
+    !contrato.esMantenimiento && 
+    contrato.tipoContrato === 'ALQUILER'
+  );
   
-  const moneda = propiedad.cuenta?.moneda?.nombre || propiedad.moneda?.nombre || '';
+  // Obtener cuenta y moneda del contrato activo o de la propiedad
+  let simbolo = '$';
+  let nombreCuenta = 'No especificada';
+  
+  if (contratoActivo) {
+    const cuentaYMoneda = getCuentaYMoneda(contratoActivo, {});
+    simbolo = cuentaYMoneda.simbolo;
+    nombreCuenta = cuentaYMoneda.nombreCuenta;
+  } else if (propiedad.cuenta) {
+    // Si no hay contrato activo, usar la cuenta de la propiedad
+    if (typeof propiedad.cuenta === 'object') {
+      nombreCuenta = propiedad.cuenta.nombre || nombreCuenta;
+      if (propiedad.cuenta.moneda && typeof propiedad.cuenta.moneda === 'object') {
+        simbolo = propiedad.cuenta.moneda.simbolo || simbolo;
+      }
+    }
+  }
+  
+  // Obtener nombre de moneda para mostrar
+  const moneda = (() => {
+    if (contratoActivo?.cuenta?.moneda?.nombre) {
+      return contratoActivo.cuenta.moneda.nombre;
+    }
+    if (contratoActivo?.moneda?.nombre) {
+      return contratoActivo.moneda.nombre;
+    }
+    if (propiedad.cuenta?.moneda?.nombre) {
+      return propiedad.cuenta.moneda.nombre;
+    }
+    if (propiedad.moneda?.nombre) {
+      return propiedad.moneda.nombre;
+    }
+    return '';
+  })();
+  
+
   const habitaciones = propiedad.habitaciones || [];
   const numDormitorios = habitaciones.filter(h => 
     h.tipo === 'DORMITORIO_SIMPLE' || h.tipo === 'DORMITORIO_DOBLE'
@@ -161,7 +201,6 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
   const dormitoriosDobles = habitaciones.filter(h => h.tipo === 'DORMITORIO_DOBLE').length;
   const banos = habitaciones.filter(h => h.tipo === 'BAÑO' || h.tipo === 'TOILETTE').length;
   const inquilinos = propiedad.inquilinos || [];
-  const contratos = propiedad.contratos || [];
 
   // Filtrar activos y finalizados
   const inquilinosActivos = (propiedad.inquilinos || []).filter(i => i.estado === 'ACTIVO');
@@ -225,12 +264,13 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
   const progresoOcupacion = calcularProgresoOcupacion(propiedad);
   
   // Calcular estado de cuotas para progreso financiero real
-  const contratoActivo = contratos.find(contrato => getEstadoContrato(contrato) === 'ACTIVO');
   const estadoCuotas = contratoActivo ? calcularEstadoCuotasContrato(contratoActivo) : {
     montoPagado: 0,
     cuotasPagadas: 0,
     cuotasTotales: 0
   };
+
+
 
   // Combinar documentos y contratos para la sección de documentos
   const documentosCombinados = [
@@ -259,41 +299,68 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
 
   // Componente reutilizable para la barra de progreso
   const renderBarraProgreso = () => {
-    if (!progresoOcupacion.tieneContrato) return null;
-    
-    return (
-      <BarraEstadoPropiedad
-        diasTranscurridos={progresoOcupacion.diasTranscurridos}
-        diasTotales={progresoOcupacion.diasTotales}
-        porcentaje={progresoOcupacion.porcentaje}
-        simboloMoneda={simbolo}
-        montoMensual={montoMensual}
-        montoTotal={progresoOcupacion.montoTotal}
-        color={progresoOcupacion.estado === 'MANTENIMIENTO' ? 'warning.main' : 'primary.main'}
-        estado={progresoOcupacion.estado}
-        // Datos de cuotas para progreso financiero real
-        montoAcumulado={estadoCuotas.montoPagado}
-        cuotasPagadas={estadoCuotas.cuotasPagadas}
-        cuotasTotales={estadoCuotas.cuotasTotales}
-      />
-    );
+    // Mostrar barra siempre, pero con diferentes datos según el estado
+    if (progresoOcupacion.tieneContrato) {
+      return (
+        <BarraEstadoPropiedad
+          diasTranscurridos={progresoOcupacion.diasTranscurridos}
+          diasTotales={progresoOcupacion.diasTotales}
+          porcentaje={progresoOcupacion.porcentaje}
+          simboloMoneda={simbolo}
+          montoMensual={montoMensual}
+          montoTotal={progresoOcupacion.montoTotal}
+          color={progresoOcupacion.estado === 'MANTENIMIENTO' ? 'warning.main' : 'primary.main'}
+          estado={progresoOcupacion.estado}
+          // Datos de cuotas para progreso financiero real
+          montoAcumulado={estadoCuotas.montoPagado}
+          cuotasPagadas={estadoCuotas.cuotasPagadas}
+          cuotasTotales={estadoCuotas.cuotasTotales}
+          isCompact={isAssets && !isExpanded}
+        />
+      );
+    } else {
+      // Mostrar barra para propiedades sin contrato
+      return (
+        <BarraEstadoPropiedad
+          diasTranscurridos={0}
+          diasTotales={30}
+          porcentaje={0}
+          simboloMoneda={simbolo}
+          montoMensual={0}
+          montoTotal={0}
+          color="text.secondary"
+          estado={estado}
+          // Sin datos de cuotas
+          montoAcumulado={0}
+          cuotasPagadas={0}
+          cuotasTotales={0}
+          isCompact={isAssets && !isExpanded}
+        />
+      );
+    }
   };
 
   // Componente para mostrar el estado de las cuotas
   const renderSeccionFinanzas = () => {
-    if (!progresoOcupacion.tieneContrato) return null;
-    // Buscar contrato activo
+    // Solo mostrar si hay contrato activo
     if (!contratoActivo) return null;
     return (
-      <CuotasProvider 
-        contratoId={contratoActivo._id || contratoActivo.id}
-        formData={contratoActivo}
-      >
-        <EstadoFinanzasContrato 
-          contrato={contratoActivo} 
-          contratoId={contratoActivo._id || contratoActivo.id} 
-        />
-      </CuotasProvider>
+      <Box sx={{ 
+        bgcolor: isAssets ? '#111' : 'transparent',
+        '& .MuiPaper-root': {
+          bgcolor: isAssets ? '#111' : undefined
+        }
+      }}>
+        <CuotasProvider 
+          contratoId={contratoActivo._id || contratoActivo.id}
+          formData={contratoActivo}
+        >
+          <EstadoFinanzasContrato 
+            contrato={contratoActivo} 
+            contratoId={contratoActivo._id || contratoActivo.id} 
+          />
+        </CuotasProvider>
+      </Box>
     );
   };
 
@@ -309,61 +376,87 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
         <PropiedadHeader 
           propiedad={propiedad} 
           showEstado={true}
-          iconSize="1.1rem"
-          titleSize="subtitle1"
-          titleWeight={500}
+          iconSize={isAssets ? "18px" : "1.1rem"}
+          titleSize={isAssets ? "subtitle1" : "subtitle1"}
+          titleWeight={isAssets ? 600 : 500}
         />
       </Box>
-      <Box sx={{ display: 'flex', gap: 0.5 }}>
-        <Tooltip title={viewMode === 'list' ? "Cambiar a Vista Grid" : "Cambiar a Vista Lista"}>
-          <IconButton
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              setViewMode(viewMode === 'list' ? 'grid' : 'list');
-            }}
-            sx={{
-              color: viewMode === 'grid' ? 'primary.main' : 'text.secondary',
-              padding: 0.25,
-              bgcolor: 'transparent',
-              border: 'none',
-              transition: 'color 0.2s',
-              '&:hover': {
-                bgcolor: 'action.hover',
-                color: 'primary.main'
-              }
-            }}
-          >
-            {viewMode === 'list' ? (
-              <GridViewIcon sx={{ fontSize: '0.9rem' }} />
-            ) : (
-              <ListViewIcon sx={{ fontSize: '0.9rem' }} />
-            )}
-          </IconButton>
-        </Tooltip>
-        <EntityActions 
-          onEdit={() => onEdit(propiedad)}
-          onDelete={() => setOpenDeleteDialog(true)}
-          itemName={alias}
-        />
-        <Tooltip title={isExpanded ? "Colapsar" : "Expandir"}>
-          <IconButton
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleExpand();
-            }}
-            sx={{ 
-              color: 'text.secondary',
-              padding: 0.25,
-              transform: isExpanded ? 'rotate(180deg)' : 'none',
-              transition: 'transform 0.2s'
-            }}
-          >
-            <ExpandMoreIcon sx={{ fontSize: '0.9rem' }} />
-          </IconButton>
-        </Tooltip>
-      </Box>
+      {!isAssets && (
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <Tooltip title={viewMode === 'list' ? "Cambiar a Vista Grid" : "Cambiar a Vista Lista"}>
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                setViewMode(viewMode === 'list' ? 'grid' : 'list');
+              }}
+              sx={{
+                color: viewMode === 'grid' ? 'primary.main' : 'text.secondary',
+                padding: 0.25,
+                bgcolor: 'transparent',
+                border: 'none',
+                transition: 'color 0.2s',
+                '&:hover': {
+                  bgcolor: 'action.hover',
+                  color: 'primary.main'
+                }
+              }}
+            >
+              {viewMode === 'list' ? (
+                <GridViewIcon sx={{ fontSize: '0.9rem' }} />
+              ) : (
+                <ListViewIcon sx={{ fontSize: '0.9rem' }} />
+              )}
+            </IconButton>
+          </Tooltip>
+          <EntityActions 
+            onEdit={() => onEdit(propiedad)}
+            onDelete={() => setOpenDeleteDialog(true)}
+            itemName={alias}
+          />
+          <Tooltip title={isExpanded ? "Colapsar" : "Expandir"}>
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleExpand();
+              }}
+              sx={{ 
+                color: 'text.secondary',
+                padding: 0.25,
+                transform: isExpanded ? 'rotate(180deg)' : 'none',
+                transition: 'transform 0.2s'
+              }}
+            >
+              <ExpandMoreIcon sx={{ fontSize: '0.9rem' }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      )}
+      {isAssets && onOpenDetail && (
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <Tooltip title="Ver detalles completos">
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenDetail(propiedad);
+              }}
+              sx={{ 
+                color: 'text.secondary',
+                padding: 0.25,
+                transition: 'color 0.2s',
+                '&:hover': {
+                  bgcolor: 'action.hover',
+                  color: 'primary.main'
+                }
+              }}
+            >
+              <OpenInNewIcon sx={{ fontSize: '0.9rem' }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      )}
     </Box>
   );
 
@@ -373,68 +466,113 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
       {renderSeccionFinanzas()}
       {/* Renderizado de vista seleccionada (grid/list) */}
       {viewMode === 'list' ? (
-        <PropiedadListView
-          propiedad={propiedad}
-          habitaciones={habitaciones}
-          habitacionesAgrupadas={habitacionesAgrupadas}
-          totalHabitaciones={totalHabitaciones}
-          getNombreTipoHabitacion={getNombreTipoHabitacion}
-          ciudad={ciudad}
-          metrosCuadrados={metrosCuadrados}
-          direccion={direccion}
-          documentos={documentosCombinados}
-          contratos={contratos}
-        />
+        <Box sx={{ 
+          bgcolor: isAssets ? '#222' : 'transparent',
+          '& .MuiPaper-root': {
+            bgcolor: isAssets ? '#222' : undefined
+          }
+        }}>
+          <PropiedadListView
+            propiedad={propiedad}
+            habitaciones={habitaciones}
+            habitacionesAgrupadas={habitacionesAgrupadas}
+            totalHabitaciones={totalHabitaciones}
+            getNombreTipoHabitacion={getNombreTipoHabitacion}
+            ciudad={ciudad}
+            metrosCuadrados={metrosCuadrados}
+            direccion={direccion}
+            documentos={documentosCombinados}
+            contratos={contratos}
+          />
+        </Box>
       ) : (
-        <PropiedadGridView
-          type="sections"
-          data={{ extendida: true }}
-          propiedad={propiedad}
-          habitaciones={habitaciones}
-          contratos={contratos}
-          documentos={documentosCombinados}
-          precio={montoMensual}
-          simboloMoneda={simbolo}
-          nombreCuenta={nombreCuenta}
-          moneda={moneda}
-          ciudad={ciudad}
-          metrosCuadrados={metrosCuadrados}
-          direccion={direccion}
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
-      )}
-      <SeccionDocumentos documentos={documentosCombinados} />
+        <Box sx={{ 
+          bgcolor: isAssets ? '#222' : 'transparent',
+          '& .MuiPaper-root': {
+            bgcolor: isAssets ? '#222' : undefined
+          }
+        }}>
+          <PropiedadGridView
+            type="sections"
+            data={{ extendida: true }}
+            propiedad={propiedad}
+            habitaciones={habitaciones}
+            contratos={contratos}
+            documentos={documentosCombinados}
+            precio={montoMensual}
+            simboloMoneda={simbolo}
+            nombreCuenta={nombreCuenta}
+            moneda={moneda}
+            ciudad={ciudad}
+            metrosCuadrados={metrosCuadrados}
+            direccion={direccion}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
+        </Box>
+              )}
+        <Box sx={{ 
+          bgcolor: isAssets ? '#222' : 'transparent',
+          '& .MuiPaper-root': {
+            bgcolor: isAssets ? '#222' : undefined
+          }
+        }}>
+          <SeccionDocumentos documentos={documentosCombinados} />
+        </Box>
     </>
   );
 
   return (
-    <StyledCard sx={{ bgcolor: 'background.default' }}>
+    <StyledCard sx={{ 
+      bgcolor: isAssets ? '#222' : 'background.default',
+      borderRadius: isAssets ? 1 : undefined
+    }}>
       {/* Header con título y acciones */}
-      <Box 
-        sx={{ 
-          p: 1.5, 
-          pb: 1,
-          display: 'flex', 
-          flexDirection: 'column',
-          gap: 1,
-          bgcolor: 'background.default',
-          cursor: 'pointer',
-          '&:hover': {
-            bgcolor: 'action.hover'
-          }
-        }}
-        onClick={onToggleExpand}
-      >
+              <Box 
+          sx={{ 
+            p: isAssets ? (isExpanded ? 2 : 1) : 1.5, 
+            pb: isAssets ? (isExpanded ? 1 : 0.5) : 1,
+            display: 'flex', 
+            flexDirection: 'column',
+            gap: isAssets ? (isExpanded ? 1 : 0.5) : 1,
+            bgcolor: isAssets ? '#222' : 'background.default',
+            cursor: 'pointer',
+            '&:hover': {
+              bgcolor: isAssets ? 'rgba(255,255,255,0.05)' : 'action.hover'
+            }
+          }}
+          onClick={onToggleExpand}
+        >
         {renderHeader()}
         {/* Vista compacta solo en colapsado - solo barra de progreso */}
         {!isExpanded && (
-          <CardContent sx={{ p: 1, pb: 0.5 }}>
-            {renderBarraProgreso()}
-          </CardContent>
+                      isAssets ? (
+              <Box sx={{ 
+                px: 0.25,
+                pt: 0.25,
+                bgcolor: '#222'
+              }}>
+                {renderBarraProgreso()}
+              </Box>
+            ) : (
+            <CardContent sx={{ 
+              p: 1,
+              pb: 0.5,
+              bgcolor: 'transparent'
+            }}>
+              {renderBarraProgreso()}
+            </CardContent>
+          )
         )}
       </Box>
-      {isExpanded && renderContenidoExpandido()}
+      {isExpanded && (
+        <Box sx={{ 
+          bgcolor: isAssets ? '#222' : 'transparent',
+          p: isAssets ? 2 : 0
+        }}>
+          {renderContenidoExpandido()}
+        </Box>
+      )}
       <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
         <DialogTitle>Confirmar eliminación</DialogTitle>
         <DialogContent>

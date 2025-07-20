@@ -13,7 +13,7 @@ import {
   CardActions
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import EntityToolbar from '../components/EntityViews/EntityToolbar';
+import { EntityToolbar } from '../components/EntityViews';
 import { EntityDetails } from '../components/EntityViews';
 import { 
   AutorenewOutlined as RecurrentIcon,

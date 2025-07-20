@@ -106,6 +106,7 @@ function App() {
                   {/* Rutas anidadas para Assets/Propiedades */}
                   <Route path="/assets/propiedades/inquilinos" element={<Inquilinos />} />
                   <Route path="/assets/propiedades/contratos" element={<Contratos />} />
+                  <Route path="/assets/propiedades/habitaciones" element={<Habitaciones />} />
                   <Route path="/assets/propiedades/inventario" element={<Inventario />} />
                   <Route path="/assets/propiedades/autos" element={<Autos />} />
                   

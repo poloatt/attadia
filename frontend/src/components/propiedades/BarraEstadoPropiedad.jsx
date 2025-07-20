@@ -14,6 +14,7 @@ const BarraEstadoPropiedad = ({
   montoAcumulado = null,
   cuotasPagadas = null,
   cuotasTotales = null,
+  isCompact = false,
   sx = {}
 }) => {
   // Asegurar que los valores sean números válidos
@@ -39,7 +40,7 @@ const BarraEstadoPropiedad = ({
       montoTotal={usarProgresoFinanciero ? montoTotalNum : montoTotalNum}
       percentage={porcentajeNum}
       color={finalColor}
-      variant="default"
+      variant={isCompact ? "compact" : "default"}
       // Datos de cuotas para progreso financiero
       cuotasPagadas={usarProgresoFinanciero ? cuotasPagadas : null}
       cuotasTotales={usarProgresoFinanciero ? cuotasTotales : null}

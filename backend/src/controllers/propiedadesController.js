@@ -14,13 +14,6 @@ class PropiedadesController extends BaseController {
           select: 'tipo nombrePersonalizado activo'
         },
         {
-          path: 'contratos',
-          populate: {
-            path: 'inquilino',
-            select: 'nombre apellido email telefono estado'
-          }
-        },
-        {
           path: 'inquilinos',
           select: 'nombre apellido email telefono estado'
         },
@@ -141,9 +134,20 @@ class PropiedadesController extends BaseController {
       const [habitaciones, inquilinos, contratos, inventarios] = await Promise.all([
         Habitaciones.find({ propiedad: { $in: propiedadesIds } }).lean(),
         Inquilinos.find({ propiedad: { $in: propiedadesIds } }).lean(),
-        Contratos.find({ propiedad: { $in: propiedadesIds } }).populate(['inquilino', 'moneda']).lean(),
+        Contratos.find({ propiedad: { $in: propiedadesIds } }).populate([
+          'inquilino', 
+          'moneda', 
+          {
+            path: 'cuenta',
+            populate: {
+              path: 'moneda'
+            }
+          }
+        ]).lean(),
         Inventarios.find({ propiedad: { $in: propiedadesIds }, activo: true }).lean()
       ]);
+      
+
       
       // Usar el cache optimizado para calcular estados
       const contratosConEstado = statusCache.procesarContratos(contratos);
@@ -169,11 +173,18 @@ class PropiedadesController extends BaseController {
       });
       
       contratosConEstado.forEach(c => {
-        if (!contratosPorPropiedad[c.propiedad]) {
-          contratosPorPropiedad[c.propiedad] = [];
+        // El campo propiedad puede ser un objeto (cuando se popula) o un ObjectId
+        const propiedadId = typeof c.propiedad === 'object' && c.propiedad._id 
+          ? c.propiedad._id.toString() 
+          : c.propiedad.toString();
+        
+        if (!contratosPorPropiedad[propiedadId]) {
+          contratosPorPropiedad[propiedadId] = [];
         }
-        contratosPorPropiedad[c.propiedad].push(c);
+        contratosPorPropiedad[propiedadId].push(c);
       });
+      
+
       
       inventarios.forEach(inv => {
         if (!inventariosPorPropiedad[inv.propiedad]) {

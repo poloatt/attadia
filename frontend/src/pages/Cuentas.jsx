@@ -18,7 +18,7 @@ import {
   AccordionSummary,
   AccordionDetails,
 } from '@mui/material';
-import EntityToolbar from '../components/EntityViews/EntityToolbar';
+import { EntityToolbar } from '../components/EntityViews';
 import { EntityForm } from '../components/EntityViews';
 import { 
   AccountBalanceOutlined as BankIcon,

@@ -7,7 +7,7 @@ import {
   AutorenewOutlined as RecurrentIcon
 } from '@mui/icons-material';
 import { FabNuevaTransaccion } from '../components/finance';
-import EntityToolbar from '../components/EntityViews/EntityToolbar';
+import { EntityToolbar } from '../components/EntityViews';
 
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';

@@ -33,6 +33,7 @@ export const menuItems = [
         subItems: [
           { id: 'inquilinos', title: 'Inquilinos', path: '/assets/propiedades/inquilinos', icon: icons.person },
           { id: 'contratos', title: 'Contratos', path: '/assets/propiedades/contratos', icon: icons.description },
+          { id: 'habitaciones', title: 'Habitaciones', path: '/assets/propiedades/habitaciones', icon: icons.bed },
         ]
       },
       {

@@ -1,32 +1,109 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Typography, IconButton, Tooltip, Collapse } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { PeopleOutlined as PeopleIcon, BedOutlined as BedIcon, Description as ContractIcon, Inventory2Outlined as InventoryIcon, MonetizationOnOutlined as MoneyIcon, OpenInNew as OpenInNewIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { pluralizar, getEstadoContrato, agruparHabitaciones } from './propiedadUtils';
 import { getInquilinosByPropiedad } from './inquilinos';
 import { icons } from '../../navigation/menuIcons';
+import InquilinoDetail from './inquilinos/InquilinoDetail';
 
 // Sección: Inquilinos
 export const SeccionInquilinos = ({ propiedad, inquilinos = [], inquilinosActivos = [], inquilinosFinalizados = [] }) => {
+  const [selectedInquilino, setSelectedInquilino] = useState(null);
+  const [inquilinoDetailOpen, setInquilinoDetailOpen] = useState(false);
+
   // Si se pasa la propiedad, obtener los inquilinos desde el helper
   const inqs = propiedad ? getInquilinosByPropiedad(propiedad) : inquilinos;
-  // Separar activos y finalizados si es necesario
-  const activos = inqs.filter(i => i.estado === 'ACTIVO' || i.estado === 'RESERVADO');
-  const finalizados = inqs.filter(i => i.estado !== 'ACTIVO' && i.estado !== 'RESERVADO');
+  
+  // Separar activos y finalizados - Usando estados correctos del sistema
+  const activos = inqs.filter(i => 
+    i.estado === 'ACTIVO' || 
+    i.estado === 'RESERVADO' || 
+    i.estado === 'PENDIENTE'
+  );
+  const finalizados = inqs.filter(i => 
+    i.estado === 'INACTIVO' || 
+    i.estado === 'SIN_CONTRATO'
+  );
+
+  // Debug: Verificar qué inquilinos se están obteniendo (deshabilitado)
+  // console.log('SeccionInquilinos - Debug:', {
+  //   totalInquilinos: inqs.length,
+  //   activos: activos.length,
+  //   finalizados: finalizados.length,
+  //   estados: inqs.map(i => ({ nombre: `${i.nombre} ${i.apellido}`, estado: i.estado }))
+  // });
+
+  const handleOpenInquilino = (inquilino) => {
+    setSelectedInquilino(inquilino);
+    setInquilinoDetailOpen(true);
+  };
+
+  const handleCloseInquilino = () => {
+    setInquilinoDetailOpen(false);
+    setSelectedInquilino(null);
+  };
+
   return (
     <Box sx={{ mb: 2 }}>
-      <Typography variant="subtitle2" sx={{ fontSize: '0.95rem', fontWeight: 600 }}><PeopleIcon sx={{ fontSize: '1.1rem', mr: 1 }} />Inquilinos</Typography>
-      {activos.length === 0 && <Typography variant="body2" color="text.secondary">Ninguno</Typography>}
-      {activos.map(i => (
-        <Typography key={i._id} variant="body2" sx={{ fontSize: '0.85rem' }}>{i.nombre} {i.apellido}</Typography>
-      ))}
-      <Typography variant="subtitle2" sx={{ mt: 1, fontSize: '0.85rem', fontWeight: 500 }}>
-        {finalizados.length} {pluralizar(finalizados.length, 'inquilino finalizado', 'inquilinos finalizados')}
+      <Typography variant="subtitle2" sx={{ fontSize: '0.95rem', fontWeight: 600 }}>
+        <PeopleIcon sx={{ fontSize: '1.1rem', mr: 1 }} />
+        Inquilinos Activos ({activos.length})
       </Typography>
-      {finalizados.length === 0 && <Typography variant="body2" color="text.secondary">Ninguno</Typography>}
-      {finalizados.map(i => (
-        <Typography key={i._id} variant="body2" sx={{ fontSize: '0.85rem' }}>{i.nombre} {i.apellido} ({i.estado})</Typography>
+      
+      {activos.length === 0 && (
+        <Typography variant="body2" color="text.secondary">Ninguno</Typography>
+      )}
+      
+      {activos.map(i => (
+        <Box key={i._id} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
+          <Typography variant="body2" sx={{ fontSize: '0.85rem', flex: 1 }}>
+            {i.nombre} {i.apellido}
+          </Typography>
+          <Tooltip title="Ver detalle inquilino">
+            <IconButton 
+              size="small" 
+              onClick={() => handleOpenInquilino(i)}
+              sx={{ p: 0.5, color: 'primary.main' }}
+            >
+              <VisibilityIcon sx={{ fontSize: '1rem' }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
       ))}
+      
+      {finalizados.length > 0 && (
+        <>
+          <Typography variant="subtitle2" sx={{ mt: 2, fontSize: '0.85rem', fontWeight: 500 }}>
+            Inquilinos Finalizados ({finalizados.length})
+          </Typography>
+          {finalizados.map(i => (
+            <Box key={i._id} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
+              <Typography variant="body2" sx={{ fontSize: '0.85rem', flex: 1, color: 'text.secondary' }}>
+                {i.nombre} {i.apellido} ({i.estado})
+              </Typography>
+              <Tooltip title="Ver detalle inquilino">
+                <IconButton 
+                  size="small" 
+                  onClick={() => handleOpenInquilino(i)}
+                  sx={{ p: 0.5, color: 'text.secondary' }}
+                >
+                  <VisibilityIcon sx={{ fontSize: '1rem' }} />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          ))}
+        </>
+      )}
+
+      {/* Modal de detalle de inquilino */}
+      {selectedInquilino && (
+        <InquilinoDetail
+          open={inquilinoDetailOpen}
+          onClose={handleCloseInquilino}
+          inquilino={selectedInquilino}
+        />
+      )}
     </Box>
   );
 };

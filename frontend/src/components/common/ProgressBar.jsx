@@ -85,7 +85,7 @@ const ProgressBar = ({
 
   const progressValue = getProgressValue();
   const labels = getLabels();
-  const finalHeight = height || (variant === 'compact' ? 2 : variant === 'large' ? 6 : 3);
+  const finalHeight = height || (variant === 'compact' ? 2.5 : variant === 'large' ? 6 : 3);
   
   // Función para obtener el color basado en el tipo
   const getColorValue = (colorType) => {
@@ -99,13 +99,14 @@ const ProgressBar = ({
   };
 
   return (
-    <Box sx={{ mb: 1, ...sx }}>
+    <Box sx={{ mb: variant === 'compact' ? 0 : 1, ...sx }}>
       {showLabels && (labels.left || labels.right) && (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: variant === 'compact' ? 0.25 : 0.5 }}>
           {labels.left && (
             <Typography variant="caption" sx={{ 
               fontSize: variant === 'compact' ? '0.6rem' : '0.65rem', 
-              color: 'rgba(255, 255, 255, 0.7)' 
+              color: 'rgba(255, 255, 255, 0.7)',
+              lineHeight: variant === 'compact' ? 1.1 : 1.2
             }}>
               {labels.left}
             </Typography>
@@ -113,7 +114,8 @@ const ProgressBar = ({
           {labels.right && (
             <Typography variant="caption" sx={{ 
               fontSize: variant === 'compact' ? '0.6rem' : '0.65rem', 
-              color: 'rgba(255, 255, 255, 0.7)' 
+              color: 'rgba(255, 255, 255, 0.7)',
+              lineHeight: variant === 'compact' ? 1.1 : 1.2
             }}>
               {labels.right}
             </Typography>

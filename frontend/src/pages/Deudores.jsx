@@ -1,6 +1,6 @@
 import React from 'react';
 import { Container, Box } from '@mui/material';
-import EntityToolbar from '../components/EntityViews/EntityToolbar';
+import { EntityToolbar } from '../components/EntityViews';
 import { 
   PersonOutlineOutlined as DeudoresIcon
 } from '@mui/icons-material';

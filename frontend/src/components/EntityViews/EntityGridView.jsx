@@ -166,6 +166,30 @@ const EntitySectionRow = ({
   </Box>
 );
 
+// Componente EstadoChip usando el nuevo StatusSystem
+const EstadoChip = ({ estado, tipo = 'PROPIEDAD', sx = {} }) => (
+  <Box
+    sx={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 0.5,
+      px: 1,
+      py: 0.5,
+      fontSize: '0.75rem',
+      color: getEstadoColor(estado, tipo),
+      bgcolor: 'transparent',
+      borderRadius: 0,
+      fontWeight: 600,
+      height: 24,
+      minWidth: 'fit-content',
+      ...sx
+    }}
+  >
+    {getStatusIconComponent(estado, tipo)}
+    <span>{getEstadoText(estado, tipo)}</span>
+  </Box>
+);
+
 // Componente estandarizado para encabezado de entidad con título y estado y acciones a la derecha
 const EntityHeader = ({ title, estado, tipoEntidad = 'PROPIEDAD', icon: Icon, iconColor, actions }) => (
   <Box sx={{ mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>

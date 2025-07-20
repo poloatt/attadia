@@ -18,7 +18,7 @@ import {
   Switch,
   Chip
 } from '@mui/material';
-import EntityToolbar from '../components/EntityViews/EntityToolbar';
+import { EntityToolbar } from '../components/EntityViews';
 import { EntityDetails, EntityForm } from '../components/EntityViews';
 import { 
   AccountBalanceOutlined as BankIcon,

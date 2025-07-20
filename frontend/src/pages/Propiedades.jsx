@@ -120,6 +120,8 @@ export function Propiedades() {
       
       const propiedadesData = response.data.docs || [];
       
+
+      
       // Los datos ya vienen con todos los relacionados
       const propiedadesEnriquecidas = propiedadesData.map(propiedad => ({
         ...propiedad,

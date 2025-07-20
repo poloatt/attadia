@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Grid, Box, Typography, Skeleton, Paper, IconButton, Menu, MenuItem, Collapse } from '@mui/material';
 import { Link } from 'react-router-dom';
 
-import BarraEstadoPropiedad from '../components/propiedades/BarraEstadoPropiedad';
+import PropiedadCard from '../components/propiedades/PropiedadCard';
 import clienteAxios from '../config/axios';
 import {
   HomeWork,
@@ -34,29 +34,16 @@ import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 // Importaciones modulares de propiedades
 import { 
   StatusChip, 
-  calcularProgresoOcupacion,
-  calcularEstadisticasPropiedad,
-  getEstadoContrato,
-  getCuentaYMoneda,
-  calcularProgresoContrato,
   StyledDialog,
   StyledTextField,
   CategoryChip,
   StyledSectionTitle,
-  PropiedadDetail,
-  PropiedadHeader
+  PropiedadDetail
 } from '../components/propiedades';
 import { getEstadoColor, getEstadoText, getStatusIconComponent } from '../components/common/StatusSystem';
+import { calcularEstadisticasPropiedad } from '../components/propiedades/propiedadUtils';
 
-// Importaciones modulares de contratos
-import { 
-  calcularEstadoCuotasContrato,
-  StyledTableContainer,
-  StyledCuotasTextField,
-  StyledCuotasChip,
-  StyledCuotasIconButton,
-  StyledCuotasCheckbox
-} from '../components/propiedades/contratos';
+
 
 import { EntityToolbar } from '../components/EntityViews';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
@@ -79,6 +66,7 @@ export function Assets() {
   const [propiedades, setPropiedades] = useState([]);
   const [selectedPropiedad, setSelectedPropiedad] = useState(null);
   const [propiedadDetailOpen, setPropiedadDetailOpen] = useState(false);
+  const [expandedPropiedades, setExpandedPropiedades] = useState(new Set());
 
 
   const [stats, setStats] = useState({
@@ -105,7 +93,7 @@ export function Assets() {
 
       
       // Obtener propiedades y calcular estadísticas
-      const propiedadesRes = await clienteAxios.get('/api/propiedades');
+      const propiedadesRes = await clienteAxios.get('/api/propiedades?withRelated=true');
       const propiedades = propiedadesRes.data.docs || [];
       setPropiedades(propiedades);
       
@@ -306,6 +294,18 @@ export function Assets() {
     const currentIndex = periods.indexOf(selectedPeriod);
     const nextIndex = (currentIndex + 1) % periods.length;
     setSelectedPeriod(periods[nextIndex]);
+  };
+
+  const handlePropiedadToggleExpand = (propiedadId) => {
+    setExpandedPropiedades(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(propiedadId)) {
+        newSet.delete(propiedadId);
+      } else {
+        newSet.add(propiedadId);
+      }
+      return newSet;
+    });
   };
 
   const handlePropiedadClick = (propiedad) => {
@@ -514,86 +514,30 @@ export function Assets() {
 
         {/* Sección colapsable */}
         <Collapse in={isPropertiesDetailOpen}>
-          <Box sx={{ pt: 0.5, mt: 0.5, borderTop: 1, borderColor: 'divider' }}>
+          <Box sx={{ pt: 0.25, mt: 0.25, pb: 0, borderTop: 1, borderColor: 'divider' }}>
             {/* Listado de propiedades detallado */}
             {propiedades.length === 0 && (
-              <Typography variant="body2" color="text.secondary" sx={{ my: 2 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ my: 1 }}>
                 No hay propiedades registradas.
               </Typography>
             )}
-            {propiedades.map((prop) => {
-              const progresoOcupacion = calcularProgresoOcupacion(prop);
-              const estadisticasPropiedad = calcularEstadisticasPropiedad(prop);
-              
-              // Calcular progreso financiero real basado en cuotas pagadas
-              const contratoActivo = prop.contratos?.find(contrato => getEstadoContrato(contrato) === 'ACTIVO');
-              const estadoCuotas = contratoActivo ? calcularEstadoCuotasContrato(contratoActivo) : {
-                montoPagado: 0,
-                cuotasPagadas: 0,
-                cuotasTotales: 0,
-                montoTotal: 0,
-                porcentajePagado: 0
-              };
-              
-              // Obtener información de moneda del contrato si existe
-              let simboloMoneda = '$';
-              if (progresoOcupacion.contrato) {
-                try {
-                  const { simbolo } = getCuentaYMoneda(progresoOcupacion.contrato);
-                  simboloMoneda = simbolo || '$';
-                } catch (error) {
-                  console.warn('Error al obtener información de moneda:', error);
-                  simboloMoneda = '$';
-                }
-              }
-              
-              return (
-                <Paper key={prop._id} sx={{ p: 2, mb: 2, bgcolor: '#111', borderRadius: 1 }}>
-                  <Box 
-                    sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'space-between',
-                      mb: 1,
-                      cursor: 'pointer',
-                      '&:hover': {
-                        opacity: 0.8
-                      }
-                    }}
-                    onClick={() => handlePropiedadClick(prop)}
-                  >
-                    <PropiedadHeader 
-                      propiedad={prop} 
-                      showEstado={true}
-                      iconSize="18px"
-                      titleSize="subtitle1"
-                      titleWeight={600}
-                    />
-                  </Box>
-                  {/* Barra de estado de la propiedad usando progreso financiero real */}
-                  {progresoOcupacion.tieneContrato && progresoOcupacion.montoMensual > 0 && (
-                    <Box sx={{ mt: 1 }}>
-                      <BarraEstadoPropiedad
-                        diasTranscurridos={progresoOcupacion.diasTranscurridos || 0}
-                        diasTotales={progresoOcupacion.diasTotales || 0}
-                        porcentaje={estadoCuotas.porcentajePagado || progresoOcupacion.porcentaje || 0}
-                        simboloMoneda={simboloMoneda}
-                        montoMensual={progresoOcupacion.montoMensual || 0}
-                        montoTotal={estadoCuotas.montoTotal || progresoOcupacion.montoTotal || 0}
-                        color={progresoOcupacion.estado === 'MANTENIMIENTO' ? 'warning.main' : 'primary.main'}
-                        estado={progresoOcupacion.estado}
-                        // Datos de cuotas para progreso financiero real
-                        montoAcumulado={estadoCuotas.montoPagado}
-                        cuotasPagadas={estadoCuotas.cuotasPagadas}
-                        cuotasTotales={estadoCuotas.cuotasTotales}
-                      />
-                    </Box>
-                  )}
-                  
-
-                </Paper>
-              );
-            })}
+            {propiedades.map((prop, index) => (
+              <Box key={prop._id} sx={{ 
+                mb: index === propiedades.length - 1 ? 0 : 0.75 
+              }}>
+                <PropiedadCard
+                  propiedad={prop}
+                  onEdit={handlePropiedadEdit}
+                  onDelete={handlePropiedadDelete}
+                  isAssets={true}
+                  isExpanded={expandedPropiedades.has(prop._id)}
+                  onToggleExpand={() => handlePropiedadToggleExpand(prop._id)}
+                  onOpenDetail={handlePropiedadClick}
+                  viewMode="grid"
+                  setViewMode={() => {}}
+                />
+              </Box>
+            ))}
           </Box>
         </Collapse>
       </Box>
@@ -635,11 +579,11 @@ export function Assets() {
           {/* Sección de Propiedades */}
           <Grid item xs={12} md={6}>
             <Paper sx={{ 
-              p: 2, 
+              p: 1.5, 
               height: '100%',
               borderRadius: 1,
               boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
-              bgcolor: '#111'
+              bgcolor: '#1a1a1a'
             }}>
               <PropertiesSection />
             </Paper>

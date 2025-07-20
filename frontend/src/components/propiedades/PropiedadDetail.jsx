@@ -30,13 +30,25 @@ import {
   ExpandMore as ExpandMoreIcon,
   InsertDriveFile as InsertDriveFileIcon,
   SquareFoot as SquareFootIcon,
-  Category as CategoryIcon
+  Category as CategoryIcon,
+  // Iconos para habitaciones
+  BathtubOutlined as BathtubIcon,
+  KingBed,
+  SingleBed,
+  ChairOutlined,
+  KitchenOutlined,
+  LocalLaundryServiceOutlined,
+  HomeOutlined
 } from '@mui/icons-material';
 import clienteAxios from '../../config/axios';
 import { toast } from 'react-hot-toast';
 import BarraEstadoPropiedad from './BarraEstadoPropiedad';
 import { 
-  pluralizar
+  pluralizar,
+  getEstadoContrato,
+  agruparHabitaciones,
+  calcularProgresoOcupacion,
+  getCuentaYMoneda
 } from './propiedadUtils';
 import TipoPropiedadIcon from './TipoPropiedadIcon';
 import { getEstadoColor, getEstadoText, getStatusIconComponent } from '../common/StatusSystem';
@@ -44,7 +56,9 @@ import {
   getEstadoContrato as getEstadoContratoFromUtils,
   getCuentaYMoneda as getCuentaYMonedaFromUtils,
   calcularProgresoContrato,
-  getEstadoColorTheme
+  getEstadoColorTheme,
+  calcularAlquilerMensualPromedio,
+  calcularEstadoCuotasContrato
 } from './contratos/contratoUtils';
 import { StyledCard, StatusChip } from './PropiedadStyles';
 import EstadoFinanzasContrato from './contratos/EstadoFinanzasContrato';
@@ -52,6 +66,40 @@ import { CuotasProvider } from './contratos/context/CuotasContext';
 import InventarioDetail from './inventario/InventarioDetail';
 import { SeccionInquilinos, SeccionHabitaciones, SeccionDocumentos } from './SeccionesPropiedad';
 import { EntityActions } from '../EntityViews/EntityActions';
+
+// Función para calcular el monto mensual promedio desde contratos activos
+const calcularMontoMensualDesdeContratos = (contratos = []) => {
+  if (!contratos || contratos.length === 0) return 0;
+  
+  // Buscar contrato activo (no de mantenimiento)
+  let contratoReferencia = contratos.find(contrato => 
+    contrato.estado === 'ACTIVO' && 
+    !contrato.esMantenimiento && 
+    contrato.tipoContrato === 'ALQUILER'
+  );
+  
+  // Si no hay activo, buscar planeado
+  if (!contratoReferencia) {
+    contratoReferencia = contratos.find(contrato => 
+      contrato.estado === 'PLANEADO' && 
+      !contrato.esMantenimiento && 
+      contrato.tipoContrato === 'ALQUILER'
+    );
+  }
+  
+  // Si no hay planeado, buscar cualquier contrato de alquiler
+  if (!contratoReferencia) {
+    contratoReferencia = contratos.find(contrato => 
+      !contrato.esMantenimiento && 
+      contrato.tipoContrato === 'ALQUILER'
+    );
+  }
+  
+  if (!contratoReferencia) return 0;
+  
+  // Usar la función centralizada de contratoUtils
+  return calcularAlquilerMensualPromedio(contratoReferencia);
+};
 
 // Componentes estilizados con estilo geométrico
 const StyledDialog = styled(Dialog)(({ theme }) => ({
@@ -99,6 +147,7 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
   // Estado para controlar qué sección está expandida (solo una a la vez)
   const [expandedSections, setExpandedSections] = useState({
     informacionBasica: true, // Por defecto expandida
+    estadoFinanciero: false, // Nueva sección de estado financiero
     inquilinos: false,
     contratos: false,
     habitaciones: false,
@@ -119,7 +168,12 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
     try {
       const response = await clienteAxios.get(`/api/propiedades/${propiedad._id}`, {
         params: {
-          populate: 'inquilinos,contratos,habitaciones,inventarios,cuenta,moneda'
+          populate: 'inquilinos,contratos,habitaciones,inventarios,cuenta,moneda',
+          _t: Date.now() // Timestamp para evitar caché
+        },
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         }
       });
       setPropiedadCompleta(response.data);
@@ -172,6 +226,37 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
   const chipColor = useMemo(() => getEstadoColor(estadoPropiedad, 'PROPIEDAD'), [estadoPropiedad]);
   const chipIcon = useMemo(() => getStatusIconComponent(estadoPropiedad, 'PROPIEDAD'), [estadoPropiedad]);
   const chipText = useMemo(() => getEstadoText(estadoPropiedad, 'PROPIEDAD'), [estadoPropiedad]);
+
+  // Función para agrupar habitaciones por tipo
+  const agruparHabitaciones = (habitaciones) => {
+    return habitaciones.reduce((acc, hab) => {
+      const tipo = hab.tipo === 'OTRO' ? hab.nombrePersonalizado : hab.tipo;
+      if (!acc[tipo]) {
+        acc[tipo] = [];
+      }
+      acc[tipo].push(hab);
+      return acc;
+    }, {});
+  };
+
+  // Función para obtener el nombre legible del tipo de habitación
+  const getNombreTipoHabitacion = (tipo) => {
+    const tipos = {
+      'BAÑO': 'Baño',
+      'TOILETTE': 'Toilette',
+      'DORMITORIO_DOBLE': 'Dormitorio doble',
+      'DORMITORIO_SIMPLE': 'Dormitorio simple',
+      'ESTUDIO': 'Estudio',
+      'COCINA': 'Cocina',
+      'DESPENSA': 'Despensa',
+      'SALA_PRINCIPAL': 'Sala principal',
+      'PATIO': 'Patio',
+      'JARDIN': 'Jardín',
+      'TERRAZA': 'Terraza',
+      'LAVADERO': 'Lavadero'
+    };
+    return tipos[tipo] || tipo;
+  };
 
 
 
@@ -296,6 +381,99 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
     </StyledAccordion>
   );
 
+  const renderSeccionEstadoFinanciero = () => {
+    const contratos = propiedadCompleta?.contratos || [];
+    
+    // Buscar contrato activo para obtener cuenta y moneda
+    const contratoActivo = contratos.find(contrato => 
+      getEstadoContrato(contrato) === 'ACTIVO' && 
+      !contrato.esMantenimiento && 
+      contrato.tipoContrato === 'ALQUILER'
+    );
+    
+    // Obtener cuenta y moneda del contrato activo o de la propiedad
+    let simbolo = '$';
+    let nombreCuenta = 'No especificada';
+    
+    if (contratoActivo) {
+      const cuentaYMoneda = getCuentaYMoneda(contratoActivo, {});
+      simbolo = cuentaYMoneda.simbolo;
+      nombreCuenta = cuentaYMoneda.nombreCuenta;
+    } else if (propiedadCompleta?.cuenta) {
+      if (typeof propiedadCompleta.cuenta === 'object') {
+        nombreCuenta = propiedadCompleta.cuenta.nombre || nombreCuenta;
+        if (propiedadCompleta.cuenta.moneda && typeof propiedadCompleta.cuenta.moneda === 'object') {
+          simbolo = propiedadCompleta.cuenta.moneda.simbolo || simbolo;
+        }
+      }
+    }
+    
+    // Calcular progreso de ocupación de la propiedad
+    const progresoOcupacion = calcularProgresoOcupacion(propiedadCompleta);
+    
+    // Calcular estado de cuotas para progreso financiero real
+    const estadoCuotas = contratoActivo ? calcularEstadoCuotasContrato(contratoActivo) : {
+      montoPagado: 0,
+      cuotasPagadas: 0,
+      cuotasTotales: 0
+    };
+    
+    return (
+      <StyledAccordion 
+        expanded={expandedSections.estadoFinanciero}
+        onChange={() => toggleSection('estadoFinanciero')}
+      >
+        <StyledAccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <AttachMoney />
+            <Typography variant="h6">
+              Estado Financiero
+            </Typography>
+          </Box>
+        </StyledAccordionSummary>
+        <AccordionDetails>
+          <Box>
+            {/* Estado de cuotas para cada contrato */}
+            {contratos.length > 0 ? (
+              <Box>
+                {contratos.map((contrato, index) => {
+                  // Solo mostrar contratos de alquiler (no mantenimiento)
+                  if (contrato.tipoContrato === 'MANTENIMIENTO') return null;
+                  
+                  return (
+                    <Box key={contrato._id || contrato.id || `contrato-${index}`} sx={{ mb: 2 }}>
+                      <CuotasProvider 
+                        contratoId={contrato._id || contrato.id}
+                        formData={contrato}
+                      >
+                        <EstadoFinanzasContrato 
+                          contrato={contrato} 
+                          contratoId={contrato._id || contrato.id}
+                          showTitle={false}
+                          compact={false}
+                        />
+                      </CuotasProvider>
+                    </Box>
+                  );
+                })}
+              </Box>
+            ) : (
+              <Box sx={{ 
+                p: 2, 
+                textAlign: 'center',
+                color: 'text.secondary'
+              }}>
+                <Typography variant="body2">
+                  No hay contratos de alquiler registrados
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </AccordionDetails>
+      </StyledAccordion>
+    );
+  };
+
   const renderSeccionInquilinos = () => (
     <StyledAccordion 
       expanded={expandedSections.inquilinos}
@@ -315,103 +493,299 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
     </StyledAccordion>
   );
 
-  const renderSeccionContratos = () => (
-    <StyledAccordion 
-      expanded={expandedSections.contratos}
-      onChange={() => toggleSection('contratos')}
-    >
-      <StyledAccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <ContractIcon />
-          <Typography variant="h6">
-            Contratos ({contratos.length})
-          </Typography>
-        </Box>
-      </StyledAccordionSummary>
-      <AccordionDetails>
-        <CuotasProvider>
-          <Box>
-            {contratos.map((contrato, index) => {
-              // Calcular progreso del contrato usando los utils
-              const progresoContrato = calcularProgresoContrato(contrato);
-              const { simbolo: simboloContrato } = getCuentaYMonedaFromUtils(contrato, {});
-              const estadoContrato = getEstadoContratoFromUtils(contrato);
-              const colorEstado = getEstadoColorTheme(estadoContrato);
-              
-              // Memoizar valores del chip del contrato para evitar re-renderizados
-              const contratoChipColor = getEstadoColor(estadoContrato, 'CONTRATO');
-              const contratoChipIcon = getStatusIconComponent(estadoContrato, 'CONTRATO');
-              const contratoChipText = getEstadoText(estadoContrato, 'CONTRATO');
-              
-              return (
-                <Box key={contrato._id || contrato.id || `contrato-${index}`} sx={{ mb: 2, p: 2, border: '1px solid #333', borderRadius: 0 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                      {contrato.tipoContrato} - {estadoContrato}
-                    </Typography>
-                    <StatusChip customcolor={contratoChipColor}>
-                      {contratoChipIcon}
-                      <span>{contratoChipText}</span>
-                    </StatusChip>
-                  </Box>
-                  
-                  <Grid container spacing={2} sx={{ mb: 2 }}>
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="body2" color="text.secondary">
-                        Fecha Inicio: {new Date(contrato.fechaInicio).toLocaleDateString()}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="body2" color="text.secondary">
-                        Fecha Fin: {new Date(contrato.fechaFin).toLocaleDateString()}
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                  
-                  {/* Barra de estado del contrato */}
-                  {progresoContrato.tieneContrato && (
-                    <Box sx={{ mb: 2 }}>
-                      <BarraEstadoPropiedad
-                        diasTranscurridos={progresoContrato.diasTranscurridos || 0}
-                        diasTotales={progresoContrato.diasTotales || 0}
-                        porcentaje={progresoContrato.porcentaje || 0}
-                        simboloMoneda={simboloContrato}
-                        montoMensual={progresoContrato.montoAcumulado || 0}
-                        montoTotal={progresoContrato.montoTotal || 0}
-                        color={colorEstado}
-                        estado={estadoContrato}
-                      />
-                    </Box>
-                  )}
-                  
-                  <EstadoFinanzasContrato contrato={contrato} />
-                </Box>
-              );
-            })}
+  const renderSeccionContratos = () => {
+    // Usar la misma lógica modular que PropiedadCard
+    const contratos = propiedadCompleta?.contratos || [];
+    
+    // Buscar contrato activo para obtener cuenta y moneda
+    const contratoActivo = contratos.find(contrato => 
+      getEstadoContrato(contrato) === 'ACTIVO' && 
+      !contrato.esMantenimiento && 
+      contrato.tipoContrato === 'ALQUILER'
+    );
+    
+    // Obtener cuenta y moneda del contrato activo o de la propiedad
+    let simbolo = '$';
+    let nombreCuenta = 'No especificada';
+    
+    if (contratoActivo) {
+      const cuentaYMoneda = getCuentaYMoneda(contratoActivo, {});
+      simbolo = cuentaYMoneda.simbolo;
+      nombreCuenta = cuentaYMoneda.nombreCuenta;
+    } else if (propiedadCompleta?.cuenta) {
+      if (typeof propiedadCompleta.cuenta === 'object') {
+        nombreCuenta = propiedadCompleta.cuenta.nombre || nombreCuenta;
+        if (propiedadCompleta.cuenta.moneda && typeof propiedadCompleta.cuenta.moneda === 'object') {
+          simbolo = propiedadCompleta.cuenta.moneda.simbolo || simbolo;
+        }
+      }
+    }
+    
+    // Obtener nombre de moneda para mostrar
+    const moneda = (() => {
+      if (contratoActivo?.cuenta?.moneda?.nombre) {
+        return contratoActivo.cuenta.moneda.nombre;
+      }
+      if (contratoActivo?.moneda?.nombre) {
+        return contratoActivo.moneda.nombre;
+      }
+      if (propiedadCompleta?.cuenta?.moneda?.nombre) {
+        return propiedadCompleta.cuenta.moneda.nombre;
+      }
+      if (propiedadCompleta?.moneda?.nombre) {
+        return propiedadCompleta.moneda.nombre;
+      }
+      return '';
+    })();
+    
+    // Calcular progreso de ocupación de la propiedad
+    const progresoOcupacion = calcularProgresoOcupacion(propiedadCompleta);
+    
+    // Calcular estado de cuotas para progreso financiero real
+    const estadoCuotas = contratoActivo ? calcularEstadoCuotasContrato(contratoActivo) : {
+      montoPagado: 0,
+      cuotasPagadas: 0,
+      cuotasTotales: 0
+    };
+    
+    return (
+      <StyledAccordion 
+        expanded={expandedSections.contratos}
+        onChange={() => toggleSection('contratos')}
+      >
+        <StyledAccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <ContractIcon />
+            <Typography variant="h6">
+              Contratos ({contratos.length})
+            </Typography>
           </Box>
-        </CuotasProvider>
-      </AccordionDetails>
-    </StyledAccordion>
-  );
+        </StyledAccordionSummary>
+        <AccordionDetails>
+          <CuotasProvider>
+            <Box>
+              {contratos.map((contrato, index) => {
+                // Calcular progreso del contrato usando los utils
+                const progresoContrato = calcularProgresoContrato(contrato);
+                const { simbolo: simboloContrato } = getCuentaYMonedaFromUtils(contrato, {});
+                const estadoContrato = getEstadoContratoFromUtils(contrato);
+                const colorEstado = getEstadoColorTheme(estadoContrato);
+                
+                // Memoizar valores del chip del contrato para evitar re-renderizados
+                const contratoChipColor = getEstadoColor(estadoContrato, 'CONTRATO');
+                const contratoChipIcon = getStatusIconComponent(estadoContrato, 'CONTRATO');
+                const contratoChipText = getEstadoText(estadoContrato, 'CONTRATO');
+                
+                return (
+                  <Box key={contrato._id || contrato.id || `contrato-${index}`} sx={{ mb: 2, p: 2, border: '1px solid #333', borderRadius: 0 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                        {contrato.tipoContrato} - {estadoContrato}
+                      </Typography>
+                      <StatusChip customcolor={contratoChipColor}>
+                        {contratoChipIcon}
+                        <span>{contratoChipText}</span>
+                      </StatusChip>
+                    </Box>
+                    
+                    <Grid container spacing={2} sx={{ mb: 2 }}>
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="body2" color="text.secondary">
+                          Fecha Inicio: {new Date(contrato.fechaInicio).toLocaleDateString()}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Typography variant="body2" color="text.secondary">
+                          Fecha Fin: {new Date(contrato.fechaFin).toLocaleDateString()}
+                        </Typography>
+                      </Grid>
+                    </Grid>
+                    
+                    {/* Barra de estado del contrato */}
+                    {progresoContrato.tieneContrato && (
+                      <Box sx={{ mb: 2 }}>
+                        <BarraEstadoPropiedad
+                          diasTranscurridos={progresoContrato.diasTranscurridos || 0}
+                          diasTotales={progresoContrato.diasTotales || 0}
+                          porcentaje={progresoContrato.porcentaje || 0}
+                          simboloMoneda={simboloContrato}
+                          montoMensual={progresoContrato.montoAcumulado || 0}
+                          montoTotal={progresoContrato.montoTotal || 0}
+                          color={colorEstado}
+                          estado={estadoContrato}
+                        />
+                      </Box>
+                    )}
+                    
+                    <EstadoFinanzasContrato contrato={contrato} />
+                  </Box>
+                );
+              })}
+            </Box>
+          </CuotasProvider>
+        </AccordionDetails>
+      </StyledAccordion>
+    );
+  };
 
-  const renderSeccionHabitaciones = () => (
-    <StyledAccordion 
-      expanded={expandedSections.habitaciones}
-      onChange={() => toggleSection('habitaciones')}
-    >
-      <StyledAccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <BedIcon />
-          <Typography variant="h6">
-            Habitaciones ({habitaciones.length})
-          </Typography>
-        </Box>
-      </StyledAccordionSummary>
-      <AccordionDetails>
-        <SeccionHabitaciones habitaciones={habitaciones} />
-      </AccordionDetails>
-    </StyledAccordion>
-  );
+  const renderSeccionHabitaciones = () => {
+    const habitaciones = propiedadCompleta?.habitaciones || [];
+    
+    // Función para obtener el icono de habitación (igual que en EntityGridView)
+    const getHabitacionIcon = (tipo) => {
+      const iconMap = {
+        'BAÑO': BathtubIcon,
+        'TOILETTE': BathtubIcon,
+        'DORMITORIO_DOBLE': KingBed,
+        'DORMITORIO_SIMPLE': SingleBed,
+        'ESTUDIO': ChairOutlined,
+        'COCINA': KitchenOutlined,
+        'DESPENSA': InventoryIcon,
+        'SALA_PRINCIPAL': ChairOutlined,
+        'PATIO': HomeOutlined,
+        'JARDIN': HomeOutlined,
+        'TERRAZA': HomeOutlined,
+        'LAVADERO': LocalLaundryServiceOutlined,
+        'OTRO': BedIcon
+      };
+      return iconMap[tipo] || BedIcon;
+    };
+
+    // Función para obtener el nombre legible del tipo de habitación
+    const getNombreTipoHabitacion = (tipo) => {
+      const tipos = {
+        'BAÑO': 'Baño',
+        'TOILETTE': 'Toilette',
+        'DORMITORIO_DOBLE': 'Dormitorio doble',
+        'DORMITORIO_SIMPLE': 'Dormitorio simple',
+        'ESTUDIO': 'Estudio',
+        'COCINA': 'Cocina',
+        'DESPENSA': 'Despensa',
+        'SALA_PRINCIPAL': 'Sala principal',
+        'PATIO': 'Patio',
+        'JARDIN': 'Jardín',
+        'TERRAZA': 'Terraza',
+        'LAVADERO': 'Lavadero'
+      };
+      return tipos[tipo] || tipo;
+    };
+    
+    return (
+      <StyledAccordion 
+        expanded={expandedSections.habitaciones}
+        onChange={() => toggleSection('habitaciones')}
+      >
+        <StyledAccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <BedIcon />
+            <Typography variant="h6">
+              Habitaciones ({habitaciones.length})
+            </Typography>
+          </Box>
+        </StyledAccordionSummary>
+        <AccordionDetails>
+          {habitaciones.length === 0 ? (
+            <Box sx={{ 
+              p: 2, 
+              textAlign: 'center',
+              color: 'text.secondary'
+            }}>
+              <Typography variant="body2">
+                No hay habitaciones registradas
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ 
+              display: 'flex', 
+              flexWrap: 'wrap', 
+              gap: 2, 
+              p: 1
+            }}>
+              {habitaciones.map((habitacion, index) => {
+                const HabitacionIcon = getHabitacionIcon(habitacion.tipo);
+                const nombreHabitacion = habitacion.nombrePersonalizado || getNombreTipoHabitacion(habitacion.tipo);
+                
+                return (
+                  <Box
+                    key={habitacion._id || index}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      minHeight: '48px',
+                      px: 2,
+                      py: 1,
+                      border: '1px solid #333',
+                      borderRadius: 0,
+                      backgroundColor: '#1a1a1a',
+                      minWidth: '200px',
+                      flex: '1 1 auto',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        backgroundColor: '#2a2a2a',
+                        borderColor: '#444'
+                      }
+                    }}
+                  >
+                    {/* Ícono */}
+                    <Box sx={{ 
+                      fontSize: '1.2rem', 
+                      color: 'primary.main', 
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}>
+                      <HabitacionIcon sx={{ fontSize: '1.2rem' }} />
+                    </Box>
+                    
+                    {/* Contenido: nombre y metros cuadrados */}
+                    <Box sx={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      minWidth: 0,
+                      flex: 1
+                    }}>
+                      {/* Nombre */}
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 500,
+                          fontSize: '0.9rem',
+                          textAlign: 'left',
+                          lineHeight: 1.2,
+                          overflow: 'hidden',
+                          whiteSpace: 'nowrap',
+                          textOverflow: 'ellipsis',
+                          color: 'text.primary'
+                        }}
+                      >
+                        {nombreHabitacion}
+                      </Typography>
+                      
+                      {/* Metros cuadrados */}
+                      {habitacion.metrosCuadrados && (
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontSize: '0.75rem',
+                            color: 'text.secondary',
+                            textAlign: 'left',
+                            lineHeight: 1.2
+                          }}
+                        >
+                          {habitacion.metrosCuadrados}m²
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Box>
+          )}
+        </AccordionDetails>
+      </StyledAccordion>
+    );
+  };
 
   const renderSeccionInventario = () => (
     <StyledAccordion 
@@ -432,24 +806,44 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
     </StyledAccordion>
   );
 
-  const renderSeccionDocumentos = () => (
-    <StyledAccordion 
-      expanded={expandedSections.documentos}
-      onChange={() => toggleSection('documentos')}
-    >
-      <StyledAccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <InsertDriveFileIcon />
-          <Typography variant="h6">
-            Documentos ({documentos.length})
-          </Typography>
-        </Box>
-      </StyledAccordionSummary>
-      <AccordionDetails>
-        <SeccionDocumentos documentos={documentos} />
-      </AccordionDetails>
-    </StyledAccordion>
-  );
+  const renderSeccionDocumentos = () => {
+    // Usar la misma lógica modular que PropiedadCard
+    const documentos = propiedadCompleta?.documentos || [];
+    const contratos = propiedadCompleta?.contratos || [];
+    
+    // Combinar documentos y contratos para la sección de documentos
+    const documentosCombinados = [
+      ...documentos,
+      ...contratos
+        .filter(contrato => contrato.documentoUrl) // Solo contratos con documento real
+        .map(contrato => ({
+          nombre: `Contrato ${contrato._id}`,
+          categoria: 'CONTRATO',
+          url: contrato.documentoUrl,
+          fechaCreacion: contrato.fechaInicio,
+          // Puedes agregar más campos si los usas en la UI
+        }))
+    ];
+    
+    return (
+      <StyledAccordion 
+        expanded={expandedSections.documentos}
+        onChange={() => toggleSection('documentos')}
+      >
+        <StyledAccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <InsertDriveFileIcon />
+            <Typography variant="h6">
+              Documentos ({documentosCombinados.length})
+            </Typography>
+          </Box>
+        </StyledAccordionSummary>
+        <AccordionDetails>
+          <SeccionDocumentos documentos={documentosCombinados} />
+        </AccordionDetails>
+      </StyledAccordion>
+    );
+  };
 
   const renderAcciones = () => (
     <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
@@ -481,6 +875,7 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
       <DialogContent sx={{ p: 3, pt: 1 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
           <div key="informacionBasica">{renderInformacionBasica()}</div>
+          <div key="estadoFinanciero">{renderSeccionEstadoFinanciero()}</div>
           <div key="inquilinos">{renderSeccionInquilinos()}</div>
           <div key="contratos">{renderSeccionContratos()}</div>
           <div key="habitaciones">{renderSeccionHabitaciones()}</div>
