@@ -15,6 +15,8 @@ import { agruparHabitaciones } from './propiedadUtils';
 import { getInquilinosByPropiedad } from './inquilinos';
 import { icons } from '../../navigation/menuIcons';
 import InquilinoDetail from './inquilinos/InquilinoDetail';
+import { api } from '../../services/api';
+import { toast } from 'react-hot-toast';
 
 // Sección: Inquilinos
 export const SeccionInquilinos = ({ propiedad, inquilinos = [], inquilinosActivos = [], inquilinosFinalizados = [] }) => {
@@ -161,6 +163,38 @@ export const SeccionInventario = ({ inventario = [] }) => {
 // Sección: Documentos
 export const SeccionDocumentos = ({ documentos = [], onInventarioClick, propiedad, onSyncSeccion }) => {
   if (!documentos.length) return null;
+  
+  // Handler para sincronizar documentos con Google Drive
+  const handleSyncDocumentos = async (propiedadId, categoria) => {
+    try {
+      // Si se pasa onSyncSeccion desde el componente padre, usarlo
+      if (typeof onSyncSeccion === 'function') {
+        await onSyncSeccion(propiedadId, categoria);
+        return;
+      }
+      
+      // Si no, usar la API directamente
+      toast.loading('Sincronizando documentos con Google Drive...');
+      
+      // Primero crear carpeta si no existe
+      await api.crearCarpetaGoogleDrive(propiedadId);
+      
+      // Luego sincronizar documentos
+      await api.sincronizarDocumentos(propiedadId);
+      
+      toast.dismiss();
+      toast.success('Documentos sincronizados exitosamente');
+      
+      // Recargar la página o actualizar el estado
+      window.location.reload();
+      
+    } catch (error) {
+      toast.dismiss();
+      console.error('Error al sincronizar documentos:', error);
+      toast.error(error.response?.data?.message || 'Error al sincronizar documentos');
+    }
+  };
+  
   const categorias = ['CONTRATO', 'PAGO', 'COBRO', 'MANTENIMIENTO', 'GASTO_FIJO', 'GASTO_VARIABLE', 'ALQUILER'];
   const docsPorCategoria = categorias.reduce((acc, cat) => {
     acc[cat] = documentos.filter(doc => doc.categoria === cat);
@@ -198,9 +232,7 @@ export const SeccionDocumentos = ({ documentos = [], onInventarioClick, propieda
                     <Tooltip title="Sincronizar con Google Drive">
                       <span>
                         <IconButton size="small" sx={{ p: 0.2, color: 'text.disabled' }} onClick={() => {
-                          if (typeof onSyncSeccion === 'function') {
-                            onSyncSeccion(propiedad?._id, 'CONTRATO');
-                          }
+                          handleSyncDocumentos(propiedad?._id, 'CONTRATO');
                         }}>
                           <IconoContratoDocumentos sinDocumentos={true} />
                         </IconButton>
