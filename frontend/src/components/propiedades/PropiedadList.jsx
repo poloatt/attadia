@@ -51,7 +51,11 @@ const PropiedadList = ({ isAssets = false, ...props }) => {
       Object.keys(prev).forEach(id => {
         newExpanded[id] = false;
       });
-      newExpanded[propiedadId] = !prev[propiedadId];
+      // Si ya estaba expandida, la colapsa (todas quedan colapsadas)
+      // Si no, la expande y las demás quedan colapsadas
+      if (!prev[propiedadId]) {
+        newExpanded[propiedadId] = true;
+      }
       return newExpanded;
     });
   };

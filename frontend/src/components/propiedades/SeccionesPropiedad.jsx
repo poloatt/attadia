@@ -6,7 +6,9 @@ import {
   Inventory2Outlined as InventoryIcon, 
   MonetizationOnOutlined as MoneyIcon, 
   OpenInNew as OpenInNewIcon, 
-  Visibility as VisibilityIcon 
+  Visibility as VisibilityIcon,
+  Folder as FolderIcon,
+  Description as DescriptionIcon
 } from '@mui/icons-material';
 import { agruparHabitaciones } from './propiedadUtils';
 import { getInquilinosByPropiedad } from './inquilinos';
@@ -156,7 +158,7 @@ export const SeccionInventario = ({ inventario = [] }) => {
 };
 
 // Sección: Documentos
-export const SeccionDocumentos = ({ documentos = [], onInventarioClick }) => {
+export const SeccionDocumentos = ({ documentos = [], onInventarioClick, propiedad }) => {
   if (!documentos.length) return null;
   const categorias = ['CONTRATO', 'PAGO', 'COBRO', 'MANTENIMIENTO', 'GASTO_FIJO', 'GASTO_VARIABLE', 'ALQUILER'];
   const docsPorCategoria = categorias.reduce((acc, cat) => {
@@ -165,7 +167,7 @@ export const SeccionDocumentos = ({ documentos = [], onInventarioClick }) => {
   }, {});
   return (
     <Box sx={{ mb: 2 }}>
-      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}><MoneyIcon sx={{ fontSize: '1.1rem', mr: 1 }} />Documentos</Typography>
+      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}><DescriptionIcon sx={{ fontSize: '1.1rem', mr: 1 }} />Documentos</Typography>
       {categorias.map(cat => {
         const docs = docsPorCategoria[cat];
         if (!docs || !docs.length) return null;
@@ -176,15 +178,17 @@ export const SeccionDocumentos = ({ documentos = [], onInventarioClick }) => {
               <Box key={doc._id || `${cat}-${idx}`} sx={{ display: 'flex', alignItems: 'center', gap: 1, pl: 1 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.nombre}</Typography>
                 <a href={doc.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12 }}>Abrir</a>
-                {/* Botón de inventario solo para contratos que tengan inventario */}
+                {/* Botón de archivos solo para contratos que tengan documentos asociados */}
                 {cat === 'CONTRATO' && (
-                  doc.inventario ? (
-                    <IconButton size="small" sx={{ p: 0.2, color: 'text.secondary' }} onClick={() => onInventarioClick && onInventarioClick(doc)}>
-                      {React.createElement(icons.inventario, { sx: { fontSize: '1rem' } })}
-                    </IconButton>
+                  propiedad?.documentos && propiedad.documentos.length > 0 ? (
+                    <Tooltip title={`Ver ${propiedad.documentos.length} documento${propiedad.documentos.length > 1 ? 's' : ''} de la propiedad`}>
+                      <IconButton size="small" sx={{ p: 0.2, color: 'text.secondary' }} onClick={() => onInventarioClick && onInventarioClick({ tipo: 'documentos', propiedad })}>
+                        <FolderIcon sx={{ fontSize: '1rem' }} />
+                      </IconButton>
+                    </Tooltip>
                   ) : (
                     <Box sx={{ display: 'flex', alignItems: 'center', p: 0.2, color: 'text.disabled' }}>
-                      {React.createElement(icons.inventario, { sx: { fontSize: '1rem' } })}
+                      <FolderIcon sx={{ fontSize: '1rem' }} />
                     </Box>
                   )
                 )}

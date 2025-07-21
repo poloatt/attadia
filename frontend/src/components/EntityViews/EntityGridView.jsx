@@ -6,7 +6,8 @@ import {
   Paper,
   Chip,
   IconButton,
-  Collapse
+  Collapse,
+  Tooltip
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { Link } from 'react-router-dom';
@@ -36,19 +37,19 @@ import {
   Visibility as ViewIcon,
   InfoOutlined as InfoIcon,
   Description as DescriptionIcon,
-  DriveFolderUpload as DriveIcon,
   // Íconos para habitaciones
   BathtubOutlined as BathtubIcon,
   KingBed,
   SingleBed,
   ChairOutlined,
   KitchenOutlined,
-  LocalLaundryServiceOutlined
+  LocalLaundryServiceOutlined,
+  Folder as FolderIcon
 } from '@mui/icons-material';
 import { getEstadoContrato, calcularDuracionTotal, getApellidoInquilinoContrato, calcularRangoMesesContrato } from '../propiedades/contratos/contratoUtils';
 import { contarItemsPorHabitacion } from '../propiedades/propiedadUtils';
 import { icons } from '../../navigation/menuIcons';
-import { getStatusIconComponent, getEstadoColor, getEstadoText } from '../common/StatusSystem';
+import { getStatusIconComponent, getStatusIconComponentRaw, getEstadoColor, getEstadoText } from '../common/StatusSystem';
 
 // Constantes de estilo jerárquicas para alineación y separadores
 const SECTION_PADDING_X = 1;
@@ -984,7 +985,11 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
             
             {/* Mostrar contratos limitados */}
             {contratosAMostrar.map((doc, idx) => {
-              let IconoDoc = DriveIcon;
+              // Obtener estado dinámico del contrato
+              const estadoContrato = getEstadoContrato(doc);
+              const IconoDoc = getStatusIconComponentRaw(estadoContrato, 'CONTRATO');
+              const colorIcono = getEstadoColor(estadoContrato, 'CONTRATO');
+              
               const apellido = getApellidoInquilinoContrato(doc);
               const rango = doc.fechaInicio && doc.fechaFin ? calcularRangoMesesContrato(doc.fechaInicio, doc.fechaFin) : '';
               const label = apellido;
@@ -997,7 +1002,7 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
               return (
                 <EntitySectionRow
                   key={doc._id || idx}
-                  icon={IconoDoc}
+                  icon={(props) => <IconoDoc {...props} sx={{ fontSize: '1.2rem', color: colorIcono, flexShrink: 0 }} />}
                   primary={label}
                   secondary={secondary}
                   children={
@@ -1010,14 +1015,16 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
                       <IconButton size="small" sx={{ p: 0.2 }} onClick={() => handleOpenContrato(contrato)}>
                         {React.createElement(icons.description, { sx: { fontSize: '1rem', color: 'primary.main' } })}
                       </IconButton>
-                      {/* Botón de inventario */}
-                      {doc.inventario ? (
-                        <IconButton size="small" sx={{ p: 0.2, color: 'text.secondary' }} onClick={() => onInventarioClick && onInventarioClick(doc)}>
-                          {React.createElement(icons.inventario, { sx: { fontSize: '1rem' } })}
-                        </IconButton>
+                      {/* Botón de archivos de la propiedad */}
+                      {section.entity?.documentos && section.entity.documentos.length > 0 ? (
+                        <Tooltip title={`Ver ${section.entity.documentos.length} documento${section.entity.documentos.length > 1 ? 's' : ''} de la propiedad`}>
+                          <IconButton size="small" sx={{ p: 0.2, color: 'text.secondary' }} onClick={() => onInventarioClick && onInventarioClick({ tipo: 'documentos', propiedad: section.entity })}>
+                            <FolderIcon sx={{ fontSize: '1rem' }} />
+                          </IconButton>
+                        </Tooltip>
                       ) : (
                         <Box sx={{ display: 'flex', alignItems: 'center', p: 0.2, color: 'text.disabled' }}>
-                          {React.createElement(icons.inventario, { sx: { fontSize: '1rem' } })}
+                          <FolderIcon sx={{ fontSize: '1rem' }} />
                         </Box>
                       )}
                     </Box>

@@ -28,7 +28,6 @@ import {
   Description as ContractIcon,
   Inventory2Outlined as InventoryIcon,
   ExpandMore as ExpandMoreIcon,
-  InsertDriveFile as InsertDriveFileIcon,
   SquareFoot as SquareFootIcon,
   Category as CategoryIcon,
   // Iconos para habitaciones
@@ -855,14 +854,14 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
       >
         <StyledAccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <InsertDriveFileIcon />
+            <DescriptionIcon />
             <Typography variant="h6">
               Documentos ({documentosCombinados.length})
             </Typography>
           </Box>
         </StyledAccordionSummary>
         <AccordionDetails>
-          <SeccionDocumentos documentos={documentosCombinados} />
+          <SeccionDocumentos documentos={documentosCombinados} propiedad={propiedadCompleta} />
         </AccordionDetails>
       </StyledAccordion>
     );

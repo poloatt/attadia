@@ -49,14 +49,14 @@ import {
   EditOutlined as EditIcon,
   DeleteOutlined as DeleteIcon,
 
-  AccountBalanceWalletOutlined as DepositIcon,
+  AccountBalanceWalletOutlined,
   AccountBalance as BankIcon,
-  MonetizationOnOutlined as MoneyIcon,
+  MonetizationOnOutlined,
   InsertDriveFile as InsertDriveFileIcon,
   OpenInNew as OpenInNewIcon
 } from '@mui/icons-material';
 import { EntityActions } from '../EntityViews';
-import PropiedadGridView, { crearSeccionesPropiedad } from './PropiedadGridView';
+import PropiedadGridView from './PropiedadGridView';
 import PropiedadListView from './PropiedadListView';
 import { Link } from 'react-router-dom';
 import BarraEstadoPropiedad from './BarraEstadoPropiedad';
@@ -301,132 +301,103 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
 
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
-  // Componente reutilizable para la barra de progreso (solo progreso temporal, sin info financiera)
-  const renderBarraProgreso = () => {
-    // Mostrar progreso temporal y financiero si hay datos disponibles
-    if (progresoOcupacion.tieneContrato) {
-      return (
-        <BarraEstadoPropiedad
-          diasTranscurridos={progresoOcupacion.diasTranscurridos}
-          diasTotales={progresoOcupacion.diasTotales}
-          porcentaje={progresoOcupacion.porcentaje}
-          simboloMoneda={simbolo}
-          montoMensual={montoMensual}
-          montoTotal={progresoOcupacion.montoTotal || 0}
-          color={progresoOcupacion.estado === 'MANTENIMIENTO' ? 'warning.main' : 'primary.main'}
-          estado={progresoOcupacion.estado}
-          // Mostrar datos de cuotas si están disponibles
-          montoAcumulado={estadoCuotas.montoPagado || progresoOcupacion.montoAcumulado || null}
-          cuotasPagadas={estadoCuotas.cuotasPagadas || null}
-          cuotasTotales={estadoCuotas.cuotasTotales || null}
-          isCompact={isAssets && !isExpanded}
-          isAssets={isAssets}
-        />
-      );
-    } else {
-      // Mostrar barra para propiedades sin contrato
-      return (
-        <BarraEstadoPropiedad
-          diasTranscurridos={0}
-          diasTotales={30}
-          porcentaje={0}
-          simboloMoneda={simbolo}
-          montoMensual={montoMensual}
-          montoTotal={0}
-          color="text.secondary"
-          estado={estado}
-          // Sin datos de cuotas
-          montoAcumulado={null}
-          cuotasPagadas={null}
-          cuotasTotales={null}
-          isCompact={isAssets && !isExpanded}
-          isAssets={isAssets}
-        />
-      );
-    }
-  };
-
+  // Eliminar la barra de progreso propia, solo dejar la de PropiedadGridView
 
 
   // Componente reutilizable para el header de la propiedad
-  const renderHeader = () => (
-    <Box sx={{ 
-      display: 'flex', 
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      width: '100%'
-    }}>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-        <PropiedadHeader 
-          propiedad={propiedad} 
-          showEstado={!isAssets}
-          iconSize={isAssets ? "18px" : "1.1rem"}
-          titleSize={isAssets ? "subtitle1" : "subtitle1"}
-          titleWeight={isAssets ? 600 : 500}
-        />
-      </Box>
-      {!isAssets && (
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
-          {isExpanded && (
-            <EntityActions 
-              onEdit={() => onEdit(propiedad)}
-              onDelete={() => setOpenDeleteDialog(true)}
-              itemName={alias}
-            />
-          )}
-          <Tooltip title={isExpanded ? "Colapsar" : "Expandir"}>
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleExpand();
-              }}
-              sx={{ 
-                color: 'text.secondary',
-                padding: 0.25,
-                transform: isExpanded ? 'rotate(180deg)' : 'none',
-                transition: 'transform 0.2s'
-              }}
-            >
-              <ExpandMoreIcon sx={{ fontSize: '0.9rem' }} />
-            </IconButton>
-          </Tooltip>
+  const renderHeader = () => {
+    // Mostrar íconos de estado de todos los contratos relevantes
+    const contratos = propiedad.contratos || [];
+    const estadosMostrar = ['ACTIVO', 'RESERVADO', 'MANTENIMIENTO'];
+    const iconosEstados = contratos
+      .filter(c => estadosMostrar.includes(getEstadoContrato(c)))
+      .map((contrato, idx) => {
+        const estado = getEstadoContrato(contrato);
+        const color = getEstadoColor(estado, 'CONTRATO');
+        const Icon = getStatusIconComponent(estado, 'CONTRATO').type;
+        return (
+          <Icon key={idx} sx={{ fontSize: '1.2rem', color, ml: idx > 0 ? 0.5 : 0, flexShrink: 0 }} />
+        );
+      });
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%'
+      }}>
+        <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1, flex: 1 }}>
+          <PropiedadHeader 
+            propiedad={propiedad} 
+            showEstado={false}
+            iconSize={isAssets ? "18px" : "1.1rem"}
+            titleSize={isAssets ? "subtitle1" : "subtitle1"}
+            titleWeight={isAssets ? 600 : 500}
+          />
         </Box>
-      )}
-      {isAssets && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          {/* Chip de estado para Assets */}
-          <StatusChip customcolor={getEstadoColor(estado, 'PROPIEDAD')}>
-            <EstadoIcon estado={estado} tipo="PROPIEDAD" />
-            <span>{getEstadoText(estado, 'PROPIEDAD')}</span>
-          </StatusChip>
-          
-          {onOpenDetail && (
-            <Tooltip title="Ver detalles completos">
+        {/* Iconos de estado de contratos alineados a la derecha */}
+        {iconosEstados.length > 0 && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 1, mr: 1 }}>
+            {iconosEstados}
+          </Box>
+        )}
+        {!isAssets && (
+          <Box sx={{ display: 'flex', gap: 0.5 }}>
+            {isExpanded && (
+              <EntityActions 
+                onEdit={() => onEdit(propiedad)}
+                onDelete={() => setOpenDeleteDialog(true)}
+                itemName={alias}
+              />
+            )}
+            <Tooltip title={isExpanded ? "Colapsar" : "Expandir"}>
               <IconButton
                 size="small"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onOpenDetail(propiedad);
+                  onToggleExpand();
                 }}
                 sx={{ 
                   color: 'text.secondary',
                   padding: 0.25,
-                  transition: 'color 0.2s',
-                  '&:hover': {
-                    bgcolor: 'action.hover',
-                    color: 'primary.main'
-                  }
+                  transform: isExpanded ? 'rotate(180deg)' : 'none',
+                  transition: 'transform 0.2s'
                 }}
               >
-                <OpenInNewIcon sx={{ fontSize: '0.9rem' }} />
+                <ExpandMoreIcon sx={{ fontSize: '0.9rem' }} />
               </IconButton>
             </Tooltip>
-          )}
-        </Box>
-      )}
-    </Box>
-  );
+          </Box>
+        )}
+        {isAssets && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            {onOpenDetail && (
+              <Tooltip title="Ver detalles completos">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenDetail(propiedad);
+                  }}
+                  sx={{ 
+                    color: 'text.secondary',
+                    padding: 0.25,
+                    transition: 'color 0.2s',
+                    '&:hover': {
+                      bgcolor: 'action.hover',
+                      color: 'primary.main'
+                    }
+                  }}
+                >
+                  <OpenInNewIcon sx={{ fontSize: '0.9rem' }} />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
+        )}
+      </Box>
+    );
+  };
 
   // Componente reutilizable para el contenido expandido
   const renderContenidoExpandido = () => (
@@ -437,9 +408,8 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
         pt: isAssets ? 0.25 : 0.5,
         pb: 0.5
       }}>
-        {renderBarraProgreso()}
+        {/* Eliminar la barra de progreso propia, solo dejar la de PropiedadGridView */}
       </Box>
-      
       {/* 2. Renderizado de vista seleccionada (grid/list) */}
       {viewMode === 'list' ? (
         <PropiedadListView
@@ -502,24 +472,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
         >
         {renderHeader()}
         {/* Vista compacta solo en colapsado - solo barra de progreso */}
-        {!isExpanded && (
-                      isAssets ? (
-              <Box sx={{ 
-                px: 0.25,
-                pt: 0.25
-              }}>
-                {renderBarraProgreso()}
-              </Box>
-            ) : (
-            <CardContent sx={{ 
-              p: 1,
-              pb: 0.5,
-              bgcolor: 'transparent'
-            }}>
-              {renderBarraProgreso()}
-            </CardContent>
-          )
-        )}
+        {/* No mostrar nada en la versión colapsada */}
       </Box>
       {isExpanded && (
         <Box sx={{ 

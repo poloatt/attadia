@@ -39,13 +39,14 @@ import { EntityGridView, SECTION_CONFIGS, formatCompactNumber } from '../EntityV
 import { entityHeaderProps as getEntityHeaderProps } from '../EntityViews';
 import { Link } from 'react-router-dom';
 import ContratoDetail from './contratos/ContratoDetail';
-import { pluralizar, getEstadoContrato, agruparHabitaciones, calcularProgresoOcupacion, calcularYearToDate, calcularYearToGo } from './propiedadUtils';
+import { pluralizar, agruparHabitaciones, calcularProgresoOcupacion, calcularYearToDate, calcularYearToGo } from './propiedadUtils';
 import { SeccionInquilinos, SeccionHabitaciones, SeccionInventario, SeccionDocumentos } from './SeccionesPropiedad';
 import { getInquilinosByPropiedad } from './inquilinos';
 import { getEstadoColor, getEstadoText, getStatusIconComponent } from '../common/StatusSystem';
 import EstadoFinanzasContrato from './contratos/EstadoFinanzasContrato';
 import { CuotasProvider } from './contratos/context/CuotasContext';
-
+import BarraEstadoPropiedad from './BarraEstadoPropiedad';
+import { calcularEstadoCuotasContrato, getEstadoContrato } from './contratos/contratoUtils';
 
 
 // Configuraciones para diferentes tipos de datos
@@ -235,15 +236,14 @@ const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta,
       // Filtrar contratos válidos (no mantenimiento y sin pagos completos)
       const contratosValidos = (contratos || []).filter(contrato => {
         if (contrato.tipoContrato === 'MANTENIMIENTO') return false;
-        
+        // Excluir contratos planeados
+        if (contrato.estado === 'PLANEADO') return false;
         // Verificar si el contrato tiene pagos completos
         if (!contrato.cuotasMensuales || contrato.cuotasMensuales.length === 0) {
           return true; // Mostrar si no hay cuotas configuradas
         }
-        
         const cuotasPagadas = contrato.cuotasMensuales.filter(cuota => cuota.estado === 'PAGADO').length;
         const cuotasTotales = contrato.cuotasMensuales.length;
-        
         return !(cuotasPagadas === cuotasTotales && cuotasTotales > 0);
       });
       
@@ -251,134 +251,42 @@ const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta,
       const contratosAMostrar = showAllContratos ? contratosValidos : contratosValidos.slice(0, 2);
       const contratosOcultos = contratosValidos.length - contratosAMostrar.length;
       
+      // Calcular contrato activo principal (como en PropiedadCard.jsx)
+      const contratoActivo = (contratos || []).find(contrato => 
+        getEstadoContrato(contrato) === 'ACTIVO' && 
+        !contrato.esMantenimiento && 
+        contrato.tipoContrato === 'ALQUILER'
+      );
+      // Calcular estado de cuotas del contrato activo
+      const estadoCuotas = contratoActivo ? calcularEstadoCuotasContrato(contratoActivo) : {
+        montoPagado: 0,
+        cuotasPagadas: 0,
+        cuotasTotales: 0
+      };
       return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3, width: '100%', bgcolor: '#181818', p: 0, m: 0 }}>
-        {/* Boxes de YTD, YTG y Cuenta (PRIMERO) */}
-        <Box sx={{ display: 'flex', gap: 1, width: '100%', p: 0, m: 0 }}>
-          {/* Box YTG */}
-          <Box sx={{ 
-            flex: 1, 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            gap: 0.3,
-            minHeight: '40px'
-          }}>
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: 500,
-                fontSize: '0.9rem',
-                lineHeight: 1,
-                m: 0,
-                color: 'text.primary'
-              }}
-            >
-              {formatCompactNumber(ytgActual)}
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: 400,
-                fontSize: '0.65rem',
-                color: 'rgba(255,255,255,0.7)',
-                lineHeight: 1,
-                m: 0,
-                textAlign: 'center'
-              }}
-            >
-              YTG
-            </Typography>
-          </Box>
-          
-          {/* Box YTD */}
-          <Box sx={{ 
-            flex: 1, 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            gap: 0.3,
-            minHeight: '40px'
-          }}>
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: 500,
-                fontSize: '0.9rem',
-                lineHeight: 1,
-                m: 0,
-                color: 'text.primary'
-              }}
-            >
-              {formatCompactNumber(ytdActual)}
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: 400,
-                fontSize: '0.65rem',
-                color: 'rgba(255,255,255,0.7)',
-                lineHeight: 1,
-                m: 0,
-                textAlign: 'center'
-              }}
-            >
-              YTD
-            </Typography>
-          </Box>
-          
-          {/* Box Cuenta */}
-          <Box sx={{ 
-            flex: 1, 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            gap: 0.3,
-            minHeight: '40px'
-          }}>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 600,
-                fontSize: '1.2rem',
-                lineHeight: 1,
-                m: 0,
-                color: 'text.primary'
-              }}
-            >
-              {simboloMoneda || '$'}
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: 400,
-                fontSize: '0.65rem',
-                color: 'rgba(255,255,255,0.7)',
-                lineHeight: 1,
-                m: 0,
-                textAlign: 'center'
-              }}
-            >
-              {nombreCuenta || 'No especificada'}
-            </Typography>
-          </Box>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, width: '100%', bgcolor: '#181818', p: 0, m: 0 }}>
+        {/* Barra de progreso de la propiedad (única, con días y dinero) */}
+        <Box sx={{ width: '100%', px: 2, pt: 1, pb: 0.5 }}>
+          <BarraEstadoPropiedad
+            diasTranscurridos={progresoOcupacion.diasTranscurridos}
+            diasTotales={progresoOcupacion.diasTotales}
+            porcentaje={progresoOcupacion.porcentaje}
+            simboloMoneda={simboloMoneda}
+            montoMensual={precio}
+            montoTotal={progresoOcupacion.montoTotal || 0}
+            color={progresoOcupacion.estado === 'MANTENIMIENTO' ? 'warning.main' : 'primary.main'}
+            estado={progresoOcupacion.estado}
+            montoAcumulado={estadoCuotas.montoPagado || progresoOcupacion.montoAcumulado || null}
+            cuotasPagadas={estadoCuotas.cuotasPagadas || null}
+            cuotasTotales={estadoCuotas.cuotasTotales || null}
+            isCompact={false}
+            isAssets={false}
+            sx={{ width: '100%' }}
+            ytd={calcularYearToDate(propiedad)}
+            ytg={calcularYearToGo(propiedad)}
+          />
         </Box>
-
-        {/* Separador sutil entre boxes y estado de cuotas */}
-        {contratosValidos.length > 0 && (
-          <Box sx={{ 
-            height: '1px', 
-            bgcolor: 'rgba(255,255,255,0.08)', 
-            mx: 1, 
-            my: 0.2,
-            borderRadius: '0.5px'
-          }} />
-        )}
-
-        {/* Estado de finanzas de contratos (SEGUNDO - AL FINAL) */}
+        {/* Detalle de contratos/EstadoFinanzasContrato, sin barra */}
         {contratosValidos.length > 0 && (
           <Box sx={{ width: '100%', p: 0, m: 0 }}>
             {contratosAMostrar.map((contrato, index) => (
@@ -397,7 +305,6 @@ const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta,
                 </CuotasProvider>
               </Box>
             ))}
-            
             {/* Link para mostrar más contratos */}
             {contratosOcultos > 0 && (
               <Box sx={{ px: 1, pt: 0.5, pb: 0.5 }}>
@@ -418,7 +325,6 @@ const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta,
                 </Typography>
               </Box>
             )}
-            
             {/* Link para ocultar contratos */}
             {showAllContratos && contratosValidos.length > 2 && (
               <Box sx={{ px: 1, pt: 0.5, pb: 0.5 }}>
@@ -441,7 +347,6 @@ const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta,
             )}
           </Box>
         )}
-
       </Box>
       );
     }

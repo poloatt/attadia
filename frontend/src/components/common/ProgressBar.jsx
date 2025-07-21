@@ -57,7 +57,7 @@ const ProgressBar = ({
           left: diasTranscurridos !== null && diasTotales !== null 
             ? `${diasTranscurridos}/${diasTotales} días`
             : leftLabel,
-          right: null // No mostrar información financiera en progreso temporal
+          right: rightLabel // Mostrar rightLabel si está presente
         };
       
       case 'cuotas':

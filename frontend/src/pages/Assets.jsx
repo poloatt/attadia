@@ -298,10 +298,8 @@ export function Assets() {
 
   const handlePropiedadToggleExpand = (propiedadId) => {
     setExpandedPropiedades(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(propiedadId)) {
-        newSet.delete(propiedadId);
-      } else {
+      const newSet = new Set();
+      if (!prev.has(propiedadId)) {
         newSet.add(propiedadId);
       }
       return newSet;

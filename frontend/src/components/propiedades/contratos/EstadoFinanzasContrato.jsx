@@ -177,6 +177,7 @@ const EstadoFinanzasContrato = ({
       {/* Progreso de cuotas - Solo mostrar si NO es compacto */}
       {!compact && (
         <>
+          {/* Primer renglón: Información de cuotas */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5, px: SECTION_PADDING_X }}>
             <Typography variant="caption" sx={{ 
               fontSize: '0.65rem', 
@@ -192,8 +193,8 @@ const EstadoFinanzasContrato = ({
             </Typography>
           </Box>
           
-          {/* Barra de progreso de cuotas */}
-          <Box sx={{ px: SECTION_PADDING_X }}>
+          {/* BarraEstadoPropiedad: Progreso temporal del contrato */}
+          <Box sx={{ px: SECTION_PADDING_X, mb: 0.5 }}>
             <ProgressBar
               dataType="cuotas"
               cuotasPagadas={cuotasPagadas}
@@ -207,7 +208,8 @@ const EstadoFinanzasContrato = ({
               sx={{ mb: 0.5 }}
             />
           </Box>
-          {/* Montos */}
+          
+          {/* Segundo renglón: Montos */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, px: SECTION_PADDING_X }}>
             <Typography variant="caption" sx={{ 
               fontSize: '0.6rem', 
