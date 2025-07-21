@@ -497,7 +497,7 @@ function DocumentosSection({ documentosPorCategoria }) {
           </Box>
         );
       })}
-      <ContratoDetail open={openContrato} onClose={() => setOpenContrato(false)} contrato={contratoSeleccionado} />
+      <ContratoDetail open={openContrato} onClose={() => setOpenContrato(false)} contrato={contratoSeleccionado} onEdit={() => {}} onDelete={() => {}} />
     </Box>
   );
 }

@@ -39,6 +39,7 @@ import { useSnackbar } from 'notistack';
 import { EmptyState } from '../components/common';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 import { useAPI } from '../hooks/useAPI';
+import { useLocation } from 'react-router-dom';
 
 const COLORES_MONEDA = {
   CELESTE_ARGENTINA: { value: '#75AADB', label: 'Celeste Argentina' },
@@ -287,6 +288,7 @@ export function Monedas() {
   const [editingMoneda, setEditingMoneda] = useState(null);
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
   const { showValues } = useValuesVisibility();
+  const location = useLocation();
 
   // Usar nuestro hook personalizado para cargar monedas - Optimizaciones
   const { 
@@ -381,7 +383,10 @@ export function Monedas() {
   // Escuchar el evento del botón "+" del Header
   useEffect(() => {
     const handleHeaderAdd = (e) => {
-      if (e.detail?.type === 'moneda') {
+      if (
+        (e.detail?.path && e.detail.path === location.pathname) ||
+        e.detail?.type === 'moneda'
+      ) {
         setEditingMoneda(null);
         setIsFormOpen(true);
       }
@@ -389,7 +394,7 @@ export function Monedas() {
     
     window.addEventListener('headerAddButtonClicked', handleHeaderAdd);
     return () => window.removeEventListener('headerAddButtonClicked', handleHeaderAdd);
-  }, []);
+  }, [location.pathname]);
 
   const handleFormSubmit = useCallback(async (formData) => {
     try {

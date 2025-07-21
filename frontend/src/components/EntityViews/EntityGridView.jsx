@@ -1083,7 +1083,7 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
           <InquilinoDetail open={inquilinoDetailOpen} onClose={handleCloseInquilino} inquilino={selectedInquilino} />
         )}
         {selectedContrato && (
-          <ContratoDetail open={contratoDetailOpen} onClose={handleCloseContrato} contrato={selectedContrato} />
+          <ContratoDetail open={contratoDetailOpen} onClose={handleCloseContrato} contrato={selectedContrato} onEdit={() => {}} onDelete={() => {}} />
         )}
       </Box>
     );

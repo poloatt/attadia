@@ -7,12 +7,7 @@ import {
 } from '@mui/material';
 import { useSidebar } from '../../context/SidebarContext';
 import { useUISettings } from '../../context/UISettingsContext';
-import { useHeaderActions } from './HeaderActions';
-import HeaderMenuButton from './HeaderMenuButton';
-import HeaderVisibilityButton from './HeaderVisibilityButton';
-import HeaderUndoMenu from './HeaderUndoMenu';
-import HeaderAddButton from './HeaderAddButton';
-import HeaderRefreshButton from './HeaderRefreshButton';
+import { useEntityActions } from '../../components/EntityViews/EntityActions';
 import { AutorenewOutlined, AddOutlined } from '@mui/icons-material';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
@@ -22,17 +17,17 @@ import { getBreadcrumbs } from '../breadcrumbUtils';
 import { menuItems } from '../menuStructure';
 import { icons } from '../menuIcons';
 import { Breadcrumbs, useTheme, useMediaQuery } from '@mui/material';
+import { SystemButtons, SYSTEM_ICONS } from '../../components/common/SystemButtons';
+import { Refresh as RefreshIcon } from '@mui/icons-material';
 
 export default function Header() {
   const { showSidebar } = useSidebar();
   const { showEntityToolbarNavigation } = useUISettings();
   const { 
     getRouteTitle, 
-    showVisibilityButton, 
     getEntityConfig, 
-    showAddButton, 
-    showUndoButton 
-  } = useHeaderActions();
+    showAddButton 
+  } = useEntityActions();
 
   const entityConfig = getEntityConfig();
   const location = useLocation();
@@ -87,7 +82,7 @@ export default function Header() {
           alignItems: 'center',
           gap: 1
         }}>
-          <HeaderMenuButton />
+          <SystemButtons.MenuButton />
           {/* Botón de atrás solo si no estamos en la raíz y la toolbar no está activa */}
           {location.pathname !== '/' && !showEntityToolbarNavigation && (
             <IconButton onClick={handleBack} size="small" sx={{ ml: 0, mr: 0.5 }}>
@@ -152,64 +147,57 @@ export default function Header() {
 
         <Box sx={{ flexGrow: 1 }} />
 
-        <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-          {showVisibilityButton && <HeaderVisibilityButton />}
-          {showUndoButton && <HeaderUndoMenu />}
-          <HeaderRefreshButton />
-          {/* Botón de agregar - LÓGICA SIMPLIFICADA: solo cuando toolbar está deshabilitada */}
-          {showAddButton && !showEntityToolbarNavigation && entityConfig && (
-            <HeaderAddButton entityConfig={entityConfig} />
-          )}
-          {/* Botón de acceso rápido a configuración solo si la sidebar está oculta */}
-          {showSidebar === false && (
-            <IconButton
-              component={Link}
-              to="/configuracion"
-              size="small"
-              aria-label="Configuración"
-              color="inherit"
-            >
-              {icons.settings ? <icons.settings sx={{ fontSize: 20 }} /> : <span>⚙️</span>}
-            </IconButton>
-          )}
-          {/* Botón de sincronizar solo en la página de cuentas */}
-          {location.pathname.includes('/cuentas') && (
-            <>
-              <IconButton
-                onClick={() => setIsSyncModalOpen(true)}
-                size="small"
-                aria-label="Sincronizar"
-                color="inherit"
-              >
-                <AutorenewOutlined sx={{ fontSize: 20, color: 'white' }} />
-              </IconButton>
-              <Dialog open={isSyncModalOpen} onClose={() => setIsSyncModalOpen(false)} maxWidth="xs" fullWidth>
-                <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <Typography variant="h6" sx={{ mb: 2 }}>Sincronizar nueva cuenta</Typography>
-                  <MercadoPagoConnectButton
-                    onSuccess={() => setIsSyncModalOpen(false)}
-                    onError={() => setIsSyncModalOpen(false)}
-                  />
-                </Box>
-              </Dialog>
-              {/* Botón de agregar cuenta (abre BankConnectionForm) */}
-              <IconButton
-                onClick={() => setIsBankConnectionFormOpen(true)}
-                size="small"
-                aria-label="Agregar"
-                color="inherit"
-              >
-                <AddOutlined sx={{ fontSize: 20, color: 'white' }} />
-              </IconButton>
-              <BankConnectionForm
-                open={isBankConnectionFormOpen}
-                onClose={() => setIsBankConnectionFormOpen(false)}
-                onSubmit={() => setIsBankConnectionFormOpen(false)}
-                isEditing={false}
-              />
-            </>
-          )}
-        </Box>
+        {/* Migración: todos los botones de acción del header en SystemButtons */}
+        <SystemButtons
+          actions={[
+            {
+              key: 'refresh',
+              icon: <RefreshIcon />,
+              label: 'Refrescar',
+              tooltip: 'Refrescar',
+              onClick: () => window.location.reload(),
+              disabled: false
+            },
+            showAddButton && !showEntityToolbarNavigation && entityConfig ? {
+              key: 'add',
+              icon: <SystemButtons.AddButton entityConfig={entityConfig} />,
+              label: 'Agregar',
+              tooltip: 'Agregar',
+              disabled: false
+            } : null,
+            showSidebar === false ? {
+              key: 'config',
+              icon: icons.settings ? icons.settings({ sx: { fontSize: 20 } }) : <span>⚙️</span>,
+              label: 'Configuración',
+              tooltip: 'Configuración',
+              onClick: () => navigate('/configuracion'),
+              disabled: false
+            } : null,
+            location.pathname.includes('/cuentas') ? {
+              key: 'sync',
+              icon: <AutorenewOutlined sx={{ fontSize: 20, color: 'white' }} />,
+              label: 'Sincronizar',
+              tooltip: 'Sincronizar nueva cuenta',
+              onClick: () => setIsSyncModalOpen(true),
+              disabled: false
+            } : null,
+          ]}
+          direction="row"
+          size="small"
+        />
+        {/* Diálogos modales para sincronizar y agregar cuenta */}
+        <Dialog open={isSyncModalOpen} onClose={() => setIsSyncModalOpen(false)} maxWidth="xs" fullWidth>
+          <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>Sincronizar nueva cuenta</Typography>
+            <MercadoPagoConnectButton
+              onSuccess={() => setIsSyncModalOpen(false)}
+              onError={() => setIsSyncModalOpen(false)}
+            />
+          </Box>
+        </Dialog>
+        <Dialog open={isBankConnectionFormOpen} onClose={() => setIsBankConnectionFormOpen(false)} maxWidth="xs" fullWidth>
+          <BankConnectionForm onClose={() => setIsBankConnectionFormOpen(false)} />
+        </Dialog>
       </Toolbar>
     </AppBar>
   );

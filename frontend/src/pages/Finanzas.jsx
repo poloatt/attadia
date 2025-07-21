@@ -10,6 +10,11 @@ import {
   RepeatOutlined as RepeatIcon,
   AttachMoneyOutlined as MoneyIcon
 } from '@mui/icons-material';
+import { useEffect, useState, useCallback } from 'react';
+import EntityForm from '../components/EntityViews/EntityForm';
+import clienteAxios from '../config/axios';
+import { useSnackbar } from 'notistack';
+import { useAPI } from '../hooks/useAPI';
 
 const FinanzasCard = ({ title, description, icon: Icon, path, color = 'primary.main' }) => {
   const navigate = useNavigate();
@@ -47,6 +52,75 @@ const FinanzasCard = ({ title, description, icon: Icon, path, color = 'primary.m
 
 export default function Finanzas() {
   const navigate = useNavigate();
+  const { enqueueSnackbar } = useSnackbar();
+  // Estados para los formularios modales
+  const [openCuenta, setOpenCuenta] = useState(false);
+  const [openMoneda, setOpenMoneda] = useState(false);
+  const [openTransaccion, setOpenTransaccion] = useState(false);
+  const [editingCuenta, setEditingCuenta] = useState(null);
+  const [editingMoneda, setEditingMoneda] = useState(null);
+  const [editingTransaccion, setEditingTransaccion] = useState(null);
+
+  // Cargar datos necesarios para los formularios
+  const { data: monedasData } = useAPI('/api/monedas');
+  const monedas = monedasData?.docs || [];
+
+  // Campos para el formulario de cuentas
+  const formFieldsCuenta = [
+    { name: 'nombre', label: 'Nombre', type: 'text', required: true },
+    { name: 'numero', label: 'Número', type: 'text', required: true },
+    { name: 'tipo', label: 'Tipo', type: 'select', required: true, options: [
+      { value: 'EFECTIVO', label: 'Efectivo' },
+      { value: 'BANCO', label: 'Banco' },
+      { value: 'MERCADO_PAGO', label: 'Mercado Pago' },
+      { value: 'CRIPTO', label: 'Cripto' },
+      { value: 'OTRO', label: 'Otro' }
+    ] },
+    { name: 'monedaId', label: 'Moneda', type: 'select', required: true, options: monedas.map(m => ({ value: m._id || m.id, label: `${m.nombre} (${m.simbolo})` })) }
+  ];
+  // Campos para el formulario de monedas
+  const formFieldsMoneda = [
+    { name: 'codigo', label: 'Código', type: 'text', required: true },
+    { name: 'nombre', label: 'Nombre', type: 'text', required: true },
+    { name: 'simbolo', label: 'Símbolo', type: 'text', required: true }
+  ];
+  // Campos para el formulario de transacciones (simplificado)
+  const formFieldsTransaccion = [
+    { name: 'descripcion', label: 'Descripción', type: 'text', required: true },
+    { name: 'monto', label: 'Monto', type: 'number', required: true },
+    { name: 'fecha', label: 'Fecha', type: 'date', required: true },
+    { name: 'cuenta', label: 'Cuenta', type: 'select', required: true, options: [] }, // Opciones a cargar si se desea
+    { name: 'moneda', label: 'Moneda', type: 'select', required: true, options: monedas.map(m => ({ value: m._id || m.id, label: `${m.nombre} (${m.simbolo})` })) }
+  ];
+
+  // Handlers de submit (puedes mejorarlos según tu lógica de backend)
+  const handleSubmitCuenta = useCallback(async (data) => {
+    await clienteAxios.post('/api/cuentas', data);
+    enqueueSnackbar('Cuenta creada exitosamente', { variant: 'success' });
+    setOpenCuenta(false);
+  }, [enqueueSnackbar]);
+  const handleSubmitMoneda = useCallback(async (data) => {
+    await clienteAxios.post('/api/monedas', data);
+    enqueueSnackbar('Moneda creada exitosamente', { variant: 'success' });
+    setOpenMoneda(false);
+  }, [enqueueSnackbar]);
+  const handleSubmitTransaccion = useCallback(async (data) => {
+    await clienteAxios.post('/api/transacciones', data);
+    enqueueSnackbar('Transacción creada exitosamente', { variant: 'success' });
+    setOpenTransaccion(false);
+  }, [enqueueSnackbar]);
+
+  // Listener para el AddButton multinivel
+  useEffect(() => {
+    const handleHeaderAdd = (e) => {
+      if (e.detail?.type === 'cuenta') setOpenCuenta(true);
+      if (e.detail?.type === 'moneda') setOpenMoneda(true);
+      if (e.detail?.type === 'transacciones') setOpenTransaccion(true);
+    };
+    window.addEventListener('headerAddButtonClicked', handleHeaderAdd);
+    return () => window.removeEventListener('headerAddButtonClicked', handleHeaderAdd);
+  }, []);
+
   const finanzasSections = [
     {
       title: 'Transacciones',
@@ -95,6 +169,10 @@ export default function Finanzas() {
   return (
     <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar />
+      {/* Formularios modales para crear submodelos */}
+      <EntityForm open={openCuenta} onClose={() => setOpenCuenta(false)} onSubmit={handleSubmitCuenta} title="Nueva Cuenta" fields={formFieldsCuenta} initialData={{}} isEditing={false} />
+      <EntityForm open={openMoneda} onClose={() => setOpenMoneda(false)} onSubmit={handleSubmitMoneda} title="Nueva Moneda" fields={formFieldsMoneda} initialData={{}} isEditing={false} />
+      <EntityForm open={openTransaccion} onClose={() => setOpenTransaccion(false)} onSubmit={handleSubmitTransaccion} title="Nueva Transacción" fields={formFieldsTransaccion} initialData={{}} isEditing={false} />
       <Box sx={{ 
         width: '100%',
         maxWidth: 1200,

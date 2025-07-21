@@ -15,10 +15,11 @@ export const menuItems = [
         icon: icons.wallet,
         path: '/assets/finanzas', // Ahora tiene su propio path
         hasSubItems: true,
+        canAdd: true, // <-- agregado
         subItems: [
-          { id: 'transacciones', title: 'Transacciones', path: '/assets/finanzas/transacciones', icon: icons.moneyBag },
-          { id: 'cuentas', title: 'Cuentas', path: '/assets/finanzas/cuentas', icon: icons.accountBalance },
-          { id: 'monedas', title: 'Monedas', path: '/assets/finanzas/monedas', icon: icons.currency },
+          { id: 'transacciones', title: 'Transacciones', path: '/assets/finanzas/transacciones', icon: icons.moneyBag, canAdd: true },
+          { id: 'cuentas', title: 'Cuentas', path: '/assets/finanzas/cuentas', icon: icons.accountBalance, canAdd: true },
+          { id: 'monedas', title: 'Monedas', path: '/assets/finanzas/monedas', icon: icons.currency, canAdd: true },
           { id: 'inversiones', title: 'Inversiones', path: '/assets/finanzas/inversiones', icon: icons.inversiones, isUnderConstruction: true },
           { id: 'deudores', title: 'Deudores', path: '/assets/finanzas/deudores', icon: icons.personSearch, isUnderConstruction: true },
           { id: 'recurrente', title: 'Recurrente', path: '/assets/finanzas/recurrente', icon: icons.repeat, isUnderConstruction: true }
@@ -30,10 +31,11 @@ export const menuItems = [
         icon: icons.apartment,
         path: '/assets/propiedades',
         hasSubItems: true,
+        canAdd: true, // <-- agregado
         subItems: [
-          { id: 'inquilinos', title: 'Inquilinos', path: '/assets/propiedades/inquilinos', icon: icons.person },
-          { id: 'contratos', title: 'Contratos', path: '/assets/propiedades/contratos', icon: icons.description },
-          { id: 'habitaciones', title: 'Habitaciones', path: '/assets/propiedades/habitaciones', icon: icons.bed },
+          { id: 'inquilinos', title: 'Inquilinos', path: '/assets/propiedades/inquilinos', icon: icons.person, canAdd: true },
+          { id: 'contratos', title: 'Contratos', path: '/assets/propiedades/contratos', icon: icons.description, canAdd: true },
+          { id: 'habitaciones', title: 'Habitaciones', path: '/assets/propiedades/habitaciones', icon: icons.bed, canAdd: true },
         ]
       },
       {

@@ -7,11 +7,8 @@ import { Box, IconButton, Tooltip, Typography, useTheme, useMediaQuery } from '@
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { menuItems } from '../../navigation/menuStructure';
 import { icons } from '../../navigation/menuIcons';
-import HeaderAddButton from '../../navigation/header/HeaderAddButton';
-import HeaderVisibilityButton from '../../navigation/header/HeaderVisibilityButton';
-import HeaderUndoMenu from '../../navigation/header/HeaderUndoMenu';
-import HeaderRefreshButton from '../../navigation/header/HeaderRefreshButton';
-import { useHeaderActions } from '../../navigation/header/HeaderActions';
+import { SystemButtons } from '../../components/common/SystemButtons';
+import { useEntityActions } from './EntityActions';
 import { useUISettings } from '../../context/UISettingsContext';
 
 // Cache para optimizar búsquedas repetitivas
@@ -213,11 +210,9 @@ export default function EntityToolbar({ children, additionalActions = [] }) {
   }, [currentPath, parentInfo, navigate]);
 
   const {
-    showVisibilityButton,
     getEntityConfig,
-    showAddButton,
-    showUndoButton
-  } = useHeaderActions();
+    showAddButton
+  } = useEntityActions();
   const entityConfig = getEntityConfig();
 
   if (!showEntityToolbarNavigation) return null;
@@ -399,18 +394,21 @@ export default function EntityToolbar({ children, additionalActions = [] }) {
           pr: 1
         }}>
           {/* Acciones adicionales */}
-          {!isMobile && additionalActions && additionalActions.map((action, idx) => (
-            <Tooltip key={idx} title={action.tooltip || action.label}>
-              <span>{action.icon}</span>
-            </Tooltip>
-          ))}
+          {!isMobile && additionalActions && additionalActions.map((action, idx) => {
+            const isButton = action.icon && action.icon.type && (action.icon.type.displayName === 'IconButton' || action.icon.type.muiName === 'IconButton' || action.icon.type.isButtonComponent);
+            return (
+              <Tooltip key={idx} title={action.tooltip || action.label}>
+                {isButton ? action.icon : <span>{action.icon}</span>}
+              </Tooltip>
+            );
+          })}
           
           {/* Children */}
           {!isMobile && children}
           
-          {/* Botón de agregar - LÓGICA SIMPLIFICADA */}
+          {/* Botón de agregar según reglas de nivel */}
           {showAddButton && entityConfig ? (
-            <HeaderAddButton entityConfig={entityConfig} buttonSx={{ ml: 1 }} />
+            <SystemButtons.AddButton entityConfig={entityConfig} buttonSx={{ ml: 1 }} />
           ) : (
             // Botón + con color de background para difuminarse - MISMO TAMAÑO que el activo
             <Box sx={{ 

@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -16,7 +15,8 @@ import {
   useMediaQuery
 } from '@mui/material';
 import ProgressBar from '../../common/ProgressBar';
-import { styled } from '@mui/material/styles';
+import { GeometricPaper, GeometricModalHeader, EstadoChip, GeometricDialog } from '../../EntityViews/EntityDetails';
+import { EntityActions } from '../../EntityViews/EntityDetails';
 import {
   Close as CloseIcon,
   Description as ContractIcon,
@@ -48,22 +48,8 @@ import {
 import EstadoFinanzasContrato from './EstadoFinanzasContrato';
 import { CuotasProvider } from './context/CuotasContext';
 import { getEstadoColor, getEstadoText, getEstadoIcon, getStatusIconComponent } from '../../common/StatusSystem';
-
-// Componente Paper estilizado geométrico
-const GeometricPaper = styled(Paper)(({ theme }) => ({
-  borderRadius: 0,
-  padding: theme.spacing(1.5),
-  border: 'none',
-  backgroundColor: theme.palette.background.default,
-  boxShadow: '0 1px 0 0 rgba(0,0,0,0.18)',
-  borderBottom: '1px solid rgba(255,255,255,0.04)',
-  transition: 'all 0.2s ease',
-  '&:hover': {
-    backgroundColor: theme.palette.action.hover,
-  }
-}));
-
-
+// EntityActions se importa desde EntityDetails.jsx
+import { useNavigate, useLocation } from 'react-router-dom';
 
 // STATUS_COLORS movido a StatusSystem.js
 
@@ -77,15 +63,14 @@ const ContratoDetail = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const navigate = useNavigate();
+  const location = useLocation();
 
   if (!contrato) return null;
 
   // Usar el estado del backend
   const estado = getEstadoContrato(contrato) || 'PLANEADO';
-  const color = getEstadoColor(estado, 'CONTRATO');
-  const icon = getStatusIconComponent(estado, 'CONTRATO');
-
-  // Extraer valores para mostrar
+  
   let titulo = 'Sin inquilino';
   if (Array.isArray(contrato.inquilino) && contrato.inquilino.length > 0) {
     const inq = contrato.inquilino[0];
@@ -125,90 +110,49 @@ const ContratoDetail = ({
   const estadoCuotas = calcularEstadoCuotasContrato(contrato);
 
   const handleEdit = () => {
-    onEdit(contrato);
-    onClose();
+    if (typeof onEdit === 'function') {
+      onEdit(contrato);
+    } else if (contrato && contrato._id) {
+      navigate('/contratos', { state: { editContract: true, contratoId: contrato._id, from: location.pathname + location.search } });
+    }
+    if (onClose) onClose();
   };
 
   const handleDelete = () => {
-    onDelete(contrato._id || contrato.id);
-    onClose();
+    if (typeof onDelete === 'function') {
+      onDelete(contrato._id || contrato.id);
+    }
+    if (onClose) onClose();
   };
 
   return (
-    <Dialog
+    <GeometricDialog
       open={open}
       onClose={onClose}
       maxWidth="md"
       fullWidth
       fullScreen={isMobile}
-      PaperProps={{
-        sx: {
-          borderRadius: 0,
-          backgroundColor: theme.palette.background.default,
-          minHeight: isMobile ? '100vh' : 'auto'
-        }
-      }}
+      actions={
+        <EntityActions
+          onEdit={onEdit}
+          onDelete={onDelete}
+          itemName={titulo}
+          size="medium"
+          direction="row"
+          showDelete={true}
+          showEdit={true}
+          disabled={false}
+        />
+      }
     >
-      {/* Header */}
-      <DialogTitle sx={{ 
-        p: 2, 
-        pb: 1,
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between',
-        borderBottom: '1px solid rgba(255,255,255,0.1)'
-      }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <ContractIcon sx={{ fontSize: '1.5rem', color: 'primary.main' }} />
-          <Box>
-            <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
-              {titulo}
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-              <Box sx={{ 
-                fontSize: '1.2rem', 
-                color: color,
-                display: 'flex',
-                alignItems: 'center'
-              }}>
-                {icon}
-              </Box>
-              <Typography variant="body2" sx={{ 
-                fontSize: '0.8rem',
-                color: color,
-                fontWeight: 500
-              }}>
-                {getEstadoLabel(estado)}
-              </Typography>
-            </Box>
-          </Box>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <IconButton
-            size="small"
-            onClick={handleEdit}
-            sx={{ color: 'text.secondary' }}
-          >
-            <EditIcon sx={{ fontSize: '1.1rem' }} />
-          </IconButton>
-          <IconButton
-            size="small"
-            onClick={handleDelete}
-            sx={{ color: 'text.secondary' }}
-          >
-            <DeleteIcon sx={{ fontSize: '1.1rem' }} />
-          </IconButton>
-          <IconButton
-            size="small"
-            onClick={onClose}
-            sx={{ color: 'text.secondary' }}
-          >
-            <CloseIcon sx={{ fontSize: '1.1rem' }} />
-          </IconButton>
-        </Box>
-      </DialogTitle>
+      <GeometricModalHeader
+        icon={ContractIcon}
+        title={titulo}
+        chip={<EstadoChip estado={estado} tipo="CONTRATO" />}
+        onClose={onClose}
+      />
 
-      <DialogContent sx={{ p: 2, pt: 1 }}>
+      <DialogContent sx={{ p: 2, pt: 1, backgroundColor: '#181818' }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           
           {/* Barra de progreso */}
@@ -500,12 +444,7 @@ const ContratoDetail = ({
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ p: 2, pt: 1, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 0 }}>
-          Cerrar
-        </Button>
-      </DialogActions>
-    </Dialog>
+    </GeometricDialog>
   );
 };
 

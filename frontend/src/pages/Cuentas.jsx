@@ -32,6 +32,7 @@ import { EntityActions } from '../components/EntityViews';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 import { useAPI } from '../hooks/useAPI';
 import { MercadoPagoConnectButton, BankConnectionForm } from '../components/finance';
+import { useLocation } from 'react-router-dom';
 
 export function Cuentas() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -46,6 +47,7 @@ export function Cuentas() {
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [isBankConnectionFormOpen, setIsBankConnectionFormOpen] = useState(false);
   const [isProcessingPago, setIsProcessingPago] = useState(false);
+  const location = useLocation();
 
   // Función para restablecer los balances
   const resetBalance = useCallback(() => {
@@ -166,7 +168,10 @@ export function Cuentas() {
   // Escuchar el evento del botón "+" del Header
   useEffect(() => {
     const handleHeaderAdd = (e) => {
-      if (e.detail?.type === 'cuenta') {
+      if (
+        (e.detail?.path && e.detail.path === location.pathname) ||
+        e.detail?.type === 'cuenta'
+      ) {
         setEditingCuenta(null);
         setIsFormOpen(true);
       }
@@ -174,7 +179,7 @@ export function Cuentas() {
     
     window.addEventListener('headerAddButtonClicked', handleHeaderAdd);
     return () => window.removeEventListener('headerAddButtonClicked', handleHeaderAdd);
-  }, []);
+  }, [location.pathname]);
 
   const handleCreateMoneda = async (data) => {
     try {

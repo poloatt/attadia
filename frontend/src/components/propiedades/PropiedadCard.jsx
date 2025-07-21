@@ -308,7 +308,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
   const renderHeader = () => {
     // Mostrar íconos de estado de todos los contratos relevantes
     const contratos = propiedad.contratos || [];
-    const estadosMostrar = ['ACTIVO', 'RESERVADO', 'MANTENIMIENTO'];
+    const estadosMostrar = ['ACTIVO', 'RESERVADO', 'MANTENIMIENTO', 'PLANEADO'];
     const iconosEstados = contratos
       .filter(c => estadosMostrar.includes(getEstadoContrato(c)))
       .map((contrato, idx) => {

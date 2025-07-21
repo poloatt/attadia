@@ -1,20 +1,37 @@
 import { Box, useTheme, useMediaQuery } from '@mui/material';
 import { useUISettings } from '../context/UISettingsContext';
-import { useNavigate, Outlet } from 'react-router-dom';
+import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import { useAuth } from '../context/AuthContext';
 import { Header } from '../navigation';
 import { Footer } from '../navigation';
 import { Sidebar, BottomNavigation } from '../navigation';
 import { CustomSnackbarProvider } from '../components/common';
+import { useEffect } from 'react';
 
 export function Layout() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
+  const location = useLocation();
   const { isOpen, isDesktop } = useSidebar();
   const { showSidebar, showEntityToolbarNavigation } = useUISettings();
   const { user } = useAuth();
+
+  useEffect(() => {
+    const handleHeaderAddButton = (event) => {
+      if (!event.detail?.path) return;
+      if (event.detail.path !== location.pathname) {
+        // Navegar a la ruta destino y pasar openAdd
+        navigate(event.detail.path, { state: { openAdd: true } });
+      } else {
+        // Si ya estamos en la ruta, dispara un evento local para la página
+        window.dispatchEvent(new CustomEvent('openAddFormLocal'));
+      }
+    };
+    window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
+    return () => window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
+  }, [navigate, location.pathname]);
 
   if (!user) {
     navigate('/login');

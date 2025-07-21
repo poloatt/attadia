@@ -1,56 +1,10 @@
 import React, { memo } from 'react';
-import {
-  IconButton,
-  Tooltip,
-  Box,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Typography
-} from '@mui/material';
-import {
-  Edit as EditIcon,
-  Delete as DeleteIcon
-} from '@mui/icons-material';
-import { useState } from 'react';
-
-const DeleteConfirmDialog = memo(({ open, onClose, onConfirm, itemName }) => (
-  <Dialog 
-    open={open} 
-    onClose={onClose}
-    PaperProps={{
-      sx: {
-        borderRadius: 0,
-        bgcolor: 'background.default'
-      }
-    }}
-  >
-    <DialogTitle>Confirmar Eliminación</DialogTitle>
-    <DialogContent>
-      <Typography>
-        ¿Estás seguro que deseas eliminar {itemName}?
-        Esta acción no se puede deshacer.
-      </Typography>
-    </DialogContent>
-    <DialogActions>
-      <Button onClick={onClose}>
-        Cancelar
-      </Button>
-      <Button 
-        onClick={onConfirm} 
-        color="error" 
-        variant="contained"
-      >
-        Eliminar
-      </Button>
-    </DialogActions>
-  </Dialog>
-));
+import { SystemButtons, SYSTEM_ICONS } from '../common/SystemButtons';
+import { useLocation } from 'react-router-dom';
+import { menuItems } from '../../navigation/menuStructure';
 
 /**
- * EntityActions: Componente de acciones reutilizable y extensible.
+ * EntityActions: Componente de acciones reutilizable y extensible usando SystemButtons.
  * Props:
  * - onEdit: función para editar
  * - onDelete: función para eliminar
@@ -70,123 +24,102 @@ export const EntityActions = memo(({
   showDelete = true,
   showEdit = true,
   disabled = false,
-  extraActions = [] // [{ icon: <ViewIcon />, label: 'Ver', onClick, color, show, disabled, tooltip }]
+  extraActions = []
 }) => {
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-
-  const handleDelete = (e) => {
-    e?.stopPropagation();
-    setDeleteDialogOpen(true);
-  };
-
-  const handleConfirmDelete = () => {
-    onDelete && onDelete();
-    setDeleteDialogOpen(false);
-  };
-
-  const handleEdit = (e) => {
-    e.stopPropagation();
-    onEdit && onEdit();
-  };
-
+  const actions = getStandardActions({ onEdit, onDelete, itemName, disabled, showEdit, showDelete, extraActions });
   return (
-    <>
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          flexDirection: direction,
-          gap: 0.5,
-          opacity: disabled ? 0.5 : 1,
-          pointerEvents: disabled ? 'none' : 'auto'
-        }}
-      >
-        {/* Acciones extra (custom) */}
-        {extraActions && extraActions.map((action, idx) => (
-          action.show !== false && (
-            <Tooltip title={action.tooltip || action.label || ''} key={action.label || idx}>
-              <span>
-                <IconButton
-                  onClick={e => { e.stopPropagation(); action.onClick && action.onClick(e); }}
-                  size={action.size || size}
-                  sx={{
-                    color: action.color || 'text.secondary',
-                    p: 0.5,
-                    '&:hover': {
-                      color: action.hoverColor || 'primary.main',
-                      backgroundColor: 'transparent'
-                    },
-                    '& .MuiSvgIcon-root': {
-                      fontSize: '1.25rem'
-                    }
-                  }}
-                  disabled={action.disabled}
-                >
-                  {action.icon}
-                </IconButton>
-              </span>
-            </Tooltip>
-          )
-        ))}
-
-        {/* Acción Editar */}
-        {showEdit && onEdit && (
-          <Tooltip title="Editar">
-            <span>
-              <IconButton 
-                onClick={handleEdit}
-                size={size}
-                sx={{ 
-                  color: 'text.secondary',
-                  p: 0.5,
-                  '&:hover': {
-                    color: 'primary.main',
-                    backgroundColor: 'transparent'
-                  },
-                  '& .MuiSvgIcon-root': {
-                    fontSize: '1.25rem'
-                  }
-                }}
-                disabled={disabled}
-              >
-                <EditIcon />
-              </IconButton>
-            </span>
-          </Tooltip>
-        )}
-
-        {/* Acción Eliminar */}
-        {showDelete && onDelete && (
-          <Tooltip title="Eliminar">
-            <span>
-              <IconButton
-                onClick={handleDelete}
-                size={size}
-                sx={{ 
-                  color: 'text.secondary',
-                  p: 0.5,
-                  '&:hover': {
-                    color: 'primary.main',
-                    backgroundColor: 'transparent'
-                  },
-                  '& .MuiSvgIcon-root': {
-                    fontSize: '1.25rem'
-                  }
-                }}
-                disabled={disabled}
-              >
-                <DeleteIcon />
-              </IconButton>
-            </span>
-          </Tooltip>
-        )}
-      </Box>
-
-      <DeleteConfirmDialog
-        open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-        onConfirm={handleConfirmDelete}
-        itemName={itemName}
-      />
-    </>
+    <SystemButtons
+      actions={actions}
+      direction={direction}
+      size={size}
+      disabled={disabled}
+    />
   );
 }); 
+
+// Acciones estándar modulares para reutilización
+export const ACTIONS = {
+  edit: ({ onClick, disabled = false }) => ({
+    key: 'edit',
+    icon: SYSTEM_ICONS.edit,
+    label: 'Editar',
+    onClick,
+    disabled,
+    tooltip: 'Editar'
+  }),
+  delete: ({ onClick, disabled = false, itemName = 'este registro' }) => ({
+    key: 'delete',
+    icon: SYSTEM_ICONS.delete,
+    label: 'Eliminar',
+    onClick,
+    disabled,
+    tooltip: 'Eliminar',
+    confirm: true,
+    confirmText: itemName
+  })
+};
+
+// Alternativamente, función para obtener acciones estándar
+export function getStandardActions({ onEdit, onDelete, itemName = 'este registro', disabled = false, showEdit = true, showDelete = true, extraActions = [] }) {
+  return [
+    ...extraActions,
+    showEdit && onEdit ? ACTIONS.edit({ onClick: onEdit, disabled }) : null,
+    showDelete && onDelete ? ACTIONS.delete({ onClick: onDelete, disabled, itemName }) : null
+  ].filter(Boolean);
+}
+
+// Helper para encontrar el item activo y su jerarquía
+function findMenuItemByPath(path, items = menuItems) {
+  for (const item of items) {
+    if (item.path === path) return { item, parent: null };
+    if (item.subItems) {
+      for (const sub of item.subItems) {
+        if (sub.path === path) return { item: sub, parent: item };
+        if (sub.subItems) {
+          for (const subsub of sub.subItems) {
+            if (subsub.path === path) return { item: subsub, parent: sub };
+          }
+        }
+      }
+    }
+  }
+  return { item: null, parent: null };
+}
+
+export function useEntityActions() {
+  const location = useLocation();
+  const currentPath = location.pathname;
+  const pathParts = currentPath.split('/').filter(Boolean);
+  let entityConfig = null;
+  let showAddButton = false;
+
+  if (pathParts.length === 2) {
+    // Nivel 2: buscar el item y sus hijos agregables
+    const { item } = findMenuItemByPath(currentPath);
+    if (item) {
+      const canAddSelf = item.canAdd;
+      const addableChildren = item.subItems ? item.subItems.filter(sub => sub.canAdd) : [];
+      if (canAddSelf || addableChildren.length > 0) {
+        showAddButton = true;
+        entityConfig = {
+          ...item,
+          subItems: addableChildren
+        };
+      }
+    }
+  } else if (pathParts.length === 3) {
+    // Nivel 3: solo mostrar el modelo propio si canAdd
+    const { item } = findMenuItemByPath(currentPath);
+    if (item && item.canAdd) {
+      showAddButton = true;
+      entityConfig = { ...item, subItems: [] };
+    }
+  }
+  // Nivel 1 o rutas no reconocidas: no mostrar AddButton
+
+  return {
+    getRouteTitle: () => entityConfig?.title || '',
+    getEntityConfig: () => entityConfig,
+    showAddButton
+  };
+} 

@@ -28,6 +28,7 @@ import {
   Visibility as ViewIcon
 } from '@mui/icons-material';
 import { getEstadoColor, getEstadoText } from '../../common/StatusSystem';
+import { useNavigate } from 'react-router-dom';
 
 const getStatusColor = (status) => {
   const color = getEstadoColor(status, 'INQUILINO');
@@ -151,6 +152,23 @@ const ContratoItem = ({ contrato, onContratoClick }) => {
 const InquilinoDetail = ({ open, onClose, inquilino, onEdit, onDelete, onContratoClick }) => {
   if (!inquilino) return null;
   const { nombre, apellido, email, telefono, dni, estado = 'PENDIENTE', contratosClasificados = {} } = inquilino;
+  const navigate = useNavigate();
+
+  const handleEdit = () => {
+    if (typeof onEdit === 'function') {
+      onEdit(inquilino);
+    } else if (inquilino && inquilino._id) {
+      navigate('/inquilinos', { state: { editInquilino: true, inquilinoId: inquilino._id } });
+    }
+    if (onClose) onClose();
+  };
+
+  const handleDelete = () => {
+    if (typeof onDelete === 'function') {
+      onDelete(inquilino._id || inquilino.id);
+    }
+    if (onClose) onClose();
+  };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -164,12 +182,12 @@ const InquilinoDetail = ({ open, onClose, inquilino, onEdit, onDelete, onContrat
         </Box>
         <Box>
           <Tooltip title="Editar">
-            <IconButton onClick={() => onEdit && onEdit(inquilino)} size="small" sx={{ color: 'text.secondary', mr: 1 }}>
+            <IconButton onClick={handleEdit} size="small" sx={{ color: 'text.secondary', mr: 1 }}>
               <EditIcon />
             </IconButton>
           </Tooltip>
           <Tooltip title="Eliminar">
-            <IconButton onClick={() => onDelete && onDelete(inquilino)} size="small" sx={{ color: 'error.main', mr: 1 }}>
+            <IconButton onClick={handleDelete} size="small" sx={{ color: 'error.main', mr: 1 }}>
               <DeleteIcon />
             </IconButton>
           </Tooltip>

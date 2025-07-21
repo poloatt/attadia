@@ -16,7 +16,7 @@ import {
   useTheme,
   useMediaQuery
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { GeometricDialog } from '../EntityViews/EntityDetails';
 import {
   Close as CloseIcon,
   HomeWork,
@@ -60,7 +60,8 @@ import {
   calcularAlquilerMensualPromedio,
   calcularEstadoCuotasContrato
 } from './contratos/contratoUtils';
-import { StyledCard, StatusChip } from './PropiedadStyles';
+import { StyledCard } from './PropiedadStyles';
+import { GeometricModalHeader, EstadoChip } from '../EntityViews/EntityDetails';
 import EstadoFinanzasContrato from './contratos/EstadoFinanzasContrato';
 import { CuotasProvider } from './contratos/context/CuotasContext';
 import InventarioDetail from './inventario/InventarioDetail';
@@ -68,6 +69,7 @@ import { SeccionInquilinos, SeccionHabitaciones, SeccionDocumentos } from './Sec
 import { EntityActions } from '../EntityViews/EntityActions';
 import ContratoDetail from './contratos/ContratoDetail';
 import { EntityGridView, SECTION_CONFIGS } from '../EntityViews';
+import { styled } from '../EntityViews/EntityDetails';
 
 // Función para calcular el monto mensual promedio desde contratos activos
 const calcularMontoMensualDesdeContratos = (contratos = []) => {
@@ -104,16 +106,6 @@ const calcularMontoMensualDesdeContratos = (contratos = []) => {
 };
 
 // Componentes estilizados con estilo geométrico
-const StyledDialog = styled(Dialog)(({ theme }) => ({
-  '& .MuiDialog-paper': {
-    borderRadius: 0,
-    maxWidth: '90vw',
-    maxHeight: '90vh',
-    width: '100%',
-    backgroundColor: '#111',
-    color: '#fff'
-  }
-}));
 
 
 
@@ -218,6 +210,24 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
     setSelectedContrato(null);
   };
 
+  // Handler robusto para editar propiedad
+  const handleEditPropiedad = () => {
+    if (onClose) onClose();
+    setTimeout(() => {
+      // Aquí deberías abrir el formulario de edición real
+      if (onEdit) onEdit(propiedadCompleta);
+      else console.log('Abrir formulario de edición para:', propiedadCompleta);
+    }, 200);
+  };
+
+  // Handler robusto para eliminar propiedad
+  const handleDeletePropiedad = () => {
+    if (window.confirm('¿Seguro que deseas eliminar esta propiedad?')) {
+      if (onDelete) onDelete(propiedadCompleta);
+      else console.log('Eliminar propiedad:', propiedadCompleta);
+      if (onClose) onClose();
+    }
+  };
 
 
   // Función para obtener el icono de tipo de propiedad
@@ -238,11 +248,6 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
   const estadoPropiedad = useMemo(() => {
     return propiedadCompleta?.estado || 'DISPONIBLE';
   }, [propiedadCompleta?.estado]);
-
-  // Memoizar los valores del chip de estado
-  const chipColor = useMemo(() => getEstadoColor(estadoPropiedad, 'PROPIEDAD'), [estadoPropiedad]);
-  const chipIcon = useMemo(() => getStatusIconComponent(estadoPropiedad, 'PROPIEDAD'), [estadoPropiedad]);
-  const chipText = useMemo(() => getEstadoText(estadoPropiedad, 'PROPIEDAD'), [estadoPropiedad]);
 
   // Función para agrupar habitaciones por tipo
   const agruparHabitaciones = (habitaciones) => {
@@ -276,36 +281,6 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
   };
 
 
-
-  const renderHeader = () => (
-    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <TipoPropiedadIcon 
-          tipo={propiedadCompleta?.tipo} 
-          sx={{ fontSize: 32, color: 'primary.main' }} 
-        />
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 600 }}>
-            {propiedadCompleta?.alias || 'Sin alias'}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {propiedadCompleta?.tipo} • {propiedadCompleta?.ciudad}
-          </Typography>
-        </Box>
-      </Box>
-      
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <StatusChip customcolor={chipColor}>
-          {chipIcon}
-          <span>{chipText}</span>
-        </StatusChip>
-        
-        <IconButton onClick={onClose} sx={{ color: 'text.secondary' }}>
-          <CloseIcon />
-        </IconButton>
-      </Box>
-    </Box>
-  );
 
   const renderInformacionBasica = () => {
     // Crear sección de ubicación usando SECTION_CONFIGS
@@ -596,10 +571,7 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
                           <OpenInNewIcon sx={{ fontSize: '0.8rem' }} />
                         </IconButton>
                       </Box>
-                      <StatusChip customcolor={contratoChipColor}>
-                        {contratoChipIcon}
-                        <span>{contratoChipText}</span>
-                      </StatusChip>
+                      <EstadoChip estado={estadoContrato} tipo="CONTRATO" />
                     </Box>
                     
                     {/* Fechas del contrato */}
@@ -867,32 +839,36 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
     );
   };
 
-  const renderAcciones = () => (
-    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-      <EntityActions
-        onEdit={onEdit}
-        onDelete={onDelete}
-        itemName={propiedadCompleta?.alias || 'esta propiedad'}
-        size="medium"
-        direction="row"
-        showDelete={true}
-        showEdit={true}
-        disabled={false}
-      />
-    </Box>
-  );
-
   return (
-    <StyledDialog
+    <GeometricDialog
       open={open}
       onClose={onClose}
       maxWidth="lg"
       fullWidth
       fullScreen={isMobile}
+      actions={
+        <EntityActions
+          onEdit={handleEditPropiedad}
+          onDelete={handleDeletePropiedad}
+          itemName={propiedadCompleta?.alias || 'esta propiedad'}
+          size="medium"
+          direction="row"
+          showDelete={true}
+          showEdit={true}
+          disabled={false}
+        />
+      }
     >
-      <DialogTitle sx={{ pb: 1 }}>
-        {renderHeader()}
-      </DialogTitle>
+      <GeometricModalHeader
+        icon={TipoPropiedadIcon}
+        title={propiedadCompleta?.alias || 'Sin alias'}
+        chip={<EstadoChip estado={estadoPropiedad} tipo="PROPIEDAD" />}
+        onClose={onClose}
+      >
+        <Typography variant="body2" color="text.secondary">
+          {propiedadCompleta?.tipo} • {propiedadCompleta?.ciudad}
+        </Typography>
+      </GeometricModalHeader>
       
       <DialogContent sx={{ p: 2, pt: 1 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
@@ -905,9 +881,7 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
           <div key="documentos">{renderSeccionDocumentos()}</div>
         </Box>
         
-        {renderAcciones()}
       </DialogContent>
-      
       {/* Modal de detalle del contrato */}
       <ContratoDetail
         open={contratoDetailOpen}
@@ -923,7 +897,7 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
           console.log('Eliminar contrato:', selectedContrato);
         }}
       />
-    </StyledDialog>
+    </GeometricDialog>
   );
 };
 

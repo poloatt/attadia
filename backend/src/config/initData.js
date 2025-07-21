@@ -174,7 +174,7 @@ export const initializeSampleData = async (userId) => {
         fecha: new Date(),
         usuario: userId,
         cuenta: cuentas[0]._id,
-        estado: 'PAGADO'
+        estado: 'COMPLETADA'
       },
       {
         descripcion: 'Mantenimiento propiedad',
@@ -184,7 +184,7 @@ export const initializeSampleData = async (userId) => {
         fecha: new Date(),
         usuario: userId,
         cuenta: cuentas[0]._id,
-        estado: 'PAGADO'
+        estado: 'COMPLETADA'
       }
     ]);
 

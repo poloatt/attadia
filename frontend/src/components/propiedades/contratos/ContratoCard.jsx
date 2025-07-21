@@ -118,7 +118,7 @@ const ContratoCard = ({
   const proximaCuota = estadoCuotas.proximaCuota;
 
   const handleEdit = (e) => {
-    e.stopPropagation();
+    if (e && e.stopPropagation) e.stopPropagation();
     onEdit(contrato);
   };
 
@@ -210,8 +210,7 @@ const ContratoCard = ({
             </Tooltip>
             {/* Elimino los botones de cambiar vista y colapsar */}
             <EntityActions 
-              onEdit={(e) => {
-                e.stopPropagation();
+              onEdit={() => {
                 onEdit(contrato);
               }}
               onDelete={() => {

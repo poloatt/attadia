@@ -16,6 +16,7 @@ import { TransaccionTable, TransaccionForm } from '../components/finance';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 import { useAPI } from '../hooks/useAPI';
 import { menuItems } from '../navigation/menuStructure';
+import { useLocation } from 'react-router-dom';
 
 export function Transacciones() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -23,6 +24,7 @@ export function Transacciones() {
   const { enqueueSnackbar } = useSnackbar();
   const [editingTransaccion, setEditingTransaccion] = useState(null);
   const { showValues } = useValuesVisibility();
+  const location = useLocation();
 
   // Usar nuestro hook personalizado para cargar datos
   const { 
@@ -219,19 +221,36 @@ export function Transacciones() {
     setIsFormOpen(true);
   }, []);
 
+  // Abrir formulario automáticamente si viene de navegación con openAdd
+  useEffect(() => {
+    if (location.state?.openAdd) {
+      handleOpenForm();
+      // Limpiar el estado para evitar abrirlo de nuevo al navegar
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+  // Listener local para abrir el formulario si ya estamos en la ruta
+  useEffect(() => {
+    const openLocal = () => handleOpenForm();
+    window.addEventListener('openAddFormLocal', openLocal);
+    return () => window.removeEventListener('openAddFormLocal', openLocal);
+  }, [handleOpenForm]);
+
   // Escuchar evento del Header para abrir formulario
   useEffect(() => {
     const handleHeaderAddButton = (event) => {
-      console.log('🔍 Transacciones: Evento headerAddButtonClicked recibido:', event.detail);
-      if (event.detail?.type === 'transaccion') {
-        console.log('🔍 Transacciones: Abriendo formulario de transacción');
+      // Modular: abrir si el path del evento coincide con la ruta actual, o si el type es 'transaccion'
+      if (
+        (event.detail?.path && event.detail.path === location.pathname) ||
+        event.detail?.type === 'transaccion'
+      ) {
         handleOpenForm();
       }
     };
 
     window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
     return () => window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
-  }, [handleOpenForm]);
+  }, [handleOpenForm, location.pathname]);
 
   // Escuchar eventos de sincronización bancaria
   useEffect(() => {

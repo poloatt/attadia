@@ -1,69 +1,55 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const UISettingsContext = createContext();
+const UI_SETTINGS_KEY = 'uiSettings';
 
 // Función para detectar si es mobile
 const isMobileDevice = () => {
   return window.innerWidth < 600; // breakpoint 'sm' de Material-UI
 };
 
+function getInitialSettings() {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem(UI_SETTINGS_KEY);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+  }
+  // Valores por defecto
+  return {
+    showSidebar: !isMobileDevice(),
+    showEntityToolbarNavigation: !isMobileDevice()
+  };
+}
+
 export function UISettingsProvider({ children }) {
-  // Valores por defecto según dispositivo
-  const defaultToolbarNavigation = !isMobileDevice(); // true en desktop, false en mobile
-  const defaultSidebar = !isMobileDevice(); // true en desktop, false en mobile
-  
-  const [showEntityToolbarNavigation, setShowEntityToolbarNavigation] = useState(defaultToolbarNavigation);
-  const [showSidebar, setShowSidebar] = useState(defaultSidebar);
-
-  // Cargar configuraciones desde localStorage al inicializar
-  useEffect(() => {
-    const savedToolbarNavigation = localStorage.getItem('showEntityToolbarNavigation');
-    const savedSidebar = localStorage.getItem('showSidebar');
-    
-    if (savedToolbarNavigation !== null) {
-      setShowEntityToolbarNavigation(savedToolbarNavigation === 'true');
-    } else {
-      // Si no hay valor guardado, usar el valor por defecto según dispositivo
-      setShowEntityToolbarNavigation(defaultToolbarNavigation);
-    }
-    
-    if (savedSidebar !== null) {
-      setShowSidebar(savedSidebar === 'true');
-    } else {
-      // Si no hay valor guardado, usar el valor por defecto según dispositivo
-      setShowSidebar(defaultSidebar);
-    }
-  }, [defaultToolbarNavigation, defaultSidebar]);
-
-  // Actualizar valores por defecto cuando cambie el tamaño de pantalla
-  useEffect(() => {
-    const handleResize = () => {
-      const currentIsMobile = isMobileDevice();
-      const savedToolbarNavigation = localStorage.getItem('showEntityToolbarNavigation');
-      const savedSidebar = localStorage.getItem('showSidebar');
-      
-      // Solo actualizar si no hay valores guardados en localStorage
-      if (savedToolbarNavigation === null) {
-        setShowEntityToolbarNavigation(!currentIsMobile);
-      }
-      
-      if (savedSidebar === null) {
-        setShowSidebar(!currentIsMobile);
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const initial = getInitialSettings();
+  const [showEntityToolbarNavigation, setShowEntityToolbarNavigation] = useState(initial.showEntityToolbarNavigation);
+  const [showSidebar, setShowSidebar] = useState(initial.showSidebar);
 
   // Guardar configuraciones en localStorage cuando cambien
   useEffect(() => {
-    localStorage.setItem('showEntityToolbarNavigation', showEntityToolbarNavigation.toString());
-  }, [showEntityToolbarNavigation]);
+    localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify({
+      showSidebar,
+      showEntityToolbarNavigation
+    }));
+  }, [showSidebar, showEntityToolbarNavigation]);
 
+  // Actualizar valores por defecto cuando cambie el tamaño de pantalla SOLO si no hay config guardada
   useEffect(() => {
-    localStorage.setItem('showSidebar', showSidebar.toString());
-  }, [showSidebar]);
+    const handleResize = () => {
+      const currentIsMobile = isMobileDevice();
+      const saved = localStorage.getItem(UI_SETTINGS_KEY);
+      if (!saved) {
+        setShowEntityToolbarNavigation(!currentIsMobile);
+        setShowSidebar(!currentIsMobile);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const toggleEntityToolbarNavigation = () => {
     setShowEntityToolbarNavigation(prev => !prev);

@@ -1,7 +1,9 @@
 export { default as Header } from './Header';
-export { useHeaderActions } from './HeaderActions';
-export { default as HeaderUndoMenu } from './HeaderUndoMenu';
-export { default as HeaderAddButton } from './HeaderAddButton';
-export { default as HeaderVisibilityButton } from './HeaderVisibilityButton';
-export { default as HeaderRefreshButton } from './HeaderRefreshButton';
-export { default as HeaderMenuButton } from './HeaderMenuButton'; 
+// Los siguientes componentes ahora están en SystemButtons.jsx
+export { SystemButtons } from '../../components/common/SystemButtons';
+// Si necesitas acceso directo a los subcomponentes:
+export { 
+  SystemButtons as HeaderSystemButtons,
+  // Subcomponentes individuales:
+  // MenuButton, AddButton, RefreshButton, VisibilityButton, UndoMenu
+} from '../../components/common/SystemButtons'; 
