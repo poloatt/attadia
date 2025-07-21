@@ -380,15 +380,29 @@ export function obtenerItemsPorCategoria(inventarios = []) {
 // Función para calcular Year-to-Date (YTD) para una propiedad
 export function calcularYearToDate(propiedad) {
   const contratos = propiedad.contratos || [];
-  if (!contratos.length) return 0;
-  // Sumar el YTD de todos los contratos asociados
-  return contratos.reduce((acc, contrato) => acc + (calcularYearToDateFromUtils(contrato) || 0), 0);
+  
+  // Buscar contrato activo
+  const contratoActivo = contratos.find(contrato => {
+    const estado = getEstadoContrato(contrato);
+    return estado === 'ACTIVO';
+  });
+  
+  if (!contratoActivo) return 0;
+  
+  return calcularYearToDateFromUtils(contratoActivo);
 }
 
 // Función para calcular Year-to-Go (YTG) para una propiedad
 export function calcularYearToGo(propiedad) {
   const contratos = propiedad.contratos || [];
-  if (!contratos.length) return 0;
-  // Sumar el YTG de todos los contratos asociados
-  return contratos.reduce((acc, contrato) => acc + (calcularYearToGoFromUtils(contrato) || 0), 0);
+  
+  // Buscar contrato activo
+  const contratoActivo = contratos.find(contrato => {
+    const estado = getEstadoContrato(contrato);
+    return estado === 'ACTIVO';
+  });
+  
+  if (!contratoActivo) return 0;
+  
+  return calcularYearToGoFromUtils(contratoActivo);
 } 

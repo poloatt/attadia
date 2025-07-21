@@ -282,8 +282,6 @@ const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta,
             isCompact={false}
             isAssets={false}
             sx={{ width: '100%' }}
-            ytd={calcularYearToDate(propiedad)}
-            ytg={calcularYearToGo(propiedad)}
           />
         </Box>
         {/* Detalle de contratos/EstadoFinanzasContrato, sin barra */}
