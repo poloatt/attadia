@@ -171,17 +171,29 @@ export default function EntityToolbar({ children, additionalActions = [] }) {
 
   // Decide qué subitems mostrar (hermanos)
   const siblings = useMemo(() => {
-    if (subSection?.subItems && subSection.subItems.length > 0) {
-      return subSection.subItems;
+    if (isMobile) {
+      // En móvil, solo mostrar hasta el 2do nivel
+      if (mainSection?.subItems && subSection) {
+        return mainSection.subItems;
+      }
+      if (mainSection?.subItems) {
+        return mainSection.subItems;
+      }
+      return [];
+    } else {
+      // En desktop, lógica original
+      if (subSection?.subItems && subSection.subItems.length > 0) {
+        return subSection.subItems;
+      }
+      if (mainSection?.subItems && subSection) {
+        return mainSection.subItems;
+      }
+      if (mainSection?.subItems) {
+        return mainSection.subItems;
+      }
+      return [];
     }
-    if (mainSection?.subItems && subSection) {
-      return mainSection.subItems;
-    }
-    if (mainSection?.subItems) {
-      return mainSection.subItems;
-    }
-    return [];
-  }, [mainSection, subSection]);
+  }, [mainSection, subSection, isMobile]);
 
   // Memoizar los cálculos para evitar re-renders innecesarios
   const shouldShowBack = useMemo(() => {

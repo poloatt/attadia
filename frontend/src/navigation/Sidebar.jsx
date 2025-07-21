@@ -193,6 +193,7 @@ export default function Sidebar() {
 
   // Renderizar encabezado de secciones principales (siempre, en desktop y mobile)
   const renderMainSectionsHeader = useCallback(() => {
+    if (!isDesktop) return null; // Ocultar en móvil
     return (
       <Box sx={{
         width: '100%',
@@ -250,7 +251,7 @@ export default function Sidebar() {
         </Box>
       </Box>
     );
-  }, [isOpen, mainSections, selectedMain, setSelectedMain, navigate, closeSidebar]);
+  }, [isOpen, mainSections, selectedMain, setSelectedMain, navigate, closeSidebar, isDesktop]);
 
   // Obtener la sección de configuración
   const setupSection = useMemo(() => 
@@ -313,6 +314,46 @@ export default function Sidebar() {
       >
         {/* Encabezado de secciones principales */}
         {renderMainSectionsHeader()}
+
+        {/* Mostrar iconos de 3er nivel centrados verticalmente en móvil colapsado */}
+        {(!isDesktop && !isOpen && thirdLevelItems.length > 0) && (
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+            <List sx={{ p: 0, m: 0 }}>
+              {thirdLevelItems.map(subItem => (
+                <ListItem key={subItem.id || subItem.path} disablePadding sx={{ bgcolor: 'transparent', justifyContent: 'center', display: 'flex' }}>
+                  <Tooltip title={subItem.title} placement="right" arrow>
+                    <IconButton
+                      onClick={() => {
+                        if (subItem.path && !subItem.isUnderConstruction) {
+                          navigate(subItem.path);
+                          if (!isDesktop && isOpen) closeSidebar();
+                        }
+                      }}
+                      color={isRouteActive(subItem.path) ? 'primary' : 'default'}
+                      sx={{
+                        bgcolor: isRouteActive(subItem.path) ? '#232323' : 'transparent',
+                        borderRadius: 1,
+                        width: 32,
+                        height: 32,
+                        m: 0.5,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'background 0.2s',
+                        color: isRouteActive(subItem.path) ? '#fff' : '#bdbdbd',
+                        p: 0,
+                        opacity: subItem.isUnderConstruction ? 0.5 : 1
+                      }}
+                      disabled={subItem.isUnderConstruction}
+                    >
+                      {subItem.icon && React.createElement(subItem.icon, { fontSize: 'small' })}
+                    </IconButton>
+                  </Tooltip>
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        )}
 
         {/* Título de sección - muestra el subgrupo child si está seleccionado */}
         {isOpen && (() => {
