@@ -8,6 +8,7 @@ import PendingActionsOutlinedIcon from '@mui/icons-material/PendingActionsOutlin
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined';
 import EngineeringOutlinedIcon from '@mui/icons-material/EngineeringOutlined';
 import BookmarkAddedOutlinedIcon from '@mui/icons-material/BookmarkAddedOutlined';
+import BookmarkBorderOutlinedIcon from '@mui/icons-material/BookmarkBorderOutlined';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import PauseOutlinedIcon from '@mui/icons-material/PauseOutlined';
@@ -23,7 +24,7 @@ export const PROPIEDAD_ESTADOS = {
     text: 'Disponible'
   },
   OCUPADA: {
-    icon: 'CheckCircle',
+    icon: 'BookmarkAdded', // Flag con tick
     color: '#81c784', // Verde - ocupada, huésped actual, activo
     text: 'Ocupada'
   },
@@ -33,7 +34,7 @@ export const PROPIEDAD_ESTADOS = {
     text: 'Mantenimiento'
   },
   RESERVADA: {
-    icon: 'PendingActions',
+    icon: 'BookmarkBorderOutlined', // Flag outline sin tick
     color: '#64b5f6', // Azul - planeado, reservado, futuro huésped
     text: 'Reservada'
   },
@@ -47,12 +48,12 @@ export const PROPIEDAD_ESTADOS = {
 // Estados de Contratos
 export const CONTRATO_ESTADOS = {
   ACTIVO: {
-    icon: 'CheckCircle',
+    icon: 'BookmarkAdded', // Flag con tick
     color: '#81c784', // Verde - activo, huésped actual
     text: 'Activo'
   },
   PLANEADO: {
-    icon: 'PendingActions',
+    icon: 'BookmarkBorderOutlined', // Flag outline sin tick
     color: '#64b5f6', // Azul - planeado, reservado, futuro
     text: 'Planeado'
   },
@@ -354,6 +355,8 @@ export const ICON_MAP = {
   'CheckCircle': CheckCircleOutlinedIcon,
   'Engineering': EngineeringOutlinedIcon,
   'BookmarkAdded': BookmarkAddedOutlinedIcon,
+  'BookmarkAddedOutlined': BookmarkAddedOutlinedIcon, // (legacy, no usar)
+  'BookmarkBorderOutlined': BookmarkBorderOutlinedIcon, // Flag outline sin tick
   'DescriptionIcon': DescriptionOutlinedIcon,
   'Cancel': CancelOutlinedIcon,
   'Pause': PauseOutlinedIcon,
