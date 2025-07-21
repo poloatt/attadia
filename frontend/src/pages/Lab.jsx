@@ -13,7 +13,8 @@ import {
   Box,
   Typography
 } from '@mui/material';
-import { EntityToolbar, EntityDetails, EntityForm, EntityActions } from '../components/EntityViews';
+import { CommonDetails, CommonForm, CommonActions } from '../components/common';
+import { EntityToolbar } from '../components/EntityViews';
 import AddIcon from '@mui/icons-material/Add';
 import { 
   RestaurantOutlined as DietaIcon,
@@ -23,7 +24,7 @@ import {
 } from '@mui/icons-material';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
-import { UnderConstruction } from '../components/common';
+import { CommonConstruction } from '../components/common';
 import { useNavigate } from 'react-router-dom';
 
 export function Lab() {
@@ -150,7 +151,7 @@ export function Lab() {
     <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar />
 
-      <EntityDetails
+      <CommonDetails
         title="Mediciones"
         action={
           <Button 
@@ -166,10 +167,10 @@ export function Lab() {
           </Button>
         }
       >
-        <UnderConstruction />
-      </EntityDetails>
+        <CommonConstruction />
+      </CommonDetails>
 
-      <EntityForm
+      <CommonForm
         open={isFormOpen}
         onClose={() => {
           setIsFormOpen(false);

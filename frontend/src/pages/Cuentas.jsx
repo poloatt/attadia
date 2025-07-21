@@ -19,7 +19,7 @@ import {
   AccordionDetails,
 } from '@mui/material';
 import { EntityToolbar } from '../components/EntityViews';
-import { EntityForm } from '../components/EntityViews';
+import { CommonForm, CommonActions } from '../components/common';
 import { 
   AccountBalanceOutlined as BankIcon,
   CreditCardOutlined as CardIcon,
@@ -28,7 +28,6 @@ import {
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import { EmptyState } from '../components/common';
-import { EntityActions } from '../components/EntityViews';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 import { useAPI } from '../hooks/useAPI';
 import { MercadoPagoConnectButton, BankConnectionForm } from '../components/finance';
@@ -590,7 +589,7 @@ export function Cuentas() {
         isEditing={false}
       />
       
-      <EntityForm
+      <CommonForm
         open={isFormOpen}
         onClose={() => {
           setIsFormOpen(false);
@@ -722,7 +721,7 @@ export function Cuentas() {
                               }
                             </Typography>
 
-                            <EntityActions
+                            <CommonActions
                               onEdit={() => handleEdit(cuenta)}
                               onDelete={() => handleDelete(cuenta)}
                               itemName={`la cuenta ${cuenta.nombre}`}

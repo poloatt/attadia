@@ -16,7 +16,7 @@ import {
   useTheme,
   useMediaQuery
 } from '@mui/material';
-import { GeometricDialog } from '../EntityViews/EntityDetails';
+import { GeometricDialog, StyledAccordion, StyledAccordionSummary } from '../common/CommonDetails';
 import {
   Close as CloseIcon,
   HomeWork,
@@ -61,15 +61,15 @@ import {
   calcularEstadoCuotasContrato
 } from './contratos/contratoUtils';
 import { StyledCard } from './PropiedadStyles';
-import { GeometricModalHeader, EstadoChip } from '../EntityViews/EntityDetails';
+import { GeometricModalHeader, EstadoChip } from '../common/CommonDetails';
 import EstadoFinanzasContrato from './contratos/EstadoFinanzasContrato';
 import { CuotasProvider } from './contratos/context/CuotasContext';
 import InventarioDetail from './inventario/InventarioDetail';
 import { SeccionInquilinos, SeccionHabitaciones, SeccionDocumentos } from './SeccionesPropiedad';
-import { EntityActions } from '../EntityViews/EntityActions';
+import CommonActions from '../common/CommonActions';
 import ContratoDetail from './contratos/ContratoDetail';
-import { EntityGridView, SECTION_CONFIGS } from '../EntityViews';
-import { styled } from '../EntityViews/EntityDetails';
+import { CommonCard, SECTION_CONFIGS } from '../common/CommonCard';
+import { styled } from '../common/CommonDetails';
 
 // Función para calcular el monto mensual promedio desde contratos activos
 const calcularMontoMensualDesdeContratos = (contratos = []) => {
@@ -108,32 +108,6 @@ const calcularMontoMensualDesdeContratos = (contratos = []) => {
 // Componentes estilizados con estilo geométrico
 
 
-
-const StyledAccordion = styled(Accordion)(({ theme }) => ({
-  borderRadius: 0,
-  backgroundColor: '#1a1a1a',
-  border: '1px solid #333',
-  boxShadow: 'none',
-  margin: 0,
-  '&:before': {
-    display: 'none'
-  },
-  '&.Mui-expanded': {
-    margin: 0
-  },
-  '& + &': {
-    marginTop: 0 // Eliminar margen entre accordions consecutivos
-  }
-}));
-
-const StyledAccordionSummary = styled(AccordionSummary)(({ theme }) => ({
-  borderRadius: 0,
-  backgroundColor: '#1a1a1a',
-  minHeight: 20, // Reducido aún más para los encabezados de sección
-  '&.Mui-expanded': {
-    minHeight: 20
-  }
-}));
 
 const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
   const theme = useTheme();
@@ -310,7 +284,7 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             {/* Sección de ubicación */}
             {!seccionUbicacion.hidden && (
-              <EntityGridView
+              <CommonCard
                 type="sections"
                 sections={[seccionUbicacion]}
                 sectionGridSize={{ xs: 12, sm: 12, md: 12, lg: 12 }}
@@ -320,7 +294,7 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
             )}
             
             {/* Sección financiera básica */}
-            <EntityGridView
+            <CommonCard
               type="sections"
               sections={[seccionFinanciera]}
               sectionGridSize={{ xs: 12, sm: 12, md: 12, lg: 12 }}
@@ -847,7 +821,7 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
       fullWidth
       fullScreen={isMobile}
       actions={
-        <EntityActions
+        <CommonActions
           onEdit={handleEditPropiedad}
           onDelete={handleDeletePropiedad}
           itemName={propiedadCompleta?.alias || 'esta propiedad'}

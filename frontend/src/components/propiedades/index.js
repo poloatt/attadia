@@ -1,6 +1,4 @@
 export { default as PropiedadCard } from './PropiedadCard';
-export { default as PropiedadListView } from './PropiedadListView';
-export { default as PropiedadGridView } from './PropiedadGridView';
 export { default as PropiedadForm } from './PropiedadForm';
 export { default as PropiedadDetail } from './PropiedadDetail';
 export { default as BarraEstadoPropiedad } from './BarraEstadoPropiedad';

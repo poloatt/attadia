@@ -1,7 +1,6 @@
 import React from 'react';
 import { Box, Typography, Grid, Card, CardContent, CardActionArea } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { EntityToolbar } from '../components/EntityViews';
 import { 
   AccountBalanceOutlined as BankIcon,
   CurrencyExchangeOutlined as CurrencyIcon,
@@ -11,10 +10,11 @@ import {
   AttachMoneyOutlined as MoneyIcon
 } from '@mui/icons-material';
 import { useEffect, useState, useCallback } from 'react';
-import EntityForm from '../components/EntityViews/EntityForm';
+import { CommonForm } from '../components/common';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import { useAPI } from '../hooks/useAPI';
+import { EntityToolbar } from '../components/EntityViews';
 
 const FinanzasCard = ({ title, description, icon: Icon, path, color = 'primary.main' }) => {
   const navigate = useNavigate();
@@ -169,11 +169,11 @@ export default function Finanzas() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar />
       {/* Formularios modales para crear submodelos */}
-      <EntityForm open={openCuenta} onClose={() => setOpenCuenta(false)} onSubmit={handleSubmitCuenta} title="Nueva Cuenta" fields={formFieldsCuenta} initialData={{}} isEditing={false} />
-      <EntityForm open={openMoneda} onClose={() => setOpenMoneda(false)} onSubmit={handleSubmitMoneda} title="Nueva Moneda" fields={formFieldsMoneda} initialData={{}} isEditing={false} />
-      <EntityForm open={openTransaccion} onClose={() => setOpenTransaccion(false)} onSubmit={handleSubmitTransaccion} title="Nueva Transacción" fields={formFieldsTransaccion} initialData={{}} isEditing={false} />
+      <CommonForm open={openCuenta} onClose={() => setOpenCuenta(false)} onSubmit={handleSubmitCuenta} title="Nueva Cuenta" fields={formFieldsCuenta} initialData={{}} isEditing={false} />
+      <CommonForm open={openMoneda} onClose={() => setOpenMoneda(false)} onSubmit={handleSubmitMoneda} title="Nueva Moneda" fields={formFieldsMoneda} initialData={{}} isEditing={false} />
+      <CommonForm open={openTransaccion} onClose={() => setOpenTransaccion(false)} onSubmit={handleSubmitTransaccion} title="Nueva Transacción" fields={formFieldsTransaccion} initialData={{}} isEditing={false} />
+      <EntityToolbar />
       <Box sx={{ 
         width: '100%',
         maxWidth: 1200,

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box } from '@mui/material';
 import { FormSection } from './ContratoFormStyles';
-import { EntityDateSelect } from '../../EntityViews';
+import { CommonDate } from '../../common/CommonDate';
 
 const ContratoFechasSection = ({
   formData,
@@ -11,7 +11,7 @@ const ContratoFechasSection = ({
   return (
     <FormSection>
       <Box sx={{ display: 'flex', gap: 2 }}>
-        <EntityDateSelect
+        <CommonDate
           sx={{ flex: 1 }}
           label="Fecha de Inicio"
           value={formData.fechaInicio}
@@ -19,7 +19,7 @@ const ContratoFechasSection = ({
           error={!!errors.fechaInicio}
           helperText={errors.fechaInicio}
         />
-        <EntityDateSelect
+        <CommonDate
           sx={{ flex: 1 }}
           label="Fecha de Fin"
           value={formData.fechaFin}

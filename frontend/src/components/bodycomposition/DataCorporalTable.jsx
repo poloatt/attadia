@@ -11,7 +11,7 @@ import {
   Tooltip,
   Box
 } from '@mui/material';
-import { EntityActions } from '../EntityViews';
+import CommonActions from '../common/CommonActions';
 
 const formatDate = (date) => {
   const d = new Date(date);
@@ -59,7 +59,7 @@ export const DataCorporalTable = ({
               <TableCell align="right">{row.stress}</TableCell>
               <TableCell align="right">{row.sleep}</TableCell>
               <TableCell align="right">
-                <EntityActions
+                <CommonActions
                   onEdit={() => onEdit(row)}
                   onDelete={() => onDelete(row._id)}
                   itemName="el registro"

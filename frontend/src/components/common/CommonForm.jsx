@@ -12,7 +12,7 @@ import {
   Fade
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import { FormField } from './FormField';
+import { CommonField } from './CommonField';
 import { useSnackbar } from 'notistack';
 import { useRelationalData } from '../../hooks/useRelationalData';
 
@@ -148,7 +148,7 @@ const EntityForm = ({
 
   const formFields = useMemo(() => {
     return fields.map(field => (
-      <FormField
+      <CommonField
         key={field.name}
         field={field}
         value={formData[field.name]}

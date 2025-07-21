@@ -174,7 +174,7 @@ function HeaderMenuButton({ sx }) {
 // HeaderAddButton
 function HeaderAddButton({ entityConfig, buttonSx }) {
   const [anchorEl, setAnchorEl] = useState(null);
-  const navigate = typeof useNavigate === 'function' ? useNavigate() : null;
+  // Eliminar navigate y location para simplificar
   const hasSubItems = entityConfig && Array.isArray(entityConfig.subItems) && entityConfig.subItems.length > 0;
   const canAddSelf = entityConfig && entityConfig.canAdd;
   const addableChildren = hasSubItems ? entityConfig.subItems.filter(sub => sub.canAdd) : [];
@@ -190,39 +190,22 @@ function HeaderAddButton({ entityConfig, buttonSx }) {
   // Handler para crear submodelo
   const handleCreateSubItem = (subItem) => {
     handleCloseMenu();
-    const finanzasIds = ['cuentas', 'monedas', 'transacciones', 'recurrente'];
-    if (finanzasIds.includes(subItem.id) && subItem.path) {
-      if (navigate) {
-        navigate(subItem.path, { state: { openAdd: true } });
-      } else {
-        window.location.assign(subItem.path + '?openAdd=1');
-      }
-    } else {
-      window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
-        detail: { type: subItem.id, path: subItem.path }
-      }));
-    }
+    window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
+      detail: { type: subItem.id, path: subItem.path }
+    }));
   };
 
-  // Handler para crear el modelo principal
+  // Handler para crear el modelo principal (siempre dispara el evento)
   const handleCreateSelf = () => {
     handleCloseMenu();
-    if (entityConfig && entityConfig.path && entityConfig.canAdd) {
-      if (navigate) {
-        navigate(entityConfig.path, { state: { openAdd: true } });
-      } else {
-        window.location.assign(entityConfig.path + '?openAdd=1');
-      }
-    } else {
-      window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
-        detail: { type: entityConfig.id || entityConfig.name, path: entityConfig.path }
-      }));
-    }
+    window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
+      detail: { type: entityConfig.id || entityConfig.name, path: entityConfig.path }
+    }));
   };
 
   if (!entityConfig) return null;
 
-  // --- NUEVO: Si es de tercer nivel (no tiene subItems pero sí canAdd), abrir el form directo ---
+  // Si es de tercer nivel (no tiene subItems pero sí canAdd), botón directo
   if (!hasSubItems && canAddSelf) {
     return (
       <Tooltip title={`Agregar ${entityConfig.name || entityConfig.title}`}>
@@ -281,7 +264,7 @@ function HeaderAddButton({ entityConfig, buttonSx }) {
           open={Boolean(anchorEl)}
           onClose={handleCloseMenu}
         >
-          {/* Opción principal (nivel 2) */}
+          {/* Opción principal (nivel 2) primero si existe */}
           {canAddSelf && (
             <MenuItem onClick={handleCreateSelf}>
               <ListItemIcon>

@@ -6,7 +6,8 @@ import {
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 
-import { EntityDetails, EntityToolbar, EntityForm, EntityActions, EntityGroupedCards } from '../components/EntityViews';
+import { CommonDetails, CommonForm, CommonActions } from '../components/common';
+import { EntityGroupedCards } from '../components/EntityViews';
 import { HabitacionesForm } from '../components/propiedades';
 import { snackbar } from '../components/common';
 import clienteAxios from '../config/axios';
@@ -365,7 +366,7 @@ export function Habitaciones() {
 
       <EntityToolbar />
 
-      <EntityDetails
+      <CommonDetails
         title="Habitaciones"
         action={
           <Box sx={{ display: 'flex', gap: 1 }}>
@@ -408,9 +409,9 @@ export function Habitaciones() {
             }}
           />
         )}
-      </EntityDetails>
+      </CommonDetails>
 
-      <EntityForm
+      <CommonForm
         open={false} // Desactivado, solo usar HabitacionesForm para alta
         onClose={() => {}}
         onSubmit={() => {}}

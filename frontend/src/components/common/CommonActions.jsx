@@ -123,3 +123,5 @@ export function useEntityActions() {
     showAddButton
   };
 } 
+
+export default EntityActions; 

@@ -8,7 +8,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { menuItems } from '../../navigation/menuStructure';
 import { icons } from '../../navigation/menuIcons';
 import { SystemButtons } from '../../components/common/SystemButtons';
-import { useEntityActions } from './EntityActions';
+import { useEntityActions } from '../common/CommonActions';
 import { useUISettings } from '../../context/UISettingsContext';
 
 // Cache para optimizar búsquedas repetitivas

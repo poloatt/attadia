@@ -19,7 +19,7 @@ import {
   Chip
 } from '@mui/material';
 import { EntityToolbar } from '../components/EntityViews';
-import { EntityDetails, EntityForm } from '../components/EntityViews';
+import { CommonDetails, CommonForm } from '../components/common';
 import { 
   AccountBalanceOutlined as BankIcon,
   AccountBalanceWalletOutlined as WalletIcon,
@@ -623,7 +623,7 @@ export function Monedas() {
     <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar />
       
-      <EntityDetails 
+      <CommonDetails 
         title="Monedas"
         subtitle="Gestiona las monedas disponibles en el sistema"
         icon={<CurrencyIcon />}
@@ -709,9 +709,9 @@ export function Monedas() {
             })}
           </Grid>
         )}
-      </EntityDetails>
+      </CommonDetails>
 
-      <EntityForm
+      <CommonForm
         open={isFormOpen}
         onClose={() => {
           setIsFormOpen(false);

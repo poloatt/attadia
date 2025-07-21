@@ -1,5 +1,5 @@
 import React from 'react';
-import ProgressBar from '../common/ProgressBar';
+import CommonProgressBar from '../common/CommonProgressBar';
 
 const BarraEstadoPropiedad = ({
   diasTranscurridos = 0,
@@ -38,7 +38,7 @@ const BarraEstadoPropiedad = ({
   }
 
   return (
-    <ProgressBar
+    <CommonProgressBar
       dataType={dataType}
       diasTranscurridos={diasTranscurridosNum}
       diasTotales={diasTotalesNum}

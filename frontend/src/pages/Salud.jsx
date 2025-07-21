@@ -6,15 +6,16 @@ import {
   RestaurantOutlined as DietaIcon,
   MonitorWeightOutlined as WeightIcon
 } from '@mui/icons-material';
-import { EntityToolbar, EntityDetails } from '../components/EntityViews';
-import { UnderConstruction } from '../components/common';
+import { CommonDetails } from '../components/common';
+import { EntityToolbar } from '../components/EntityViews';
+import { CommonConstruction } from '../components/common';
 
 export function Salud() {
   return (
     <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar />
 
-      <EntityDetails
+      <CommonDetails
         title="Salud"
         action={
           <Button 
@@ -27,8 +28,8 @@ export function Salud() {
           </Button>
         }
       >
-        <UnderConstruction />
-      </EntityDetails>
+        <CommonConstruction />
+      </CommonDetails>
     </Box>
   );
 }

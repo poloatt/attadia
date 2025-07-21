@@ -10,7 +10,7 @@ import {
   Collapse,
   Chip
 } from '@mui/material';
-import { EntityActions } from './EntityActions';
+import CommonActions from '../common/CommonActions';
 import { KeyboardArrowDown as ExpandIcon } from '@mui/icons-material';
 import { getStatusIconComponent, getEstadoColor, getEstadoText } from '../common/StatusSystem';
 
@@ -168,7 +168,7 @@ const EntityGroupedCards = ({
                           {config.getTitle(item)}
                         </Typography>
                         {config.getActions && (
-                          <EntityActions {...config.getActions(item)} />
+                          <CommonActions {...config.getActions(item)} />
                         )}
                       </Box>
 

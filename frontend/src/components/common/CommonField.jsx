@@ -133,7 +133,7 @@ const CreateForm = memo(({
   );
 });
 
-export const FormField = memo(({ 
+export const CommonField = memo(({ 
   field, 
   value, 
   onChange, 
@@ -249,3 +249,5 @@ export const FormField = memo(({
     />
   );
 }); 
+
+export default CommonField; 

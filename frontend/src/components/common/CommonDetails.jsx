@@ -1,9 +1,9 @@
 import React from 'react';
-import { Box, Typography, Paper, IconButton, Dialog, Button } from '@mui/material';
-import { getStatusIconComponent, getEstadoColor, getEstadoText } from '../common/StatusSystem';
+import { Box, Typography, Paper, IconButton, Dialog, Button, Accordion, AccordionSummary } from '@mui/material';
+import { getStatusIconComponent, getEstadoColor, getEstadoText } from './StatusSystem';
 import { styled } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
-import { EntityActions } from './EntityActions';
+import CommonActions from './CommonActions';
 
 export const EstadoChip = ({ estado, tipo = 'PROPIEDAD', sx = {} }) => (
   <Box
@@ -78,7 +78,7 @@ export const GeometricDialog = ({
   fullScreen = false,
   maxWidth = 'md',
   fullWidth = true,
-  actions = null, // acciones para el footer (ej: <EntityActions ... />)
+  actions = null, // acciones para el footer (ej: <CommonActions ... />)
   children,
   ...rest
 }) => {
@@ -112,7 +112,33 @@ export const GeometricDialog = ({
 };
 
 export { styled };
-export { EntityActions };
+export { CommonActions };
+
+export const StyledAccordion = styled(Accordion)(({ theme }) => ({
+  borderRadius: 0,
+  backgroundColor: '#1a1a1a',
+  border: '1px solid #333',
+  boxShadow: 'none',
+  margin: 0,
+  '&:before': {
+    display: 'none'
+  },
+  '&.Mui-expanded': {
+    margin: 0
+  },
+  '& + &': {
+    marginTop: 0 // Eliminar margen entre accordions consecutivos
+  }
+}));
+
+export const StyledAccordionSummary = styled(AccordionSummary)(({ theme }) => ({
+  borderRadius: 0,
+  backgroundColor: '#1a1a1a',
+  minHeight: 20, // Reducido aún más para los encabezados de sección
+  '&.Mui-expanded': {
+    minHeight: 20
+  }
+}));
 
 const EntityDetails = ({ 
   title, 

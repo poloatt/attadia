@@ -10,7 +10,7 @@ import {
   Add as AddIcon
 } from '@mui/icons-material';
 import { Button } from '@mui/material';
-import { EntityDetails } from '../components/EntityViews';
+import { CommonDetails } from '../components/common';
 import { RutinaProvider } from '../components/rutinas/context/RutinasContext';
 import { RutinaTable } from '../components/rutinas/RutinaTable';
 import { RutinaForm } from '../components/rutinas/RutinaForm';
@@ -73,7 +73,7 @@ const RutinasContent = () => {
     <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar />
       
-      <EntityDetails 
+      <CommonDetails 
         title="Rutinas"
         icon={<DateIcon sx={{ fontSize: 20 }} />}
         action={
@@ -118,7 +118,7 @@ const RutinasContent = () => {
         
         {/* Componente de acciones */}
         <RutinaActionsBar onEdit={() => handleOpenDialog(rutina)} />
-      </EntityDetails>
+      </CommonDetails>
 
       <Dialog
         open={openDialog}

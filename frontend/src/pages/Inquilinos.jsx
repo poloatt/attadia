@@ -6,7 +6,8 @@ import {
 } from '@mui/material';
 import { useSnackbar } from 'notistack';
 import { InquilinoList, InquilinoForm } from '../components/propiedades/inquilinos';
-import { EntityDetails, EntityToolbar, EntityActions } from '../components/EntityViews';
+import { CommonDetails, CommonActions } from '../components/common';
+import { EntityToolbar } from '../components/EntityViews';
 
 import {
   ApartmentOutlined as BuildingIcon,
@@ -211,14 +212,14 @@ export function Inquilinos() {
         {/* Filtros de grupos */}
 
         <Box sx={{ py: 2 }}>
-          <EntityDetails>
+          <CommonDetails>
             <InquilinoList
               inquilinos={inquilinos}
               onEdit={handleEdit}
               onDelete={handleDelete}
               onCreateContract={handleCreateContract}
             />
-          </EntityDetails>
+          </CommonDetails>
         </Box>
 
         <InquilinoForm

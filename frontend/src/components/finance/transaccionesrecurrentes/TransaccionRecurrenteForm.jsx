@@ -48,7 +48,7 @@ import {
   MoreHoriz,
   Autorenew as AutorenewIcon,
 } from '@mui/icons-material';
-import { EntityDateSelect } from '../../EntityViews';
+import { CommonDate } from '../../common/CommonDate';
 import clienteAxios from '../../../config/axios';
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
@@ -569,7 +569,7 @@ const TransaccionRecurrenteForm = ({
               display: 'flex', 
               gap: 2
             }}>
-              <EntityDateSelect
+              <CommonDate
                 fullWidth
                 label="Fecha de inicio"
                 value={formData.fechaInicio ? new Date(formData.fechaInicio) : null}
@@ -577,7 +577,7 @@ const TransaccionRecurrenteForm = ({
                 error={!!errors.fechaInicio}
                 helperText={errors.fechaInicio}
               />
-              <EntityDateSelect
+              <CommonDate
                 fullWidth
                 label="Fecha de fin (opcional)"
                 value={formData.fechaFin ? new Date(formData.fechaFin) : null}

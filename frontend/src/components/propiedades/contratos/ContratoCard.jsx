@@ -48,7 +48,7 @@ import {
   calcularEstadoCuotasContrato
 } from './contratoUtils';
 import { useValuesVisibility } from '../../../context/ValuesVisibilityContext';
-import { EntityActions } from '../../EntityViews';
+import CommonActions from '../../common/CommonActions';
 import BarraEstadoPropiedad from '../BarraEstadoPropiedad';
 import { StyledCard, StatusChip } from '../PropiedadStyles';
 import { getEstadoColor, getEstadoText, getEstadoIcon, getStatusIconComponent } from '../../common/StatusSystem';
@@ -209,7 +209,7 @@ const ContratoCard = ({
               </IconButton>
             </Tooltip>
             {/* Elimino los botones de cambiar vista y colapsar */}
-            <EntityActions 
+            <CommonActions 
               onEdit={() => {
                 onEdit(contrato);
               }}

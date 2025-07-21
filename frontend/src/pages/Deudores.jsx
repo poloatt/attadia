@@ -5,8 +5,8 @@ import {
   PersonOutlineOutlined as DeudoresIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { EntityDetails } from '../components/EntityViews';
-import { UnderConstruction } from '../components/common';
+import { CommonDetails } from '../components/common';
+import { CommonConstruction } from '../components/common';
 import { useEffect } from 'react';
 
 export function Deudores() {
@@ -26,9 +26,9 @@ export function Deudores() {
     <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar />
 
-      <EntityDetails title="Deudores">
-        <UnderConstruction />
-      </EntityDetails>
+      <CommonDetails title="Deudores">
+        <CommonConstruction />
+      </CommonDetails>
     </Box>
   );
 }

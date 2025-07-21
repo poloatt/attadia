@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { SECTION_PADDING_X } from '../../EntityViews/EntityGridView';
+import { SECTION_PADDING_X } from '../../common/CommonCard';
 import {
   Box,
   Typography,
@@ -8,7 +8,7 @@ import {
   useTheme,
   useMediaQuery
 } from '@mui/material';
-import { ProgressBar } from '../../common';
+import CommonProgressBar from '../../common/CommonProgressBar';
 import {
   MonetizationOnOutlined as MoneyIcon,
   ExpandMore as ExpandMoreIcon,
@@ -195,7 +195,7 @@ const EstadoFinanzasContrato = ({
           
           {/* BarraEstadoPropiedad: Progreso temporal del contrato */}
           <Box sx={{ px: SECTION_PADDING_X, mb: 0.5 }}>
-            <ProgressBar
+            <CommonProgressBar
               dataType="cuotas"
               cuotasPagadas={cuotasPagadas}
               cuotasTotales={cuotasTotales}

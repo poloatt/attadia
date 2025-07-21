@@ -20,8 +20,9 @@ import {
   MonitorWeightOutlined as WeightIcon,
   HealthAndSafety as HealthIcon
 } from '@mui/icons-material';
-import { EntityToolbar, EntityDetails, EntityForm, EntityActions } from '../components/EntityViews';
-import { UnderConstruction } from '../components/common';
+import { CommonDetails, CommonForm, CommonActions } from '../components/common';
+import { EntityToolbar } from '../components/EntityViews';
+import { CommonConstruction } from '../components/common';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '../config/axios';
 import { EmptyState } from '../components/common';
@@ -165,7 +166,7 @@ export function Dieta() {
     <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar />
 
-      <EntityDetails
+      <CommonDetails
         title="Dieta"
         action={
           <Button 
@@ -181,10 +182,10 @@ export function Dieta() {
           </Button>
         }
       >
-        <UnderConstruction />
-      </EntityDetails>
+        <CommonConstruction />
+      </CommonDetails>
 
-      <EntityForm
+      <CommonForm
         open={isFormOpen}
         onClose={() => {
           setIsFormOpen(false);

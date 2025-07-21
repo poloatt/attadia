@@ -46,7 +46,8 @@ import { EmptyState } from '../components/common';
 import PropiedadForm from '../components/propiedades/PropiedadForm';
 import PropiedadList from '../components/propiedades/PropiedadList';
 import { usePageWithHistory } from '../hooks/useGlobalActionHistory';
-import { EntityToolbar, EntityForm, EntityDetails, EntityCards, EntityActions } from '../components/EntityViews';
+import { EntityToolbar } from '../components/EntityViews';
+import { CommonForm, CommonDetails, CommonActions } from '../components/common';
 import { usePropiedadesOptimizadas } from '../hooks/useStatusOptimizer.js';
 
 // Cambiamos a exportación nombrada para coincidir con App.jsx
@@ -387,7 +388,7 @@ export function Propiedades() {
         flexDirection: 'column',
         gap: 0
       }}>
-        <EntityDetails 
+        <CommonDetails 
           title="Propiedades"
         >
           <PropiedadList
@@ -397,7 +398,7 @@ export function Propiedades() {
             onDelete={handleDelete}
             onAdd={() => setIsFormOpen(true)}
           />
-        </EntityDetails>
+        </CommonDetails>
 
         <PropiedadForm
           open={isFormOpen}

@@ -139,4 +139,5 @@ const EntityDateSelect = ({
   );
 };
 
+export const CommonDate = EntityDateSelect;
 export default React.memo(EntityDateSelect); 

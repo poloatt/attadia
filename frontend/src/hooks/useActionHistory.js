@@ -82,12 +82,12 @@ export function useActionHistoryManager(entityType, options = {}) {
   }, [addAction, entityType]);
 
   // Obtener acciones de esta entidad
-  const getEntityActions = useCallback(() => {
+  const getCommonActions = useCallback(() => {
     return getActionsByEntity(entityType).slice(0, maxActions);
   }, [getActionsByEntity, entityType, maxActions]);
 
   // Obtener acciones por tipo
-  const getEntityActionsByType = useCallback((actionType) => {
+  const getCommonActionsByType = useCallback((actionType) => {
     return getActionsByType(actionType).filter(action => action.entity === entityType);
   }, [getActionsByType, entityType]);
 
@@ -123,8 +123,8 @@ export function useActionHistoryManager(entityType, options = {}) {
     addCustomAction,
     
     // Funciones para obtener acciones
-    getEntityActions,
-    getEntityActionsByType,
+    getCommonActions,
+    getCommonActionsByType,
     
     // Estado
     canUndo: canUndo(),
@@ -132,7 +132,7 @@ export function useActionHistoryManager(entityType, options = {}) {
     // Constantes
     ACTION_TYPES,
     ENTITY_TYPES
-  }), [addCreateAction, addUpdateAction, addDeleteAction, addMoveAction, addCustomAction, getEntityActions, getEntityActionsByType, canUndo]);
+  }), [addCreateAction, addUpdateAction, addDeleteAction, addMoveAction, addCustomAction, getCommonActions, getCommonActionsByType, canUndo]);
 }
 
 /**

@@ -60,9 +60,6 @@ const PropiedadList = ({ isAssets = false, ...props }) => {
     });
   };
 
-  // Estado global para la vista grid/list
-  const [viewMode, setViewMode] = useState('grid');
-
   return (
     <Box sx={{ mt: isAssets ? 0 : 2 }}>
       {propiedadesToRender.map((propiedad) => {
@@ -97,8 +94,6 @@ const PropiedadList = ({ isAssets = false, ...props }) => {
               isAssets={isAssets}
               isExpanded={expandedProperties[propiedad._id || propiedad.id] || false}
               onToggleExpand={() => handleToggleExpand(propiedad._id || propiedad.id)}
-              viewMode={viewMode}
-              setViewMode={setViewMode}
             />
           </Box>
         );

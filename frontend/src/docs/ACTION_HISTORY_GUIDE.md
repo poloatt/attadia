@@ -128,7 +128,7 @@ const {
   addUpdateAction, 
   addDeleteAction,
   addMoveAction,
-  getEntityActions 
+  getCommonActions 
 } = useActionHistoryManager('proyecto');
 ```
 

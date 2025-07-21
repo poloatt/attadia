@@ -14,9 +14,9 @@ import {
   useTheme,
   useMediaQuery
 } from '@mui/material';
-import ProgressBar from '../../common/ProgressBar';
-import { GeometricPaper, GeometricModalHeader, EstadoChip, GeometricDialog } from '../../EntityViews/EntityDetails';
-import { EntityActions } from '../../EntityViews/EntityDetails';
+import CommonProgressBar from '../../common/CommonProgressBar';
+import { GeometricPaper, GeometricModalHeader, EstadoChip, GeometricDialog } from '../../common/CommonDetails';
+import CommonActions from '../../common/CommonActions';
 import {
   Close as CloseIcon,
   Description as ContractIcon,
@@ -133,7 +133,7 @@ const ContratoDetail = ({
       fullWidth
       fullScreen={isMobile}
       actions={
-        <EntityActions
+        <CommonActions
           onEdit={onEdit}
           onDelete={onDelete}
           itemName={titulo}
@@ -170,7 +170,7 @@ const ContratoDetail = ({
                     {Math.round(progresoContrato.porcentaje)}%
                   </Typography>
                 </Box>
-                <ProgressBar
+                <CommonProgressBar
                   percentage={progresoContrato.porcentaje}
                   color="primary"
                   variant="large"

@@ -10,7 +10,7 @@ import {
 } from '@mui/icons-material';
 import { IconButton } from '@mui/material';
 import { getEstadoLabel, getEstadoContrato } from '../propiedades/contratos/contratoUtils';
-import { getEstadoColor } from '../common/StatusSystem';
+import { getEstadoColor } from './StatusSystem';
 
 // Funciones auxiliares para propiedades
 const getPropiedadIcon = (tipo) => {

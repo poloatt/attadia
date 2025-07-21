@@ -55,9 +55,8 @@ import {
   InsertDriveFile as InsertDriveFileIcon,
   OpenInNew as OpenInNewIcon
 } from '@mui/icons-material';
-import { EntityActions } from '../EntityViews';
-import PropiedadGridView from './PropiedadGridView';
-import PropiedadListView from './PropiedadListView';
+import CommonActions from '../common/CommonActions';
+import CommonCard, { crearSeccionesPropiedad } from '../common/CommonCard';
 import { Link } from 'react-router-dom';
 import BarraEstadoPropiedad from './BarraEstadoPropiedad';
 import { 
@@ -344,7 +343,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
         {!isAssets && (
           <Box sx={{ display: 'flex', gap: 0.5 }}>
             {isExpanded && (
-              <EntityActions 
+              <CommonActions 
                 onEdit={() => onEdit(propiedad)}
                 onDelete={() => setOpenDeleteDialog(true)}
                 itemName={alias}
@@ -401,51 +400,25 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
 
   // Componente reutilizable para el contenido expandido
   const renderContenidoExpandido = () => (
-    <>
-      {/* 1. Barra de estado (PRIMERA) */}
-      <Box sx={{ 
-        px: isAssets ? 0.25 : 1.5,
-        pt: isAssets ? 0.25 : 0.5,
-        pb: 0.5
-      }}>
-        {/* Eliminar la barra de progreso propia, solo dejar la de PropiedadGridView */}
-      </Box>
-      {/* 2. Renderizado de vista seleccionada (grid/list) */}
-      {viewMode === 'list' ? (
-        <PropiedadListView
-          propiedad={propiedad}
-          habitaciones={habitaciones}
-          habitacionesAgrupadas={habitacionesAgrupadas}
-          totalHabitaciones={totalHabitaciones}
-          getNombreTipoHabitacion={getNombreTipoHabitacion}
-          ciudad={ciudad}
-          metrosCuadrados={metrosCuadrados}
-          direccion={direccion}
-          documentos={documentosCombinados}
-          contratos={contratos}
-        />
-      ) : (
-        <PropiedadGridView
-          type="sections"
-          data={{ extendida: true }}
-          propiedad={propiedad}
-          habitaciones={habitaciones}
-          contratos={contratos}
-          documentos={documentosCombinados}
-          precio={montoMensual}
-          simboloMoneda={simbolo}
-          nombreCuenta={nombreCuenta}
-          moneda={moneda}
-          ciudad={ciudad}
-          metrosCuadrados={metrosCuadrados}
-          direccion={direccion}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          isExpanded={isExpanded}
-          onSyncSeccion={onSyncSeccion}
-        />
+    <CommonCard
+      type="sections"
+      sections={crearSeccionesPropiedad(
+        propiedad,
+        montoMensual,
+        simbolo,
+        nombreCuenta,
+        moneda,
+        habitaciones,
+        contratos,
+        documentosCombinados,
+        true // extendida
       )}
-    </>
+      propiedad={propiedad}
+      onEdit={onEdit}
+      onDelete={onDelete}
+      isExpanded={isExpanded}
+      onSyncSeccion={onSyncSeccion}
+    />
   );
 
   return (

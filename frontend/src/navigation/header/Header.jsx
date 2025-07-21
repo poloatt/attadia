@@ -7,7 +7,7 @@ import {
 } from '@mui/material';
 import { useSidebar } from '../../context/SidebarContext';
 import { useUISettings } from '../../context/UISettingsContext';
-import { useEntityActions } from '../../components/EntityViews/EntityActions';
+import { useEntityActions } from '../../components/common/CommonActions';
 import { AutorenewOutlined, AddOutlined } from '@mui/icons-material';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';

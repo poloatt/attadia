@@ -33,7 +33,7 @@ import {
   ExpandLess as ExpandLessIcon,
   StoreOutlined,
   Bed as BedIcon,
-  Inventory as InventoryIcon,
+  Inventory2Outlined as InventoryIcon,
   Visibility as ViewIcon,
   InfoOutlined as InfoIcon,
   Description as DescriptionIcon,
@@ -44,13 +44,18 @@ import {
   ChairOutlined,
   KitchenOutlined,
   LocalLaundryServiceOutlined,
-  Folder as FolderIcon
+  Folder as FolderIcon,
 } from '@mui/icons-material';
 import { getEstadoContrato, calcularDuracionTotal, getApellidoInquilinoContrato, calcularRangoMesesContrato } from '../propiedades/contratos/contratoUtils';
 import { contarItemsPorHabitacion } from '../propiedades/propiedadUtils';
 import { icons } from '../../navigation/menuIcons';
 import { getStatusIconComponent, getStatusIconComponentRaw, getEstadoColor, getEstadoText } from '../common/StatusSystem';
 import { IconoContratoDocumentos } from '../propiedades/SeccionesPropiedad';
+import BarraEstadoPropiedad from '../propiedades/BarraEstadoPropiedad';
+import { calcularProgresoOcupacion, calcularYearToDate, calcularYearToGo } from '../propiedades/propiedadUtils';
+import EstadoFinanzasContrato from '../propiedades/contratos/EstadoFinanzasContrato';
+import { CuotasProvider } from '../propiedades/contratos/context/CuotasContext';
+import { calcularEstadoCuotasContrato } from '../propiedades/contratos/contratoUtils';
 
 // Constantes de estilo jerárquicas para alineación y separadores
 const SECTION_PADDING_X = 1;
@@ -1208,18 +1213,16 @@ const StandardSections = ({ sections, gridSize = { xs: 6, sm: 6, md: 6, lg: 6 },
       {/* Fila para cada sección primaria */}
       {seccionesPrimarias.map((section, sectionIndex) => (
         <React.Fragment key={`primary-row-${section.type}-${section.left?.[0]?.label || sectionIndex}`}>
-          <Grid container spacing={0.3} sx={{ p: 0, mb: 0.3 }}>
-            <Grid item {...gridSize}>
-              {/* Si la sección primaria tiene render, usarlo directamente */}
-              {typeof section.render === 'function' ? (
-                <Box sx={{ bgcolor: 'transparent', p: 0, m: 0 }}>
-                  {section.render()}
-                </Box>
-              ) : (
-                <SectionRenderer section={section} isCollapsed={isCollapsed} onContratoDetail={onContratoDetail} inquilinos={inquilinos} onInquilinoDetail={onInquilinoDetail} />
-              )}
-            </Grid>
-          </Grid>
+          <Box sx={{ p: 0, mb: 0.3 }}>
+            {/* Si la sección primaria tiene render, usarlo directamente */}
+            {typeof section.render === 'function' ? (
+              <Box sx={{ bgcolor: 'transparent', p: 0, m: 0 }}>
+                {section.render()}
+              </Box>
+            ) : (
+              <SectionRenderer section={section} isCollapsed={isCollapsed} onContratoDetail={onContratoDetail} inquilinos={inquilinos} onInquilinoDetail={onInquilinoDetail} />
+            )}
+          </Box>
           {/* Separador sutil después de secciones primarias */}
           {sectionIndex < seccionesPrimarias.length - 1 && (
             <Box sx={{ 
@@ -1247,11 +1250,9 @@ const StandardSections = ({ sections, gridSize = { xs: 6, sm: 6, md: 6, lg: 6 },
       {/* Fila para cada sección de habitaciones */}
       {seccionesHabitaciones.map((section, sectionIndex) => (
         <React.Fragment key={`habitaciones-row-${sectionIndex}`}>
-          <Grid container spacing={0.3} sx={{ p: 0, mb: 1 }}>
-            <Grid item xs={12}>
-              <HabitacionesRenderer section={section} isCollapsed={isCollapsed} />
-            </Grid>
-          </Grid>
+          <Box sx={{ p: 0, mb: 1 }}>
+            <HabitacionesRenderer section={section} isCollapsed={isCollapsed} />
+          </Box>
           {/* Separador sutil después de secciones de habitaciones */}
           {sectionIndex < seccionesHabitaciones.length - 1 && (
             <Box sx={{ 
@@ -1279,11 +1280,9 @@ const StandardSections = ({ sections, gridSize = { xs: 6, sm: 6, md: 6, lg: 6 },
       {/* Fila para cada sección secundaria */}
       {seccionesSecundarias.map((section, sectionIndex) => (
         <React.Fragment key={`secondary-row-${sectionIndex}`}>
-          <Grid container spacing={0.3} sx={{ p: 0, mb: 1 }}>
-            <Grid item {...gridSize}>
-              <SecondarySectionRenderer section={section} isCollapsed={isCollapsed} />
-            </Grid>
-          </Grid>
+          <Box sx={{ p: 0, mb: 1 }}>
+            <SecondarySectionRenderer section={section} isCollapsed={isCollapsed} />
+          </Box>
           {/* Separador sutil después de secciones secundarias */}
           {sectionIndex < seccionesSecundarias.length - 1 && (
             <Box sx={{ 
@@ -1311,13 +1310,11 @@ const StandardSections = ({ sections, gridSize = { xs: 6, sm: 6, md: 6, lg: 6 },
       {/* Fila para cada sección custom */}
       {seccionesCustom.map((section, sectionIndex) => (
         <React.Fragment key={`custom-row-${sectionIndex}`}>
-          <Grid container spacing={0.3} sx={{ p: 0, mb: 1 }}>
-            <Grid item xs={12}>
-              <Box sx={{ bgcolor: 'transparent', p: 0, m: 0 }}>
-                {section.render()}
-              </Box>
-            </Grid>
-          </Grid>
+          <Box sx={{ p: 0, mb: 1 }}>
+            <Box sx={{ bgcolor: 'transparent', p: 0, m: 0 }}>
+              {section.render()}
+            </Box>
+          </Box>
           {/* Separador sutil después de secciones custom */}
           {sectionIndex < seccionesCustom.length - 1 && (
             <Box sx={{ 
@@ -1995,5 +1992,72 @@ export {
   EntityHeader,
   SECTION_CONFIGS,
   formatCompactNumber,
-  SECTION_PADDING_X
+  SECTION_PADDING_X,
+  crearSeccionesPropiedad // <-- Agregado aquí
 }; 
+
+// --- INICIO: Definición de crearSeccionesPropiedad ---
+const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta, moneda, habitaciones, contratos, documentos = [], extendida = false) => {
+  const progresoOcupacion = calcularProgresoOcupacion(propiedad);
+  const datosFinancierosAdicionales = [
+    {
+      icon: MoneyIcon,
+      label: 'YTG',
+      value: calcularYearToGo(propiedad),
+      subtitle: 'YTG',
+      color: 'text.secondary'
+    },
+    {
+      icon: MoneyIcon,
+      label: 'YTD',
+      value: calcularYearToDate(propiedad),
+      subtitle: 'YTD',
+      color: 'text.secondary'
+    }
+  ];
+  const seccionFinancieraPersonalizada = {
+    type: 'primary',
+    render: () => (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, width: '100%', bgcolor: '#181818', p: 0, m: 0 }}>
+        <Box sx={{ width: '100%', px: 2, pt: 1, pb: 0.5 }}>
+          <BarraEstadoPropiedad
+            diasTranscurridos={progresoOcupacion.diasTranscurridos}
+            diasTotales={progresoOcupacion.diasTotales}
+            porcentaje={progresoOcupacion.porcentaje}
+            simboloMoneda={simboloMoneda}
+            montoMensual={precio}
+            montoTotal={progresoOcupacion.montoTotal || 0}
+            color={progresoOcupacion.estado === 'MANTENIMIENTO' ? 'warning.main' : 'primary.main'}
+            estado={progresoOcupacion.estado}
+            isCompact={false}
+            isAssets={false}
+            sx={{ width: '100%' }}
+          />
+        </Box>
+      </Box>
+    )
+  };
+  let secciones = [
+    seccionFinancieraPersonalizada,
+    SECTION_CONFIGS.ubicacion(propiedad)
+  ];
+  if (extendida) {
+    if (habitaciones && habitaciones.length > 0) {
+      secciones.push(SECTION_CONFIGS.habitaciones(habitaciones, []));
+    }
+  }
+  const documentosCompletos = [
+    ...(documentos || []),
+    ...(contratos || []).map(contrato => ({
+      ...contrato,
+      categoria: 'CONTRATO',
+      inquilino: contrato.inquilino || (Array.isArray(propiedad?.inquilinos) ? propiedad.inquilinos : []),
+      url: contrato.documentoUrl || `/contratos/${contrato._id}`
+    }))
+  ];
+  secciones.push(SECTION_CONFIGS.documentos(documentosCompletos));
+  return secciones;
+};
+// --- FIN: Definición de crearSeccionesPropiedad ---
+
+export const CommonCard = EntityGridView;

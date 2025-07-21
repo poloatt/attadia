@@ -28,7 +28,7 @@ import {
   SquareFootOutlined as AreaIcon,
   AccountBalanceWalletOutlined as DepositIcon
 } from '@mui/icons-material';
-import { EntityGridView } from '../../EntityViews';
+import { CommonCard } from '../../common/CommonCard';
 import { 
   getEstadoLabel, 
   getEstadoContrato, 
@@ -44,7 +44,7 @@ import {
   obtenerDatosRelacionados
 } from './contratoUtils';
 import { getEstadoColor } from '../../common/StatusSystem';
-import { entityHeaderProps as getEntityHeaderProps } from '../../EntityViews';
+import { CommonHeader as getEntityHeaderProps } from '../../common';
 import { Link } from 'react-router-dom';
 
 // Configuraciones para diferentes tipos de datos
@@ -223,7 +223,7 @@ const ContratosGridView = ({
     switch (type) {
       case 'inquilinos':
         return (
-          <EntityGridView
+          <CommonCard
             type="list"
             data={data}
             config={inquilinosConfig}
@@ -233,7 +233,7 @@ const ContratosGridView = ({
         );
       case 'propiedades':
         return (
-          <EntityGridView
+          <CommonCard
             type="list"
             data={data}
             config={propiedadesConfig}
@@ -243,7 +243,7 @@ const ContratosGridView = ({
         );
       case 'transacciones':
         return (
-          <EntityGridView
+          <CommonCard
             type="list"
             data={data}
             config={transaccionesConfig}
@@ -273,7 +273,7 @@ const ContratosGridView = ({
           );
         }
         return (
-          <EntityGridView
+          <CommonCard
             type="info"
             data={seccionUbicacion.left}
             gridSize={{ xs: 4, sm: 4, md: 4, lg: 4 }}
@@ -306,7 +306,7 @@ const ContratosGridView = ({
           datosFinancierosAdicionales
         );
         return (
-          <EntityGridView
+          <CommonCard
             type="info"
             data={[...seccionFinanciera.left, ...seccionFinanciera.right]}
             gridSize={{ xs: 3, sm: 3, md: 3, lg: 3 }}
@@ -352,7 +352,7 @@ const ContratosGridView = ({
             {secciones.map((section, i) =>
               section.type === 'custom-transacciones'
                 ? section.render()
-                : <EntityGridView 
+                : <CommonCard 
                     key={i} 
                     type="sections" 
                     sections={[section]} 
@@ -384,7 +384,7 @@ const ContratosGridView = ({
           [] // Pasar array vacío en lugar de booleano
         );
         return (
-          <EntityGridView
+          <CommonCard
             type="sections"
             sections={seccionesCompact}
             sectionGridSize={{ xs: 12, sm: 12, md: 12, lg: 12 }}

@@ -17,7 +17,7 @@ import {
   Engineering as MaintenanceIcon,
   Info as InfoIcon
 } from '@mui/icons-material';
-import { EntityDateSelect } from '../../../EntityViews';
+import { CommonDate } from '../../../common/CommonDate';
 
 const StyledTextField = styled(TextField)(({ theme }) => ({
   '& .MuiOutlinedInput-root': {
@@ -200,7 +200,7 @@ const BasicInfoStep = ({
         </Typography>
         <Grid container spacing={1}>
           <Grid item xs={12} sm={6}>
-            <EntityDateSelect
+            <CommonDate
               label="Fecha de Inicio"
               value={formData.fechaInicio}
               onChange={(date) => onFormDataChange({ fechaInicio: date })}
@@ -211,7 +211,7 @@ const BasicInfoStep = ({
             />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <EntityDateSelect
+            <CommonDate
               label="Fecha de Fin"
               value={formData.fechaFin}
               onChange={(date) => onFormDataChange({ fechaFin: date })}

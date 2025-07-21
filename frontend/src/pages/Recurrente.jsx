@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { EntityToolbar } from '../components/EntityViews';
-import { EntityDetails } from '../components/EntityViews';
+import { CommonDetails } from '../components/common';
 import { 
   AutorenewOutlined as RecurrentIcon,
   AddOutlined as AddIcon,
@@ -359,7 +359,7 @@ export function Recurrente() {
     <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar />
 
-      <EntityDetails
+      <CommonDetails
         title="Transacciones Recurrentes"
         subtitle="Gestiona tus transacciones periódicas"
         icon={<RecurrentIcon sx={{ fontSize: 24, color: 'primary.main' }} />}
@@ -414,7 +414,7 @@ export function Recurrente() {
             ))}
           </Grid>
         )}
-      </EntityDetails>
+      </CommonDetails>
 
       {isFormOpen && (
         <TransaccionRecurrenteForm

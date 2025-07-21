@@ -22,9 +22,10 @@ import {
   DescriptionOutlined as DescriptionIcon,
   AccountBalanceWalletOutlined as WalletIcon
 } from '@mui/icons-material';
-import { EmptyState, UnderConstruction } from '../components/common';
+import { EmptyState, CommonConstruction } from '../components/common';
 import { useNavigate } from 'react-router-dom';
-import { EntityToolbar, EntityDetails, EntityForm, EntityActions } from '../components/EntityViews';
+import { CommonDetails, CommonForm, CommonActions } from '../components/common';
+import { EntityToolbar } from '../components/EntityViews';
 
 export function Inventario() {
   const [items, setItems] = useState([]);
@@ -244,7 +245,7 @@ export function Inventario() {
     }}>
       <EntityToolbar />
 
-      <EntityDetails
+      <CommonDetails
         title="Inventario"
         action={
           <Button 
@@ -260,10 +261,10 @@ export function Inventario() {
           </Button>
         }
       >
-        <UnderConstruction />
-      </EntityDetails>
+        <CommonConstruction />
+      </CommonDetails>
 
-      <EntityForm
+      <CommonForm
         open={isFormOpen}
         onClose={() => {
           setIsFormOpen(false);

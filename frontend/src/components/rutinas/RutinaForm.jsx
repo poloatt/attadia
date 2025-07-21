@@ -36,7 +36,7 @@ import { useRutinasCRUD } from '../../hooks/useRutinasCRUD';
 import { useAuth } from '../../hooks/useAuth';
 import { useTimezone } from '../../hooks/useTimezone';
 import ChecklistSection from './ChecklistSection';
-import { EntityDateSelect } from '../EntityViews';
+import { CommonDate } from '../common/CommonDate';
 import { formatDateForAPI, getNormalizedToday, parseAPIDate } from '../../utils/dateUtils';
 
 export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => {
@@ -473,7 +473,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
                 Fecha
               </Typography>
               
-              <EntityDateSelect
+              <CommonDate
                 label="Selecciona una fecha"
                 value={formData.fecha}
                 onChange={handleDateChange}
