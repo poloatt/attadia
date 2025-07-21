@@ -114,7 +114,7 @@ const calcularMontoMensualDesdeContratos = (contratos = []) => {
 
 
 
-const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpanded = false, onToggleExpand, viewMode = 'grid', setViewMode = () => {}, onOpenDetail = null }) => {
+const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpanded = false, onToggleExpand, viewMode = 'grid', setViewMode = () => {}, onOpenDetail = null, onSyncSeccion }) => {
 
 
   const theme = useTheme();
@@ -442,6 +442,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
           onEdit={onEdit}
           onDelete={onDelete}
           isExpanded={isExpanded}
+          onSyncSeccion={onSyncSeccion}
         />
       )}
     </>

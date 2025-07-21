@@ -50,6 +50,7 @@ import { getEstadoContrato, calcularDuracionTotal, getApellidoInquilinoContrato,
 import { contarItemsPorHabitacion } from '../propiedades/propiedadUtils';
 import { icons } from '../../navigation/menuIcons';
 import { getStatusIconComponent, getStatusIconComponentRaw, getEstadoColor, getEstadoText } from '../common/StatusSystem';
+import { IconoContratoDocumentos } from '../propiedades/SeccionesPropiedad';
 
 // Constantes de estilo jerárquicas para alineación y separadores
 const SECTION_PADDING_X = 1;
@@ -1019,12 +1020,12 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
                       {section.entity?.documentos && section.entity.documentos.length > 0 ? (
                         <Tooltip title={`Ver ${section.entity.documentos.length} documento${section.entity.documentos.length > 1 ? 's' : ''} de la propiedad`}>
                           <IconButton size="small" sx={{ p: 0.2, color: 'text.secondary' }} onClick={() => onInventarioClick && onInventarioClick({ tipo: 'documentos', propiedad: section.entity })}>
-                            <FolderIcon sx={{ fontSize: '1rem' }} />
+                            <IconoContratoDocumentos sinDocumentos={false} />
                           </IconButton>
                         </Tooltip>
                       ) : (
                         <Box sx={{ display: 'flex', alignItems: 'center', p: 0.2, color: 'text.disabled' }}>
-                          <FolderIcon sx={{ fontSize: '1rem' }} />
+                          <IconoContratoDocumentos sinDocumentos={true} />
                         </Box>
                       )}
                     </Box>

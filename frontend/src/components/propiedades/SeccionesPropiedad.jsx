@@ -8,7 +8,8 @@ import {
   OpenInNew as OpenInNewIcon, 
   Visibility as VisibilityIcon,
   Folder as FolderIcon,
-  Description as DescriptionIcon
+  Description as DescriptionIcon,
+  DriveFolderUpload as DriveFolderUploadIcon // Nuevo icono sugerido
 } from '@mui/icons-material';
 import { agruparHabitaciones } from './propiedadUtils';
 import { getInquilinosByPropiedad } from './inquilinos';
@@ -158,7 +159,7 @@ export const SeccionInventario = ({ inventario = [] }) => {
 };
 
 // Sección: Documentos
-export const SeccionDocumentos = ({ documentos = [], onInventarioClick, propiedad }) => {
+export const SeccionDocumentos = ({ documentos = [], onInventarioClick, propiedad, onSyncSeccion }) => {
   if (!documentos.length) return null;
   const categorias = ['CONTRATO', 'PAGO', 'COBRO', 'MANTENIMIENTO', 'GASTO_FIJO', 'GASTO_VARIABLE', 'ALQUILER'];
   const docsPorCategoria = categorias.reduce((acc, cat) => {
@@ -182,14 +183,29 @@ export const SeccionDocumentos = ({ documentos = [], onInventarioClick, propieda
                 {cat === 'CONTRATO' && (
                   propiedad?.documentos && propiedad.documentos.length > 0 ? (
                     <Tooltip title={`Ver ${propiedad.documentos.length} documento${propiedad.documentos.length > 1 ? 's' : ''} de la propiedad`}>
-                      <IconButton size="small" sx={{ p: 0.2, color: 'text.secondary' }} onClick={() => onInventarioClick && onInventarioClick({ tipo: 'documentos', propiedad })}>
-                        <FolderIcon sx={{ fontSize: '1rem' }} />
+                      <IconButton size="small" sx={{ p: 0.2, color: 'text.secondary' }} onClick={() => {
+                        // Si hay una url de carpeta de drive, abrirla
+                        if (propiedad.driveFolderUrl) {
+                          window.open(propiedad.driveFolderUrl, '_blank');
+                        } else if (onInventarioClick) {
+                          onInventarioClick({ tipo: 'documentos', propiedad });
+                        }
+                      }}>
+                        <IconoContratoDocumentos sinDocumentos={false} />
                       </IconButton>
                     </Tooltip>
                   ) : (
-                    <Box sx={{ display: 'flex', alignItems: 'center', p: 0.2, color: 'text.disabled' }}>
-                      <FolderIcon sx={{ fontSize: '1rem' }} />
-                    </Box>
+                    <Tooltip title="Sincronizar con Google Drive">
+                      <span>
+                        <IconButton size="small" sx={{ p: 0.2, color: 'text.disabled' }} onClick={() => {
+                          if (typeof onSyncSeccion === 'function') {
+                            onSyncSeccion(propiedad?._id, 'CONTRATO');
+                          }
+                        }}>
+                          <IconoContratoDocumentos sinDocumentos={true} />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
                   )
                 )}
               </Box>
@@ -234,6 +250,15 @@ export const DocumentosCategoria = ({ alias, icono, documentos }) => {
     </Box>
   );
 };
+
+// Componente centralizado para el icono de contratos en documentos
+export const IconoContratoDocumentos = ({ sinDocumentos = false, onClick, url, ...props }) => (
+  <span onClick={onClick} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+    {sinDocumentos
+      ? <DriveFolderUploadIcon sx={{ fontSize: '1rem' }} {...props} />
+      : <FolderIcon sx={{ fontSize: '1rem' }} {...props} />}
+  </span>
+);
 
 // Subcomponente reutilizable para secciones expandibles
 export const SeccionExpandible = ({ icon, title, expanded, onToggle, children }) => (
