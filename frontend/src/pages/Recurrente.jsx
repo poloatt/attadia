@@ -238,6 +238,20 @@ export function Recurrente() {
     fetchInitialData();
   }, [fetchInitialData]);
 
+  useEffect(() => {
+    const handleHeaderAdd = (e) => {
+      if (
+        (e.detail?.path && e.detail.path === window.location.pathname) ||
+        e.detail?.type === 'recurrente'
+      ) {
+        setEditingTransaccion(null);
+        setIsFormOpen(true);
+      }
+    };
+    window.addEventListener('headerAddButtonClicked', handleHeaderAdd);
+    return () => window.removeEventListener('headerAddButtonClicked', handleHeaderAdd);
+  }, []);
+
   const handleFormSubmit = useCallback(async (formData) => {
     try {
       console.log('Datos del formulario recibidos:', formData);

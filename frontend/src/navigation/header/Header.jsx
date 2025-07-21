@@ -160,7 +160,7 @@ export default function Header() {
             },
             showAddButton && !showEntityToolbarNavigation && entityConfig ? {
               key: 'add',
-              icon: <SystemButtons.AddButton entityConfig={entityConfig} />,
+              icon: <SystemButtons.AddButton entityConfig={entityConfig} />, // Solo visual, sin lógica local
               label: 'Agregar',
               tooltip: 'Agregar',
               disabled: false

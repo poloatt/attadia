@@ -3,7 +3,7 @@ import { IconButton, Tooltip, Box, Dialog, DialogTitle, DialogContent, DialogAct
 import { Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon, Add as AddIcon } from '@mui/icons-material';
 import { useSidebar } from '../../context/SidebarContext';
 import { useActionHistory, ACTION_TYPES } from '../../context/ActionHistoryContext';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useValuesVisibility } from '../../context/ValuesVisibilityContext';
 import MenuIcon from '@mui/icons-material/MenuOutlined';
 import { Refresh as RefreshIcon, Undo as UndoIcon, History as HistoryIcon, AddOutlined as AddOutlinedIcon, VisibilityOff as HideValuesIcon } from '@mui/icons-material';
@@ -174,6 +174,7 @@ function HeaderMenuButton({ sx }) {
 // HeaderAddButton
 function HeaderAddButton({ entityConfig, buttonSx }) {
   const [anchorEl, setAnchorEl] = useState(null);
+  const navigate = typeof useNavigate === 'function' ? useNavigate() : null;
   const hasSubItems = entityConfig && Array.isArray(entityConfig.subItems) && entityConfig.subItems.length > 0;
   const canAddSelf = entityConfig && entityConfig.canAdd;
   const addableChildren = hasSubItems ? entityConfig.subItems.filter(sub => sub.canAdd) : [];
@@ -189,20 +190,65 @@ function HeaderAddButton({ entityConfig, buttonSx }) {
   // Handler para crear submodelo
   const handleCreateSubItem = (subItem) => {
     handleCloseMenu();
-    window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
-      detail: { type: subItem.id, path: subItem.path }
-    }));
+    const finanzasIds = ['cuentas', 'monedas', 'transacciones', 'recurrente'];
+    if (finanzasIds.includes(subItem.id) && subItem.path) {
+      if (navigate) {
+        navigate(subItem.path, { state: { openAdd: true } });
+      } else {
+        window.location.assign(subItem.path + '?openAdd=1');
+      }
+    } else {
+      window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
+        detail: { type: subItem.id, path: subItem.path }
+      }));
+    }
   };
 
   // Handler para crear el modelo principal
   const handleCreateSelf = () => {
     handleCloseMenu();
-    window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
-      detail: { type: entityConfig.id || entityConfig.name, path: entityConfig.path }
-    }));
+    if (entityConfig && entityConfig.path && entityConfig.canAdd) {
+      if (navigate) {
+        navigate(entityConfig.path, { state: { openAdd: true } });
+      } else {
+        window.location.assign(entityConfig.path + '?openAdd=1');
+      }
+    } else {
+      window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
+        detail: { type: entityConfig.id || entityConfig.name, path: entityConfig.path }
+      }));
+    }
   };
 
   if (!entityConfig) return null;
+
+  // --- NUEVO: Si es de tercer nivel (no tiene subItems pero sí canAdd), abrir el form directo ---
+  if (!hasSubItems && canAddSelf) {
+    return (
+      <Tooltip title={`Agregar ${entityConfig.name || entityConfig.title}`}>
+        <IconButton
+          size="small"
+          onClick={handleCreateSelf}
+          sx={{
+            background: 'none',
+            border: 'none',
+            borderRadius: 1,
+            boxShadow: 'none',
+            padding: 0.5,
+            color: 'text.secondary',
+            '&:hover': {
+              background: 'rgba(255,255,255,0.08)',
+              color: 'inherit',
+              boxShadow: 'none'
+            },
+            ...buttonSx
+          }}
+        >
+          <AddOutlinedIcon sx={buttonSx || { fontSize: 18, color: 'text.secondary' }} />
+        </IconButton>
+      </Tooltip>
+    );
+  }
 
   // Si hay opciones para agregar (self o hijos), mostrar menú contextual
   if (canAddSelf || addableChildren.length > 0) {

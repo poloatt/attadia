@@ -8,6 +8,8 @@ import { Footer } from '../navigation';
 import { Sidebar, BottomNavigation } from '../navigation';
 import { CustomSnackbarProvider } from '../components/common';
 import { useEffect } from 'react';
+import { FormManagerProvider } from '../context/FormContext';
+import { GlobalFormEventListener } from '../context/GlobalFormEventListener';
 
 export function Layout() {
   const theme = useTheme();
@@ -44,76 +46,79 @@ export function Layout() {
   const totalTopPadding = headerHeight + toolbarHeight;
 
   return (
-    <Box sx={{ 
-      display: 'flex', 
-      minHeight: '100vh',
-      maxWidth: '100vw',
-      overflow: 'hidden',
-      border: 'none',
-      outline: 'none'
-    }}>
-      <Header />
-      <Sidebar />
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          pt: `${totalTopPadding}px`, // Padding-top dinámico para dejar espacio al header + toolbar
-          pb: isMobile ? '88px' : '70px',
-          minHeight: '100vh',
-          height: '100vh',
-          width: isOpen && showSidebar ? 
-            (isMobile ? `calc(100vw - 56px)` : '100%') :
-            '100vw',
-          display: 'flex',
-          flexDirection: 'column',
-          bgcolor: 'background.default',
-          overflowY: 'auto',
-          overflowX: 'hidden', // Evitar scroll horizontal
-          scrollbarGutter: 'stable', // Reservar espacio para scrollbar
-          position: 'relative',
-          ml: 0,
-          border: 'none',
-          outline: 'none',
-          // Estilos para el scrollbar
-          '&::-webkit-scrollbar': {
-            width: '8px',
-          },
-          '&::-webkit-scrollbar-track': {
-            background: 'transparent',
-          },
-          '&::-webkit-scrollbar-thumb': {
-            background: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: '4px',
-          },
-          '&::-webkit-scrollbar-thumb:hover': {
-            background: 'rgba(255, 255, 255, 0.2)',
-          }
-        }}
-      >
-        <Box sx={{ 
-          width: '100%',
-          maxWidth: '100%',
-          mx: 0,
-          px: 0,
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 0, // Sin gap
-          minHeight: 0,
-          border: 'none',
-          outline: 'none'
-        }}>
-          <Outlet />
+    <FormManagerProvider>
+      <GlobalFormEventListener />
+      <Box sx={{ 
+        display: 'flex', 
+        minHeight: '100vh',
+        maxWidth: '100vw',
+        overflow: 'hidden',
+        border: 'none',
+        outline: 'none'
+      }}>
+        <Header />
+        <Sidebar />
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            pt: `${totalTopPadding}px`, // Padding-top dinámico para dejar espacio al header + toolbar
+            pb: isMobile ? '88px' : '70px',
+            minHeight: '100vh',
+            height: '100vh',
+            width: isOpen && showSidebar ? 
+              (isMobile ? `calc(100vw - 56px)` : '100%') :
+              '100vw',
+            display: 'flex',
+            flexDirection: 'column',
+            bgcolor: 'background.default',
+            overflowY: 'auto',
+            overflowX: 'hidden', // Evitar scroll horizontal
+            scrollbarGutter: 'stable', // Reservar espacio para scrollbar
+            position: 'relative',
+            ml: 0,
+            border: 'none',
+            outline: 'none',
+            // Estilos para el scrollbar
+            '&::-webkit-scrollbar': {
+              width: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              background: 'transparent',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: 'rgba(255, 255, 255, 0.1)',
+              borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb:hover': {
+              background: 'rgba(255, 255, 255, 0.2)',
+            }
+          }}
+        >
+          <Box sx={{ 
+            width: '100%',
+            maxWidth: '100%',
+            mx: 0,
+            px: 0,
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 0, // Sin gap
+            minHeight: 0,
+            border: 'none',
+            outline: 'none'
+          }}>
+            <Outlet />
+          </Box>
+          {/* Mostrar BottomNavigation en mobile, Footer siempre */}
+          {isMobile && <BottomNavigation />}
+          <Box sx={{ position: 'fixed', left: 0, bottom: 0, width: '100vw', zIndex: 1300 }}>
+            <Footer isDesktop={isDesktop} isSidebarOpen={isOpen && showSidebar && isDesktop} />
+          </Box>
+          <CustomSnackbarProvider />
         </Box>
-        {/* Mostrar BottomNavigation en mobile, Footer siempre */}
-        {isMobile && <BottomNavigation />}
-        <Box sx={{ position: 'fixed', left: 0, bottom: 0, width: '100vw', zIndex: 1300 }}>
-          <Footer isDesktop={isDesktop} isSidebarOpen={isOpen && showSidebar && isDesktop} />
-        </Box>
-        <CustomSnackbarProvider />
       </Box>
-    </Box>
+    </FormManagerProvider>
   );
 }
 

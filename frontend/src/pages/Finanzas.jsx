@@ -113,13 +113,14 @@ export default function Finanzas() {
   // Listener para el AddButton multinivel
   useEffect(() => {
     const handleHeaderAdd = (e) => {
-      if (e.detail?.type === 'cuenta') setOpenCuenta(true);
-      if (e.detail?.type === 'moneda') setOpenMoneda(true);
       if (e.detail?.type === 'transacciones') setOpenTransaccion(true);
+      if (e.detail?.type === 'cuentas') setOpenCuenta(true);
+      if (e.detail?.type === 'monedas') setOpenMoneda(true);
+      if (e.detail?.type === 'recurrente') navigate('/assets/finanzas/recurrente', { state: { openAdd: true } });
     };
     window.addEventListener('headerAddButtonClicked', handleHeaderAdd);
     return () => window.removeEventListener('headerAddButtonClicked', handleHeaderAdd);
-  }, []);
+  }, [navigate]);
 
   const finanzasSections = [
     {

@@ -239,10 +239,11 @@ export function Transacciones() {
   // Escuchar evento del Header para abrir formulario
   useEffect(() => {
     const handleHeaderAddButton = (event) => {
-      // Modular: abrir si el path del evento coincide con la ruta actual, o si el type es 'transaccion'
+      // Modular: abrir si el path del evento coincide con la ruta actual, o si el type es 'transaccion' o 'transacciones'
       if (
         (event.detail?.path && event.detail.path === location.pathname) ||
-        event.detail?.type === 'transaccion'
+        event.detail?.type === 'transaccion' ||
+        event.detail?.type === 'transacciones'
       ) {
         handleOpenForm();
       }

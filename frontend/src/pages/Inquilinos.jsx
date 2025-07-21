@@ -15,41 +15,51 @@ import {
   Inventory2Outlined as InventoryIcon
 } from '@mui/icons-material';
 import clienteAxios from '../config/axios';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import ContratoForm from '../components/propiedades/contratos/ContratoForm';
+import { useFormManager } from '../context/FormContext';
 
 export function Inquilinos() {
   const [inquilinos, setInquilinos] = useState([]);
   const [propiedades, setPropiedades] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [openForm, setOpenForm] = useState(false);
-  const [selectedInquilino, setSelectedInquilino] = useState(null);
   const [activeFilter, setActiveFilter] = useState('activos'); // 'activos', 'inactivos', 'todos'
   const { enqueueSnackbar } = useSnackbar();
+  const location = useLocation();
   const navigate = useNavigate();
   const [openContratoForm, setOpenContratoForm] = useState(false);
   const [contratoInitialData, setContratoInitialData] = useState({});
   const [cuentas, setCuentas] = useState([]);
   const [monedas, setMonedas] = useState([]);
+  // --- NUEVO: Contexto de formularios ---
+  const { openForm, closeForm, getFormState } = useFormManager();
+  const { open, initialData } = getFormState('inquilino');
 
   const handleBack = () => {
     navigate('/');
   };
 
-  // Escuchar el evento del Header para abrir el formulario
+  // Abrir formulario tras redirección si openAdd está en el estado
+  useEffect(() => {
+    if (location.state?.openAdd) {
+      openForm('inquilino');
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, openForm, navigate]);
+
+  // Escuchar evento del Header para abrir formulario
   useEffect(() => {
     const handleHeaderAddButton = (event) => {
-      if (event.detail.type === 'inquilino') {
-        setOpenForm(true);
+      if (
+        (event.detail?.path && event.detail.path === location.pathname) ||
+        event.detail?.type === 'inquilino'
+      ) {
+        openForm('inquilino');
       }
     };
-
     window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
-
-    return () => {
-      window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
-    };
-  }, []);
+    return () => window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
+  }, [openForm, location.pathname]);
 
   // Cargar inquilinos
   const fetchInquilinos = async (propiedadId = null) => {
@@ -111,15 +121,15 @@ export function Inquilinos() {
 
   const handleSubmit = async (formData) => {
     try {
-      if (selectedInquilino) {
-        await clienteAxios.put(`/api/inquilinos/${selectedInquilino._id}`, formData);
+      if (initialData) {
+        await clienteAxios.put(`/api/inquilinos/${initialData._id}`, formData);
         enqueueSnackbar('Inquilino actualizado correctamente', { variant: 'success' });
       } else {
         await clienteAxios.post('/api/inquilinos', formData);
         enqueueSnackbar('Inquilino creado correctamente', { variant: 'success' });
       }
       fetchInquilinos();
-      handleCloseForm();
+      closeForm('inquilino');
     } catch (error) {
       console.error('Error al guardar inquilino:', error);
       throw error;
@@ -127,8 +137,7 @@ export function Inquilinos() {
   };
 
   const handleEdit = (inquilino) => {
-    setSelectedInquilino(inquilino);
-    setOpenForm(true);
+    openForm('inquilino', inquilino);
   };
 
   const handleDelete = async (inquilino) => {
@@ -145,8 +154,7 @@ export function Inquilinos() {
   };
 
   const handleCloseForm = () => {
-    setSelectedInquilino(null);
-    setOpenForm(false);
+    closeForm('inquilino');
   };
 
   const handleCreateContract = (inquilino) => {
@@ -214,10 +222,10 @@ export function Inquilinos() {
         </Box>
 
         <InquilinoForm
-          open={openForm}
+          open={open}
           onClose={handleCloseForm}
           onSubmit={handleSubmit}
-          initialData={selectedInquilino}
+          initialData={initialData}
           propiedades={propiedades}
         />
 

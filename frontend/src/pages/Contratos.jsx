@@ -32,13 +32,10 @@ import { ContratosContainer, useContratoData } from '../components/propiedades/c
 import { useNavigate, useLocation } from 'react-router-dom';
 import { calcularAlquilerMensualPromedio } from '../components/propiedades/contratos/contratoUtils';
 import { EntityToolbar } from '../components/EntityViews';
+import { useFormManager } from '../context/FormContext';
 
 export function Contratos() {
   const [contratos, setContratos] = useState([]);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isWizardOpen, setIsWizardOpen] = useState(false);
-  const [editingContrato, setEditingContrato] = useState(null);
-  const [isSaving, setIsSaving] = useState(false);
   const [relatedData, setRelatedData] = useState({
     propiedades: [],
     inquilinos: [],
@@ -49,8 +46,6 @@ export function Contratos() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [useWizard, setUseWizard] = useState(true); // Por defecto usar wizard
-  const [showFormChoice, setShowFormChoice] = useState(false);
-
   const [viewMode] = useState('grid'); // 'list' o 'grid'
   const [isActiveContractsExpanded, setIsActiveContractsExpanded] = useState(true);
   const [isFinishedContractsExpanded, setIsFinishedContractsExpanded] = useState(false);
@@ -58,31 +53,41 @@ export function Contratos() {
   const { enqueueSnackbar } = useSnackbar();
   const navigate = useNavigate();
   const location = useLocation();
+  // --- NUEVO: Contexto de formularios ---
+  const { openForm, closeForm, getFormState } = useFormManager();
+  const { open: openFormDialog, initialData: initialFormData } = getFormState('contrato');
+  const { open: openWizard, initialData: initialWizardData } = getFormState('contratoWizard');
+  const { open: openFormChoice, initialData: initialFormChoiceData } = getFormState('contratoFormChoice');
 
-  // Escuchar el evento del Header para abrir el selector de formulario
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Abrir formulario tras redirección si openAdd está en el estado
+  useEffect(() => {
+    if (location.state?.openAdd) {
+      openForm('contrato');
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, openForm, navigate]);
+
+  // Escuchar evento del Header para abrir formulario
   useEffect(() => {
     const handleHeaderAddButton = (event) => {
-      if (event.detail.type === 'contrato') {
-        setEditingContrato(null);
-        // Abrir el selector de formulario en lugar de abrir directamente
-        setShowFormChoice(true);
+      if (
+        (event.detail?.path && event.detail.path === location.pathname) ||
+        event.detail?.type === 'contrato'
+      ) {
+        openForm('contrato');
       }
     };
-
     window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
+    return () => window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
+  }, [openForm, location.pathname]);
 
-    return () => {
-      window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
-    };
-  }, []);
-
-  // Función para cargar datos sin useCallback inicialmente
-  const fetchData = async () => {
+  // --- DEFINICIÓN DE fetchData y loadData ---
+  const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-
-      // Todas las llamadas en paralelo
       const [
         contratosRes,
         propiedadesRes,
@@ -98,14 +103,12 @@ export function Contratos() {
         clienteAxios.get('/api/cuentas'),
         clienteAxios.get('/api/monedas')
       ]);
-
       const contratos = contratosRes.data.docs || [];
       const propiedades = propiedadesRes.data.docs || [];
       const inquilinos = inquilinosRes.data.docs || [];
       const habitaciones = habitacionesRes.data.docs || [];
       const cuentas = cuentasRes.data.docs || [];
       const monedas = monedasRes.data.docs || [];
-
       setContratos(contratos);
       setRelatedData({
         propiedades,
@@ -116,17 +119,14 @@ export function Contratos() {
       });
     } catch (err) {
       console.error('Error al cargar datos:', err);
-      if (err.message !== 'Solicitud cancelada por repetirse demasiado rápido') {
-        setError('Error al cargar los datos. Por favor, intente nuevamente.');
-        enqueueSnackbar('Error al cargar los datos', { variant: 'error' });
-      }
+      setError('Error al cargar los datos. Por favor, intente nuevamente.');
+      enqueueSnackbar('Error al cargar los datos', { variant: 'error' });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [enqueueSnackbar]);
 
-  // Ahora envolvemos fetchData en useCallback
-  const loadData = useCallback(fetchData, [enqueueSnackbar]);
+  const loadData = fetchData;
 
   // Evitar doble carga en StrictMode (React 18)
   const isFirstLoad = useRef(true);
@@ -152,10 +152,7 @@ export function Contratos() {
             tipoContrato: 'ALQUILER'
           };
           
-          setEditingContrato(initialData);
-          
-          // Abrir el selector de formulario
-          setShowFormChoice(true);
+          openForm('contratoFormChoice', initialData);
           
           // Limpiar el state de navegación para evitar que se abra nuevamente
           navigate(location.pathname, { replace: true });
@@ -167,7 +164,7 @@ export function Contratos() {
       
       checkDataAndOpenForm();
     }
-  }, [location.state, relatedData, navigate, location.pathname]);
+  }, [location.state, relatedData, navigate, location.pathname, openForm]);
 
   // Efecto para manejar la navegación para editar un contrato específico
   useEffect(() => {
@@ -180,9 +177,7 @@ export function Contratos() {
           // Buscar el contrato específico
           const contrato = contratos.find(c => c._id === contratoId);
           if (contrato) {
-            setEditingContrato(contrato);
-            // Para edición, siempre usar el formulario tradicional
-            setIsFormOpen(true);
+            openForm('contrato', contrato);
           }
           
           // Limpiar el state de navegación para evitar que se abra nuevamente
@@ -195,13 +190,11 @@ export function Contratos() {
       
       checkDataAndOpenForm();
     }
-  }, [location.state, contratos, relatedData, navigate, location.pathname]);
+  }, [location.state, contratos, relatedData, navigate, location.pathname, openForm]);
 
   const handleEdit = useCallback((contrato) => {
-    setEditingContrato(contrato);
-    // Para edición, siempre usar el formulario tradicional
-    setIsFormOpen(true);
-  }, []);
+    openForm('contrato', contrato);
+  }, [openForm]);
 
   const handleDelete = useCallback(async (id) => {
     try {
@@ -224,15 +217,15 @@ export function Contratos() {
       console.log('esMantenimiento en formData:', formData.esMantenimiento);
       
       // Asegurarse de que la cuenta esté presente si no es un contrato de mantenimiento
-      if (!formData.esMantenimiento && !formData.cuenta && editingContrato?.cuenta) {
-        formData.cuenta = typeof editingContrato.cuenta === 'object' ? 
-          (editingContrato.cuenta._id || editingContrato.cuenta.id) : 
-          editingContrato.cuenta;
+      if (!formData.esMantenimiento && !formData.cuenta && initialFormData?.cuenta) {
+        formData.cuenta = typeof initialFormData.cuenta === 'object' ? 
+          (initialFormData.cuenta._id || initialFormData.cuenta.id) : 
+          initialFormData.cuenta;
       }
       
       let response;
-      if (editingContrato && (editingContrato._id || editingContrato.id)) {
-        const contratoId = editingContrato._id || editingContrato.id;
+      if (initialFormData && (initialFormData._id || initialFormData.id)) {
+        const contratoId = initialFormData._id || initialFormData.id;
         console.log('Enviando PUT a:', `/api/contratos/${contratoId}`);
         console.log('Datos finales a enviar:', JSON.stringify(formData, null, 2));
         response = await clienteAxios.put(`/api/contratos/${contratoId}`, formData);
@@ -245,8 +238,7 @@ export function Contratos() {
       }
 
       await loadData();
-      setIsFormOpen(false);
-      setEditingContrato(null);
+      closeForm('contrato');
     } catch (error) {
       console.error('Error al guardar contrato:', error);
       const errorMessage = error.response?.data?.message || 
@@ -266,8 +258,8 @@ export function Contratos() {
       console.log('Datos del wizard a enviar:', formData);
       
       let response;
-      if (editingContrato && (editingContrato._id || editingContrato.id)) {
-        const contratoId = editingContrato._id || editingContrato.id;
+      if (initialWizardData && (initialWizardData._id || initialWizardData.id)) {
+        const contratoId = initialWizardData._id || initialWizardData.id;
         response = await clienteAxios.put(`/api/contratos/${contratoId}`, formData);
         enqueueSnackbar('Contrato actualizado exitosamente', { variant: 'success' });
       } else {
@@ -276,8 +268,7 @@ export function Contratos() {
       }
 
       await loadData();
-      setIsWizardOpen(false);
-      setEditingContrato(null);
+      closeForm('contratoWizard');
     } catch (error) {
       console.error('Error al guardar contrato desde wizard:', error);
       const errorMessage = error.response?.data?.message || 
@@ -314,24 +305,22 @@ export function Contratos() {
 
   // Función para abrir el selector de formulario
   const handleOpenFormChoice = () => {
-    setShowFormChoice(true);
+    openForm('contratoFormChoice');
   };
 
   // Función para cerrar el selector de formulario
   const handleCloseFormChoice = () => {
-    setShowFormChoice(false);
+    closeForm('contratoFormChoice');
   };
 
   // Función para seleccionar el tipo de formulario
   const handleSelectFormType = (useWizardMode) => {
     setUseWizard(useWizardMode);
-    setShowFormChoice(false);
-    setEditingContrato(null);
-    
+    closeForm('contratoFormChoice');
     if (useWizardMode) {
-      setIsWizardOpen(true);
+      openForm('contratoWizard', initialFormChoiceData);
     } else {
-      setIsFormOpen(true);
+      openForm('contrato', initialFormChoiceData);
     }
   };
 
@@ -427,43 +416,33 @@ export function Contratos() {
         </Box>
 
         {/* Formulario tradicional */}
-        {isFormOpen && (
+        {openFormDialog && (
           <ContratoForm
-            open={isFormOpen}
-            initialData={editingContrato || {}}
+            open={openFormDialog}
+            initialData={initialFormData || {}}
             relatedData={relatedData}
             onSubmit={handleFormSubmit}
-            onClose={() => {
-              if (!isSaving) {
-                setIsFormOpen(false);
-                setEditingContrato(null);
-              }
-            }}
+            onClose={() => closeForm('contrato')}
             isSaving={isSaving}
           />
         )}
 
         {/* Wizard de contratos */}
-        {isWizardOpen && (
+        {openWizard && (
           <ContratoWizard
-            open={isWizardOpen}
-            initialData={editingContrato || {}}
+            open={openWizard}
+            initialData={initialWizardData || {}}
             relatedData={relatedData}
             onSubmit={handleWizardSubmit}
-            onClose={() => {
-              if (!isSaving) {
-                setIsWizardOpen(false);
-                setEditingContrato(null);
-              }
-            }}
+            onClose={() => closeForm('contratoWizard')}
             isSaving={isSaving}
           />
         )}
 
         {/* Diálogo para seleccionar tipo de formulario */}
         <Dialog
-          open={showFormChoice}
-          onClose={handleCloseFormChoice}
+          open={openFormChoice}
+          onClose={() => closeForm('contratoFormChoice')}
           maxWidth="sm"
           fullWidth
           PaperProps={{
@@ -519,7 +498,7 @@ export function Contratos() {
             </Box>
           </DialogContent>
           <DialogActions sx={{ borderTop: 1, borderColor: 'divider' }}>
-            <Button onClick={handleCloseFormChoice} sx={{ borderRadius: 0 }}>
+            <Button onClick={() => closeForm('contratoFormChoice')} sx={{ borderRadius: 0 }}>
               Cancelar
             </Button>
           </DialogActions>

@@ -170,7 +170,8 @@ export function Cuentas() {
     const handleHeaderAdd = (e) => {
       if (
         (e.detail?.path && e.detail.path === location.pathname) ||
-        e.detail?.type === 'cuenta'
+        e.detail?.type === 'cuenta' ||
+        e.detail?.type === 'cuentas'
       ) {
         setEditingCuenta(null);
         setIsFormOpen(true);
@@ -180,6 +181,15 @@ export function Cuentas() {
     window.addEventListener('headerAddButtonClicked', handleHeaderAdd);
     return () => window.removeEventListener('headerAddButtonClicked', handleHeaderAdd);
   }, [location.pathname]);
+
+  // Abrir formulario tras redirección si openAdd está en el estado
+  useEffect(() => {
+    if (location.state?.openAdd) {
+      setEditingCuenta(null);
+      setIsFormOpen(true);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const handleCreateMoneda = async (data) => {
     try {

@@ -30,37 +30,25 @@ import {
   LandscapeOutlined as LandIcon
 } from '@mui/icons-material';
 import { EmptyState } from '../components/common';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useFormManager } from '../context/FormContext';
 
 export function Habitaciones() {
   const [habitaciones, setHabitaciones] = useState([]);
   const [propiedades, setPropiedades] = useState([]);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isMultipleFormOpen, setIsMultipleFormOpen] = useState(false);
-  const [editingHabitacion, setEditingHabitacion] = useState(null);
   const [loading, setLoading] = useState(true);
   // Usar snackbar unificado
+  const location = useLocation();
   const navigate = useNavigate();
+  // --- NUEVO: Contexto de formularios ---
+  const { openForm, closeForm, getFormState } = useFormManager();
+  const { open, initialData } = getFormState('habitacion');
 
   const handleBack = () => {
     navigate('/');
   };
 
-  // Escuchar el evento del Header para abrir el formulario
-  useEffect(() => {
-    const handleHeaderAddButton = (event) => {
-      if (event.detail.type === 'habitacion') {
-        setEditingHabitacion(null);
-        setIsMultipleFormOpen(true);
-      }
-    };
-
-    window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
-
-    return () => {
-      window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
-    };
-  }, []);
+  // Eliminar el useEffect de headerAddButtonClicked
 
   const fetchHabitaciones = useCallback(async () => {
     try {
@@ -94,6 +82,28 @@ export function Habitaciones() {
     return () => clearTimeout(timer);
   }, [fetchHabitaciones, fetchPropiedades]);
 
+  // Abrir formulario tras redirección si openAdd está en el estado
+  useEffect(() => {
+    if (location.state?.openAdd) {
+      openForm('habitacion');
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, openForm, navigate]);
+
+  // Escuchar evento del Header para abrir formulario
+  useEffect(() => {
+    const handleHeaderAddButton = (event) => {
+      if (
+        (event.detail?.path && event.detail.path === location.pathname) ||
+        event.detail?.type === 'habitacion'
+      ) {
+        openForm('habitacion');
+      }
+    };
+    window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
+    return () => window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
+  }, [openForm, location.pathname]);
+
   const handleCreatePropiedad = async (data) => {
     try {
       const response = await clienteAxios.post('/api/propiedades', data);
@@ -111,15 +121,14 @@ export function Habitaciones() {
     try {
       console.log('Enviando datos:', formData);
       let response;
-      if (editingHabitacion) {
-        response = await clienteAxios.put(`/api/habitaciones/${editingHabitacion.id}`, formData);
-        setHabitaciones(prev => prev.map(h => h.id === editingHabitacion.id ? response.data : h));
-      } else {
+      if (initialData) { // Si estamos editando
+        response = await clienteAxios.put(`/api/habitaciones/${initialData.id}`, formData);
+        setHabitaciones(prev => prev.map(h => h.id === initialData.id ? response.data : h));
+      } else { // Si estamos creando
         response = await clienteAxios.post('/api/habitaciones', formData);
         setHabitaciones(prev => [...prev, response.data]);
       }
-      setIsFormOpen(false);
-      setEditingHabitacion(null);
+      closeForm('habitacion');
       snackbar.success('Habitación guardada exitosamente');
       await fetchHabitaciones();
     } catch (error) {
@@ -141,7 +150,7 @@ export function Habitaciones() {
       const nuevasHabitaciones = responses.map(response => response.data);
       
       setHabitaciones(prev => [...prev, ...nuevasHabitaciones]);
-      setIsMultipleFormOpen(false);
+      closeForm('habitacion');
       
       await fetchHabitaciones();
     } catch (error) {
@@ -151,14 +160,13 @@ export function Habitaciones() {
   };
 
   const handleEdit = useCallback((habitacion) => {
-    setEditingHabitacion({
+    openForm('habitacion', {
       ...habitacion,
       propiedadId: habitacion.propiedadId || habitacion.propiedad?._id || habitacion.propiedad?.id,
       tipo: habitacion.tipo,
       nombrePersonalizado: habitacion.nombrePersonalizado
     });
-    setIsFormOpen(true);
-  }, []);
+  }, [openForm]);
 
   const handleDelete = useCallback(async (id) => {
     try {
@@ -366,8 +374,7 @@ export function Habitaciones() {
               startIcon={<AddIcon />} 
               size="small"
               onClick={() => {
-                setEditingHabitacion(null);
-                setIsMultipleFormOpen(true);
+                openForm('habitacion');
               }}
               sx={{ borderRadius: 0 }}
             >
@@ -378,8 +385,7 @@ export function Habitaciones() {
               startIcon={<AddIcon />} 
               size="small"
               onClick={() => {
-                setEditingHabitacion(null);
-                setIsFormOpen(true);
+                openForm('habitacion');
               }}
               sx={{ borderRadius: 0 }}
             >
@@ -389,7 +395,7 @@ export function Habitaciones() {
         }
       >
         {habitaciones.length === 0 ? (
-          <EmptyState onAdd={() => setIsMultipleFormOpen(true)} />
+          <EmptyState onAdd={() => openForm('habitacion')} />
         ) : (
           <EntityGroupedCards 
             data={habitaciones}
@@ -405,23 +411,21 @@ export function Habitaciones() {
       </EntityDetails>
 
       <EntityForm
-        open={isFormOpen}
-        onClose={() => {
-          setIsFormOpen(false);
-          setEditingHabitacion(null);
-        }}
-        onSubmit={handleFormSubmit}
-        title={editingHabitacion ? 'Editar Habitación' : 'Nueva Habitación'}
-        fields={formFields}
-        initialData={editingHabitacion || {}}
-        isEditing={!!editingHabitacion}
+        open={false} // Desactivado, solo usar HabitacionesForm para alta
+        onClose={() => {}}
+        onSubmit={() => {}}
+        title={''}
+        fields={[]}
+        initialData={{}}
+        isEditing={false}
       />
 
       <HabitacionesForm
-        open={isMultipleFormOpen}
-        onClose={() => setIsMultipleFormOpen(false)}
+        open={open}
+        onClose={() => closeForm('habitacion')}
         onSubmit={handleMultipleHabitacionesSubmit}
         propiedades={propiedades}
+        initialPropiedadId={initialData?.propiedadId}
       />
     </Box>
   );

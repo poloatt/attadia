@@ -385,7 +385,8 @@ export function Monedas() {
     const handleHeaderAdd = (e) => {
       if (
         (e.detail?.path && e.detail.path === location.pathname) ||
-        e.detail?.type === 'moneda'
+        e.detail?.type === 'moneda' ||
+        e.detail?.type === 'monedas'
       ) {
         setEditingMoneda(null);
         setIsFormOpen(true);
@@ -395,6 +396,15 @@ export function Monedas() {
     window.addEventListener('headerAddButtonClicked', handleHeaderAdd);
     return () => window.removeEventListener('headerAddButtonClicked', handleHeaderAdd);
   }, [location.pathname]);
+
+  // Abrir formulario tras redirección si openAdd está en el estado
+  useEffect(() => {
+    if (location.state?.openAdd) {
+      setEditingMoneda(null);
+      setIsFormOpen(true);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const handleFormSubmit = useCallback(async (formData) => {
     try {

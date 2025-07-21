@@ -1,9 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, Typography } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { EntityToolbar } from '../components/EntityViews';
 
 export default function Inversiones() {
+  useEffect(() => {
+    const handleHeaderAdd = (e) => {
+      if (e.detail?.type === 'inversiones') {
+        alert('La función de agregar inversión está en construcción.');
+      }
+    };
+    window.addEventListener('headerAddButtonClicked', handleHeaderAdd);
+    return () => window.removeEventListener('headerAddButtonClicked', handleHeaderAdd);
+  }, []);
+
   return (
     <Box sx={{ px: 0, width: '100%' }}>
       <EntityToolbar />
