@@ -30,7 +30,8 @@ const EstadoFinanzasContrato = ({
   contratoId,
   showTitle = true, 
   compact = false,
-  sx = {} 
+  sx = {},
+  noBorder = false // Nuevo prop para controlar el borde
 }) => {
   const [showCuotas, setShowCuotas] = useState(false);
   const [editInline, setEditInline] = useState(false);
@@ -114,11 +115,14 @@ const EstadoFinanzasContrato = ({
     
     return (
       <Box sx={{ 
-        mt: 1, 
-        p: 1, 
-        bgcolor: compact ? '#181818' : 'background.paper', 
+        mt: 0.5,
+        px: 0,
+        py: 1,
+        bgcolor: noBorder ? 'transparent' : (compact ? '#181818' : 'background.paper'),
         borderRadius: 0,
-        border: '1px solid #333',
+        border: noBorder ? 'none' : '1px solid rgba(255,255,255,0.08)',
+        width: '100%',
+        boxSizing: 'border-box',
         ...sx
       }}>
         <Typography variant="caption" sx={{ 
@@ -162,38 +166,31 @@ const EstadoFinanzasContrato = ({
       mt: compact ? 0 : 0.2, 
       p: 0, 
       m: 0,
-      bgcolor: compact ? '#181818' : 'transparent', 
+      bgcolor: noBorder ? 'transparent' : (compact ? '#181818' : 'transparent'),
       borderRadius: 0,
+      border: noBorder ? 'none' : undefined,
       cursor: 'pointer',
       '&:hover': {
-        bgcolor: compact ? '#181818' : 'transparent'
+        bgcolor: noBorder ? 'transparent' : (compact ? '#181818' : 'transparent')
       },
       ...sx
     }}
     onClick={() => setShowCuotas((prev) => !prev)}
     >
 
-      
-      {/* Progreso de cuotas - Solo mostrar si NO es compacto */}
+      {/* Información de cuotas y montos - SIEMPRE ARRIBA DE LA BARRA */}
       {!compact && (
         <>
-          {/* Primer renglón: Información de cuotas */}
+          {/* Único renglón: XX/XX días a la izquierda, $XX/$XXXX a la derecha */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5, px: SECTION_PADDING_X }}>
-            <Typography variant="caption" sx={{ 
-              fontSize: '0.65rem', 
-              color: 'text.secondary' 
-            }}>
-              {cuotasPagadas}/{cuotasTotales} cuotas
+            <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>
+              {cuotasPagadas}/{cuotasTotales} días
             </Typography>
-            <Typography variant="caption" sx={{ 
-              fontSize: '0.65rem', 
-              color: 'text.secondary' 
-            }}>
-              {porcentajePagado}% pagado
+            <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>
+              {simboloMoneda} {montoPagado.toLocaleString()}/{montoTotal.toLocaleString()}
             </Typography>
           </Box>
-          
-          {/* BarraEstadoPropiedad: Progreso temporal del contrato */}
+          {/* Barra de progreso de cuotas */}
           <Box sx={{ px: SECTION_PADDING_X, mb: 0.5 }}>
             <CommonProgressBar
               dataType="cuotas"
@@ -205,28 +202,11 @@ const EstadoFinanzasContrato = ({
               color="primary"
               variant="default"
               showLabels={false}
-              sx={{ mb: 0.5 }}
+              sx={{ mb: 0 }}
             />
-          </Box>
-          
-          {/* Segundo renglón: Montos */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, px: SECTION_PADDING_X }}>
-            <Typography variant="caption" sx={{ 
-              fontSize: '0.6rem', 
-              color: 'text.secondary' 
-            }}>
-              {simboloMoneda} {montoPagado.toLocaleString()}
-            </Typography>
-            <Typography variant="caption" sx={{ 
-              fontSize: '0.6rem', 
-              color: 'text.secondary' 
-            }}>
-              {simboloMoneda} {montoTotal.toLocaleString()}
-            </Typography>
           </Box>
         </>
       )}
-
       {/* Chips de cuotas vencidas o al día */}
       {cuotasVencidas > 0 && (
         <Box
@@ -237,9 +217,9 @@ const EstadoFinanzasContrato = ({
             mt: compact ? 0 : 0.2,
             py: 0.2,
             px: SECTION_PADDING_X,
-            bgcolor: compact ? 'transparent' : 'background.default',
+            bgcolor: 'transparent',
             borderRadius: 0,
-            border: compact ? 'none' : t => `1px solid ${t.palette.error.main}`,
+            border: 'none',
             justifyContent: 'space-between',
             width: '100%',
             m: 0
@@ -314,9 +294,9 @@ const EstadoFinanzasContrato = ({
                 mt: compact ? 0 : 0.2,
                 py: 0.2,
                 px: SECTION_PADDING_X,
-                bgcolor: compact ? 'transparent' : 'background.default',
+                bgcolor: 'transparent',
                 borderRadius: 0,
-                border: compact ? 'none' : t => `1px solid ${t.palette.divider}`,
+                border: 'none',
                 justifyContent: 'space-between',
                 width: '100%',
                 m: 0

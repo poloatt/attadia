@@ -2017,25 +2017,38 @@ const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta,
   ];
   const seccionFinancieraPersonalizada = {
     type: 'primary',
-    render: () => (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, width: '100%', bgcolor: '#181818', p: 0, m: 0 }}>
-        <Box sx={{ width: '100%', px: 2, pt: 1, pb: 0.5 }}>
-          <BarraEstadoPropiedad
-            diasTranscurridos={progresoOcupacion.diasTranscurridos}
-            diasTotales={progresoOcupacion.diasTotales}
-            porcentaje={progresoOcupacion.porcentaje}
-            simboloMoneda={simboloMoneda}
-            montoMensual={precio}
-            montoTotal={progresoOcupacion.montoTotal || 0}
-            color={progresoOcupacion.estado === 'MANTENIMIENTO' ? 'warning.main' : 'primary.main'}
-            estado={progresoOcupacion.estado}
-            isCompact={false}
-            isAssets={false}
-            sx={{ width: '100%' }}
-          />
+    render: () => {
+      // Filtrar solo el contrato ACTIVO
+      const contratoActivo = (contratos || []).find(c => {
+        if (!c) return false;
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        const inicio = c.fechaInicio ? new Date(c.fechaInicio) : null;
+        const fin = c.fechaFin ? new Date(c.fechaFin) : null;
+        if (!inicio || !fin) return false;
+        return inicio <= hoy && fin > hoy && c.tipoContrato !== 'MANTENIMIENTO';
+      });
+      if (!contratoActivo) return null;
+      return (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, width: '100%', bgcolor: '#181818', p: 0, m: 0 }}>
+          <Box sx={{ width: '100%', p: 0, m: 0 }}>
+            <CuotasProvider 
+              contratoId={contratoActivo._id || contratoActivo.id}
+              formData={contratoActivo}
+            >
+              <EstadoFinanzasContrato 
+                contrato={contratoActivo} 
+                contratoId={contratoActivo._id || contratoActivo.id} 
+                showTitle={false} 
+                compact={false} 
+                sx={{ p: 0, m: 0, borderRadius: 0 }} 
+                noBorder={true}
+              />
+            </CuotasProvider>
+          </Box>
         </Box>
-      </Box>
-    )
+      );
+    }
   };
   let secciones = [
     seccionFinancieraPersonalizada,

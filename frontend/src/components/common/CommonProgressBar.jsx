@@ -100,7 +100,7 @@ const ProgressBar = ({
   };
 
   return (
-    <Box sx={{ mb: variant === 'compact' ? 0 : (isAssets ? 0.5 : 1), ...sx }}>
+    <Box sx={{ ...sx }}>
       {showLabels && (labels.left || labels.right) && (
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: variant === 'compact' ? 0.25 : 0.5 }}>
           {labels.left && (
@@ -123,7 +123,6 @@ const ProgressBar = ({
           )}
         </Box>
       )}
-      
       <LinearProgress 
         variant="determinate" 
         value={progressValue}
