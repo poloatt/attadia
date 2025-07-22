@@ -371,15 +371,17 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
 
   const renderContenidoExpandido = () => (
     <CuotasProvider contratoId={contratoActivo?._id || contratoActivo?.id} formData={contratoActivo}>
-      <CommonCard
-        type="sections"
-        sections={secciones}
-        propiedad={propiedad}
-        onEdit={onEdit}
-        onDelete={onDelete}
-        isExpanded={isExpanded}
-        onSyncSeccion={onSyncSeccion}
-      />
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+        <CommonCard
+          type="sections"
+          sections={secciones}
+          propiedad={propiedad}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          isExpanded={isExpanded}
+          onSyncSeccion={onSyncSeccion}
+        />
+      </Box>
     </CuotasProvider>
   );
 

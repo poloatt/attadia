@@ -9,12 +9,27 @@ import {
   Visibility as VisibilityIcon,
   Folder as FolderIcon,
   Description as DescriptionIcon,
-  DriveFolderUpload as DriveFolderUploadIcon // Importar el icono de drive
+  DriveFolderUpload as DriveFolderUploadIcon, // Importar el icono de drive
+  Home as HomeIcon,
+  Apartment as ApartmentIcon,
+  StoreOutlined,
+  Bathtub as BathtubIcon,
+  KingBed,
+  SingleBed,
+  ChairOutlined,
+  KitchenOutlined,
+  LocalLaundryServiceOutlined,
+  HomeOutlined,
+  BedOutlined
 } from '@mui/icons-material';
 import { agruparHabitaciones } from './propiedadUtils';
 import { getInquilinosByPropiedad } from './inquilinos';
 import { icons } from '../../navigation/menuIcons';
 import InquilinoDetail from './inquilinos/InquilinoDetail';
+import ContratoDetail from './contratos/ContratoDetail';
+import { getStatusIconComponent, getEstadoColor } from '../common/StatusSystem';
+import { getEstadoContrato } from './contratos/contratoUtils';
+import { formatMesAnio } from './contratos/contratoUtils';
 
 // Componente centralizado para el icono de contratos en documentos
 export const IconoContratoDocumentos = ({ sinDocumentos = false, onClick, url, ...props }) => (
@@ -126,16 +141,125 @@ export const SeccionInquilinos = ({ propiedad, inquilinos = [], inquilinosActivo
   );
 };
 
-// Sección: Habitaciones
-export const SeccionHabitaciones = ({ habitaciones = [] }) => {
-  if (!habitaciones.length) return null;
-  const agrupadas = agruparHabitaciones(habitaciones);
+// Sección: Ubicación
+export const SeccionUbicacion = ({ propiedad }) => {
+  if (!propiedad) return null;
+
+  // Helper para obtener el icono según el tipo de propiedad
+  const getIconoPropiedad = (tipo) => {
+    const iconMap = {
+      'CASA': HomeIcon,
+      'DEPARTAMENTO': ApartmentIcon,
+      'APARTAMENTO': ApartmentIcon,
+      'LOCAL': StoreOutlined
+    };
+    return iconMap[tipo?.toUpperCase()] || HomeIcon;
+  };
+
+  if (!propiedad.direccion && !propiedad.ciudad) return null;
+
   return (
-    <Box sx={{ mb: 2 }}>
-      {Object.entries(agrupadas).map(([tipo, habs]) => (
-        <Typography key={tipo} variant="body2" color="text.secondary">
-          {habs.length} {tipo.replace('_', ' ')}{habs.length > 1 ? 's' : ''}
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minHeight: '32px', px: 1, py: 0.2 }}>
+      {getIconoPropiedad(propiedad.tipo) && (
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 36, height: '100%' }}>
+          {React.createElement(getIconoPropiedad(propiedad.tipo), { sx: { fontSize: '1.3rem', color: 'rgba(255,255,255,0.7)' } })}
+        </Box>
+      )}
+      <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        {propiedad.direccion && (
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: 500, fontSize: '0.7rem', lineHeight: 1, m: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: { xs: 120, sm: 200, md: 260 } }}
+          >
+            {propiedad.direccion}
+          </Typography>
+        )}
+        {propiedad.ciudad && (
+          <Typography
+            variant="caption"
+            sx={{ fontWeight: 400, fontSize: '0.68rem', color: 'text.secondary', lineHeight: 1, m: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: { xs: 120, sm: 200, md: 260 } }}
+          >
+            {propiedad.ciudad}
+          </Typography>
+        )}
+      </Box>
+      {propiedad.metrosCuadrados && (
+        <Typography
+          variant="body2"
+          sx={{ fontWeight: 500, fontSize: '0.7rem', color: 'text.secondary', textAlign: 'right', minWidth: 60 }}
+        >
+          {propiedad.metrosCuadrados}m²
         </Typography>
+      )}
+    </Box>
+  );
+};
+
+// Sección: Habitaciones (cuadrícula)
+export const SeccionHabitaciones = ({ habitaciones = [], inventarios = [] }) => {
+  if (!habitaciones.length) return null;
+
+  // Función para mapear tipos de habitación a íconos de Material-UI
+  const getHabitacionIcon = (tipo) => {
+    const iconMap = {
+      'BAÑO': BathtubIcon,
+      'TOILETTE': BathtubIcon,
+      'DORMITORIO_DOBLE': KingBed,
+      'DORMITORIO_SIMPLE': SingleBed,
+      'ESTUDIO': ChairOutlined,
+      'COCINA': KitchenOutlined,
+      'DESPENSA': InventoryIcon,
+      'SALA_PRINCIPAL': ChairOutlined,
+      'PATIO': HomeOutlined,
+      'JARDIN': HomeOutlined,
+      'TERRAZA': HomeOutlined,
+      'LAVADERO': LocalLaundryServiceOutlined,
+      'OTRO': BedOutlined
+    };
+    return iconMap[tipo] || BedOutlined;
+  };
+
+  // Usar la función centralizada para contar items por habitación
+  const habitacionesConItems = agruparHabitaciones(habitaciones, inventarios);
+
+  return (
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, px: 1.5, py: 1, flex: 1 }}>
+      {habitacionesConItems.map((habitacion, index) => (
+        <Box
+          key={index}
+          sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minHeight: '32px', px: 0, py: 0.5 }}
+        >
+          <Box sx={{ fontSize: '1rem', color: habitacion.color, flexShrink: 0 }}>
+            {(habitacion.icon || BedOutlined) && React.createElement(getHabitacionIcon(habitacion.tipo), { sx: { fontSize: '1rem' } })}
+          </Box>
+          <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 500, fontSize: '0.7rem', textAlign: 'left', lineHeight: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', m: 0, p: 0 }}
+            >
+              {habitacion.nombrePersonalizado || (habitacion.tipo?.replace('_', ' ') || 'Sin nombre').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              {habitacion.metrosCuadrados && (
+                <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary', textAlign: 'left', lineHeight: 1 }}>
+                  {habitacion.metrosCuadrados}m²
+                </Typography>
+              )}
+              {habitacion.itemsCount !== undefined && (
+                <>
+                  {habitacion.metrosCuadrados && (
+                    <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary', lineHeight: 1 }}>
+                      •
+                    </Typography>
+                  )}
+                  <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary', textAlign: 'left', lineHeight: 1, opacity: 0.8 }}>
+                    {habitacion.itemsCount} {habitacion.itemsCount === 1 ? 'item' : 'items'}
+                  </Typography>
+                </>
+              )}
+            </Box>
+          </Box>
+        </Box>
       ))}
     </Box>
   );
@@ -167,46 +291,157 @@ export const SeccionInventario = ({ inventario = [] }) => {
   );
 };
 
-// Sección: Documentos
-export const SeccionDocumentos = ({ documentos = [], onInventarioClick, propiedad }) => {
-  if (!documentos.length) return null;
-  const categorias = ['CONTRATO', 'PAGO', 'COBRO', 'MANTENIMIENTO', 'GASTO_FIJO', 'GASTO_VARIABLE', 'ALQUILER'];
-  const docsPorCategoria = categorias.reduce((acc, cat) => {
-    acc[cat] = documentos.filter(doc => doc.categoria === cat);
-    return acc;
-  }, {});
+// Sección: Documentos y Contratos agrupados
+export const SeccionDocumentos = ({ documentos = [], propiedad }) => {
+  const [inquilinoDetailOpen, setInquilinoDetailOpen] = useState(false);
+  const [selectedInquilino, setSelectedInquilino] = useState(null);
+  const [contratoDetailOpen, setContratoDetailOpen] = useState(false);
+  const [selectedContrato, setSelectedContrato] = useState(null);
+  const [showAllContratos, setShowAllContratos] = useState(false);
+
+  // Separar contratos de otros documentos
+  const contratos = documentos.filter(doc => doc.categoria === 'CONTRATO' || doc.tipo === 'CONTRATO');
+  const otrosDocumentos = documentos.filter(doc => doc.categoria !== 'CONTRATO' && doc.tipo !== 'CONTRATO');
+
+  // Limitar contratos mostrados inicialmente
+  const contratosAMostrar = showAllContratos ? contratos : contratos.slice(0, 2);
+  const contratosOcultos = contratos.length - contratosAMostrar.length;
+
+  const handleOpenInquilino = (inquilino) => {
+    setSelectedInquilino(inquilino);
+    setInquilinoDetailOpen(true);
+  };
+  const handleCloseInquilino = () => {
+    setInquilinoDetailOpen(false);
+    setSelectedInquilino(null);
+  };
+  const handleOpenContrato = (contrato) => {
+    setSelectedContrato(contrato);
+    setContratoDetailOpen(true);
+  };
+  const handleCloseContrato = () => {
+    setContratoDetailOpen(false);
+    setSelectedContrato(null);
+  };
+
   return (
-    <Box sx={{ mb: 2 }}>
-      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}><DescriptionIcon sx={{ fontSize: '1.1rem', mr: 1 }} />Documentos</Typography>
-      {categorias.map(cat => {
-        const docs = docsPorCategoria[cat];
-        if (!docs || !docs.length) return null;
-        return (
-          <Box key={cat} sx={{ mb: 0.5 }}>
-            <Typography variant="body2" sx={{ fontWeight: 500 }}>{cat.replace('_', ' ')}</Typography>
-            {docs.map((doc, idx) => (
-              <Box key={doc._id || `${cat}-${idx}`} sx={{ display: 'flex', alignItems: 'center', gap: 1, pl: 1 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.nombre}</Typography>
-                <a href={doc.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12 }}>Abrir</a>
-                {/* Botón de archivos solo para contratos que tengan documentos asociados */}
-                {cat === 'CONTRATO' && (
-                  propiedad?.documentos && propiedad.documentos.length > 0 ? (
-                    <Tooltip title={`Ver ${propiedad.documentos.length} documento${propiedad.documentos.length > 1 ? 's' : ''} de la propiedad`}>
-                      <IconButton size="small" sx={{ p: 0.2, color: 'text.secondary' }} onClick={() => onInventarioClick && onInventarioClick({ tipo: 'documentos', propiedad })}>
-                        <IconoContratoDocumentos sinDocumentos={false} />
-                      </IconButton>
-                    </Tooltip>
-                  ) : (
-                    <Box sx={{ display: 'flex', alignItems: 'center', p: 0.2, color: 'text.disabled' }}>
-                      <IconoContratoDocumentos sinDocumentos={true} />
-                    </Box>
-                  )
+    <Box sx={{ minHeight: '40px', px: 1, py: 0.2, display: 'flex', flexDirection: 'column', gap: 1, bgcolor: '#181818' }}>
+      {documentos.length === 0 ? (
+        <Typography variant="caption" color="text.secondary" sx={{ pl: 1 }}>
+          No hay documentos
+        </Typography>
+      ) : (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.2 }}>
+          {/* Mostrar otros documentos primero */}
+          {otrosDocumentos.map((doc, idx) => (
+            <Box key={doc._id || idx} sx={{ display: 'flex', alignItems: 'center', gap: 1, pl: 1 }}>
+              <DescriptionIcon sx={{ fontSize: '1.1rem', color: 'text.secondary', flexShrink: 0 }} />
+              <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary', fontSize: '0.85rem', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {doc.nombre}
+              </Typography>
+              {doc.url && (
+                <IconButton size="small" href={doc.url} target="_blank" rel="noopener noreferrer" sx={{ p: 0.2 }}>
+                  <VisibilityIcon sx={{ fontSize: '1rem', color: 'primary.main' }}/>
+                </IconButton>
+              )}
+            </Box>
+          ))}
+
+          {/* Mostrar contratos limitados */}
+          {contratosAMostrar.map((doc, idx) => {
+            // Estado dinámico del contrato
+            // Aquí puedes usar helpers de estado si los tienes disponibles
+            const apellido = doc.inquilino && Array.isArray(doc.inquilino) && doc.inquilino[0]?.apellido ? doc.inquilino[0].apellido : '';
+            const rango = doc.fechaInicio && doc.fechaFin ? `${formatMesAnio(doc.fechaInicio)} - ${formatMesAnio(doc.fechaFin)}` : '';
+            const label = apellido;
+            const secondary = rango;
+            const inquilino = doc.inquilino && Array.isArray(doc.inquilino) ? doc.inquilino[0] : doc.inquilino;
+            const contrato = doc;
+            const estadoContrato = getEstadoContrato(doc);
+            const IconoDoc = getStatusIconComponent(estadoContrato, 'CONTRATO');
+            const colorIcono = getEstadoColor(estadoContrato, 'CONTRATO');
+            return (
+              <Box key={doc._id || idx} sx={{ display: 'flex', alignItems: 'center', gap: 1, pl: 1 }}>
+                {IconoDoc && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                    {React.isValidElement(IconoDoc)
+                      ? React.cloneElement(IconoDoc, { sx: { fontSize: '1.1rem', color: colorIcono } })
+                      : React.createElement(IconoDoc, { sx: { fontSize: '1.1rem', color: colorIcono } })
+                    }
+                  </Box>
                 )}
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary', fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {label}
+                  </Typography>
+                  {secondary && (
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem', mt: 0.2, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {secondary}
+                    </Typography>
+                  )}
+                </Box>
+                {inquilino && (
+                  <IconButton size="small" sx={{ p: 0.2 }} onClick={() => handleOpenInquilino(inquilino)}>
+                    <PeopleIcon sx={{ fontSize: '1rem', color: 'primary.main' }} />
+                  </IconButton>
+                )}
+                <IconButton size="small" sx={{ p: 0.2 }} onClick={() => handleOpenContrato(contrato)}>
+                  <DescriptionIcon sx={{ fontSize: '1rem', color: 'primary.main' }} />
+                </IconButton>
               </Box>
-            ))}
-          </Box>
-        );
-      })}
+            );
+          })}
+
+          {/* Link para mostrar más contratos */}
+          {contratosOcultos > 0 && (
+            <Box sx={{ pl: 1, pt: 0.5 }}>
+              <Typography 
+                variant="caption" 
+                color="primary.main" 
+                sx={{ 
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  fontSize: '0.65rem',
+                  '&:hover': {
+                    color: 'primary.light'
+                  }
+                }}
+                onClick={() => setShowAllContratos(true)}
+              >
+                Ver {contratosOcultos} contrato{contratosOcultos > 1 ? 's' : ''} más
+              </Typography>
+            </Box>
+          )}
+
+          {/* Link para ocultar contratos */}
+          {showAllContratos && contratos.length > 2 && (
+            <Box sx={{ pl: 1, pt: 0.5 }}>
+              <Typography 
+                variant="caption" 
+                color="primary.main" 
+                sx={{ 
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  fontSize: '0.65rem',
+                  '&:hover': {
+                    color: 'primary.light'
+                  }
+                }}
+                onClick={() => setShowAllContratos(false)}
+              >
+                Mostrar menos
+              </Typography>
+            </Box>
+          )}
+        </Box>
+      )}
+      {/* Popups de detalle */}
+      {selectedInquilino && (
+        <InquilinoDetail open={inquilinoDetailOpen} onClose={handleCloseInquilino} inquilino={selectedInquilino} />
+      )}
+      {selectedContrato && (
+        <ContratoDetail open={contratoDetailOpen} onClose={handleCloseContrato} contrato={selectedContrato} onEdit={() => {}} onDelete={() => {}} />
+      )}
     </Box>
   );
 };

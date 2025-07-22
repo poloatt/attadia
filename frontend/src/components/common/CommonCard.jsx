@@ -55,6 +55,7 @@ import { calcularProgresoOcupacion, calcularYearToDate, calcularYearToGo } from 
 import EstadoFinanzasContrato from '../propiedades/contratos/EstadoFinanzasContrato';
 import { CuotasProvider } from '../propiedades/contratos/context/CuotasContext';
 import { calcularEstadoCuotasContrato } from '../propiedades/contratos/contratoUtils';
+import { SeccionUbicacion, SeccionHabitaciones, SeccionDocumentos } from '../propiedades/SeccionesPropiedad';
 
 // Constantes de estilo jerárquicas para alineación y separadores
 const SECTION_PADDING_X = 1;
@@ -395,60 +396,6 @@ const SECTION_CONFIGS = {
           </Box>
         </Box>
       )
-    };
-  },
-
-  // Sección de ubicación estándar (primaria)
-  ubicacion: (propiedad) => {
-    if (!propiedad) {
-      return {
-        type: 'primary',
-        left: [],
-        right: [],
-        hidden: true
-      };
-    }
-
-    const getIconoPropiedad = (tipo) => {
-      const iconMap = {
-        'CASA': HomeIcon,
-        'DEPARTAMENTO': ApartmentIcon,
-        'APARTAMENTO': ApartmentIcon,
-        'LOCAL': StoreOutlined
-      };
-      return iconMap[tipo?.toUpperCase()] || HomeIcon;
-    };
-
-    // Solo mostrar si hay dirección o ciudad
-    if (!propiedad.direccion && !propiedad.ciudad) {
-      return {
-        type: 'primary',
-        left: [],
-        right: [],
-        hidden: true
-      };
-    }
-
-    return {
-      type: 'primary',
-      left: [
-        {
-          icon: getIconoPropiedad(propiedad.tipo),
-          label: 'Ubicación',
-          value: [propiedad.direccion, propiedad.ciudad].filter(Boolean).join(', '),
-          color: 'primary.main',
-          position: 'left'
-        }
-      ],
-      right: [
-        {
-          icon: AreaIcon,
-          label: 'Superficie',
-          value: propiedad.metrosCuadrados ? `${propiedad.metrosCuadrados}m²` : 'No especificada',
-          color: 'text.secondary',
-          position: 'right'
-        }
-      ]
     };
   },
 
@@ -1997,13 +1944,18 @@ export {
 
 // --- INICIO: Definición de crearSeccionesPropiedad ---
 const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta, moneda, habitaciones, contratos, documentos = [], extendida = false) => {
-  // Solo armar secciones de presentación, sin lógica de cuotas ni barra financiera
   let secciones = [
-    SECTION_CONFIGS.ubicacion(propiedad)
+    {
+      type: 'primary',
+      render: () => <SeccionUbicacion propiedad={propiedad} />
+    }
   ];
   if (extendida) {
     if (habitaciones && habitaciones.length > 0) {
-      secciones.push(SECTION_CONFIGS.habitaciones(habitaciones, []));
+      secciones.push({
+        type: 'primary',
+        render: () => <SeccionHabitaciones habitaciones={habitaciones} />
+      });
     }
   }
   const documentosCompletos = [
@@ -2015,7 +1967,10 @@ const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta,
       url: contrato.documentoUrl || `/contratos/${contrato._id}`
     }))
   ];
-  secciones.push(SECTION_CONFIGS.documentos(documentosCompletos));
+  secciones.push({
+    type: 'primary',
+    render: () => <SeccionDocumentos documentos={documentosCompletos} propiedad={propiedad} />
+  });
   return secciones;
 };
 // --- FIN: Definición de crearSeccionesPropiedad ---

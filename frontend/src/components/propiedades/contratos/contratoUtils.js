@@ -868,3 +868,11 @@ export function getCuentaYMoneda(contrato, relatedData = {}) {
 
   return { simbolo, nombreCuenta, monedaObj, cuentaObj };
 } 
+
+// Función para formatear fecha como 'Mon YYYY'
+export function formatMesAnio(fecha) {
+  if (!fecha) return '';
+  const date = new Date(fecha);
+  const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  return `${meses[date.getMonth()]} ${date.getFullYear()}`;
+} 
