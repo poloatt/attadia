@@ -284,7 +284,7 @@ export const ContratoMontosSection = ({
 
 // --- Componente principal agrupador (opcional) ---
 const ContratosSection = {
-  ContratoPropiedadSection,
+  ContratoPropiedadSection, // Información principal primero
   ContratoHabitacionSection,
   ContratoInquilinosSection,
   ContratoMontosSection,

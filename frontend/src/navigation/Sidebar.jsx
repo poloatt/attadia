@@ -281,6 +281,8 @@ export default function Sidebar() {
   );
 
   if (!showSidebar && !isOpen) return null;
+  // En móvil, solo mostrar si hay thirdLevelItems
+  if (!isDesktop && thirdLevelItems.length === 0) return null;
   return (
     <Box sx={{ 
       width: isOpen ? sidebarWidth : 56, 
@@ -294,9 +296,9 @@ export default function Sidebar() {
           width: 'auto',
           '& .MuiDrawer-paper': {
             position: 'fixed',
-            top: '40px',
+            top: isDesktop ? '40px' : '80px', // 40px header + 40px toolbar en móvil
             width: isOpen ? sidebarWidth : 56,
-            height: 'calc(100vh - 40px)',
+            height: isDesktop ? 'calc(100vh - 40px)' : 'calc(100vh - 80px)',
             transition: 'width 0.3s ease',
             overflowX: 'hidden',
             overflowY: 'auto',

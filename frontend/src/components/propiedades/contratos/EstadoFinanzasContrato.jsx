@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { SECTION_PADDING_X } from '../../common/CommonCard';
+import { SECTION_PADDING_X } from '../';
 import {
   Box,
   Typography,
@@ -116,8 +116,6 @@ const EstadoFinanzasContrato = ({
     return (
       <Box sx={{ 
         mt: 0.5,
-        px: 0,
-        py: 1,
         bgcolor: noBorder ? 'transparent' : (compact ? '#181818' : 'background.paper'),
         borderRadius: 0,
         border: noBorder ? 'none' : '1px solid rgba(255,255,255,0.08)',
@@ -164,7 +162,6 @@ const EstadoFinanzasContrato = ({
   return (
     <Box sx={{ 
       mt: compact ? 0 : 0.2, 
-      p: 0, 
       m: 0,
       bgcolor: noBorder ? 'transparent' : (compact ? '#181818' : 'transparent'),
       borderRadius: 0,

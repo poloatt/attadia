@@ -234,16 +234,19 @@ export default function Toolbar({ children, additionalActions = [] }) {
 
   // Render
   return (
-    <Box sx={{ 
-      width: '100%', 
-      bgcolor: '#181818', 
-      pb: 0,
-      position: 'sticky',
-      top: 0,
+    <Box sx={{
+      width: { xs: '100vw', sm: '100vw', md: '100%' },
+      left: 0,
+      position: { xs: 'fixed', sm: 'fixed', md: 'sticky' },
+      top: { xs: '40px', sm: '40px', md: 0 },
       zIndex: 1201,
+      bgcolor: '#181818',
+      pb: 0,
       borderBottom: '1px solid',
       borderColor: 'divider',
-      minHeight: 2, // Revertido a altura mínima original
+      minHeight: 2,
+      m: 0,
+      p: 0
     }}>
       {/* Layout simplificado y flexible */}
       <Box sx={{ 

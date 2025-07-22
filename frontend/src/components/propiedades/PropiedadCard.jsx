@@ -56,7 +56,7 @@ import {
   OpenInNew as OpenInNewIcon
 } from '@mui/icons-material';
 import CommonActions from '../common/CommonActions';
-import CommonCard, { crearSeccionesPropiedad } from '../common/CommonCard';
+import { PropiedadContent, crearSeccionesPropiedad } from '.';
 import { Link } from 'react-router-dom';
 import CommonProgressBar from '../common/CommonProgressBar';
 import { 
@@ -78,9 +78,11 @@ import EstadoIcon from '../common/EstadoIcon';
 import TipoPropiedadIcon from './TipoPropiedadIcon';
 import { CuotasProvider } from './contratos/context/CuotasContext';
 import EstadoFinanzasContrato from './contratos/EstadoFinanzasContrato';
+import PropiedadDetail from './PropiedadDetail';
+import { SystemButtons } from '../common/SystemButtons';
 
 
-const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpanded = false, onToggleExpand, viewMode = 'grid', setViewMode = () => {}, onOpenDetail = null, onSyncSeccion }) => {
+const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpanded = false, onToggleExpand, viewMode = 'grid', setViewMode = () => {}, onSyncSeccion }) => {
 
 
   const theme = useTheme();
@@ -239,6 +241,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
   };
 
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [openDetail, setOpenDetail] = useState(false);
 
   // Eliminar la barra de progreso propia, solo dejar la de PropiedadGridView
 
@@ -279,11 +282,25 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
             // Puedes pasar más props si lo necesitas
           />
         </Box>
-        {/* Iconos de estado de contratos alineados a la derecha */}
-        {iconosEstados.length > 0 && (
+        {/* Iconos de estado de contratos alineados a la derecha solo si la card NO está expandida */}
+        {!isExpanded && iconosEstados.length > 0 && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 1, mr: 1 }}>
             {iconosEstados}
           </Box>
+        )}
+        {/* Botón de ver detalle antes del colapso */}
+        {isExpanded && (
+          <SystemButtons
+            actions={[{
+              key: 'ver-detalle',
+              icon: <OpenInNewIcon sx={{ fontSize: '1.1rem' }} />,
+              label: 'Ver detalle',
+              onClick: (e) => { e.stopPropagation(); setOpenDetail(true); },
+              tooltip: 'Ver detalles completos'
+            }]}
+            direction="row"
+            size="small"
+          />
         )}
         {!isAssets && (
           <Box sx={{ display: 'flex', gap: 0.5 }}>
@@ -315,28 +332,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
         )}
         {isAssets && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            {onOpenDetail && (
-              <Tooltip title="Ver detalles completos">
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpenDetail(propiedad);
-                  }}
-                  sx={{ 
-                    color: 'text.secondary',
-                    padding: 0.25,
-                    transition: 'color 0.2s',
-                    '&:hover': {
-                      bgcolor: 'action.hover',
-                      color: 'primary.main'
-                    }
-                  }}
-                >
-                  <OpenInNewIcon sx={{ fontSize: '0.9rem' }} />
-                </IconButton>
-              </Tooltip>
-            )}
+            {/* Eliminar onOpenDetail, y en su lugar abrir el modal desde la card */}
           </Box>
         )}
       </Box>
@@ -372,7 +368,7 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
   const renderContenidoExpandido = () => (
     <CuotasProvider contratoId={contratoActivo?._id || contratoActivo?.id} formData={contratoActivo}>
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-        <CommonCard
+        <PropiedadContent
           type="sections"
           sections={secciones}
           propiedad={propiedad}
@@ -390,7 +386,9 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
       isAssets={isAssets}
       sx={{ 
         borderRadius: isAssets ? 1 : undefined,
-        backgroundColor: isAssets ? '#181818 !important' : undefined
+        backgroundColor: isAssets ? `${theme.palette.collapse.background} !important` : undefined,
+        border: 1,
+        borderColor: theme.palette.divider,
       }}
     >
       {/* Header con título y acciones */}
@@ -404,7 +402,8 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
             cursor: 'pointer',
             '&:hover': {
               bgcolor: isAssets ? 'transparent' : 'action.hover'
-            }
+            },
+            backgroundColor: theme.palette.collapseHeader.background
           }}
           onClick={onToggleExpand}
         >
@@ -414,7 +413,9 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
       </Box>
       {isExpanded && (
         <Box sx={{ 
-          p: isAssets ? 1 : 0
+          mt: 1,
+          p: isAssets ? 1 : 0,
+          backgroundColor: isAssets ? theme.palette.collapse.background : undefined
         }}>
           {renderContenidoExpandido()}
         </Box>
@@ -435,7 +436,14 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
           </Button>
         </DialogActions>
       </Dialog>
-
+      {/* Popup de detalle modularizado */}
+      <PropiedadDetail
+        propiedad={propiedad}
+        open={openDetail}
+        onClose={() => setOpenDetail(false)}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
     </StyledCard>
   );
 };

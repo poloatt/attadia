@@ -2,12 +2,18 @@ import React, { memo } from 'react';
 import { SystemButtons, SYSTEM_ICONS } from '../common/SystemButtons';
 import { useLocation } from 'react-router-dom';
 import { menuItems } from '../../navigation/menuStructure';
+import DescriptionIcon from '@mui/icons-material/Description';
+import HomeIcon from '@mui/icons-material/Home';
+import TipoPropiedadIcon from '../propiedades/TipoPropiedadIcon';
 
 /**
  * EntityActions: Componente de acciones reutilizable y extensible usando SystemButtons.
  * Props:
  * - onEdit: función para editar
  * - onDelete: función para eliminar
+ * - onContratoDetail: función para abrir detalle de contrato
+ * - onPropiedadDetail: función para abrir detalle de propiedad
+ * - tipoPropiedad: tipo de propiedad para el icono dinámico
  * - itemName: nombre del ítem para el diálogo de confirmación
  * - size: tamaño de los botones
  * - direction: dirección del layout
@@ -18,6 +24,9 @@ import { menuItems } from '../../navigation/menuStructure';
 export const EntityActions = memo(({ 
   onEdit, 
   onDelete,
+  onContratoDetail,
+  onPropiedadDetail,
+  tipoPropiedad,
   itemName = 'este registro',
   size = 'small',
   direction = 'row',
@@ -26,13 +35,41 @@ export const EntityActions = memo(({
   disabled = false,
   extraActions = []
 }) => {
-  const actions = getStandardActions({ onEdit, onDelete, itemName, disabled, showEdit, showDelete, extraActions });
+  const actions = [
+    ...extraActions,
+    onContratoDetail && {
+      key: 'contratoDetail',
+      icon: <DescriptionIcon />,
+      label: 'Ver contrato',
+      tooltip: 'Ver contrato',
+      onClick: onContratoDetail,
+      color: 'white',
+      show: true
+    },
+    onPropiedadDetail && {
+      key: 'propiedadDetail',
+      icon: tipoPropiedad ? <TipoPropiedadIcon tipo={tipoPropiedad} sx={{ fontSize: 20 }} /> : <HomeIcon />,
+      label: 'Ver propiedad',
+      tooltip: 'Ver propiedad',
+      onClick: onPropiedadDetail,
+      color: 'white',
+      show: true
+    },
+    showEdit && onEdit ? ACTIONS.edit({ onClick: onEdit, disabled, color: 'white' }) : null,
+    showDelete && onDelete ? ACTIONS.delete({ onClick: onDelete, disabled, itemName, color: 'white' }) : null
+  ].filter(Boolean);
   return (
     <SystemButtons
       actions={actions}
       direction={direction}
       size={size}
       disabled={disabled}
+      // Forzar color blanco en todos los botones
+      sx={{
+        '& .MuiIconButton-root': {
+          color: 'white',
+        }
+      }}
     />
   );
 }); 

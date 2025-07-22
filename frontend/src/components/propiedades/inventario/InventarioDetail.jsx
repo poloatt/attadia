@@ -16,6 +16,7 @@ import {
   CardContent
 } from '@mui/material';
 import { Inventory2Outlined as InventoryIcon } from '@mui/icons-material';
+import { useTheme } from '@mui/material/styles';
 
 const InventarioDetail = ({ 
   open, 
@@ -105,7 +106,7 @@ const InventarioDetail = ({
       </Typography>
       
       {Object.entries(inventariosPorCategoria).map(([categoria, items]) => (
-        <Card key={categoria} sx={{ mb: 2, borderRadius: 0, bgcolor: '#1a1a1a', border: '1px solid #333' }}>
+        <Card key={categoria} sx={{ mb: 2, borderRadius: 0, bgcolor: (theme) => theme.palette.collapse.background, border: (theme) => `1px solid ${theme.palette.divider}` }}>
           <CardContent sx={{ p: 2 }}>
             <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
               {categoria} ({items.length})
@@ -115,9 +116,9 @@ const InventarioDetail = ({
                 <Grid item xs={12} sm={6} key={idx}>
                   <Box sx={{ 
                     p: 1, 
-                    border: '1px solid #333', 
+                    border: (theme) => `1px solid ${theme.palette.divider}`, 
                     borderRadius: 0,
-                    bgcolor: '#222'
+                    bgcolor: (theme) => theme.palette.collapse.background
                   }}>
                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
                       {item.nombre}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Typography, IconButton, Tooltip, Collapse } from '@mui/material';
+import { Box, Typography, IconButton, Tooltip, Collapse, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { 
   PeopleOutlined as PeopleIcon, 
@@ -30,6 +30,8 @@ import ContratoDetail from './contratos/ContratoDetail';
 import { getStatusIconComponent, getEstadoColor } from '../common/StatusSystem';
 import { getEstadoContrato } from './contratos/contratoUtils';
 import { formatMesAnio } from './contratos/contratoUtils';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { useTheme } from '@mui/material/styles';
 
 // Componente centralizado para el icono de contratos en documentos
 export const IconoContratoDocumentos = ({ sinDocumentos = false, onClick, url, ...props }) => (
@@ -220,7 +222,10 @@ export const SeccionHabitaciones = ({ habitaciones = [], inventarios = [] }) => 
   };
 
   // Usar la función centralizada para contar items por habitación
-  const habitacionesConItems = agruparHabitaciones(habitaciones, inventarios);
+  const habitacionesConItemsObj = agruparHabitaciones(habitaciones, inventarios);
+  const habitacionesConItems = Array.isArray(habitacionesConItemsObj)
+    ? habitacionesConItemsObj
+    : Object.values(habitacionesConItemsObj);
 
   return (
     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, px: 1.5, py: 1, flex: 1 }}>
@@ -293,6 +298,7 @@ export const SeccionInventario = ({ inventario = [] }) => {
 
 // Sección: Documentos y Contratos agrupados
 export const SeccionDocumentos = ({ documentos = [], propiedad }) => {
+  const theme = useTheme();
   const [inquilinoDetailOpen, setInquilinoDetailOpen] = useState(false);
   const [selectedInquilino, setSelectedInquilino] = useState(null);
   const [contratoDetailOpen, setContratoDetailOpen] = useState(false);
@@ -325,7 +331,7 @@ export const SeccionDocumentos = ({ documentos = [], propiedad }) => {
   };
 
   return (
-    <Box sx={{ minHeight: '40px', px: 1, py: 0.2, display: 'flex', flexDirection: 'column', gap: 1, bgcolor: '#181818' }}>
+    <Box sx={{ minHeight: '40px', px: 1, py: 0.2, display: 'flex', flexDirection: 'column', gap: 1, bgcolor: theme.palette.collapse.background }}>
       {documentos.length === 0 ? (
         <Typography variant="caption" color="text.secondary" sx={{ pl: 1 }}>
           No hay documentos
@@ -446,6 +452,44 @@ export const SeccionDocumentos = ({ documentos = [], propiedad }) => {
   );
 };
 
+// Sección: Contratos (primaria, aparte)
+export const SeccionContratos = ({ contratos = [] }) => {
+  const theme = useTheme();
+  if (!contratos.length) return null;
+  return (
+    <Accordion sx={{ mb: 2, borderRadius: 0, bgcolor: theme.palette.collapse.background, border: `1px solid ${theme.palette.divider}` }}>
+      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+        <Typography variant="subtitle2" sx={{ fontSize: '0.95rem', fontWeight: 600 }}>
+          <DescriptionIcon sx={{ fontSize: '1.1rem', mr: 1 }} />
+          Contratos ({contratos.length})
+        </Typography>
+      </AccordionSummary>
+      <AccordionDetails>
+        {contratos.map((contrato, idx) => (
+          <Box key={contrato._id || idx} sx={{ mb: 1.5, p: 1, border: `1px solid ${theme.palette.divider}`, borderRadius: 0, bgcolor: theme.palette.collapse.background }}>
+            <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary', fontSize: '0.95rem' }}>
+              {contrato.inquilino && Array.isArray(contrato.inquilino) && contrato.inquilino[0]?.apellido
+                ? contrato.inquilino[0].apellido
+                : contrato.inquilino?.apellido || 'Contrato'}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+              {contrato.fechaInicio && contrato.fechaFin
+                ? `${new Date(contrato.fechaInicio).toLocaleDateString('es-ES')} - ${new Date(contrato.fechaFin).toLocaleDateString('es-ES')}`
+                : ''}
+            </Typography>
+            {/* Puedes agregar más detalles del contrato aquí */}
+            <Box sx={{ mt: 1 }}>
+              <IconButton size="small" sx={{ p: 0.2 }} onClick={() => {}}>
+                <DescriptionIcon sx={{ fontSize: '1rem', color: 'primary.main' }} />
+              </IconButton>
+            </Box>
+          </Box>
+        ))}
+      </AccordionDetails>
+    </Accordion>
+  );
+};
+
 // Subcomponente para mostrar una categoría de documentos
 export const DocumentosCategoria = ({ alias, icono, documentos }) => {
   const [expandido, setExpandido] = React.useState(false);
@@ -495,3 +539,36 @@ export const SeccionExpandible = ({ icon, title, expanded, onToggle, children })
     </Collapse>
   </Box>
 ); 
+
+// --- INICIO: Definición de crearSeccionesPropiedad ---
+export const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta, moneda, habitaciones, contratos, documentos = [], extendida = false) => {
+  let secciones = [
+    {
+      type: 'primary',
+      render: () => <SeccionUbicacion propiedad={propiedad} />
+    }
+  ];
+  if (extendida) {
+    if (habitaciones && habitaciones.length > 0) {
+      secciones.push({
+        type: 'primary',
+        render: () => <SeccionHabitaciones habitaciones={habitaciones} />
+      });
+    }
+  }
+  const documentosCompletos = [
+    ...(documentos || []),
+    ...(contratos || []).map(contrato => ({
+      ...contrato,
+      categoria: 'CONTRATO',
+      inquilino: contrato.inquilino || (Array.isArray(propiedad?.inquilinos) ? propiedad.inquilinos : []),
+      url: contrato.documentoUrl || `/contratos/${contrato._id}`
+    }))
+  ];
+  secciones.push({
+    type: 'primary',
+    render: () => <SeccionDocumentos documentos={documentosCompletos} propiedad={propiedad} />
+  });
+  return secciones;
+};
+// --- FIN: Definición de crearSeccionesPropiedad --- 

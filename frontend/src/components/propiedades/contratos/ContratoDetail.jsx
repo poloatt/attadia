@@ -15,7 +15,7 @@ import {
   useMediaQuery
 } from '@mui/material';
 import CommonProgressBar from '../../common/CommonProgressBar';
-import { GeometricPaper, GeometricModalHeader, EstadoChip, GeometricDialog } from '../../common/CommonDetails';
+import { GeometricPaper, GeometricModalHeader, EstadoChip, GeometricDialog, EntityDetailSection, EntityDetailGrid, CollapsibleSection, EntityDetailSections } from '../../common/CommonDetails';
 import CommonActions from '../../common/CommonActions';
 import {
   Close as CloseIcon,
@@ -48,10 +48,7 @@ import {
 import EstadoFinanzasContrato from './EstadoFinanzasContrato';
 import { CuotasProvider } from './context/CuotasContext';
 import { getEstadoColor, getEstadoText, getEstadoIcon, getStatusIconComponent } from '../../common/StatusSystem';
-// EntityActions se importa desde EntityDetails.jsx
 import { useNavigate, useLocation } from 'react-router-dom';
-
-// STATUS_COLORS movido a StatusSystem.js
 
 const ContratoDetail = ({ 
   open, 
@@ -125,102 +122,77 @@ const ContratoDetail = ({
     if (onClose) onClose();
   };
 
-  return (
-    <GeometricDialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      fullScreen={isMobile}
-      actions={
-        <CommonActions
-          onEdit={onEdit}
-          onDelete={onDelete}
-          itemName={titulo}
-          size="medium"
-          direction="row"
-          showDelete={true}
-          showEdit={true}
-          disabled={false}
-        />
-      }
-    >
-      <GeometricModalHeader
-        icon={ContractIcon}
-        title={titulo}
-        chip={<EstadoChip estado={estado} tipo="CONTRATO" />}
-        onClose={onClose}
-      />
-
-      <DialogContent sx={{ p: 2, pt: 1, backgroundColor: '#181818' }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          
-          {/* Barra de progreso */}
-          {progresoContrato.tieneContrato && (
-            <GeometricPaper>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                Progreso del contrato
-              </Typography>
-              <Box sx={{ mb: 1 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-                  <Typography variant="caption" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-                    {progresoContrato.diasTranscurridos}/{progresoContrato.diasTotales} días
-                  </Typography>
-                  <Typography variant="caption" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-                    {Math.round(progresoContrato.porcentaje)}%
-                  </Typography>
-                </Box>
-                <CommonProgressBar
-                  percentage={progresoContrato.porcentaje}
-                  color="primary"
-                  variant="large"
-                  showLabels={false}
-                  sx={{ mb: 0.5 }}
+  // Definición modular de secciones para el contrato
+  const getContratoDetailSections = () => ([
+    {
+      key: 'progreso',
+      title: 'Progreso del contrato',
+      icon: ContractIcon,
+      defaultExpanded: true,
+      children: progresoContrato.tieneContrato && (
+        <Box sx={{ mb: 1 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+            <Typography variant="caption" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+              {progresoContrato.diasTranscurridos}/{progresoContrato.diasTotales} días
+            </Typography>
+            <Typography variant="caption" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+              {Math.round(progresoContrato.porcentaje)}%
+            </Typography>
+          </Box>
+          <CommonProgressBar
+            percentage={progresoContrato.porcentaje}
+            color="primary"
+            variant="large"
+            showLabels={false}
+            sx={{ mb: 0.5 }}
+          />
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+            <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
+              Pagado: {simboloMoneda} {estadoCuotas.montoPagado.toLocaleString()}
+            </Typography>
+            <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
+              Total: {simboloMoneda} {estadoCuotas.montoTotal.toLocaleString()}
+            </Typography>
+          </Box>
+        </Box>
+      )
+    },
+    {
+      key: 'finanzas',
+      title: 'Estado financiero',
+      icon: MoneyIcon,
+      defaultExpanded: false,
+      children: (() => {
+        const estadoFinanzas = calcularEstadoFinanzasContrato(contrato, simboloMoneda);
+        if (estadoFinanzas.tieneContrato) {
+          return (
+            <EntityDetailSection icon={MoneyIcon} title="Estado financiero">
+              <CuotasProvider contratoId={contrato._id || contrato.id} formData={contrato}>
+                <EstadoFinanzasContrato 
+                  contrato={contrato}
+                  contratoId={contrato._id || contrato.id}
+                  showTitle={true}
+                  compact={false}
+                  sx={{ mt: 0, p: 0, bgcolor: 'transparent' }}
                 />
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-                  <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
-                    Pagado: {simboloMoneda} {estadoCuotas.montoPagado.toLocaleString()}
-                  </Typography>
-                  <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
-                    Total: {simboloMoneda} {estadoCuotas.montoTotal.toLocaleString()}
-                  </Typography>
-                </Box>
-              </Box>
-            </GeometricPaper>
-          )}
-
-          {/* Estado de finanzas */}
-          {(() => {
-            const estadoFinanzas = calcularEstadoFinanzasContrato(contrato, simboloMoneda);
-            if (estadoFinanzas.tieneContrato) {
-              return (
-                <GeometricPaper>
-                  <CuotasProvider contratoId={contrato._id || contrato.id} formData={contrato}>
-                    <EstadoFinanzasContrato 
-                      contrato={contrato}
-                      contratoId={contrato._id || contrato.id}
-                      showTitle={true}
-                      compact={false}
-                      sx={{ mt: 0, p: 0, bgcolor: 'transparent' }}
-                    />
-                  </CuotasProvider>
-                </GeometricPaper>
-              );
-            }
-            return null;
-          })()}
-
-          {/* Información principal */}
+              </CuotasProvider>
+            </EntityDetailSection>
+          );
+        }
+        return null;
+      })()
+    },
+    {
+      key: 'info',
+      title: 'Información principal',
+      icon: undefined,
+      defaultExpanded: false,
+      children: (
+        <EntityDetailGrid spacing={2}>
           <Grid container spacing={2}>
             {/* Información financiera */}
             <Grid item xs={12} md={6}>
-              <GeometricPaper>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <MoneyIcon sx={{ fontSize: '1.2rem', color: 'success.main' }} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    Información financiera
-                  </Typography>
-                </Box>
+              <EntityDetailSection icon={MoneyIcon} title="Información financiera" color="success.main">
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
@@ -255,18 +227,11 @@ const ContratoDetail = ({
                     </Typography>
                   </Box>
                 </Box>
-              </GeometricPaper>
+              </EntityDetailSection>
             </Grid>
-
             {/* Información temporal */}
             <Grid item xs={12} md={6}>
-              <GeometricPaper>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <CalendarIcon sx={{ fontSize: '1.2rem', color: 'info.main' }} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    Fechas y duración
-                  </Typography>
-                </Box>
+              <EntityDetailSection icon={CalendarIcon} title="Fechas y duración" color="info.main">
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
@@ -301,18 +266,11 @@ const ContratoDetail = ({
                     </Typography>
                   </Box>
                 </Box>
-              </GeometricPaper>
+              </EntityDetailSection>
             </Grid>
-
             {/* Información de inquilinos */}
             <Grid item xs={12} md={6}>
-              <GeometricPaper>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <PeopleIcon sx={{ fontSize: '1.2rem', color: 'primary.main' }} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    Inquilinos ({inquilinos.length})
-                  </Typography>
-                </Box>
+              <EntityDetailSection icon={PeopleIcon} title={`Inquilinos (${inquilinos.length})`} color="primary.main">
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                   {inquilinos.length > 0 ? (
                     inquilinos.map((inquilino, idx) => (
@@ -343,18 +301,11 @@ const ContratoDetail = ({
                     </Typography>
                   )}
                 </Box>
-              </GeometricPaper>
+              </EntityDetailSection>
             </Grid>
-
             {/* Información de propiedad */}
             <Grid item xs={12} md={6}>
-              <GeometricPaper>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <HomeIcon sx={{ fontSize: '1.2rem', color: 'warning.main' }} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    Propiedad
-                  </Typography>
-                </Box>
+              <EntityDetailSection icon={HomeIcon} title="Propiedad" color="warning.main">
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
@@ -393,55 +344,89 @@ const ContratoDetail = ({
                     </Box>
                   )}
                 </Box>
-              </GeometricPaper>
+              </EntityDetailSection>
             </Grid>
           </Grid>
-
-          {/* Información adicional */}
-          {(contrato.observaciones || contrato.documentoUrl) && (
-            <GeometricPaper>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                Información adicional
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                {contrato.observaciones && (
-                  <Box>
-                    <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary', mb: 0.5 }}>
-                      Observaciones:
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontSize: '0.8rem', fontStyle: 'italic' }}>
-                      {contrato.observaciones}
-                    </Typography>
-                  </Box>
-                )}
-                {contrato.documentoUrl && (
-                  <Box>
-                    <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary', mb: 0.5 }}>
-                      Documento:
-                    </Typography>
-                    <Typography 
-                      variant="body2" 
-                      component="a"
-                      href={contrato.documentoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      sx={{ 
-                        fontSize: '0.8rem',
-                        color: 'primary.main',
-                        textDecoration: 'none',
-                        '&:hover': {
-                          textDecoration: 'underline'
-                        }
-                      }}
-                    >
-                      Ver documento
-                    </Typography>
-                  </Box>
-                )}
+        </EntityDetailGrid>
+      )
+    },
+    {
+      key: 'adicional',
+      title: 'Información adicional',
+      icon: ContractIcon,
+      defaultExpanded: false,
+      children: (contrato.observaciones || contrato.documentoUrl) && (
+        <EntityDetailSection icon={ContractIcon} title="Información adicional">
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            {contrato.observaciones && (
+              <Box>
+                <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary', mb: 0.5 }}>
+                  Observaciones:
+                </Typography>
+                <Typography variant="body2" sx={{ fontSize: '0.8rem', fontStyle: 'italic' }}>
+                  {contrato.observaciones}
+                </Typography>
               </Box>
-            </GeometricPaper>
-          )}
-        </Box>
+            )}
+            {contrato.documentoUrl && (
+              <Box>
+                <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary', mb: 0.5 }}>
+                  Documento:
+                </Typography>
+                <Typography 
+                  variant="body2" 
+                  component="a"
+                  href={contrato.documentoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{ 
+                    fontSize: '0.8rem',
+                    color: 'primary.main',
+                    textDecoration: 'none',
+                    '&:hover': {
+                      textDecoration: 'underline'
+                    }
+                  }}
+                >
+                  Ver documento
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </EntityDetailSection>
+      )
+    }
+  ]);
+
+  return (
+    <GeometricDialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      fullScreen={isMobile}
+      actions={
+        <CommonActions
+          onEdit={onEdit}
+          onDelete={onDelete}
+          itemName={titulo}
+          size="medium"
+          direction="row"
+          showDelete={true}
+          showEdit={true}
+          disabled={false}
+        />
+      }
+    >
+      <GeometricModalHeader
+        icon={ContractIcon}
+        title={titulo}
+        chip={<EstadoChip estado={estado} tipo="CONTRATO" />}
+        onClose={onClose}
+      />
+
+      <DialogContent sx={{ p: 2, pt: 1, backgroundColor: theme.palette.collapseHeader.background }}>
+        <EntityDetailSections sections={getContratoDetailSections()} />
       </DialogContent>
 
     </GeometricDialog>

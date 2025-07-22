@@ -17,7 +17,8 @@ import {
   DialogActions,
   TextField,
   MenuItem,
-  Collapse
+  Collapse,
+  Paper
 } from '@mui/material';
 import { 
   Add as AddIcon, 
@@ -391,13 +392,15 @@ export function Propiedades() {
         <CommonDetails 
           title="Propiedades"
         >
-          <PropiedadList
-            propiedades={propiedadesOptimizadas}
-            filteredPropiedades={filteredPropiedades}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onAdd={() => setIsFormOpen(true)}
-          />
+          <Paper sx={{ backgroundColor: (theme) => theme.palette.section.background, boxShadow: 'none', p: 0 }}>
+            <PropiedadList
+              propiedades={propiedadesOptimizadas}
+              filteredPropiedades={filteredPropiedades}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onAdd={() => setIsFormOpen(true)}
+            />
+          </Paper>
         </CommonDetails>
 
         <PropiedadForm

@@ -28,11 +28,13 @@ import ContratoForm from '../components/propiedades/contratos/ContratoForm';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '../config/axios';
 import { EmptyState } from '../components/common';
-import { CommonCard } from '../components/common/CommonCard';
+import { PropiedadContent } from '../components/propiedades';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { calcularAlquilerMensualPromedio } from '../components/propiedades/contratos/contratoUtils';
 import { Toolbar } from '../navigation';
 import { useFormManager } from '../context/FormContext';
+import ContratoCard from '../components/propiedades/contratos/ContratoCard';
+import { CuotasProvider } from '../components/propiedades/contratos/context/CuotasContext';
 
 export function Contratos() {
   const [contratos, setContratos] = useState([]);
@@ -322,7 +324,7 @@ export function Contratos() {
 
   console.log('Contratos cargados:', contratos);
 
-  // Configuración para mostrar contratos en CommonCard
+  // Configuración para mostrar contratos en PropiedadContent
   const contratoConfig = {
     getTitle: (contrato) => contrato.tipo || 'Contrato',
     getSubtitle: (contrato) => `${contrato.fechaInicio || ''} - ${contrato.fechaFin || ''}`,
@@ -361,11 +363,11 @@ export function Contratos() {
               description="No hay contratos para mostrar"
             />
           ) : (
-            <CommonCard
-              type="list"
-              data={contratos}
-              config={contratoConfig}
-            />
+            <Box>
+              {contratos.map((contrato) => (
+                <ContratoCard key={contrato._id || contrato.id} contrato={contrato} />
+              ))}
+            </Box>
           )}
         </Box>
 

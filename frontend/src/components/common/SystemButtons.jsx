@@ -8,6 +8,7 @@ import { useValuesVisibility } from '../../context/ValuesVisibilityContext';
 import MenuIcon from '@mui/icons-material/MenuOutlined';
 import { Refresh as RefreshIcon, Undo as UndoIcon, History as HistoryIcon, AddOutlined as AddOutlinedIcon, VisibilityOff as HideValuesIcon } from '@mui/icons-material';
 import { Badge, Menu, MenuItem, ListItemText, ListItemIcon, Chip } from '@mui/material';
+import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 
 // Diálogo de confirmación para eliminar
 const DeleteConfirmDialog = memo(({ open, onClose, onConfirm, itemName }) => (
@@ -475,6 +476,23 @@ function HeaderUndoMenu({ iconSx }) {
   btn.type.isButtonComponent = true;
   return btn;
 }
+
+// Botón reutilizable de colapso/expandir
+export const CollapseIconButton = ({ expanded, onClick, sx = {}, ...props }) => (
+  <IconButton
+    onClick={onClick}
+    size="small"
+    sx={{
+      transition: 'transform 0.2s',
+      transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+      color: 'text.secondary',
+      ...sx
+    }}
+    {...props}
+  >
+    <ExpandMoreIcon />
+  </IconButton>
+);
 
 // Exportar subcomponentes
 SystemButtons.MenuButton = HeaderMenuButton;

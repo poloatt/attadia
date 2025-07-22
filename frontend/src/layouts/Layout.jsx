@@ -41,8 +41,9 @@ export function Layout() {
   }
 
   // Calcular el padding-top dinámicamente según si la toolbar está activa
-  const toolbarHeight = showEntityToolbarNavigation ? 2 : 0; // 2px es la altura de EntityToolbar
-  const headerHeight = 40; // 40px es la altura del Header
+  // En móvil: header 40px + toolbar 40px. En desktop: header 40px + toolbar 2px
+  const headerHeight = 40;
+  const toolbarHeight = showEntityToolbarNavigation ? (isMobile ? 40 : 2) : 0;
   const totalTopPadding = headerHeight + toolbarHeight;
 
   return (

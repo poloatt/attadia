@@ -14,11 +14,20 @@ const theme = createTheme({
       paper: '#181818',
       toolbar: 'rgba(24, 24, 24, 0.8)'
     },
+    collapse: {
+      background: 'transparent'
+    },
+    collapseHeader: {
+      background: '#181818'
+    },
     text: {
       primary: '#e6e6e6',
       secondary: '#a6a7ab',
     },
-    divider: 'rgba(140, 140, 140, 0.15)',
+    divider: '#232323',
+    section: {
+      background: '#181818'
+    },
   },
   typography: {
     fontFamily: [

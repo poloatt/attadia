@@ -18,24 +18,26 @@ const CommonHeader = ({
   actions = null,
   ...props
 }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap, ...props }}>
-    {Icon && <Icon {...iconProps} sx={{ fontSize: iconSize, ...iconProps.sx }} />}
-    <Box>
-      <Typography
-        variant={titleSize}
-        sx={{
-          fontWeight: titleWeight,
-          fontSize: titleSize === 'subtitle1' ? '0.9rem' : undefined,
-          lineHeight: titleSize === 'subtitle1' ? 1.2 : undefined
-        }}
-      >
-        {title}
-      </Typography>
-      {subtitle && (
-        <Typography variant="caption" color="text.secondary">
-          {subtitle}
+  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap, ...props }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap }}>
+      {Icon && <Icon {...iconProps} sx={{ fontSize: iconSize, ...iconProps.sx }} />}
+      <Box>
+        <Typography
+          variant={titleSize}
+          sx={{
+            fontWeight: titleWeight,
+            fontSize: titleSize === 'subtitle1' ? '0.9rem' : undefined,
+            lineHeight: titleSize === 'subtitle1' ? 1.2 : undefined
+          }}
+        >
+          {title}
         </Typography>
-      )}
+        {subtitle && (
+          <Typography variant="caption" color="text.secondary">
+            {subtitle}
+          </Typography>
+        )}
+      </Box>
     </Box>
     {showEstado && estado && (
       <Box
@@ -55,7 +57,6 @@ const CommonHeader = ({
         }}
       >
         <EstadoIcon estado={estado} tipo={tipo} />
-        <span>{getEstadoText(estado, tipo)}</span>
       </Box>
     )}
     {actions}

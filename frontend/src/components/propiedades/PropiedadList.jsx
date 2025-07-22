@@ -62,7 +62,7 @@ const PropiedadList = ({ isAssets = false, ...props }) => {
 
   return (
     <Box sx={{ mt: isAssets ? 0 : 2 }}>
-      {propiedadesToRender.map((propiedad) => {
+      {propiedadesToRender.map((propiedad, idx) => {
         // Verificar si hay datos relacionados disponibles
         const propiedadConDatos = {
           ...propiedad,
@@ -75,27 +75,34 @@ const PropiedadList = ({ isAssets = false, ...props }) => {
         };
         
         return (
-          <Box 
-            key={propiedad._id || propiedad.id}
-            sx={{ 
-              mb: 1,
-              pb: 1,
-              bgcolor: '#181818',
-              '&:last-child': {
-                mb: 0,
-                pb: 0
-              }
-            }}
-          >
-            <PropiedadCard
-              propiedad={propiedadConDatos}
-              onEdit={props.onEdit}
-              onDelete={props.onDelete}
-              isAssets={isAssets}
-              isExpanded={expandedProperties[propiedad._id || propiedad.id] || false}
-              onToggleExpand={() => handleToggleExpand(propiedad._id || propiedad.id)}
-            />
-          </Box>
+          <React.Fragment key={propiedad._id || propiedad.id}>
+            <Box 
+              sx={{
+                mb: (propiedadConDatos.inquilinos.length === 0 && propiedadConDatos.habitaciones.length === 0 && propiedadConDatos.contratos.length === 0 && propiedadConDatos.documentos.length === 0) ? 1 : 0,
+                pb: (propiedadConDatos.inquilinos.length === 0 && propiedadConDatos.habitaciones.length === 0 && propiedadConDatos.contratos.length === 0 && propiedadConDatos.documentos.length === 0) ? 1 : 0,
+                bgcolor: (theme) => theme.palette.collapse.background,
+                border: 1,
+                borderColor: (theme) => theme.palette.divider,
+                '&:last-child': {
+                  mb: 0,
+                  pb: 0
+                }
+              }}
+            >
+              <PropiedadCard
+                propiedad={propiedadConDatos}
+                onEdit={props.onEdit}
+                onDelete={props.onDelete}
+                isAssets={isAssets}
+                isExpanded={expandedProperties[propiedad._id || propiedad.id] || false}
+                onToggleExpand={() => handleToggleExpand(propiedad._id || propiedad.id)}
+              />
+            </Box>
+            {/* Espacio visual entre propiedades con fondo principal */}
+            {idx < propiedadesToRender.length - 1 && (
+              <Box sx={{ height: 8, backgroundColor: (theme) => theme.palette.background.default }} />
+            )}
+          </React.Fragment>
         );
       })}
     </Box>

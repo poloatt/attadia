@@ -50,6 +50,7 @@ import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EngineeringIcon from '@mui/icons-material/Engineering';
 import BookmarkAddedIcon from '@mui/icons-material/BookmarkAdded';
+import { useTheme } from '@mui/material/styles';
 
 
 export function Assets() {
@@ -338,6 +339,8 @@ export function Assets() {
     }
   };
 
+  const theme = useTheme();
+
   const FinanceSection = () => (
     <Box>
       <Box sx={{ 
@@ -402,7 +405,8 @@ export function Assets() {
             mt: 0.5,
             pt: 0.5,
             borderTop: 1,
-            borderColor: 'divider'
+            borderColor: theme.palette.divider,
+            backgroundColor: theme.palette.collapse.background
           }}>
           {accounts.map((account) => {
             const monedaSymbol = account.moneda?.simbolo || '$';
@@ -495,8 +499,8 @@ export function Assets() {
               py: 0.25,
               bgcolor: 'rgba(255, 255, 255, 0.05)',
               borderRadius: 1,
-              border: '1px solid',
-              borderColor: 'divider'
+              border: 1,
+              borderColor: theme.palette.divider
             }}>
               <PercentIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 400, fontSize: '0.7rem' }}>
@@ -528,7 +532,8 @@ export function Assets() {
             mt: 0.25, 
             pb: 0, 
             borderTop: 1, 
-            borderColor: 'divider'
+            borderColor: theme.palette.divider,
+            backgroundColor: theme.palette.collapse.background
           }}>
             {/* Listado de propiedades detallado */}
             {propiedades.length === 0 && (
@@ -592,18 +597,9 @@ export function Assets() {
         <Grid container spacing={2}>
           {/* Sección de Propiedades */}
           <Grid item xs={12} md={6}>
-            <Paper sx={{ 
-              p: 1.5, 
-              height: '100%',
-              borderRadius: 2,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
-              backgroundColor: '#181818 !important',
-              '&.MuiPaper-root': {
-                backgroundColor: '#181818 !important'
-              }
-            }}>
+            <Box>
               <PropertiesSection />
-            </Paper>
+            </Box>
           </Grid>
 
           {/* Sección de Cuentas */}
@@ -612,11 +608,8 @@ export function Assets() {
               p: 2, 
               height: '100%',
               borderRadius: 2,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
-              backgroundColor: '#181818 !important',
-              '&.MuiPaper-root': {
-                backgroundColor: '#181818 !important'
-              }
+              boxShadow: 'none',
+              backgroundColor: (theme) => theme.palette.section.background
             }}>
               <FinanceSection />
             </Paper>

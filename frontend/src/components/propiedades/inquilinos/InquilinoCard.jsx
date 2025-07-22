@@ -32,6 +32,12 @@ import { useNavigate } from 'react-router-dom';
 import InquilinoDetail from './InquilinoDetail';
 import { ContratoDetail } from '../contratos';
 import { getEstadoColor, getEstadoText, getEstadoIcon, getStatusIconComponent } from '../../common/StatusSystem';
+import CommonHeader from '../../common/CommonHeader';
+import EstadoIcon from '../../common/EstadoIcon';
+import CommonActions from '../../common/CommonActions';
+import TipoPropiedadIcon from '../TipoPropiedadIcon';
+import { formatFecha } from '../contratos/contratoUtils';
+import PropiedadDetail from '../PropiedadDetail';
 
 // Componentes estilizados siguiendo la estética geométrica
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -106,6 +112,7 @@ const InquilinoCard = ({
   const navigate = useNavigate();
   const [detailOpen, setDetailOpen] = React.useState(false);
   const [contratoDetailOpen, setContratoDetailOpen] = React.useState(false);
+  const [propiedadDetailOpen, setPropiedadDetailOpen] = React.useState(false);
   
   const {
     _id,
@@ -200,106 +207,40 @@ const InquilinoCard = ({
           borderTopColor: estadoActual === 'ACTIVO' ? getStatusColor(estadoActual) : 'divider',
         }}
       >
-        {/* Barra de acciones */}
+        {/* Acciones en el margen superior derecho */}
         {showActions && (
-          <ActionBar>
-            <Tooltip title="Ver detalle">
-              <StyledIconButton size="small" onClick={handleOpenDetail}>
-                <ViewIcon sx={{ fontSize: '1rem' }} />
-              </StyledIconButton>
-            </Tooltip>
-            
-            <Tooltip title="Editar">
-              <StyledIconButton size="small" onClick={() => onEdit(inquilino)}>
-                <EditIcon sx={{ fontSize: '1rem' }} />
-              </StyledIconButton>
-            </Tooltip>
-            
-            {/* Botón de crear contrato */}
-            {onCreateContract && (
-              <Tooltip title="Crear contrato">
-                <StyledIconButton 
-                  size="small" 
-                  onClick={() => onCreateContract(inquilino)}
-                >
-                  <AddIcon sx={{ fontSize: '1rem' }} />
-                </StyledIconButton>
-              </Tooltip>
-            )}
-            
-            <Tooltip title="Eliminar">
-              <StyledIconButton 
-                size="small" 
-                onClick={() => onDelete(inquilino)}
-              >
-                <DeleteIcon sx={{ fontSize: '1rem' }} />
-              </StyledIconButton>
-            </Tooltip>
-          </ActionBar>
+          <Box sx={{ position: 'absolute', top: 8, right: 8, zIndex: 2 }}>
+            <CommonActions
+              onEdit={() => onEdit(inquilino)}
+              onDelete={() => onDelete(inquilino)}
+              itemName={`${nombre} ${apellido}`}
+            />
+          </Box>
         )}
-
         {/* Contenido Principal */}
         <Box sx={{ display: 'flex', gap: 2, mb: 2, pr: showActions ? 8 : 0 }}>
-          <StyledAvatar>
-            {getInitials()}
-          </StyledAvatar>
-
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            {/* Nombre */}
-            <Typography 
-              variant="subtitle1" 
-              sx={{ 
-                fontWeight: 600, 
-                flex: 1,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              {nombre} {apellido}
-            </Typography>
-            {/* Chip de estado debajo del nombre */}
-            <Tooltip title={inquilino.estadoDescripcion || ''} disableHoverListener={!inquilino.estadoDescripcion} arrow>
-              <Box
-                sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '2px 4px',
-                  fontSize: '0.75rem',
-                  color: getEstadoColor(estadoActual, 'INQUILINO'),
-                  height: '20px',
-                  marginTop: 0.5,
-                  marginBottom: 0.5
-                }}
-              >
-                {getStatusIconComponent(estadoActual, 'INQUILINO')}
-                {inquilino.estadoLabel || getEstadoText(estadoActual, 'INQUILINO')}
-              </Box>
-            </Tooltip>
-            {/* Información de contacto */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-              {email && (
-                <InfoRow>
-                  <EmailIcon />
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary"
-                    sx={{
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {email}
-                  </Typography>
-                </InfoRow>
-              )}
+            <CommonHeader
+              icon={EstadoIcon}
+              iconProps={{ estado: estadoActual, tipo: 'INQUILINO', sx: { fontSize: 22, mr: 1 } }}
+              title={`${nombre} ${apellido}`}
+              subtitle={dni || ''}
+              titleSize="subtitle1"
+              titleWeight={600}
+              gap={1}
+            />
+          </Box>
+        </Box>
+        {/* Información de contacto y datos adicionales */}
+        {(telefono || email) && (
+          <>
+            <Divider sx={{ my: 1, opacity: 0.5 }} />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.2 }}>
               {telefono && (
                 <InfoRow>
-                  <PhoneIcon />
-                  <Typography 
-                    variant="body2" 
+                  <PhoneIcon sx={{ ml: 1 }} />
+                  <Typography
+                    variant="body2"
                     color="text.secondary"
                     sx={{
                       overflow: 'hidden',
@@ -311,17 +252,17 @@ const InquilinoCard = ({
                   </Typography>
                 </InfoRow>
               )}
-              {dni && (
+              {email && (
                 <InfoRow>
-                  <BadgeIcon />
-                  <Typography variant="body2" color="text.secondary">
-                    DNI: {dni}
+                  <EmailIcon sx={{ ml: 1 }} />
+                  <Typography variant="body2" color="text.secondary" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {email}
                   </Typography>
                 </InfoRow>
               )}
             </Box>
-          </Box>
-        </Box>
+          </>
+        )}
 
         {/* Información del contrato */}
         {contratoActual && contratoActual.propiedad && contratoActual.fechaInicio && contratoActual.fechaFin && (
@@ -336,7 +277,7 @@ const InquilinoCard = ({
               width: '100%',
               margin: 0
             }}>
-              <ContractIcon sx={{ fontSize: 24, color: 'primary.main', mt: 0.2 }} />
+              <TipoPropiedadIcon tipo={contratoActual.propiedad?.tipo} sx={{ fontSize: 24, color: 'primary.main', mt: 0.2 }} />
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
                   <Typography
@@ -351,16 +292,19 @@ const InquilinoCard = ({
                     }}
                     component="span"
                   >
-                    {contratoActual.propiedad?.titulo || contratoActual.propiedad?.nombre || 'Propiedad'}
+                    {contratoActual.propiedad?.alias || contratoActual.propiedad?.nombre || 'Propiedad'}
                   </Typography>
-                  <Tooltip title="Ver detalle del contrato">
-                    <StyledIconButton size="small" onClick={() => setContratoDetailOpen(true)}>
-                      <ViewIcon sx={{ fontSize: 18 }} />
-                    </StyledIconButton>
-                  </Tooltip>
+                 {/* Botones de ver contrato y ver propiedad a la derecha */}
+                 <CommonActions
+                   onContratoDetail={contratoActual ? () => setContratoDetailOpen(true) : undefined}
+                   onPropiedadDetail={contratoActual && contratoActual.propiedad ? () => setPropiedadDetailOpen(true) : undefined}
+                   size="small"
+                   direction="row"
+                   tipoPropiedad={contratoActual?.propiedad?.tipo}
+                 />
                 </Box>
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 0.1, lineHeight: 1.2 }}>
-                  {new Date(contratoActual.fechaInicio).toLocaleDateString()} - {new Date(contratoActual.fechaFin).toLocaleDateString()} • {formatContratoDuration(contratoActual.fechaInicio, contratoActual.fechaFin)}
+                  {formatFecha(contratoActual.fechaInicio)} - {formatFecha(contratoActual.fechaFin)} • {formatContratoDuration(contratoActual.fechaInicio, contratoActual.fechaFin)}
                 </Typography>
               </Box>
             </Box>
@@ -384,6 +328,14 @@ const InquilinoCard = ({
           contrato={contratoActual}
           onEdit={() => { setContratoDetailOpen(false); navigate('/contratos', { state: { editContract: true, contratoId: contratoActual._id } }); }}
           onDelete={() => setContratoDetailOpen(false)}
+        />
+      )}
+      {/* Modal de detalle de propiedad */}
+      {contratoActual && contratoActual.propiedad && (
+        <PropiedadDetail
+          open={propiedadDetailOpen}
+          onClose={() => setPropiedadDetailOpen(false)}
+          propiedad={contratoActual.propiedad}
         />
       )}
     </>

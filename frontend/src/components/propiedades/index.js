@@ -3,6 +3,7 @@ export { default as PropiedadForm } from './PropiedadForm';
 export { default as PropiedadDetail } from './PropiedadDetail';
 export { default as TipoPropiedadIcon } from './TipoPropiedadIcon';
 export { default as HabitacionesForm } from './HabitacionesForm';
+export { default as PropiedadContent, crearSeccionesPropiedad, SECTION_CONFIGS, SECTION_PADDING_X } from './PropiedadContent';
 export * from './SeccionesPropiedad';
 export * from './propiedadUtils';
 export * from './PropiedadStyles';

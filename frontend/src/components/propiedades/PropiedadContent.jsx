@@ -56,6 +56,7 @@ import EstadoFinanzasContrato from '../propiedades/contratos/EstadoFinanzasContr
 import { CuotasProvider } from '../propiedades/contratos/context/CuotasContext';
 import { calcularEstadoCuotasContrato } from '../propiedades/contratos/contratoUtils';
 import { SeccionUbicacion, SeccionHabitaciones, SeccionDocumentos } from '../propiedades/SeccionesPropiedad';
+import { useTheme } from '@mui/material/styles';
 
 // Constantes de estilo jerárquicas para alineación y separadores
 const SECTION_PADDING_X = 1;
@@ -92,9 +93,9 @@ const GeometricPaper = styled(Paper)(({ theme }) => ({
   borderRadius: 0,
   padding: theme.spacing(0.05, 1.5), // padding horizontal unificado
   border: 'none',
-  backgroundColor: theme.palette.mode === 'dark' ? '#181818' : 'rgba(240,240,240,1)',
+  backgroundColor: theme.palette.collapse.background,
   boxShadow: '0 1px 0 0 rgba(0,0,0,0.18)',
-  borderBottom: '1px solid rgba(255,255,255,0.04)',
+  borderBottom: `1px solid ${theme.palette.divider}`,
   transition: 'all 0.2s ease',
   height: '100%',
   display: 'flex',
@@ -102,7 +103,7 @@ const GeometricPaper = styled(Paper)(({ theme }) => ({
   justifyContent: 'center',
   minHeight: '14px',
   '&:hover': {
-    backgroundColor: 'rgba(40,40,40,1)',
+    backgroundColor: theme.palette.collapse.background,
   }
 }));
 
@@ -111,9 +112,9 @@ const CompactPaper = styled(Paper)(({ theme }) => ({
   borderRadius: 0,
   padding: theme.spacing(0.03, 0.5),
   border: 'none',
-  backgroundColor: theme.palette.mode === 'dark' ? '#181818' : 'rgba(240,240,240,1)',
+  backgroundColor: theme.palette.collapse.background,
   boxShadow: '0 1px 0 0 rgba(0,0,0,0.18)',
-  borderBottom: '1px solid rgba(255,255,255,0.04)',
+  borderBottom: `1px solid ${theme.palette.divider}`,
   transition: 'all 0.2s ease',
   height: '100%',
   display: 'flex',
@@ -121,7 +122,7 @@ const CompactPaper = styled(Paper)(({ theme }) => ({
   justifyContent: 'center',
   minHeight: '12px',
   '&:hover': {
-    backgroundColor: 'rgba(40,40,40,1)',
+    backgroundColor: theme.palette.collapse.background,
   }
 }));
 
@@ -553,7 +554,7 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
     // Si no hay inquilinos, mostrar mensaje
     if (!inquilinosArr.length) {
       return (
-        <Box sx={{ minHeight: '40px', bgcolor: '#181818', p: 1 }}>
+        <Box sx={{ minHeight: '40px', bgcolor: theme.palette.collapse.background, p: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.5 }}>
             <PeopleIcon sx={{ fontSize: '1.2rem', color: 'text.secondary', flexShrink: 0 }} />
             <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.secondary' }}>
@@ -568,7 +569,7 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
     const nombres = inquilinosArr.map(i => `${i.nombre} ${i.apellido}`.trim()).filter(Boolean);
     const friendly = nombres.slice(0, maxToShow).join(', ') + (nombres.length > maxToShow ? ` +${nombres.length - maxToShow} más` : '');
     return (
-      <Box sx={{ minHeight: '40px', bgcolor: '#181818', p: 1 }}>
+      <Box sx={{ minHeight: '40px', bgcolor: theme.palette.collapse.background, p: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.5 }}>
           <PeopleIcon sx={{ fontSize: '1.2rem', color: 'text.secondary', flexShrink: 0 }} />
           <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '0.85rem' }}>
@@ -583,7 +584,7 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
     const hasRight = (section.right || []).length > 0;
     
     return (
-      <Box sx={{ minHeight: SECTION_MIN_HEIGHT, px: SECTION_PADDING_X, py: 0.2, display: 'flex', flexDirection: 'column', gap: SECTION_GAP, bgcolor: '#181818' }}>
+      <Box sx={{ minHeight: SECTION_MIN_HEIGHT, px: SECTION_PADDING_X, py: 0.2, display: 'flex', flexDirection: 'column', gap: SECTION_GAP, bgcolor: theme.palette.collapse.background }}>
         <PrimarySectionHeader icon={section.left[0]?.icon} title={section.left[0]?.label || ''} />
         <Box sx={{ display: 'flex', width: '100%' }}>
           {/* Columna izquierda */}
@@ -615,7 +616,7 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
     const subtituloDerecha = section.right?.[0]?.subtitle || '';
     
     return (
-      <Box sx={{ minHeight: '40px', bgcolor: '#181818' }}>
+      <Box sx={{ minHeight: '40px', bgcolor: theme.palette.collapse.background }}>
         <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', width: '100%' }}>
           {/* Número grande y etiqueta izquierda */}
           <Box sx={{ 
@@ -701,7 +702,7 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
     const ytd = valuesRight[0] || '';
     const ytg = valuesRight[1] || '';
     return (
-      <Box sx={{ minHeight: '40px', bgcolor: '#181818' }}>
+      <Box sx={{ minHeight: '40px', bgcolor: theme.palette.collapse.background }}>
         <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', width: '100%' }}>
           {/* Ícono izquierda */}
           {iconLeft && (
@@ -800,7 +801,7 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
     }
     const metrosCuadrados = section.right?.[0]?.value || '';
     return (
-      <Box sx={{ minHeight: '28px', px: SECTION_PADDING_X, bgcolor: '#181818' }}>
+      <Box sx={{ minHeight: '28px', px: SECTION_PADDING_X, bgcolor: theme.palette.collapse.background }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
           {/* Izquierda: ícono + dirección/ciudad */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, px: 1, py: 0.2 }}>
@@ -902,7 +903,7 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
     const contratosAMostrar = showAllContratos ? contratos : contratos.slice(0, 2);
     const contratosOcultos = contratos.length - contratosAMostrar.length;
     return (
-      <Box sx={{ minHeight: SECTION_MIN_HEIGHT, px: SECTION_PADDING_X, py: 0.2, display: 'flex', flexDirection: 'column', gap: SECTION_GAP, bgcolor: '#181818' }}>
+      <Box sx={{ minHeight: SECTION_MIN_HEIGHT, px: SECTION_PADDING_X, py: 0.2, display: 'flex', flexDirection: 'column', gap: SECTION_GAP, bgcolor: theme.palette.collapse.background }}>
         {documentos.length === 0 ? (
           <Typography variant="caption" color="text.secondary" sx={{ pl: 1 }}>
             No hay documentos
@@ -1046,7 +1047,7 @@ const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null
     const hasLeft = (section.left || []).length > 0;
     const hasRight = (section.right || []).length > 0;
     return (
-      <Box sx={{ minHeight: SECTION_MIN_HEIGHT, px: SECTION_PADDING_X, py: 0.2, display: 'flex', flexDirection: 'column', gap: SECTION_GAP, bgcolor: '#181818' }}>
+      <Box sx={{ minHeight: SECTION_MIN_HEIGHT, px: SECTION_PADDING_X, py: 0.2, display: 'flex', flexDirection: 'column', gap: SECTION_GAP, bgcolor: theme.palette.collapse.background }}>
         <PrimarySectionHeader icon={section.left[0]?.icon} title={section.left[0]?.label || ''} />
         <Box sx={{ display: 'flex', width: '100%' }}>
           {/* Columna izquierda */}
@@ -1753,7 +1754,7 @@ const HabitacionesRenderer = ({ section, isCollapsed = false }) => {
 };
 
 // Componente principal EntityGridView
-const EntityGridView = ({ 
+const PropiedadContent = ({ 
   type = 'list',
   data,
   config,
@@ -1923,8 +1924,9 @@ const EntityGridView = ({
   );
 };
 
-export default EntityGridView;
+export default PropiedadContent;
 export { 
+  PropiedadContent,
   EntityCard, 
   EntityGrid, 
   InfoGrid, 
@@ -1974,5 +1976,3 @@ const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta,
   return secciones;
 };
 // --- FIN: Definición de crearSeccionesPropiedad ---
-
-export const CommonCard = EntityGridView;

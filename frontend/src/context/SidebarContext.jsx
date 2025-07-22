@@ -112,11 +112,15 @@ export function SidebarProvider({ children }) {
   }, [isDesktop]);
 
   const openSidebar = useCallback(() => {
-    setIsOpen(true);
-    if (isDesktop) {
-      localStorage.setItem('sidebarDesktopOpen', 'true');
+    // Mejora de transición: en móvil, abrir con retardo para animación suave si thirdLevelItems aparece
+    if (!isDesktop) {
+      setTimeout(() => {
+        setIsOpen(true);
+        localStorage.setItem('sidebarMobileOpen', 'true');
+      }, 80); // 80ms para permitir animación
     } else {
-      localStorage.setItem('sidebarMobileOpen', 'true');
+      setIsOpen(true);
+      localStorage.setItem('sidebarDesktopOpen', 'true');
     }
   }, [isDesktop]);
 

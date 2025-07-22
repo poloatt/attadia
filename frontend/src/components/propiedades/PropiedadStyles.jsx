@@ -6,7 +6,7 @@ export const StyledCard = styled(Card, {
   shouldForwardProp: (prop) => prop !== 'isAssets'
 })(({ theme, isAssets }) => ({
   borderRadius: 0,
-  backgroundColor: '#181818',
+  backgroundColor: theme.palette.collapse.background,
   backgroundImage: 'none',
   boxShadow: 'none',
   border: 'none',
