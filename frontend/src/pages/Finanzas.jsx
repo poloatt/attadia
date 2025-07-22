@@ -14,7 +14,7 @@ import { CommonForm } from '../components/common';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import { useAPI } from '../hooks/useAPI';
-import { EntityToolbar } from '../components/EntityViews';
+import { Toolbar } from '../navigation';
 
 const FinanzasCard = ({ title, description, icon: Icon, path, color = 'primary.main' }) => {
   const navigate = useNavigate();
@@ -173,7 +173,7 @@ export default function Finanzas() {
       <CommonForm open={openCuenta} onClose={() => setOpenCuenta(false)} onSubmit={handleSubmitCuenta} title="Nueva Cuenta" fields={formFieldsCuenta} initialData={{}} isEditing={false} />
       <CommonForm open={openMoneda} onClose={() => setOpenMoneda(false)} onSubmit={handleSubmitMoneda} title="Nueva Moneda" fields={formFieldsMoneda} initialData={{}} isEditing={false} />
       <CommonForm open={openTransaccion} onClose={() => setOpenTransaccion(false)} onSubmit={handleSubmitTransaccion} title="Nueva Transacción" fields={formFieldsTransaccion} initialData={{}} isEditing={false} />
-      <EntityToolbar />
+      <Toolbar />
       <Box sx={{ 
         width: '100%',
         maxWidth: 1200,

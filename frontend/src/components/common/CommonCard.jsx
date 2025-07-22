@@ -51,7 +51,6 @@ import { contarItemsPorHabitacion } from '../propiedades/propiedadUtils';
 import { icons } from '../../navigation/menuIcons';
 import { getStatusIconComponent, getStatusIconComponentRaw, getEstadoColor, getEstadoText } from '../common/StatusSystem';
 import { IconoContratoDocumentos } from '../propiedades/SeccionesPropiedad';
-import BarraEstadoPropiedad from '../propiedades/BarraEstadoPropiedad';
 import { calcularProgresoOcupacion, calcularYearToDate, calcularYearToGo } from '../propiedades/propiedadUtils';
 import EstadoFinanzasContrato from '../propiedades/contratos/EstadoFinanzasContrato';
 import { CuotasProvider } from '../propiedades/contratos/context/CuotasContext';
@@ -1998,60 +1997,8 @@ export {
 
 // --- INICIO: Definición de crearSeccionesPropiedad ---
 const crearSeccionesPropiedad = (propiedad, precio, simboloMoneda, nombreCuenta, moneda, habitaciones, contratos, documentos = [], extendida = false) => {
-  const progresoOcupacion = calcularProgresoOcupacion(propiedad);
-  const datosFinancierosAdicionales = [
-    {
-      icon: MoneyIcon,
-      label: 'YTG',
-      value: calcularYearToGo(propiedad),
-      subtitle: 'YTG',
-      color: 'text.secondary'
-    },
-    {
-      icon: MoneyIcon,
-      label: 'YTD',
-      value: calcularYearToDate(propiedad),
-      subtitle: 'YTD',
-      color: 'text.secondary'
-    }
-  ];
-  const seccionFinancieraPersonalizada = {
-    type: 'primary',
-    render: () => {
-      // Filtrar solo el contrato ACTIVO
-      const contratoActivo = (contratos || []).find(c => {
-        if (!c) return false;
-        const hoy = new Date();
-        hoy.setHours(0, 0, 0, 0);
-        const inicio = c.fechaInicio ? new Date(c.fechaInicio) : null;
-        const fin = c.fechaFin ? new Date(c.fechaFin) : null;
-        if (!inicio || !fin) return false;
-        return inicio <= hoy && fin > hoy && c.tipoContrato !== 'MANTENIMIENTO';
-      });
-      if (!contratoActivo) return null;
-      return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, width: '100%', bgcolor: '#181818', p: 0, m: 0 }}>
-          <Box sx={{ width: '100%', p: 0, m: 0 }}>
-            <CuotasProvider 
-              contratoId={contratoActivo._id || contratoActivo.id}
-              formData={contratoActivo}
-            >
-              <EstadoFinanzasContrato 
-                contrato={contratoActivo} 
-                contratoId={contratoActivo._id || contratoActivo.id} 
-                showTitle={false} 
-                compact={false} 
-                sx={{ p: 0, m: 0, borderRadius: 0 }} 
-                noBorder={true}
-              />
-            </CuotasProvider>
-          </Box>
-        </Box>
-      );
-    }
-  };
+  // Solo armar secciones de presentación, sin lógica de cuotas ni barra financiera
   let secciones = [
-    seccionFinancieraPersonalizada,
     SECTION_CONFIGS.ubicacion(propiedad)
   ];
   if (extendida) {

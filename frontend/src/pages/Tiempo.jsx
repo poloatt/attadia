@@ -23,7 +23,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   AccessTimeOutlined as TimeIcon
 } from '@mui/icons-material';
-import { EntityToolbar } from '../components/EntityViews';
+import { Toolbar } from '../navigation';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import { useNavigationBar } from '../context/NavigationBarContext';
@@ -310,7 +310,7 @@ export function Tiempo() {
   return (
     <Box sx={{ px: 0, width: '100%' }}>
       <Container maxWidth={isMobile ? "sm" : "xl"} sx={{ px: isMobile ? 1 : 3 }}>
-        <EntityToolbar />
+        <Toolbar />
 
         <Box 
           sx={{ 

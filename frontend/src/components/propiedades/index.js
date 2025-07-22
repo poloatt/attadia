@@ -1,9 +1,7 @@
 export { default as PropiedadCard } from './PropiedadCard';
 export { default as PropiedadForm } from './PropiedadForm';
 export { default as PropiedadDetail } from './PropiedadDetail';
-export { default as BarraEstadoPropiedad } from './BarraEstadoPropiedad';
 export { default as TipoPropiedadIcon } from './TipoPropiedadIcon';
-export { default as PropiedadHeader } from './PropiedadHeader';
 export { default as HabitacionesForm } from './HabitacionesForm';
 export * from './SeccionesPropiedad';
 export * from './propiedadUtils';

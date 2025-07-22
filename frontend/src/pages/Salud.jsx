@@ -7,13 +7,13 @@ import {
   MonitorWeightOutlined as WeightIcon
 } from '@mui/icons-material';
 import { CommonDetails } from '../components/common';
-import { EntityToolbar } from '../components/EntityViews';
+import { Toolbar } from '../navigation';
 import { CommonConstruction } from '../components/common';
 
 export function Salud() {
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar />
+      <Toolbar />
 
       <CommonDetails
         title="Salud"

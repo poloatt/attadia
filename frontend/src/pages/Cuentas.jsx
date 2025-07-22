@@ -18,7 +18,7 @@ import {
   AccordionSummary,
   AccordionDetails,
 } from '@mui/material';
-import { EntityToolbar } from '../components/EntityViews';
+import { Toolbar } from '../navigation';
 import { CommonForm, CommonActions } from '../components/common';
 import { 
   AccountBalanceOutlined as BankIcon,
@@ -564,7 +564,7 @@ export function Cuentas() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar />
+      <Toolbar />
       {/* Modal para crear cuenta (manual o MercadoPago) */}
       <BankConnectionForm
         open={isBankConnectionFormOpen}

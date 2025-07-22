@@ -8,7 +8,8 @@ import {
   IconButton,
   Stack,
   Collapse,
-  Chip
+  Chip,
+  Tooltip
 } from '@mui/material';
 import CommonActions from '../common/CommonActions';
 import { KeyboardArrowDown as ExpandIcon } from '@mui/icons-material';
@@ -37,7 +38,7 @@ const EstadoChip = ({ estado, tipo = 'PROPIEDAD', sx = {} }) => (
   </Box>
 );
 
-const EntityGroupedCards = ({ 
+const CommonGrid = ({ 
   data = [], 
   config = {}, 
   gridProps = {} 
@@ -97,16 +98,20 @@ const EntityGroupedCards = ({
               }
             }}
           >
-            <IconButton
-              size="small"
-              sx={{ 
-                p: 0,
-                transform: expandedGroups[group.info.key] ? 'rotate(-180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.2s'
-              }}
-            >
-              <ExpandIcon />
-            </IconButton>
+            <Tooltip title={expandedGroups[group.info.key] ? 'Ocultar' : 'Expandir'}>
+              <span>
+                <IconButton
+                  size="small"
+                  sx={{ 
+                    p: 0,
+                    transform: expandedGroups[group.info.key] ? 'rotate(-180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s'
+                  }}
+                >
+                  <ExpandIcon />
+                </IconButton>
+              </span>
+            </Tooltip>
             {group.info.icon}
             <Typography 
               variant="subtitle1" 
@@ -205,4 +210,4 @@ const EntityGroupedCards = ({
   );
 };
 
-export default EntityGroupedCards; 
+export default CommonGrid; 

@@ -20,7 +20,7 @@ import {
 } from '@mui/icons-material';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
-import { StyledCuotasIconButton } from './ContratoFormStyles';
+import { StyledCuotasIconButton } from '../../common/CommonFormStyles';
 import CuotaInlineEditor from './CuotaInlineEditor';
 import { useCuotasContext } from './context/CuotasContext';
 import { calcularEstadoCuotasContrato } from './contratoUtils';

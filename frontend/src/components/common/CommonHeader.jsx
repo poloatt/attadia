@@ -1,96 +1,65 @@
-import {
-  ListAlt as ListIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  ExpandMore as ExpandMoreIcon,
-  HomeOutlined as HomeIcon,
-  Engineering as EngineeringIcon,
-  BusinessOutlined as BusinessIcon,
-  StoreOutlined as ServicesIcon
-} from '@mui/icons-material';
-import { IconButton } from '@mui/material';
-import { getEstadoLabel, getEstadoContrato } from '../propiedades/contratos/contratoUtils';
-import { getEstadoColor } from './StatusSystem';
+import React from 'react';
+import { Box, Typography } from '@mui/material';
+import EstadoIcon from './EstadoIcon';
+import { getEstadoColor, getEstadoText } from './StatusSystem';
 
-// Funciones auxiliares para propiedades
-const getPropiedadIcon = (tipo) => {
-  const iconMap = {
-    'CASA': HomeIcon,
-    'DEPARTAMENTO': BusinessIcon,
-    'APARTAMENTO': BusinessIcon,
-    'LOCAL': ServicesIcon
-  };
-  return iconMap[tipo?.toUpperCase()] || HomeIcon;
-};
+const CommonHeader = ({
+  icon: Icon,
+  iconProps = {},
+  title,
+  subtitle,
+  estado,
+  tipo = 'PROPIEDAD',
+  showEstado = true,
+  iconSize = '1.1rem',
+  titleSize = 'subtitle1',
+  titleWeight = 500,
+  gap = 1,
+  actions = null,
+  ...props
+}) => (
+  <Box sx={{ display: 'flex', alignItems: 'center', gap, ...props }}>
+    {Icon && <Icon {...iconProps} sx={{ fontSize: iconSize, ...iconProps.sx }} />}
+    <Box>
+      <Typography
+        variant={titleSize}
+        sx={{
+          fontWeight: titleWeight,
+          fontSize: titleSize === 'subtitle1' ? '0.9rem' : undefined,
+          lineHeight: titleSize === 'subtitle1' ? 1.2 : undefined
+        }}
+      >
+        {title}
+      </Typography>
+      {subtitle && (
+        <Typography variant="caption" color="text.secondary">
+          {subtitle}
+        </Typography>
+      )}
+    </Box>
+    {showEstado && estado && (
+      <Box
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 0.5,
+          px: 1,
+          py: 0.5,
+          fontSize: '0.75rem',
+          color: getEstadoColor(estado, tipo),
+          bgcolor: 'transparent',
+          borderRadius: 0,
+          fontWeight: 600,
+          height: 24,
+          minWidth: 'fit-content'
+        }}
+      >
+        <EstadoIcon estado={estado} tipo={tipo} />
+        <span>{getEstadoText(estado, tipo)}</span>
+      </Box>
+    )}
+    {actions}
+  </Box>
+);
 
-
-// Funciones auxiliares para contratos
-const getContratoIcon = (tipo) => {
-  const iconMap = {
-    'ALQUILER': HomeIcon,
-    'MANTENIMIENTO': EngineeringIcon,
-    'VENTA': BusinessIcon,
-    'SERVICIOS': ServicesIcon
-  };
-  return iconMap[tipo] || HomeIcon;
-};
-
-const getEntityHeaderProps = ({ entity, type, onView, onEdit, onDelete, onExpand }) => {
-  if (type === 'propiedad') {
-    return {
-      isMain: true,
-      title: entity.titulo || entity.direccion || 'Sin título',
-      subtitle: entity.ciudad || '',
-      statusLabel: entity.estado || 'SIN ESTADO',
-      statusColor: getEstadoColor(entity.estado, 'PROPIEDAD'),
-      icon: getPropiedadIcon(entity.tipo),
-      iconColor: getEstadoColor(entity.estado, 'PROPIEDAD'),
-      actions: (
-        <>
-          <IconButton size="small" onClick={() => onView && onView(entity)}>
-            <ListIcon />
-          </IconButton>
-          <IconButton size="small" onClick={() => onEdit && onEdit(entity)}>
-            <EditIcon />
-          </IconButton>
-          <IconButton size="small" onClick={() => onDelete && onDelete(entity)}>
-            <DeleteIcon />
-          </IconButton>
-          <IconButton size="small" onClick={() => onExpand && onExpand(entity)}>
-            <ExpandMoreIcon />
-          </IconButton>
-        </>
-      )
-    };
-  }
-  if (type === 'contrato') {
-    const estado = getEstadoContrato(entity);
-    return {
-      isMain: true,
-      title: entity.propiedad?.titulo || 'Sin propiedad',
-      subtitle: entity.propiedad?.ciudad || '',
-      statusLabel: getEstadoLabel(estado),
-      statusColor: getEstadoColor(estado, 'CONTRATO'),
-      icon: getContratoIcon(entity.tipoContrato),
-      iconColor: getEstadoColor(estado, 'CONTRATO'),
-      actions: (
-        <>
-          <IconButton size="small" onClick={() => onView && onView(entity)}>
-            <ListIcon />
-          </IconButton>
-          <IconButton size="small" onClick={() => onEdit && onEdit(entity)}>
-            <EditIcon />
-          </IconButton>
-          <IconButton size="small" onClick={() => onDelete && onDelete(entity)}>
-            <DeleteIcon />
-          </IconButton>
-          <IconButton size="small" onClick={() => onExpand && onExpand(entity)}>
-            <ExpandMoreIcon />
-          </IconButton>
-        </>
-      )
-    };
-  }
-};
-
-export default getEntityHeaderProps; 
+export default CommonHeader; 

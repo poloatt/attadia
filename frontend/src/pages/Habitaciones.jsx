@@ -7,7 +7,7 @@ import {
 import { Add as AddIcon } from '@mui/icons-material';
 
 import { CommonDetails, CommonForm, CommonActions } from '../components/common';
-import { EntityGroupedCards } from '../components/EntityViews';
+import { CommonGrid } from '../components/common';
 import { HabitacionesForm } from '../components/propiedades';
 import { snackbar } from '../components/common';
 import clienteAxios from '../config/axios';
@@ -33,6 +33,7 @@ import {
 import { EmptyState } from '../components/common';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useFormManager } from '../context/FormContext';
+import { Toolbar } from '../navigation';
 
 export function Habitaciones() {
   const [habitaciones, setHabitaciones] = useState([]);
@@ -364,7 +365,7 @@ export function Habitaciones() {
   return (
     <Box sx={{ px: 0, width: '100%' }}>
 
-      <EntityToolbar />
+      <Toolbar />
 
       <CommonDetails
         title="Habitaciones"
@@ -398,7 +399,7 @@ export function Habitaciones() {
         {habitaciones.length === 0 ? (
           <EmptyState onAdd={() => openForm('habitacion')} />
         ) : (
-          <EntityGroupedCards 
+          <CommonGrid
             data={habitaciones}
             config={cardConfig}
             gridProps={{

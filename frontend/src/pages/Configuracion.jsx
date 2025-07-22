@@ -3,7 +3,7 @@ import { Container, Box, Typography, useTheme, Paper, Switch, FormControl, FormC
 import { useUISettings } from '../context/UISettingsContext';
 import { CommonConstruction } from '../components/common';
 import { useAuth } from '../context/AuthContext';
-import { EntityToolbar } from '../components/EntityViews';
+import { Toolbar } from '../navigation';
 
 export function Configuracion() {
   const theme = useTheme();
@@ -21,7 +21,7 @@ export function Configuracion() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar />
+      <Toolbar />
       <Box
         sx={{
           p: 3,

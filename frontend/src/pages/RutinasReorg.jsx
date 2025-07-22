@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Container, Dialog } from '@mui/material';
-import { EntityToolbar } from '../components/EntityViews';
+import { Toolbar } from '../navigation';
 import { 
   ScienceOutlined as LabIcon,
   RestaurantOutlined as DietaIcon,
@@ -71,7 +71,7 @@ const RutinasContent = () => {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar />
+      <Toolbar />
       
       <CommonDetails 
         title="Rutinas"

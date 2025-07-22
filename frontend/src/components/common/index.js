@@ -11,4 +11,5 @@ export { default as CommonDate } from './CommonDate.jsx';
 export { default as CommonDetails } from './CommonDetails.jsx';
 export { default as CommonField } from './CommonField.jsx';
 export { default as CommonForm } from './CommonForm.jsx';
-export { default as CommonHeader } from './CommonHeader.jsx'; 
+export { default as CommonHeader } from './CommonHeader.jsx';
+export { default as CommonGrid } from './CommonGrid'; 

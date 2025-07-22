@@ -14,7 +14,7 @@ import {
   Typography
 } from '@mui/material';
 import { CommonDetails, CommonForm, CommonActions } from '../components/common';
-import { EntityToolbar } from '../components/EntityViews';
+import { Toolbar } from '../navigation';
 import AddIcon from '@mui/icons-material/Add';
 import { 
   RestaurantOutlined as DietaIcon,
@@ -149,7 +149,7 @@ export function Lab() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar />
+      <Toolbar />
 
       <CommonDetails
         title="Mediciones"

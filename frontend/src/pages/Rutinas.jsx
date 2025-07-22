@@ -4,7 +4,7 @@ import RutinaTable from '../components/rutinas/RutinaTable';
 import { RutinasProvider, useRutinas } from '../components/rutinas/context/RutinasContext';
 import { RutinaForm } from '../components/rutinas/RutinaForm';
 import { MemoizedRutinaNavigation as RutinaNavigation } from '../components/rutinas/RutinaNavigation';
-import { EntityToolbar } from '../components/EntityViews';
+import { Toolbar } from '../navigation';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTimezone } from '../hooks/useTimezone';
 import { 
@@ -174,7 +174,7 @@ const RutinasWithContext = () => {
   return (
     <Box sx={{ px: 0, width: '100%' }}>
       <Container maxWidth={isMobile ? "sm" : "xl"} sx={{ px: isMobile ? 1 : 3 }}>
-        <EntityToolbar />
+        <Toolbar />
         
         <Box 
           sx={{ 

@@ -21,7 +21,7 @@ import {
   HealthAndSafety as HealthIcon
 } from '@mui/icons-material';
 import { CommonDetails, CommonForm, CommonActions } from '../components/common';
-import { EntityToolbar } from '../components/EntityViews';
+import { Toolbar } from '../navigation';
 import { CommonConstruction } from '../components/common';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '../config/axios';
@@ -164,7 +164,7 @@ export function Dieta() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar />
+      <Toolbar />
 
       <CommonDetails
         title="Dieta"

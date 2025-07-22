@@ -18,7 +18,7 @@ import {
   Switch,
   Chip
 } from '@mui/material';
-import { EntityToolbar } from '../components/EntityViews';
+import { Toolbar } from '../navigation';
 import { CommonDetails, CommonForm } from '../components/common';
 import { 
   AccountBalanceOutlined as BankIcon,
@@ -621,7 +621,7 @@ export function Monedas() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar />
+      <Toolbar />
       
       <CommonDetails 
         title="Monedas"

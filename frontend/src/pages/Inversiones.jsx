@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Box, Typography } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import { EntityToolbar } from '../components/EntityViews';
+import { Toolbar } from '../navigation';
 
 export default function Inversiones() {
   useEffect(() => {
@@ -16,7 +16,7 @@ export default function Inversiones() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar />
+      <Toolbar />
       <Box sx={{ 
         width: '100%',
         maxWidth: 900,

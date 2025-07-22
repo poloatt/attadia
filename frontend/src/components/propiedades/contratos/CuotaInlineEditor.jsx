@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography, Checkbox, InputBase } from '@mui/material';
-import { StyledCuotasChip } from './ContratoFormStyles';
+import { StyledCuotasChip } from '../../common/CommonFormStyles';
 import { calcularEstadoCuota } from './contratoUtils';
 
 const CuotaInlineEditor = ({

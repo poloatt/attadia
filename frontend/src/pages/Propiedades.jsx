@@ -46,7 +46,7 @@ import { EmptyState } from '../components/common';
 import PropiedadForm from '../components/propiedades/PropiedadForm';
 import PropiedadList from '../components/propiedades/PropiedadList';
 import { usePageWithHistory } from '../hooks/useGlobalActionHistory';
-import { EntityToolbar } from '../components/EntityViews';
+import { Toolbar } from '../navigation';
 import { CommonForm, CommonDetails, CommonActions } from '../components/common';
 import { usePropiedadesOptimizadas } from '../hooks/useStatusOptimizer.js';
 
@@ -205,7 +205,7 @@ export function Propiedades() {
     };
   }, []); // Solo ejecutar una vez al montar
 
-  // Escuchar evento del Header para abrir formulario cuando EntityToolbar esté oculto
+  // Escuchar evento del Header para abrir formulario cuando Toolbar esté oculto
   useEffect(() => {
     const handleHeaderAddButton = (event) => {
       if (event.detail.type === 'propiedad') {
@@ -374,7 +374,7 @@ export function Propiedades() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar />
+      <Toolbar />
       
       <Box sx={{
         width: '100%',

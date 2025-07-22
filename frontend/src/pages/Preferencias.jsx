@@ -1,11 +1,11 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { EntityToolbar } from '../components/EntityViews';
+import { Toolbar } from '../navigation';
 
 export default function Preferencias() {
   return (
     <Box sx={{ p: 4, textAlign: 'center' }}>
-      <EntityToolbar />
+      <Toolbar />
       <Typography variant="h4" gutterBottom>
         Preferencias
       </Typography>

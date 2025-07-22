@@ -20,7 +20,7 @@ import {
   VisibilityOff as HideValuesIcon,
   AccessTimeOutlined as TimeIcon,
 } from '@mui/icons-material';
-import { EntityToolbar } from '../components/EntityViews';
+import { Toolbar } from '../navigation';
 import TareasTable from '../components/proyectos/TareasTable';
 import TareaForm from '../components/proyectos/TareaForm';
 import clienteAxios from '../config/axios';
@@ -147,7 +147,7 @@ export function Archivo() {
   return (
     <Box sx={{ px: 0, width: '100%' }}>
       <Container maxWidth={isMobile ? "sm" : "xl"} sx={{ px: isMobile ? 1 : 3 }}>
-        <EntityToolbar />
+        <Toolbar />
 
         <Box 
           sx={{ 

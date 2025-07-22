@@ -45,11 +45,12 @@ import { calcularEstadisticasPropiedad } from '../components/propiedades/propied
 
 
 
-import { EntityToolbar } from '../components/EntityViews';
+import { Toolbar } from '../navigation';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EngineeringIcon from '@mui/icons-material/Engineering';
 import BookmarkAddedIcon from '@mui/icons-material/BookmarkAdded';
+
 
 export function Assets() {
 
@@ -581,7 +582,7 @@ export function Assets() {
 
   return (
     <Box sx={{ width: '100%' }}>
-      <EntityToolbar />
+      <Toolbar />
       {/* Contenido principal */}
       <Box sx={{ 
         width: '100%', 

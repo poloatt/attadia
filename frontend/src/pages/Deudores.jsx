@@ -1,6 +1,6 @@
 import React from 'react';
 import { Container, Box } from '@mui/material';
-import { EntityToolbar } from '../components/EntityViews';
+import { Toolbar } from '../navigation';
 import { 
   PersonOutlineOutlined as DeudoresIcon
 } from '@mui/icons-material';
@@ -24,7 +24,7 @@ export function Deudores() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar />
+      <Toolbar />
 
       <CommonDetails title="Deudores">
         <CommonConstruction />

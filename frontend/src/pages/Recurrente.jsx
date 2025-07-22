@@ -13,7 +13,7 @@ import {
   CardActions
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { EntityToolbar } from '../components/EntityViews';
+import { Toolbar } from '../navigation';
 import { CommonDetails } from '../components/common';
 import { 
   AutorenewOutlined as RecurrentIcon,
@@ -357,7 +357,7 @@ export function Recurrente() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar />
+      <Toolbar />
 
       <CommonDetails
         title="Transacciones Recurrentes"

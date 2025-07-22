@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Button, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { CommonDetails } from '../components/common';
-import { EntityToolbar } from '../components/EntityViews';
+import { Toolbar } from '../navigation';
 import { DataCorporalTable } from '../components/bodycomposition/DataCorporalTable';
 import { DataCorporalForm } from '../components/bodycomposition/DataCorporalForm';
 import { CommonConstruction } from '../components/common';
@@ -97,7 +97,7 @@ export function DataCorporal() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar />
+      <Toolbar />
       
       <CommonDetails 
         title="Composición Corporal"

@@ -16,14 +16,11 @@ import {
   Description,
   Engineering
 } from '@mui/icons-material';
-import ContratoPropiedadSection from './ContratoPropiedadSection';
-import ContratoHabitacionSection from './ContratoHabitacionSection';
-import ContratoFechasSection from './ContratoFechasSection';
-import ContratoInquilinosSection from './ContratoInquilinosSection';
-import ContratoMontosSection from './ContratoMontosSection';
+import { ContratoPropiedadSection, ContratoHabitacionSection, ContratoInquilinosSection, ContratoMontosSection } from './ContratosSection';
 import ContratoCuotasSection from './ContratoCuotasSection';
 import { CircularProgress } from '@mui/material';
 import { CuotasProvider } from './context/CuotasContext';
+import { CommonDate } from '../../common/CommonDate';
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
@@ -429,11 +426,23 @@ const ContratoForm = ({
               errors={errors}
             />
 
-            <ContratoFechasSection
-              formData={formData}
-              onFechaChange={handleChange}
-              errors={errors}
-            />
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <CommonDate
+                label="Fecha de Inicio"
+                value={formData.fechaInicio}
+                onChange={(newValue) => handleChange('fechaInicio', newValue)}
+                error={!!errors.fechaInicio}
+                helperText={errors.fechaInicio}
+              />
+              <CommonDate
+                label="Fecha de Fin"
+                value={formData.fechaFin}
+                onChange={(newValue) => handleChange('fechaFin', newValue)}
+                error={!!errors.fechaFin}
+                helperText={errors.fechaFin}
+                minDate={formData.fechaInicio}
+              />
+            </Box>
 
             {formData.tipoContrato !== 'MANTENIMIENTO' && (
               <>

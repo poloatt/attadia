@@ -58,7 +58,7 @@ import {
 import CommonActions from '../common/CommonActions';
 import CommonCard, { crearSeccionesPropiedad } from '../common/CommonCard';
 import { Link } from 'react-router-dom';
-import BarraEstadoPropiedad from './BarraEstadoPropiedad';
+import CommonProgressBar from '../common/CommonProgressBar';
 import { 
   pluralizar, 
   getEstadoContrato, 
@@ -66,51 +66,18 @@ import {
   calcularProgresoOcupacion, 
   getCuentaYMoneda,
   calcularYearToDate,
-  calcularYearToGo
+  calcularYearToGo,
+  getNombreTipoHabitacion
 } from './propiedadUtils';
-import PropiedadHeader from './PropiedadHeader';
+import CommonHeader from '../common/CommonHeader';
 import { SeccionInquilinos, SeccionHabitaciones, SeccionDocumentos } from './SeccionesPropiedad';
 import { calcularAlquilerMensualPromedio, calcularEstadoCuotasContrato } from './contratos/contratoUtils';
 import { getEstadoColor, getEstadoText, getStatusIconComponent } from '../common/StatusSystem';
 import { StyledCard, StatusChip } from './PropiedadStyles';
 import EstadoIcon from '../common/EstadoIcon';
-
-// Función para calcular el monto mensual promedio desde contratos activos
-const calcularMontoMensualDesdeContratos = (contratos = []) => {
-  if (!contratos || contratos.length === 0) return 0;
-  
-  // Buscar contrato activo (no de mantenimiento)
-  let contratoReferencia = contratos.find(contrato => 
-    contrato.estado === 'ACTIVO' && 
-    !contrato.esMantenimiento && 
-    contrato.tipoContrato === 'ALQUILER'
-  );
-  
-  // Si no hay activo, buscar planeado
-  if (!contratoReferencia) {
-    contratoReferencia = contratos.find(contrato => 
-      contrato.estado === 'PLANEADO' && 
-      !contrato.esMantenimiento && 
-      contrato.tipoContrato === 'ALQUILER'
-    );
-  }
-  
-  // Si no hay planeado, buscar cualquier contrato de alquiler
-  if (!contratoReferencia) {
-    contratoReferencia = contratos.find(contrato => 
-      !contrato.esMantenimiento && 
-      contrato.tipoContrato === 'ALQUILER'
-    );
-  }
-  
-  if (!contratoReferencia) return 0;
-  
-  // Usar la función centralizada de contratoUtils
-  return calcularAlquilerMensualPromedio(contratoReferencia);
-};
-
-
-
+import TipoPropiedadIcon from './TipoPropiedadIcon';
+import { CuotasProvider } from './contratos/context/CuotasContext';
+import EstadoFinanzasContrato from './contratos/EstadoFinanzasContrato';
 
 
 const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpanded = false, onToggleExpand, viewMode = 'grid', setViewMode = () => {}, onOpenDetail = null, onSyncSeccion }) => {
@@ -147,7 +114,11 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
   const ciudad = propiedad.ciudad || '';
   const metrosCuadrados = propiedad.metrosCuadrados || 0;
   const contratos = propiedad.contratos || [];
-  const montoMensual = calcularMontoMensualDesdeContratos(contratos);
+  const montoMensual = calcularAlquilerMensualPromedio(contratos.find(contrato => 
+    getEstadoContrato(contrato) === 'ACTIVO' && 
+    !contrato.esMantenimiento && 
+    contrato.tipoContrato === 'ALQUILER'
+  ));
   
   // Buscar contrato activo para obtener cuenta y moneda
   const contratoActivo = contratos.find(contrato => 
@@ -223,37 +194,6 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
   const tituloInquilinosContratos = `${inquilinosActivos.length} ${pluralizar(inquilinosActivos.length, 'inquilino', 'inquilinos')} - ${contratosActivos.length} ${pluralizar(contratosActivos.length, 'contrato activo', 'contratos activos')}`;
 
   // Función para agrupar habitaciones por tipo
-  const agruparHabitaciones = (habitaciones) => {
-    return habitaciones.reduce((acc, hab) => {
-      const tipo = hab.tipo === 'OTRO' ? hab.nombrePersonalizado : hab.tipo;
-      if (!acc[tipo]) {
-        acc[tipo] = [];
-      }
-      acc[tipo].push(hab);
-      return acc;
-    }, {});
-  };
-
-  // Función para obtener el nombre legible del tipo de habitación
-  const getNombreTipoHabitacion = (tipo) => {
-    const tipos = {
-      'BAÑO': 'Baño',
-      'TOILETTE': 'Toilette',
-      'DORMITORIO_DOBLE': 'Dormitorio doble',
-      'DORMITORIO_SIMPLE': 'Dormitorio simple',
-      'ESTUDIO': 'Estudio',
-      'COCINA': 'Cocina',
-      'DESPENSA': 'Despensa',
-      'SALA_PRINCIPAL': 'Sala principal',
-      'PATIO': 'Patio',
-      'JARDIN': 'Jardín',
-      'TERRAZA': 'Terraza',
-      'LAVADERO': 'Lavadero'
-    };
-    return tipos[tipo] || tipo;
-  };
-
-  // Calcular totales de habitaciones
   const habitacionesAgrupadas = agruparHabitaciones(propiedad.habitaciones || []);
   const dormitorios = (propiedad.habitaciones || []).filter(h => 
     h.tipo === 'DORMITORIO_SIMPLE' || h.tipo === 'DORMITORIO_DOBLE'
@@ -326,12 +266,17 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
         width: '100%'
       }}>
         <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1, flex: 1 }}>
-          <PropiedadHeader 
-            propiedad={propiedad} 
+          <CommonHeader
+            icon={TipoPropiedadIcon}
+            iconProps={{ tipo: propiedad.tipo, sx: { fontSize: isAssets ? '18px' : '1.1rem' } }}
+            title={propiedad.alias || propiedad.titulo || 'Sin alias'}
+            estado={propiedad.estado || 'DISPONIBLE'}
+            tipo="PROPIEDAD"
             showEstado={false}
-            iconSize={isAssets ? "18px" : "1.1rem"}
-            titleSize={isAssets ? "subtitle1" : "subtitle1"}
+            titleSize={isAssets ? 'subtitle1' : 'subtitle1'}
             titleWeight={isAssets ? 600 : 500}
+            gap={1}
+            // Puedes pasar más props si lo necesitas
           />
         </Box>
         {/* Iconos de estado de contratos alineados a la derecha */}
@@ -398,27 +343,44 @@ const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpand
     );
   };
 
-  // Componente reutilizable para el contenido expandido
+  const seccionFinancieraPersonalizada = {
+    type: 'primary',
+    render: () => (
+      <EstadoFinanzasContrato 
+        contrato={contratoActivo}
+        compact={false}
+        sx={{ width: '100%' }}
+      />
+    )
+  };
+
+  const secciones = [
+    seccionFinancieraPersonalizada,
+    ...crearSeccionesPropiedad(
+      propiedad,
+      montoMensual,
+      simbolo,
+      nombreCuenta,
+      moneda,
+      habitaciones,
+      contratos,
+      documentosCombinados,
+      true // extendida
+    )
+  ];
+
   const renderContenidoExpandido = () => (
-    <CommonCard
-      type="sections"
-      sections={crearSeccionesPropiedad(
-        propiedad,
-        montoMensual,
-        simbolo,
-        nombreCuenta,
-        moneda,
-        habitaciones,
-        contratos,
-        documentosCombinados,
-        true // extendida
-      )}
-      propiedad={propiedad}
-      onEdit={onEdit}
-      onDelete={onDelete}
-      isExpanded={isExpanded}
-      onSyncSeccion={onSyncSeccion}
-    />
+    <CuotasProvider contratoId={contratoActivo?._id || contratoActivo?.id} formData={contratoActivo}>
+      <CommonCard
+        type="sections"
+        sections={secciones}
+        propiedad={propiedad}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        isExpanded={isExpanded}
+        onSyncSeccion={onSyncSeccion}
+      />
+    </CuotasProvider>
   );
 
   return (

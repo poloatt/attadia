@@ -24,14 +24,14 @@ import {
 } from '@mui/icons-material';
 
 import ContratoForm from '../components/propiedades/contratos/ContratoForm';
-import { ContratoWizard } from '../components/propiedades/contratos';
+// import { ContratoWizard } from '../components/propiedades/contratos'; // Eliminado porque ya no existe
 import { useSnackbar } from 'notistack';
 import clienteAxios from '../config/axios';
 import { EmptyState } from '../components/common';
-import { ContratosContainer, useContratoData } from '../components/propiedades/contratos';
+import { CommonCard } from '../components/common/CommonCard';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { calcularAlquilerMensualPromedio } from '../components/propiedades/contratos/contratoUtils';
-import { EntityToolbar } from '../components/EntityViews';
+import { Toolbar } from '../navigation';
 import { useFormManager } from '../context/FormContext';
 
 export function Contratos() {
@@ -46,10 +46,6 @@ export function Contratos() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [useWizard, setUseWizard] = useState(true); // Por defecto usar wizard
-  const [viewMode] = useState('grid'); // 'list' o 'grid'
-  const [isActiveContractsExpanded, setIsActiveContractsExpanded] = useState(true);
-  const [isFinishedContractsExpanded, setIsFinishedContractsExpanded] = useState(false);
-  const [isPlannedContractsExpanded, setIsPlannedContractsExpanded] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   const navigate = useNavigate();
   const location = useLocation();
@@ -324,63 +320,23 @@ export function Contratos() {
     }
   };
 
-  // Usar hook personalizado para datos de contratos
-  const { contratosPorEstado } = useContratoData(contratos, relatedData);
-  const contratosActivos = contratosPorEstado.ACTIVO || [];
-  const contratosFinalizados = contratosPorEstado.FINALIZADO || [];
-  const contratosPlaneados = contratosPorEstado.PLANEADO || [];
+  console.log('Contratos cargados:', contratos);
 
-  const cardConfig = useMemo(() => ({
-    renderIcon: () => <DescriptionIcon />,
-    getTitle: (contrato) => {
-      const propiedad = relatedData.propiedades.find(p => p._id === contrato.propiedad);
-      return propiedad?.titulo || 'N/A';
-    },
+  // Configuración para mostrar contratos en CommonCard
+  const contratoConfig = {
+    getTitle: (contrato) => contrato.tipo || 'Contrato',
+    getSubtitle: (contrato) => `${contrato.fechaInicio || ''} - ${contrato.fechaFin || ''}`,
     getDetails: (contrato) => [
-      {
-        icon: <PersonIcon />,
-        text: (() => {
-          const inquilino = relatedData.inquilinos.find(i => i._id === contrato.inquilino);
-          return inquilino ? `${inquilino.nombre} ${inquilino.apellido}` : 'N/A';
-        })(),
-        noWrap: true
-      },
-      {
-        icon: <CalendarIcon />,
-        text: `${new Date(contrato.fechaInicio).toLocaleDateString()} - ${new Date(contrato.fechaFin).toLocaleDateString()}`
-      },
-      {
-        icon: <MoneyIcon />,
-        text: (() => {
-          const moneda = relatedData.monedas.find(m => m._id === contrato.moneda);
-          return `${moneda?.simbolo || ''} ${calcularAlquilerMensualPromedio(contrato)}`;
-        })()
-      },
-      {
-        icon: <HomeIcon />,
-        text: (() => {
-          const habitacion = relatedData.habitaciones.find(h => h._id === contrato.habitacion);
-          return habitacion?.nombre || 'N/A';
-        })()
-      }
+      { label: 'Estado', value: contrato.estado },
+      { label: 'Monto Total', value: contrato.montoTotal },
+      { label: 'Propiedad', value: contrato.propiedad?.direccion || contrato.propiedad?.id || '' },
     ],
-    getStatus: (contrato) => ({
-      label: contrato.estado,
-      color: (() => {
-        switch (contrato.estado) {
-          case 'ACTIVO': return 'success';
-          case 'FINALIZADO': return 'default';
-          case 'PLANEADO': return 'info';
-          case 'MANTENIMIENTO': return 'warning';
-          default: return 'default';
-        }
-      })()
-    })
-  }), [relatedData]);
+    getIcon: () => DescriptionIcon,
+  };
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar />
+      <Toolbar />
       
       <Box
         sx={{
@@ -405,12 +361,10 @@ export function Contratos() {
               description="No hay contratos para mostrar"
             />
           ) : (
-            <ContratosContainer
-              contratos={contratos}
-              relatedData={relatedData}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              viewMode={viewMode}
+            <CommonCard
+              type="list"
+              data={contratos}
+              config={contratoConfig}
             />
           )}
         </Box>
@@ -429,7 +383,7 @@ export function Contratos() {
 
         {/* Wizard de contratos */}
         {openWizard && (
-          <ContratoWizard
+          <ContratoForm
             open={openWizard}
             initialData={initialWizardData || {}}
             relatedData={relatedData}

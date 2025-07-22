@@ -1,15 +1,15 @@
-// EntityToolbar.jsx
+// Toolbar.jsx
 // Toolbar modular y automática: breadcrumbs, título, navegación de hermanos y back se obtienen de menuStructure.js según la ruta actual.
 // Solo acepta 'children' y 'additionalActions' para extensibilidad. Cualquier cambio en el menú se refleja automáticamente.
 
 import React, { useMemo, useCallback } from 'react';
 import { Box, IconButton, Tooltip, Typography, useTheme, useMediaQuery } from '@mui/material';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { menuItems } from '../../navigation/menuStructure';
-import { icons } from '../../navigation/menuIcons';
-import { SystemButtons } from '../../components/common/SystemButtons';
-import { useEntityActions } from '../common/CommonActions';
-import { useUISettings } from '../../context/UISettingsContext';
+import { menuItems } from './menuStructure';
+import { icons } from './menuIcons';
+import { SystemButtons } from '../components/common/SystemButtons';
+import { useEntityActions } from '../components/common/CommonActions';
+import { useUISettings } from '../context/UISettingsContext';
 
 // Cache para optimizar búsquedas repetitivas
 const routeCache = new Map();
@@ -154,7 +154,7 @@ function findParentPath(currentPath, items = menuItems) {
   return result;
 }
 
-export default function EntityToolbar({ children, additionalActions = [] }) {
+export default function Toolbar({ children, additionalActions = [] }) {
   const { showEntityToolbarNavigation } = useUISettings();
   const navigate = useNavigate();
   const location = useLocation();
@@ -355,27 +355,53 @@ export default function EntityToolbar({ children, additionalActions = [] }) {
                 const isActive = isRouteActive(item.path, currentPath);
                 return (
                   <Tooltip key={item.path} title={item.title}>
-                    <IconButton
-                      component={Link}
-                      to={item.path}
-                      size="small"
-                      sx={{
-                        bgcolor: isActive ? 'action.selected' : 'transparent',
-                        color: isActive ? 'primary.main' : 'text.secondary',
-                        borderRadius: 1,
-                        fontSize: 18,
-                        flexShrink: 0
-                      }}
-                      disabled={isActive}
-                    >
-                      {item.icon
-                        ? typeof item.icon === 'string'
-                          ? icons[item.icon]
-                            ? React.createElement(icons[item.icon])
-                            : null
-                          : React.createElement(item.icon)
-                        : null}
-                    </IconButton>
+                    {isActive ? (
+                      <span>
+                        <IconButton
+                          component={Link}
+                          to={item.path}
+                          size="small"
+                          sx={{
+                            bgcolor: isActive ? 'action.selected' : 'transparent',
+                            color: isActive ? 'primary.main' : 'text.secondary',
+                            borderRadius: 1,
+                            fontSize: 18,
+                            flexShrink: 0
+                          }}
+                          disabled={isActive}
+                        >
+                          {item.icon
+                            ? typeof item.icon === 'string'
+                              ? icons[item.icon]
+                                ? React.createElement(icons[item.icon])
+                                : null
+                              : React.createElement(item.icon)
+                            : null}
+                        </IconButton>
+                      </span>
+                    ) : (
+                      <IconButton
+                        component={Link}
+                        to={item.path}
+                        size="small"
+                        sx={{
+                          bgcolor: isActive ? 'action.selected' : 'transparent',
+                          color: isActive ? 'primary.main' : 'text.secondary',
+                          borderRadius: 1,
+                          fontSize: 18,
+                          flexShrink: 0
+                        }}
+                        disabled={isActive}
+                      >
+                        {item.icon
+                          ? typeof item.icon === 'string'
+                            ? icons[item.icon]
+                              ? React.createElement(icons[item.icon])
+                              : null
+                            : React.createElement(item.icon)
+                          : null}
+                      </IconButton>
+                    )}
                   </Tooltip>
                 );
               })}

@@ -25,7 +25,7 @@ import {
 import { EmptyState, CommonConstruction } from '../components/common';
 import { useNavigate } from 'react-router-dom';
 import { CommonDetails, CommonForm, CommonActions } from '../components/common';
-import { EntityToolbar } from '../components/EntityViews';
+import { Toolbar } from '../navigation';
 
 export function Inventario() {
   const [items, setItems] = useState([]);
@@ -243,7 +243,7 @@ export function Inventario() {
       flexDirection: 'column',
       gap: 0
     }}>
-      <EntityToolbar />
+      <Toolbar />
 
       <CommonDetails
         title="Inventario"

@@ -42,7 +42,6 @@ import {
 } from '@mui/icons-material';
 import clienteAxios from '../../config/axios';
 import { toast } from 'react-hot-toast';
-import BarraEstadoPropiedad from './BarraEstadoPropiedad';
 import { 
   pluralizar,
   getEstadoContrato,
@@ -70,6 +69,7 @@ import CommonActions from '../common/CommonActions';
 import ContratoDetail from './contratos/ContratoDetail';
 import { CommonCard, SECTION_CONFIGS } from '../common/CommonCard';
 import { styled } from '../common/CommonDetails';
+import CommonProgressBar from '../common/CommonProgressBar';
 
 // Función para calcular el monto mensual promedio desde contratos activos
 const calcularMontoMensualDesdeContratos = (contratos = []) => {
@@ -569,7 +569,7 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
                     {/* Barra de estado del contrato */}
                     {progresoContrato.tieneContrato && (
                       <Box sx={{ mb: 1.5 }}>
-                        <BarraEstadoPropiedad
+                        <CommonProgressBar
                           diasTranscurridos={progresoContrato.diasTranscurridos || 0}
                           diasTotales={progresoContrato.diasTotales || 0}
                           porcentaje={progresoContrato.porcentaje || 0}

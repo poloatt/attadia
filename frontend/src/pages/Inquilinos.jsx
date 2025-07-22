@@ -7,7 +7,7 @@ import {
 import { useSnackbar } from 'notistack';
 import { InquilinoList, InquilinoForm } from '../components/propiedades/inquilinos';
 import { CommonDetails, CommonActions } from '../components/common';
-import { EntityToolbar } from '../components/EntityViews';
+import { Toolbar } from '../navigation';
 
 import {
   ApartmentOutlined as BuildingIcon,
@@ -195,7 +195,7 @@ export function Inquilinos() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <EntityToolbar />
+      <Toolbar />
 
       <Box sx={{
         width: '100%',

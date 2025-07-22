@@ -22,8 +22,9 @@ import {
   StyledCuotasTextField, 
   StyledCuotasChip, 
   StyledCuotasIconButton,
-  StyledCuotasCheckbox 
-} from './ContratoFormStyles';
+  StyledCuotasCheckbox,
+  FormSection
+} from '../../common/CommonFormStyles';
 import { calcularAlquilerMensualPromedio, calcularEstadoCuota, generarCuotasMensuales } from './contratoUtils';
 import { useCuotasContext } from './context/CuotasContext';
 import CuotaInlineEditor from './CuotaInlineEditor';

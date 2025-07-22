@@ -7,7 +7,7 @@ import {
   AutorenewOutlined as RecurrentIcon
 } from '@mui/icons-material';
 import { FabNuevaTransaccion } from '../components/finance';
-import { EntityToolbar } from '../components/EntityViews';
+import { Toolbar } from '../navigation';
 
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
@@ -266,7 +266,7 @@ export function Transacciones() {
 
   return (
     <Box sx={{ px: 0, width: '100%', position: 'relative', minHeight: '80vh', bgcolor: 'background.default' }}>
-      <EntityToolbar />
+      <Toolbar />
       <FabNuevaTransaccion onClick={handleOpenForm} />
 
       {isLoading ? (
