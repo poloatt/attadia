@@ -36,6 +36,8 @@ import { useFormManager } from '../context/FormContext';
 import ContratoCard from '../components/propiedades/contratos/ContratoCard';
 import { CuotasProvider } from '../components/propiedades/contratos/context/CuotasContext';
 import ContratoDetail from '../components/propiedades/contratos/ContratoDetail';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 
 export function Contratos() {
   const [contratos, setContratos] = useState([]);
@@ -339,6 +341,9 @@ export function Contratos() {
     getIcon: () => DescriptionIcon,
   };
 
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+
   return (
     <Box sx={{ px: 0, width: '100%' }}>
       <Toolbar />
@@ -358,25 +363,43 @@ export function Contratos() {
         }}
       >
         {/* Mostrar todos los contratos juntos */}
-        <Box>
-          {contratos.length === 0 ? (
-            <EmptyState
-              icon={DescriptionIcon}
-              title="No hay contratos"
-              description="No hay contratos para mostrar"
-            />
-          ) : (
-            <Box>
-              {contratos.map((contrato) => (
-                <ContratoCard
-                  key={contrato._id || contrato.id}
-                  contrato={contrato}
-                  onClick={() => {
-                    setSelectedContrato(contrato);
-                    setOpenDetail(true);
-                  }}
-                />
-              ))}
+        <Box
+          sx={{
+            display: isDesktop ? 'flex' : 'block',
+            gap: isDesktop ? 3 : 0,
+            alignItems: 'flex-start',
+            width: '100%'
+          }}
+        >
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            {contratos.length === 0 ? (
+              <EmptyState
+                icon={DescriptionIcon}
+                title="No hay contratos"
+                description="No hay contratos para mostrar"
+              />
+            ) : (
+              <Box>
+                {contratos.map((contrato) => (
+                  <ContratoCard
+                    key={contrato._id || contrato.id}
+                    contrato={contrato}
+                    onClick={() => {
+                      setSelectedContrato(contrato);
+                      setOpenDetail(true);
+                    }}
+                  />
+                ))}
+              </Box>
+            )}
+          </Box>
+          {isDesktop && selectedContrato && openDetail && (
+            <Box sx={{ flex: 1.2, minWidth: 0, ml: 2 }}>
+              <ContratoDetail
+                open={true}
+                onClose={() => setOpenDetail(false)}
+                contrato={selectedContrato}
+              />
             </Box>
           )}
         </Box>
@@ -470,8 +493,8 @@ export function Contratos() {
           </DialogActions>
         </Dialog>
 
-        {/* Modal de detalle de contrato */}
-        {selectedContrato && (
+        {/* Modal de detalle de contrato (solo mobile) */}
+        {!isDesktop && selectedContrato && (
           <ContratoDetail
             open={openDetail}
             onClose={() => setOpenDetail(false)}

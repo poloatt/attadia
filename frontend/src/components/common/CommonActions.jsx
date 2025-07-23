@@ -5,9 +5,9 @@ import { menuItems } from '../../navigation/menuStructure';
 import DescriptionIcon from '@mui/icons-material/Description';
 import HomeIcon from '@mui/icons-material/Home';
 import TipoPropiedadIcon from '../propiedades/TipoPropiedadIcon';
-import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
-import SmsOutlinedIcon from '@mui/icons-material/SmsOutlined';
-import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
+import PhoneIcon from '@mui/icons-material/Phone';
+import SmsIcon from '@mui/icons-material/Sms';
+import EmailIcon from '@mui/icons-material/Email';
 import { IconButton } from '@mui/material';
 
 /**
@@ -175,7 +175,7 @@ export const CallButton = ({ phone, ...props }) => (
     rel="noopener noreferrer"
     {...props}
   >
-    <PhoneOutlinedIcon />
+    <PhoneIcon />
   </IconButton>
 );
 
@@ -187,7 +187,7 @@ export const SmsButton = ({ phone, ...props }) => (
     rel="noopener noreferrer"
     {...props}
   >
-    <SmsOutlinedIcon />
+    <SmsIcon />
   </IconButton>
 );
 
@@ -199,6 +199,6 @@ export const EmailButton = ({ email, ...props }) => (
     rel="noopener noreferrer"
     {...props}
   >
-    <EmailOutlinedIcon />
+    <EmailIcon />
   </IconButton>
 ); 

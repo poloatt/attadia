@@ -6,6 +6,9 @@ import {
 } from '@mui/material';
 import { useSnackbar } from 'notistack';
 import { InquilinoList, InquilinoForm } from '../components/propiedades/inquilinos';
+import InquilinoDetail from '../components/propiedades/inquilinos/InquilinoDetail';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 import { CommonDetails, CommonActions } from '../components/common';
 import { Toolbar } from '../navigation';
 
@@ -35,6 +38,7 @@ export function Inquilinos() {
   // --- NUEVO: Contexto de formularios ---
   const { openForm, closeForm, getFormState } = useFormManager();
   const { open, initialData } = getFormState('inquilino');
+  const [selectedInquilino, setSelectedInquilino] = useState(null);
 
   const handleBack = () => {
     navigate('/');
@@ -193,6 +197,9 @@ export function Inquilinos() {
     setOpenContratoForm(true);
   };
 
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+
   return (
     <Box sx={{ px: 0, width: '100%' }}>
       <Toolbar />
@@ -211,15 +218,37 @@ export function Inquilinos() {
       }}>
         {/* Filtros de grupos */}
 
-        <Box sx={{ py: 2 }}>
-          <CommonDetails>
-            <InquilinoList
-              inquilinos={inquilinos}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onCreateContract={handleCreateContract}
-            />
-          </CommonDetails>
+        <Box
+          sx={{
+            py: 2,
+            display: isDesktop ? 'flex' : 'block',
+            gap: isDesktop ? 3 : 0,
+            alignItems: 'flex-start',
+            width: '100%'
+          }}
+        >
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <CommonDetails>
+              <InquilinoList
+                inquilinos={inquilinos}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onCreateContract={handleCreateContract}
+                onCardClick={isDesktop ? setSelectedInquilino : undefined}
+              />
+            </CommonDetails>
+          </Box>
+          {isDesktop && selectedInquilino && (
+            <Box sx={{ flex: 1.2, minWidth: 0, ml: 2 }}>
+              <InquilinoDetail
+                open={true}
+                onClose={() => setSelectedInquilino(null)}
+                inquilino={selectedInquilino}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            </Box>
+          )}
         </Box>
 
         <InquilinoForm

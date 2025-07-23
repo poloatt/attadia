@@ -9,6 +9,8 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ContratoDetail from './ContratoDetail';
 import TipoPropiedadIcon from '../TipoPropiedadIcon';
 import { CuotasProvider } from './context/CuotasContext';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 
 const ContratoCard = ({ contrato, onClick }) => {
   // Obtener el inquilino principal
@@ -50,6 +52,8 @@ const ContratoCard = ({ contrato, onClick }) => {
   const simboloMoneda = contrato?.cuenta?.moneda?.simbolo || contrato?.moneda?.simbolo || '$';
 
   const [openDetail, setOpenDetail] = useState(false);
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
 
   return (
     <Paper
@@ -66,7 +70,13 @@ const ContratoCard = ({ contrato, onClick }) => {
           boxShadow: onClick ? '0 2px 8px rgba(0,0,0,0.12)' : 'none',
         },
       }}
-      onClick={onClick}
+      onClick={e => {
+        if (isDesktop && onClick) {
+          onClick(e);
+        } else if (!isDesktop) {
+          setOpenDetail(true);
+        }
+      }}
     >
       <CommonHeader
         title={
@@ -121,7 +131,9 @@ const ContratoCard = ({ contrato, onClick }) => {
           <EstadoFinanzasContrato contrato={contrato} compact={true} noBorder={true} />
         </CuotasProvider>
       </Box>
-      <ContratoDetail open={openDetail} onClose={() => setOpenDetail(false)} contrato={contrato} />
+      {!isDesktop && (
+        <ContratoDetail open={openDetail} onClose={() => setOpenDetail(false)} contrato={contrato} />
+      )}
     </Paper>
   );
 };
