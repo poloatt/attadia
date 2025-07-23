@@ -1,6 +1,6 @@
 import clienteAxios from '../config/axios';
 import axios from 'axios';
-import { getNormalizedToday, toISODateString, normalizeDate } from '../components/rutinas/utils/dateUtils';
+import { getNormalizedToday, toISODateString, normalizeDate } from '../utils/rutinaDateUtils';
 import { formatDateForAPI, getWeekRange, getMonthRange, parseAPIDate } from '../utils/dateUtils';
 
 const MAX_RETRIES = 3;

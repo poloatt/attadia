@@ -22,21 +22,21 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import TuneIcon from '@mui/icons-material/Tune';
-import { iconConfig } from './utils/iconConfig';
+import { iconConfig } from '../../utils/iconConfig';
 import ItemCadenciaConfig from './ItemCadenciaConfig';
 import InlineItemConfigImproved from './InlineItemConfigImproved';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { useRutinas } from './context/RutinasContext';
+import { useRutinas } from '../../context/RutinasContext';
 
 import { useSnackbar } from 'notistack';
 // Importamos las utilidades de cadencia
-import { debesMostrarHabitoEnFecha, generarMensajeCadencia, getFrecuenciaLabel, obtenerUltimaCompletacion } from './utils/cadenciaUtils';
+import { debesMostrarHabitoEnFecha, generarMensajeCadencia, getFrecuenciaLabel, obtenerUltimaCompletacion } from '../../utils/cadenciaUtils';
 // Importar el nuevo gestor de cadencia
-import { cadenciaManager, ITEM_STATES } from './utils/cadenciaManager';
+import { cadenciaManager, ITEM_STATES } from '../../utils/cadenciaManager';
 import { startOfWeek, isSameWeek, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { obtenerHistorialCompletaciones, esRutinaHistorica } from './utils/historialUtils';
+import { obtenerHistorialCompletaciones, esRutinaHistorica } from '../../utils/historialUtils';
 import HistoricalAlert from './HistoricalAlert';
 
 // Función para capitalizar solo la primera letra

@@ -23,7 +23,7 @@ import EventIcon from '@mui/icons-material/Event';
 import SaveIcon from '@mui/icons-material/Save';
 import clienteAxios from '../../config/axios';
 import { snackbar } from '../../common';
-import { useDebounce } from './utils/hooks';
+import { useDebounce } from '../../../utils/rutinaHooks';
 import { useNavigate } from 'react-router-dom';
 import TextField from "@mui/material/TextField";
 

@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Container, Box, Typography, CircularProgress, Snackbar, Alert, Grid, Paper, Button, useTheme, useMediaQuery } from '@mui/material';
 import RutinaTable from '../components/rutinas/RutinaTable';
-import { RutinasProvider, useRutinas } from '../components/rutinas/context/RutinasContext';
 import { RutinaForm } from '../components/rutinas/RutinaForm';
 import { MemoizedRutinaNavigation as RutinaNavigation } from '../components/rutinas/RutinaNavigation';
+import { RutinasProvider, useRutinas } from '../context/RutinasContext';
 import { Toolbar } from '../navigation';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTimezone } from '../hooks/useTimezone';

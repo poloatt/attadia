@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { formatearFecha } from './utils/historialUtils';
+import { formatearFecha } from '../../utils/historialUtils';
 
 const HabitProgress = ({ section, itemId, historial, config }) => {
   // Memorizar datos de progreso

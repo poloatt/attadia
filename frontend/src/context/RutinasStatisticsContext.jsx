@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
-import { calculateCompletionPercentage, calculateSectionStats, calculateVisibleItems } from '../utils/rutinaCalculations.jsx';
+import * as rutinaCalculations from '../utils/rutinaCalculations';
 import { useRutinasHistorical } from './RutinasHistoryContext';
 
 // Crear el contexto
@@ -66,7 +66,7 @@ export const RutinasStatisticsProvider = ({ children }) => {
       });
       
       // Calcular el porcentaje usando la función separada
-      const percentage = calculateCompletionPercentage(rutinaData);
+      const percentage = rutinaCalculations.calculateCompletionPercentage(rutinaData);
       
       // Log detallado para depuración
       if (typeof rutinaData.completitud === 'number') {
@@ -78,7 +78,7 @@ export const RutinasStatisticsProvider = ({ children }) => {
         });
       } else {
         // Para cálculos manuales, obtener detalles
-        const { visibleItems, completedItems, sectionStats } = calculateVisibleItems(rutinaData);
+        const { visibleItems, completedItems, sectionStats } = rutinaCalculations.calculateVisibleItems(rutinaData);
         
         controlledLog('manual_completion', 'Cálculo manual de completitud:', {
           rutinaId: rutinaData._id,
@@ -104,7 +104,7 @@ export const RutinasStatisticsProvider = ({ children }) => {
   // Wrapper para estadísticas por sección
   const getSectionStats = useCallback((rutinaData) => {
     try {
-      return calculateSectionStats(rutinaData);
+      return rutinaCalculations.calculateSectionStats(rutinaData);
     } catch (error) {
       console.error('[RutinasStatistics] Error en wrapper de estadísticas por sección:', error);
       return {

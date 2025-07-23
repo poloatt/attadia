@@ -112,8 +112,7 @@ export default function MercadoPagoDataManager({ conexionId, onDataProcessed }) 
       'rejected': 'error',
       'cancelled': 'error',
       'refunded': 'error',
-      'available': 'success',
-      'cancelled': 'error'
+      'available': 'success'
     };
     return colores[estado] || 'default';
   };

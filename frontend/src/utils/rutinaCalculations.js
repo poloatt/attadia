@@ -1,4 +1,4 @@
-import shouldShowItem from './shouldShowItem.jsx';
+import shouldShowItem from './shouldShowItem.js';
 
 /**
  * Calcula los ítems visibles y completados para una rutina

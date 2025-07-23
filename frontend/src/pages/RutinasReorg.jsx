@@ -11,12 +11,12 @@ import {
 } from '@mui/icons-material';
 import { Button } from '@mui/material';
 import { CommonDetails } from '../components/common';
-import { RutinaProvider } from '../components/rutinas/context/RutinasContext';
+import { RutinaProvider } from '../context/RutinasContext';
 import { RutinaTable } from '../components/rutinas/RutinaTable';
 import { RutinaForm } from '../components/rutinas/RutinaForm';
 import { MemoizedRutinaNavigation as RutinaNavigation } from '../components/rutinas/RutinaNavigation';
 import RutinaActionsBar from '../components/rutinas/RutinaActionsBar';
-import { useRutinas } from '../components/rutinas/context/RutinasContext';
+import { useRutinas } from '../context/RutinasContext';
 
 /**
  * Contenido principal de la página de Rutinas

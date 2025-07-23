@@ -59,7 +59,7 @@ export default function Footer({ isDesktop = false, isSidebarOpen = false }) {
       sx={{
         position: 'fixed',
         bottom: 0, // Posicionar en el espacio reservado del BottomNavigation
-        width: '100%',
+        width: isDesktop && isSidebarOpen ? 'calc(100% - 280px)' : '100%',
         height: '32px',
         backgroundColor: 'rgba(26, 27, 30, 0.8)',
         color: 'rgba(255, 255, 255, 0.7)',
@@ -75,7 +75,6 @@ export default function Footer({ isDesktop = false, isSidebarOpen = false }) {
         right: 0,
         transition: 'opacity 0.5s ease, transform 0.5s ease, margin-left 0.3s cubic-bezier(0.4,0,0.2,1)', // Mejorar la transición
         marginLeft: isDesktop && isSidebarOpen ? '280px' : 0,
-        width: isDesktop && isSidebarOpen ? 'calc(100% - 280px)' : '100%',
       }}
     >
       <Chip

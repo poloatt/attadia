@@ -30,9 +30,9 @@ import CloseIcon from '@mui/icons-material/Close';
 import SyncIcon from '@mui/icons-material/Sync';
 import { useSnackbar } from 'notistack';
 import { useRutinas } from './context/RutinasContext';
-import { iconConfig } from './utils/iconConfig';
+import { iconConfig } from '../../utils/iconConfig';
 import ItemCadenciaConfig from './ItemCadenciaConfig';
-import { generarMensajeCadencia } from './utils/cadenciaUtils';
+import { generarMensajeCadencia } from '../../utils/cadenciaUtils';
 
 /**
  * Componente para gestionar las preferencias de hábitos del usuario

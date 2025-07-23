@@ -8,11 +8,11 @@ import {
   DeleteOutline as DeleteIcon,
   AddOutlined as AddIcon
 } from '@mui/icons-material';
-import { formatFechaDisplay } from './utils/iconConfig';
-import { useRutinas } from './context/RutinasContext';
-import { useRutinasStatistics } from './context/RutinasStatisticsContext';
+import { formatFechaDisplay } from '../../utils/iconConfig';
+import { useRutinas } from '../../context/RutinasContext';
+import { useRutinasStatistics } from '../../context/RutinasStatisticsContext';
 import { useSnackbar } from 'notistack';
-import { getNormalizedToday, toISODateString } from './utils/dateUtils';
+import { getNormalizedToday, toISODateString } from '../../utils/rutinaDateUtils';
 
 /**
  * Componente para la navegación entre rutinas

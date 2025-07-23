@@ -25,7 +25,7 @@ import {
 } from '@mui/material';
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
 import AddIcon from '@mui/icons-material/Add';
-import { formatDate } from './utils/iconConfig';
+import { formatDate } from '../../utils/iconConfig';
 import ChecklistSection from './ChecklistSection';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -33,13 +33,13 @@ import axios from 'axios';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '../../config/axios';
 import { NavigateBefore, NavigateNext, Today as TodayIcon } from '@mui/icons-material';
-import { useLocalPreservationState } from './utils/hooks';
+import { useLocalPreservationState } from '../../utils/rutinaHooks';
 import { RutinaNavigation } from './RutinaNavigation';
 import ItemCadenciaConfig from './ItemCadenciaConfig';
-import shouldShowItemUtil from './utils/shouldShowItem';
+import shouldShowItemUtil from '../../utils/shouldShowItem';
 import HistoricalAlert from './HistoricalAlert';
-import { useRutinasHistorical } from './context/RutinasHistoryContext';
-import { getNormalizedToday, toISODateString } from './utils/dateUtils';
+import { useRutinasHistorical } from '../../context/RutinasHistoryContext';
+import { getNormalizedToday, toISODateString } from '../../utils/rutinaDateUtils';
 
 // Exportación nombrada para compatibilidad
 export const RutinaTable = ({ 

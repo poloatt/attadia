@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import rutinasService from '../services/rutinasService';
 import { useSnackbar } from 'notistack';
-import clienteAxios from '../../../config/axios';
-import { getNormalizedToday, toISODateString } from '../utils/dateUtils';
+import clienteAxios from '../config/axios';
+import { getNormalizedToday, toISODateString } from '../utils/rutinaDateUtils';
 
 // Crear el contexto
 const RutinasHistoryContext = createContext();
