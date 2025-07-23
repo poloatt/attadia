@@ -11,11 +11,11 @@ import {
 } from '@mui/icons-material';
 import { Button } from '@mui/material';
 import { CommonDetails } from '../components/common';
-import { RutinaProvider } from '../context/RutinasContext';
+import { RutinasProvider } from '../context/RutinasContext';
 import { RutinaTable } from '../components/rutinas/RutinaTable';
-import { RutinaForm } from '../components/rutinas/RutinaForm';
+import { RutinaForm } from '../components/rutinas';
 import { MemoizedRutinaNavigation as RutinaNavigation } from '../components/rutinas/RutinaNavigation';
-import RutinaActionsBar from '../components/rutinas/RutinaActionsBar';
+// RutinaActionsBar no existe, eliminar el import y el uso
 import { useRutinas } from '../context/RutinasContext';
 
 /**
@@ -117,7 +117,6 @@ const RutinasContent = () => {
         />
         
         {/* Componente de acciones */}
-        <RutinaActionsBar onEdit={() => handleOpenDialog(rutina)} />
       </CommonDetails>
 
       <Dialog
@@ -150,9 +149,9 @@ const RutinasContent = () => {
  */
 const RutinasReorg = () => {
   return (
-    <RutinaProvider>
+    <RutinasProvider>
       <RutinasContent />
-    </RutinaProvider>
+    </RutinasProvider>
   );
 };
 

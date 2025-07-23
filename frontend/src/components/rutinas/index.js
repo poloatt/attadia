@@ -14,13 +14,13 @@ export { RutinaNavigation } from './RutinaNavigation';
 export { default as InlineItemConfigImproved } from './InlineItemConfigImproved';
 
 // Contexto y Provider
-export { RutinasProvider, useRutinas } from './context/RutinasContext';
+export { RutinasProvider, useRutinas } from '../../context/RutinasContext';
 
 // Hooks
-export { default as useDebounce } from './hooks/useDebounce';
-export { default as useOptimisticUpdate } from './hooks/useOptimisticUpdate';
-export { default as useLocalPreservationState } from './hooks/useLocalPreservationState';
+export { default as useDebounce } from '../../hooks/useDebounce';
+export { default as useOptimisticUpdate } from '../../hooks/useOptimisticUpdate';
+export { default as useLocalPreservationState } from '../../hooks/useLocalPreservationState';
 
 // Utilidades
-export * from './utils/iconConfig';
-export * from './utils/localChanges'; 
+export * from '../../utils/iconConfig';
+export * from '../../utils/localChanges'; 

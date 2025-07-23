@@ -3,7 +3,7 @@ import { Sidebar, BottomNavigation, PrivateRoute } from './navigation';
 import { Login } from './pages/Login';
 import { Propiedades } from './pages/Propiedades';
 import { Layout } from './layouts/Layout';
-import { Register } from './components/Register';
+import { Register } from './pages';
 import Assets from './pages/Assets';
 import Finanzas from './pages/Finanzas';
 import Transacciones from './pages/Transacciones';
