@@ -204,12 +204,16 @@ const InquilinoCard = ({
         sx={theme => ({
           pb: 0.5,
           pt: 1.5,
-          px: 1.5,
-          height: '100%',
+          px: 2.5,
+          minWidth: 420,
+          maxWidth: 700,
+          width: '100%',
+          height: 'auto',
           borderTop: estadoActual === 'ACTIVO'
             ? `3px solid ${getStatusColor(estadoActual)}`
             : `1px solid ${theme.palette.divider}`,
           borderBottom: `1px solid ${theme.palette.divider}`,
+          mb: 2
         })}
         onClick={handleOpenDetail}
         style={{ cursor: 'pointer' }}
