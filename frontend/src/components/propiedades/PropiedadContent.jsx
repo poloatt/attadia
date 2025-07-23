@@ -12,7 +12,7 @@ import {
 import { styled } from '@mui/material/styles';
 import { Link } from 'react-router-dom';
 import { InquilinoDetail } from '.';
-import { getInquilinosByPropiedad, getInquilinosByContrato } from '../propiedades/inquilinos';
+import { getInquilinosByPropiedad, getInquilinosByContrato } from '../../utils/inquilinosUtils';
 import ContratoDetail from '../propiedades/contratos/ContratoDetail';
 import {
   LocationOnOutlined as AddressIcon,

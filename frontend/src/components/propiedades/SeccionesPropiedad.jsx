@@ -23,7 +23,7 @@ import {
   BedOutlined
 } from '@mui/icons-material';
 import { agruparHabitaciones } from '../../utils/propiedadUtils';
-import { getInquilinosByPropiedad } from './inquilinos';
+import { getInquilinosByPropiedad } from '../../utils/inquilinosUtils';
 import { icons } from '../../navigation/menuIcons';
 import { InquilinoDetail } from '.';
 import ContratoDetail from './contratos/ContratoDetail';
