@@ -1,6 +1,5 @@
 export { default as Register } from './Register.jsx';
 export { default as Rutinas } from './Rutinas.jsx';
-export { default as RutinasReorg } from './RutinasReorg.jsx';
 export { default as Inquilinos } from './Inquilinos.jsx';
 export { default as Contratos } from './Contratos.jsx';
 export { default as Assets } from './Assets.jsx';

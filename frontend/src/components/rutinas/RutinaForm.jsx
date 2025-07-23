@@ -30,7 +30,7 @@ import EventIcon from '@mui/icons-material/Event';
 import SaveIcon from '@mui/icons-material/Save';
 import clienteAxios from '../../config/axios';
 import { snackbar } from '../common';
-import { useDebounce } from '../../utils/rutinaHooks';
+import { useDebounce } from '../../hooks';
 import { formatDate, iconConfig } from '../../utils/iconConfig';
 import { useRutinasCRUD } from '../../hooks/useRutinasCRUD';
 import { useAuth } from '../../hooks/useAuth';

@@ -33,7 +33,7 @@ import axios from 'axios';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '../../config/axios';
 import { NavigateBefore, NavigateNext, Today as TodayIcon } from '@mui/icons-material';
-import { useLocalPreservationState } from '../../utils/rutinaHooks';
+import { useLocalPreservationState } from '../../hooks';
 import { RutinaNavigation } from './RutinaNavigation';
 import ItemCadenciaConfig from './ItemCadenciaConfig';
 import shouldShowItemUtil from '../../utils/shouldShowItem';

@@ -10,6 +10,6 @@ export * from './cadenciaUtils.js';
 export * from './rutinaDateUtils.js';
 export * from './fixHelper.js';
 export * from './historialUtils.js';
-export * from './rutinaHooks.js';
+export * from '../hooks/rutinaHooks.js';
 export * from './iconConfig.js';
 export * from './localChanges.js'; 

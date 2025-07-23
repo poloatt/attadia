@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { cadenciaManager } from '../../utils/cadenciaManager';
+import { cadenciaManager } from '../utils/cadenciaManager';
 
 /**
  * Hook que maneja la visibilidad de elementos individuales
