@@ -43,12 +43,14 @@ import {
   getCuentaYMoneda,
   calcularProgresoContrato,
   calcularAlquilerMensualPromedio,
-  calcularEstadoCuotasContrato
+  calcularEstadoCuotasContrato,
+  formatMontoAbreviado
 } from './contratoUtils';
 import EstadoFinanzasContrato from './EstadoFinanzasContrato';
 import { CuotasProvider } from './context/CuotasContext';
 import { getEstadoColor, getEstadoText, getEstadoIcon, getStatusIconComponent } from '../../common/StatusSystem';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { ContratoUbicacionSection } from './ContratosSection';
 
 const ContratoDetail = ({ 
   open, 
@@ -125,6 +127,13 @@ const ContratoDetail = ({
   // Definición modular de secciones para el contrato
   const getContratoDetailSections = () => ([
     {
+      key: 'ubicacion',
+      title: 'Ubicación',
+      icon: LocationIcon,
+      defaultExpanded: true,
+      children: <ContratoUbicacionSection propiedad={contrato.propiedad} />
+    },
+    {
       key: 'progreso',
       title: 'Progreso del contrato',
       icon: ContractIcon,
@@ -148,10 +157,10 @@ const ContratoDetail = ({
           />
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
             <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
-              Pagado: {simboloMoneda} {estadoCuotas.montoPagado.toLocaleString()}
+              Pagado: {simboloMoneda} {formatMontoAbreviado(estadoCuotas.montoPagado)}
             </Typography>
             <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
-              Total: {simboloMoneda} {estadoCuotas.montoTotal.toLocaleString()}
+              Total: {simboloMoneda} {formatMontoAbreviado(estadoCuotas.montoTotal)}
             </Typography>
           </Box>
         </Box>
@@ -166,12 +175,12 @@ const ContratoDetail = ({
         const estadoFinanzas = calcularEstadoFinanzasContrato(contrato, simboloMoneda);
         if (estadoFinanzas.tieneContrato) {
           return (
-            <EntityDetailSection icon={MoneyIcon} title="Estado financiero">
+            <EntityDetailSection>
               <CuotasProvider contratoId={contrato._id || contrato.id} formData={contrato}>
                 <EstadoFinanzasContrato 
                   contrato={contrato}
                   contratoId={contrato._id || contrato.id}
-                  showTitle={true}
+                  showTitle={false}
                   compact={false}
                   sx={{ mt: 0, p: 0, bgcolor: 'transparent' }}
                 />

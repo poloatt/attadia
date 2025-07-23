@@ -34,15 +34,17 @@ import { ContratoDetail } from '../contratos';
 import { getEstadoColor, getEstadoText, getEstadoIcon, getStatusIconComponent } from '../../common/StatusSystem';
 import CommonHeader from '../../common/CommonHeader';
 import EstadoIcon from '../../common/EstadoIcon';
-import CommonActions from '../../common/CommonActions';
+import { CallButton, SmsButton, EmailButton } from '../../common/CommonActions';
 import TipoPropiedadIcon from '../TipoPropiedadIcon';
 import { formatFecha } from '../contratos/contratoUtils';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import PropiedadDetail from '../PropiedadDetail';
 
 // Componentes estilizados siguiendo la estética geométrica
 const StyledPaper = styled(Paper)(({ theme }) => ({
   borderRadius: 0,
-  border: '1px solid',
+  borderWidth: '1px 0 1px 0',
+  borderStyle: 'solid',
   borderColor: theme.palette.divider,
   backgroundColor: '#181818',
   transition: 'all 0.2s ease',
@@ -199,117 +201,51 @@ const InquilinoCard = ({
     <>
       <StyledPaper
         elevation={0}
-        sx={{
-          p: 2,
+        sx={theme => ({
+          pb: 0.5,
+          pt: 1.5,
+          px: 1.5,
           height: '100%',
-          // Línea superior sutil para inquilinos activos
-          borderTop: estadoActual === 'ACTIVO' ? '3px solid' : '1px solid',
-          borderTopColor: estadoActual === 'ACTIVO' ? getStatusColor(estadoActual) : 'divider',
-        }}
+          borderTop: estadoActual === 'ACTIVO'
+            ? `3px solid ${getStatusColor(estadoActual)}`
+            : `1px solid ${theme.palette.divider}`,
+          borderBottom: `1px solid ${theme.palette.divider}`,
+        })}
+        onClick={handleOpenDetail}
+        style={{ cursor: 'pointer' }}
       >
-        {/* Acciones en el margen superior derecho */}
-        {showActions && (
-          <Box sx={{ position: 'absolute', top: 8, right: 8, zIndex: 2 }}>
-            <CommonActions
-              onEdit={() => onEdit(inquilino)}
-              onDelete={() => onDelete(inquilino)}
-              itemName={`${nombre} ${apellido}`}
-            />
-          </Box>
-        )}
         {/* Contenido Principal */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 2, pr: showActions ? 8 : 0 }}>
+        <Box sx={{ display: 'flex', gap: 1, mb: 1, pr: 0, alignItems: 'flex-start' }}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <CommonHeader
               icon={EstadoIcon}
               iconProps={{ estado: estadoActual, tipo: 'INQUILINO', sx: { fontSize: 22, mr: 1 } }}
-              title={`${nombre} ${apellido}`}
-              subtitle={dni || ''}
+              title={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <span>{`${nombre} ${apellido}`}</span>
+                  <OpenInNewIcon
+                    sx={{ fontSize: 18, cursor: 'pointer', color: 'text.secondary', borderRadius: 0, p: 0.2, '&:hover': { color: 'primary.main', background: 'transparent' } }}
+                    onClick={e => { e.stopPropagation(); handleOpenDetail(); }}
+                  />
+                </Box>
+              }
+              subtitle={
+                contratoActual && contratoActual.fechaInicio && contratoActual.fechaFin && contratoActual.propiedad ?
+                  `${formatContratoDuration(contratoActual.fechaInicio, contratoActual.fechaFin)} en ${contratoActual.propiedad.alias || contratoActual.propiedad.nombre || 'Propiedad'}`
+                  : ''
+              }
               titleSize="subtitle1"
               titleWeight={600}
               gap={1}
             />
           </Box>
+          {/* Iconos de contacto en el margen superior derecho */}
+          <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', mt: 0.2 }}>
+            <CallButton phone={telefono} disabled={!telefono} size="small" onClick={e => e.stopPropagation()} sx={{ p: 0.5, fontSize: 16 }} />
+            <SmsButton phone={telefono} disabled={!telefono} size="small" onClick={e => e.stopPropagation()} sx={{ p: 0.5, fontSize: 16 }} />
+            <EmailButton email={email} disabled={!email} size="small" onClick={e => e.stopPropagation()} sx={{ p: 0.5, fontSize: 16 }} />
+          </Box>
         </Box>
-        {/* Información de contacto y datos adicionales */}
-        {(telefono || email) && (
-          <>
-            <Divider sx={{ my: 1, opacity: 0.5 }} />
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.2 }}>
-              {telefono && (
-                <InfoRow>
-                  <PhoneIcon sx={{ ml: 1 }} />
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {telefono}
-                  </Typography>
-                </InfoRow>
-              )}
-              {email && (
-                <InfoRow>
-                  <EmailIcon sx={{ ml: 1 }} />
-                  <Typography variant="body2" color="text.secondary" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {email}
-                  </Typography>
-                </InfoRow>
-              )}
-            </Box>
-          </>
-        )}
-
-        {/* Información del contrato */}
-        {contratoActual && contratoActual.propiedad && contratoActual.fechaInicio && contratoActual.fechaFin && (
-          <>
-            <Divider sx={{ my: 1, opacity: 0.5 }} />
-            <Box sx={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 1.5,
-              px: 0,
-              py: 0,
-              width: '100%',
-              margin: 0
-            }}>
-              <TipoPropiedadIcon tipo={contratoActual.propiedad?.tipo} sx={{ fontSize: 24, color: 'primary.main', mt: 0.2 }} />
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: 500,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      color: 'text.primary',
-                      flex: 1
-                    }}
-                    component="span"
-                  >
-                    {contratoActual.propiedad?.alias || contratoActual.propiedad?.nombre || 'Propiedad'}
-                  </Typography>
-                 {/* Botones de ver contrato y ver propiedad a la derecha */}
-                 <CommonActions
-                   onContratoDetail={contratoActual ? () => setContratoDetailOpen(true) : undefined}
-                   onPropiedadDetail={contratoActual && contratoActual.propiedad ? () => setPropiedadDetailOpen(true) : undefined}
-                   size="small"
-                   direction="row"
-                   tipoPropiedad={contratoActual?.propiedad?.tipo}
-                 />
-                </Box>
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.1, lineHeight: 1.2 }}>
-                  {formatFecha(contratoActual.fechaInicio)} - {formatFecha(contratoActual.fechaFin)} • {formatContratoDuration(contratoActual.fechaInicio, contratoActual.fechaFin)}
-                </Typography>
-              </Box>
-            </Box>
-          </>
-        )}
       </StyledPaper>
 
       {/* Popup de detalle */}

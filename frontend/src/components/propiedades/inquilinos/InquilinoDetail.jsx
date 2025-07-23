@@ -1,34 +1,32 @@
 import React from 'react';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Box,
-  Typography,
-  IconButton,
-  Avatar,
-  Chip,
-  Tooltip,
-  Stack,
-  Divider,
-  Button
-} from '@mui/material';
-import {
-  Email as EmailIcon,
-  Phone as PhoneIcon,
-  Badge as BadgeIcon,
-  Home as HomeIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Close as CloseIcon,
-  Description as ContractIcon,
-  CalendarToday as CalendarIcon,
-  OpenInNew as OpenIcon,
-  Visibility as ViewIcon
-} from '@mui/icons-material';
+  EntityDetailSection,
+  EntityDetailGrid,
+  GeometricModalHeader,
+  GeometricDialog,
+  EstadoChip,
+  CollapsibleSection
+} from '../../common/CommonDetails';
+import BadgeIcon from '@mui/icons-material/Badge';
+import PersonIcon from '@mui/icons-material/Person';
+import EmailIcon from '@mui/icons-material/Email';
+import PhoneIcon from '@mui/icons-material/Phone';
+import DescriptionIcon from '@mui/icons-material/Description';
 import { getEstadoColor, getEstadoText } from '../../common/StatusSystem';
 import { useNavigate } from 'react-router-dom';
+import TipoPropiedadIcon from '../TipoPropiedadIcon';
+import CommonActions from '../../common/CommonActions';
+import { formatFecha } from '../contratos/contratoUtils';
+import ContratoDetail from '../contratos/ContratoDetail';
+import PropiedadDetail from '../PropiedadDetail';
+import { Typography, Box } from '@mui/material';
+import { Tooltip, IconButton } from '@mui/material';
+import OpenIcon from '@mui/icons-material/OpenInNew';
+import ViewIcon from '@mui/icons-material/Visibility';
+import { useTheme } from '@mui/material/styles';
+import { SeccionContratos } from '../SeccionesPropiedad';
+import ContratoCard from '../contratos/ContratoCard';
+import { CuotasProvider } from '../contratos/context/CuotasContext';
 
 const getStatusColor = (status) => {
   const color = getEstadoColor(status, 'INQUILINO');
@@ -100,7 +98,7 @@ const ContratoItem = ({ contrato, onContratoClick }) => {
           }
         }}
       >
-        <ContractIcon sx={{ fontSize: 18, color: 'primary.light', flexShrink: 0 }} />
+        <DescriptionIcon sx={{ fontSize: 18, color: 'primary.light', flexShrink: 0 }} />
         <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary', minWidth: 80, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {contrato.propiedad?.titulo || contrato.propiedad?.nombre || 'Propiedad'}
         </Typography>
@@ -170,99 +168,125 @@ const InquilinoDetail = ({ open, onClose, inquilino, onEdit, onDelete, onContrat
     if (onClose) onClose();
   };
 
+  // Obtener el contrato actual
+  const getContratoActual = () => {
+    if (contratosClasificados.activos?.length > 0) {
+      return contratosClasificados.activos[0];
+    }
+    if (contratosClasificados.futuros?.length > 0) {
+      return contratosClasificados.futuros[0];
+    }
+    if (contratosClasificados.vencidos?.length > 0) {
+      return contratosClasificados.vencidos[0];
+    }
+    return null;
+  };
+  const contratoActual = getContratoActual();
+  const [contratoDetailOpen, setContratoDetailOpen] = React.useState(false);
+  const [propiedadDetailOpen, setPropiedadDetailOpen] = React.useState(false);
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.default' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar sx={{ width: 48, height: 48, bgcolor: 'primary.main', fontSize: '1.2rem' }}>{getInitials(nombre, apellido)}</Avatar>
-          <Box>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>{nombre} {apellido}</Typography>
-            <Chip label={getStatusLabel(estado)} color={getStatusColor(estado)} size="small" sx={{ borderRadius: 0, fontWeight: 500, fontSize: '0.8rem', mt: 0.5 }} />
+    <GeometricDialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      actions={
+        <CommonActions
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          itemName={`${nombre} ${apellido}`}
+          showEdit={true}
+          showDelete={true}
+        />
+      }
+    >
+      <GeometricModalHeader
+        title={`${nombre} ${apellido}`}
+        chip={<EstadoChip estado={estado} tipo="INQUILINO" />}
+        onClose={onClose}
+      />
+      {(() => {
+        const theme = useTheme();
+        return (
+          <Box sx={{ p: 2, pt: 1, backgroundColor: theme.palette.collapseHeader.background }}>
+            <EntityDetailGrid spacing={2}>
+              <CollapsibleSection title="Datos personales" icon={BadgeIcon} defaultExpanded={true}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                  <PersonIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                  <Typography variant="body2" color="text.secondary">Nombre: {nombre}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                  <PersonIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                  <Typography variant="body2" color="text.secondary">Apellido: {apellido}</Typography>
+                </Box>
+                {email && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                    <EmailIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                    <Typography variant="body2" color="text.secondary">Email: {email}</Typography>
+                  </Box>
+                )}
+                {telefono && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                    <PhoneIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                    <Typography variant="body2" color="text.secondary">Teléfono: {telefono}</Typography>
+                  </Box>
+                )}
+                {dni && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <BadgeIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                    <Typography variant="body2" color="text.secondary">DNI: {dni}</Typography>
+                  </Box>
+                )}
+              </CollapsibleSection>
+              {/* Sección de Propiedad principal del contrato actual */}
+              {contratoActual && contratoActual.propiedad && contratoActual.fechaInicio && contratoActual.fechaFin && (
+                <CollapsibleSection title="Propiedad" icon={TipoPropiedadIcon} defaultExpanded={true}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <TipoPropiedadIcon tipo={contratoActual.propiedad?.tipo} sx={{ fontSize: 22, color: 'primary.main' }} />
+                    <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                      {contratoActual.propiedad?.alias || contratoActual.propiedad?.nombre || 'Propiedad'}
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    {formatFecha(contratoActual.fechaInicio)} - {formatFecha(contratoActual.fechaFin)} • {formatContratoDuration(contratoActual.fechaInicio, contratoActual.fechaFin)}
+                  </Typography>
+                </CollapsibleSection>
+              )}
+              {/* Sección Contratos: muestra todos los contratos del inquilino si existen */}
+              {inquilino?.contratos?.length > 0 && (
+                <CollapsibleSection title="Contratos" icon={DescriptionIcon} defaultExpanded={true}>
+                  {inquilino.contratos.map((contrato, idx) => (
+                    <CuotasProvider key={contrato._id || contrato.id || idx} contratoId={contrato._id || contrato.id} formData={contrato} relatedData={{ inquilino, propiedad: contrato.propiedad }}>
+                      <ContratoCard contrato={contrato} />
+                    </CuotasProvider>
+                  ))}
+                </CollapsibleSection>
+              )}
+              <SeccionContratos inquilino={inquilino} />
+              {/* Aquí podrías agregar una sección de documentos si existe en el modelo */}
+            </EntityDetailGrid>
           </Box>
-        </Box>
-        <Box>
-          <Tooltip title="Editar">
-            <IconButton onClick={handleEdit} size="small" sx={{ color: 'text.secondary', mr: 1 }}>
-              <EditIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Eliminar">
-            <IconButton onClick={handleDelete} size="small" sx={{ color: 'error.main', mr: 1 }}>
-              <DeleteIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Cerrar">
-            <IconButton onClick={onClose} size="small" sx={{ color: 'text.secondary' }}>
-              <CloseIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </DialogTitle>
-      <DialogContent sx={{ bgcolor: 'background.default', p: 3 }}>
-        <Stack spacing={2}>
-          {/* Datos personales */}
-          <Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 500, mb: 1 }}>Datos personales</Typography>
-            <Stack spacing={1}>
-              {email && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <EmailIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-                  <Typography variant="body2" color="text.secondary">{email}</Typography>
-                </Box>
-              )}
-              {telefono && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <PhoneIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-                  <Typography variant="body2" color="text.secondary">{telefono}</Typography>
-                </Box>
-              )}
-              {dni && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <BadgeIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-                  <Typography variant="body2" color="text.secondary">DNI: {dni}</Typography>
-                </Box>
-              )}
-            </Stack>
-          </Box>
-
-          {/* Contratos activos */}
-          {contratosClasificados.activos?.length > 0 && (
-            <Box>
-              <Typography variant="subtitle2" sx={{ fontWeight: 500, mb: 1 }}>Contratos activos</Typography>
-              <Stack spacing={1}>
-                {contratosClasificados.activos.map((contrato, index) => (
-                  <ContratoItem key={contrato._id || contrato.id || `activo-${index}`} contrato={contrato} onContratoClick={onContratoClick} />
-                ))}
-              </Stack>
-            </Box>
-          )}
-
-          {/* Contratos futuros */}
-          {contratosClasificados.futuros?.length > 0 && (
-            <Box>
-              <Typography variant="subtitle2" sx={{ fontWeight: 500, mb: 1 }}>Contratos futuros</Typography>
-              <Stack spacing={1}>
-                {contratosClasificados.futuros.map((contrato, index) => (
-                  <ContratoItem key={contrato._id || contrato.id || `futuro-${index}`} contrato={contrato} onContratoClick={onContratoClick} />
-                ))}
-              </Stack>
-            </Box>
-          )}
-
-          {/* Contratos vencidos */}
-          {contratosClasificados.vencidos?.length > 0 && (
-            <Box>
-              <Typography variant="subtitle2" sx={{ fontWeight: 500, mb: 1 }}>Contratos vencidos</Typography>
-              <Stack spacing={1}>
-                {contratosClasificados.vencidos.map((contrato, index) => (
-                  <ContratoItem key={contrato._id || contrato.id || `vencido-${index}`} contrato={contrato} onContratoClick={onContratoClick} />
-                ))}
-              </Stack>
-            </Box>
-          )}
-        </Stack>
-      </DialogContent>
-    </Dialog>
+        );
+      })()}
+      {/* Modales de detalle de contrato y propiedad */}
+      {contratoActual && (
+        <ContratoDetail
+          open={contratoDetailOpen}
+          onClose={() => setContratoDetailOpen(false)}
+          contrato={contratoActual}
+          onEdit={() => { setContratoDetailOpen(false); navigate('/contratos', { state: { editContract: true, contratoId: contratoActual._id } }); }}
+          onDelete={() => setContratoDetailOpen(false)}
+        />
+      )}
+      {contratoActual && contratoActual.propiedad && (
+        <PropiedadDetail
+          open={propiedadDetailOpen}
+          onClose={() => setPropiedadDetailOpen(false)}
+          propiedad={contratoActual.propiedad}
+        />
+      )}
+    </GeometricDialog>
   );
 };
 

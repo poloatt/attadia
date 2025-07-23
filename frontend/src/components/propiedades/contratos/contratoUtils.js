@@ -78,13 +78,13 @@ export const calcularDuracionTotal = (fechaInicio, fechaFin) => {
   }
 };
 
-// Función para formatear fecha
-export const formatFecha = (fecha) => {
-  return new Date(fecha).toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  });
+// Si se pasa un año de referencia y coincide, solo muestra el mes. Si no, mes y año.
+export const formatFecha = (fecha, anioReferencia = null) => {
+  const date = new Date(fecha);
+  if (anioReferencia && date.getFullYear() === anioReferencia) {
+    return date.toLocaleDateString('es-ES', { month: 'short' });
+  }
+  return date.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
 };
 
 // Función para obtener el apellido del primer inquilino de un contrato
@@ -875,4 +875,16 @@ export function formatMesAnio(fecha) {
   const date = new Date(fecha);
   const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   return `${meses[date.getMonth()]} ${date.getFullYear()}`;
+} 
+
+// Función para formatear montos en formato abreviado (X.XK, X.XM)
+export function formatMontoAbreviado(monto) {
+  if (typeof monto !== 'number') return monto;
+  if (Math.abs(monto) >= 1_000_000) {
+    return (monto / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+  } else if (Math.abs(monto) >= 1_000) {
+    return (monto / 1_000).toFixed(1).replace(/\.0$/, '') + 'K';
+  } else {
+    return monto.toLocaleString();
+  }
 } 

@@ -53,7 +53,7 @@ export const GeometricModalHeader = ({
 }) => {
   const theme = useTheme();
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, backgroundColor: theme.palette.collapseHeader.background, p: 2, pb: 1, borderBottom: `1px solid ${theme.palette.divider}` }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0, mt: 0, backgroundColor: theme.palette.collapseHeader.background, p: 2, pb: 1, borderBottom: `1px solid ${theme.palette.divider}` }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
         {Icon && <Icon sx={{ fontSize: 32, color: 'primary.main' }} />}
         <Box>
@@ -125,6 +125,8 @@ export const StyledAccordion = styled(Accordion)(({ theme }) => ({
   border: `1px solid ${theme.palette.divider}`,
   boxShadow: 'none',
   margin: 0,
+  marginLeft: 0,
+  marginRight: 0,
   '&:before': {
     display: 'none'
   },
@@ -139,10 +141,24 @@ export const StyledAccordion = styled(Accordion)(({ theme }) => ({
 export const StyledAccordionSummary = styled(AccordionSummary)(({ theme }) => ({
   borderRadius: 0,
   backgroundColor: theme.palette.collapseHeader.background,
-  minHeight: 12, // aún más compacto
+  minHeight: 8,
+  marginTop: 0,
+  marginBottom: 0,
+  marginLeft: 0,
+  marginRight: 0,
+  paddingTop: 2,
+  paddingBottom: 2,
+  paddingLeft: 8,
+  paddingRight: 8,
   '&.Mui-expanded': {
-    minHeight: 12
-  }
+    minHeight: 8
+  },
+  '& .MuiAccordionSummary-content': {
+    margin: '4px 0',
+  },
+  '& .MuiAccordionSummary-content.Mui-expanded': {
+    margin: '4px 0',
+  },
 }));
 
 // Sección de detalle reutilizable con título, ícono y children

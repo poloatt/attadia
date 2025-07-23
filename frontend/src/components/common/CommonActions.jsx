@@ -5,6 +5,10 @@ import { menuItems } from '../../navigation/menuStructure';
 import DescriptionIcon from '@mui/icons-material/Description';
 import HomeIcon from '@mui/icons-material/Home';
 import TipoPropiedadIcon from '../propiedades/TipoPropiedadIcon';
+import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
+import SmsOutlinedIcon from '@mui/icons-material/SmsOutlined';
+import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
+import { IconButton } from '@mui/material';
 
 /**
  * EntityActions: Componente de acciones reutilizable y extensible usando SystemButtons.
@@ -162,3 +166,39 @@ export function useEntityActions() {
 } 
 
 export default EntityActions; 
+
+export const CallButton = ({ phone, ...props }) => (
+  <IconButton
+    aria-label="Llamar"
+    href={`tel:${phone}`}
+    target="_blank"
+    rel="noopener noreferrer"
+    {...props}
+  >
+    <PhoneOutlinedIcon />
+  </IconButton>
+);
+
+export const SmsButton = ({ phone, ...props }) => (
+  <IconButton
+    aria-label="Enviar SMS"
+    href={`sms:${phone}`}
+    target="_blank"
+    rel="noopener noreferrer"
+    {...props}
+  >
+    <SmsOutlinedIcon />
+  </IconButton>
+);
+
+export const EmailButton = ({ email, ...props }) => (
+  <IconButton
+    aria-label="Enviar Email"
+    href={`mailto:${email}`}
+    target="_blank"
+    rel="noopener noreferrer"
+    {...props}
+  >
+    <EmailOutlinedIcon />
+  </IconButton>
+); 

@@ -3,6 +3,7 @@ import { Box, Typography, Autocomplete, Chip, InputAdornment } from '@mui/materi
 import { Home, SingleBed, Person, AttachMoney } from '@mui/icons-material';
 import { StyledTextField, FormSection, StyledToggleButton } from '../../common/CommonFormStyles';
 import { getCuentaYMoneda } from './contratoUtils';
+import { SeccionUbicacion } from '../SeccionesPropiedad';
 
 // --- TIPO_ALQUILER ---
 export const TIPO_ALQUILER = [
@@ -282,8 +283,15 @@ export const ContratoMontosSection = ({
   );
 };
 
+// --- ContratoUbicacionSection ---
+export const ContratoUbicacionSection = ({ propiedad }) => {
+  if (!propiedad) return null;
+  return <SeccionUbicacion propiedad={propiedad} />;
+};
+
 // --- Componente principal agrupador (opcional) ---
 const ContratosSection = {
+  ContratoUbicacionSection,
   ContratoPropiedadSection, // Información principal primero
   ContratoHabitacionSection,
   ContratoInquilinosSection,

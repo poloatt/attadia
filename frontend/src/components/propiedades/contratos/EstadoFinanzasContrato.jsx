@@ -23,7 +23,126 @@ import SaveIcon from '@mui/icons-material/Save';
 import { StyledCuotasIconButton } from '../../common/CommonFormStyles';
 import CuotaInlineEditor from './CuotaInlineEditor';
 import { useCuotasContext } from './context/CuotasContext';
-import { calcularEstadoCuotasContrato } from './contratoUtils';
+import { calcularEstadoCuotasContrato, formatMontoAbreviado } from './contratoUtils';
+
+// Subcomponente: Muestra mensaje cuando no hay cuotas configuradas
+const CuotasSinConfigurar = ({ contrato, compact, noBorder, sx, estadoContrato }) => {
+  // Si es contrato de mantenimiento, mostrar mensaje especial
+  if (contrato?.esMantenimiento) {
+    return (
+      <Box sx={{
+        mt: 0.5,
+        bgcolor: 'transparent',
+        borderRadius: 0,
+        border: 'none',
+        width: '100%',
+        boxSizing: 'border-box',
+        ...sx
+      }}>
+        <Typography variant="caption" sx={{
+          fontSize: compact ? '0.6rem' : '0.65rem',
+          color: '#ffb74d', // naranja pastel
+          fontWeight: 600,
+          fontStyle: 'italic',
+          bgcolor: 'transparent',
+          px: 0,
+          py: 0.5
+        }}>
+          Contrato de mantenimiento
+        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+          <Typography variant="caption" sx={{ fontSize: compact ? '0.55rem' : '0.6rem', color: 'text.secondary' }}>
+            Monto total: {contrato?.cuenta?.moneda?.simbolo || contrato?.moneda?.simbolo || '$'} {formatMontoAbreviado(contrato.precioTotal || 0)}
+          </Typography>
+          <Typography variant="caption" sx={{ fontSize: compact ? '0.55rem' : '0.6rem', color: 'text.secondary' }}>
+            {contrato.fechaInicio && contrato.fechaFin ?
+              `${new Date(contrato.fechaInicio).toLocaleDateString('es-ES', {
+                day: '2-digit', month: 'short', year: 'numeric'
+              })} - ${new Date(contrato.fechaFin).toLocaleDateString('es-ES', {
+                day: '2-digit', month: 'short', year: 'numeric'
+              })}` :
+              'Fechas no especificadas'
+            }
+          </Typography>
+        </Box>
+      </Box>
+    );
+  }
+  let mensaje = 'Sin cuotas mensuales configuradas';
+  let color = 'text.secondary';
+  if (estadoContrato === 'PLANEADO') {
+    mensaje = 'Contrato planeado - Inicia en el futuro';
+    color = 'warning.main';
+  } else if (estadoContrato === 'FINALIZADO') {
+    mensaje = 'Contrato finalizado';
+    color = 'text.disabled';
+  } else if (estadoContrato === 'ACTIVO') {
+    mensaje = 'Sin cuotas mensuales configuradas';
+    color = 'error.main';
+  }
+  return (
+    <Box sx={{
+      mt: 0.5,
+      bgcolor: noBorder ? 'transparent' : (compact ? '#181818' : 'background.paper'),
+      borderRadius: 0,
+      border: noBorder ? 'none' : '1px solid rgba(255,255,255,0.08)',
+      width: '100%',
+      boxSizing: 'border-box',
+      ...sx
+    }}>
+      <Typography variant="caption" sx={{
+        fontSize: compact ? '0.6rem' : '0.65rem',
+        color: color,
+        fontStyle: 'italic'
+      }}>
+        {mensaje}
+      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+        <Typography variant="caption" sx={{ fontSize: compact ? '0.55rem' : '0.6rem', color: 'text.secondary' }}>
+          Monto total: {contrato?.cuenta?.moneda?.simbolo || contrato?.moneda?.simbolo || '$'} {formatMontoAbreviado(contrato.precioTotal || 0)}
+        </Typography>
+        <Typography variant="caption" sx={{ fontSize: compact ? '0.55rem' : '0.6rem', color: 'text.secondary' }}>
+          {contrato.fechaInicio && contrato.fechaFin ?
+            `${new Date(contrato.fechaInicio).toLocaleDateString('es-ES', {
+              day: '2-digit', month: 'short', year: 'numeric'
+            })} - ${new Date(contrato.fechaFin).toLocaleDateString('es-ES', {
+              day: '2-digit', month: 'short', year: 'numeric'
+            })}` :
+            'Fechas no especificadas'
+          }
+        </Typography>
+      </Box>
+    </Box>
+  );
+};
+
+// Subcomponente: Resumen de cuotas (no compacto)
+const ResumenCuotas = ({ cuotasPagadas, cuotasTotales, montoPagado, montoTotal, simboloMoneda, porcentajePagado, compact }) => (
+  <>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5, px: SECTION_PADDING_X }}>
+      <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>
+        {cuotasPagadas}/{cuotasTotales} días
+      </Typography>
+      <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>
+        {simboloMoneda} {formatMontoAbreviado(montoPagado)}/{formatMontoAbreviado(montoTotal)}
+      </Typography>
+    </Box>
+    <Box sx={{ px: SECTION_PADDING_X, mb: 0.5 }}>
+      <CommonProgressBar
+        dataType="cuotas"
+        cuotasPagadas={cuotasPagadas}
+        cuotasTotales={cuotasTotales}
+        montoPagado={montoPagado}
+        montoTotalCuotas={montoTotal}
+        percentage={porcentajePagado}
+        color="primary"
+        variant="default"
+        showLabels={false}
+        sx={{ mb: 0 }}
+      />
+    </Box>
+  </>
+);
 
 const EstadoFinanzasContrato = ({ 
   contrato, // Recibo el contrato completo, no un estado calculado
@@ -99,64 +218,7 @@ const EstadoFinanzasContrato = ({
 
   // Si no hay cuotas válidas, mostrar información según el estado del contrato
   if (cuotasTotales === 0) {
-    let mensaje = 'Sin cuotas mensuales configuradas';
-    let color = 'text.secondary';
-    
-    if (estadoContrato === 'PLANEADO') {
-      mensaje = 'Contrato planeado - Inicia en el futuro';
-      color = 'warning.main';
-    } else if (estadoContrato === 'FINALIZADO') {
-      mensaje = 'Contrato finalizado';
-      color = 'text.disabled';
-    } else if (estadoContrato === 'ACTIVO') {
-      mensaje = 'Sin cuotas mensuales configuradas';
-      color = 'error.main';
-    }
-    
-    return (
-      <Box sx={{ 
-        mt: 0.5,
-        bgcolor: noBorder ? 'transparent' : (compact ? '#181818' : 'background.paper'),
-        borderRadius: 0,
-        border: noBorder ? 'none' : '1px solid rgba(255,255,255,0.08)',
-        width: '100%',
-        boxSizing: 'border-box',
-        ...sx
-      }}>
-        <Typography variant="caption" sx={{ 
-          fontSize: compact ? '0.6rem' : '0.65rem', 
-          color: color,
-          fontStyle: 'italic'
-        }}>
-          {mensaje}
-        </Typography>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-          <Typography variant="caption" sx={{ 
-            fontSize: compact ? '0.55rem' : '0.6rem', 
-            color: 'text.secondary' 
-          }}>
-            Monto total: {simboloMoneda} {(contrato.precioTotal || 0).toLocaleString()}
-          </Typography>
-          <Typography variant="caption" sx={{ 
-            fontSize: compact ? '0.55rem' : '0.6rem', 
-            color: 'text.secondary' 
-          }}>
-            {contrato.fechaInicio && contrato.fechaFin ? 
-              `${new Date(contrato.fechaInicio).toLocaleDateString('es-ES', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric'
-              })} - ${new Date(contrato.fechaFin).toLocaleDateString('es-ES', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric'
-              })}` : 
-              'Fechas no especificadas'
-            }
-          </Typography>
-        </Box>
-      </Box>
-    );
+    return <CuotasSinConfigurar contrato={contrato} compact={compact} noBorder={noBorder} sx={sx} estadoContrato={estadoContrato} />;
   }
 
   return (
@@ -177,32 +239,15 @@ const EstadoFinanzasContrato = ({
 
       {/* Información de cuotas y montos - SIEMPRE ARRIBA DE LA BARRA */}
       {!compact && (
-        <>
-          {/* Único renglón: XX/XX días a la izquierda, $XX/$XXXX a la derecha */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5, px: SECTION_PADDING_X }}>
-            <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>
-              {cuotasPagadas}/{cuotasTotales} días
-            </Typography>
-            <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>
-              {simboloMoneda} {montoPagado.toLocaleString()}/{montoTotal.toLocaleString()}
-            </Typography>
-          </Box>
-          {/* Barra de progreso de cuotas */}
-          <Box sx={{ px: SECTION_PADDING_X, mb: 0.5 }}>
-            <CommonProgressBar
-              dataType="cuotas"
-              cuotasPagadas={cuotasPagadas}
-              cuotasTotales={cuotasTotales}
-              montoPagado={montoPagado}
-              montoTotalCuotas={montoTotal}
-              percentage={porcentajePagado}
-              color="primary"
-              variant="default"
-              showLabels={false}
-              sx={{ mb: 0 }}
-            />
-          </Box>
-        </>
+        <ResumenCuotas
+          cuotasPagadas={cuotasPagadas}
+          cuotasTotales={cuotasTotales}
+          montoPagado={montoPagado}
+          montoTotal={montoTotal}
+          simboloMoneda={simboloMoneda}
+          porcentajePagado={porcentajePagado}
+          compact={compact}
+        />
       )}
       {/* Chips de cuotas vencidas o al día */}
       {cuotasVencidas > 0 && (

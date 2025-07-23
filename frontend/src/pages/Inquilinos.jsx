@@ -67,8 +67,8 @@ export function Inquilinos() {
     setIsLoading(true);
     try {
       const url = propiedadId 
-        ? `/api/inquilinos?propiedad=${propiedadId}`
-        : '/api/inquilinos';
+        ? `/api/inquilinos?propiedad=${propiedadId}&limit=100`
+        : '/api/inquilinos?limit=100';
       const response = await clienteAxios.get(url);
       console.log('Inquilinos obtenidos:', response.data.docs);
       setInquilinos(response.data.docs);

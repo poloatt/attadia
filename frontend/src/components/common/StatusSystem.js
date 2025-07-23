@@ -19,28 +19,28 @@ import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
 // Estados de Propiedades
 export const PROPIEDAD_ESTADOS = {
   DISPONIBLE: {
-    icon: 'Cancel',
-    color: '#e57373', // Rojo - disponible (vacía, vencida, error)
+    icon: 'BookmarkBorderOutlined',
+    color: '#e57373', // Rojo - desocupado
     text: 'Disponible'
   },
   OCUPADA: {
-    icon: 'BookmarkAdded', // Flag con tick
-    color: '#81c784', // Verde - ocupada, huésped actual, activo
+    icon: 'BookmarkAdded', // Checked bookmark
+    color: '#81c784', // Verde - ocupado
     text: 'Ocupada'
   },
   MANTENIMIENTO: {
-    icon: 'Engineering',
-    color: '#ffb74d', // Naranja - mantenimiento, pendiente, on hold
+    icon: 'EngineeringOutlined',
+    color: '#ffb74d', // Naranja - mantenimiento
     text: 'Mantenimiento'
   },
   RESERVADA: {
-    icon: 'BookmarkBorderOutlined', // Flag outline sin tick
-    color: '#64b5f6', // Azul - planeado, reservado, futuro huésped
+    icon: 'BookmarkBorderOutlined',
+    color: '#64b5f6', // Azul - reservado
     text: 'Reservada'
   },
   ARCHIVADA: {
     icon: 'BookmarkAdded',
-    color: '#bdbdbd', // Gris - archivado, completado, finalizado
+    color: '#bdbdbd', // Gris - finalizado
     text: 'Archivada'
   }
 };
@@ -48,28 +48,28 @@ export const PROPIEDAD_ESTADOS = {
 // Estados de Contratos
 export const CONTRATO_ESTADOS = {
   ACTIVO: {
-    icon: 'BookmarkAdded', // Flag con tick
-    color: '#81c784', // Verde - activo, huésped actual
+    icon: 'BookmarkAdded',
+    color: '#81c784', // Verde - activo
     text: 'Activo'
   },
   PLANEADO: {
-    icon: 'BookmarkBorderOutlined', // Flag outline sin tick
-    color: '#64b5f6', // Azul - planeado, reservado, futuro
+    icon: 'BookmarkBorderOutlined',
+    color: '#64b5f6', // Azul - planeado
     text: 'Planeado'
   },
   FINALIZADO: {
     icon: 'BookmarkAdded',
-    color: '#bdbdbd', // Gris - finalizado, archivado, completado
+    color: '#bdbdbd', // Gris - finalizado
     text: 'Finalizado'
   },
   MANTENIMIENTO: {
-    icon: 'Engineering',
-    color: '#ffb74d', // Naranja - mantenimiento, pendiente
+    icon: 'EngineeringOutlined',
+    color: '#ffb74d', // Naranja - mantenimiento
     text: 'Mantenimiento'
   },
   CANCELADO: {
-    icon: 'Cancel',
-    color: '#e57373', // Rojo - cancelado, error, vencido
+    icon: 'BookmarkBorderOutlined',
+    color: '#e57373', // Rojo - cancelado
     text: 'Cancelado'
   }
 };
@@ -77,33 +77,33 @@ export const CONTRATO_ESTADOS = {
 // Estados de Inquilinos
 export const INQUILINO_ESTADOS = {
   ACTIVO: {
-    icon: 'CheckCircle',
-    color: '#81c784', // Verde - activo, huésped actual
+    icon: 'BookmarkAdded',
+    color: '#81c784', // Verde - activo
     text: 'Activo'
   },
   RESERVADO: {
-    icon: 'PendingActions',
-    color: '#64b5f6', // Azul - reservado, futuro huésped
+    icon: 'BookmarkBorderOutlined',
+    color: '#64b5f6', // Azul - reservado
     text: 'Reservado'
   },
   PENDIENTE: {
-    icon: 'Engineering',
-    color: '#ffb74d', // Naranja - pendiente, on hold
+    icon: 'BookmarkBorderOutlined',
+    color: '#ffb74d', // Naranja - pendiente
     text: 'Pendiente'
   },
   INACTIVO: {
     icon: 'BookmarkAdded',
-    color: '#bdbdbd', // Gris - inactivo, archivado, completado
+    color: '#bdbdbd', // Gris - inactivo
     text: 'Inactivo'
   },
   SIN_CONTRATO: {
-    icon: 'DescriptionIcon',
-    color: '#bdbdbd', // Gris - sin contrato, archivado
-    text: 'Sin Contrato'
+    icon: 'BookmarkBorderOutlined',
+    color: '#bdbdbd', // Gris - sin contrato
+    text: 'Sin contrato'
   },
   CANCELADO: {
-    icon: 'Cancel',
-    color: '#e57373', // Rojo - cancelado, error
+    icon: 'BookmarkBorderOutlined',
+    color: '#e57373', // Rojo - cancelado
     text: 'Cancelado'
   }
 };
@@ -111,28 +111,28 @@ export const INQUILINO_ESTADOS = {
 // Estados de Proyectos
 export const PROYECTO_ESTADOS = {
   EN_PROGRESO: {
-    icon: 'CheckCircle',
-    color: '#81c784', // Verde - en progreso, actual
-    text: 'En Progreso'
+    icon: 'BookmarkAdded',
+    color: '#81c784', // Verde - en progreso
+    text: 'En progreso'
   },
   PLANEADO: {
-    icon: 'PendingActions',
-    color: '#64b5f6', // Azul - planeado, futuro
+    icon: 'BookmarkBorderOutlined',
+    color: '#64b5f6', // Azul - planeado
     text: 'Planeado'
   },
   PENDIENTE: {
-    icon: 'Engineering',
-    color: '#ffb74d', // Naranja - pendiente, on hold
+    icon: 'BookmarkBorderOutlined',
+    color: '#ffb74d', // Naranja - pendiente
     text: 'Pendiente'
   },
   COMPLETADO: {
     icon: 'BookmarkAdded',
-    color: '#bdbdbd', // Gris - completado, archivado
+    color: '#bdbdbd', // Gris - completado
     text: 'Completado'
   },
   CANCELADO: {
-    icon: 'Cancel',
-    color: '#e57373', // Rojo - cancelado, error
+    icon: 'BookmarkBorderOutlined',
+    color: '#e57373', // Rojo - cancelado
     text: 'Cancelado'
   }
 };
@@ -140,28 +140,28 @@ export const PROYECTO_ESTADOS = {
 // Estados de Tareas
 export const TAREA_ESTADOS = {
   EN_PROGRESO: {
-    icon: 'CheckCircle',
-    color: '#81c784', // Verde - en progreso, actual
-    text: 'En Progreso'
+    icon: 'BookmarkAdded',
+    color: '#81c784', // Verde - en progreso
+    text: 'En progreso'
   },
   PLANEADA: {
-    icon: 'PendingActions',
-    color: '#64b5f6', // Azul - planeada, futuro
+    icon: 'BookmarkBorderOutlined',
+    color: '#64b5f6', // Azul - planeada
     text: 'Planeada'
   },
   PENDIENTE: {
-    icon: 'Engineering',
-    color: '#ffb74d', // Naranja - pendiente, on hold
+    icon: 'BookmarkBorderOutlined',
+    color: '#ffb74d', // Naranja - pendiente
     text: 'Pendiente'
   },
   COMPLETADA: {
     icon: 'BookmarkAdded',
-    color: '#bdbdbd', // Gris - completada, archivada
+    color: '#bdbdbd', // Gris - completada
     text: 'Completada'
   },
   CANCELADA: {
-    icon: 'Cancel',
-    color: '#e57373', // Rojo - cancelada, error
+    icon: 'BookmarkBorderOutlined',
+    color: '#e57373', // Rojo - cancelada
     text: 'Cancelada'
   }
 };
@@ -169,28 +169,28 @@ export const TAREA_ESTADOS = {
 // Estados de Transacciones
 export const TRANSACCION_ESTADOS = {
   PAGADO: {
-    icon: 'CheckCircle',
-    color: '#81c784', // Verde - pagado, actual
+    icon: 'BookmarkAdded',
+    color: '#81c784', // Verde - pagado
     text: 'Pagado'
   },
   PLANEADO: {
-    icon: 'PendingActions',
-    color: '#64b5f6', // Azul - planeado, futuro
+    icon: 'BookmarkBorderOutlined',
+    color: '#64b5f6', // Azul - planeado
     text: 'Planeado'
   },
   PENDIENTE: {
-    icon: 'Engineering',
-    color: '#ffb74d', // Naranja - pendiente, on hold
+    icon: 'BookmarkBorderOutlined',
+    color: '#ffb74d', // Naranja - pendiente
     text: 'Pendiente'
   },
   COMPLETADA: {
     icon: 'BookmarkAdded',
-    color: '#bdbdbd', // Gris - completada, archivada
+    color: '#bdbdbd', // Gris - completada
     text: 'Completada'
   },
   CANCELADA: {
-    icon: 'Cancel',
-    color: '#e57373', // Rojo - cancelada, error
+    icon: 'BookmarkBorderOutlined',
+    color: '#e57373', // Rojo - cancelada
     text: 'Cancelada'
   }
 };
@@ -198,28 +198,28 @@ export const TRANSACCION_ESTADOS = {
 // Estados de Transacciones Recurrentes
 export const TRANSACCION_RECURRENTE_ESTADOS = {
   ACTIVO: {
-    icon: 'CheckCircle',
-    color: '#81c784', // Verde - activo, actual
+    icon: 'BookmarkAdded',
+    color: '#81c784', // Verde - activo
     text: 'Activo'
   },
   PLANEADO: {
-    icon: 'PendingActions',
-    color: '#64b5f6', // Azul - planeado, futuro
+    icon: 'BookmarkBorderOutlined',
+    color: '#64b5f6', // Azul - planeado
     text: 'Planeado'
   },
   PAUSADO: {
-    icon: 'Engineering',
-    color: '#ffb74d', // Naranja - pausado, pendiente
+    icon: 'BookmarkBorderOutlined',
+    color: '#ffb74d', // Naranja - pausado
     text: 'Pausado'
   },
   FINALIZADO: {
     icon: 'BookmarkAdded',
-    color: '#bdbdbd', // Gris - finalizado, archivado
+    color: '#bdbdbd', // Gris - finalizado
     text: 'Finalizado'
   },
   CANCELADO: {
-    icon: 'Cancel',
-    color: '#e57373', // Rojo - cancelado, error
+    icon: 'BookmarkBorderOutlined',
+    color: '#e57373', // Rojo - cancelado
     text: 'Cancelado'
   }
 };
@@ -351,18 +351,9 @@ export function getEstadoText(estado, tipo = 'PROPIEDAD') {
 
 // Mapeo de iconos a componentes de Material-UI
 export const ICON_MAP = {
-  'PendingActions': PendingActionsOutlinedIcon,
-  'CheckCircle': CheckCircleOutlinedIcon,
-  'Engineering': EngineeringOutlinedIcon,
   'BookmarkAdded': BookmarkAddedOutlinedIcon,
-  'BookmarkAddedOutlined': BookmarkAddedOutlinedIcon, // (legacy, no usar)
-  'BookmarkBorderOutlined': BookmarkBorderOutlinedIcon, // Flag outline sin tick
-  'DescriptionIcon': DescriptionOutlinedIcon,
-  'Cancel': CancelOutlinedIcon,
-  'Pause': PauseOutlinedIcon,
-  'Error': ErrorOutlineOutlinedIcon,
-  'NewReleases': NewReleasesOutlinedIcon,
-  'Warning': WarningAmberOutlinedIcon
+  'BookmarkBorderOutlined': BookmarkBorderOutlinedIcon,
+  'EngineeringOutlined': EngineeringOutlinedIcon
 };
 
 // Exportar todos los estados para compatibilidad

@@ -3,9 +3,12 @@ import { Box, Paper, Typography } from '@mui/material';
 import CommonHeader from '../../common/CommonHeader';
 import CommonProgressBar from '../../common/CommonProgressBar';
 import EstadoFinanzasContrato from './EstadoFinanzasContrato';
-import { formatFecha, calcularProgresoContrato } from './contratoUtils';
-import { CuotasProvider } from './context/CuotasContext';
+import { formatFecha, calcularProgresoContrato, formatMontoAbreviado } from './contratoUtils';
+import { useState } from 'react';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import ContratoDetail from './ContratoDetail';
 import TipoPropiedadIcon from '../TipoPropiedadIcon';
+import { CuotasProvider } from './context/CuotasContext';
 
 const ContratoCard = ({ contrato, onClick }) => {
   // Obtener el inquilino principal
@@ -18,8 +21,22 @@ const ContratoCard = ({ contrato, onClick }) => {
   const nombreInquilino = inquilino ? `${inquilino.nombre || ''} ${inquilino.apellido || ''}`.trim() : 'Sin inquilino';
 
   // Fechas y duración
-  const fechaInicio = contrato.fechaInicio ? formatFecha(contrato.fechaInicio) : 'Sin fecha';
-  const fechaFin = contrato.fechaFin ? formatFecha(contrato.fechaFin) : 'Sin fecha';
+  let fechaInicio = 'Sin fecha';
+  let fechaFin = 'Sin fecha';
+  if (contrato.fechaInicio && contrato.fechaFin) {
+    const anioInicio = new Date(contrato.fechaInicio).getFullYear();
+    const anioFin = new Date(contrato.fechaFin).getFullYear();
+    if (anioInicio === anioFin) {
+      fechaInicio = formatFecha(contrato.fechaInicio, anioFin);
+      fechaFin = formatFecha(contrato.fechaFin);
+    } else {
+      fechaInicio = formatFecha(contrato.fechaInicio);
+      fechaFin = formatFecha(contrato.fechaFin);
+    }
+  } else {
+    if (contrato.fechaInicio) fechaInicio = formatFecha(contrato.fechaInicio);
+    if (contrato.fechaFin) fechaFin = formatFecha(contrato.fechaFin);
+  }
   const fechasContrato = `${fechaInicio} — ${fechaFin}`;
   const tipoPropiedad = contrato.propiedad?.tipo;
 
@@ -32,56 +49,80 @@ const ContratoCard = ({ contrato, onClick }) => {
   const montoTotal = progreso.montoTotal || 0;
   const simboloMoneda = contrato?.cuenta?.moneda?.simbolo || contrato?.moneda?.simbolo || '$';
 
+  const [openDetail, setOpenDetail] = useState(false);
+
   return (
-    <CuotasProvider contratoId={contrato._id || contrato.id} formData={contrato}>
-      <Paper
-        sx={{
-          borderRadius: 0,
-          backgroundColor: (theme) => theme.palette.collapseHeader.background,
-          border: 1,
-          borderColor: (theme) => theme.palette.divider,
-          p: 1.5,
-          mb: 1,
-          cursor: onClick ? 'pointer' : 'default',
-          transition: 'box-shadow 0.2s',
-          '&:hover': {
-            boxShadow: onClick ? '0 2px 8px rgba(0,0,0,0.12)' : 'none',
-          },
-        }}
-        onClick={onClick}
-      >
-        <CommonHeader
-          title={nombreInquilino}
-          subtitle={fechasContrato}
-          estado={contrato.estado}
-          tipo="CONTRATO"
-          showEstado={true}
-          icon={TipoPropiedadIcon}
-          iconProps={{ tipo: tipoPropiedad, sx: { fontSize: 22, mr: 1 } }}
-          titleSize="subtitle1"
-          titleWeight={600}
-          gap={1}
+    <Paper
+      sx={{
+        borderRadius: 0,
+        backgroundColor: (theme) => theme.palette.collapseHeader.background,
+        border: 1,
+        borderColor: (theme) => theme.palette.divider,
+        p: 1.5,
+        mb: 1,
+        cursor: onClick ? 'pointer' : 'default',
+        transition: 'box-shadow 0.2s',
+        '&:hover': {
+          boxShadow: onClick ? '0 2px 8px rgba(0,0,0,0.12)' : 'none',
+        },
+      }}
+      onClick={onClick}
+    >
+      <CommonHeader
+        title={
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <span>{nombreInquilino}</span>
+            <Box component="span" sx={{ ml: 0.5 }}>
+              <OpenInNewIcon
+                sx={{ fontSize: 18, cursor: 'pointer', color: 'text.secondary', borderRadius: 0, p: 0.2, '&:hover': { color: 'primary.main', background: 'transparent' } }}
+                onClick={e => { e.stopPropagation(); setOpenDetail(true); }}
+              />
+            </Box>
+          </Box>
+        }
+        subtitle={fechasContrato}
+        estado={contrato.estado}
+        tipo="CONTRATO"
+        showEstado={true}
+        icon={TipoPropiedadIcon}
+        iconProps={{ tipo: tipoPropiedad, sx: { fontSize: 22, mr: 1 } }}
+        titleSize="subtitle1"
+        titleWeight={600}
+        gap={1}
+      />
+      {/* Divider geométrico entre header y contenido */}
+      <Box sx={{ width: '100%', px: 0, mt: 1 }}>
+        <Box
+          sx={{
+            width: '100%',
+            height: '2px',
+            backgroundColor: (theme) => theme.palette.collapseHeader.background,
+            borderRadius: 0,
+          }}
         />
-        {/* Espaciado antes de la barra de progreso */}
-        <Box sx={{ mt: 2 }} />
-        {/* Barra de progreso de días y montos */}
-        <Box sx={{ mt: 0.5 }}>
-          <CommonProgressBar
-            dataType="days"
-            diasTranscurridos={diasTranscurridos}
-            diasTotales={diasTotales}
-            percentage={porcentaje}
-            color="primary"
-            showLabels={true}
-            variant="compact"
-            rightLabel={`${simboloMoneda} ${montoAcumulado.toLocaleString()}/${montoTotal.toLocaleString()}`}
-          />
-        </Box>
-        <Box sx={{ mt: 1 }}>
+      </Box>
+      {/* Espaciado antes de la barra de progreso */}
+      <Box sx={{ mt: 2 }} />
+      {/* Barra de progreso de días y montos */}
+      <Box sx={{ mt: 0.5 }}>
+        <CommonProgressBar
+          dataType="days"
+          diasTranscurridos={diasTranscurridos}
+          diasTotales={diasTotales}
+          percentage={porcentaje}
+          color="primary"
+          showLabels={true}
+          variant="compact"
+          rightLabel={`${simboloMoneda} ${formatMontoAbreviado(montoAcumulado)}/${formatMontoAbreviado(montoTotal)}`}
+        />
+      </Box>
+      <Box sx={{ mt: 1 }}>
+        <CuotasProvider contratoId={contrato._id || contrato.id} formData={contrato}>
           <EstadoFinanzasContrato contrato={contrato} compact={true} noBorder={true} />
-        </Box>
-      </Paper>
-    </CuotasProvider>
+        </CuotasProvider>
+      </Box>
+      <ContratoDetail open={openDetail} onClose={() => setOpenDetail(false)} contrato={contrato} />
+    </Paper>
   );
 };
 

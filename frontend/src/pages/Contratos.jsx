@@ -35,6 +35,7 @@ import { Toolbar } from '../navigation';
 import { useFormManager } from '../context/FormContext';
 import ContratoCard from '../components/propiedades/contratos/ContratoCard';
 import { CuotasProvider } from '../components/propiedades/contratos/context/CuotasContext';
+import ContratoDetail from '../components/propiedades/contratos/ContratoDetail';
 
 export function Contratos() {
   const [contratos, setContratos] = useState([]);
@@ -58,6 +59,8 @@ export function Contratos() {
   const { open: openFormChoice, initialData: initialFormChoiceData } = getFormState('contratoFormChoice');
 
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedContrato, setSelectedContrato] = useState(null);
+  const [openDetail, setOpenDetail] = useState(false);
 
   // Abrir formulario tras redirección si openAdd está en el estado
   useEffect(() => {
@@ -365,7 +368,14 @@ export function Contratos() {
           ) : (
             <Box>
               {contratos.map((contrato) => (
-                <ContratoCard key={contrato._id || contrato.id} contrato={contrato} />
+                <ContratoCard
+                  key={contrato._id || contrato.id}
+                  contrato={contrato}
+                  onClick={() => {
+                    setSelectedContrato(contrato);
+                    setOpenDetail(true);
+                  }}
+                />
               ))}
             </Box>
           )}
@@ -459,6 +469,15 @@ export function Contratos() {
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Modal de detalle de contrato */}
+        {selectedContrato && (
+          <ContratoDetail
+            open={openDetail}
+            onClose={() => setOpenDetail(false)}
+            contrato={selectedContrato}
+          />
+        )}
       </Box>
     </Box>
   );
