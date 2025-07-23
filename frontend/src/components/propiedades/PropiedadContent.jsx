@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { Link } from 'react-router-dom';
-import InquilinoDetail from '../propiedades/inquilinos/InquilinoDetail';
+import { InquilinoDetail } from '.';
 import { getInquilinosByPropiedad, getInquilinosByContrato } from '../propiedades/inquilinos';
 import ContratoDetail from '../propiedades/contratos/ContratoDetail';
 import {
@@ -46,15 +46,15 @@ import {
   LocalLaundryServiceOutlined,
   Folder as FolderIcon,
 } from '@mui/icons-material';
-import { getEstadoContrato, calcularDuracionTotal, getApellidoInquilinoContrato, calcularRangoMesesContrato } from '../propiedades/contratos/contratoUtils';
-import { contarItemsPorHabitacion } from '../propiedades/propiedadUtils';
+import { getEstadoContrato, calcularDuracionTotal, getApellidoInquilinoContrato, calcularRangoMesesContrato } from '../../utils/contratoUtils';
+import { contarItemsPorHabitacion } from '../../utils/propiedadUtils';
 import { icons } from '../../navigation/menuIcons';
 import { getStatusIconComponent, getStatusIconComponentRaw, getEstadoColor, getEstadoText } from '../common/StatusSystem';
 import { IconoContratoDocumentos } from '../propiedades/SeccionesPropiedad';
-import { calcularProgresoOcupacion, calcularYearToDate, calcularYearToGo } from '../propiedades/propiedadUtils';
+import { calcularProgresoOcupacion, calcularYearToDate, calcularYearToGo } from '../../utils/propiedadUtils';
 import EstadoFinanzasContrato from '../propiedades/contratos/EstadoFinanzasContrato';
-import { CuotasProvider } from '../propiedades/contratos/context/CuotasContext';
-import { calcularEstadoCuotasContrato } from '../propiedades/contratos/contratoUtils';
+import { CuotasProvider } from './contratos';
+import { calcularEstadoCuotasContrato } from '../../utils/contratoUtils';
 import { SeccionUbicacion, SeccionHabitaciones, SeccionDocumentos } from '../propiedades/SeccionesPropiedad';
 import { useTheme } from '@mui/material/styles';
 

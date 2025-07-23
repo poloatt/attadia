@@ -36,7 +36,7 @@ import CommonHeader from '../../common/CommonHeader';
 import EstadoIcon from '../../common/EstadoIcon';
 import { CallButton, SmsButton, EmailButton } from '../../common/CommonActions';
 import TipoPropiedadIcon from '../TipoPropiedadIcon';
-import { formatFecha } from '../contratos/contratoUtils';
+import { formatFecha } from '../../../utils/contratoUtils';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import PropiedadDetail from '../PropiedadDetail';
 

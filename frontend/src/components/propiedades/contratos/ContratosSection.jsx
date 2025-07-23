@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Box, Typography, Autocomplete, Chip, InputAdornment } from '@mui/material';
 import { Home, SingleBed, Person, AttachMoney } from '@mui/icons-material';
 import { StyledTextField, FormSection, StyledToggleButton } from '../../common/CommonFormStyles';
-import { getCuentaYMoneda } from './contratoUtils';
+import { getCuentaYMoneda } from '../../../utils/contratoUtils';
 import { SeccionUbicacion } from '../SeccionesPropiedad';
 
 // --- TIPO_ALQUILER ---

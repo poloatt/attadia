@@ -11,7 +11,7 @@ import {
   calcularProgresoFinancieroContrato,
   calcularYearToDate as calcularYearToDateFromUtils,
   calcularYearToGo as calcularYearToGoFromUtils
-} from './contratos';
+} from './contratoUtils';
 
 // Importaciones de iconos para tipos de propiedad
 import HomeWork from '@mui/icons-material/HomeWork';

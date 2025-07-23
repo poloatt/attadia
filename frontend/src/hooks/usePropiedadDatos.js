@@ -8,8 +8,8 @@ import {
   calcularYearToDate,
   calcularYearToGo,
   getNombreTipoHabitacion
-} from '../components/propiedades/propiedadUtils';
-import { calcularAlquilerMensualPromedio, calcularEstadoCuotasContrato } from '../components/propiedades/contratos/contratoUtils';
+} from '../utils/propiedadUtils';
+import { calcularAlquilerMensualPromedio, calcularEstadoCuotasContrato } from '../utils/contratoUtils';
 
 /**
  * Hook para centralizar toda la lógica derivada de una propiedad

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { obtenerDatosRelacionados, getEstadoContrato } from '../contratoUtils';
+import { obtenerDatosRelacionados, getEstadoContrato } from '../../../../utils/contratoUtils';
 
 export const useContratoData = (contratos = [], relatedData = {}) => {
   const contratosConDatos = useMemo(() => {

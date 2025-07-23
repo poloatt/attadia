@@ -1,5 +1,5 @@
 import React from 'react';
-import { getTipoPropiedadIconComponent } from './propiedadUtils';
+import { getTipoPropiedadIconComponent } from '../../utils/propiedadUtils';
 
 const TipoPropiedadIcon = ({ tipo, sx = {}, ...props }) => {
   const { IconComponent, props: defaultProps } = getTipoPropiedadIconComponent(tipo, { sx, ...props });

@@ -6,7 +6,7 @@ import {
 } from '@mui/material';
 import { useSnackbar } from 'notistack';
 import { InquilinoList, InquilinoForm } from '../components/propiedades/inquilinos';
-import InquilinoDetail from '../components/propiedades/inquilinos/InquilinoDetail';
+import { InquilinoDetail } from '../components/propiedades/inquilinos';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import { CommonDetails, CommonActions } from '../components/common';

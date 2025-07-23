@@ -45,7 +45,7 @@ import {
   calcularAlquilerMensualPromedio,
   calcularEstadoCuotasContrato,
   formatMontoAbreviado
-} from './contratoUtils';
+} from '../../../utils/contratoUtils';
 import EstadoFinanzasContrato from './EstadoFinanzasContrato';
 import { CuotasProvider } from './context/CuotasContext';
 import { getEstadoColor, getEstadoText, getEstadoIcon, getStatusIconComponent } from '../../common/StatusSystem';

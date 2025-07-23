@@ -23,7 +23,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import { StyledCuotasIconButton } from '../../common/CommonFormStyles';
 import CuotaInlineEditor from './CuotaInlineEditor';
 import { useCuotasContext } from './context/CuotasContext';
-import { calcularEstadoCuotasContrato, formatMontoAbreviado } from './contratoUtils';
+import { calcularEstadoCuotasContrato, formatMontoAbreviado } from '../../../utils/contratoUtils';
 
 // Subcomponente: Muestra mensaje cuando no hay cuotas configuradas
 const CuotasSinConfigurar = ({ contrato, compact, noBorder, sx, estadoContrato }) => {

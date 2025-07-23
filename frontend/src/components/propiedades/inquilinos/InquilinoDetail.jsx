@@ -16,7 +16,7 @@ import { getEstadoColor, getEstadoText } from '../../common/StatusSystem';
 import { useNavigate } from 'react-router-dom';
 import TipoPropiedadIcon from '../TipoPropiedadIcon';
 import CommonActions from '../../common/CommonActions';
-import { formatFecha } from '../contratos/contratoUtils';
+import { formatFecha } from '../../../utils/contratoUtils';
 import ContratoDetail from '../contratos/ContratoDetail';
 import PropiedadDetail from '../PropiedadDetail';
 import { Typography, Box } from '@mui/material';
@@ -26,7 +26,7 @@ import ViewIcon from '@mui/icons-material/Visibility';
 import { useTheme } from '@mui/material/styles';
 import { SeccionContratos } from '../SeccionesPropiedad';
 import ContratoCard from '../contratos/ContratoCard';
-import { CuotasProvider } from '../contratos/context/CuotasContext';
+import { CuotasProvider } from '../contratos';
 
 const getStatusColor = (status) => {
   const color = getEstadoColor(status, 'INQUILINO');

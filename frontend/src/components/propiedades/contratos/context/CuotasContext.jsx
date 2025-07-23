@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { calcularEstadoCuota, generarCuotasMensuales } from '../contratoUtils';
+import { calcularEstadoCuota, generarCuotasMensuales } from '../../../../utils/contratoUtils';
 import clienteAxios from '../../../../config/axios';
 
 const CuotasContext = createContext();

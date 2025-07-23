@@ -3,7 +3,7 @@ import { Box, Paper, Typography } from '@mui/material';
 import CommonHeader from '../../common/CommonHeader';
 import CommonProgressBar from '../../common/CommonProgressBar';
 import EstadoFinanzasContrato from './EstadoFinanzasContrato';
-import { formatFecha, calcularProgresoContrato, formatMontoAbreviado } from './contratoUtils';
+import { formatFecha, calcularProgresoContrato, formatMontoAbreviado } from '../../../utils/contratoUtils';
 import { useState } from 'react';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ContratoDetail from './ContratoDetail';

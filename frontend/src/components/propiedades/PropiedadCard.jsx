@@ -68,15 +68,15 @@ import {
   calcularYearToDate,
   calcularYearToGo,
   getNombreTipoHabitacion
-} from './propiedadUtils';
+} from '../../utils/propiedadUtils';
 import CommonHeader from '../common/CommonHeader';
 import { SeccionInquilinos, SeccionHabitaciones, SeccionDocumentos } from './SeccionesPropiedad';
-import { calcularAlquilerMensualPromedio, calcularEstadoCuotasContrato } from './contratos/contratoUtils';
+import { calcularAlquilerMensualPromedio, calcularEstadoCuotasContrato } from '../../utils/contratoUtils';
 import { getEstadoColor, getEstadoText, getStatusIconComponent } from '../common/StatusSystem';
 import { StyledCard, StatusChip } from './PropiedadStyles';
 import EstadoIcon from '../common/EstadoIcon';
 import TipoPropiedadIcon from './TipoPropiedadIcon';
-import { CuotasProvider } from './contratos/context/CuotasContext';
+import { CuotasProvider } from './contratos';
 import EstadoFinanzasContrato from './contratos/EstadoFinanzasContrato';
 import PropiedadDetail from './PropiedadDetail';
 import { SystemButtons } from '../common/SystemButtons';

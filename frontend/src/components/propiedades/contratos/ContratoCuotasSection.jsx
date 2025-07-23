@@ -25,7 +25,7 @@ import {
   StyledCuotasCheckbox,
   FormSection
 } from '../../common/CommonFormStyles';
-import { calcularAlquilerMensualPromedio, calcularEstadoCuota, generarCuotasMensuales } from './contratoUtils';
+import { calcularAlquilerMensualPromedio, calcularEstadoCuota, generarCuotasMensuales } from '../../../utils/contratoUtils';
 import { useCuotasContext } from './context/CuotasContext';
 import CuotaInlineEditor from './CuotaInlineEditor';
 

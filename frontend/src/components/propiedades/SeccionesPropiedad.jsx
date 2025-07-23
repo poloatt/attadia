@@ -22,14 +22,13 @@ import {
   HomeOutlined,
   BedOutlined
 } from '@mui/icons-material';
-import { agruparHabitaciones } from './propiedadUtils';
+import { agruparHabitaciones } from '../../utils/propiedadUtils';
 import { getInquilinosByPropiedad } from './inquilinos';
 import { icons } from '../../navigation/menuIcons';
-import InquilinoDetail from './inquilinos/InquilinoDetail';
+import { InquilinoDetail } from '.';
 import ContratoDetail from './contratos/ContratoDetail';
 import { getStatusIconComponent, getEstadoColor } from '../common/StatusSystem';
-import { getEstadoContrato } from './contratos/contratoUtils';
-import { formatMesAnio } from './contratos/contratoUtils';
+import { getEstadoContrato, formatMesAnio } from '../../utils/contratoUtils';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useTheme } from '@mui/material/styles';
 

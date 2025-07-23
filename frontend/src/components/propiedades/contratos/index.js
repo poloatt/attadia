@@ -12,4 +12,4 @@ export { useContratoData } from './hooks/useContratoData';
 export { CuotasProvider, useCuotasContext } from './context/CuotasContext';
 
 // Utilidades
-export * from './contratoUtils'; 
+export * from '../../../utils/contratoUtils'; 

@@ -30,7 +30,7 @@ import clienteAxios from '../config/axios';
 import { EmptyState } from '../components/common';
 import { PropiedadContent } from '../components/propiedades';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { calcularAlquilerMensualPromedio } from '../components/propiedades/contratos/contratoUtils';
+import { calcularAlquilerMensualPromedio } from '../utils/contratoUtils';
 import { Toolbar } from '../navigation';
 import { useFormManager } from '../context/FormContext';
 import ContratoCard from '../components/propiedades/contratos/ContratoCard';

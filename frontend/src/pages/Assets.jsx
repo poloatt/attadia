@@ -41,7 +41,7 @@ import {
   PropiedadDetail
 } from '../components/propiedades';
 import { getEstadoColor, getEstadoText, getStatusIconComponent } from '../components/common/StatusSystem';
-import { calcularEstadisticasPropiedad } from '../components/propiedades/propiedadUtils';
+import { calcularEstadisticasPropiedad } from '../utils/propiedadUtils';
 
 
 
