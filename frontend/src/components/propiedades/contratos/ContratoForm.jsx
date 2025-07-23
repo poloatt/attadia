@@ -19,7 +19,7 @@ import {
 import { ContratoPropiedadSection, ContratoHabitacionSection, ContratoInquilinosSection, ContratoMontosSection } from './ContratosSection';
 import ContratoCuotasSection from './ContratoCuotasSection';
 import { CircularProgress } from '@mui/material';
-import { CuotasProvider } from './context/CuotasContext';
+import { CuotasProvider } from '../../../context/CuotasContext';
 import { CommonDate } from '../../common/CommonDate';
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({

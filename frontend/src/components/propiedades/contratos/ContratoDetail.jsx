@@ -47,7 +47,7 @@ import {
   formatMontoAbreviado
 } from '../../../utils/contratoUtils';
 import EstadoFinanzasContrato from './EstadoFinanzasContrato';
-import { CuotasProvider } from './context/CuotasContext';
+import { CuotasProvider } from '../../../context/CuotasContext';
 import { getEstadoColor, getEstadoText, getEstadoIcon, getStatusIconComponent } from '../../common/StatusSystem';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ContratoUbicacionSection } from './ContratosSection';

@@ -34,7 +34,7 @@ import { calcularAlquilerMensualPromedio } from '../utils/contratoUtils';
 import { Toolbar } from '../navigation';
 import { useFormManager } from '../context/FormContext';
 import ContratoCard from '../components/propiedades/contratos/ContratoCard';
-import { CuotasProvider } from '../components/propiedades/contratos/context/CuotasContext';
+import { CuotasProvider } from '../context/CuotasContext';
 import ContratoDetail from '../components/propiedades/contratos/ContratoDetail';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';

@@ -8,7 +8,7 @@ import { useState } from 'react';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ContratoDetail from './ContratoDetail';
 import TipoPropiedadIcon from '../TipoPropiedadIcon';
-import { CuotasProvider } from './context/CuotasContext';
+import { CuotasProvider } from '../../../context/CuotasContext';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 
