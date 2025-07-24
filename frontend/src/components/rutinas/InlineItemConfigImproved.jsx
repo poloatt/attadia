@@ -74,7 +74,10 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
 }));
 
 const ConfigContainer = styled(Box)(({ theme }) => ({
-  padding: 0,
+  paddingTop: 0.3,
+  paddingBottom: 0.3,
+  paddingLeft: 0,
+  paddingRight: 0,
   background: theme.palette.background.paper,
   boxShadow: 'none',
   transition: 'border-color 0.2s',
@@ -171,28 +174,28 @@ const InlineItemConfigImproved = ({
 
   return (
     <ConfigContainer>
-      <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.06)', mb: 1 }} />
-      <Box sx={{ display: 'flex', flexDirection: 'row', minHeight: 60 }}>
+      <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.06)', mb: 0.3 }} />
+      <Box sx={{ display: 'flex', flexDirection: 'row', minHeight: 22 }}>
         {/* Tabs verticales de tipo */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mr: 1, minWidth: 60 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.04, mr: 0.1, minWidth: 22 }}>
           {tipoOptions.map((option, idx) => (
             <React.Fragment key={option.value}>
               <Box
                 onClick={() => handleConfigChange({ tipo: option.value })}
                 sx={{
                   cursor: 'pointer',
-                  px: 1.2,
-                  py: 0.6,
+                  px: 0.2,
+                  py: 0.08,
                   fontWeight: 600,
-                  fontSize: '0.85em',
+                  fontSize: '0.78em',
                   color: configState.tipo === option.value ? '#fff' : 'rgba(255,255,255,0.5)',
                   background: configState.tipo === option.value ? 'rgba(255,255,255,0.08)' : 'none',
                   borderLeft: configState.tipo === option.value ? '3px solid #1976d2' : '3px solid transparent',
                   borderRadius: 0,
                   transition: 'background 0.2s, color 0.2s',
                   textAlign: 'left',
-                  minWidth: 50,
-                  mb: 0.2,
+                  minWidth: 22,
+                  mb: 0.04,
                   '&:hover': {
                     background: 'rgba(255,255,255,0.12)',
                     color: '#fff'
@@ -207,22 +210,22 @@ const InlineItemConfigImproved = ({
             </React.Fragment>
           ))}
         </Box>
-        <Divider orientation="vertical" flexItem sx={{ mx: 1, borderColor: 'rgba(255,255,255,0.08)' }} />
+        <Divider orientation="vertical" flexItem sx={{ mx: 0.3, borderColor: 'rgba(255,255,255,0.08)' }} />
         {/* Panel de configuración de frecuencia */}
         <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', minWidth: 0, justifyContent: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7, flexWrap: 'wrap', minWidth: 0, justifyContent: 'center', py: 0.12 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 0 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.12 }}>
                 <IconButton
                   size="small"
                   onClick={() => handleConfigChange({ frecuencia: Math.max(1, configState.frecuencia - 1) })}
                   sx={{
-                    width: 24,
-                    height: 24,
+                    width: 18,
+                    height: 18,
                     borderRadius: 0,
                     color: 'rgba(255,255,255,0.7)',
                     bgcolor: 'rgba(255,255,255,0.04)',
-                    fontSize: '1.1rem',
+                    fontSize: '0.95rem',
                     p: 0,
                     minWidth: 0,
                     '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' }
@@ -231,13 +234,15 @@ const InlineItemConfigImproved = ({
                   -
                 </IconButton>
                 <Typography
-                  variant="h5"
+                  variant="h6"
                   sx={{
                     fontWeight: 700,
                     color: '#fff',
-                    minWidth: 36,
+                    minWidth: 24,
                     textAlign: 'center',
-                    mx: 1
+                    mx: 0.5,
+                    fontSize: '1.1rem',
+                    lineHeight: 1.1
                   }}
                 >
                   {configState.frecuencia}
@@ -246,12 +251,12 @@ const InlineItemConfigImproved = ({
                   size="small"
                   onClick={() => handleConfigChange({ frecuencia: Math.max(1, configState.frecuencia + 1) })}
                   sx={{
-                    width: 24,
-                    height: 24,
+                    width: 18,
+                    height: 18,
                     borderRadius: 0,
                     color: 'rgba(255,255,255,0.7)',
                     bgcolor: 'rgba(255,255,255,0.04)',
-                    fontSize: '1.1rem',
+                    fontSize: '0.95rem',
                     p: 0,
                     minWidth: 0,
                     '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' }
@@ -264,11 +269,11 @@ const InlineItemConfigImproved = ({
                 variant="caption"
                 sx={{
                   color: 'rgba(255,255,255,0.5)',
-                  fontSize: '0.8rem',
-                  mt: 0.5,
+                  fontSize: '0.7rem',
+                  mt: 0.12,
                   textAlign: 'center',
                   display: 'block',
-                  minWidth: 36
+                  minWidth: 24
                 }}
               >
                 {configState.tipo === 'DIARIO' && 'por día'}
@@ -279,7 +284,7 @@ const InlineItemConfigImproved = ({
             </Box>
             {/* Período personalizado */}
             {configState.tipo === 'PERSONALIZADO' && (
-              <Box sx={{ display: 'flex', gap: 0.3, mt: 0.2 }}>
+              <Box sx={{ display: 'flex', gap: 0.18, mt: 0.12 }}>
                 {periodoOptions.map(option => (
                   <StyledChip
                     key={option.value}

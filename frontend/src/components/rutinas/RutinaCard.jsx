@@ -915,6 +915,32 @@ const RutinaCard = ({
 
   return (
     <Card sx={{ mb: 1, bgcolor: 'background.paper', borderRadius: 1.5, boxShadow: 'none', border: 'none', overflow: 'hidden' }}>
+      {/* Label flotante de sección */}
+      <Typography
+        variant="caption"
+        sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          mt: '-10px',
+          ml: 1,
+          px: 1.2,
+          py: 0.2,
+          bgcolor: theme => theme.palette.background.paper,
+          color: theme => theme.palette.text.secondary,
+          border: theme => `1.5px solid ${theme.palette.divider}`,
+          borderRadius: 0,
+          fontWeight: 600,
+          fontSize: '0.72rem',
+          zIndex: 10,
+          boxShadow: 'none',
+          letterSpacing: 0.2,
+          textTransform: 'uppercase',
+          pointerEvents: 'none',
+        }}
+      >
+        {capitalizeFirstLetter(title) || section}
+      </Typography>
       {/* Encabezado de la sección */}
       <Box 
         sx={{ 
@@ -932,9 +958,9 @@ const RutinaCard = ({
           <Typography variant="subtitle2" sx={{ color: 'white', fontWeight: 'bold', fontSize: '0.92rem', flexShrink: 0 }}>
             {capitalizeFirstLetter(title) || section}
           </Typography>
+          <Box sx={{ flexGrow: 1 }} />
           {!isExpanded && (
-            <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 0.3, ml: 1, alignItems: 'center', flexGrow: 1 }}>
-              {/* Render icons with smaller size */}
+            <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 0.3, alignItems: 'center' }}>
               {Object.keys(iconConfig[section] || {}).map((itemId) => {
                 const Icon = iconConfig[section][itemId];
                 const isCompleted = localData[itemId] === true;
@@ -971,21 +997,19 @@ const RutinaCard = ({
               })}
             </Box>
           )}
-          <Box sx={{ flexShrink: 0, ml: 1, display: 'flex', alignItems: 'center' }}>
-            <IconButton 
-              size="small" 
-              sx={{ color: 'white', opacity: 0.7, width: 24, height: 24 }}
-            >
-              {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-            </IconButton>
-          </Box>
+          <IconButton 
+            size="small" 
+            sx={{ color: 'white', opacity: 0.7, width: 24, height: 24, ml: 0.5 }}
+          >
+            {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+          </IconButton>
         </Box>
       </Box>
       
       {/* Contenido de la sección (colapsable) */}
       <Collapse in={isExpanded} unmountOnExit>
-        <CardContent sx={{ p: 1, pt: 0, bgcolor: 'background.paper' }}>
-          <List dense disablePadding>
+        <CardContent sx={{ p: 0.5, pt: 0, bgcolor: 'background.paper' }}>
+          <List dense disablePadding sx={{ py: 0, my: 0 }}>
             {renderItems()}
           </List>
         </CardContent>
@@ -1025,7 +1049,7 @@ const CollapsedIcons = memo(({
   }, [sectionIcons, section, config, rutina, localData]);
   
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 0.5, width: '100%', alignItems: 'center' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 0.5, width: '100%', alignItems: 'center', justifyContent: 'flex-end' }}>
       {itemsParaMostrar.length === 0 ? (
         <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', ml: 1 }}>
           No hay elementos para mostrar
