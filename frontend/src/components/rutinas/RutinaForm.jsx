@@ -35,7 +35,7 @@ import { formatDate, iconConfig } from '../../utils/iconConfig';
 import { useRutinasCRUD } from '../../hooks/useRutinasCRUD';
 import { useAuth } from '../../hooks/useAuth';
 import { useTimezone } from '../../hooks/useTimezone';
-import ChecklistSection from './ChecklistSection';
+import RutinaCard from './RutinaCard';
 import { CommonDate } from '../common/CommonDate';
 import { formatDateForAPI, getNormalizedToday, parseAPIDate } from '../../utils/dateUtils';
 
@@ -493,7 +493,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
             
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
-                <ChecklistSection
+                <RutinaCard
                   title="Cuidado Personal"
                   section="bodyCare"
                   data={rutinaData.bodyCare}
@@ -503,7 +503,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
                 />
               </Grid>
               <Grid item xs={12} md={6}>
-                <ChecklistSection
+                <RutinaCard
                   title="Nutrición"
                   section="nutricion"
                   data={rutinaData.nutricion}
@@ -513,7 +513,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
                 />
               </Grid>
               <Grid item xs={12} md={6}>
-                <ChecklistSection
+                <RutinaCard
                   title="Ejercicio"
                   section="ejercicio"
                   data={rutinaData.ejercicio}
@@ -523,7 +523,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
                 />
               </Grid>
               <Grid item xs={12} md={6}>
-                <ChecklistSection
+                <RutinaCard
                   title="Limpieza"
                   section="cleaning"
                   data={rutinaData.cleaning}

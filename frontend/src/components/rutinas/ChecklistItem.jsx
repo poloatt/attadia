@@ -54,6 +54,7 @@ const ChecklistItem = ({
                 color: isCompleted ? 'primary.main' : 'rgba(255,255,255,0.5)',
                 bgcolor: isCompleted ? 'action.selected' : 'transparent',
                 borderRadius: 0, // geométrico
+                transition: 'all 0.2s ease',
                 '&:hover': {
                   color: isCompleted ? 'primary.main' : 'white',
                   bgcolor: isCompleted ? 'action.selected' : 'rgba(255,255,255,0.1)'

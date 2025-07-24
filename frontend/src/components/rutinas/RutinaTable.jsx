@@ -26,7 +26,7 @@ import {
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
 import AddIcon from '@mui/icons-material/Add';
 import { formatDate } from '../../utils/iconConfig';
-import ChecklistSection from './ChecklistSection';
+import RutinaCard from './RutinaCard';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import axios from 'axios';
@@ -758,7 +758,7 @@ export const RutinaTable = ({
               <Grid container spacing={1.5}>
                 {/* Body Care */}
                 <Grid item xs={12} md={6}>
-                  <ChecklistSection
+                  <RutinaCard
                     title="Cuidado Personal"
                     section="bodyCare"
                     data={rutina.bodyCare || {}}
@@ -775,7 +775,7 @@ export const RutinaTable = ({
                 
                 {/* Nutrición */}
                 <Grid item xs={12} md={6}>
-                  <ChecklistSection
+                  <RutinaCard
                     title="Nutrición"
                     section="nutricion"
                     data={rutina.nutricion || {}}
@@ -792,7 +792,7 @@ export const RutinaTable = ({
                 
                 {/* Ejercicio */}
                 <Grid item xs={12} md={6}>
-                  <ChecklistSection
+                  <RutinaCard
                     title="Ejercicio"
                     section="ejercicio"
                     data={rutina.ejercicio || {}}
@@ -809,7 +809,7 @@ export const RutinaTable = ({
                 
                 {/* Limpieza */}
                 <Grid item xs={12} md={6}>
-                  <ChecklistSection
+                  <RutinaCard
                     title="Limpieza"
                     section="cleaning"
                     data={rutina.cleaning || {}}
