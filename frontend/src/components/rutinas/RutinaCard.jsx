@@ -919,7 +919,7 @@ const RutinaCard = ({
       <Box 
         sx={{ 
           p: 0.5,
-          minHeight: 36,
+          minHeight: 32,
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'space-between',
@@ -929,22 +929,57 @@ const RutinaCard = ({
         onClick={handleToggle}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-          <Typography variant="subtitle2" sx={{ color: 'white', fontWeight: 'bold', flexGrow: 1, fontSize: '0.95rem' }}>
+          <Typography variant="subtitle2" sx={{ color: 'white', fontWeight: 'bold', fontSize: '0.92rem', flexShrink: 0 }}>
             {capitalizeFirstLetter(title) || section}
           </Typography>
-          <IconButton 
-            size="small" 
-            sx={{ color: 'white', opacity: 0.7, width: 28, height: 28 }}
-          >
-            {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-          </IconButton>
-        </Box>
-        {/* Iconos colapsados debajo del título */}
-        {!isExpanded && (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, width: '100%', mt: 0.5 }}>
-            {renderedCollapsedIcons}
+          {!isExpanded && (
+            <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 0.3, ml: 1, alignItems: 'center', flexGrow: 1 }}>
+              {/* Render icons with smaller size */}
+              {Object.keys(iconConfig[section] || {}).map((itemId) => {
+                const Icon = iconConfig[section][itemId];
+                const isCompleted = localData[itemId] === true;
+                if (!config[itemId] || !config[itemId].activo) return null;
+                return (
+                  <HabitIconButton
+                    key={itemId}
+                    isCompleted={isCompleted}
+                    Icon={props => <Icon {...props} fontSize="inherit" sx={{ fontSize: '1rem' }} />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      !readOnly && handleItemClick(itemId, e);
+                    }}
+                    readOnly={readOnly}
+                    sx={{
+                      m: 0.2,
+                      width: 24,
+                      height: 24,
+                      color: isCompleted ? 'primary.main' : 'rgba(255,255,255,0.5)',
+                      bgcolor: isCompleted ? 'action.selected' : 'transparent',
+                      borderRadius: '50%',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        color: isCompleted ? 'primary.main' : 'white',
+                        bgcolor: isCompleted ? 'action.selected' : 'rgba(255,255,255,0.1)'
+                      }
+                    }}
+                  />
+                );
+              })}
+            </Box>
+          )}
+          <Box sx={{ flexShrink: 0, ml: 1, display: 'flex', alignItems: 'center' }}>
+            <IconButton 
+              size="small" 
+              sx={{ color: 'white', opacity: 0.7, width: 24, height: 24 }}
+            >
+              {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+            </IconButton>
           </Box>
-        )}
+        </Box>
       </Box>
       
       {/* Contenido de la sección (colapsable) */}
