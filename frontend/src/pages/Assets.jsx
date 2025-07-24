@@ -585,7 +585,7 @@ export function Assets() {
 
 
   return (
-    <Box sx={{ width: '100%' }}>
+    <Box component="main" className="page-main-content">
       {/* Contenido principal */}
       <Box sx={{ 
         width: '100%', 

@@ -236,9 +236,6 @@ export default function Toolbar({ children, additionalActions = [] }) {
   return (
     <Box sx={{
       width: '100%',
-      maxWidth: { xs: '100%', sm: '100%', md: 1200, lg: 1440 },
-      mx: 'auto',
-      px: { xs: 1, sm: 2, md: 3, lg: 4 },
       left: 0,
       position: { xs: 'fixed', sm: 'fixed', md: 'sticky' },
       top: { xs: '40px', sm: '40px', md: 0 },

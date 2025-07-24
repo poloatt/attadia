@@ -16,14 +16,14 @@ export function Configuracion() {
   } = useUISettings();
   const { logout, user } = useAuth();
 
-  // La configuración automática por dispositivo ahora se maneja en UISettingsContext
-  // No necesitamos lógica adicional aquí ya que los valores por defecto se establecen correctamente
-
   return (
-    <Box sx={{ width: '100%', maxWidth: { xs: '100%', sm: '100%', md: 1200, lg: 1440 }, mx: 'auto', px: { xs: 1, sm: 2, md: 3, lg: 4 } }}>
-      <Toolbar />
+    <Box component="main" className="page-main-content">
       <Box
         sx={{
+          width: '100%',
+          maxWidth: { xs: '100%', sm: '100%', md: 1200, lg: 1440 },
+          mx: 'auto',
+          px: { xs: 1, sm: 2, md: 3, lg: 4 },
           p: 3,
           backgroundColor: 'background.paper',
           borderRadius: 2,

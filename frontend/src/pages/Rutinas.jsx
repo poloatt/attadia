@@ -173,7 +173,7 @@ const RutinasWithContext = () => {
   };
 
   return (
-    <Box sx={{ px: 0, width: '100%' }}>
+    <Box component="main" className="page-main-content">
       <Container maxWidth={isMobile ? "sm" : "xl"} sx={{ px: isMobile ? 1 : 3 }}>
         {/* Alerta global de historial */}
         {(() => {

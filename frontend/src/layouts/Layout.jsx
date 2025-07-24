@@ -13,10 +13,12 @@ import { GlobalFormEventListener } from '../context/GlobalFormEventListener';
 
 export function Layout() {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'), { noSsr: true });
   const navigate = useNavigate();
   const location = useLocation();
-  const { isOpen, isDesktop: isSidebarOpen } = useSidebar();
+  const { isOpen, sidebarWidth } = useSidebar();
   const { showSidebar, showEntityToolbarNavigation } = useUISettings();
   const { user } = useAuth();
 
@@ -60,7 +62,6 @@ export function Layout() {
         <Toolbar />
         <Sidebar />
         <Box
-          component="main"
           sx={{
             flexGrow: 1,
             pt: `calc(${totalTopPadding}px + env(safe-area-inset-top, 0px))`,
@@ -74,7 +75,7 @@ export function Layout() {
             overflowX: 'hidden',
             scrollbarGutter: 'stable',
             position: 'relative',
-            ml: 0,
+            ml: isDesktop ? (isOpen ? sidebarWidth : 56) : isTablet ? (isOpen ? 72 : 56) : 0,
             border: 'none',
             outline: 'none',
             // Estilos para el scrollbar

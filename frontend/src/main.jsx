@@ -9,6 +9,8 @@ import App from './App'
 import axios from 'axios'
 import './index.css'
 import './styles/notistack-override.css'
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import theme from './context/ThemeContext';
 
 // Configuración de React Router v7
 const router = {
@@ -42,16 +44,19 @@ axios.defaults.withCredentials = true
 // Si necesitas rutas dinámicas aquí, importa menuItems desde './navigation/menuStructure'
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter {...router}>
-      <AuthProvider>
-        <UISettingsProvider>
-          <ActionHistoryProvider>
-            <SidebarProvider>
-              <App />
-            </SidebarProvider>
-          </ActionHistoryProvider>
-        </UISettingsProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <BrowserRouter {...router}>
+        <AuthProvider>
+          <UISettingsProvider>
+            <ActionHistoryProvider>
+              <SidebarProvider>
+                <App />
+              </SidebarProvider>
+            </ActionHistoryProvider>
+          </UISettingsProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </ThemeProvider>
   </React.StrictMode>
 ) 

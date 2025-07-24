@@ -10,7 +10,9 @@ import {
   Divider,
   Tooltip,
   IconButton,
-  Typography
+  Typography,
+  useTheme,
+  // No uso useMediaQuery aquí, solo el contexto
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
@@ -22,9 +24,10 @@ import PushPinIcon from '@mui/icons-material/PushPin';
 import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 
 export default function Sidebar() {
-  const { 
-    isOpen, 
-    menuItems, 
+  const theme = useTheme();
+  const {
+    isOpen,
+    menuItems,
     mainSections,
     isDesktop,
     closeSidebar,
@@ -299,19 +302,22 @@ export default function Sidebar() {
       <Drawer
         variant="permanent"
         sx={{
-          width: 'auto',
+          width: isOpen ? sidebarWidth : 56,
+          flexShrink: 0,
           '& .MuiDrawer-paper': {
-            position: 'fixed',
-            top: isDesktop ? '40px' : '80px', // 40px header + 40px toolbar en móvil
+            position: 'relative',
+            left: 0,
+            top: 0,
             width: isOpen ? sidebarWidth : 56,
-            margin: (!isDesktop && !isOpen) ? 0 : undefined,
-            border: (!isDesktop && !isOpen) ? 'none' : undefined,
-            boxShadow: (!isDesktop && !isOpen) ? 'none' : undefined,
-            height: isDesktop ? 'calc(100vh - 40px)' : 'calc(100vh - 80px)',
+            minWidth: 56,
+            maxWidth: 400,
+            borderRadius: 0, // Sin bordes redondeados
+            borderRight: '1.5px solid #232323', // Borde geométrico
+            backgroundColor: theme.palette.background.default,
+            height: '100vh',
             transition: 'width 0.3s ease',
             overflowX: 'hidden',
             overflowY: 'auto',
-            backgroundColor: theme.palette.background.default,
             display: 'flex',
             flexDirection: 'column',
             scrollbarWidth: 'thin',

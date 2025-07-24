@@ -3,9 +3,22 @@ import { Box } from '@mui/material';
 import { useTheme } from '@mui/material';
 import { useSidebar } from '../context/SidebarContext';
 
-const SidebarResizer = ({ onResize, minWidth = 200, maxWidth = 400, defaultWidth = 280 }) => {
+/**
+ * SidebarResizer modular y desacoplado.
+ * Props:
+ * - onResize: función callback para cambiar el ancho
+ * - minWidth, maxWidth, defaultWidth: límites de ancho
+ * - isDesktop, isOpen, isPinned: opcionales, si no se pasan usa el contexto Sidebar
+ *
+ * Así puede ser usado en cualquier layout/sidebar, y la lógica de visibilidad queda centralizada.
+ */
+const SidebarResizer = ({ onResize, minWidth = 200, maxWidth = 400, defaultWidth = 280, isDesktop: propIsDesktop, isOpen: propIsOpen, isPinned: propIsPinned }) => {
   const theme = useTheme();
-  const { isDesktop, isOpen, isPinned } = useSidebar();
+  // Permite usar props o contexto
+  const context = useSidebar();
+  const isDesktop = propIsDesktop !== undefined ? propIsDesktop : context.isDesktop;
+  const isOpen = propIsOpen !== undefined ? propIsOpen : context.isOpen;
+  const isPinned = propIsPinned !== undefined ? propIsPinned : context.isPinned;
   const [isResizing, setIsResizing] = useState(false);
   const [startX, setStartX] = useState(0);
   const [startWidth, setStartWidth] = useState(defaultWidth);
@@ -50,7 +63,7 @@ const SidebarResizer = ({ onResize, minWidth = 200, maxWidth = 400, defaultWidth
     }
   }, [isResizing, handleMouseMove, handleMouseUp]);
 
-  // Solo mostrar en desktop y cuando la sidebar esté abierta y no esté pineada
+  // Solo mostrar si el padre lo decide (mejor práctica modular)
   if (!isDesktop || !isOpen || isPinned) return null;
 
   return (

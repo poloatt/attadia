@@ -168,7 +168,7 @@ export default function Finanzas() {
   ];
 
   return (
-    <Box sx={{ px: 0, width: '100%' }}>
+    <Box component="main" className="page-main-content">
       {/* Formularios modales para crear submodelos */}
       <CommonForm open={openCuenta} onClose={() => setOpenCuenta(false)} onSubmit={handleSubmitCuenta} title="Nueva Cuenta" fields={formFieldsCuenta} initialData={{}} isEditing={false} />
       <CommonForm open={openMoneda} onClose={() => setOpenMoneda(false)} onSubmit={handleSubmitMoneda} title="Nueva Moneda" fields={formFieldsMoneda} initialData={{}} isEditing={false} />
