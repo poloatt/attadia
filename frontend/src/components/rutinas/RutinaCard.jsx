@@ -24,6 +24,7 @@ import InlineItemConfigImproved from './InlineItemConfigImproved';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useRutinas } from '../../context/RutinasContext';
+import { useRutinasHistorical } from '../../context/RutinasHistoryContext';
 
 import { useSnackbar } from 'notistack';
 // Importamos las utilidades de cadencia
@@ -913,6 +914,39 @@ const RutinaCard = ({
   //   } // Eliminado
   // }; // Eliminado
 
+  // Función utilitaria para renderizar los iconos de hábitos de una sección
+  const renderHabitIcons = ({
+    sectionIcons,
+    config,
+    localData,
+    onItemClick,
+    readOnly,
+    size = 24,
+    iconSize = 'inherit',
+    mr = 0.2
+  }) => {
+    return Object.keys(sectionIcons || {}).map((itemId) => {
+      const Icon = sectionIcons[itemId];
+      const isCompleted = !!localData[itemId];
+      if (!config[itemId] || !config[itemId].activo) return null;
+      return (
+        <HabitIconButton
+          key={itemId}
+          isCompleted={isCompleted}
+          Icon={Icon}
+          onClick={(e) => {
+            e.stopPropagation();
+            !readOnly && onItemClick(itemId, e);
+          }}
+          readOnly={readOnly}
+          size={size}
+          iconSize={iconSize}
+          mr={mr}
+        />
+      );
+    });
+  };
+
   return (
     <Card sx={{ mb: 1, bgcolor: 'background.paper', borderRadius: 1.5, boxShadow: 'none', border: 'none', overflow: 'hidden' }}>
       {/* Label flotante de sección */}
@@ -961,39 +995,16 @@ const RutinaCard = ({
           <Box sx={{ flexGrow: 1 }} />
           {!isExpanded && (
             <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 0.3, alignItems: 'center' }}>
-              {Object.keys(iconConfig[section] || {}).map((itemId) => {
-                const Icon = iconConfig[section][itemId];
-                const isCompleted = localData[itemId] === true;
-                if (!config[itemId] || !config[itemId].activo) return null;
-                return (
-                  <HabitIconButton
-                    key={itemId}
-                    isCompleted={isCompleted}
-                    Icon={props => <Icon {...props} fontSize="inherit" sx={{ fontSize: '1rem' }} />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      !readOnly && handleItemClick(itemId, e);
-                    }}
-                    readOnly={readOnly}
-                    sx={{
-                      m: 0.2,
-                      width: 24,
-                      height: 24,
-                      color: isCompleted ? 'primary.main' : 'rgba(255,255,255,0.5)',
-                      bgcolor: isCompleted ? 'action.selected' : 'transparent',
-                      borderRadius: '50%',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      '&:hover': {
-                        color: isCompleted ? 'primary.main' : 'white',
-                        bgcolor: isCompleted ? 'action.selected' : 'rgba(255,255,255,0.1)'
-                      }
-                    }}
-                  />
-                );
+              {renderHabitIcons({
+                sectionIcons: iconConfig[section],
+                config,
+                localData,
+                onItemClick: handleItemClick,
+                readOnly,
+                size: 20,
+                iconSize: 'inherit',
+                mr: 0.2,
+                gap: 0.3
               })}
             </Box>
           )}
@@ -1018,7 +1029,7 @@ const RutinaCard = ({
   );
 };
 
-// Optimizar ChecklistItem para actualización inmediata sin efectos innecesarios
+// Si necesitas la versión colapsada en otro lugar, usa renderHabitIcons con los props deseados
 const CollapsedIcons = memo(({ 
   sectionIcons, 
   section, 

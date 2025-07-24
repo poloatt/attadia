@@ -4,18 +4,18 @@ import TuneIcon from '@mui/icons-material/Tune';
 import InlineItemConfigImproved, { getFrecuenciaLabel } from './InlineItemConfigImproved';
 
 // Botón de hábito modularizado para uso en RutinaCard y otros
-export const HabitIconButton = ({ isCompleted, Icon, onClick, readOnly, ...props }) => (
+export const HabitIconButton = ({ isCompleted, Icon, onClick, readOnly, size = 38, iconSize = 'small', mr = 1, ...props }) => (
   <IconButton
     size="small"
     onClick={onClick}
     disabled={readOnly}
     sx={{
-      width: 38,
-      height: 38,
+      width: size,
+      height: size,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      mr: 1,
+      mr: mr,
       cursor: 'pointer',
       color: isCompleted ? 'primary.main' : 'rgba(255,255,255,0.5)',
       bgcolor: isCompleted ? 'action.selected' : 'transparent',
@@ -28,7 +28,7 @@ export const HabitIconButton = ({ isCompleted, Icon, onClick, readOnly, ...props
     }}
     {...props}
   >
-    {Icon && <Icon fontSize="small" />}
+    {Icon && <Icon fontSize={iconSize} />}
   </IconButton>
 );
 

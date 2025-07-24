@@ -172,6 +172,22 @@ export const RutinasHistoryProvider = ({ children }) => {
     };
   }, [obtenerCompletadosItem]);
   
+  // Función para saber si hay historial para una sección, opcionalmente en un rango de fechas
+  const hasSectionHistory = useCallback((section, fechaInicio = null, fechaFin = null) => {
+    if (!historicosPorItem[section]) return false;
+    return Object.values(historicosPorItem[section]).some(item => {
+      if (!Array.isArray(item.completados) || item.completados.length === 0) return false;
+      if (!fechaInicio && !fechaFin) return true;
+      // Si se pasan fechas, filtrar por rango
+      return item.completados.some(c => {
+        const f = c.fecha instanceof Date ? c.fecha : new Date(c.fecha);
+        if (fechaInicio && f < fechaInicio) return false;
+        if (fechaFin && f > fechaFin) return false;
+        return true;
+      });
+    });
+  }, [historicosPorItem]);
+  
   useEffect(() => {
     cargarHistorial();
   }, [cargarHistorial]);
@@ -183,6 +199,8 @@ export const RutinasHistoryProvider = ({ children }) => {
     error,
     datosSimulados,
     noHistoryAvailable,
+    lastUpdate,
+    hasSectionHistory,
     cargarHistorial,
     obtenerCompletadosItem,
     obtenerConfiguracionesItem,
@@ -191,7 +209,19 @@ export const RutinasHistoryProvider = ({ children }) => {
   };
   
   return (
-    <RutinasHistoryContext.Provider value={value}>
+    <RutinasHistoryContext.Provider
+      value={{
+        historialRutinas,
+        historicosPorItem,
+        loading,
+        error,
+        datosSimulados,
+        noHistoryAvailable,
+        lastUpdate,
+        hasSectionHistory,
+        cargarHistorial
+      }}
+    >
       {children}
     </RutinasHistoryContext.Provider>
   );
