@@ -919,30 +919,15 @@ const RutinaCard = ({
       <Box 
         sx={{ 
           p: 1, 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
           borderBottom: isExpanded ? theme => `1px solid ${theme.palette.divider}` : 'none',
-          cursor: 'pointer'
+          cursor: 'pointer',
         }}
         onClick={handleToggle}
       >
-        <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold' }}>
-          {capitalizeFirstLetter(title) || section}
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          {/* Mostrar los iconos en una fila solo cuando la sección está colapsada */}
-          {!isExpanded && (
-            <Box sx={{ 
-              display: 'flex', 
-              flexWrap: 'nowrap', 
-              gap: 0.5, 
-              mr: 1,
-              alignItems: 'center' 
-            }}>
-              {renderedCollapsedIcons}
-            </Box>
-          )}
+        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+          <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold', flexGrow: 1 }}>
+            {capitalizeFirstLetter(title) || section}
+          </Typography>
           <IconButton 
             size="small" 
             sx={{ color: 'white', opacity: 0.7 }}
@@ -950,6 +935,12 @@ const RutinaCard = ({
             {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           </IconButton>
         </Box>
+        {/* Iconos colapsados debajo del título */}
+        {!isExpanded && (
+          <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 0.5, width: '100%', alignItems: 'center', mt: 0.5 }}>
+            {renderedCollapsedIcons}
+          </Box>
+        )}
       </Box>
       
       {/* Contenido de la sección (colapsable) */}

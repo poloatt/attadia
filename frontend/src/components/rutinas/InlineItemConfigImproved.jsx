@@ -27,7 +27,7 @@ const StyledChip = styled(Chip)(({ theme, selected }) => ({
   fontSize: '0.75rem',
   height: 24,
   fontWeight: 500,
-  borderRadius: 12,
+  borderRadius: selected ? 0 : 12,
   border: 'none',
   backgroundColor: selected ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.04)',
   color: selected ? '#fff' : 'rgba(255, 255, 255, 0.6)',
@@ -175,57 +175,100 @@ const InlineItemConfigImproved = ({
       <Box sx={{ display: 'flex', flexDirection: 'row', minHeight: 60 }}>
         {/* Tabs verticales de tipo */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mr: 1, minWidth: 60 }}>
-          {tipoOptions.map(option => (
-            <Box
-              key={option.value}
-              onClick={() => handleConfigChange({ tipo: option.value })}
-              sx={{
-                cursor: 'pointer',
-                px: 1.2,
-                py: 0.6,
-                fontWeight: 600,
-                fontSize: '0.85em',
-                color: configState.tipo === option.value ? '#fff' : 'rgba(255,255,255,0.5)',
-                background: configState.tipo === option.value ? 'rgba(255,255,255,0.08)' : 'none',
-                borderLeft: configState.tipo === option.value ? '3px solid #1976d2' : '3px solid transparent',
-                borderRadius: 0,
-                transition: 'background 0.2s, color 0.2s',
-                textAlign: 'left',
-                minWidth: 50,
-                mb: 0.2,
-                '&:hover': {
-                  background: 'rgba(255,255,255,0.12)',
-                  color: '#fff'
-                }
-              }}
-            >
-              {option.label}
-            </Box>
-          ))}
-        </Box>
-        {/* Panel de configuración de frecuencia */}
-        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7, flexWrap: 'wrap', minWidth: 0 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, minWidth: 0 }}>
-              <StyledTextField
-                value={configState.frecuencia}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value);
-                  if (!isNaN(value) && value > 0) {
-                    handleConfigChange({ frecuencia: value });
+          {tipoOptions.map((option, idx) => (
+            <React.Fragment key={option.value}>
+              <Box
+                onClick={() => handleConfigChange({ tipo: option.value })}
+                sx={{
+                  cursor: 'pointer',
+                  px: 1.2,
+                  py: 0.6,
+                  fontWeight: 600,
+                  fontSize: '0.85em',
+                  color: configState.tipo === option.value ? '#fff' : 'rgba(255,255,255,0.5)',
+                  background: configState.tipo === option.value ? 'rgba(255,255,255,0.08)' : 'none',
+                  borderLeft: configState.tipo === option.value ? '3px solid #1976d2' : '3px solid transparent',
+                  borderRadius: 0,
+                  transition: 'background 0.2s, color 0.2s',
+                  textAlign: 'left',
+                  minWidth: 50,
+                  mb: 0.2,
+                  '&:hover': {
+                    background: 'rgba(255,255,255,0.12)',
+                    color: '#fff'
                   }
                 }}
-                type="number"
-                inputProps={{ min: 1, max: 99 }}
-                size="small"
-                sx={{ width: 38, fontSize: '0.8em' }}
-              />
-              <Typography 
-                variant="caption" 
-                sx={{ 
-                  color: 'rgba(255, 255, 255, 0.5)',
-                  fontSize: '0.7rem',
-                  ml: 0.2
+              >
+                {option.label}
+              </Box>
+              {idx < tipoOptions.length - 1 && (
+                <Divider orientation="horizontal" flexItem sx={{ my: 0.5, borderColor: 'rgba(255,255,255,0.08)' }} />
+              )}
+            </React.Fragment>
+          ))}
+        </Box>
+        <Divider orientation="vertical" flexItem sx={{ mx: 1, borderColor: 'rgba(255,255,255,0.08)' }} />
+        {/* Panel de configuración de frecuencia */}
+        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', minWidth: 0, justifyContent: 'center' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 0 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <IconButton
+                  size="small"
+                  onClick={() => handleConfigChange({ frecuencia: Math.max(1, configState.frecuencia - 1) })}
+                  sx={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 0,
+                    color: 'rgba(255,255,255,0.7)',
+                    bgcolor: 'rgba(255,255,255,0.04)',
+                    fontSize: '1.1rem',
+                    p: 0,
+                    minWidth: 0,
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' }
+                  }}
+                >
+                  -
+                </IconButton>
+                <Typography
+                  variant="h5"
+                  sx={{
+                    fontWeight: 700,
+                    color: '#fff',
+                    minWidth: 36,
+                    textAlign: 'center',
+                    mx: 1
+                  }}
+                >
+                  {configState.frecuencia}
+                </Typography>
+                <IconButton
+                  size="small"
+                  onClick={() => handleConfigChange({ frecuencia: Math.max(1, configState.frecuencia + 1) })}
+                  sx={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 0,
+                    color: 'rgba(255,255,255,0.7)',
+                    bgcolor: 'rgba(255,255,255,0.04)',
+                    fontSize: '1.1rem',
+                    p: 0,
+                    minWidth: 0,
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' }
+                  }}
+                >
+                  +
+                </IconButton>
+              </Box>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'rgba(255,255,255,0.5)',
+                  fontSize: '0.8rem',
+                  mt: 0.5,
+                  textAlign: 'center',
+                  display: 'block',
+                  minWidth: 36
                 }}
               >
                 {configState.tipo === 'DIARIO' && 'por día'}

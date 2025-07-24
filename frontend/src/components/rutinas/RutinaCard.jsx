@@ -35,7 +35,7 @@ import { startOfWeek, isSameWeek, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { obtenerHistorialCompletaciones, esRutinaHistorica } from '../../utils/historialUtils';
 import HistoricalAlert from './HistoricalAlert';
-import ChecklistItem from './ChecklistItem';
+import ChecklistItem, { HabitIconButton } from './ChecklistItem';
 
 // Función para capitalizar solo la primera letra
 const capitalizeFirstLetter = (string) => {
@@ -918,7 +918,8 @@ const RutinaCard = ({
       {/* Encabezado de la sección */}
       <Box 
         sx={{ 
-          p: 1, 
+          p: 0.5,
+          minHeight: 36,
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'space-between',
@@ -927,29 +928,23 @@ const RutinaCard = ({
         }}
         onClick={handleToggle}
       >
-        <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 'bold' }}>
-          {capitalizeFirstLetter(title) || section}
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          {/* Mostrar los iconos en una fila solo cuando la sección está colapsada */}
-          {!isExpanded && (
-            <Box sx={{ 
-              display: 'flex', 
-              flexWrap: 'nowrap', 
-              gap: 0.5, 
-              mr: 1,
-              alignItems: 'center' 
-            }}>
-              {renderedCollapsedIcons}
-            </Box>
-          )}
+        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+          <Typography variant="subtitle2" sx={{ color: 'white', fontWeight: 'bold', flexGrow: 1, fontSize: '0.95rem' }}>
+            {capitalizeFirstLetter(title) || section}
+          </Typography>
           <IconButton 
             size="small" 
-            sx={{ color: 'white', opacity: 0.7 }}
+            sx={{ color: 'white', opacity: 0.7, width: 28, height: 28 }}
           >
-            {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
           </IconButton>
         </Box>
+        {/* Iconos colapsados debajo del título */}
+        {!isExpanded && (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, width: '100%', mt: 0.5 }}>
+            {renderedCollapsedIcons}
+          </Box>
+        )}
       </Box>
       
       {/* Contenido de la sección (colapsable) */}
@@ -995,7 +990,7 @@ const CollapsedIcons = memo(({
   }, [sectionIcons, section, config, rutina, localData]);
   
   return (
-    <div className="collapsed-icons-container">
+    <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 0.5, width: '100%', alignItems: 'center' }}>
       {itemsParaMostrar.length === 0 ? (
         <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', ml: 1 }}>
           No hay elementos para mostrar
@@ -1009,29 +1004,37 @@ const CollapsedIcons = memo(({
           const keyId = `${section}-${itemId}-${isCompleted ? 'completed' : 'pending'}`;
           
           return (
-            <IconButton
+            <HabitIconButton
               key={keyId}
-              size="small"
+              isCompleted={isCompleted}
+              Icon={props => <Icon {...props} fontSize="inherit" sx={{ fontSize: '1.1rem' }} />}
               onClick={(e) => {
-                e.stopPropagation(); // Prevenir que el evento se propague al contenedor
+                e.stopPropagation();
                 !readOnly && onItemClick(itemId, e);
               }}
-              disabled={readOnly}
+              readOnly={readOnly}
               sx={{
                 m: 0.5,
+                width: 28,
+                height: 28,
                 color: isCompleted ? 'primary.main' : 'rgba(255,255,255,0.5)',
                 bgcolor: isCompleted ? 'action.selected' : 'transparent',
+                borderRadius: '50%',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
                 '&:hover': {
+                  color: isCompleted ? 'primary.main' : 'white',
                   bgcolor: isCompleted ? 'action.selected' : 'rgba(255,255,255,0.1)'
                 }
               }}
-            >
-              {Icon && <Icon />}
-            </IconButton>
+            />
           );
         })
       )}
-    </div>
+    </Box>
   );
 });
 

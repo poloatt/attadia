@@ -3,6 +3,35 @@ import { ListItem, Box, IconButton, Typography, Button } from '@mui/material';
 import TuneIcon from '@mui/icons-material/Tune';
 import InlineItemConfigImproved, { getFrecuenciaLabel } from './InlineItemConfigImproved';
 
+// Botón de hábito modularizado para uso en RutinaCard y otros
+export const HabitIconButton = ({ isCompleted, Icon, onClick, readOnly, ...props }) => (
+  <IconButton
+    size="small"
+    onClick={onClick}
+    disabled={readOnly}
+    sx={{
+      width: 38,
+      height: 38,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      mr: 1,
+      cursor: 'pointer',
+      color: isCompleted ? 'primary.main' : 'rgba(255,255,255,0.5)',
+      bgcolor: isCompleted ? 'action.selected' : 'transparent',
+      borderRadius: '50%',
+      transition: 'all 0.2s ease',
+      '&:hover': {
+        color: isCompleted ? 'primary.main' : 'white',
+        bgcolor: isCompleted ? 'action.selected' : 'rgba(255,255,255,0.1)'
+      }
+    }}
+    {...props}
+  >
+    {Icon && <Icon fontSize="small" />}
+  </IconButton>
+);
+
 const ChecklistItem = ({
   itemId,
   section,
@@ -37,32 +66,15 @@ const ChecklistItem = ({
         }}>
           {/* Icono de hábito */}
           {!readOnly && (
-            <IconButton
-              size="small"
+            <HabitIconButton
+              isCompleted={isCompleted}
+              Icon={Icon}
               onClick={(e) => {
-                e.stopPropagation(); // Prevenir que el evento se propague al contenedor
+                e.stopPropagation();
                 onItemClick(itemId, e);
               }}
-              sx={{
-                width: 38,
-                height: 38,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mr: 1,
-                cursor: 'pointer',
-                color: isCompleted ? 'primary.main' : 'rgba(255,255,255,0.5)',
-                bgcolor: isCompleted ? 'action.selected' : 'transparent',
-                borderRadius: 0, // geométrico
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  color: isCompleted ? 'primary.main' : 'white',
-                  bgcolor: isCompleted ? 'action.selected' : 'rgba(255,255,255,0.1)'
-                }
-              }}
-            >
-              {Icon && <Icon fontSize="small" />}
-            </IconButton>
+              readOnly={readOnly}
+            />
           )}
           {/* Contenido principal */}
           <Box sx={{ 
