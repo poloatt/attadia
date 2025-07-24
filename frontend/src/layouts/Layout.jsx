@@ -26,10 +26,8 @@ export function Layout() {
     const handleHeaderAddButton = (event) => {
       if (!event.detail?.path) return;
       if (event.detail.path !== location.pathname) {
-        // Navegar a la ruta destino y pasar openAdd
         navigate(event.detail.path, { state: { openAdd: true } });
       } else {
-        // Si ya estamos en la ruta, dispara un evento local para la página
         window.dispatchEvent(new CustomEvent('openAddFormLocal'));
       }
     };
@@ -44,41 +42,64 @@ export function Layout() {
 
   // Calcular el padding-top para header + toolbar (ambos fijos y globales)
   const headerHeight = 40;
-  const toolbarHeight = 40; // 40px tanto en mobile como en desktop para evitar superposición
+  const toolbarHeight = 40;
   const totalTopPadding = headerHeight + toolbarHeight;
 
   return (
     <FormManagerProvider>
       <GlobalFormEventListener />
-      <Box sx={{ 
-        display: 'flex', 
+      {/* Header fijo arriba, siempre visible y con zIndex alto */}
+      <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', zIndex: 1301 }}>
+        <Header />
+      </Box>
+      {/* Toolbar fijo debajo del Header */}
+      <Box sx={{ position: 'fixed', top: '40px', left: 0, width: '100vw', zIndex: 1300 }}>
+        <Toolbar />
+      </Box>
+      {/* Layout principal: Sidebar fija a la izquierda, contenido principal a la derecha */}
+      <Box sx={{
+        display: 'flex',
         minHeight: '100vh',
         maxWidth: '100vw',
-        overflow: 'hidden',
-        border: 'none',
-        outline: 'none'
+        bgcolor: 'background.default',
+        pt: `${totalTopPadding}px`, // Padding top para dejar espacio a header+toolbar
       }}>
-        <Header />
-        <Toolbar />
-        <Sidebar />
+        {/* Sidebar fija a la izquierda */}
+        {showSidebar && (
+          <Box
+            sx={{
+              position: 'fixed',
+              top: `${totalTopPadding}px`,
+              left: 0,
+              height: 'calc(100vh - ' + totalTopPadding + 'px)',
+              zIndex: 1100,
+              width: isDesktop ? (isOpen ? sidebarWidth : 56) : 0,
+              transition: 'width 0.3s',
+              bgcolor: 'background.default',
+              borderRight: isDesktop ? '1.5px solid #232323' : 'none',
+              overflow: 'hidden',
+              display: { xs: showSidebar ? 'block' : 'none', md: 'block' },
+            }}
+          >
+            <Sidebar />
+          </Box>
+        )}
+        {/* Contenido principal */}
         <Box
           sx={{
             flexGrow: 1,
-            pt: `calc(${totalTopPadding}px + env(safe-area-inset-top, 0px))`,
-            pb: isDesktop ? 'calc(70px + env(safe-area-inset-bottom, 0px))' : 'calc(88px + env(safe-area-inset-bottom, 0px))',
-            minHeight: '100vh',
             width: '100%',
+            minHeight: '100vh',
+            ml: isDesktop ? (isOpen ? sidebarWidth : 56) : 0,
             display: 'flex',
             flexDirection: 'column',
             bgcolor: 'background.default',
             overflowY: 'auto',
             overflowX: 'hidden',
-            scrollbarGutter: 'stable',
             position: 'relative',
-            ml: isDesktop ? (isOpen ? sidebarWidth : 56) : isTablet ? (isOpen ? 72 : 56) : 0,
             border: 'none',
             outline: 'none',
-            // Estilos para el scrollbar
+            scrollbarGutter: 'stable',
             '&::-webkit-scrollbar': {
               width: '8px',
             },
@@ -96,21 +117,21 @@ export function Layout() {
         >
           <Box sx={{
             width: '100%',
-            maxWidth: { xs: '100%', sm: '100%', md: 1200, lg: 1440 }, // Limita el ancho en desktop
-            mx: 'auto',
-            px: { xs: 1, sm: 2, md: 3, lg: 4 }, // Padding horizontal adaptable
+            maxWidth: isDesktop ? 1200 : isTablet ? 900 : '100%',
+            mx: isDesktop || isTablet ? 'auto' : 0,
+            px: { xs: 1, sm: 2, md: 3 },
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
             gap: 0,
             minHeight: 0,
             border: 'none',
-            outline: 'none'
+            outline: 'none',
           }}>
             <Outlet />
           </Box>
           {/* Mostrar BottomNavigation solo en mobile/tablet */}
-          {!isDesktop && <BottomNavigation />}
+          {(isMobile || isTablet) && <BottomNavigation />}
           <Box sx={{ position: 'fixed', left: 0, bottom: 0, width: '100vw', zIndex: 1300 }}>
             <Footer isDesktop={isDesktop} isSidebarOpen={isOpen && showSidebar && isDesktop} />
           </Box>

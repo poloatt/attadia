@@ -17,21 +17,8 @@ export function Configuracion() {
   const { logout, user } = useAuth();
 
   return (
-    <Box component="main" className="page-main-content">
-      <Box
-        sx={{
-          width: '100%',
-          maxWidth: { xs: '100%', sm: '100%', md: 1200, lg: 1440 },
-          mx: 'auto',
-          px: { xs: 1, sm: 2, md: 3, lg: 4 },
-          p: 3,
-          backgroundColor: 'background.paper',
-          borderRadius: 2,
-          border: '1px solid',
-          borderColor: 'divider',
-          mt: 2
-        }}
-      >
+    <Box component="main" className="page-main-content" sx={{ width: '100%', flex: 1, px: { xs: 1, sm: 2, md: 3 }, py: 3, display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column', p: { xs: 1, sm: 2, md: 3 }, backgroundColor: 'background.paper', borderRadius: 0, border: '1px solid', borderColor: 'divider', mt: 2 }}>
         <Typography
           variant="h5"
           component="h1"

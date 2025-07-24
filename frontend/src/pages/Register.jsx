@@ -53,14 +53,15 @@ export function Register() {
   };
 
   return (
-    <Container maxWidth="xs">
+    <Box sx={{ width: '100%', px: { xs: 1, sm: 2, md: 3 }, mt: 4, maxWidth: 360, mx: 'auto' }}>
       <Box 
         sx={{ 
           minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
-          py: 4
+          py: 4,
+          width: '100%'
         }}
       >
         <Paper 
@@ -71,7 +72,7 @@ export function Register() {
             bgcolor: 'background.paper',
             border: '1px solid',
             borderColor: 'divider',
-            borderRadius: 2
+            borderRadius: 0
           }}
         >
           <Typography 
@@ -270,7 +271,7 @@ export function Register() {
           </Box>
         </Paper>
       </Box>
-    </Container>
+    </Box>
   );
 }
 

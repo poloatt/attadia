@@ -727,7 +727,7 @@ export const RutinaTable = ({
   }
 
   return (
-    <Container maxWidth="lg" sx={{ p: 0 }}>
+    <Box sx={{ width: '100%' }}>
       {/* Navegación y acciones */}
       <Box sx={{
         display: 'flex',
@@ -828,7 +828,7 @@ export const RutinaTable = ({
           </Card>
         </Grid>
       </Grid>
-    </Container>
+    </Box>
   );
 };
 

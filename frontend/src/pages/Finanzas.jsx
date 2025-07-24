@@ -168,25 +168,13 @@ export default function Finanzas() {
   ];
 
   return (
-    <Box component="main" className="page-main-content">
+    <Box component="main" className="page-main-content" sx={{ width: '100%', flex: 1, px: { xs: 1, sm: 2, md: 3 }, py: 2, pb: { xs: 10, sm: 4 }, display: 'flex', flexDirection: 'column' }}>
       {/* Formularios modales para crear submodelos */}
       <CommonForm open={openCuenta} onClose={() => setOpenCuenta(false)} onSubmit={handleSubmitCuenta} title="Nueva Cuenta" fields={formFieldsCuenta} initialData={{}} isEditing={false} />
       <CommonForm open={openMoneda} onClose={() => setOpenMoneda(false)} onSubmit={handleSubmitMoneda} title="Nueva Moneda" fields={formFieldsMoneda} initialData={{}} isEditing={false} />
       <CommonForm open={openTransaccion} onClose={() => setOpenTransaccion(false)} onSubmit={handleSubmitTransaccion} title="Nueva Transacción" fields={formFieldsTransaccion} initialData={{}} isEditing={false} />
-      <Box sx={{ 
-        width: '100%',
-        maxWidth: 1200,
-        mx: 'auto',
-        px: { xs: 1, sm: 2, md: 3 },
-        py: 2,
-        pb: { xs: 10, sm: 4 },
-        boxSizing: 'border-box',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <Grid container spacing={2} justifyContent="center" alignItems="center" sx={{ width: '100%', maxWidth: 700 }}>
+      <Box sx={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Grid container spacing={2} justifyContent="center" alignItems="center" sx={{ width: '100%', maxWidth: 700, mx: { xs: 0, md: 'auto' } }}>
           {finanzasSections.map((section, idx) => (
             <Grid item xs={6} sm={4} md={3} key={section.path} sx={{ display: 'flex', justifyContent: 'center' }}>
               <Card 
@@ -208,7 +196,7 @@ export default function Finanzas() {
                   maxWidth: 160,
                   width: '100%',
                   cursor: 'pointer',
-                  borderRadius: 2,
+                  borderRadius: 0,
                   px: 0.5,
                   py: 1.2,
                   bgcolor: '#181818'

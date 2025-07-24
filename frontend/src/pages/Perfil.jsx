@@ -24,23 +24,25 @@ export default function Perfil() {
   // Si no hay usuario, mostrar mensaje de carga
   if (!user) {
     return (
-      <Container maxWidth="md">
-        <Paper elevation={0} sx={{ p: 3, mt: 2, backgroundColor: 'background.paper' }}>
+      <Box sx={{ width: '100%', px: { xs: 1, sm: 2, md: 3 }, maxWidth: 800, mx: 'auto' }}>
+        <Paper elevation={0} sx={{ p: 3, mt: 2, backgroundColor: 'background.paper', width: '100%', borderRadius: 0 }}>
           <Typography>Cargando datos del usuario...</Typography>
         </Paper>
-      </Container>
+      </Box>
     );
   }
 
   return (
-    <Container maxWidth="md">
+    <Box sx={{ width: '100%', px: { xs: 1, sm: 2, md: 3 }, maxWidth: 800, mx: 'auto' }}>
       <Toolbar />
       <Paper 
         elevation={0}
         sx={{ 
           p: 3,
           mt: 2,
-          backgroundColor: 'background.paper'
+          backgroundColor: 'background.paper',
+          width: '100%',
+          borderRadius: 0
         }}
       >
         <Typography variant="h5" component="h1" gutterBottom>
@@ -146,6 +148,6 @@ export default function Perfil() {
           </Typography>
         </Box>
       </Paper>
-    </Container>
+    </Box>
   );
 } 

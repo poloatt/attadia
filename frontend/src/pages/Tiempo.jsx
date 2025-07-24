@@ -308,15 +308,14 @@ export function Tiempo() {
   };
 
   return (
-    <Box sx={{ px: 0, width: '100%' }}>
-      <Container maxWidth={isMobile ? "sm" : "xl"} sx={{ px: isMobile ? 1 : 3 }}>
+    <Box sx={{ px: { xs: 1, sm: 2, md: 3 }, width: '100%' }}>
+      <Box sx={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Toolbar />
-
         <Box 
           sx={{ 
             py: isMobile ? 1 : 2,
             px: isMobile ? 0 : 1,
-            height: isMobile ? 'calc(100vh - 180px)' : 'calc(100vh - 190px)', // Ajustado para móvil
+            height: isMobile ? 'calc(100vh - 180px)' : 'calc(100vh - 190px)',
             overflowY: 'auto',
             '&::-webkit-scrollbar': {
               width: isMobile ? '4px' : '8px',
@@ -336,14 +335,13 @@ export function Tiempo() {
           <Grid container spacing={2}>
             {/* Tasks and Projects Section */}
             <Grid item xs={12}>
-              <Paper sx={{ p: 2 }}>
+              <Paper sx={{ p: 2, width: '100%', borderRadius: 0 }}>
                 <TasksAndProjectsSection />
               </Paper>
             </Grid>
-            
             {/* Espacio para contenido adicional */}
             <Grid item xs={12}>
-              <Paper sx={{ p: 2 }}>
+              <Paper sx={{ p: 2, width: '100%', borderRadius: 0 }}>
                 <Typography variant="h6">Gestión del Tiempo</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                   Este panel te permite ver y gestionar tus tareas y proyectos de manera eficiente.
@@ -353,7 +351,7 @@ export function Tiempo() {
             </Grid>
           </Grid>
         </Box>
-      </Container>
+      </Box>
     </Box>
   );
 }

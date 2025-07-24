@@ -145,8 +145,8 @@ export function Archivo() {
   };
 
   return (
-    <Box sx={{ px: 0, width: '100%' }}>
-      <Container maxWidth={isMobile ? "sm" : "xl"} sx={{ px: isMobile ? 1 : 3 }}>
+    <Box sx={{ px: { xs: 1, sm: 2, md: 3 }, width: '100%' }}>
+      <Box sx={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Toolbar />
 
         <Box 
@@ -194,7 +194,7 @@ export function Archivo() {
             onProyectosUpdate={fetchProyectos}
           />
         )}
-      </Container>
+      </Box>
     </Box>
   );
 }

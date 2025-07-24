@@ -155,6 +155,7 @@ function findParentPath(currentPath, items = menuItems) {
 }
 
 export default function Toolbar({ children, additionalActions = [] }) {
+  // 1. HOOKS Y CÁLCULOS PRINCIPALES
   const { showEntityToolbarNavigation } = useUISettings();
   const navigate = useNavigate();
   const location = useLocation();
@@ -162,14 +163,11 @@ export default function Toolbar({ children, additionalActions = [] }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  // Encuentra la sección principal y subsección activas
+  // 2. LÓGICA DE NAVEGACIÓN Y HELPERS
   const mainSection = useMemo(() => findActiveMainSection(currentPath, menuItems), [currentPath]);
   const subSection = useMemo(() => findActiveSubSection(currentPath, mainSection), [currentPath, mainSection]);
-
-  // Decide qué subitems mostrar (hermanos)
   const siblings = useMemo(() => {
     if (isMobile) {
-      // En móvil, solo mostrar hasta el 2do nivel
       if (mainSection?.subItems && subSection) {
         return mainSection.subItems;
       }
@@ -178,7 +176,6 @@ export default function Toolbar({ children, additionalActions = [] }) {
       }
       return [];
     } else {
-      // En desktop, lógica original
       if (subSection?.subItems && subSection.subItems.length > 0) {
         return subSection.subItems;
       }
@@ -191,48 +188,21 @@ export default function Toolbar({ children, additionalActions = [] }) {
       return [];
     }
   }, [mainSection, subSection, isMobile]);
-
-  // Memoizar los cálculos para evitar re-renders innecesarios
   const shouldShowBack = useMemo(() => {
-    // No mostrar botón de atrás en páginas principales
     const mainPages = ['/', '/assets', '/tiempo', '/salud'];
     return !mainPages.includes(location.pathname);
   }, [location.pathname]);
-  
-  const parentInfo = useMemo(() => 
-    findParentPath(currentPath), 
-    [currentPath]
-  );
-
+  const parentInfo = useMemo(() => findParentPath(currentPath), [currentPath]);
   const handleBack = useCallback(() => {
-    console.log('🔙 Back button clicked:', { currentPath, parentInfo });
     navigate(parentInfo.path);
   }, [currentPath, parentInfo, navigate]);
-
-  const {
-    getEntityConfig,
-    showAddButton
-  } = useEntityActions();
+  const { getEntityConfig, showAddButton } = useEntityActions();
   const entityConfig = getEntityConfig();
 
+  // 3. LÓGICA DE RENDERIZADO CONDICIONAL
   if (!showEntityToolbarNavigation) return null;
 
-  // Debug: solo mostrar en desarrollo y cuando cambie la ruta
-  if (process.env.NODE_ENV === 'development' && false) { // Deshabilitado temporalmente
-    console.log('🔍 EntityToolbar Debug:', {
-      currentPath,
-      shouldShowBack,
-      parentInfo,
-      mainSection: mainSection?.id,
-      subSection: subSection?.id,
-      siblingsCount: siblings.length,
-      showAddButton,
-      entityConfig,
-      showEntityToolbarNavigation
-    });
-  }
-
-  // Render
+  // 4. RENDER
   return (
     <Box sx={{
       width: '100%',
@@ -252,21 +222,20 @@ export default function Toolbar({ children, additionalActions = [] }) {
       <Box sx={{ 
         display: 'flex', 
         alignItems: 'center', 
-        px: 0, // Revertido a padding horizontal original
-        pt: 0, // Revertido a padding vertical original
-        pb: 0, // Revertido a padding vertical original
+        px: { xs: 1, sm: 2, md: 3 },
+        pt: 0, 
+        pb: 0, 
         width: '100%',
-        minHeight: 2, // Revertido a altura mínima original
+        minHeight: 2, 
         gap: 1
       }}>
-        
         {/* Sección izquierda: Botón de atrás */}
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
           flexShrink: 0,
           minWidth: 'fit-content',
-          pl: 1
+          pl: 0
         }}>
           {shouldShowBack ? (
             <Box sx={{ 
@@ -296,16 +265,15 @@ export default function Toolbar({ children, additionalActions = [] }) {
               )}
             </Box>
           ) : (
-            // Botón de atrás con color de background para difuminarse
             <Box sx={{ 
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               width: 32,
               height: 32,
-              opacity: 0.1, // Muy baja opacidad para difuminarse
-              color: 'background.default', // Color del background
-              pointerEvents: 'none', // No clickeable
+              opacity: 0.1, 
+              color: 'background.default', 
+              pointerEvents: 'none', 
               '& .MuiSvgIcon-root': {
                 fontSize: 18,
                 color: 'background.default'
@@ -314,45 +282,36 @@ export default function Toolbar({ children, additionalActions = [] }) {
               <Box component="span" sx={{ 
                 fontSize: 18,
                 color: 'background.default',
-                fontWeight: 300, // Más delgado para parecer plano
+                fontWeight: 300, 
                 lineHeight: 1,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                transform: 'rotate(180deg)' // Rotar para que apunte hacia la derecha (inactivo)
+                transform: 'rotate(180deg)'
               }}>
                 →
               </Box>
             </Box>
           )}
         </Box>
-        
-        {/* Sección central: Hermanos (siblings) - centrados considerando el padding del Container */}
+        {/* Sección central: Hermanos (siblings) - centrados con flex */}
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center',
           flex: 1,
-          minHeight: 40, // Altura fija para mantener centrado
-          position: 'relative' // Para posicionamiento absoluto de los siblings
+          minHeight: 40, 
+          position: 'relative' 
         }}>
           {siblings.length > 1 ? (
             <Box sx={{
               display: 'flex',
               alignItems: 'center',
               gap: 0.5,
-              position: 'absolute', // Posicionamiento absoluto para centrado perfecto
-              left: '50%',
-              transform: 'translateX(-50%)',
-              zIndex: 1,
-              // Ajuste para alinear con el contenido del Container
-              ...(isMobile ? {
-                // En mobile, el Container tiene px: 1, así que ajustamos
-                left: 'calc(50% + 8px)', // 8px = 1 * theme.spacing(1)
-              } : {
-                // En desktop, el Container tiene px: 3, así que ajustamos
-                left: 'calc(50% + 24px)', // 24px = 3 * theme.spacing(1)
-              })
+              position: 'relative',
+              left: 'unset',
+              transform: 'unset',
+              zIndex: 1
             }}>
               {siblings.map(item => {
                 const isActive = isRouteActive(item.path, currentPath);
@@ -387,16 +346,15 @@ export default function Toolbar({ children, additionalActions = [] }) {
             </Box>
           ) : null}
         </Box>
-        
         {/* Sección derecha: Acciones - con ancho fijo para mantener centrado de siblings */}
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'flex-end',
           flexShrink: 0,
-          minWidth: 48, // Ancho fijo para mantener centrado de siblings
+          minWidth: 48, 
           height: 40,
-          pr: 1
+          pr: 0
         }}>
           {/* Acciones adicionales */}
           {!isMobile && additionalActions && additionalActions.map((action, idx) => {
@@ -407,42 +365,39 @@ export default function Toolbar({ children, additionalActions = [] }) {
               </Tooltip>
             );
           })}
-          
           {/* Children */}
           {!isMobile && children}
-          
           {/* Botón de agregar según reglas de nivel */}
           {showAddButton && entityConfig ? (
             <SystemButtons.AddButton entityConfig={entityConfig} buttonSx={{ ml: 1 }} />
           ) : (
-            // Botón + con color de background para difuminarse - MISMO TAMAÑO que el activo
             <Box sx={{ 
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: 32, // Mismo tamaño que IconButton small
-              height: 32, // Mismo tamaño que IconButton small
+              width: 32, 
+              height: 32, 
               ml: 1,
-              opacity: 0.1, // Muy baja opacidad para difuminarse
-              color: 'background.default', // Color del background
-              pointerEvents: 'none', // No clickeable
-              borderRadius: 1, // Mismo border radius que el activo
-              padding: 0.5, // Mismo padding que el activo
+              opacity: 0.1, 
+              color: 'background.default', 
+              pointerEvents: 'none', 
+              borderRadius: 1, 
+              padding: 0.5, 
               '& .MuiSvgIcon-root': {
-                fontSize: 18, // Mismo fontSize que el activo
+                fontSize: 18, 
                 color: 'background.default'
               }
             }}>
               <Box component="span" sx={{ 
-                fontSize: 18, // Mismo fontSize que el AddIcon activo
+                fontSize: 18, 
                 color: 'background.default',
-                fontWeight: 300, // Más delgado para parecer plano
+                fontWeight: 300, 
                 lineHeight: 1,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: 18, // Mismo ancho que el icono
-                height: 18 // Mismo alto que el icono
+                width: 18, 
+                height: 18 
               }}>
                 +
               </Box>

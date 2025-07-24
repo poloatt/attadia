@@ -173,13 +173,12 @@ const RutinasWithContext = () => {
   };
 
   return (
-    <Box component="main" className="page-main-content">
-      <Container maxWidth={isMobile ? "sm" : "xl"} sx={{ px: isMobile ? 1 : 3 }}>
+    <Box component="main" className="page-main-content" sx={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ width: '100%', px: { xs: 1, sm: 2, md: 3 }, flex: 1, display: 'flex', flexDirection: 'column' }}>
         {/* Alerta global de historial */}
         {(() => {
           try {
             const historical = useRutinasHistorical();
-            // Si no hay historial en ninguna sección, mostrar alerta
             if (historical.noHistoryAvailable ||
                 !['bodyCare','nutricion','ejercicio','cleaning'].some(section => historical.hasSectionHistory(section))) {
               return <HistoricalAlert />;
@@ -187,12 +186,11 @@ const RutinasWithContext = () => {
           } catch (e) {}
           return null;
         })()}
-        
         <Box 
           sx={{ 
             py: isMobile ? 1 : 2,
             px: isMobile ? 0 : 1,
-            height: isMobile ? 'calc(100vh - 180px)' : 'calc(100vh - 190px)', // Ajustado para móvil
+            height: isMobile ? 'calc(100vh - 180px)' : 'calc(100vh - 190px)',
             overflowY: 'auto',
             '&::-webkit-scrollbar': {
               width: isMobile ? '4px' : '8px',
@@ -248,7 +246,7 @@ const RutinasWithContext = () => {
             />
           )}
         </Box>
-      </Container>
+      </Box>
     </Box>
   );
 };

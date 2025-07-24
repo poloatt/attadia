@@ -80,9 +80,7 @@ export default function Footer({ isDesktop = false, isSidebarOpen = false }) {
       <Box
         sx={{
           width: '100%',
-          maxWidth: { xs: '100%', sm: '100%', md: 1200, lg: 1440 },
-          mx: 'auto',
-          px: { xs: 1, sm: 2, md: 3, lg: 4 },
+          px: { xs: 1, sm: 2, md: 3 },
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

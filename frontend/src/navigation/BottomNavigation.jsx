@@ -51,11 +51,9 @@ export default function BottomNavigation() {
             alignItems: 'center',
             gap: 4,
             width: '100%',
-            maxWidth: { xs: '100%', sm: '100%', md: 1200, lg: 1440 },
-            mx: 'auto',
             minWidth: '300px',
             height: '56px',
-            px: { xs: 1, sm: 2, md: 3, lg: 4 }
+            px: { xs: 1, sm: 2, md: 3 }
           }}
         >
           {navItems.map((item, index) => {

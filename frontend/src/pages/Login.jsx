@@ -51,16 +51,18 @@ export function Login() {
   };
 
   return (
-    <Container maxWidth="sm" sx={{ px: { xs: 1, sm: 2, md: 3 }, mt: 4 }}>
+    <Box sx={{ width: '100%', px: { xs: 1, sm: 2, md: 3 }, mt: 4, maxWidth: 400, mx: 'auto' }}>
       <Paper 
         sx={{ 
           p: 3,
           bgcolor: '#1a1a1a',
           border: '1px solid',
-          borderColor: 'rgba(255, 255, 255, 0.1)'
+          borderColor: 'rgba(255, 255, 255, 0.1)',
+          width: '100%',
+          borderRadius: 0
         }}
       >
-        <Box component="form" onSubmit={handleSubmit} noValidate>
+        <Box component="form" onSubmit={handleSubmit} noValidate sx={{ width: '100%' }}>
           <TextField
             margin="normal"
             required
@@ -220,7 +222,7 @@ export function Login() {
           </Button>
         </Box>
       </Paper>
-    </Container>
+    </Box>
   );
 }
 

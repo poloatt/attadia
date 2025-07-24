@@ -245,15 +245,14 @@ export function Proyectos() {
   const filteredProyectos = proyectos;
 
   return (
-    <Box sx={{ px: 0, width: '100%' }}>
-      <Container maxWidth={isMobile ? "sm" : "xl"} sx={{ px: isMobile ? 1 : 3 }}>
+    <Box sx={{ px: { xs: 1, sm: 2, md: 3 }, width: '100%' }}>
+      <Box sx={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Toolbar />
-
         <Box 
           sx={{ 
             py: isMobile ? 1 : 2,
             px: isMobile ? 0 : 1,
-            height: isMobile ? 'calc(100vh - 180px)' : 'calc(100vh - 190px)', // Ajustado para móvil
+            height: isMobile ? 'calc(100vh - 180px)' : 'calc(100vh - 190px)',
             overflowY: 'auto',
             '&::-webkit-scrollbar': {
               width: isMobile ? '4px' : '8px',
@@ -285,33 +284,17 @@ export function Proyectos() {
             updateTareaWithHistory={updateTareaWithHistory}
           />
         </Box>
-
         <ProyectoForm
           open={isFormOpen}
           onClose={() => setIsFormOpen(false)}
           onSubmit={handleFormSubmit}
           isEditing={!!editingProyecto}
           initialData={editingProyecto}
-          // Pasar funciones de historial para operaciones CRUD
           createWithHistory={createWithHistory}
           updateWithHistory={updateWithHistory}
           deleteWithHistory={deleteWithHistory}
         />
-
-        {isTareaFormOpen && (
-          <TareaForm
-            open={isTareaFormOpen}
-            onClose={() => {
-              setIsTareaFormOpen(false);
-              setSelectedProyecto(null);
-            }}
-            onSubmit={handleTareaSubmit}
-            initialData={{ proyecto: selectedProyecto }}
-            isEditing={false}
-            proyectos={[selectedProyecto]}
-          />
-        )}
-      </Container>
+      </Box>
     </Box>
   );
 }

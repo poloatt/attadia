@@ -7,9 +7,8 @@ const SidebarContext = createContext();
 
 export function SidebarProvider({ children }) {
   const theme = useTheme();
-  // Mejor práctica: breakpoints explícitos y soporte para SSR
+  // Solo un breakpoint: desktop (>= md)
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'), { noSsr: true });
-  // Elimino isMobile y uso solo isDesktop
   const location = useLocation();
   // Estado para el pin manual de la sidebar (solo desktop)
   const [isPinned, setIsPinned] = useState(() => {
@@ -28,9 +27,7 @@ export function SidebarProvider({ children }) {
     if (typeof window === 'undefined') return true;
     const isDesktop = window.innerWidth >= 960;
     if (isDesktop) {
-      // Si está pineada, siempre abierta
       if (localStorage.getItem('sidebarPinned') === 'true') return true;
-      // Eliminar lógica que permita colapsada por defecto en desktop
       return true;
     } else {
       const pref = localStorage.getItem('sidebarMobileOpen');
@@ -38,24 +35,20 @@ export function SidebarProvider({ children }) {
     }
   };
   const [isOpen, setIsOpen] = useState(getInitialSidebarState);
-  const [expandedSections, setExpandedSections] = useState(new Set()); // Todas las secciones colapsadas por defecto
-  const [selectedMain, setSelectedMain] = useState(null);
-  const [selectedSecond, setSelectedSecond] = useState(null);
-  
-  // Estado para el ancho dinámico de la sidebar
+  // Ancho dinámico solo en desktop
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const savedWidth = localStorage.getItem('sidebarWidth');
     return savedWidth ? parseInt(savedWidth, 10) : 280;
   });
-
-  // Obtener las secciones principales (excluyendo setup) - estabilizado con useMemo
+  // Estado para la selección de secciones
+  const [expandedSections, setExpandedSections] = useState(new Set());
+  const [selectedMain, setSelectedMain] = useState(null);
+  const [selectedSecond, setSelectedSecond] = useState(null);
+  // Secciones principales (excluyendo setup)
   const mainSections = useMemo(() => menuItems.filter(item => item.id !== 'setup'), []);
 
-  // Efecto para ajustar la sidebar cuando cambie el tamaño de pantalla
+  // Efecto para mantener la sidebar siempre visible en desktop
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      console.log('[SidebarContext] isDesktop:', isDesktop, 'isPinned:', isPinned, 'window.innerWidth:', window.innerWidth);
-    }
     if (isDesktop) {
       setIsOpen(true);
       localStorage.setItem('sidebarDesktopOpen', 'true');
@@ -113,8 +106,8 @@ export function SidebarProvider({ children }) {
 
   // Solo permitir minimizar en desktop por acción explícita del usuario y si no está pineada
   const toggleSidebar = useCallback(() => {
-    if (isDesktop && isPinned) return; // No permitir colapsar si está pineada
-    if (isDesktop) return; // No permitir colapsar manualmente en desktop salvo pin
+    if (isDesktop && isPinned) return;
+    if (isDesktop) return;
     const newState = !isOpen;
     setIsOpen(newState);
     if (!isDesktop) {
@@ -123,8 +116,8 @@ export function SidebarProvider({ children }) {
   }, [isOpen, isDesktop, isPinned]);
 
   const closeSidebar = useCallback(() => {
-    if (isDesktop && isPinned) return; // No permitir colapsar si está pineada
-    if (isDesktop) return; // No permitir colapsar manualmente en desktop salvo pin
+    if (isDesktop && isPinned) return;
+    if (isDesktop) return;
     setIsOpen(false);
     if (!isDesktop) {
       localStorage.setItem('sidebarMobileOpen', 'false');
@@ -178,7 +171,7 @@ export function SidebarProvider({ children }) {
     setSelectedSecond(id);
   }, []);
 
-  // Función para manejar el resize de la sidebar
+  // Función para manejar el resize de la sidebar (solo desktop)
   const handleSidebarResize = useCallback((newWidth) => {
     setSidebarWidth(newWidth);
     localStorage.setItem('sidebarWidth', newWidth.toString());

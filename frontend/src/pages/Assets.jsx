@@ -585,17 +585,13 @@ export function Assets() {
 
 
   return (
-    <Box component="main" className="page-main-content">
+    <Box component="main" className="page-main-content" sx={{ width: '100%', flex: 1, px: { xs: 1, sm: 2, md: 3 }, py: 1, display: 'flex', flexDirection: 'column' }}>
       {/* Contenido principal */}
-      <Box sx={{ 
-        width: '100%', 
-        px: { xs: 1, sm: 2, md: 3 },
-        py: 1
-      }}>
+      <Box sx={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Grid container spacing={2}>
           {/* Sección de Propiedades */}
           <Grid item xs={12} md={6}>
-            <Box>
+            <Box sx={{ width: '100%' }}>
               <PropertiesSection />
             </Box>
           </Grid>
@@ -605,9 +601,10 @@ export function Assets() {
             <Paper sx={{ 
               p: 2, 
               height: '100%',
-              borderRadius: 2,
+              borderRadius: 0,
               boxShadow: 'none',
-              backgroundColor: (theme) => theme.palette.section.background
+              backgroundColor: (theme) => theme.palette.section.background,
+              width: '100%'
             }}>
               <FinanceSection />
             </Paper>

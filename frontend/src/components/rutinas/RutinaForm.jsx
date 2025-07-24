@@ -412,12 +412,12 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
       open={open}
       onClose={onClose || (() => {})}
       fullScreen={fullScreen}
-      maxWidth="md"
       fullWidth
       PaperProps={{
         sx: {
           borderRadius: 0,
-          maxHeight: '90vh'
+          maxHeight: '90vh',
+          width: '100%',
         }
       }}
     >
