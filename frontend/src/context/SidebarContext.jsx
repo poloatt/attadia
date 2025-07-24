@@ -7,7 +7,9 @@ const SidebarContext = createContext();
 
 export function SidebarProvider({ children }) {
   const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up('sm'));
+  // Mejor práctica: breakpoints explícitos y soporte para SSR
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'), { noSsr: true });
+  // Elimino isMobile y uso solo isDesktop
   const location = useLocation();
   // Inicializar isOpen basado en el tamaño de pantalla
   const [isOpen, setIsOpen] = useState(isDesktop);
@@ -26,19 +28,23 @@ export function SidebarProvider({ children }) {
 
   // Efecto para ajustar la sidebar cuando cambie el tamaño de pantalla
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      console.log('[SidebarContext] isDesktop:', isDesktop, 'window.innerWidth:', window.innerWidth);
+    }
     if (isDesktop) {
-      // En desktop, abrir por defecto si no está explícitamente cerrada
+      // Solo respetar la preferencia si fue guardada en desktop
       const userPreference = localStorage.getItem('sidebarDesktopOpen');
-      if (userPreference === null) {
-        setIsOpen(true);
+      if (userPreference === 'false') {
+        setIsOpen(false);
       } else {
-        setIsOpen(userPreference === 'true');
+        setIsOpen(true); // Siempre extendida por defecto en desktop
+        localStorage.setItem('sidebarDesktopOpen', 'true');
       }
     } else {
-      // En móvil, mantener colapsada por defecto pero visible
+      // En mobile, sí respetar la preferencia de mobile
       const userPreference = localStorage.getItem('sidebarMobileOpen');
       if (userPreference === null) {
-        setIsOpen(false); // Colapsada por defecto
+        setIsOpen(false);
       } else {
         setIsOpen(userPreference === 'true');
       }
@@ -91,6 +97,7 @@ export function SidebarProvider({ children }) {
     }
   }, [location.pathname, selectedMain, selectedSecond, mainSections]);
 
+  // Solo permitir minimizar en desktop por acción explícita del usuario
   const toggleSidebar = useCallback(() => {
     const newState = !isOpen;
     setIsOpen(newState);
@@ -103,6 +110,7 @@ export function SidebarProvider({ children }) {
   }, [isOpen, isDesktop]);
 
   const closeSidebar = useCallback(() => {
+    // Solo permitir cerrar en desktop si es acción del usuario
     setIsOpen(false);
     if (isDesktop) {
       localStorage.setItem('sidebarDesktopOpen', 'false');
@@ -112,12 +120,11 @@ export function SidebarProvider({ children }) {
   }, [isDesktop]);
 
   const openSidebar = useCallback(() => {
-    // Mejora de transición: en móvil, abrir con retardo para animación suave si thirdLevelItems aparece
     if (!isDesktop) {
       setTimeout(() => {
         setIsOpen(true);
         localStorage.setItem('sidebarMobileOpen', 'true');
-      }, 80); // 80ms para permitir animación
+      }, 80);
     } else {
       setIsOpen(true);
       localStorage.setItem('sidebarDesktopOpen', 'true');

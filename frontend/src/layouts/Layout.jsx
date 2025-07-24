@@ -13,10 +13,10 @@ import { GlobalFormEventListener } from '../context/GlobalFormEventListener';
 
 export function Layout() {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'), { noSsr: true });
   const navigate = useNavigate();
   const location = useLocation();
-  const { isOpen, isDesktop } = useSidebar();
+  const { isOpen, isDesktop: isSidebarOpen } = useSidebar();
   const { showSidebar, showEntityToolbarNavigation } = useUISettings();
   const { user } = useAuth();
 
@@ -63,11 +63,10 @@ export function Layout() {
           component="main"
           sx={{
             flexGrow: 1,
-            pt: `${totalTopPadding}px`,
-            pb: isMobile ? '88px' : '70px',
+            pt: `calc(${totalTopPadding}px + env(safe-area-inset-top, 0px))`,
+            pb: isDesktop ? 'calc(70px + env(safe-area-inset-bottom, 0px))' : 'calc(88px + env(safe-area-inset-bottom, 0px))',
             minHeight: '100vh',
-            height: '100vh',
-            width: '100vw',
+            width: '100%',
             display: 'flex',
             flexDirection: 'column',
             bgcolor: 'background.default',
@@ -109,8 +108,8 @@ export function Layout() {
           }}>
             <Outlet />
           </Box>
-          {/* Mostrar BottomNavigation en mobile, Footer siempre */}
-          {isMobile && <BottomNavigation />}
+          {/* Mostrar BottomNavigation solo en mobile/tablet */}
+          {!isDesktop && <BottomNavigation />}
           <Box sx={{ position: 'fixed', left: 0, bottom: 0, width: '100vw', zIndex: 1300 }}>
             <Footer isDesktop={isDesktop} isSidebarOpen={isOpen && showSidebar && isDesktop} />
           </Box>

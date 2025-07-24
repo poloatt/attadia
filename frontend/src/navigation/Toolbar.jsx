@@ -235,7 +235,10 @@ export default function Toolbar({ children, additionalActions = [] }) {
   // Render
   return (
     <Box sx={{
-      width: { xs: '100vw', sm: '100vw', md: '100%' },
+      width: '100%',
+      maxWidth: { xs: '100%', sm: '100%', md: 1200, lg: 1440 },
+      mx: 'auto',
+      px: { xs: 1, sm: 2, md: 3, lg: 4 },
       left: 0,
       position: { xs: 'fixed', sm: 'fixed', md: 'sticky' },
       top: { xs: '40px', sm: '40px', md: 0 },
@@ -358,31 +361,7 @@ export default function Toolbar({ children, additionalActions = [] }) {
                 const isActive = isRouteActive(item.path, currentPath);
                 return (
                   <Tooltip key={item.path} title={item.title}>
-                    {isActive ? (
-                      <span>
-                        <IconButton
-                          component={Link}
-                          to={item.path}
-                          size="small"
-                          sx={{
-                            bgcolor: isActive ? 'action.selected' : 'transparent',
-                            color: isActive ? 'primary.main' : 'text.secondary',
-                            borderRadius: 1,
-                            fontSize: 18,
-                            flexShrink: 0
-                          }}
-                          disabled={isActive}
-                        >
-                          {item.icon
-                            ? typeof item.icon === 'string'
-                              ? icons[item.icon]
-                                ? React.createElement(icons[item.icon])
-                                : null
-                              : React.createElement(item.icon)
-                            : null}
-                        </IconButton>
-                      </span>
-                    ) : (
+                    <span>
                       <IconButton
                         component={Link}
                         to={item.path}
@@ -404,7 +383,7 @@ export default function Toolbar({ children, additionalActions = [] }) {
                             : React.createElement(item.icon)
                           : null}
                       </IconButton>
-                    )}
+                    </span>
                   </Tooltip>
                 );
               })}

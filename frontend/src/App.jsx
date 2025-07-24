@@ -44,6 +44,7 @@ import Autos from './pages/Autos';
 import Preferencias from './pages/Preferencias';
 import { MercadoPagoCallbackPage } from './pages/MercadoPagoCallbackPage';
 import { menuItems } from './navigation/menuStructure';
+import { SidebarProvider } from './context/SidebarContext';
 
 // Función utilitaria para buscar path por id
 function findPathById(id, items = menuItems) {
@@ -75,72 +76,74 @@ function App() {
       <ValuesVisibilityProvider>
         <NavigationBarProvider>
           <RutinasHistoryProvider>
-          <ErrorBoundary>
-            <Routes>
-              {/* Rutas públicas */}
-              <Route path="/login" element={user ? <Navigate to="/assets" replace /> : <Login />} />
-              <Route path="/registro" element={<Register />} />
-              <Route path="/auth/callback" element={<AuthCallback />} />
-              <Route path="/auth/error" element={<AuthError />} />
-              <Route path="/mercadopago/callback" element={<MercadoPagoCallbackPage />} />
-              
-              {/* Ruta raíz redirige a /assets */}
-              <Route path="/" element={<Navigate to="/assets" replace />} />
-              
-              {/* Rutas protegidas */}
-              <Route element={<PrivateRoute />}>
-                <Route element={<Layout />}>
-                  {/* Ruta principal de Assets */}
-                  <Route path="/assets" element={<Assets />} />
-                  <Route path="/assets/propiedades" element={<Propiedades />} />
+            <SidebarProvider>
+              <ErrorBoundary>
+                <Routes>
+                  {/* Rutas públicas */}
+                  <Route path="/login" element={user ? <Navigate to="/assets" replace /> : <Login />} />
+                  <Route path="/registro" element={<Register />} />
+                  <Route path="/auth/callback" element={<AuthCallback />} />
+                  <Route path="/auth/error" element={<AuthError />} />
+                  <Route path="/mercadopago/callback" element={<MercadoPagoCallbackPage />} />
                   
-                  {/* Rutas anidadas para Assets/Finanzas */}
-                  <Route path="/assets/finanzas" element={<Finanzas />} />
-                  <Route path="/assets/finanzas/transacciones" element={<Transacciones />} />
-                  <Route path="/assets/finanzas/cuentas" element={<Cuentas />} />
-                  <Route path="/assets/finanzas/monedas" element={<Monedas />} />
-                  <Route path="/assets/finanzas/inversiones" element={<Inversiones />} />
-                  <Route path="/assets/finanzas/deudores" element={<Deudores />} />
-                  <Route path="/assets/finanzas/recurrente" element={<Recurrente />} />
+                  {/* Ruta raíz redirige a /assets */}
+                  <Route path="/" element={<Navigate to="/assets" replace />} />
                   
-                  {/* Rutas anidadas para Assets/Propiedades */}
-                  <Route path="/assets/propiedades/inquilinos" element={<Inquilinos />} />
-                  <Route path="/assets/propiedades/contratos" element={<Contratos />} />
-                  <Route path="/assets/propiedades/habitaciones" element={<Habitaciones />} />
-                  <Route path="/assets/propiedades/inventario" element={<Inventario />} />
-                  <Route path="/assets/propiedades/autos" element={<Autos />} />
-                  
-                  {/* Rutas principales y anidadas para Salud */}
-                  <Route path="/salud" element={<Salud />} />
-                  {/* <Route path="/salud/rutinas" element={<Rutinas />} /> */}
-                  <Route path="/salud/lab" element={<Lab />} />
-                  <Route path="/salud/dieta" element={<Dieta />} />
-                  <Route path="/salud/datacorporal" element={<DataCorporal />} />
-                  
-                  {/* Rutas principales y anidadas para Tiempo */}
-                  <Route path="/tiempo" element={<Tiempo />} />
-                  <Route path="/tiempo/proyectos" element={<Proyectos />} />
-                  <Route path="/tiempo/tareas" element={<Tareas />} />
-                  <Route path="/tiempo/archivo" element={<Archivo />} />
-                  {/* Usar path dinámico para Rutinas y Autos */}
-                  {rutinasPath && <Route path={rutinasPath} element={<Rutinas />} />}
-                  {autosPath && <Route path={autosPath} element={<Autos />} />}
-                  
-                  {/* Rutas anidadas para Setup */}
-                  <Route path="/configuracion" element={<Configuracion />} />
-                  <Route path="/configuracion/perfil" element={<Perfil />} />
-                  <Route path="/configuracion/preferencias" element={<Preferencias />} />
-                  
-                  {/* Ruta especial para documentos de propiedades */}
-                  <Route path="/propiedades/documentos" element={<PropiedadDocumentos />} />
-                </Route>
-              </Route>
+                  {/* Rutas protegidas */}
+                  <Route element={<PrivateRoute />}>
+                    <Route element={<Layout />}>
+                      {/* Ruta principal de Assets */}
+                      <Route path="/assets" element={<Assets />} />
+                      <Route path="/assets/propiedades" element={<Propiedades />} />
+                      
+                      {/* Rutas anidadas para Assets/Finanzas */}
+                      <Route path="/assets/finanzas" element={<Finanzas />} />
+                      <Route path="/assets/finanzas/transacciones" element={<Transacciones />} />
+                      <Route path="/assets/finanzas/cuentas" element={<Cuentas />} />
+                      <Route path="/assets/finanzas/monedas" element={<Monedas />} />
+                      <Route path="/assets/finanzas/inversiones" element={<Inversiones />} />
+                      <Route path="/assets/finanzas/deudores" element={<Deudores />} />
+                      <Route path="/assets/finanzas/recurrente" element={<Recurrente />} />
+                      
+                      {/* Rutas anidadas para Assets/Propiedades */}
+                      <Route path="/assets/propiedades/inquilinos" element={<Inquilinos />} />
+                      <Route path="/assets/propiedades/contratos" element={<Contratos />} />
+                      <Route path="/assets/propiedades/habitaciones" element={<Habitaciones />} />
+                      <Route path="/assets/propiedades/inventario" element={<Inventario />} />
+                      <Route path="/assets/propiedades/autos" element={<Autos />} />
+                      
+                      {/* Rutas principales y anidadas para Salud */}
+                      <Route path="/salud" element={<Salud />} />
+                      {/* <Route path="/salud/rutinas" element={<Rutinas />} /> */}
+                      <Route path="/salud/lab" element={<Lab />} />
+                      <Route path="/salud/dieta" element={<Dieta />} />
+                      <Route path="/salud/datacorporal" element={<DataCorporal />} />
+                      
+                      {/* Rutas principales y anidadas para Tiempo */}
+                      <Route path="/tiempo" element={<Tiempo />} />
+                      <Route path="/tiempo/proyectos" element={<Proyectos />} />
+                      <Route path="/tiempo/tareas" element={<Tareas />} />
+                      <Route path="/tiempo/archivo" element={<Archivo />} />
+                      {/* Usar path dinámico para Rutinas y Autos */}
+                      {rutinasPath && <Route path={rutinasPath} element={<Rutinas />} />}
+                      {autosPath && <Route path={autosPath} element={<Autos />} />}
+                      
+                      {/* Rutas anidadas para Setup */}
+                      <Route path="/configuracion" element={<Configuracion />} />
+                      <Route path="/configuracion/perfil" element={<Perfil />} />
+                      <Route path="/configuracion/preferencias" element={<Preferencias />} />
+                      
+                      {/* Ruta especial para documentos de propiedades */}
+                      <Route path="/propiedades/documentos" element={<PropiedadDocumentos />} />
+                    </Route>
+                  </Route>
 
-              {/* Ruta 404 */}
-              <Route path="*" element={<Navigate to="/assets" replace />} />
-            </Routes>
-          </ErrorBoundary>
-            </RutinasHistoryProvider>
+                  {/* Ruta 404 */}
+                  <Route path="*" element={<Navigate to="/assets" replace />} />
+                </Routes>
+              </ErrorBoundary>
+            </SidebarProvider>
+          </RutinasHistoryProvider>
         </NavigationBarProvider>
       </ValuesVisibilityProvider>
     </ThemeProvider>

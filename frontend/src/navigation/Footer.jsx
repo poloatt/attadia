@@ -77,44 +77,57 @@ export default function Footer({ isDesktop = false, isSidebarOpen = false }) {
         marginLeft: isDesktop && isSidebarOpen ? '280px' : 0,
       }}
     >
-      <Chip
-        icon={
-          connectionStatus.backend ? 
-            <SignalWifiStatusbar4BarIcon sx={{ color: '#4caf50', fontSize: 16 }} /> : 
-            <SignalWifiOffIcon sx={{ color: '#f44336', fontSize: 16 }} />
-        }
-        label={connectionStatus.backend ? 'Conectado al backend' : 'Sin conexión al backend'}
-        size="small"
-        sx={{ 
-          height: '24px',
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          color: 'rgba(255, 255, 255, 0.9)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          '& .MuiChip-label': {
-            fontSize: '0.75rem',
-            px: 1
-          }
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: { xs: '100%', sm: '100%', md: 1200, lg: 1440 },
+          mx: 'auto',
+          px: { xs: 1, sm: 2, md: 3, lg: 4 },
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 2
         }}
-      />
-      <Chip
-        icon={
-          connectionStatus.database ? 
-            <CloudDoneIcon sx={{ color: '#4caf50', fontSize: 16 }} /> : 
-            <CloudOffIcon sx={{ color: '#f44336', fontSize: 16 }} />
-        }
-        label={connectionStatus.database ? 'Base de datos conectada' : 'Sin conexión a la base de datos'}
-        size="small"
-        sx={{ 
-          height: '24px',
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          color: 'rgba(255, 255, 255, 0.9)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          '& .MuiChip-label': {
-            fontSize: '0.75rem',
-            px: 1
+      >
+        <Chip
+          icon={
+            connectionStatus.backend ? 
+              <SignalWifiStatusbar4BarIcon sx={{ color: '#4caf50', fontSize: 16 }} /> : 
+              <SignalWifiOffIcon sx={{ color: '#f44336', fontSize: 16 }} />
           }
-        }}
-      />
+          label={connectionStatus.backend ? 'Conectado al backend' : 'Sin conexión al backend'}
+          size="small"
+          sx={{ 
+            height: '24px',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            color: 'rgba(255, 255, 255, 0.9)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            '& .MuiChip-label': {
+              fontSize: '0.75rem',
+              px: 1
+            }
+          }}
+        />
+        <Chip
+          icon={
+            connectionStatus.database ? 
+              <CloudDoneIcon sx={{ color: '#4caf50', fontSize: 16 }} /> : 
+              <CloudOffIcon sx={{ color: '#f44336', fontSize: 16 }} />
+          }
+          label={connectionStatus.database ? 'Base de datos conectada' : 'Sin conexión a la base de datos'}
+          size="small"
+          sx={{ 
+            height: '24px',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            color: 'rgba(255, 255, 255, 0.9)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            '& .MuiChip-label': {
+              fontSize: '0.75rem',
+              px: 1
+            }
+          }}
+        />
+      </Box>
     </Box>
   );
 } 

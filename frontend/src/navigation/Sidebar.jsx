@@ -126,8 +126,8 @@ export default function Sidebar() {
             onClick={() => {
               if (item.path && !isDisabled) {
                 navigate(item.path);
-                // Solo cerrar sidebar en móvil, no en desktop
-                if (!isDesktop && isOpen) closeSidebar();
+                // Solo cerrar sidebar automáticamente en mobile (ancho < 960px)
+                if (typeof window !== 'undefined' && window.innerWidth < 960 && isOpen) closeSidebar();
               }
               if (isSubItem) {
                 setSelectedSecond(item.id);
@@ -226,8 +226,8 @@ export default function Sidebar() {
                 setSelectedMain(section.id);
                 if (section.path) {
                   navigate(section.path);
-                  // Solo cerrar sidebar en móvil, no en desktop
-                  if (!isDesktop && isOpen) closeSidebar();
+                  // Solo cerrar sidebar automáticamente en mobile (ancho < 960px)
+                  if (typeof window !== 'undefined' && window.innerWidth < 960 && isOpen) closeSidebar();
                 }
               }}
               color={selectedMain === section.id ? 'primary' : 'default'}
@@ -281,7 +281,8 @@ export default function Sidebar() {
     </Typography>
   );
 
-  if (!showSidebar && !isOpen) return null;
+  // Cambiar la condición de renderizado:
+  if (!isDesktop && !showSidebar && !isOpen) return null;
   return (
     <Box sx={{ 
       width: isOpen ? sidebarWidth : 56, 
@@ -335,7 +336,7 @@ export default function Sidebar() {
                       onClick={() => {
                         if (subItem.path && !subItem.isUnderConstruction) {
                           navigate(subItem.path);
-                          if (!isDesktop && isOpen) closeSidebar();
+                          if (typeof window !== 'undefined' && window.innerWidth < 960 && isOpen) closeSidebar();
                         }
                       }}
                       color={isRouteActive(subItem.path) ? 'primary' : 'default'}

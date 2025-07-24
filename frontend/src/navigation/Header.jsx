@@ -78,94 +78,107 @@ import {
             }
           }}
         >
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center',
-            gap: 1
-          }}>
-            <SystemButtons.MenuButton />
-            {/* Botón de atrás solo si no estamos en la raíz y la toolbar no está activa */}
-            {location.pathname !== '/' && !showEntityToolbarNavigation && (
-              <IconButton onClick={handleBack} size="small" sx={{ ml: 0, mr: 0.5 }}>
-                {icons.arrowBack ? <icons.arrowBack sx={{ fontSize: 18 }} /> : <span>&larr;</span>}
-              </IconButton>
-            )}
-            {(() => {
-              const last = breadcrumbs[breadcrumbs.length - 1];
-              const Icon = last?.icon
-                ? typeof last.icon === 'string'
-                  ? icons[last.icon]
-                  : last.icon
-                : null;
-              return (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    left: 0,
-                    right: 0,
-                    width: '100%',
-                    height: 40,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    pointerEvents: 'none',
-                    zIndex: 1
-                  }}
-                >
-                  {Icon && <Icon sx={{ fontSize: 16, color: 'primary.main', mr: 0.5 }} />}
-                  <Typography color="inherit" sx={{ fontWeight: 500 }}>
-                    {last?.title}
-                  </Typography>
-                </Box>
-              );
-            })()}
-          </Box>
-  
-          <Box sx={{ flexGrow: 1 }} />
-  
-          {/* Migración: todos los botones de acción del header en SystemButtons */}
-          <SystemButtons
-            actions={[
-              showAddButton && !showEntityToolbarNavigation && entityConfig ? {
-                key: 'add',
-                icon: <SystemButtons.AddButton entityConfig={entityConfig} />, // Solo visual, sin lógica local
-                label: 'Agregar',
-                tooltip: 'Agregar',
-                disabled: false
-              } : null,
-              showSidebar === false ? {
-                key: 'config',
-                icon: icons.settings ? icons.settings({ sx: { fontSize: 20 } }) : <span>⚙️</span>,
-                label: 'Configuración',
-                tooltip: 'Configuración',
-                onClick: () => navigate('/configuracion'),
-                disabled: false
-              } : null,
-              location.pathname.includes('/cuentas') ? {
-                key: 'sync',
-                icon: <AutorenewOutlined sx={{ fontSize: 20, color: 'white' }} />,
-                label: 'Sincronizar',
-                tooltip: 'Sincronizar nueva cuenta',
-                onClick: () => setIsSyncModalOpen(true),
-                disabled: false
-              } : null,
-            ]}
-            direction="row"
-            size="small"
-          />
-          {/* Diálogos modales para sincronizar y agregar cuenta */}
-          <Dialog open={isSyncModalOpen} onClose={() => setIsSyncModalOpen(false)} maxWidth="xs" fullWidth>
-            <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Sincronizar nueva cuenta</Typography>
-              <MercadoPagoConnectButton
-                onSuccess={() => setIsSyncModalOpen(false)}
-                onError={() => setIsSyncModalOpen(false)}
-              />
+          <Box
+            sx={{
+              width: '100%',
+              maxWidth: { xs: '100%', sm: '100%', md: 1200, lg: 1440 },
+              mx: 'auto',
+              px: { xs: 1, sm: 2, md: 3, lg: 4 },
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              flex: 1
+            }}
+          >
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center',
+              gap: 1
+            }}>
+              <SystemButtons.MenuButton />
+              {/* Botón de atrás solo si no estamos en la raíz y la toolbar no está activa */}
+              {location.pathname !== '/' && !showEntityToolbarNavigation && (
+                <IconButton onClick={handleBack} size="small" sx={{ ml: 0, mr: 0.5 }}>
+                  {icons.arrowBack ? <icons.arrowBack sx={{ fontSize: 18 }} /> : <span>&larr;</span>}
+                </IconButton>
+              )}
+              {(() => {
+                const last = breadcrumbs[breadcrumbs.length - 1];
+                const Icon = last?.icon
+                  ? typeof last.icon === 'string'
+                    ? icons[last.icon]
+                    : last.icon
+                  : null;
+                return (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      left: 0,
+                      right: 0,
+                      width: '100%',
+                      height: 40,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      pointerEvents: 'none',
+                      zIndex: 1
+                    }}
+                  >
+                    {Icon && <Icon sx={{ fontSize: 16, color: 'primary.main', mr: 0.5 }} />}
+                    <Typography color="inherit" sx={{ fontWeight: 500 }}>
+                      {last?.title}
+                    </Typography>
+                  </Box>
+                );
+              })()}
             </Box>
-          </Dialog>
-          <Dialog open={isBankConnectionFormOpen} onClose={() => setIsBankConnectionFormOpen(false)} maxWidth="xs" fullWidth>
-            <BankConnectionForm onClose={() => setIsBankConnectionFormOpen(false)} />
-          </Dialog>
+  
+            <Box sx={{ flexGrow: 1 }} />
+  
+            {/* Migración: todos los botones de acción del header en SystemButtons */}
+            <SystemButtons
+              actions={[
+                showAddButton && !showEntityToolbarNavigation && entityConfig ? {
+                  key: 'add',
+                  icon: <SystemButtons.AddButton entityConfig={entityConfig} />, // Solo visual, sin lógica local
+                  label: 'Agregar',
+                  tooltip: 'Agregar',
+                  disabled: false
+                } : null,
+                showSidebar === false ? {
+                  key: 'config',
+                  icon: icons.settings ? icons.settings({ sx: { fontSize: 20 } }) : <span>⚙️</span>,
+                  label: 'Configuración',
+                  tooltip: 'Configuración',
+                  onClick: () => navigate('/configuracion'),
+                  disabled: false
+                } : null,
+                location.pathname.includes('/cuentas') ? {
+                  key: 'sync',
+                  icon: <AutorenewOutlined sx={{ fontSize: 20, color: 'white' }} />,
+                  label: 'Sincronizar',
+                  tooltip: 'Sincronizar nueva cuenta',
+                  onClick: () => setIsSyncModalOpen(true),
+                  disabled: false
+                } : null,
+              ]}
+              direction="row"
+              size="small"
+            />
+            {/* Diálogos modales para sincronizar y agregar cuenta */}
+            <Dialog open={isSyncModalOpen} onClose={() => setIsSyncModalOpen(false)} maxWidth="xs" fullWidth>
+              <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <Typography variant="h6" sx={{ mb: 2 }}>Sincronizar nueva cuenta</Typography>
+                <MercadoPagoConnectButton
+                  onSuccess={() => setIsSyncModalOpen(false)}
+                  onError={() => setIsSyncModalOpen(false)}
+                />
+              </Box>
+            </Dialog>
+            <Dialog open={isBankConnectionFormOpen} onClose={() => setIsBankConnectionFormOpen(false)} maxWidth="xs" fullWidth>
+              <BankConnectionForm onClose={() => setIsBankConnectionFormOpen(false)} />
+            </Dialog>
+          </Box>
         </Toolbar>
       </AppBar>
     );

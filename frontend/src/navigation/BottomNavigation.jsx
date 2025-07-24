@@ -50,10 +50,12 @@ export default function BottomNavigation() {
             justifyContent: 'center',
             alignItems: 'center',
             gap: 4,
-            width: 'auto',
+            width: '100%',
+            maxWidth: { xs: '100%', sm: '100%', md: 1200, lg: 1440 },
+            mx: 'auto',
             minWidth: '300px',
-            maxWidth: '400px',
             height: '56px',
+            px: { xs: 1, sm: 2, md: 3, lg: 4 }
           }}
         >
           {navItems.map((item, index) => {
