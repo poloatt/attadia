@@ -4,7 +4,7 @@ import RutinaTable from '../components/rutinas/RutinaTable';
 import { RutinaForm } from '../components/rutinas/RutinaForm';
 import { MemoizedRutinaNavigation as RutinaNavigation } from '../components/rutinas/RutinaNavigation';
 import { RutinasProvider, useRutinas } from '../context/RutinasContext';
-import { useRutinasHistorical } from '../components/rutinas/HistoricalAlert';
+import { useRutinasHistorical } from '../context/RutinasHistoryContext';
 import HistoricalAlert from '../components/rutinas/HistoricalAlert';
 import { Toolbar } from '../navigation';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -180,7 +180,7 @@ const RutinasWithContext = () => {
         {/* Alerta global de historial */}
         {(() => {
           try {
-            const historical = require('../context/RutinasHistoryContext').useRutinasHistorical();
+            const historical = useRutinasHistorical();
             // Si no hay historial en ninguna sección, mostrar alerta
             if (historical.noHistoryAvailable ||
                 !['bodyCare','nutricion','ejercicio','cleaning'].some(section => historical.hasSectionHistory(section))) {

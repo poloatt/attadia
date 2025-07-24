@@ -19,6 +19,7 @@ import {
   import { Breadcrumbs, useTheme, useMediaQuery } from '@mui/material';
   import { SystemButtons, SYSTEM_ICONS } from '../components/common/SystemButtons';
   import { Refresh as RefreshIcon } from '@mui/icons-material';
+  import theme from '../context/ThemeContext';
   
   export default function Header() {
     const { showSidebar } = useSidebar();
@@ -55,9 +56,9 @@ import {
         position="fixed" 
         sx={{ 
           zIndex: (theme) => theme.zIndex.drawer + 1, // Header siempre por encima de sidebar
-          backgroundColor: '#181818', // Fondo opaco
+          backgroundColor: theme.palette.background.default, // Fondo opaco
           borderBottom: '1px solid',
-          borderColor: 'divider',
+          borderColor: theme.palette.divider,
           height: 40,
           left: 0, // Header ocupa todo el ancho
           width: '100%', // Header siempre 100% del ancho

@@ -3,6 +3,7 @@ import { Box, Paper, Typography } from '@mui/material';
 import { useLocation, Link } from 'react-router-dom';
 import { getBottomNavigationItems } from './menuStructure';
 import { isRouteActive } from './menuIcons';
+import theme from '../context/ThemeContext';
 
 /**
  * Componente de navegación inferior con diseño geométrico
@@ -17,7 +18,7 @@ export default function BottomNavigation() {
 
   return (
     <Paper 
-      elevation={3} 
+      elevation={0}
       sx={{
         position: 'fixed',
         bottom: 0,
@@ -25,10 +26,10 @@ export default function BottomNavigation() {
         width: '100vw',
         zIndex: 1200,
         borderRadius: 0,
-        bgcolor: '#181818', // Fondo opaco
-        boxShadow: '0 -2px 8px rgba(0,0,0,0.10)',
+        bgcolor: theme.palette.background.default, // Fondo opaco
+        boxShadow: 'none',
         borderTop: '1px solid',
-        borderColor: 'divider',
+        borderColor: theme.palette.divider,
         m: 0,
         p: 0,
       }}
@@ -94,9 +95,9 @@ export default function BottomNavigation() {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    clipPath: 'polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%)',
+                    borderRadius: '50%',
                     bgcolor: isActive ? 'action.selected' : 'transparent',
-                    p: 0.5,
+                    p: 1,
                   }}
                 >
                   <item.icon sx={{ fontSize: 18 }} />

@@ -17,6 +17,7 @@ import { useSidebar } from '../context/SidebarContext';
 import { useUISettings } from '../context/UISettingsContext';
 import { icons } from './menuIcons';
 import SidebarResizer from './SidebarResizer';
+import theme from '../context/ThemeContext';
 
 export default function Sidebar() {
   const { 
@@ -281,14 +282,16 @@ export default function Sidebar() {
   );
 
   if (!showSidebar && !isOpen) return null;
-  // En móvil, solo mostrar si hay thirdLevelItems
-  if (!isDesktop && thirdLevelItems.length === 0) return null;
   return (
     <Box sx={{ 
       width: isOpen ? sidebarWidth : 56, 
       transition: 'width 0.3s ease', 
       flexShrink: 0, 
-      pb: { xs: '88px', sm: '88px', md: 0 } 
+      pb: { xs: '88px', sm: '88px', md: 0 },
+      ml: (!isDesktop && !isOpen) ? 0 : undefined,
+      border: (!isDesktop && !isOpen) ? 'none' : undefined,
+      boxShadow: (!isDesktop && !isOpen) ? 'none' : undefined,
+      backgroundColor: theme.palette.background.default,
     }}>
       <Drawer
         variant="permanent"
@@ -298,11 +301,14 @@ export default function Sidebar() {
             position: 'fixed',
             top: isDesktop ? '40px' : '80px', // 40px header + 40px toolbar en móvil
             width: isOpen ? sidebarWidth : 56,
+            margin: (!isDesktop && !isOpen) ? 0 : undefined,
+            border: (!isDesktop && !isOpen) ? 'none' : undefined,
+            boxShadow: (!isDesktop && !isOpen) ? 'none' : undefined,
             height: isDesktop ? 'calc(100vh - 40px)' : 'calc(100vh - 80px)',
             transition: 'width 0.3s ease',
             overflowX: 'hidden',
             overflowY: 'auto',
-            backgroundColor: '#181818',
+            backgroundColor: theme.palette.background.default,
             display: 'flex',
             flexDirection: 'column',
             scrollbarWidth: 'thin',
@@ -318,10 +324,11 @@ export default function Sidebar() {
         {renderMainSectionsHeader()}
 
         {/* Mostrar iconos de 3er nivel centrados verticalmente en móvil colapsado */}
-        {(!isDesktop && !isOpen && thirdLevelItems.length > 0) && (
+        {(!isDesktop && !isOpen) && (
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+            {/* Subitems de la sección seleccionada (si hay), o subitems de setup si está seleccionada */}
             <List sx={{ p: 0, m: 0 }}>
-              {thirdLevelItems.map(subItem => (
+              {(thirdLevelItems.length > 0 ? thirdLevelItems : (selectedMain === 'setup' && setupSection?.subItems ? setupSection.subItems : [])).map(subItem => (
                 <ListItem key={subItem.id || subItem.path} disablePadding sx={{ bgcolor: 'transparent', justifyContent: 'center', display: 'flex' }}>
                   <Tooltip title={subItem.title} placement="right" arrow>
                     <IconButton

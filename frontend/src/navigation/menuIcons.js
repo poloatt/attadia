@@ -30,7 +30,8 @@ import {
   KeyboardBackspaceOutlined,
   MonetizationOnOutlined, // icono "$" dentro de círculo para assets
   AddCircleOutline, // cruz médica dentro de círculo para salud
-  BedOutlined // icono de cama para habitaciones
+  BedOutlined, // icono de cama para habitaciones
+  TuneOutlined
 } from '@mui/icons-material';
 
 export const icons = {
@@ -51,7 +52,7 @@ export const icons = {
   folder: FolderOutlined,
   task: TaskOutlined,
   archive: ArchiveOutlined,
-  settings: SettingsOutlined,
+  settings: TuneOutlined,
   manageAccounts: ManageAccountsOutlined,
   accountCircle: AccountCircleOutlined,
   accountBalance: AccountBalanceOutlined,
