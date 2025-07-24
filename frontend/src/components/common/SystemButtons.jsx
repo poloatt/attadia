@@ -143,7 +143,7 @@ export const SYSTEM_ICONS = {
 }; 
 
 // HeaderMenuButton
-function HeaderMenuButton({ sx }) {
+function HeaderMenuButton({ sx, disabled = false }) {
   const { toggleSidebar } = useSidebar();
   const btn = (
     <IconButton
@@ -164,10 +164,15 @@ function HeaderMenuButton({ sx }) {
         ...sx
       }}
       aria-label="Abrir menú"
+      disabled={disabled}
     >
       <MenuIcon sx={sx || { fontSize: 18, color: 'text.secondary' }} />
     </IconButton>
   );
+  // Si está deshabilitado y se usa en un Tooltip, envolver en <span>
+  if (disabled) {
+    return <span style={{ display: 'inline-flex' }}>{btn}</span>;
+  }
   btn.type.isButtonComponent = true;
   return btn;
 }

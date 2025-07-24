@@ -22,7 +22,7 @@ import {
   import theme from '../context/ThemeContext';
   
   export default function Header() {
-    const { showSidebar } = useSidebar();
+    const { toggleSidebar } = useSidebar();
     const { showEntityToolbarNavigation } = useUISettings();
     const { 
       getRouteTitle, 
@@ -93,7 +93,7 @@ import {
               alignItems: 'center',
               gap: 1
             }}>
-              <SystemButtons.MenuButton />
+              <SystemButtons.MenuButton onClick={toggleSidebar} />
               {/* Botón de atrás solo si no estamos en la raíz y la toolbar no está activa */}
               {location.pathname !== '/' && !showEntityToolbarNavigation && (
                 <IconButton onClick={handleBack} size="small" sx={{ ml: 0, mr: 0.5 }}>
@@ -143,14 +143,14 @@ import {
                   tooltip: 'Agregar',
                   disabled: false
                 } : null,
-                showSidebar === false ? {
+                {
                   key: 'config',
-                  icon: icons.settings ? icons.settings({ sx: { fontSize: 20 } }) : <span>⚙️</span>,
+                  icon: icons.settings ? <icons.settings sx={{ fontSize: 20 }} /> : <span>⚙️</span>,
                   label: 'Configuración',
                   tooltip: 'Configuración',
                   onClick: () => navigate('/configuracion'),
                   disabled: false
-                } : null,
+                },
                 location.pathname.includes('/cuentas') ? {
                   key: 'sync',
                   icon: <AutorenewOutlined sx={{ fontSize: 20, color: 'white' }} />,

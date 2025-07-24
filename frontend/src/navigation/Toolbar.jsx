@@ -317,7 +317,7 @@ export default function Toolbar({ children, additionalActions = [] }) {
                 const isActive = isRouteActive(item.path, currentPath);
                 return (
                   <Tooltip key={item.path} title={item.title}>
-                    <span>
+                    <span style={{ display: 'inline-flex' }}>
                       <IconButton
                         component={Link}
                         to={item.path}

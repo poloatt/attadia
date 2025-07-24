@@ -27,18 +27,18 @@ export default function Sidebar() {
   const theme = useTheme();
   const {
     isOpen,
+    isDesktop,
+    sidebarWidth,
     menuItems,
     mainSections,
-    isDesktop,
     closeSidebar,
     selectedMain,
     setSelectedMain,
     selectedSecond,
     setSelectedSecond,
-    sidebarWidth,
-    handleSidebarResize,
     isPinned,
-    togglePin
+    togglePin,
+    handleSidebarResize
   } = useSidebar();
   const { showEntityToolbarNavigation, showSidebar } = useUISettings();
   
@@ -286,18 +286,20 @@ export default function Sidebar() {
     </Typography>
   );
 
-  // Cambiar la condición de renderizado:
-  if (!isDesktop && !showSidebar && !isOpen) return null;
+  // Elimina cualquier lógica local de breakpoints o visibilidad
+  // Usa solo el contexto para controlar el renderizado y el ancho
+
   return (
-    <Box sx={{ 
-      width: isOpen ? sidebarWidth : 56, 
-      transition: 'width 0.3s ease', 
-      flexShrink: 0, 
+    <Box sx={{
+      width: isOpen ? sidebarWidth : 56,
+      transition: 'width 0.3s ease',
+      flexShrink: 0,
       pb: { xs: '88px', sm: '88px', md: 0 },
-      ml: (!isDesktop && !isOpen) ? 0 : undefined,
-      border: (!isDesktop && !isOpen) ? 'none' : undefined,
-      boxShadow: (!isDesktop && !isOpen) ? 'none' : undefined,
-      backgroundColor: theme.palette.background.default,
+      backgroundColor: 'background.default',
+      height: '100%',
+      borderRight: '1.5px solid #232323',
+      position: 'relative',
+      zIndex: 1100,
     }}>
       <Drawer
         variant="permanent"
@@ -311,17 +313,17 @@ export default function Sidebar() {
             width: isOpen ? sidebarWidth : 56,
             minWidth: 56,
             maxWidth: 400,
-            borderRadius: 0, // Sin bordes redondeados
-            borderRight: '1.5px solid #232323', // Borde geométrico
-            backgroundColor: theme.palette.background.default,
-            height: '100vh',
+            borderRadius: 0,
+            borderRight: '1.5px solid #232323',
+            backgroundColor: 'background.default',
+            height: '100%',
             transition: 'width 0.3s ease',
             overflowX: 'hidden',
             overflowY: 'auto',
             display: 'flex',
             flexDirection: 'column',
             scrollbarWidth: 'thin',
-            zIndex: (theme) => theme.zIndex.drawer,
+            zIndex: 1100,
             pb: { xs: '88px', sm: '88px', md: 0 },
             '&::-webkit-scrollbar': { width: '6px' },
             '&::-webkit-scrollbar-track': { backgroundColor: 'transparent' },

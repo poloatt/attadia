@@ -48,23 +48,16 @@ export function Layout() {
   return (
     <FormManagerProvider>
       <GlobalFormEventListener />
-      {/* Header fijo arriba, siempre visible y con zIndex alto */}
-      <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', zIndex: 1301 }}>
-        <Header />
-      </Box>
-      {/* Toolbar fijo debajo del Header */}
-      <Box sx={{ position: 'fixed', top: '40px', left: 0, width: '100vw', zIndex: 1300 }}>
-        <Toolbar />
-      </Box>
-      {/* Layout principal: Sidebar fija a la izquierda, contenido principal a la derecha */}
-      <Box sx={{
-        display: 'flex',
-        minHeight: '100vh',
-        maxWidth: '100vw',
-        bgcolor: 'background.default',
-        pt: `${totalTopPadding}px`, // Padding top para dejar espacio a header+toolbar
-      }}>
-        {/* Sidebar fija a la izquierda */}
+      <Box sx={{ position: 'relative', minHeight: '100vh', maxWidth: '100vw', bgcolor: 'background.default' }}>
+        {/* Header fijo arriba, zIndex más alto */}
+        <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', zIndex: 1400 }}>
+          <Header />
+        </Box>
+        {/* Toolbar fijo debajo del Header */}
+        <Box sx={{ position: 'fixed', top: '40px', left: 0, width: '100vw', zIndex: 1399 }}>
+          <Toolbar />
+        </Box>
+        {/* Sidebar fija a la izquierda, nunca tapa Header/Toolbar */}
         {showSidebar && (
           <Box
             sx={{
@@ -78,25 +71,27 @@ export function Layout() {
               bgcolor: 'background.default',
               borderRight: isDesktop ? '1.5px solid #232323' : 'none',
               overflow: 'hidden',
-              display: { xs: showSidebar ? 'block' : 'none', md: 'block' },
+              display: 'block',
             }}
           >
             <Sidebar />
           </Box>
         )}
-        {/* Contenido principal */}
+        {/* Contenido principal, nunca tapa Header/Toolbar */}
         <Box
           sx={{
             flexGrow: 1,
             width: '100%',
             minHeight: '100vh',
             ml: isDesktop ? (isOpen ? sidebarWidth : 56) : 0,
+            pt: `${totalTopPadding}px`,
             display: 'flex',
             flexDirection: 'column',
             bgcolor: 'background.default',
             overflowY: 'auto',
             overflowX: 'hidden',
             position: 'relative',
+            zIndex: 1,
             border: 'none',
             outline: 'none',
             scrollbarGutter: 'stable',
