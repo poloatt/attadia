@@ -1,10 +1,11 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Box } from '@mui/material';
-import { useTheme, useMediaQuery } from '@mui/material';
+import { useTheme } from '@mui/material';
+import { useSidebar } from '../context/SidebarContext';
 
-const SidebarResizer = ({ onResize, isOpen, minWidth = 200, maxWidth = 400, defaultWidth = 280 }) => {
+const SidebarResizer = ({ onResize, minWidth = 200, maxWidth = 400, defaultWidth = 280 }) => {
   const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up('sm'));
+  const { isDesktop, isOpen, isPinned } = useSidebar();
   const [isResizing, setIsResizing] = useState(false);
   const [startX, setStartX] = useState(0);
   const [startWidth, setStartWidth] = useState(defaultWidth);
@@ -49,8 +50,8 @@ const SidebarResizer = ({ onResize, isOpen, minWidth = 200, maxWidth = 400, defa
     }
   }, [isResizing, handleMouseMove, handleMouseUp]);
 
-  // Solo mostrar en desktop y cuando la sidebar esté abierta
-  if (!isDesktop || !isOpen) return null;
+  // Solo mostrar en desktop y cuando la sidebar esté abierta y no esté pineada
+  if (!isDesktop || !isOpen || isPinned) return null;
 
   return (
     <Box

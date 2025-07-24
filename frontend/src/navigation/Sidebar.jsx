@@ -18,6 +18,8 @@ import { useUISettings } from '../context/UISettingsContext';
 import { icons } from './menuIcons';
 import SidebarResizer from './SidebarResizer';
 import theme from '../context/ThemeContext';
+import PushPinIcon from '@mui/icons-material/PushPin';
+import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 
 export default function Sidebar() {
   const { 
@@ -31,7 +33,9 @@ export default function Sidebar() {
     selectedSecond,
     setSelectedSecond,
     sidebarWidth,
-    handleSidebarResize
+    handleSidebarResize,
+    isPinned,
+    togglePin
   } = useSidebar();
   const { showEntityToolbarNavigation, showSidebar } = useUISettings();
   
@@ -126,8 +130,7 @@ export default function Sidebar() {
             onClick={() => {
               if (item.path && !isDisabled) {
                 navigate(item.path);
-                // Solo cerrar sidebar automáticamente en mobile (ancho < 960px)
-                if (typeof window !== 'undefined' && window.innerWidth < 960 && isOpen) closeSidebar();
+                // Eliminado: nunca colapsar sidebar automáticamente al navegar
               }
               if (isSubItem) {
                 setSelectedSecond(item.id);
@@ -226,8 +229,7 @@ export default function Sidebar() {
                 setSelectedMain(section.id);
                 if (section.path) {
                   navigate(section.path);
-                  // Solo cerrar sidebar automáticamente en mobile (ancho < 960px)
-                  if (typeof window !== 'undefined' && window.innerWidth < 960 && isOpen) closeSidebar();
+                  // Eliminado: nunca colapsar sidebar automáticamente al navegar
                 }
               }}
               color={selectedMain === section.id ? 'primary' : 'default'}
@@ -321,11 +323,19 @@ export default function Sidebar() {
           }
         }}
       >
+        {/* Botón de pin/unpin minimalista solo en desktop */}
+        {isDesktop && (
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', px: 1, pt: 1 }}>
+            <IconButton size="small" onClick={togglePin} title={isPinned ? 'Fijar sidebar (siempre visible)' : 'Desfijar sidebar'}>
+              {isPinned ? <PushPinIcon fontSize="small" /> : <PushPinOutlinedIcon fontSize="small" />}
+            </IconButton>
+          </Box>
+        )}
         {/* Encabezado de secciones principales */}
         {renderMainSectionsHeader()}
 
         {/* Mostrar iconos de 3er nivel centrados verticalmente en móvil colapsado */}
-        {(!isDesktop && !isOpen) && (
+        {typeof window !== 'undefined' && window.innerWidth < 960 && !isOpen && (
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
             {/* Subitems de la sección seleccionada (si hay), o subitems de setup si está seleccionada */}
             <List sx={{ p: 0, m: 0 }}>
@@ -336,7 +346,7 @@ export default function Sidebar() {
                       onClick={() => {
                         if (subItem.path && !subItem.isUnderConstruction) {
                           navigate(subItem.path);
-                          if (typeof window !== 'undefined' && window.innerWidth < 960 && isOpen) closeSidebar();
+                          // Eliminado: nunca colapsar sidebar automáticamente al navegar
                         }
                       }}
                       color={isRouteActive(subItem.path) ? 'primary' : 'default'}
@@ -413,11 +423,18 @@ export default function Sidebar() {
                       {thirdLevelItems.map(subItem => renderMenuItem(subItem, 1))}
                     </List>
                   )}
-                  
-                  {/* Elementos del nivel 2 alineados al margen inferior */}
+                  {/* Elementos del nivel 2 alineados al margen inferior, excepto el seleccionado */}
                   <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                    {/* Título del padre (nivel 1) arriba de la lista de abajo */}
+                    {currentMainSection && currentMainSection.title && (
+                      <Box sx={{ pl: 2, mb: 0.5 }}>
+                        {renderSectionTitle(currentMainSection.title)}
+                      </Box>
+                    )}
                     <List sx={{ p: isOpen ? 1 : 0.5 }}>
-                      {secondLevelItems.map(item => renderMenuItem(item, 0, true))}
+                      {secondLevelItems
+                        .filter(item => item.id !== selectedSecond)
+                        .map(item => renderMenuItem(item, 0, true))}
                     </List>
                   </Box>
                 </>

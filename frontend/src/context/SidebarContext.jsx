@@ -11,8 +11,33 @@ export function SidebarProvider({ children }) {
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'), { noSsr: true });
   // Elimino isMobile y uso solo isDesktop
   const location = useLocation();
-  // Inicializar isOpen basado en el tamaño de pantalla
-  const [isOpen, setIsOpen] = useState(isDesktop);
+  // Estado para el pin manual de la sidebar (solo desktop)
+  const [isPinned, setIsPinned] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    const pref = localStorage.getItem('sidebarPinned');
+    return pref === null ? true : pref === 'true';
+  });
+  const togglePin = () => {
+    setIsPinned((prev) => {
+      localStorage.setItem('sidebarPinned', (!prev).toString());
+      return !prev;
+    });
+  };
+  // Inicialización robusta de isOpen según preferencia y tipo de dispositivo
+  const getInitialSidebarState = () => {
+    if (typeof window === 'undefined') return true;
+    const isDesktop = window.innerWidth >= 960;
+    if (isDesktop) {
+      // Si está pineada, siempre abierta
+      if (localStorage.getItem('sidebarPinned') === 'true') return true;
+      // Eliminar lógica que permita colapsada por defecto en desktop
+      return true;
+    } else {
+      const pref = localStorage.getItem('sidebarMobileOpen');
+      return pref === 'true';
+    }
+  };
+  const [isOpen, setIsOpen] = useState(getInitialSidebarState);
   const [expandedSections, setExpandedSections] = useState(new Set()); // Todas las secciones colapsadas por defecto
   const [selectedMain, setSelectedMain] = useState(null);
   const [selectedSecond, setSelectedSecond] = useState(null);
@@ -29,27 +54,16 @@ export function SidebarProvider({ children }) {
   // Efecto para ajustar la sidebar cuando cambie el tamaño de pantalla
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      console.log('[SidebarContext] isDesktop:', isDesktop, 'window.innerWidth:', window.innerWidth);
+      console.log('[SidebarContext] isDesktop:', isDesktop, 'isPinned:', isPinned, 'window.innerWidth:', window.innerWidth);
     }
     if (isDesktop) {
-      // Solo respetar la preferencia si fue guardada en desktop
-      const userPreference = localStorage.getItem('sidebarDesktopOpen');
-      if (userPreference === 'false') {
-        setIsOpen(false);
-      } else {
-        setIsOpen(true); // Siempre extendida por defecto en desktop
-        localStorage.setItem('sidebarDesktopOpen', 'true');
-      }
+      setIsOpen(true);
+      localStorage.setItem('sidebarDesktopOpen', 'true');
     } else {
-      // En mobile, sí respetar la preferencia de mobile
-      const userPreference = localStorage.getItem('sidebarMobileOpen');
-      if (userPreference === null) {
-        setIsOpen(false);
-      } else {
-        setIsOpen(userPreference === 'true');
-      }
+      const pref = localStorage.getItem('sidebarMobileOpen');
+      setIsOpen(pref === 'true');
     }
-  }, [isDesktop]);
+  }, [isDesktop, isPinned]);
 
   // Sincronizar expansión y selección con la ruta actual
   useEffect(() => {
@@ -97,37 +111,30 @@ export function SidebarProvider({ children }) {
     }
   }, [location.pathname, selectedMain, selectedSecond, mainSections]);
 
-  // Solo permitir minimizar en desktop por acción explícita del usuario
+  // Solo permitir minimizar en desktop por acción explícita del usuario y si no está pineada
   const toggleSidebar = useCallback(() => {
+    if (isDesktop && isPinned) return; // No permitir colapsar si está pineada
+    if (isDesktop) return; // No permitir colapsar manualmente en desktop salvo pin
     const newState = !isOpen;
     setIsOpen(newState);
-    // Guardar preferencia del usuario para desktop y móvil
-    if (isDesktop) {
-      localStorage.setItem('sidebarDesktopOpen', newState.toString());
-    } else {
+    if (!isDesktop) {
       localStorage.setItem('sidebarMobileOpen', newState.toString());
     }
-  }, [isOpen, isDesktop]);
+  }, [isOpen, isDesktop, isPinned]);
 
   const closeSidebar = useCallback(() => {
-    // Solo permitir cerrar en desktop si es acción del usuario
+    if (isDesktop && isPinned) return; // No permitir colapsar si está pineada
+    if (isDesktop) return; // No permitir colapsar manualmente en desktop salvo pin
     setIsOpen(false);
-    if (isDesktop) {
-      localStorage.setItem('sidebarDesktopOpen', 'false');
-    } else {
+    if (!isDesktop) {
       localStorage.setItem('sidebarMobileOpen', 'false');
     }
-  }, [isDesktop]);
+  }, [isDesktop, isPinned]);
 
   const openSidebar = useCallback(() => {
+    setIsOpen(true);
     if (!isDesktop) {
-      setTimeout(() => {
-        setIsOpen(true);
-        localStorage.setItem('sidebarMobileOpen', 'true');
-      }, 80);
-    } else {
-      setIsOpen(true);
-      localStorage.setItem('sidebarDesktopOpen', 'true');
+      localStorage.setItem('sidebarMobileOpen', 'true');
     }
   }, [isDesktop]);
 
@@ -183,6 +190,8 @@ export function SidebarProvider({ children }) {
       toggleSidebar,
       closeSidebar,
       openSidebar,
+      isPinned,
+      togglePin,
       menuItems,
       mainSections,
       expandedSections,
