@@ -5,14 +5,14 @@ import { useMercadoPago } from '../hooks/useMercadoPago';
 
 export function MercadoPagoCallbackPage() {
   const navigate = useNavigate();
-  const { processCallback } = useMercadoPago();
+  const { processCallback, validateState, clearState } = useMercadoPago();
   const [status, setStatus] = useState('processing'); // 'processing', 'success', 'error'
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const handleCallback = async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
       const state = urlParams.get('state');
       const errorParam = urlParams.get('error');
     
@@ -20,6 +20,7 @@ export function MercadoPagoCallbackPage() {
         console.error('Error en autorización MercadoPago:', errorParam);
         setError(`Error de autorización: ${errorParam}`);
         setStatus('error');
+        clearState(); // Limpiar state en caso de error
         return;
       }
       
@@ -27,42 +28,37 @@ export function MercadoPagoCallbackPage() {
         console.error('No se recibió código de autorización');
         setError('No se recibió código de autorización de MercadoPago');
         setStatus('error');
+        clearState(); // Limpiar state en caso de error
         return;
       }
       
-      // Validar el parámetro state para prevenir CSRF
-      const savedState = localStorage.getItem('mercadopago_state');
-      if (state && savedState && state !== savedState) {
-        console.error('State validation failed:', { received: state, expected: savedState });
-        setError('Error de seguridad: parámetro state inválido');
+      // Validar el parámetro state usando el servicio
+      if (state && !validateState(state)) {
+        console.error('State validation failed:', { received: state });
+        setError('Error de seguridad: parámetro state inválido o expirado');
         setStatus('error');
-      return;
-    }
+        clearState(); // Limpiar state inválido
+        return;
+      }
     
       try {
         console.log('Procesando código de autorización MercadoPago:', { code, state });
         await processCallback(code, state);
         setStatus('success');
         
-        // Limpiar el state del localStorage
-        localStorage.removeItem('mercadopago_state');
-        
         // Redirigir después de un breve delay para mostrar el mensaje de éxito
         setTimeout(() => {
           navigate('/assets/finanzas/cuentas');
         }, 2000);
       } catch (error) {
-          console.error('Error al conectar con MercadoPago:', error);
+        console.error('Error al conectar con MercadoPago:', error);
         setError(error.message);
         setStatus('error');
-        
-        // Limpiar el state del localStorage en caso de error
-        localStorage.removeItem('mercadopago_state');
       }
     };
 
     handleCallback();
-  }, [processCallback, navigate]);
+  }, [processCallback, validateState, clearState, navigate]);
 
   const renderContent = () => {
     switch (status) {
@@ -128,7 +124,7 @@ export function MercadoPagoCallbackPage() {
   useEffect(() => {
     if (status === 'error') {
       const timer = setTimeout(() => {
-          navigate('/assets/finanzas/cuentas');
+        navigate('/assets/finanzas/cuentas');
       }, 5000);
       
       return () => clearTimeout(timer);

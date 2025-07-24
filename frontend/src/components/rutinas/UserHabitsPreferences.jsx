@@ -31,7 +31,6 @@ import SyncIcon from '@mui/icons-material/Sync';
 import { useSnackbar } from 'notistack';
 import { useRutinas } from './context/RutinasContext';
 import { iconConfig } from '../../utils/iconConfig';
-import ItemCadenciaConfig from './ItemCadenciaConfig';
 import { generarMensajeCadencia } from '../../utils/cadenciaUtils';
 
 /**
@@ -239,12 +238,7 @@ const UserHabitsPreferences = ({ open, onClose }) => {
                 
                 {isSelected && (
                   <Box sx={{ p: 2, bgcolor: 'rgba(0,0,0,0.02)' }}>
-                    <ItemCadenciaConfig
-                      config={itemPreference || {}}
-                      onConfigChange={(newConfig) => handleSavePreference(sectionId, itemId, newConfig)}
-                      itemId={itemId}
-                      onClose={() => setSelectedItem(null)}
-                    />
+                    {/* InlineItemConfigImproved will be used here */}
                   </Box>
                 )}
                 <Divider variant="inset" component="li" />

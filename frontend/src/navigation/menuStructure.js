@@ -7,6 +7,7 @@ export const menuItems = [
     title: 'Assets',
     icon: icons.dollarSign,
     path: '/assets',
+    type: 'module',
     hasSubItems: true,
     subItems: [
       {
@@ -61,6 +62,7 @@ export const menuItems = [
     title: 'Salud',
     icon: icons.health,
     path: '/salud',
+    type: 'module',
     hasSubItems: true,
     subItems: [
       { id: 'datacorporal', title: 'Data corporal', icon: icons.monitorHeart, path: '/salud/datacorporal', hasSubItems: false, isUnderConstruction: true },
@@ -73,6 +75,7 @@ export const menuItems = [
     title: 'Tiempo',
     icon: icons.accessTime,
     path: '/tiempo',
+    type: 'module',
     hasSubItems: true,
     subItems: [
       { id: 'proyectos', title: 'Proyectos', icon: icons.folder, path: '/tiempo/proyectos', hasSubItems: false },
@@ -101,6 +104,7 @@ export const bottomNavigationItems = [
     title: 'Assets',
     icon: icons.dollarSign,
     path: '/assets',
+    type: 'module',
     activePaths: ['/', '/assets']
   },
   {
@@ -108,6 +112,7 @@ export const bottomNavigationItems = [
     title: 'Salud',
     icon: icons.health,
     path: '/salud',
+    type: 'module',
     activePaths: ['/salud']
   },
   {
@@ -115,6 +120,7 @@ export const bottomNavigationItems = [
     title: 'Tiempo',
     icon: icons.accessTime,
     path: '/tiempo',
+    type: 'module',
     activePaths: ['/tiempo']
   }
 ];
@@ -133,4 +139,9 @@ export const getMenuItems = () => {
     ...item,
     icon: item.icon // Los iconos ya están resueltos en la definición
   }));
+};
+
+// Función helper para obtener solo los módulos
+export const getModules = () => {
+  return menuItems.filter(item => item.type === 'module');
 }; 

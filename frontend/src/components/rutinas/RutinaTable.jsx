@@ -35,11 +35,10 @@ import clienteAxios from '../../config/axios';
 import { NavigateBefore, NavigateNext, Today as TodayIcon } from '@mui/icons-material';
 import { useLocalPreservationState } from '../../hooks';
 import { RutinaNavigation } from './RutinaNavigation';
-import ItemCadenciaConfig from './ItemCadenciaConfig';
 import shouldShowItemUtil from '../../utils/shouldShowItem';
 import HistoricalAlert from './HistoricalAlert';
 import { useRutinasHistorical } from '../../context/RutinasHistoryContext';
-import { getNormalizedToday, toISODateString } from '../../utils/rutinaDateUtils';
+import { getNormalizedToday, toISODateString } from '../../utils/dateUtils';
 
 // Exportación nombrada para compatibilidad
 export const RutinaTable = ({ 

@@ -95,17 +95,16 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
     if (initialData) {
       setRutinaData(initialData);
       // Usar la fecha como string YYYY-MM-DD
-      const parsedDate = typeof initialData.fecha === 'string' ? initialData.fecha : formatDate(initialData.fecha);
+      const parsedDate = typeof initialData.fecha === 'string' ? new Date(initialData.fecha) : initialData.fecha;
       setFormData(prev => ({
         ...prev,
-        fecha: parsedDate || formatDate(getNormalizedToday())
+        fecha: parsedDate ? formatDate(parsedDate) : formatDate(getNormalizedToday())
       }));
-      
       // Añadir logs para depurar el valor de completitud
       console.debug('[RutinaForm] Datos recibidos del backend:', {
         id: initialData._id,
         fecha: initialData.fecha,
-        fechaNormalizada: parsedDate?.toISOString(),
+        fechaNormalizada: parsedDate instanceof Date && !isNaN(parsedDate) ? parsedDate.toISOString() : null,
         completitud: initialData.completitud, 
         completitudPorSeccion: initialData.completitudPorSeccion,
         completitudPorcentaje: initialData.completitud ? Math.round(initialData.completitud * 100) : 0

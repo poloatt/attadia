@@ -266,3 +266,26 @@ export const areSameDay = (date1, date2) => {
   const d2 = parseAPIDate(typeof date2 === 'string' ? date2 : formatDateForAPI(date2));
   return isSameDay(d1, d2);
 }; 
+
+// --- FUNCIONES CENTRALIZADAS DE RUTINADATEUTILS ---
+
+/**
+ * Normaliza cualquier fecha al inicio del día
+ * @param {Date|string} date - Fecha a normalizar
+ * @returns {Date} Fecha normalizada
+ */
+export const normalizeDate = (date) => {
+  const normalized = new Date(date);
+  normalized.setHours(0, 0, 0, 0);
+  return normalized;
+};
+
+/**
+ * Convierte una fecha a formato ISO sin tiempo
+ * @param {Date|string} date - Fecha a convertir
+ * @returns {string} Fecha en formato YYYY-MM-DD
+ */
+export const toISODateString = (date) => {
+  const normalized = normalizeDate(date);
+  return normalized.toISOString().split('T')[0];
+}; 

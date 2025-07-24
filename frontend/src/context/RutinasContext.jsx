@@ -1047,26 +1047,29 @@ export const RutinasProvider = ({ children }) => {
       console.warn('[RutinasContext] ID de rutina no proporcionado para eliminar');
       return false;
     }
-    
     try {
       setLoading(true);
       console.log(`[RutinasContext] Eliminando rutina ${rutinaId}...`);
-      
-      // Llamar al servicio para eliminar la rutina
       await rutinasService.deleteRutina(rutinaId);
-      
-      // Actualizar el estado local eliminando la rutina
       setRutinas(prevRutinas => {
         const newRutinas = prevRutinas.filter(r => r._id !== rutinaId);
+        // Si la rutina eliminada era la seleccionada, seleccionar la siguiente más reciente
+        if (rutina && rutina._id === rutinaId) {
+          if (newRutinas.length > 0) {
+            setRutina({
+              ...newRutinas[0],
+              _page: 1,
+              _totalPages: newRutinas.length
+            });
+            setCurrentPage(1);
+          } else {
+            setRutina(null);
+            setCurrentPage(1);
+          }
+        }
+        setTotalPages(newRutinas.length);
         return newRutinas;
       });
-      
-      // Si la rutina actual es la que se eliminó, establecer la primera rutina disponible
-      if (rutina && rutina._id === rutinaId) {
-        // Recargar rutinas para obtener la lista actualizada
-        await fetchRutinas();
-      }
-      
       console.log(`[RutinasContext] ✅ Rutina eliminada exitosamente`);
       enqueueSnackbar('Rutina eliminada correctamente', { variant: 'success' });
       return true;
@@ -1077,7 +1080,7 @@ export const RutinasProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [rutina, enqueueSnackbar, fetchRutinas]);
+  }, [rutina, enqueueSnackbar]);
 
   // Sincronizar rutina con configuración global
   const syncRutinaWithGlobal = useCallback(async (rutinaId) => {

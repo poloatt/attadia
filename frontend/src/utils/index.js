@@ -7,7 +7,6 @@ export * from './dateUtils.js';
 export * from './timezoneConfig.js';
 export * from './cadenciaManager.js';
 export * from './cadenciaUtils.js';
-export * from './rutinaDateUtils.js';
 export * from './fixHelper.js';
 export * from './historialUtils.js';
 export * from '../hooks/rutinaHooks.js';
