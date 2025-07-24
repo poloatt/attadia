@@ -45,7 +45,6 @@ import { calcularEstadisticasPropiedad } from '../utils/propiedadUtils';
 
 
 
-import { Toolbar } from '../navigation';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EngineeringIcon from '@mui/icons-material/Engineering';
@@ -587,7 +586,6 @@ export function Assets() {
 
   return (
     <Box sx={{ width: '100%' }}>
-      <Toolbar />
       {/* Contenido principal */}
       <Box sx={{ 
         width: '100%', 

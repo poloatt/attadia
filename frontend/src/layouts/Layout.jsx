@@ -3,7 +3,7 @@ import { useUISettings } from '../context/UISettingsContext';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import { useAuth } from '../context/AuthContext';
-import { Header } from '../navigation';
+import { Header, Toolbar } from '../navigation';
 import { Footer } from '../navigation';
 import { Sidebar, BottomNavigation } from '../navigation';
 import { CustomSnackbarProvider } from '../components/common';
@@ -40,10 +40,9 @@ export function Layout() {
     return null;
   }
 
-  // Calcular el padding-top dinámicamente según si la toolbar está activa
-  // En móvil: header 40px + toolbar 40px. En desktop: header 40px + toolbar 2px
+  // Calcular el padding-top para header + toolbar (ambos fijos y globales)
   const headerHeight = 40;
-  const toolbarHeight = showEntityToolbarNavigation ? (isMobile ? 40 : 2) : 0;
+  const toolbarHeight = 40; // 40px tanto en mobile como en desktop para evitar superposición
   const totalTopPadding = headerHeight + toolbarHeight;
 
   return (
@@ -58,24 +57,23 @@ export function Layout() {
         outline: 'none'
       }}>
         <Header />
+        <Toolbar />
         <Sidebar />
         <Box
           component="main"
           sx={{
             flexGrow: 1,
-            pt: `${totalTopPadding}px`, // Padding-top dinámico para dejar espacio al header + toolbar
+            pt: `${totalTopPadding}px`,
             pb: isMobile ? '88px' : '70px',
             minHeight: '100vh',
             height: '100vh',
-            width: isOpen && showSidebar ? 
-              (isMobile ? `calc(100vw - 56px)` : '100%') :
-              '100vw',
+            width: '100vw',
             display: 'flex',
             flexDirection: 'column',
             bgcolor: 'background.default',
             overflowY: 'auto',
-            overflowX: 'hidden', // Evitar scroll horizontal
-            scrollbarGutter: 'stable', // Reservar espacio para scrollbar
+            overflowX: 'hidden',
+            scrollbarGutter: 'stable',
             position: 'relative',
             ml: 0,
             border: 'none',
@@ -96,15 +94,15 @@ export function Layout() {
             }
           }}
         >
-          <Box sx={{ 
+          <Box sx={{
             width: '100%',
-            maxWidth: '100%',
-            mx: 0,
-            px: 0,
+            maxWidth: { xs: '100%', sm: '100%', md: 1200, lg: 1440 }, // Limita el ancho en desktop
+            mx: 'auto',
+            px: { xs: 1, sm: 2, md: 3, lg: 4 }, // Padding horizontal adaptable
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
-            gap: 0, // Sin gap
+            gap: 0,
             minHeight: 0,
             border: 'none',
             outline: 'none'

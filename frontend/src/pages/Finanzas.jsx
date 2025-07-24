@@ -173,7 +173,6 @@ export default function Finanzas() {
       <CommonForm open={openCuenta} onClose={() => setOpenCuenta(false)} onSubmit={handleSubmitCuenta} title="Nueva Cuenta" fields={formFieldsCuenta} initialData={{}} isEditing={false} />
       <CommonForm open={openMoneda} onClose={() => setOpenMoneda(false)} onSubmit={handleSubmitMoneda} title="Nueva Moneda" fields={formFieldsMoneda} initialData={{}} isEditing={false} />
       <CommonForm open={openTransaccion} onClose={() => setOpenTransaccion(false)} onSubmit={handleSubmitTransaccion} title="Nueva Transacción" fields={formFieldsTransaccion} initialData={{}} isEditing={false} />
-      <Toolbar />
       <Box sx={{ 
         width: '100%',
         maxWidth: 1200,

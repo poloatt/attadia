@@ -6,7 +6,6 @@ import { MemoizedRutinaNavigation as RutinaNavigation } from '../components/ruti
 import { RutinasProvider, useRutinas } from '../context/RutinasContext';
 import { useRutinasHistorical } from '../context/RutinasHistoryContext';
 import HistoricalAlert from '../components/rutinas/HistoricalAlert';
-import { Toolbar } from '../navigation';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTimezone } from '../hooks/useTimezone';
 import { 
@@ -176,7 +175,6 @@ const RutinasWithContext = () => {
   return (
     <Box sx={{ px: 0, width: '100%' }}>
       <Container maxWidth={isMobile ? "sm" : "xl"} sx={{ px: isMobile ? 1 : 3 }}>
-        <Toolbar />
         {/* Alerta global de historial */}
         {(() => {
           try {

@@ -90,60 +90,35 @@ import {
                 {icons.arrowBack ? <icons.arrowBack sx={{ fontSize: 18 }} /> : <span>&larr;</span>}
               </IconButton>
             )}
-            {isMobile ? (
-              (() => {
-                const last = breadcrumbs[breadcrumbs.length - 1];
-                const Icon = last?.icon
-                  ? typeof last.icon === 'string'
-                    ? icons[last.icon]
-                    : last.icon
-                  : null;
-                return (
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      left: 0,
-                      right: 0,
-                      width: '100%',
-                      height: 40,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      pointerEvents: 'none',
-                      zIndex: 1
-                    }}
-                  >
-                    {Icon && <Icon sx={{ fontSize: 16, color: 'primary.main', mr: 0.5 }} />}
-                    <Typography color="inherit" sx={{ fontWeight: 500 }}>
-                      {last?.title}
-                    </Typography>
-                  </Box>
-                );
-              })()
-            ) : (
-              <Breadcrumbs separator="/" sx={{ fontSize: '0.95rem', color: 'inherit' }}>
-                {breadcrumbs.map((item, idx) => {
-                  const isLast = idx === breadcrumbs.length - 1;
-                  const Icon = item.icon
-                    ? typeof item.icon === 'string'
-                      ? icons[item.icon]
-                      : item.icon
-                    : null;
-                  return isLast ? (
-                    <Box key={item.path} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      {Icon && <Icon sx={{ fontSize: 16, color: 'primary.main' }} />}
-                      <Typography color="inherit" sx={{ fontWeight: 500 }}>
-                        {item.title}
-                      </Typography>
-                    </Box>
-                  ) : (
-                    <Link key={item.path} to={item.path} style={{ color: 'inherit', textDecoration: 'none' }}>
-                      {item.title}
-                    </Link>
-                  );
-                })}
-              </Breadcrumbs>
-            )}
+            {(() => {
+              const last = breadcrumbs[breadcrumbs.length - 1];
+              const Icon = last?.icon
+                ? typeof last.icon === 'string'
+                  ? icons[last.icon]
+                  : last.icon
+                : null;
+              return (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    width: '100%',
+                    height: 40,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    pointerEvents: 'none',
+                    zIndex: 1
+                  }}
+                >
+                  {Icon && <Icon sx={{ fontSize: 16, color: 'primary.main', mr: 0.5 }} />}
+                  <Typography color="inherit" sx={{ fontWeight: 500 }}>
+                    {last?.title}
+                  </Typography>
+                </Box>
+              );
+            })()}
           </Box>
   
           <Box sx={{ flexGrow: 1 }} />
@@ -151,14 +126,6 @@ import {
           {/* Migración: todos los botones de acción del header en SystemButtons */}
           <SystemButtons
             actions={[
-              {
-                key: 'refresh',
-                icon: <RefreshIcon />,
-                label: 'Refrescar',
-                tooltip: 'Refrescar',
-                onClick: () => window.location.reload(),
-                disabled: false
-              },
               showAddButton && !showEntityToolbarNavigation && entityConfig ? {
                 key: 'add',
                 icon: <SystemButtons.AddButton entityConfig={entityConfig} />, // Solo visual, sin lógica local
