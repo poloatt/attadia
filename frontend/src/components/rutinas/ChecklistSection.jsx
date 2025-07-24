@@ -37,6 +37,7 @@ import { startOfWeek, isSameWeek, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { obtenerHistorialCompletaciones, esRutinaHistorica } from '../../utils/historialUtils';
 import HistoricalAlert from './HistoricalAlert';
+import ChecklistItem from './ChecklistItem';
 
 // Función para capitalizar solo la primera letra
 const capitalizeFirstLetter = (string) => {
@@ -164,13 +165,18 @@ const ChecklistSection = ({
     }
     return false; // Por defecto colapsado
   });
+
+  // Estado para mostrar/ocultar todos los setups
+  const [showAllConfig, setShowAllConfig] = useState(false);
   
   const [localData, setLocalData] = useState(data);
   const [configOpen, setConfigOpen] = useState(false);
-  const [selectedItemId, setSelectedItemId] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuItemId, setMenuItemId] = useState(null);
   const [forceUpdate, setForceUpdate] = useState(Date.now()); // Estado para forzar actualización
+  
+  // Agrega estado para el ítem con setup abierto
+  const [openSetupItemId, setOpenSetupItemId] = useState(null);
   
   // Importar el hook de snackbar
   const { enqueueSnackbar } = useSnackbar();
@@ -236,7 +242,19 @@ const ChecklistSection = ({
   
   // Función para cambiar el estado de expansión
   const handleToggle = () => {
-    setIsExpanded(prev => !prev);
+    setIsExpanded(prev => {
+      const next = !prev;
+      if (next) {
+        // Emitir evento global para colapsar otras secciones
+        if (typeof window !== 'undefined') {
+          const event = new CustomEvent('sectionExpanded', {
+            detail: { section, isExpanded: true, rutinaId: rutina?._id }
+          });
+          window.dispatchEvent(event);
+        }
+      }
+      return next;
+    });
   };
   
   const sectionIcons = iconConfig[section] || {};
@@ -758,108 +776,39 @@ const ChecklistSection = ({
     />
   );
 
-  // Renderizar cada ítem
+  // Renderizar cada ítem con su propio setup (engranaje) que muestra/oculte su InlineItemConfigImproved
   const renderItems = () => {
     const icons = sectionIcons || {};
-    
-    // Obtener las keys ordenadas alfabéticamente
     const orderedKeys = Object.keys(icons).sort((a, b) => {
       const labelA = icons[a]?.label?.toLowerCase() || a;
       const labelB = icons[b]?.label?.toLowerCase() || b;
       return labelA.localeCompare(labelB);
     });
-    
     return orderedKeys.map((itemId, index) => {
-      // Usar lógica sincrónica simplificada para la vista expandida
       const cadenciaConfig = config && config[itemId] ? config[itemId] : null;
-      
-      // Si no hay configuración, mostrar por defecto
       if (!cadenciaConfig) {
         // Ítem sin configuración, mostrar por defecto
       } else if (!cadenciaConfig.activo) {
-        // Si la configuración está inactiva, no mostrar
         return null;
       }
-      
-      const iconData = icons[itemId] || {};
-      const isCompleted = isItemCompleted(itemId);
-      
-      // Usar estado local para manejar la cadencia asíncrona
-      const [cadenciaStatus, setCadenciaStatus] = useState("Cargando...");
-      
-      // Efecto para cargar la información de cadencia
-      useEffect(() => {
-        let isMounted = true;
-        
-        const cargarCadencia = async () => {
-          try {
-            const estado = await getItemCadenciaStatus(itemId, section, rutina, config);
-            if (isMounted) {
-              setCadenciaStatus(estado);
-            }
-          } catch (error) {
-            console.error(`Error cargando cadencia para ${section}.${itemId}:`, error);
-            if (isMounted) {
-              setCadenciaStatus("Error");
-            }
-          }
-        };
-        
-        cargarCadencia();
-        
-        return () => {
-          isMounted = false;
-        };
-      }, [itemId, section, rutina?._id, isCompleted]);
-      
-      // Obtener el icono correcto basado en el ID
       const Icon = sectionIcons[itemId];
-      
-      // Determinar si el ítem está expandido para configuración
-      const isConfigOpen = selectedItemId === itemId;
-      
-      // Crear menú contextual si es necesario (opcional)
-      const contextMenu = null; // Implementar si es necesario
-
-      // Retornar el componente optimizado de ítem
+      const isCompleted = isItemCompleted(itemId);
       return (
-        <React.Fragment key={`${section}-${itemId}-${index}`}>
-          <ChecklistItem
-            itemId={itemId}
-            section={section}
-            Icon={Icon}
-            isCompleted={isCompleted}
-            cadenciaStatus={cadenciaStatus}
-            readOnly={readOnly}
-            onItemClick={handleItemClick}
-            contextMenu={contextMenu}
-            handleConfigItem={setSelectedItemId}
-            isConfigOpen={isConfigOpen}
-          />
-          
-          {isConfigOpen && (
-            <Box sx={{ width: '100%', mt: 1 }}>
-              <Box
-                sx={{
-                  bgcolor: 'background.paper',
-                  borderRadius: 1,
-                  px: 2,
-                  py: 1,
-                  mb: 2
-                }}
-              >
-                <InlineItemConfigImproved
-                  config={config[itemId] || {}}
-                  onConfigChange={(newConfig) => onConfigChange(itemId, newConfig)}
-                  itemId={itemId}
-                  sectionId={section}
-                />
-              </Box>
-            </Box>
-          )}
-        </React.Fragment>
+        <ChecklistItem
+          key={`${section}-${itemId}-${index}`}
+          itemId={itemId}
+          section={section}
+          Icon={Icon}
+          isCompleted={isCompleted}
+          readOnly={readOnly}
+          onItemClick={handleItemClick}
+          config={config[itemId] || {}}
+          onConfigChange={(newConfig) => onConfigChange(itemId, newConfig)}
+          isSetupOpen={openSetupItemId === itemId}
+          onSetupToggle={() => setOpenSetupItemId(openSetupItemId === itemId ? null : itemId)}
+        />
       );
-    }).filter(Boolean); // Filtrar elementos nulos
+    }).filter(Boolean);
   };
 
   // Manejar cambios en la configuración de un ítem
@@ -928,9 +877,9 @@ const ChecklistSection = ({
               }
               
               // Cerrar configurador una vez guardados los cambios
-              if (typeof setSelectedItemId === 'function') {
-                setSelectedItemId(null);
-              }
+              // if (typeof setSelectedItemId === 'function') { // Eliminado
+              //   setSelectedItemId(null);
+              // }
               
               // Forzar actualización de UI si es necesario
               if (typeof setForceUpdate === 'function') {
@@ -956,18 +905,18 @@ const ChecklistSection = ({
   };
 
   // Función para manejar la configuración de un ítem específico
-  const handleExpandConfig = (itemId) => {
-    if (selectedItemId === itemId) {
-      // Si ya está seleccionado, lo deseleccionamos
-      setSelectedItemId(null);
-    } else {
-      // Si es diferente, lo seleccionamos
-      setSelectedItemId(itemId);
-    }
-  };
+  // const handleExpandConfig = (itemId) => { // Eliminado
+  //   if (selectedItemId === itemId) { // Eliminado
+  //     // Si ya está seleccionado, lo deseleccionamos // Eliminado
+  //     setSelectedItemId(null); // Eliminado
+  //   } else { // Eliminado
+  //     // Si es diferente, lo seleccionamos // Eliminado
+  //     setSelectedItemId(itemId); // Eliminado
+  //   } // Eliminado
+  // }; // Eliminado
 
   return (
-    <Box sx={{ mb: 1, bgcolor: '#212121', borderRadius: 1, overflow: 'hidden' }}>
+    <Box sx={{ mb: 1, bgcolor: 'background.paper', overflow: 'hidden' }}>
       {/* Encabezado de la sección */}
       <Box 
         sx={{ 
@@ -975,7 +924,7 @@ const ChecklistSection = ({
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'space-between',
-          borderBottom: isExpanded ? '1px solid rgba(255,255,255,0.1)' : 'none',
+          borderBottom: isExpanded ? theme => `1px solid ${theme.palette.divider}` : 'none',
           cursor: 'pointer'
         }}
         onClick={handleToggle}
@@ -1007,7 +956,7 @@ const ChecklistSection = ({
       
       {/* Contenido de la sección (colapsable) */}
       <Collapse in={isExpanded} unmountOnExit>
-        <Box sx={{ p: 1, pt: 0 }}>
+        <Box sx={{ p: 1, pt: 0, bgcolor: 'background.paper' }}>
           <List dense disablePadding>
             {renderItems()}
           </List>
@@ -1018,136 +967,6 @@ const ChecklistSection = ({
 };
 
 // Optimizar ChecklistItem para actualización inmediata sin efectos innecesarios
-const ChecklistItem = memo(({ 
-  itemId, 
-  section, 
-  Icon, 
-  isCompleted, 
-  cadenciaStatus, 
-  readOnly, 
-  onItemClick,
-  contextMenu,
-  handleConfigItem,
-  isConfigOpen
-}) => {
-  // Eliminar efectos innecesarios cambiando las transiciones
-  return (
-    <ListItem 
-      disablePadding
-      sx={{ 
-        mb: 0.5,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-start',
-        bgcolor: 'transparent'
-      }}
-    >
-      <Box sx={{ 
-        width: '100%', 
-        display: 'flex',
-        alignItems: 'center',
-        py: 0.5
-      }}>
-        {!readOnly && (
-          <IconButton
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation(); // Prevenir que el evento se propague al contenedor
-              onItemClick(itemId, e);
-            }}
-            sx={{
-              width: 38,
-              height: 38,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              mr: 1,
-              cursor: 'pointer',
-              // Eliminar transición para cambio instantáneo
-              color: isCompleted ? 'primary.main' : 'rgba(255,255,255,0.5)',
-              bgcolor: isCompleted ? 'action.selected' : 'transparent',
-              borderRadius: '50%',
-              '&:hover': {
-                color: isCompleted ? 'primary.main' : 'white',
-                bgcolor: isCompleted ? 'action.selected' : 'rgba(255,255,255,0.1)'
-              }
-            }}
-          >
-            {Icon && <Icon fontSize="small" />}
-          </IconButton>
-        )}
-        
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          flexGrow: 1,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          color: isCompleted ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.9)'
-        }}>
-          <Box sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-          }}>
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                fontWeight: 400,
-                color: isCompleted ? 'rgba(255,255,255,0.5)' : 'inherit',
-                textDecoration: isCompleted ? 'line-through' : 'none'
-              }}
-            >
-              {itemId}
-            </Typography>
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                fontSize: '0.7rem',
-                color: 'rgba(255,255,255,0.6)'
-              }}
-            >
-              {cadenciaStatus}
-            </Typography>
-          </Box>
-        </Box>
-        
-        {contextMenu}
-
-        {!readOnly && (
-          <IconButton
-            edge="end"
-            aria-label="configurar"
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation(); // Prevenir que el evento se propague al contenedor
-              handleConfigItem(itemId);
-            }}
-            sx={{
-              color: isConfigOpen ? 'primary.main' : 'rgba(255,255,255,0.3)',
-              '&:hover': {
-                color: 'primary.main'
-              }
-            }}
-          >
-            <SettingsIcon sx={{ fontSize: '1.1rem' }} />
-          </IconButton>
-        )}
-      </Box>
-    </ListItem>
-  );
-}, (prevProps, nextProps) => {
-  // Implementar una función de comparación personalizada para prevenir renderizados innecesarios
-  // Solo renderizar si estos valores cambian
-  return (
-    prevProps.isCompleted === nextProps.isCompleted &&
-    prevProps.cadenciaStatus === nextProps.cadenciaStatus &&
-    prevProps.isConfigOpen === nextProps.isConfigOpen
-  );
-});
-
-// Renderizar los iconos colapsados con memorización
 const CollapsedIcons = memo(({ 
   sectionIcons, 
   section, 

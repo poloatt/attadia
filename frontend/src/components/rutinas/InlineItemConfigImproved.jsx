@@ -74,19 +74,14 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
 }));
 
 const ConfigContainer = styled(Box)(({ theme }) => ({
-  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0.01) 100%)',
-  border: '1px solid rgba(255, 255, 255, 0.04)',
-  borderRadius: 8,
-  padding: 12,
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  '&:hover': {
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-    borderColor: 'rgba(255, 255, 255, 0.08)'
-  }
+  padding: 0,
+  background: theme.palette.background.paper,
+  boxShadow: 'none',
+  transition: 'border-color 0.2s',
 }));
 
 // Función para obtener etiqueta descriptiva
-const getFrecuenciaLabel = (config) => {
+export const getFrecuenciaLabel = (config) => {
   if (!config?.activo) return 'Inactivo';
   
   const frecuencia = normalizeFrecuencia(config.frecuencia || 1);
@@ -128,7 +123,6 @@ const InlineItemConfigImproved = ({
     periodo: config?.periodo || 'CADA_DIA'
   });
 
-  const [expanded, setExpanded] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
   // Auto-save con debounce
@@ -177,160 +171,42 @@ const InlineItemConfigImproved = ({
 
   return (
     <ConfigContainer>
-      {/* Header con toggle activo/inactivo */}
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between',
-        mb: expanded ? 2 : 0
-      }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Switch
-            checked={configState.activo}
-            onChange={(e) => handleConfigChange({ activo: e.target.checked })}
-            size="small"
-            sx={{
-              width: 36,
-              height: 20,
-              '& .MuiSwitch-switchBase': {
-                margin: 1,
-                padding: 0,
-                transform: 'translateX(6px)',
-                '&.Mui-checked': {
-                  color: '#fff',
-                  transform: 'translateX(22px)',
-                  '& .MuiSwitch-thumb': {
-                    backgroundColor: '#fff',
-                    width: 12,
-                    height: 12,
-                  },
-                  '& + .MuiSwitch-track': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    opacity: 1,
-                  }
-                }
-              },
-              '& .MuiSwitch-thumb': {
-                backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                width: 12,
-                height: 12,
-                boxShadow: 'none',
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-              },
-              '& .MuiSwitch-track': {
-                borderRadius: 10,
-                backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                opacity: 1,
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-              }
-            }}
-          />
-          
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              color: configState.activo ? '#fff' : 'rgba(255, 255, 255, 0.4)',
-              fontWeight: 500,
-              fontSize: '0.75rem',
-              transition: 'color 0.2s ease'
-            }}
-          >
-            {cadenciaLabel}
-          </Typography>
-        </Box>
-
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {hasChanges && (
-            <Fade in={hasChanges}>
-              <Box sx={{ 
-                width: 6, 
-                height: 6, 
-                borderRadius: '50%',
-                backgroundColor: '#4CAF50',
-                animation: 'pulse 1.5s infinite'
-              }} />
-            </Fade>
-          )}
-          
-          <Tooltip title={expanded ? "Ocultar configuración" : "Mostrar configuración"}>
-            <IconButton
-              size="small"
-              onClick={() => setExpanded(!expanded)}
+      <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.06)', mb: 1 }} />
+      <Box sx={{ display: 'flex', flexDirection: 'row', minHeight: 60 }}>
+        {/* Tabs verticales de tipo */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mr: 1, minWidth: 60 }}>
+          {tipoOptions.map(option => (
+            <Box
+              key={option.value}
+              onClick={() => handleConfigChange({ tipo: option.value })}
               sx={{
-                color: 'rgba(255, 255, 255, 0.5)',
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                cursor: 'pointer',
+                px: 1.2,
+                py: 0.6,
+                fontWeight: 600,
+                fontSize: '0.85em',
+                color: configState.tipo === option.value ? '#fff' : 'rgba(255,255,255,0.5)',
+                background: configState.tipo === option.value ? 'rgba(255,255,255,0.08)' : 'none',
+                borderLeft: configState.tipo === option.value ? '3px solid #1976d2' : '3px solid transparent',
+                borderRadius: 0,
+                transition: 'background 0.2s, color 0.2s',
+                textAlign: 'left',
+                minWidth: 50,
+                mb: 0.2,
                 '&:hover': {
-                  color: 'rgba(255, 255, 255, 0.8)',
-                  backgroundColor: 'rgba(255, 255, 255, 0.08)'
+                  background: 'rgba(255,255,255,0.12)',
+                  color: '#fff'
                 }
               }}
             >
-              <TuneIcon sx={{ fontSize: 16 }} />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
-
-      {/* Configuración expandida */}
-      <Collapse in={expanded} timeout={300}>
-        <Box sx={{ pt: 1 }}>
-          <Divider sx={{ 
-            borderColor: 'rgba(255, 255, 255, 0.06)', 
-            mb: 2 
-          }} />
-          
-          {/* Tipo de repetición */}
-          <Box sx={{ mb: 2 }}>
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                color: 'rgba(255, 255, 255, 0.6)',
-                fontWeight: 600,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                mb: 1,
-                display: 'block'
-              }}
-            >
-              Tipo
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-              {tipoOptions.map(option => (
-                <StyledChip
-                  key={option.value}
-                  label={option.label}
-                  selected={configState.tipo === option.value}
-                  clickable
-                  onClick={() => handleConfigChange({ tipo: option.value })}
-                  size="small"
-                />
-              ))}
+              {option.label}
             </Box>
-          </Box>
-
-          {/* Frecuencia */}
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 1.5,
-            flexWrap: 'wrap' 
-          }}>
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                color: 'rgba(255, 255, 255, 0.6)',
-                fontWeight: 600,
-                fontSize: '0.7rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
-              }}
-            >
-              Frecuencia
-            </Typography>
-            
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          ))}
+        </Box>
+        {/* Panel de configuración de frecuencia */}
+        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7, flexWrap: 'wrap', minWidth: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, minWidth: 0 }}>
               <StyledTextField
                 value={configState.frecuencia}
                 onChange={(e) => {
@@ -342,13 +218,14 @@ const InlineItemConfigImproved = ({
                 type="number"
                 inputProps={{ min: 1, max: 99 }}
                 size="small"
+                sx={{ width: 38, fontSize: '0.8em' }}
               />
-              
               <Typography 
                 variant="caption" 
                 sx={{ 
                   color: 'rgba(255, 255, 255, 0.5)',
-                  fontSize: '0.75rem'
+                  fontSize: '0.7rem',
+                  ml: 0.2
                 }}
               >
                 {configState.tipo === 'DIARIO' && 'por día'}
@@ -357,10 +234,9 @@ const InlineItemConfigImproved = ({
                 {configState.tipo === 'PERSONALIZADO' && 'veces cada'}
               </Typography>
             </Box>
-
             {/* Período personalizado */}
             {configState.tipo === 'PERSONALIZADO' && (
-              <Box sx={{ display: 'flex', gap: 0.5 }}>
+              <Box sx={{ display: 'flex', gap: 0.3, mt: 0.2 }}>
                 {periodoOptions.map(option => (
                   <StyledChip
                     key={option.value}
@@ -369,13 +245,14 @@ const InlineItemConfigImproved = ({
                     clickable
                     onClick={() => handleConfigChange({ periodo: option.value })}
                     size="small"
+                    sx={{ height: 22, fontSize: '0.7em', px: 0.7 }}
                   />
                 ))}
               </Box>
             )}
           </Box>
         </Box>
-      </Collapse>
+      </Box>
     </ConfigContainer>
   );
 };
