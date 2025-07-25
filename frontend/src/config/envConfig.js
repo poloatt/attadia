@@ -23,7 +23,13 @@ export const config = {
 // Determinar el ambiente actual
 const env = import.meta.env.MODE || 'development';
 const isStaging = typeof window !== 'undefined' && window.location.hostname.includes('staging');
-export const currentConfig = isStaging ? config.staging : config[env] || config.development;
+const isAdminProduction = typeof window !== 'undefined' && window.location.hostname === 'admin.attadia.com';
+
+export const currentConfig = isAdminProduction 
+  ? config.production 
+  : isStaging 
+    ? config.staging 
+    : config[env] || config.development;
 
 // Función para depurar la configuración
 export const logEnvironment = () => {
