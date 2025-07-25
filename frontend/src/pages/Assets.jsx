@@ -50,6 +50,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EngineeringIcon from '@mui/icons-material/Engineering';
 import BookmarkAddedIcon from '@mui/icons-material/BookmarkAdded';
 import { useTheme } from '@mui/material/styles';
+import PageContainer from '../components/common/PageContainer';
 
 
 export function Assets() {
@@ -585,7 +586,7 @@ export function Assets() {
 
 
   return (
-    <Box component="main" className="page-main-content" sx={{ width: '100%', flex: 1, px: 0, py: 1, display: 'flex', flexDirection: 'column' }}>
+    <PageContainer>
       {/* Contenido principal */}
       <Box sx={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Grid container spacing={2}>
@@ -623,7 +624,7 @@ export function Assets() {
         />
       )}
 
-    </Box>
+    </PageContainer>
   );
 }
 

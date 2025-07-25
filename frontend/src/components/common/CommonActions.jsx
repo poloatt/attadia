@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { SystemButtons, SYSTEM_ICONS } from '../common/SystemButtons';
 import { useLocation } from 'react-router-dom';
-import { menuItems } from '../../navigation/menuStructure';
+import { modulos } from '../../navigation/menuStructure';
 import DescriptionIcon from '@mui/icons-material/Description';
 import HomeIcon from '@mui/icons-material/Home';
 import TipoPropiedadIcon from '../propiedades/TipoPropiedadIcon';
@@ -110,7 +110,7 @@ export function getStandardActions({ onEdit, onDelete, itemName = 'este registro
 }
 
 // Helper para encontrar el item activo y su jerarquía
-function findMenuItemByPath(path, items = menuItems) {
+function findMenuItemByPath(path, items = modulos) {
   for (const item of items) {
     if (item.path === path) return { item, parent: null };
     if (item.subItems) {

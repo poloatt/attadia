@@ -41,7 +41,7 @@ axios.defaults.baseURL = getBaseUrl();
 axios.defaults.withCredentials = true
 
 // Las rutas de la app se centralizan en menuStructure.js y se usan dinámicamente en App.jsx
-// Si necesitas rutas dinámicas aquí, importa menuItems desde './navigation/menuStructure'
+// Si necesitas rutas dinámicas aquí, importa modulos desde './navigation/menuStructure'
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ThemeProvider theme={theme}>

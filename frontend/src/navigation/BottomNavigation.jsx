@@ -1,20 +1,28 @@
 import React from 'react';
 import { Box, Paper, Typography } from '@mui/material';
 import { useLocation, Link } from 'react-router-dom';
-import { getBottomNavigationItems } from './menuStructure';
-import { isRouteActive } from './menuIcons';
+import { modulos } from './menuStructure';
+import { getIconByKey, isRouteActive } from './menuIcons';
 import theme from '../context/ThemeContext';
 
 /**
  * Componente de navegación inferior con diseño geométrico
- * Este componente muestra botones para acceder rápidamente a Assets, Salud y Tiempo
- * Utiliza configuración modular desde menuStructure.js
+ * Ahora muestra dinámicamente los menús de nivel 1 del módulo activo
  */
 export default function BottomNavigation() {
   const location = useLocation();
-  
-  // Obtener elementos de navegación desde la configuración modular
-  const navItems = getBottomNavigationItems();
+  const currentPath = location.pathname;
+
+  // Encontrar el módulo activo según la ruta
+  const moduloActivo = modulos.find(modulo =>
+    modulo.subItems?.some(sub => currentPath.startsWith(sub.path)) ||
+    currentPath.startsWith(modulo.path)
+  );
+
+  // Obtener los menús de nivel 1 del módulo activo
+  const navItems = moduloActivo?.subItems || [];
+
+  if (!moduloActivo || navItems.length === 0) return null;
 
   return (
     <Paper 
@@ -49,7 +57,7 @@ export default function BottomNavigation() {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            gap: 4,
+            gap: 2,
             width: '100%',
             minWidth: '300px',
             height: '56px',
@@ -57,8 +65,7 @@ export default function BottomNavigation() {
           }}
         >
           {navItems.map((item, index) => {
-            const isActive = isRouteActive(location.pathname, item.activePaths);
-            
+            const isActive = isRouteActive(location.pathname, item.path);
             return (
               <Box
                 key={item.path}
@@ -100,7 +107,8 @@ export default function BottomNavigation() {
                     p: 1,
                   }}
                 >
-                  <item.icon sx={{ fontSize: 18 }} />
+                  {typeof item.icon === 'string' && getIconByKey(item.icon) &&
+                    React.createElement(getIconByKey(item.icon), { fontSize: 'small' })}
                 </Box>
                 <Typography
                   variant="caption"

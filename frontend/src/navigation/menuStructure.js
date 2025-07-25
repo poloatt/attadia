@@ -1,58 +1,51 @@
 import React from 'react';
-import { icons } from './menuIcons';
+// import { icons } from './menuIcons'; // Ya no se usa icons directamente
 
-export const menuItems = [
+// Nueva estructura: modulos (primer nivel = módulo raíz)
+export const modulos = [
   {
     id: 'assets',
     title: 'Assets',
-    icon: icons.dollarSign,
+    icon: 'dollarSign',
     path: '/assets',
-    type: 'module',
-    hasSubItems: true,
     subItems: [
       {
         id: 'finanzas',
-        title: 'Finanzas', // nombre para mostrar
-        icon: icons.wallet,
-        path: '/assets/finanzas', // Ahora tiene su propio path
-        hasSubItems: true,
-        canAdd: true, // <-- agregado
+        title: 'Finanzas',
+        icon: 'wallet',
+        path: '/assets/finanzas',
         subItems: [
-          { id: 'transacciones', title: 'Transacciones', path: '/assets/finanzas/transacciones', icon: icons.moneyBag, canAdd: true },
-          { id: 'cuentas', title: 'Cuentas', path: '/assets/finanzas/cuentas', icon: icons.accountBalance, canAdd: true },
-          { id: 'monedas', title: 'Monedas', path: '/assets/finanzas/monedas', icon: icons.currency, canAdd: true },
-          { id: 'inversiones', title: 'Inversiones', path: '/assets/finanzas/inversiones', icon: icons.inversiones, isUnderConstruction: true },
-          { id: 'deudores', title: 'Deudores', path: '/assets/finanzas/deudores', icon: icons.personSearch, isUnderConstruction: true },
-          { id: 'recurrente', title: 'Recurrente', path: '/assets/finanzas/recurrente', icon: icons.repeat, isUnderConstruction: true }
+          { id: 'transacciones', title: 'Transacciones', path: '/assets/finanzas/transacciones', icon: 'moneyBag', canAdd: true },
+          { id: 'cuentas', title: 'Cuentas', path: '/assets/finanzas/cuentas', icon: 'accountBalance', canAdd: true },
+          { id: 'monedas', title: 'Monedas', path: '/assets/finanzas/monedas', icon: 'currency', canAdd: true },
+          { id: 'inversiones', title: 'Inversiones', path: '/assets/finanzas/inversiones', icon: 'inversiones', isUnderConstruction: true },
+          { id: 'deudores', title: 'Deudores', path: '/assets/finanzas/deudores', icon: 'personSearch', isUnderConstruction: true },
+          { id: 'recurrente', title: 'Recurrente', path: '/assets/finanzas/recurrente', icon: 'repeat', isUnderConstruction: true }
         ]
       },
       {
         id: 'propiedades',
         title: 'Propiedades',
-        icon: icons.apartment,
+        icon: 'apartment',
         path: '/assets/propiedades',
-        hasSubItems: true,
-        canAdd: true, // <-- agregado
         subItems: [
-          { id: 'inquilinos', title: 'Inquilinos', path: '/assets/propiedades/inquilinos', icon: icons.person, canAdd: true },
-          { id: 'contratos', title: 'Contratos', path: '/assets/propiedades/contratos', icon: icons.description, canAdd: true },
-          { id: 'habitaciones', title: 'Habitaciones', path: '/assets/propiedades/habitaciones', icon: icons.bed, canAdd: true },
+          { id: 'inquilinos', title: 'Inquilinos', path: '/assets/propiedades/inquilinos', icon: 'person', canAdd: true },
+          { id: 'contratos', title: 'Contratos', path: '/assets/propiedades/contratos', icon: 'description', canAdd: true },
+          { id: 'habitaciones', title: 'Habitaciones', path: '/assets/propiedades/habitaciones', icon: 'bed', canAdd: true },
         ]
       },
       {
         id: 'autos',
         title: 'Autos',
-        icon: icons.auto,
+        icon: 'auto',
         path: '/assets/autos',
-        hasSubItems: false,
         isUnderConstruction: true
       },
       {
         id: 'inventario',
         title: 'Inventario',
-        icon: icons.inventario,
+        icon: 'inventario',
         path: '/assets/inventario',
-        hasSubItems: false,
         isUnderConstruction: true
       }
     ]
@@ -60,49 +53,44 @@ export const menuItems = [
   {
     id: 'salud',
     title: 'Salud',
-    icon: icons.health,
+    icon: 'health',
     path: '/salud',
-    type: 'module',
-    hasSubItems: true,
     subItems: [
-      { id: 'datacorporal', title: 'Data corporal', icon: icons.monitorHeart, path: '/salud/datacorporal', hasSubItems: false, isUnderConstruction: true },
-      { id: 'dieta', title: 'Dieta', icon: icons.restaurant, path: '/salud/dieta', hasSubItems: false, isUnderConstruction: true },
-      { id: 'lab', title: 'Lab', icon: icons.science, path: '/salud/lab', hasSubItems: false, isUnderConstruction: true }
+      { id: 'datacorporal', title: 'Data corporal', icon: 'monitorHeart', path: '/salud/datacorporal', isUnderConstruction: true },
+      { id: 'dieta', title: 'Dieta', icon: 'restaurant', path: '/salud/dieta', isUnderConstruction: true },
+      { id: 'lab', title: 'Lab', icon: 'science', path: '/salud/lab', isUnderConstruction: true }
     ]
   },
   {
     id: 'tiempo',
     title: 'Tiempo',
-    icon: icons.accessTime,
+    icon: 'accessTime',
     path: '/tiempo',
-    type: 'module',
-    hasSubItems: true,
     subItems: [
-      { id: 'proyectos', title: 'Proyectos', icon: icons.folder, path: '/tiempo/proyectos', hasSubItems: false },
-      { id: 'tareas', title: 'Tareas', icon: icons.task, path: '/tiempo/tareas', hasSubItems: false },
-      { id: 'archivo', title: 'Archivo', icon: icons.archive, path: '/tiempo/archivo', hasSubItems: false },
-      { id: 'rutinas', title: 'Rutinas', icon: icons.fitnessCenter, path: '/tiempo/rutinas', hasSubItems: false }
+      { id: 'proyectos', title: 'Proyectos', icon: 'folder', path: '/tiempo/proyectos' },
+      { id: 'tareas', title: 'Tareas', icon: 'task', path: '/tiempo/tareas' },
+      { id: 'archivo', title: 'Archivo', icon: 'archive', path: '/tiempo/archivo' },
+      { id: 'rutinas', title: 'Rutinas', icon: 'fitnessCenter', path: '/tiempo/rutinas' }
     ]
   },
   {
     id: 'setup',
     title: 'Setup',
-    icon: icons.settings,
+    icon: 'settings',
     path: '/configuracion',
-    hasSubItems: true,
     subItems: [
-      { id: 'perfil', title: 'Perfil', path: '/configuracion/perfil', icon: icons.accountCircle, hasSubItems: false },
-      { id: 'preferencias', title: 'Preferencias', path: '/configuracion/preferencias', icon: icons.manageAccounts, hasSubItems: false }
+      { id: 'perfil', title: 'Perfil', path: '/configuracion/perfil', icon: 'accountCircle' },
+      { id: 'preferencias', title: 'Preferencias', path: '/configuracion/preferencias', icon: 'manageAccounts' }
     ]
   }
 ];
 
-// Configuración de navegación inferior - elementos principales para acceso rápido
+// Navegación inferior adaptada a la nueva estructura
 export const bottomNavigationItems = [
   {
     id: 'assets',
     title: 'Assets',
-    icon: icons.dollarSign,
+    icon: 'dollarSign',
     path: '/assets',
     type: 'module',
     activePaths: ['/', '/assets']
@@ -110,7 +98,7 @@ export const bottomNavigationItems = [
   {
     id: 'salud',
     title: 'Salud',
-    icon: icons.health,
+    icon: 'health',
     path: '/salud',
     type: 'module',
     activePaths: ['/salud']
@@ -118,30 +106,29 @@ export const bottomNavigationItems = [
   {
     id: 'tiempo',
     title: 'Tiempo',
-    icon: icons.accessTime,
+    icon: 'accessTime',
     path: '/tiempo',
     type: 'module',
     activePaths: ['/tiempo']
   }
 ];
 
-// Función helper para obtener elementos de navegación inferior con iconos resueltos
+// Helpers adaptados
 export const getBottomNavigationItems = () => {
   return bottomNavigationItems.map(item => ({
     ...item,
-    icon: item.icon // Los iconos ya están resueltos en la definición
+    icon: item.icon
   }));
 };
 
-// Función helper para obtener elementos de menú con iconos resueltos
-export const getMenuItems = () => {
-  return menuItems.map(item => ({
+export const getModulos = () => {
+  return modulos.map(item => ({
     ...item,
-    icon: item.icon // Los iconos ya están resueltos en la definición
+    icon: item.icon
   }));
 };
 
-// Función helper para obtener solo los módulos
-export const getModules = () => {
-  return menuItems.filter(item => item.type === 'module');
+// Para obtener solo los módulos (primer nivel)
+export const getRootModules = () => {
+  return modulos;
 }; 

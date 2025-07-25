@@ -13,6 +13,7 @@ import {
   Typography,
   useTheme,
   // No uso useMediaQuery aquí, solo el contexto
+  Collapse,
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
@@ -21,14 +22,12 @@ import { icons } from './menuIcons';
 import SidebarResizer from './SidebarResizer';
 import theme from '../context/ThemeContext';
 
-export default function Sidebar() {
+export default function Sidebar({ moduloActivo }) {
   const theme = useTheme();
   const {
     isOpen,
     isDesktop,
     sidebarWidth,
-    menuItems,
-    mainSections,
     closeSidebar,
     selectedMain,
     setSelectedMain,
@@ -37,253 +36,125 @@ export default function Sidebar() {
     handleSidebarResize
   } = useSidebar();
   const { showEntityToolbarNavigation } = useUISettings();
-  
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Función utilitaria para verificar si una ruta está activa
-  const isRouteActive = useCallback((path) => {
-    if (!path) return false;
-    return location.pathname === path || location.pathname.startsWith(path + '/');
-  }, [location.pathname]);
+  // Si no hay módulo activo, no renderizar nada
+  if (!moduloActivo) return null;
 
-  // Función para encontrar la sección activa basada en la ruta actual
-  const findActiveSection = useCallback(() => {
-    return mainSections.find(section => {
-      // Verificar si la ruta principal está activa
-      if (section.path && isRouteActive(section.path)) return true;
-      
-      // Verificar si alguna subsección está activa
-      return section.subItems?.some(subItem => {
-        if (subItem.path && isRouteActive(subItem.path)) return true;
-        return subItem.subItems?.some(subSubItem => isRouteActive(subSubItem.path));
-      });
-    });
-  }, [mainSections, isRouteActive]);
+  // SubItems del módulo activo (nivel 1)
+  const nivel1 = moduloActivo.subItems || [];
 
-  // Función para encontrar la subsección activa
-  const findActiveSubSection = useCallback((section) => {
-    if (!section.subItems) return null;
-    
-    return section.subItems.find(subItem => {
-      if (subItem.path && isRouteActive(subItem.path)) return true;
-      return subItem.subItems?.some(subSubItem => isRouteActive(subSubItem.path));
-    });
-  }, [isRouteActive]);
-
-  // Sincronizar selección con la ruta actual
-  useEffect(() => {
-    const activeSection = findActiveSection();
-    if (activeSection && activeSection.id !== selectedMain) {
-      setSelectedMain(activeSection.id);
-      
-      const activeSubSection = findActiveSubSection(activeSection);
-      // Si estamos en la ruta principal de una sección (como /assets), no seleccionar subsección
-      if (activeSection.path && location.pathname === activeSection.path) {
-        setSelectedSecond(null);
-      } else if (activeSubSection && activeSubSection.id !== selectedSecond) {
-        setSelectedSecond(activeSubSection.id);
-      }
-    }
-  }, [location.pathname, selectedMain, selectedSecond, setSelectedMain, setSelectedSecond, findActiveSection, findActiveSubSection]);
-
-  // Memoizar la sección principal seleccionada y sus items
-  const currentMainSection = useMemo(() => 
-    mainSections.find(section => section.id === selectedMain), 
-    [mainSections, selectedMain]
-  );
-  
-  const secondLevelItems = useMemo(() => 
-    currentMainSection?.subItems || [], 
-    [currentMainSection]
-  );
-  
-  // Determinar si el segundo nivel es plano (sin subniveles)
-  const isFlatSection = useMemo(() => 
-    secondLevelItems.length > 0 && !secondLevelItems.some(item => item.hasSubItems), 
-    [secondLevelItems]
-  );
-  
-  // Obtener elementos del tercer nivel
-  const thirdLevelItems = useMemo(() => 
-    isFlatSection 
-      ? secondLevelItems 
-      : (secondLevelItems.find(item => item.id === selectedSecond)?.subItems || []),
-    [isFlatSection, secondLevelItems, selectedSecond]
-  );
-
-  // Función para renderizar un botón de menú
-  const renderMenuItem = useCallback((item, level = 0, isSubItem = false) => {
-    const isActive = isRouteActive(item.path);
-    const isDisabled = item.isUnderConstruction;
-    const isSelectedSecond = isSubItem && item.id === selectedSecond;
-    
-    return (
-      <ListItem key={item.id || item.path} disablePadding sx={{ bgcolor: 'transparent' }}>
-        <Tooltip 
-          title={!isOpen ? item.title : ''} 
-          placement="right"
-          arrow
-        >
-          <ListItemButton
-            onClick={() => {
-              if (item.path && !isDisabled) {
-                navigate(item.path);
-                // Eliminado: nunca colapsar sidebar automáticamente al navegar
-              }
-              if (isSubItem) {
-                setSelectedSecond(item.id);
-              }
-            }}
-            selected={isActive}
-            disabled={isDisabled}
-            tabIndex={0}
-            sx={{
-              minHeight: level === 0 ? 40 : 36,
-              pl: isOpen ? (level * 2 + 1.5) : 1,
-              pr: isOpen ? 1.5 : 1,
-              borderRadius: '12px',
-              mb: 0.25,
-              justifyContent: isOpen ? 'initial' : 'center',
-              backgroundColor: isActive ? '#323232' : isSelectedSecond ? '#232323' : 'transparent',
-              '&:hover': {
-                backgroundColor: isActive ? '#3a3a3a' : '#232323',
-              },
-              '&.Mui-selected, &.Mui-selected:hover': {
-                backgroundColor: '#323232',
-                color: '#fff',
-              },
-              opacity: isDisabled ? 0.5 : 1,
-              transition: 'background 0.2s',
-              position: 'relative',
-              zIndex: 1
-            }}
-          >
-            <ListItemIcon
-              sx={{
-                minWidth: 0,
-                mr: isOpen ? 1.5 : 'auto',
-                justifyContent: 'center',
-                color: isActive || isSelectedSecond ? '#fff' : '#bdbdbd',
-                alignItems: 'center',
-                display: 'flex',
-                fontSize: 0,
-                height: 24,
-                width: 24
-              }}
-            >
-              {item.icon && React.createElement(item.icon, { fontSize: 'small', style: { fontSize: 22, verticalAlign: 'middle' } })}
-            </ListItemIcon>
-            {isOpen && (
-              <ListItemText 
-                primary={item.title}
-                sx={{ 
-                  m: 0,
-                  '& .MuiTypography-root': {
-                    fontSize: level === 0 ? '0.95rem' : '0.9rem',
-                    fontWeight: isActive || isSelectedSecond ? 700 : 400,
-                    color: isActive || isSelectedSecond ? '#fff' : '#e0e0e0',
-                    letterSpacing: 0.1,
+  // Renderizar subItems de nivel 1 y sus hijos (nivel 2)
+  const renderNivel1 = () => (
+    <List disablePadding>
+      {nivel1.map(item => {
+        const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+        const hasChildren = item.subItems && item.subItems.length > 0;
+        return (
+          <React.Fragment key={item.id}>
+            <ListItem disablePadding sx={{ bgcolor: 'transparent' }}>
+              <ListItemButton
+                onClick={() => {
+                  if (item.path && !item.isUnderConstruction) {
+                    navigate(item.path);
                   }
-                }} 
-              />
+                  setSelectedSecond(item.id);
+                }}
+                selected={isActive}
+                disabled={item.isUnderConstruction}
+                sx={{
+                  minHeight: 36,
+                  pl: isOpen ? 2 : 0,
+                  pr: isOpen ? 1.5 : 0,
+                  borderRadius: '12px',
+                  mb: 0.25,
+                  justifyContent: isOpen ? 'initial' : 'center',
+                  backgroundColor: isActive ? '#323232' : 'transparent',
+                  '&:hover': {
+                    backgroundColor: isActive ? '#3a3a3a' : '#232323',
+                  },
+                  '&.Mui-selected, &.Mui-selected:hover': {
+                    backgroundColor: '#323232',
+                    color: '#fff',
+                  },
+                  opacity: item.isUnderConstruction ? 0.5 : 1,
+                  transition: 'background 0.2s',
+                  position: 'relative',
+                  zIndex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    minWidth: 36,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    width: isOpen ? 'auto' : '100%',
+                    mx: isOpen ? 0 : 'auto',
+                  }}
+                >
+                  {typeof item.icon === 'string' && icons[item.icon] &&
+                    React.createElement(icons[item.icon], { fontSize: 'small' })}
+                </ListItemIcon>
+                {isOpen && <ListItemText primary={item.title} />}
+              </ListItemButton>
+            </ListItem>
+            {/* Collapse para hijos de nivel 2 */}
+            {hasChildren && (
+              <Collapse in={selectedSecond === item.id && isOpen} timeout="auto" unmountOnExit>
+                <List component="div" disablePadding>
+                  {item.subItems.map(child => (
+                    <ListItem key={child.id} disablePadding sx={{ bgcolor: 'transparent' }}>
+                      <ListItemButton
+                        onClick={() => {
+                          if (child.path && !child.isUnderConstruction) {
+                            navigate(child.path);
+                          }
+                        }}
+                        selected={location.pathname === child.path}
+                        disabled={child.isUnderConstruction}
+                        sx={{
+                          minHeight: 32,
+                          pl: isOpen ? 4 : 2,
+                          pr: isOpen ? 1.5 : 1,
+                          borderRadius: '12px',
+                          mb: 0.15,
+                          backgroundColor: location.pathname === child.path ? '#232323' : 'transparent',
+                          '&:hover': {
+                            backgroundColor: '#232323',
+                          },
+                          opacity: child.isUnderConstruction ? 0.5 : 1,
+                          transition: 'background 0.2s',
+                        }}
+                      >
+                        <ListItemIcon
+                          sx={{
+                            minWidth: 36,
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            width: isOpen ? 'auto' : '100%',
+                            mx: isOpen ? 0 : 'auto',
+                          }}
+                        >
+                          {typeof child.icon === 'string' && icons[child.icon] &&
+                            React.createElement(icons[child.icon], { fontSize: 'small' })}
+                        </ListItemIcon>
+                        {isOpen && <ListItemText primary={child.title} />}
+                      </ListItemButton>
+                    </ListItem>
+                  ))}
+                </List>
+              </Collapse>
             )}
-          </ListItemButton>
-        </Tooltip>
-      </ListItem>
-    );
-  }, [isOpen, isDesktop, closeSidebar, navigate, setSelectedSecond, selectedSecond, isRouteActive]);
-
-  // Renderizar encabezado de secciones principales (siempre, en desktop y mobile)
-  const renderMainSectionsHeader = useCallback(() => {
-    if (!isDesktop) return null; // Ocultar en móvil
-    return (
-      <Box sx={{
-        width: '100%',
-        bgcolor: '#181818',
-        borderBottom: '1px solid',
-        borderColor: 'divider',
-        minHeight: 2, // Misma estructura que EntityToolbar
-      }}>
-        <Box sx={{
-          display: 'flex',
-          flexDirection: isOpen ? 'row' : 'column',
-          alignItems: 'center',
-          justifyContent: isOpen ? 'center' : 'flex-start',
-          gap: isOpen ? 2 : 1.5,
-          width: '100%',
-          minHeight: 40, // Misma altura que EntityToolbar
-          px: 1,
-          py: 0.15, // Padding mínimo para alineación perfecta
-        }}>
-        {mainSections.map(section => (
-          <Tooltip 
-            key={section.id} 
-            title={section.title} 
-            placement={isOpen ? 'bottom' : 'right'} 
-            arrow
-          >
-            <IconButton
-              onClick={() => {
-                setSelectedMain(section.id);
-                if (section.path) {
-                  navigate(section.path);
-                  // Eliminado: nunca colapsar sidebar automáticamente al navegar
-                }
-              }}
-              color={selectedMain === section.id ? 'primary' : 'default'}
-              sx={{
-                bgcolor: selectedMain === section.id ? '#232323' : 'transparent',
-                borderRadius: 1, // Cambiado a 1 para seguir el estilo geométrico
-                width: 32,
-                height: 32,
-                m: 0.5,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'background 0.2s',
-                color: selectedMain === section.id ? '#fff' : '#bdbdbd',
-                p: 0, // Sin padding interno para alineación perfecta
-              }}
-            >
-              {section.icon && React.createElement(section.icon, { fontSize: 'small' })}
-            </IconButton>
-          </Tooltip>
-        ))}
-        </Box>
-      </Box>
-    );
-  }, [isOpen, mainSections, selectedMain, setSelectedMain, navigate, closeSidebar, isDesktop]);
-
-  // Obtener la sección de configuración
-  const setupSection = useMemo(() => 
-    menuItems.find(item => item.id === 'setup'), 
-    [menuItems]
+          </React.Fragment>
+        );
+      })}
+    </List>
   );
-
-  // Renderizar títulos de sección
-  const renderSectionTitle = (title) => (
-    <Typography
-      variant="caption"
-      sx={{
-        color: '#bdbdbd',
-        fontWeight: 500,
-        fontSize: '0.75rem',
-        letterSpacing: 1.5,
-        textTransform: 'uppercase',
-        pl: isOpen ? 2 : 0,
-        pt: 2,
-        pb: 0.5,
-        mb: 0.5,
-        opacity: 0.7
-      }}
-    >
-      {title}
-    </Typography>
-  );
-
-  // Elimina cualquier lógica local de breakpoints o visibilidad
-  // Usa solo el contexto para controlar el renderizado y el ancho
 
   return (
     <Box sx={{
@@ -327,131 +198,17 @@ export default function Sidebar() {
           }
         }}
       >
-        {/* Encabezado de secciones principales */}
-        {renderMainSectionsHeader()}
-
-        {/* Mostrar iconos de 3er nivel centrados verticalmente en móvil colapsado */}
-        {typeof window !== 'undefined' && window.innerWidth < 960 && !isOpen && (
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-            {/* Subitems de la sección seleccionada (si hay), o subitems de setup si está seleccionada */}
-            <List sx={{ p: 0, m: 0 }}>
-              {(thirdLevelItems.length > 0 ? thirdLevelItems : (selectedMain === 'setup' && setupSection?.subItems ? setupSection.subItems : [])).map(subItem => (
-                <ListItem key={subItem.id || subItem.path} disablePadding sx={{ bgcolor: 'transparent', justifyContent: 'center', display: 'flex' }}>
-                  <Tooltip title={subItem.title} placement="right" arrow>
-                    <IconButton
-                      onClick={() => {
-                        if (subItem.path && !subItem.isUnderConstruction) {
-                          navigate(subItem.path);
-                          // Eliminado: nunca colapsar sidebar automáticamente al navegar
-                        }
-                      }}
-                      color={isRouteActive(subItem.path) ? 'primary' : 'default'}
-                      sx={{
-                        bgcolor: isRouteActive(subItem.path) ? '#232323' : 'transparent',
-                        borderRadius: 1,
-                        width: 32,
-                        height: 32,
-                        m: 0.5,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'background 0.2s',
-                        color: isRouteActive(subItem.path) ? '#fff' : '#bdbdbd',
-                        p: 0,
-                        opacity: subItem.isUnderConstruction ? 0.5 : 1
-                      }}
-                      disabled={subItem.isUnderConstruction}
-                    >
-                      {subItem.icon && React.createElement(subItem.icon, { fontSize: 'small' })}
-                    </IconButton>
-                  </Tooltip>
-                </ListItem>
-              ))}
-            </List>
+        {/* Mostrar el nombre del módulo activo en texto plano solo si la barra está extendida */}
+        {isOpen && (
+          <Box sx={{ px: 2, pt: 2, pb: 1 }}>
+            <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.95rem', letterSpacing: 0.5 }}>
+              {moduloActivo.title}
+            </Typography>
           </Box>
         )}
-
-        {/* Título de sección - muestra el subgrupo child si está seleccionado */}
-        {isOpen && (() => {
-          // Si hay una selección de nivel 2, mostrar su título
-          if (selectedSecond && !isFlatSection) {
-            const selectedSecondItem = secondLevelItems.find(item => item.id === selectedSecond);
-            if (selectedSecondItem && selectedSecondItem.title) {
-              return (
-                <Box sx={{ mt: 2, mb: 0.5, pl: 2 }}>
-                  {renderSectionTitle(selectedSecondItem.title)}
-                </Box>
-              );
-            }
-          }
-          // Si no hay selección de nivel 2, mostrar el título de la sección principal
-          if (currentMainSection && currentMainSection.title) {
-            return (
-              <Box sx={{ mt: 2, mb: 0.5, pl: 2 }}>
-                {renderSectionTitle(currentMainSection.title)}
-              </Box>
-            );
-          }
-          return null;
-        })()}
-
-        {/* Mostrar subniveles y setup SIEMPRE si la sidebar está extendida (isOpen) */}
-        {(isOpen || !showEntityToolbarNavigation) && (
-          <>
-            {/* Si la sección es plana, muestra SIEMPRE todos los subitems arriba */}
-            {isFlatSection && secondLevelItems.length > 0 && (
-              <List sx={{ p: isOpen ? 1 : 0.5, mt: isDesktop ? 0.5 : 0 }}>
-                {secondLevelItems.map(item => renderMenuItem(item, 0, true))}
-              </List>
-            )}
-
-            {/* Si NO es plana, sigue la lógica de selección */}
-            {!isFlatSection && secondLevelItems.length > 0 && (
-              !selectedSecond ? (
-                <List sx={{ p: isOpen ? 1 : 0.5, mt: isDesktop ? 0.5 : 0 }}>
-                  {secondLevelItems.map(item => renderMenuItem(item, 0, true))}
-                </List>
-              ) : (
-                <>
-                  {/* Nivel 3: Subsecciones del elemento seleccionado */}
-                  {thirdLevelItems.length > 0 && (
-                    <List sx={{ p: isOpen ? 1 : 0.5 }}>
-                      {thirdLevelItems.map(subItem => renderMenuItem(subItem, 1))}
-                    </List>
-                  )}
-                  {/* Elementos del nivel 2 alineados al margen inferior, excepto el seleccionado */}
-                  <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-                    {/* Título del padre (nivel 1) arriba de la lista de abajo */}
-                    {currentMainSection && currentMainSection.title && (
-                      <Box sx={{ pl: 2, mb: 0.5 }}>
-                        {renderSectionTitle(currentMainSection.title)}
-                      </Box>
-                    )}
-                    <List sx={{ p: isOpen ? 1 : 0.5 }}>
-                      {secondLevelItems
-                        .filter(item => item.id !== selectedSecond)
-                        .map(item => renderMenuItem(item, 0, true))}
-                    </List>
-                  </Box>
-                </>
-              )
-            )}
-          </>
-        )}
-
-        {/* SIEMPRE al final: Setup */}
-        <Box sx={{ mt: 'auto' }}>
-          {setupSection && (
-            <>
-              <Divider sx={{ my: 1, borderColor: 'divider', opacity: 0.4 }} />
-              <List sx={{ p: isOpen ? 1 : 0.5 }}>
-                {renderMenuItem(setupSection, 0)}
-              </List>
-            </>
-          )}
-        </Box>
-        
-        {/* Sidebar Resizer */}
+        {/* Renderizar navegación de nivel 1 y 2 */}
+        {renderNivel1()}
+        {/* Sidebar Resizer y otros elementos si es necesario */}
         <SidebarResizer 
           onResize={handleSidebarResize}
           isOpen={isOpen}

@@ -5,7 +5,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { Box, IconButton, Tooltip, Typography, useTheme, useMediaQuery } from '@mui/material';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { menuItems } from './menuStructure';
+import { modulos } from './menuStructure';
 import { icons } from './menuIcons';
 import { SystemButtons } from '../components/common/SystemButtons';
 import { useEntityActions } from '../components/common/CommonActions';
@@ -30,7 +30,7 @@ function isRouteActive(path, currentPath) {
   return currentPath === path || currentPath.startsWith(path + '/');
 }
 
-function findActiveMainSection(currentPath, items = menuItems) {
+function findActiveMainSection(currentPath, items = modulos) {
   const cacheKey = `main_${currentPath}`;
   if (routeCache.has(cacheKey)) {
     return routeCache.get(cacheKey);
@@ -66,7 +66,7 @@ function findActiveSubSection(currentPath, section) {
 }
 
 // Función para encontrar el padre de una ruta en la jerarquía del menú
-function findParentPath(currentPath, items = menuItems) {
+function findParentPath(currentPath, items = modulos) {
   const cacheKey = `parent_${currentPath}`;
   if (routeCache.has(cacheKey)) {
     return routeCache.get(cacheKey);
@@ -164,7 +164,7 @@ export default function Toolbar({ children, additionalActions = [] }) {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // 2. LÓGICA DE NAVEGACIÓN Y HELPERS
-  const mainSection = useMemo(() => findActiveMainSection(currentPath, menuItems), [currentPath]);
+  const mainSection = useMemo(() => findActiveMainSection(currentPath, modulos), [currentPath]);
   const subSection = useMemo(() => findActiveSubSection(currentPath, mainSection), [currentPath, mainSection]);
   const siblings = useMemo(() => {
     if (isMobile) {
@@ -212,11 +212,11 @@ export default function Toolbar({ children, additionalActions = [] }) {
       zIndex: 1201,
       bgcolor: '#181818',
       pb: 0,
-      borderBottom: '1px solid',
-      borderColor: 'divider',
       minHeight: 2,
       m: 0,
-      p: 0
+      p: 0,
+      boxShadow: 'none', // <-- Forzar sin sombra
+      mb: 2 // <-- Margen inferior
     }}>
       {/* Layout simplificado y flexible */}
       <Box sx={{ 

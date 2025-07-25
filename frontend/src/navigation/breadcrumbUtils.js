@@ -1,6 +1,6 @@
 // breadcrumbUtils.js
 // Utilidad para obtener los breadcrumbs jerárquicos según la ruta y el menú
-import { menuItems } from './menuStructure';
+import { modulos } from './menuStructure';
 import { icons } from './menuIcons';
 
 function isRouteActive(path, currentPath) {
@@ -8,7 +8,7 @@ function isRouteActive(path, currentPath) {
   return currentPath === path || currentPath.startsWith(path + '/');
 }
 
-export function getBreadcrumbs(currentPath, items = menuItems, acc = []) {
+export function getBreadcrumbs(currentPath, items = modulos, acc = []) {
   for (const item of items) {
     if (item.path && isRouteActive(item.path, currentPath)) {
       acc.push(item);

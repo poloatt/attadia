@@ -6,8 +6,8 @@ export default function PageContainer({ children, sx = {}, ...props }) {
       sx={{
         width: '100%',
         flex: 1,
-        px: { xs: 1, sm: 2, md: 3 },
-        py: 2,
+        px: { xs: 2, sm: 4, md: 6 }, // Más padding horizontal
+        py: 3, // Más padding vertical
         ...sx
       }}
       {...props}

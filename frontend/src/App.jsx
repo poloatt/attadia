@@ -43,11 +43,11 @@ import Inversiones from './pages/Inversiones';
 import Autos from './pages/Autos';
 import Preferencias from './pages/Preferencias';
 import { MercadoPagoCallbackPage } from './pages/MercadoPagoCallbackPage';
-import { menuItems } from './navigation/menuStructure';
+import { modulos } from './navigation/menuStructure';
 import { SidebarProvider } from './context/SidebarContext';
 
 // Función utilitaria para buscar path por id
-function findPathById(id, items = menuItems) {
+function findPathById(id, items = modulos) {
   for (const item of items) {
     if (item.id === id && item.path) return item.path;
     if (item.subItems) {

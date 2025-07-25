@@ -15,7 +15,7 @@ import { EmptyState } from '../components/common';
 import { TransaccionTable, TransaccionForm } from '../components/finance';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
 import { useAPI } from '../hooks/useAPI';
-import { menuItems } from '../navigation/menuStructure';
+import { modulos } from '../navigation/menuStructure';
 import { useLocation } from 'react-router-dom';
 
 export function Transacciones() {

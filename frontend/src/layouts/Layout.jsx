@@ -10,6 +10,7 @@ import { CustomSnackbarProvider } from '../components/common';
 import { useEffect } from 'react';
 import { FormManagerProvider } from '../context/FormContext';
 import { GlobalFormEventListener } from '../context/GlobalFormEventListener';
+import { modulos } from '../navigation/menuStructure';
 
 export function Layout() {
   const theme = useTheme();
@@ -18,6 +19,12 @@ export function Layout() {
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'), { noSsr: true });
   const navigate = useNavigate();
   const location = useLocation();
+  const currentPath = location.pathname;
+  // Lógica para encontrar el módulo activo
+  const moduloActivo = modulos.find(modulo =>
+    modulo.subItems?.some(sub => currentPath.startsWith(sub.path)) ||
+    currentPath.startsWith(modulo.path)
+  );
   const { isOpen, sidebarWidth, collapsedWidth } = useSidebar();
   const { showEntityToolbarNavigation, showSidebarCollapsed } = useUISettings();
   const { user } = useAuth();
@@ -94,7 +101,7 @@ export function Layout() {
               display: 'block',
             }}
           >
-            <Sidebar />
+            <Sidebar moduloActivo={moduloActivo} />
           </Box>
         )}
         {/* Main content */}

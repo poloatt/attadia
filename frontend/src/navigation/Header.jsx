@@ -3,7 +3,8 @@ import {
     Toolbar, 
     Typography, 
     Box,
-    IconButton
+    IconButton,
+    Tooltip
   } from '@mui/material';
   import { useSidebar } from '../context/SidebarContext';
   import { useUISettings } from '../context/UISettingsContext';
@@ -14,12 +15,13 @@ import {
   import Dialog from '@mui/material/Dialog';
   import { MercadoPagoConnectButton, BankConnectionForm } from '../components/finance/bankconnections';
   import { getBreadcrumbs } from './breadcrumbUtils';
-  import { menuItems } from './menuStructure';
-  import { icons } from './menuIcons';
+  import { modulos } from './menuStructure';
+  import { getIconByKey } from './menuIcons';
   import { Breadcrumbs, useTheme, useMediaQuery } from '@mui/material';
   import { SystemButtons, SYSTEM_ICONS, MenuButton } from '../components/common/SystemButtons';
   import { Refresh as RefreshIcon } from '@mui/icons-material';
   import theme from '../context/ThemeContext';
+  import React from 'react';
   
   export default function Header() {
     const { toggleSidebar } = useSidebar();
@@ -37,7 +39,7 @@ import {
     const [isBankConnectionFormOpen, setIsBankConnectionFormOpen] = useState(false);
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-    const breadcrumbs = getBreadcrumbs(location.pathname, menuItems);
+    const breadcrumbs = getBreadcrumbs(location.pathname, modulos);
   
     const handleBack = () => {
       // Encuentra el menú padre según la ruta
@@ -54,11 +56,12 @@ import {
     return (
       <AppBar 
         position="fixed" 
+        color="default" // <-- Forzar uso del color de fondo definido en el theme
+        elevation={0}    // <-- Quitar sombra
         sx={{ 
           zIndex: (theme) => theme.zIndex.drawer + 1, // Header siempre por encima de sidebar
-          backgroundColor: theme.palette.background.default, // Fondo opaco
-          borderBottom: '1px solid',
-          borderColor: theme.palette.divider,
+          backgroundColor: '#181818', // <-- Forzar color exacto
+          boxShadow: 'none', // <-- Forzar sin sombra
           height: 40,
           left: 0, // Header ocupa todo el ancho
           width: '100%', // Header siempre 100% del ancho
@@ -75,7 +78,8 @@ import {
               xs: 1,
               sm: 2,
               md: 3
-            }
+            },
+            boxShadow: 'none' // <-- Forzar sin sombra en Toolbar
           }}
         >
           <Box
@@ -102,11 +106,7 @@ import {
               )}
               {(() => {
                 const last = breadcrumbs[breadcrumbs.length - 1];
-                const Icon = last?.icon
-                  ? typeof last.icon === 'string'
-                    ? icons[last.icon]
-                    : last.icon
-                  : null;
+                const IconComponent = last?.icon && typeof last.icon === 'string' ? getIconByKey(last.icon) : null;
                 return (
                   <Box
                     sx={{
@@ -122,7 +122,7 @@ import {
                       zIndex: 1
                     }}
                   >
-                    {Icon && <Icon sx={{ fontSize: 16, color: 'primary.main', mr: 0.5 }} />}
+                    {IconComponent && React.createElement(IconComponent, { fontSize: 'small', color: 'primary.main', style: { marginRight: 4 } })}
                     <Typography color="inherit" sx={{ fontWeight: 500 }}>
                       {last?.title}
                     </Typography>
@@ -132,26 +132,65 @@ import {
             </Box>
   
             <Box sx={{ flexGrow: 1 }} />
-  
+
+            {/* Íconos de los otros dos módulos principales */}
+            {(() => {
+              // Detectar el módulo activo
+              const moduloActivo = modulos.find(modulo =>
+                modulo.subItems?.some(sub => location.pathname.startsWith(sub.path)) ||
+                location.pathname.startsWith(modulo.path)
+              );
+              // Filtrar los otros dos módulos
+              const otrosModulos = modulos.filter(m => m.id !== moduloActivo?.id && ['assets', 'salud', 'tiempo'].includes(m.id));
+              return (
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mr: 2 }}>
+                  {otrosModulos.map(modulo => {
+                    const IconComponent = getIconByKey(modulo.icon);
+                    return (
+                      <Tooltip key={modulo.id} title={modulo.title}>
+                        <IconButton
+                          onClick={() => navigate(modulo.path)}
+                          size="small"
+                          sx={{
+                            bgcolor: 'transparent',
+                            color: 'text.secondary', // color más neutro
+                            borderRadius: 1,
+                            fontSize: 22,
+                            transition: 'color 0.2s',
+                            '&:hover': {
+                              color: 'primary.main', // solo resalta en hover
+                              bgcolor: 'action.hover',
+                            }
+                          }}
+                        >
+                          {IconComponent && React.createElement(IconComponent, { fontSize: 'small' })}
+                        </IconButton>
+                      </Tooltip>
+                    );
+                  })}
+                </Box>
+              );
+            })()}
+
             {/* Migración: todos los botones de acción del header en SystemButtons */}
             <SystemButtons
               actions={[
-                showAddButton && !showEntityToolbarNavigation && entityConfig ? {
+                !showEntityToolbarNavigation && showAddButton && entityConfig ? {
                   key: 'add',
                   icon: <SystemButtons.AddButton entityConfig={entityConfig} />, // Solo visual, sin lógica local
                   label: 'Agregar',
                   tooltip: 'Agregar',
                   disabled: false
                 } : null,
-                {
+                !showEntityToolbarNavigation ? {
                   key: 'config',
                   icon: icons.settings ? <icons.settings sx={{ fontSize: 20 }} /> : <span>⚙️</span>,
                   label: 'Configuración',
                   tooltip: 'Configuración',
                   onClick: () => navigate('/configuracion'),
                   disabled: false
-                },
-                location.pathname.includes('/cuentas') ? {
+                } : null,
+                !showEntityToolbarNavigation && location.pathname.includes('/cuentas') ? {
                   key: 'sync',
                   icon: <AutorenewOutlined sx={{ fontSize: 20, color: 'white' }} />,
                   label: 'Sincronizar',

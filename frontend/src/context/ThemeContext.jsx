@@ -64,8 +64,6 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           backgroundColor: '#181818',
-          borderBottom: '1px solid rgba(140, 140, 140, 0.15)',
-          boxShadow: 'none',
           height: 48,
         },
       },
@@ -75,6 +73,7 @@ const theme = createTheme({
         root: {
           minHeight: '40px !important',
           padding: '0 !important',
+          boxShadow: 'none', // Asegura sin sombra
           '& .MuiIconButton-root': {
             color: 'text.secondary',
             '&:hover': {
