@@ -25,6 +25,12 @@ export function Layout() {
     modulo.subItems?.some(sub => currentPath.startsWith(sub.path)) ||
     currentPath.startsWith(modulo.path)
   );
+  // Encontrar el nivel 1 activo dentro del módulo activo
+  const nivel1Activo = moduloActivo?.subItems?.find(
+    sub => currentPath.startsWith(sub.path)
+  );
+  // Los hijos de nivel 2 (si existen)
+  const nivel2 = nivel1Activo?.subItems || [];
   const { isOpen, sidebarWidth, collapsedWidth } = useSidebar();
   const { showEntityToolbarNavigation, showSidebarCollapsed } = useUISettings();
   const { user } = useAuth();
@@ -81,7 +87,11 @@ export function Layout() {
         {/* Toolbar */}
         {showToolbar && (
           <Box sx={{ position: 'fixed', top: `${headerHeight}px`, left: 0, width: '100vw', zIndex: 1399 }}>
-            <Toolbar />
+            <Toolbar 
+              moduloActivo={moduloActivo}
+              nivel1={nivel2}
+              currentPath={currentPath}
+            />
           </Box>
         )}
         {/* Sidebar */}
@@ -91,7 +101,9 @@ export function Layout() {
               position: 'fixed',
               top: `${totalTopPadding}px`,
               left: 0,
-              height: `calc(100vh - ${totalTopPadding}px - ${footerHeight}px)` ,
+              height: isMobile
+                ? `calc(100vh - ${totalTopPadding}px - 89px)`
+                : `calc(100vh - ${totalTopPadding}px - ${footerHeight}px)`,
               zIndex: 1100,
               width: isOpen ? sidebarWidth : collapsedWidth,
               transition: 'width 0.3s',

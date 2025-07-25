@@ -143,7 +143,7 @@ import {
               // Filtrar los otros dos módulos
               const otrosModulos = modulos.filter(m => m.id !== moduloActivo?.id && ['assets', 'salud', 'tiempo'].includes(m.id));
               return (
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mr: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto', flexGrow: 0, justifyContent: 'flex-end' }}>
                   {otrosModulos.map(modulo => {
                     const IconComponent = getIconByKey(modulo.icon);
                     return (
@@ -160,7 +160,8 @@ import {
                             '&:hover': {
                               color: 'primary.main', // solo resalta en hover
                               bgcolor: 'action.hover',
-                            }
+                            },
+                            mx: 0.25 // mínimo espacio entre iconos
                           }}
                         >
                           {IconComponent && React.createElement(IconComponent, { fontSize: 'small' })}

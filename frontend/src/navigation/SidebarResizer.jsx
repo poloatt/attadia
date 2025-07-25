@@ -6,19 +6,27 @@ import { useSidebar } from '../context/SidebarContext';
 /**
  * SidebarResizer modular y desacoplado.
  * Props:
- * - onResize: función callback para cambiar el ancho
- * - minWidth, maxWidth, defaultWidth: límites de ancho
+ * - onResize: función callback para cambiar el ancho (requerido)
+ * - minWidth, maxWidth, defaultWidth: límites de ancho (opcional)
  * - isDesktop, isOpen, isPinned: opcionales, si no se pasan usa el contexto Sidebar
  *
  * Así puede ser usado en cualquier layout/sidebar, y la lógica de visibilidad queda centralizada.
  */
-const SidebarResizer = ({ onResize, minWidth = 200, maxWidth = 400, defaultWidth = 280, isDesktop: propIsDesktop, isOpen: propIsOpen, isPinned: propIsPinned }) => {
+const SidebarResizer = ({
+  onResize,
+  minWidth = 200,
+  maxWidth = 400,
+  defaultWidth = 280,
+  isDesktop: propIsDesktop,
+  isOpen: propIsOpen,
+  isPinned: propIsPinned
+}) => {
   const theme = useTheme();
-  // Permite usar props o contexto
+  // Permite usar props o contexto SOLO si la prop no está definida
   const context = useSidebar();
-  const isDesktop = propIsDesktop !== undefined ? propIsDesktop : context.isDesktop;
-  const isOpen = propIsOpen !== undefined ? propIsOpen : context.isOpen;
-  const isPinned = propIsPinned !== undefined ? propIsPinned : context.isPinned;
+  const isDesktop = propIsDesktop !== undefined ? propIsDesktop : context?.isDesktop;
+  const isOpen = propIsOpen !== undefined ? propIsOpen : context?.isOpen;
+  const isPinned = propIsPinned !== undefined ? propIsPinned : context?.isPinned;
   const [isResizing, setIsResizing] = useState(false);
   const [startX, setStartX] = useState(0);
   const [startWidth, setStartWidth] = useState(defaultWidth);
@@ -32,11 +40,8 @@ const SidebarResizer = ({ onResize, minWidth = 200, maxWidth = 400, defaultWidth
 
   const handleMouseMove = useCallback((e) => {
     if (!isResizing) return;
-
     const deltaX = e.clientX - startX;
     const newWidth = Math.max(minWidth, Math.min(maxWidth, startWidth + deltaX));
-    
-    // Llamar a la función de callback con el nuevo ancho
     onResize(newWidth);
   }, [isResizing, startX, startWidth, minWidth, maxWidth, onResize]);
 
@@ -44,16 +49,12 @@ const SidebarResizer = ({ onResize, minWidth = 200, maxWidth = 400, defaultWidth
     setIsResizing(false);
   }, []);
 
-  // Agregar event listeners globales
   useEffect(() => {
     if (isResizing) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
-      
-      // Cambiar el cursor del body
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
-      
       return () => {
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
