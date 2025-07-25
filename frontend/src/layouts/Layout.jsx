@@ -19,7 +19,7 @@ export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isOpen, sidebarWidth } = useSidebar();
-  const { showSidebar, showEntityToolbarNavigation } = useUISettings();
+  const { showEntityToolbarNavigation } = useUISettings();
   const { user } = useAuth();
 
   useEffect(() => {
@@ -44,6 +44,8 @@ export function Layout() {
   const headerHeight = 40;
   const toolbarHeight = 40;
   const totalTopPadding = headerHeight + toolbarHeight;
+  const collapsedWidth = 56;
+  const mainMargin = isOpen ? sidebarWidth : collapsedWidth;
 
   return (
     <FormManagerProvider>
@@ -58,15 +60,15 @@ export function Layout() {
           <Toolbar />
         </Box>
         {/* Sidebar fija a la izquierda, nunca tapa Header/Toolbar */}
-        {showSidebar && (
+        {isOpen !== undefined && (
           <Box
             sx={{
               position: 'fixed',
               top: `${totalTopPadding}px`,
               left: 0,
-              height: 'calc(100vh - ' + totalTopPadding + 'px)',
+              height: `calc(100vh - ${totalTopPadding}px)`,
               zIndex: 1100,
-              width: isDesktop ? (isOpen ? sidebarWidth : 56) : 0,
+              width: isOpen ? sidebarWidth : collapsedWidth,
               transition: 'width 0.3s',
               bgcolor: 'background.default',
               borderRight: isDesktop ? '1.5px solid #232323' : 'none',
@@ -83,7 +85,7 @@ export function Layout() {
             flexGrow: 1,
             width: '100%',
             minHeight: '100vh',
-            ml: isDesktop ? (isOpen ? sidebarWidth : 56) : 0,
+            ml: mainMargin,
             pt: `${totalTopPadding}px`,
             display: 'flex',
             flexDirection: 'column',
@@ -128,7 +130,7 @@ export function Layout() {
           {/* Mostrar BottomNavigation solo en mobile/tablet */}
           {(isMobile || isTablet) && <BottomNavigation />}
           <Box sx={{ position: 'fixed', left: 0, bottom: 0, width: '100vw', zIndex: 1300 }}>
-            <Footer isDesktop={isDesktop} isSidebarOpen={isOpen && showSidebar && isDesktop} />
+            <Footer isDesktop={isDesktop} isSidebarOpen={isOpen && isDesktop} />
           </Box>
           <CustomSnackbarProvider />
         </Box>

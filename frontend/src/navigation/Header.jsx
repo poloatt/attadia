@@ -17,7 +17,7 @@ import {
   import { menuItems } from './menuStructure';
   import { icons } from './menuIcons';
   import { Breadcrumbs, useTheme, useMediaQuery } from '@mui/material';
-  import { SystemButtons, SYSTEM_ICONS } from '../components/common/SystemButtons';
+  import { SystemButtons, SYSTEM_ICONS, MenuButton } from '../components/common/SystemButtons';
   import { Refresh as RefreshIcon } from '@mui/icons-material';
   import theme from '../context/ThemeContext';
   
@@ -93,7 +93,7 @@ import {
               alignItems: 'center',
               gap: 1
             }}>
-              <SystemButtons.MenuButton onClick={toggleSidebar} />
+              <MenuButton />
               {/* Botón de atrás solo si no estamos en la raíz y la toolbar no está activa */}
               {location.pathname !== '/' && !showEntityToolbarNavigation && (
                 <IconButton onClick={handleBack} size="small" sx={{ ml: 0, mr: 0.5 }}>

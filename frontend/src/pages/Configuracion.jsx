@@ -1,6 +1,7 @@
 import React from 'react';
 import { Container, Box, Typography, useTheme, Paper, Switch, FormControl, FormControlLabel, Divider, Button, useMediaQuery } from '@mui/material';
 import { useUISettings } from '../context/UISettingsContext';
+import { useSidebar } from '../context/SidebarContext';
 import { CommonConstruction } from '../components/common';
 import { useAuth } from '../context/AuthContext';
 import { Toolbar } from '../navigation';
@@ -10,10 +11,9 @@ export function Configuracion() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { 
     showEntityToolbarNavigation, 
-    showSidebar, 
-    toggleEntityToolbarNavigation, 
-    toggleSidebar 
+    toggleEntityToolbarNavigation 
   } = useUISettings();
+  const { isOpen, toggleSidebar, isPinned, togglePin } = useSidebar();
   const { logout, user } = useAuth();
 
   return (
@@ -59,8 +59,8 @@ export function Configuracion() {
               <FormControlLabel
                 control={
                   <Switch
-                    checked={showSidebar}
-                    onChange={toggleSidebar}
+                    checked={isPinned}
+                    onChange={togglePin}
                     color="primary"
                   />
                 }

@@ -164,8 +164,6 @@ export function Dieta() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <Toolbar />
-
       <CommonDetails
         title="Dieta"
         action={

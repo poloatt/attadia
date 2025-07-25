@@ -202,7 +202,7 @@ export function Inquilinos() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <Toolbar />
+      {/* Eliminar <Toolbar /> */}
 
       <Box sx={{
         width: '100%',

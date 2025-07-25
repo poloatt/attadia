@@ -97,8 +97,6 @@ export function DataCorporal() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <Toolbar />
-      
       <CommonDetails 
         title="Composición Corporal"
         action={

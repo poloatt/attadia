@@ -266,7 +266,6 @@ export function Transacciones() {
 
   return (
     <Box sx={{ px: 0, width: '100%', position: 'relative', minHeight: '80vh', bgcolor: 'background.default' }}>
-      <Toolbar />
       <FabNuevaTransaccion onClick={handleOpenForm} />
 
       {isLoading ? (

@@ -243,8 +243,6 @@ export function Inventario() {
       flexDirection: 'column',
       gap: 0
     }}>
-      <Toolbar />
-
       <CommonDetails
         title="Inventario"
         action={

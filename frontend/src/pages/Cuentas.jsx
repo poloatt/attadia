@@ -564,7 +564,6 @@ export function Cuentas() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <Toolbar />
       {/* Modal para crear cuenta (manual o MercadoPago) */}
       <BankConnectionForm
         open={isBankConnectionFormOpen}

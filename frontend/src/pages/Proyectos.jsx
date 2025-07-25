@@ -247,7 +247,7 @@ export function Proyectos() {
   return (
     <Box sx={{ px: { xs: 1, sm: 2, md: 3 }, width: '100%' }}>
       <Box sx={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <Toolbar />
+        {/* Eliminar <Toolbar /> */}
         <Box 
           sx={{ 
             py: isMobile ? 1 : 2,

@@ -16,7 +16,6 @@ export default function Inversiones() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <Toolbar />
       <Box sx={{ 
         width: '100%',
         maxWidth: 900,

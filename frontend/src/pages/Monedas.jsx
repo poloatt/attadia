@@ -621,8 +621,6 @@ export function Monedas() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <Toolbar />
-      
       <CommonDetails 
         title="Monedas"
         subtitle="Gestiona las monedas disponibles en el sistema"

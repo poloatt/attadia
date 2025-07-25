@@ -357,8 +357,6 @@ export function Recurrente() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <Toolbar />
-
       <CommonDetails
         title="Transacciones Recurrentes"
         subtitle="Gestiona tus transacciones periódicas"

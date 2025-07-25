@@ -24,7 +24,7 @@ export function Deudores() {
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
-      <Toolbar />
+      {/* Eliminar <Toolbar /> */}
 
       <CommonDetails title="Deudores">
         <CommonConstruction />

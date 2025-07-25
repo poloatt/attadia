@@ -6,7 +6,6 @@ import { Toolbar } from '../navigation';
 export default function Autos() {
   return (
     <Box sx={{ width: '100%' }}>
-      <Toolbar />
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 2 }}>
         <DirectionsCarIcon sx={{ fontSize: 64, color: 'primary.main' }} />
         <Typography variant="h5" color="text.secondary">Página de Autos en construcción</Typography>

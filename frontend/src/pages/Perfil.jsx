@@ -34,7 +34,6 @@ export default function Perfil() {
 
   return (
     <Box sx={{ width: '100%', px: { xs: 1, sm: 2, md: 3 }, maxWidth: 800, mx: 'auto' }}>
-      <Toolbar />
       <Paper 
         elevation={0}
         sx={{ 

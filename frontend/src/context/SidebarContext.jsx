@@ -5,23 +5,31 @@ import { useLocation } from 'react-router-dom';
 
 const SidebarContext = createContext();
 
+// Función para detectar si es mobile (consistente con UISettingsContext)
+const isMobileDevice = () => {
+  return window.innerWidth < 600; // breakpoint 'sm' de Material-UI
+};
+
 export function SidebarProvider({ children }) {
   const theme = useTheme();
   // Solo un breakpoint: desktop (>= md)
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'), { noSsr: true });
   const location = useLocation();
+  
   // Estado para el pin manual de la sidebar (solo desktop)
   const [isPinned, setIsPinned] = useState(() => {
     if (typeof window === 'undefined') return true;
     const pref = localStorage.getItem('sidebarPinned');
     return pref === null ? true : pref === 'true';
   });
+  
   const togglePin = () => {
     setIsPinned((prev) => {
       localStorage.setItem('sidebarPinned', (!prev).toString());
       return !prev;
     });
   };
+  
   // Inicialización robusta de isOpen según preferencia y tipo de dispositivo
   const getInitialSidebarState = () => {
     if (typeof window === 'undefined') return true;
@@ -34,29 +42,37 @@ export function SidebarProvider({ children }) {
       return pref === 'true';
     }
   };
+  
   const [isOpen, setIsOpen] = useState(getInitialSidebarState);
+  
   // Ancho dinámico solo en desktop
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const savedWidth = localStorage.getItem('sidebarWidth');
     return savedWidth ? parseInt(savedWidth, 10) : 280;
   });
+  
   // Estado para la selección de secciones
   const [expandedSections, setExpandedSections] = useState(new Set());
   const [selectedMain, setSelectedMain] = useState(null);
   const [selectedSecond, setSelectedSecond] = useState(null);
+  
   // Secciones principales (excluyendo setup)
   const mainSections = useMemo(() => menuItems.filter(item => item.id !== 'setup'), []);
 
-  // Efecto para mantener la sidebar siempre visible en desktop
+  // useEffect para restaurar el estado desde localStorage, sin forzar nunca el estado en desktop
   useEffect(() => {
     if (isDesktop) {
-      setIsOpen(true);
-      localStorage.setItem('sidebarDesktopOpen', 'true');
+      const pref = localStorage.getItem('sidebarDesktopOpen');
+      if (pref === 'true') {
+        setIsOpen(true);
+      } else {
+        setIsOpen(false);
+      }
     } else {
       const pref = localStorage.getItem('sidebarMobileOpen');
       setIsOpen(pref === 'true');
     }
-  }, [isDesktop, isPinned]);
+  }, [isDesktop]);
 
   // Sincronizar expansión y selección con la ruta actual
   useEffect(() => {
@@ -106,27 +122,33 @@ export function SidebarProvider({ children }) {
 
   // Solo permitir minimizar en desktop por acción explícita del usuario y si no está pineada
   const toggleSidebar = useCallback(() => {
-    if (isDesktop && isPinned) return;
-    if (isDesktop) return;
-    const newState = !isOpen;
-    setIsOpen(newState);
-    if (!isDesktop) {
-      localStorage.setItem('sidebarMobileOpen', newState.toString());
-    }
-  }, [isOpen, isDesktop, isPinned]);
+    if (isDesktop && isPinned) return; // Solo bloquear si está pineada en desktop
+    setIsOpen(prev => {
+      const newState = !prev;
+      if (isDesktop) {
+        localStorage.setItem('sidebarDesktopOpen', newState.toString());
+      } else {
+        localStorage.setItem('sidebarMobileOpen', newState.toString());
+      }
+      return newState;
+    });
+  }, [isDesktop, isPinned]);
 
   const closeSidebar = useCallback(() => {
     if (isDesktop && isPinned) return;
-    if (isDesktop) return;
     setIsOpen(false);
-    if (!isDesktop) {
+    if (isDesktop) {
+      localStorage.setItem('sidebarDesktopOpen', 'false');
+    } else {
       localStorage.setItem('sidebarMobileOpen', 'false');
     }
   }, [isDesktop, isPinned]);
 
   const openSidebar = useCallback(() => {
     setIsOpen(true);
-    if (!isDesktop) {
+    if (isDesktop) {
+      localStorage.setItem('sidebarDesktopOpen', 'true');
+    } else {
       localStorage.setItem('sidebarMobileOpen', 'true');
     }
   }, [isDesktop]);

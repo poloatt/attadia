@@ -40,7 +40,7 @@ export default function Sidebar() {
     togglePin,
     handleSidebarResize
   } = useSidebar();
-  const { showEntityToolbarNavigation, showSidebar } = useUISettings();
+  const { showEntityToolbarNavigation } = useUISettings();
   
   const navigate = useNavigate();
   const location = useLocation();

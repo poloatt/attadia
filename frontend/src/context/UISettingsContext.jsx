@@ -17,9 +17,8 @@ function getInitialSettings() {
       } catch (e) {}
     }
   }
-  // Valores por defecto
+  // Valores por defecto - solo configuraciones generales de UI
   return {
-    showSidebar: !isMobileDevice(),
     showEntityToolbarNavigation: !isMobileDevice()
   };
 }
@@ -27,15 +26,13 @@ function getInitialSettings() {
 export function UISettingsProvider({ children }) {
   const initial = getInitialSettings();
   const [showEntityToolbarNavigation, setShowEntityToolbarNavigation] = useState(initial.showEntityToolbarNavigation);
-  const [showSidebar, setShowSidebar] = useState(initial.showSidebar);
 
   // Guardar configuraciones en localStorage cuando cambien
   useEffect(() => {
     localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify({
-      showSidebar,
       showEntityToolbarNavigation
     }));
-  }, [showSidebar, showEntityToolbarNavigation]);
+  }, [showEntityToolbarNavigation]);
 
   // Actualizar valores por defecto cuando cambie el tamaño de pantalla SOLO si no hay config guardada
   useEffect(() => {
@@ -44,7 +41,6 @@ export function UISettingsProvider({ children }) {
       const saved = localStorage.getItem(UI_SETTINGS_KEY);
       if (!saved) {
         setShowEntityToolbarNavigation(!currentIsMobile);
-        setShowSidebar(!currentIsMobile);
       }
     };
     window.addEventListener('resize', handleResize);
@@ -55,19 +51,12 @@ export function UISettingsProvider({ children }) {
     setShowEntityToolbarNavigation(prev => !prev);
   };
 
-  const toggleSidebar = () => {
-    setShowSidebar(prev => !prev);
-  };
-
   return (
     <UISettingsContext.Provider
       value={{
         showEntityToolbarNavigation,
-        showSidebar,
         toggleEntityToolbarNavigation,
-        toggleSidebar,
-        setShowEntityToolbarNavigation,
-        setShowSidebar
+        setShowEntityToolbarNavigation
       }}
     >
       {children}
