@@ -26,8 +26,12 @@ function getInitialSettings() {
 
 export function UISettingsProvider({ children }) {
   const initial = getInitialSettings();
-  const [showEntityToolbarNavigation, setShowEntityToolbarNavigation] = useState(initial.showEntityToolbarNavigation);
-  const [showSidebarCollapsed, setShowSidebarCollapsed] = useState(initial.showSidebarCollapsed);
+  const [showEntityToolbarNavigation, setShowEntityToolbarNavigation] = useState(
+    typeof initial.showEntityToolbarNavigation === 'boolean' ? initial.showEntityToolbarNavigation : false
+  );
+  const [showSidebarCollapsed, setShowSidebarCollapsed] = useState(
+    typeof initial.showSidebarCollapsed === 'boolean' ? initial.showSidebarCollapsed : false
+  );
 
   useEffect(() => {
     localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify({

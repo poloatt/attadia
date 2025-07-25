@@ -55,8 +55,8 @@ export function Layout() {
       : ((showSidebarCollapsed && isOpen) ? sidebarWidth : 0);
   const footerHeight = 48; // Ajusta según el alto real de tu Footer
 
-  // Padding fijo para el main (solo header, nunca suma toolbar)
-  const mainTopPadding = headerHeight;
+  // Padding superior para el main: header + toolbar si está visible
+  const mainTopPadding = showToolbar ? headerHeight + toolbarHeight : headerHeight;
 
   // Determinar si se debe renderizar la sidebar
   const shouldRenderSidebar =
@@ -105,7 +105,7 @@ export function Layout() {
             left: mainMargin,
             right: 0,
             bottom: 0,
-            pt: `${mainTopPadding}px`, // <-- SIEMPRE SOLO HEADER
+            pt: `${mainTopPadding}px`, // <-- AJUSTADO PARA INCLUIR TOOLBAR SI ESTÁ VISIBLE
             pb: `${footerHeight}px`,
             bgcolor: 'background.default',
             overflowY: 'auto',
