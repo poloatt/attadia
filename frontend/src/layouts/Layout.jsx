@@ -43,50 +43,58 @@ export function Layout() {
   // Calcular el padding-top para header + toolbar (ambos fijos y globales)
   const headerHeight = 40;
   const toolbarHeight = 40;
-  const totalTopPadding = headerHeight + toolbarHeight;
-  const collapsedWidth = 56;
-  const mainMargin = isOpen ? sidebarWidth : collapsedWidth;
+  const showToolbar = showEntityToolbarNavigation;
+  const totalTopPadding = headerHeight + (showToolbar ? toolbarHeight : 0);
+  const collapsedWidth = 0;
+  const mobileMargin = 0;
+  const mainMargin = isDesktop
+    ? (isOpen ? sidebarWidth : collapsedWidth)
+    : (isOpen ? sidebarWidth : mobileMargin);
+  const footerHeight = 48; // Ajusta según el alto real de tu Footer
 
   return (
     <FormManagerProvider>
       <GlobalFormEventListener />
-      <Box sx={{ position: 'relative', minHeight: '100vh', maxWidth: '100vw', bgcolor: 'background.default' }}>
-        {/* Header fijo arriba, zIndex más alto */}
+      <Box sx={{ minHeight: '100vh', maxWidth: '100vw', bgcolor: 'background.default' }}>
+        {/* Header */}
         <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', zIndex: 1400 }}>
           <Header />
         </Box>
-        {/* Toolbar fijo debajo del Header */}
-        <Box sx={{ position: 'fixed', top: '40px', left: 0, width: '100vw', zIndex: 1399 }}>
-          <Toolbar />
-        </Box>
-        {/* Sidebar fija a la izquierda, nunca tapa Header/Toolbar */}
+        {/* Toolbar */}
+        {showToolbar && (
+          <Box sx={{ position: 'fixed', top: `${headerHeight}px`, left: 0, width: '100vw', zIndex: 1399 }}>
+            <Toolbar />
+          </Box>
+        )}
+        {/* Sidebar */}
         {isOpen !== undefined && (
           <Box
             sx={{
               position: 'fixed',
               top: `${totalTopPadding}px`,
               left: 0,
-              height: `calc(100vh - ${totalTopPadding}px)`,
+              height: `calc(100vh - ${totalTopPadding}px - ${footerHeight}px)` ,
               zIndex: 1100,
-              width: isOpen ? sidebarWidth : collapsedWidth,
+              width: isOpen ? sidebarWidth : (isDesktop ? collapsedWidth : 0),
               transition: 'width 0.3s',
               bgcolor: 'background.default',
               borderRight: isDesktop ? '1.5px solid #232323' : 'none',
               overflow: 'hidden',
-              display: 'block',
+              display: isOpen || isDesktop ? 'block' : 'none',
             }}
           >
             <Sidebar />
           </Box>
         )}
-        {/* Contenido principal, nunca tapa Header/Toolbar */}
+        {/* Main content */}
         <Box
           sx={{
             flexGrow: 1,
-            width: '100%',
+            width: '100%', // Solo width 100%, sin calc
             minHeight: '100vh',
-            ml: mainMargin,
+            ml: mainMargin, // Solo margin-left para sidebar
             pt: `${totalTopPadding}px`,
+            pb: `${footerHeight}px`,
             display: 'flex',
             flexDirection: 'column',
             bgcolor: 'background.default',
@@ -127,12 +135,12 @@ export function Layout() {
           }}>
             <Outlet />
           </Box>
-          {/* Mostrar BottomNavigation solo en mobile/tablet */}
           {(isMobile || isTablet) && <BottomNavigation />}
-          <Box sx={{ position: 'fixed', left: 0, bottom: 0, width: '100vw', zIndex: 1300 }}>
-            <Footer isDesktop={isDesktop} isSidebarOpen={isOpen && isDesktop} />
-          </Box>
           <CustomSnackbarProvider />
+        </Box>
+        {/* Footer */}
+        <Box sx={{ position: 'fixed', left: 0, bottom: 0, width: '100vw', zIndex: 1300, height: `${footerHeight}px` }}>
+          <Footer isDesktop={isDesktop} isSidebarOpen={isOpen && isDesktop} />
         </Box>
       </Box>
     </FormManagerProvider>
