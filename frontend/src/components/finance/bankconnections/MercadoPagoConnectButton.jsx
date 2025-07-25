@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, CircularProgress } from '@mui/material';
 import { useMercadoPago } from '../../../hooks/useMercadoPago';
-import mercadopagoLogo from './logos/mercadopago.svg';
+// import mercadopagoLogo from './logos/mercadopago.svg';
 
 export default function MercadoPagoConnectButton({ onSuccess, onError, fullWidth = false }) {
   const { connecting, connect } = useMercadoPago();
@@ -42,7 +42,7 @@ export default function MercadoPagoConnectButton({ onSuccess, onError, fullWidth
         <CircularProgress size={24} color="inherit" />
       ) : (
         <img 
-          src={mercadopagoLogo} 
+          src="/logos/mercadopago/MP_RGB_HANDSHAKE_color_horizontal.svg" 
           alt="MercadoPago" 
           style={{ 
             maxWidth: 120, 

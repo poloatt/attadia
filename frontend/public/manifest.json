@@ -9,14 +9,19 @@
   "scope": "/",
   "icons": [
     {
-      "src": "logos/atta.svg",
-      "sizes": "192x192",
-      "type": "image/svg+xml"
+      "src": "logos/atta-black-72x72.html",
+      "sizes": "72x72",
+      "type": "text/html"
     },
     {
-      "src": "logos/atta.svg",
+      "src": "logos/atta-black-192x192.html",
+      "sizes": "192x192",
+      "type": "text/html"
+    },
+    {
+      "src": "logos/atta-black-512x512.html",
       "sizes": "512x512",
-      "type": "image/svg+xml"
+      "type": "text/html"
     }
   ]
 } 
