@@ -19,7 +19,7 @@ export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isOpen, sidebarWidth, collapsedWidth } = useSidebar();
-  const { showEntityToolbarNavigation } = useUISettings();
+  const { showEntityToolbarNavigation, showSidebarCollapsed } = useUISettings();
   const { user } = useAuth();
 
   useEffect(() => {
@@ -47,8 +47,21 @@ export function Layout() {
   const totalTopPadding = headerHeight + (showToolbar ? toolbarHeight : 0);
   // Elimina isDesktop, isMobile, isTablet y toda lógica condicional relacionada
   // Usa solo isOpen y sidebarWidth/collapsedWidth del contexto para calcular el margen y el ancho
-  const mainMargin = isOpen ? sidebarWidth : collapsedWidth;
+  // En móvil, si la sidebar está oculta, el margen debe ser 0
+  // En desktop solo depende de isOpen; en móvil/tablet solo hay margen si la sidebar está visible y extendida
+  const mainMargin =
+    (!isMobile && !isTablet)
+      ? (isOpen ? sidebarWidth : collapsedWidth)
+      : ((showSidebarCollapsed && isOpen) ? sidebarWidth : 0);
   const footerHeight = 48; // Ajusta según el alto real de tu Footer
+
+  // Padding fijo para el main (solo header, nunca suma toolbar)
+  const mainTopPadding = headerHeight;
+
+  // Determinar si se debe renderizar la sidebar
+  const shouldRenderSidebar =
+    (!isMobile && !isTablet) ||
+    ((isMobile || isTablet) && showSidebarCollapsed && isOpen);
 
   return (
     <FormManagerProvider>
@@ -65,7 +78,7 @@ export function Layout() {
           </Box>
         )}
         {/* Sidebar */}
-        {isOpen !== undefined && (
+        {isOpen !== undefined && shouldRenderSidebar && (
           <Box
             sx={{
               position: 'fixed',
@@ -87,21 +100,17 @@ export function Layout() {
         {/* Main content */}
         <Box
           sx={{
-            flexGrow: 1,
-            width: '100%',
-            minHeight: '100vh',
-            ml: mainMargin,
-            pt: `${totalTopPadding}px`,
+            position: 'fixed',
+            top: 0,
+            left: mainMargin,
+            right: 0,
+            bottom: 0,
+            pt: `${mainTopPadding}px`, // <-- SIEMPRE SOLO HEADER
             pb: `${footerHeight}px`,
-            display: 'flex',
-            flexDirection: 'column',
             bgcolor: 'background.default',
             overflowY: 'auto',
             overflowX: 'hidden',
-            position: 'relative',
             zIndex: 1,
-            border: 'none',
-            outline: 'none',
             scrollbarGutter: 'stable',
             '&::-webkit-scrollbar': {
               width: '8px',
@@ -120,7 +129,7 @@ export function Layout() {
         >
           <Box sx={{
             width: '100%',
-            flex: 1,
+            height: '100%',
             display: 'flex',
             flexDirection: 'column',
             gap: 0,

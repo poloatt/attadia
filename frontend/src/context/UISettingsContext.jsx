@@ -17,38 +17,35 @@ function getInitialSettings() {
       } catch (e) {}
     }
   }
-  // Valores por defecto - solo configuraciones generales de UI
+  // Valores por defecto - solo configuraciones de UI móvil
   return {
-    showEntityToolbarNavigation: !isMobileDevice()
+    showEntityToolbarNavigation: !isMobileDevice(),
+    showSidebarCollapsed: true // Por defecto visible en móvil
   };
 }
 
 export function UISettingsProvider({ children }) {
   const initial = getInitialSettings();
   const [showEntityToolbarNavigation, setShowEntityToolbarNavigation] = useState(initial.showEntityToolbarNavigation);
+  const [showSidebarCollapsed, setShowSidebarCollapsed] = useState(initial.showSidebarCollapsed);
 
-  // Guardar configuraciones en localStorage cuando cambien
   useEffect(() => {
     localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify({
-      showEntityToolbarNavigation
+      showEntityToolbarNavigation,
+      showSidebarCollapsed
     }));
-  }, [showEntityToolbarNavigation]);
-
-  // Actualizar valores por defecto cuando cambie el tamaño de pantalla SOLO si no hay config guardada
-  useEffect(() => {
-    const handleResize = () => {
-      const currentIsMobile = isMobileDevice();
-      const saved = localStorage.getItem(UI_SETTINGS_KEY);
-      if (!saved) {
-        setShowEntityToolbarNavigation(!currentIsMobile);
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [showEntityToolbarNavigation, showSidebarCollapsed]);
 
   const toggleEntityToolbarNavigation = () => {
-    setShowEntityToolbarNavigation(prev => !prev);
+    if (isMobileDevice()) {
+      setShowEntityToolbarNavigation(prev => !prev);
+    }
+  };
+
+  const toggleSidebarCollapsed = () => {
+    if (isMobileDevice()) {
+      setShowSidebarCollapsed(prev => !prev);
+    }
   };
 
   return (
@@ -56,7 +53,11 @@ export function UISettingsProvider({ children }) {
       value={{
         showEntityToolbarNavigation,
         toggleEntityToolbarNavigation,
-        setShowEntityToolbarNavigation
+        setShowEntityToolbarNavigation,
+        showSidebarCollapsed,
+        toggleSidebarCollapsed,
+        setShowSidebarCollapsed,
+        isMobile: isMobileDevice()
       }}
     >
       {children}

@@ -11,9 +11,11 @@ export function Configuracion() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { 
     showEntityToolbarNavigation, 
-    toggleEntityToolbarNavigation 
+    toggleEntityToolbarNavigation,
+    showSidebarCollapsed,
+    toggleSidebarCollapsed
   } = useUISettings();
-  const { isOpen, toggleSidebar, isPinned, togglePin } = useSidebar();
+  const { isOpen, toggleSidebar } = useSidebar();
   const { logout, user } = useAuth();
 
   return (
@@ -59,9 +61,10 @@ export function Configuracion() {
               <FormControlLabel
                 control={
                   <Switch
-                    checked={isPinned}
-                    onChange={togglePin}
+                    checked={showSidebarCollapsed}
+                    onChange={toggleSidebarCollapsed}
                     color="primary"
+                    disabled={!isMobile} // Solo habilitado en móvil
                   />
                 }
                 label={
@@ -70,7 +73,7 @@ export function Configuracion() {
                       Habilitar Sidebar
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Muestra u oculta la barra lateral de navegación
+                      Muestra u oculta la barra lateral de navegación (solo en móvil)
                     </Typography>
                   </Box>
                 }
@@ -87,6 +90,7 @@ export function Configuracion() {
                     checked={showEntityToolbarNavigation}
                     onChange={toggleEntityToolbarNavigation}
                     color="primary"
+                    disabled={!isMobile} // Solo habilitado en móvil
                   />
                 }
                 label={
@@ -95,7 +99,7 @@ export function Configuracion() {
                       Habilitar Navigation Toolbar
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Muestra u oculta la barra de navegación superior en páginas de entidades
+                      Muestra u oculta la barra de navegación superior en páginas de entidades (solo en móvil)
                     </Typography>
                   </Box>
                 }

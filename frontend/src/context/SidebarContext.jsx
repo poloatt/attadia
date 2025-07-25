@@ -21,27 +21,20 @@ export function SidebarProvider({ children }) {
   // Elimina del provider y del value del contexto
   // Elimina cualquier uso en efectos, callbacks y retornos
   
-  // Inicialización robusta de isOpen según preferencia y tipo de dispositivo
+  // Estado inicial de apertura/cierre
   const getInitialSidebarState = () => {
     if (typeof window === 'undefined') return true;
-    const isDesktop = window.innerWidth >= 960;
-    if (isDesktop) {
-      if (localStorage.getItem('sidebarPinned') === 'true') return true;
-      return true;
-    } else {
-      const pref = localStorage.getItem('sidebarMobileOpen');
-      return pref === 'true';
-    }
+    const pref = localStorage.getItem('sidebarOpen');
+    return pref === null ? true : pref === 'true';
   };
-  
   const [isOpen, setIsOpen] = useState(getInitialSidebarState);
-  
-  // Ancho dinámico solo en desktop
+
+  // Ancho de la sidebar
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const savedWidth = localStorage.getItem('sidebarWidth');
     return savedWidth ? parseInt(savedWidth, 10) : 280;
   });
-  
+
   // Estado para la selección de secciones
   const [expandedSections, setExpandedSections] = useState(new Set());
   const [selectedMain, setSelectedMain] = useState(null);
@@ -49,21 +42,6 @@ export function SidebarProvider({ children }) {
   
   // Secciones principales (excluyendo setup)
   const mainSections = useMemo(() => menuItems.filter(item => item.id !== 'setup'), []);
-
-  // useEffect para restaurar el estado desde localStorage, sin forzar nunca el estado en desktop
-  useEffect(() => {
-    if (isDesktop) {
-      const pref = localStorage.getItem('sidebarDesktopOpen');
-      if (pref === 'true') {
-        setIsOpen(true);
-      } else {
-        setIsOpen(false);
-      }
-    } else {
-      const pref = localStorage.getItem('sidebarMobileOpen');
-      setIsOpen(pref === 'true');
-    }
-  }, [isDesktop]);
 
   // Sincronizar expansión y selección con la ruta actual
   useEffect(() => {
@@ -111,41 +89,26 @@ export function SidebarProvider({ children }) {
     }
   }, [location.pathname, selectedMain, selectedSecond, mainSections]);
 
-  // Solo permitir minimizar en desktop por acción explícita del usuario
+  // Cambiar estado y persistir
   const toggleSidebar = useCallback(() => {
-    if (isDesktop) {
-      setIsOpen(prev => {
-        const newState = !prev;
-        localStorage.setItem('sidebarDesktopOpen', newState.toString());
-        return newState;
-      });
-    } else {
-      setIsOpen(prev => {
-        const newState = !prev;
-        localStorage.setItem('sidebarMobileOpen', newState.toString());
-        return newState;
-      });
-    }
-  }, [isDesktop]);
+    setIsOpen(prev => {
+      const newState = !prev;
+      localStorage.setItem('sidebarOpen', newState.toString());
+      return newState;
+    });
+  }, []);
 
   const closeSidebar = useCallback(() => {
     setIsOpen(false);
-    if (isDesktop) {
-      localStorage.setItem('sidebarDesktopOpen', 'false');
-    } else {
-      localStorage.setItem('sidebarMobileOpen', 'false');
-    }
-  }, [isDesktop]);
+    localStorage.setItem('sidebarOpen', 'false');
+  }, []);
 
   const openSidebar = useCallback(() => {
     setIsOpen(true);
-    if (isDesktop) {
-      localStorage.setItem('sidebarDesktopOpen', 'true');
-    } else {
-      localStorage.setItem('sidebarMobileOpen', 'true');
-    }
-  }, [isDesktop]);
+    localStorage.setItem('sidebarOpen', 'true');
+  }, []);
 
+  // Permitir múltiples secciones expandidas de forma consistente
   const toggleSection = useCallback((sectionId) => {
     setExpandedSections(prev => {
       const newSet = new Set(prev);
@@ -163,12 +126,8 @@ export function SidebarProvider({ children }) {
   }, [expandedSections]);
 
   const expandSection = useCallback((sectionId) => {
-    if (isDesktop) {
-      setExpandedSections(new Set([sectionId])); // Solo una expandida en desktop
-    } else {
-      setExpandedSections(prev => new Set([...prev, sectionId])); // Comportamiento actual en móvil
-    }
-  }, [isDesktop]);
+    setExpandedSections(prev => new Set([...prev, sectionId]));
+  }, []);
 
   const collapseSection = useCallback((sectionId) => {
     setExpandedSections(prev => {
@@ -186,7 +145,7 @@ export function SidebarProvider({ children }) {
     setSelectedSecond(id);
   }, []);
 
-  // Función para manejar el resize de la sidebar (solo desktop)
+  // Función para manejar el resize de la sidebar
   const handleSidebarResize = useCallback((newWidth) => {
     setSidebarWidth(newWidth);
     localStorage.setItem('sidebarWidth', newWidth.toString());
@@ -205,7 +164,6 @@ export function SidebarProvider({ children }) {
       isSectionExpanded,
       expandSection,
       collapseSection,
-      isDesktop,
       selectedMain,
       setSelectedMain: handleSetSelectedMain,
       selectedSecond,
