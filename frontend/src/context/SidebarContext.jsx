@@ -34,6 +34,7 @@ export function SidebarProvider({ children }) {
     const savedWidth = localStorage.getItem('sidebarWidth');
     return savedWidth ? parseInt(savedWidth, 10) : 280;
   });
+  const collapsedWidth = 56; // Valor fijo para la sidebar colapsada
 
   // Estado para la selección de secciones
   const [expandedSections, setExpandedSections] = useState(new Set());
@@ -169,6 +170,7 @@ export function SidebarProvider({ children }) {
       selectedSecond,
       setSelectedSecond: handleSetSelectedSecond,
       sidebarWidth,
+      collapsedWidth,
       handleSidebarResize
     }}>
       {children}
