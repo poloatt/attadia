@@ -17,18 +17,9 @@ export function SidebarProvider({ children }) {
   const location = useLocation();
   
   // Estado para el pin manual de la sidebar (solo desktop)
-  const [isPinned, setIsPinned] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    const pref = localStorage.getItem('sidebarPinned');
-    return pref === null ? true : pref === 'true';
-  });
-  
-  const togglePin = () => {
-    setIsPinned((prev) => {
-      localStorage.setItem('sidebarPinned', (!prev).toString());
-      return !prev;
-    });
-  };
+  // Elimina isPinned, togglePin, y cualquier lógica relacionada con el pin manual
+  // Elimina del provider y del value del contexto
+  // Elimina cualquier uso en efectos, callbacks y retornos
   
   // Inicialización robusta de isOpen según preferencia y tipo de dispositivo
   const getInitialSidebarState = () => {
@@ -120,29 +111,31 @@ export function SidebarProvider({ children }) {
     }
   }, [location.pathname, selectedMain, selectedSecond, mainSections]);
 
-  // Solo permitir minimizar en desktop por acción explícita del usuario y si no está pineada
+  // Solo permitir minimizar en desktop por acción explícita del usuario
   const toggleSidebar = useCallback(() => {
-    if (isDesktop && isPinned) return; // Solo bloquear si está pineada en desktop
-    setIsOpen(prev => {
-      const newState = !prev;
-      if (isDesktop) {
+    if (isDesktop) {
+      setIsOpen(prev => {
+        const newState = !prev;
         localStorage.setItem('sidebarDesktopOpen', newState.toString());
-      } else {
+        return newState;
+      });
+    } else {
+      setIsOpen(prev => {
+        const newState = !prev;
         localStorage.setItem('sidebarMobileOpen', newState.toString());
-      }
-      return newState;
-    });
-  }, [isDesktop, isPinned]);
+        return newState;
+      });
+    }
+  }, [isDesktop]);
 
   const closeSidebar = useCallback(() => {
-    if (isDesktop && isPinned) return;
     setIsOpen(false);
     if (isDesktop) {
       localStorage.setItem('sidebarDesktopOpen', 'false');
     } else {
       localStorage.setItem('sidebarMobileOpen', 'false');
     }
-  }, [isDesktop, isPinned]);
+  }, [isDesktop]);
 
   const openSidebar = useCallback(() => {
     setIsOpen(true);
@@ -205,8 +198,6 @@ export function SidebarProvider({ children }) {
       toggleSidebar,
       closeSidebar,
       openSidebar,
-      isPinned,
-      togglePin,
       menuItems,
       mainSections,
       expandedSections,

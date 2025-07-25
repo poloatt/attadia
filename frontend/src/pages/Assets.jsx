@@ -585,7 +585,7 @@ export function Assets() {
 
 
   return (
-    <Box component="main" className="page-main-content" sx={{ width: '100%', flex: 1, px: { xs: 1, sm: 2, md: 3 }, py: 1, display: 'flex', flexDirection: 'column' }}>
+    <Box component="main" className="page-main-content" sx={{ width: '100%', flex: 1, px: 0, py: 1, display: 'flex', flexDirection: 'column' }}>
       {/* Contenido principal */}
       <Box sx={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Grid container spacing={2}>

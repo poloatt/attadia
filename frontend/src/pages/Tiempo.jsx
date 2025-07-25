@@ -23,8 +23,6 @@ import {
   ExpandMore as ExpandMoreIcon,
   AccessTimeOutlined as TimeIcon
 } from '@mui/icons-material';
-import { Toolbar } from '../navigation';
-import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import { useNavigationBar } from '../context/NavigationBarContext';
 import { useLocation } from 'react-router-dom';

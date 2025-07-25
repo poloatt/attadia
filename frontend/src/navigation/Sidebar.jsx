@@ -20,8 +20,6 @@ import { useUISettings } from '../context/UISettingsContext';
 import { icons } from './menuIcons';
 import SidebarResizer from './SidebarResizer';
 import theme from '../context/ThemeContext';
-import PushPinIcon from '@mui/icons-material/PushPin';
-import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 
 export default function Sidebar() {
   const theme = useTheme();
@@ -36,8 +34,6 @@ export default function Sidebar() {
     setSelectedMain,
     selectedSecond,
     setSelectedSecond,
-    isPinned,
-    togglePin,
     handleSidebarResize
   } = useSidebar();
   const { showEntityToolbarNavigation } = useUISettings();
@@ -331,14 +327,6 @@ export default function Sidebar() {
           }
         }}
       >
-        {/* Botón de pin/unpin minimalista solo en desktop */}
-        {isDesktop && (
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', px: 1, pt: 1 }}>
-            <IconButton size="small" onClick={togglePin} title={isPinned ? 'Fijar sidebar (siempre visible)' : 'Desfijar sidebar'}>
-              {isPinned ? <PushPinIcon fontSize="small" /> : <PushPinOutlinedIcon fontSize="small" />}
-            </IconButton>
-          </Box>
-        )}
         {/* Encabezado de secciones principales */}
         {renderMainSectionsHeader()}
 

@@ -18,7 +18,7 @@ export function Layout() {
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'), { noSsr: true });
   const navigate = useNavigate();
   const location = useLocation();
-  const { isOpen, sidebarWidth } = useSidebar();
+  const { isOpen, sidebarWidth, collapsedWidth } = useSidebar();
   const { showEntityToolbarNavigation } = useUISettings();
   const { user } = useAuth();
 
@@ -45,14 +45,15 @@ export function Layout() {
   const toolbarHeight = 40;
   const showToolbar = showEntityToolbarNavigation;
   const totalTopPadding = headerHeight + (showToolbar ? toolbarHeight : 0);
-  const collapsedWidth = 56;
-  const mainMargin = isDesktop && isOpen ? sidebarWidth : (isDesktop ? collapsedWidth : 0);
+  // Elimina isDesktop, isMobile, isTablet y toda lógica condicional relacionada
+  // Usa solo isOpen y sidebarWidth/collapsedWidth del contexto para calcular el margen y el ancho
+  const mainMargin = isOpen ? sidebarWidth : collapsedWidth;
   const footerHeight = 48; // Ajusta según el alto real de tu Footer
 
   return (
     <FormManagerProvider>
       <GlobalFormEventListener />
-      <Box sx={{ minHeight: '100vh', maxWidth: '100vw', bgcolor: 'background.default' }}>
+      <Box sx={{ minHeight: '100vh', maxWidth: '100vw', bgcolor: 'background.default', position: 'relative' }}>
         {/* Header */}
         <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', zIndex: 1400 }}>
           <Header />
@@ -72,12 +73,12 @@ export function Layout() {
               left: 0,
               height: `calc(100vh - ${totalTopPadding}px - ${footerHeight}px)` ,
               zIndex: 1100,
-              width: isDesktop && isOpen ? sidebarWidth : (isDesktop ? collapsedWidth : 0),
+              width: isOpen ? sidebarWidth : collapsedWidth,
               transition: 'width 0.3s',
               bgcolor: 'background.default',
-              borderRight: isDesktop ? '1.5px solid #232323' : 'none',
+              borderRight: '1.5px solid #232323',
               overflow: 'hidden',
-              display: isOpen || isDesktop ? 'block' : 'none',
+              display: 'block',
             }}
           >
             <Sidebar />
@@ -87,9 +88,9 @@ export function Layout() {
         <Box
           sx={{
             flexGrow: 1,
-            width: '100%', // Solo width 100%, sin calc
+            width: '100%',
             minHeight: '100vh',
-            ml: mainMargin, // Solo margin-left para sidebar
+            ml: mainMargin,
             pt: `${totalTopPadding}px`,
             pb: `${footerHeight}px`,
             display: 'flex',
@@ -119,9 +120,6 @@ export function Layout() {
         >
           <Box sx={{
             width: '100%',
-            maxWidth: isDesktop ? 1200 : isTablet ? 900 : '100%',
-            mx: isDesktop || isTablet ? 'auto' : 0,
-            px: { xs: 1, sm: 2, md: 3 },
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
