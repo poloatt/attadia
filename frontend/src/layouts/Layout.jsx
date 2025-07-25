@@ -45,11 +45,8 @@ export function Layout() {
   const toolbarHeight = 40;
   const showToolbar = showEntityToolbarNavigation;
   const totalTopPadding = headerHeight + (showToolbar ? toolbarHeight : 0);
-  const collapsedWidth = 0;
-  const mobileMargin = 0;
-  const mainMargin = isDesktop
-    ? (isOpen ? sidebarWidth : collapsedWidth)
-    : (isOpen ? sidebarWidth : mobileMargin);
+  const collapsedWidth = 56;
+  const mainMargin = isDesktop && isOpen ? sidebarWidth : (isDesktop ? collapsedWidth : 0);
   const footerHeight = 48; // Ajusta según el alto real de tu Footer
 
   return (
@@ -75,7 +72,7 @@ export function Layout() {
               left: 0,
               height: `calc(100vh - ${totalTopPadding}px - ${footerHeight}px)` ,
               zIndex: 1100,
-              width: isOpen ? sidebarWidth : (isDesktop ? collapsedWidth : 0),
+              width: isDesktop && isOpen ? sidebarWidth : (isDesktop ? collapsedWidth : 0),
               transition: 'width 0.3s',
               bgcolor: 'background.default',
               borderRight: isDesktop ? '1.5px solid #232323' : 'none',
