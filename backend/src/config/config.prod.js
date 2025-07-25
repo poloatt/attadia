@@ -13,8 +13,7 @@ const config = {
   apiUrl: process.env.BACKEND_URL,
   frontendUrl: process.env.FRONTEND_URL,
   corsOrigins: [
-    'https://admin.attadia.com',
-    'https://www.attadia.com'
+    'https://admin.attadia.com'
   ],
   sessionSecret: process.env.SESSION_SECRET,
   google: {
