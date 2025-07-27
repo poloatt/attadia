@@ -34,7 +34,8 @@ export default function Sidebar({ moduloActivo }) {
     selectedSecond,
     setSelectedSecond,
     handleSidebarResize,
-    getChildPadding
+    getChildPadding,
+    getSidebarConfig
   } = useSidebar();
   const { showEntityToolbarNavigation } = useUISettings();
   const navigate = useNavigate();
@@ -50,8 +51,11 @@ export default function Sidebar({ moduloActivo }) {
     const isParent = level === 1;
     const isChild = level === 2;
 
-    // Padding según nivel: parents usan padding estándar, children usan función centralizada
-    const padding = isChild ? getChildPadding(isOpen) : (isOpen ? 2 : 0);
+    // Padding según nivel: parents usan configuración centralizada, children usan función centralizada
+    const config = getSidebarConfig();
+    const padding = isChild 
+      ? getChildPadding(isOpen) 
+      : (isOpen ? config.parent.paddingUnits : 0);
 
     return (
       <React.Fragment key={item.id}>
@@ -90,7 +94,7 @@ export default function Sidebar({ moduloActivo }) {
           >
             <ListItemIcon
               sx={{
-                minWidth: 36,
+                minWidth: config.parent.iconMinWidth,
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',

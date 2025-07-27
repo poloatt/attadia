@@ -64,9 +64,10 @@ export function SidebarProvider({ children }) {
   // Configuración centralizada para alineación de elementos child
   const SIDEBAR_CONFIG = {
     parent: {
-      padding: 16,        // 2 * 8px (theme spacing unit)
-      iconWidth: 36,      // Ancho estándar de ícono parent
-      iconMinWidth: 36    // minWidth del ListItemIcon
+      paddingUnits: 2,        // Theme spacing units (2 * 8px = 16px)
+      paddingPx: 16,          // Equivalente en píxeles para cálculos
+      iconWidth: 36,          // Ancho estándar de ícono parent
+      iconMinWidth: 36        // minWidth del ListItemIcon
     },
     child: {
       collapsedPadding: 2,    // Padding cuando sidebar está colapsada
@@ -79,10 +80,10 @@ export function SidebarProvider({ children }) {
   const getChildPadding = useCallback((isOpen) => {
     if (!isOpen) return SIDEBAR_CONFIG.child.collapsedPadding;
     
-         // Cálculo preciso: donde termina el ícono parent + offset
-     const alignmentPoint = SIDEBAR_CONFIG.parent.padding + 
-                           SIDEBAR_CONFIG.parent.iconWidth + 
-                           SIDEBAR_CONFIG.child.alignmentOffset;
+    // Cálculo preciso: donde termina el ícono parent + offset
+    const alignmentPoint = SIDEBAR_CONFIG.parent.paddingPx + 
+                          SIDEBAR_CONFIG.parent.iconWidth + 
+                          SIDEBAR_CONFIG.child.alignmentOffset;
      
      return `${alignmentPoint}px`;
    }, []);
