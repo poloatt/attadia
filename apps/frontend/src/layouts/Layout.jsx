@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, useTheme, useMediaQuery } from '@mui/material';
+import { Box } from '@mui/material';
 import { useUISettings } from '../context/UISettingsContext';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
@@ -11,26 +11,19 @@ import { CustomSnackbarProvider } from '../components/common';
 import { useEffect } from 'react';
 import { FormManagerProvider } from '../context/FormContext';
 import { GlobalFormEventListener } from '../context/GlobalFormEventListener';
-import { modulos } from '../navigation/menuStructure';
+import useResponsive from '../hooks/useResponsive';
+import { useNavigationState } from '../utils/navigationUtils';
+import { calculateMainMargin, calculateTopPadding, HEADER_CONFIG, FOOTER_CONFIG, SPACING } from '../config/uiConstants';
 
 export function Layout() {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
+  const { isMobile, isTablet, isMobileOrTablet } = useResponsive();
   const navigate = useNavigate();
   const location = useLocation();
   const currentPath = location.pathname;
-  // Lógica para encontrar el módulo activo
-  const moduloActivo = modulos.find(modulo =>
-    modulo.subItems?.some(sub => currentPath.startsWith(sub.path)) ||
-    currentPath.startsWith(modulo.path)
-  );
-  // Encontrar el nivel 1 activo dentro del módulo activo
-  const nivel1Activo = moduloActivo?.subItems?.find(
-    sub => currentPath.startsWith(sub.path)
-  );
-  // Los hijos de nivel 2 (si existen)
-  const nivel2 = nivel1Activo?.subItems || [];
+  
+  // Usar utilidad centralizada para navegación
+  const { moduloActivo, nivel1Activo, nivel2 } = useNavigationState(currentPath);
+  
   const { isOpen, isDesktop, sidebarWidth, collapsedWidth } = useSidebar();
   const { showEntityToolbarNavigation, showSidebarCollapsed } = useUISettings();
   const { user } = useAuth();
@@ -53,28 +46,18 @@ export function Layout() {
     return null;
   }
 
-  // Calcular el padding-top para header + toolbar (ambos fijos y globales)
-  const headerHeight = 40;
-  const toolbarHeight = 40;
+  // Usar constantes centralizadas para dimensiones
   const showToolbar = showEntityToolbarNavigation;
-  const totalTopPadding = headerHeight + (showToolbar ? toolbarHeight : 0);
-  // Elimina isDesktop, isMobile, isTablet y toda lógica condicional relacionada
-  // Usa solo isOpen y sidebarWidth/collapsedWidth del contexto para calcular el margen y el ancho
-  // En móvil, si la sidebar está oculta, el margen debe ser 0
-  // En desktop solo depende de isOpen; en móvil/tablet solo hay margen si la sidebar está visible y extendida
-  const mainMargin =
-    (!isMobile && !isTablet)
-      ? (isOpen ? sidebarWidth : collapsedWidth)
-      : ((showSidebarCollapsed && isOpen) ? sidebarWidth : 0);
-  const footerHeight = 48; // Ajusta según el alto real de tu Footer
-
-  // Padding superior para el main: header + toolbar si está visible
-  const mainTopPadding = showToolbar ? headerHeight + toolbarHeight : headerHeight;
+  const totalTopPadding = calculateTopPadding(showToolbar);
+  
+  // Usar utilidad centralizada para calcular mainMargin
+  const mainMargin = calculateMainMargin(isOpen, sidebarWidth, isMobileOrTablet, showSidebarCollapsed);
+  
+  // Padding superior para el main
+  const mainTopPadding = totalTopPadding;
 
   // Determinar si se debe renderizar la sidebar
-  const shouldRenderSidebar =
-    (!isMobile && !isTablet) ||
-    ((isMobile || isTablet) && showSidebarCollapsed && isOpen);
+  const shouldRenderSidebar = !isMobileOrTablet || (isMobileOrTablet && showSidebarCollapsed && isOpen);
 
   return (
     <FormManagerProvider>
@@ -86,7 +69,7 @@ export function Layout() {
         </Box>
         {/* Toolbar */}
         {showToolbar && (
-          <Box sx={{ position: 'fixed', top: `${headerHeight}px`, left: 0, width: '100vw', zIndex: 1399 }}>
+          <Box sx={{ position: 'fixed', top: `${HEADER_CONFIG.height}px`, left: 0, width: '100vw', zIndex: 1399 }}>
             <Toolbar 
               moduloActivo={moduloActivo}
               nivel1={nivel2}
@@ -102,8 +85,8 @@ export function Layout() {
               top: `${totalTopPadding}px`,
               left: 0,
               height: isMobile
-                ? `calc(100vh - ${totalTopPadding}px - 89px)`
-                : `calc(100vh - ${totalTopPadding}px - ${footerHeight}px)`,
+                ? `calc(100vh - ${totalTopPadding}px - ${SPACING.bottomNavigationHeight}px)`
+                : `calc(100vh - ${totalTopPadding}px - ${FOOTER_CONFIG.height}px)`,
               zIndex: 1100,
               width: isOpen ? sidebarWidth : collapsedWidth,
               transition: 'width 0.3s',
@@ -113,7 +96,7 @@ export function Layout() {
               display: 'block',
             }}
           >
-            <Sidebar moduloActivo={moduloActivo} />
+            <Sidebar moduloActivo={moduloActivo} nivel1Activo={nivel1Activo} />
           </Box>
         )}
         {/* Main content */}
@@ -125,7 +108,7 @@ export function Layout() {
             right: 0,
             bottom: 0,
             pt: `${mainTopPadding}px`, // <-- AJUSTADO PARA INCLUIR TOOLBAR SI ESTÁ VISIBLE
-            pb: `${footerHeight}px`,
+            pb: `${FOOTER_CONFIG.height}px`,
             bgcolor: 'background.default',
             overflowY: 'auto',
             overflowX: 'hidden',
@@ -162,7 +145,7 @@ export function Layout() {
           <CustomSnackbarProvider />
         </Box>
         {/* Footer */}
-        <Box sx={{ position: 'fixed', left: 0, bottom: 0, width: '100vw', zIndex: 1300, height: `${footerHeight}px` }}>
+        <Box sx={{ position: 'fixed', left: 0, bottom: 0, width: '100vw', zIndex: 1300, height: `${FOOTER_CONFIG.height}px` }}>
           <Footer isDesktop={isDesktop} isSidebarOpen={isOpen && isDesktop} />
         </Box>
       </Box>

@@ -6,4 +6,6 @@ export * from './useLocalPreservationState.js';
 export { default as useLocalPreservationState } from './useLocalPreservationState.js';
 export * from './useOptimisticUpdate.js';
 export { default as useOptimisticUpdate } from './useOptimisticUpdate.js';
+export * from './useResponsive.js';
+export { default as useResponsive } from './useResponsive.js';
 export * from './rutinaHooks.js'; 

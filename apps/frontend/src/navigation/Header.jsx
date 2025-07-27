@@ -15,9 +15,12 @@ import {
   import Dialog from '@mui/material/Dialog';
   import { MercadoPagoConnectButton, BankConnectionForm } from '../components/finance/bankconnections';
   import { getBreadcrumbs } from './breadcrumbUtils';
-  import { modulos } from './menuStructure';
-  import { getIconByKey, icons } from './menuIcons';
-  import { Breadcrumbs, useTheme, useMediaQuery } from '@mui/material';
+import { getIconByKey, icons } from './menuIcons';
+import { Breadcrumbs } from '@mui/material';
+import useResponsive from '../hooks/useResponsive';
+import { useNavigationState } from '../utils/navigationUtils';
+import { HEADER_CONFIG } from '../config/uiConstants';
+import { DynamicIcon } from '../components/common/DynamicIcon';
   import { SystemButtons, SYSTEM_ICONS, MenuButton } from '../components/common/SystemButtons';
   import { Refresh as RefreshIcon } from '@mui/icons-material';
   import theme from '../context/ThemeContext';
@@ -37,13 +40,13 @@ import {
     const navigate = useNavigate();
     const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
     const [isBankConnectionFormOpen, setIsBankConnectionFormOpen] = useState(false);
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-    const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
-    const breadcrumbs = getBreadcrumbs(location.pathname, modulos);
+    const { isMobile, isTablet } = useResponsive();
+    const { moduloActivo } = useNavigationState(location.pathname);
+    // Usar módulos completos si moduloActivo no está disponible
+    const breadcrumbs = getBreadcrumbs(location.pathname, moduloActivo?.subItems || []);
     
     // Usar función centralizada para calcular mainMargin
-    const mainMargin = getMainMargin(isMobile, isTablet);
+    const mainMargin = getMainMargin(isMobile || isTablet);
   
     const handleBack = () => {
       // Encuentra el menú padre según la ruta
@@ -66,7 +69,7 @@ import {
           zIndex: (theme) => theme.zIndex.drawer + 1, // Header siempre por encima de sidebar
           backgroundColor: '#181818', // <-- Forzar color exacto
           boxShadow: 'none', // <-- Forzar sin sombra
-          height: 40,
+          height: HEADER_CONFIG.height,
           left: 0, // Header ocupa todo el ancho
           width: '100%', // Header siempre 100% del ancho
           transition: 'none', // Sin transiciones innecesarias
@@ -76,8 +79,8 @@ import {
         <Toolbar 
           variant="dense"
           sx={{ 
-            minHeight: 40,
-            height: 40,
+            minHeight: HEADER_CONFIG.height,
+            height: HEADER_CONFIG.height,
             px: {
               xs: 1,
               sm: 2,
@@ -102,7 +105,7 @@ import {
                left: 0,
                top: 0,
                width: collapsedWidth, // Siempre usa el ancho colapsado (56px)
-               height: 40,
+               height: HEADER_CONFIG.height,
                display: 'flex',
                alignItems: 'center',
                justifyContent: 'center',
@@ -134,7 +137,7 @@ import {
                       left: `${mainMargin}px`,
                       right: 0,
                       width: `calc(100% - ${mainMargin}px)`,
-                      height: 40,
+                      height: HEADER_CONFIG.height,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -142,7 +145,14 @@ import {
                       zIndex: 1
                     }}
                   >
-                    {IconComponent && React.createElement(IconComponent, { fontSize: 'small', color: 'primary.main', style: { marginRight: 4 } })}
+                    {last?.icon && (
+                      <DynamicIcon 
+                        iconKey={last.icon} 
+                        size="small" 
+                        color="primary.main" 
+                        sx={{ marginRight: 0.5 }} 
+                      />
+                    )}
                     <Typography color="inherit" sx={{ fontWeight: 500 }}>
                       {last?.title}
                     </Typography>

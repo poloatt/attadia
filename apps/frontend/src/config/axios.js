@@ -152,45 +152,43 @@ clienteAxios.interceptors.response.use(
 
     const originalRequest = error.config;
 
-    // Si el token expiró, intentar refresh
+    // 🔧 HABILITADO: Refresh token automático para peticiones que no son de auth
     if (error.response?.status === 401 && !originalRequest._retry) {
-      try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) {
-          // console.warn('No hay refresh token disponible. Redirigiendo a login...');
-          // Solo redirigir si es una ruta protegida y no estamos ya en login
+      // Solo refrescar si no es una petición de auth
+      if (!originalRequest.url.includes('/auth/')) {
+        try {
+          console.log('🔄 Intentando refresh token automático...');
+          originalRequest._retry = true;
+          
+          const refreshToken = localStorage.getItem('refreshToken');
+          if (!refreshToken) {
+            console.log('❌ No hay refresh token disponible');
+            throw new Error('No refresh token available');
+          }
+
+          const response = await clienteAxios.post('/api/auth/refresh', {
+            refreshToken
+          });
+          
+          const { token: newToken } = response.data;
+          localStorage.setItem('token', newToken);
+          clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+          originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+          
+          console.log('✅ Token refrescado exitosamente');
+          return clienteAxios(originalRequest);
+        } catch (refreshError) {
+          console.log('❌ Error al refrescar token:', refreshError.message);
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          delete clienteAxios.defaults.headers.common['Authorization'];
+          
+          // Redirigir a login solo si no estamos ya ahí
           if (!window.location.pathname.includes('/login') && 
               !window.location.pathname.includes('/auth')) {
             window.location.href = '/login';
           }
-          throw new Error('No refresh token available');
         }
-
-        originalRequest._retry = true;
-        
-        const response = await clienteAxios.post('/api/auth/refresh-token', {
-          refreshToken
-        });
-        
-        const { token: newToken } = response.data;
-        localStorage.setItem('token', newToken);
-        clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-        originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
-        
-        return clienteAxios(originalRequest);
-      } catch (refreshError) {
-        // console.error('Error al refrescar token:', refreshError);
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-        
-        // Solo redirigir si es un error de autenticación real y no estamos ya en login
-        if (refreshError.response?.status === 401 && 
-            !window.location.pathname.includes('/login') &&
-            !window.location.pathname.includes('/auth')) {
-          window.location.href = '/login';
-        }
-        
-        return Promise.reject(refreshError);
       }
     }
 

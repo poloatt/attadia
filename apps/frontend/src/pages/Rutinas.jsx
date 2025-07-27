@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Container, Box, Typography, CircularProgress, Snackbar, Alert, Grid, Paper, Button, useTheme, useMediaQuery } from '@mui/material';
+import { Container, Box, Typography, CircularProgress, Snackbar, Alert, Grid, Paper, Button } from '@mui/material';
+import useResponsive from '../hooks/useResponsive';
 import RutinaTable from '../components/rutinas/RutinaTable';
 import { RutinaForm } from '../components/rutinas/RutinaForm';
 import { MemoizedRutinaNavigation as RutinaNavigation } from '../components/rutinas/RutinaNavigation';
@@ -26,8 +27,7 @@ const RutinasWithContext = () => {
   const rutinaId = params.id;
   const navigate = useNavigate();
   const { timezone } = useTimezone(); // Configurar timezone del usuario
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { isMobile } = useResponsive();
   const rutinasContext = useRutinas();
   const { 
     rutina, 

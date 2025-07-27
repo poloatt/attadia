@@ -1,14 +1,14 @@
 import React from 'react';
-import { Container, Box, Typography, useTheme, Paper, Switch, FormControl, FormControlLabel, Divider, Button, useMediaQuery } from '@mui/material';
+import { Container, Box, Typography, Paper, Switch, FormControl, FormControlLabel, Divider, Button } from '@mui/material';
 import { useUISettings } from '../context/UISettingsContext';
 import { useSidebar } from '../context/SidebarContext';
 import { CommonConstruction } from '../components/common';
 import { useAuth } from '../context/AuthContext';
 import { Toolbar } from '../navigation';
+import useResponsive from '../hooks/useResponsive';
 
 export function Configuracion() {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { isMobile } = useResponsive();
   const { 
     showEntityToolbarNavigation, 
     toggleEntityToolbarNavigation,

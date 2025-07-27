@@ -7,23 +7,16 @@ import {
   ListItemIcon, 
   ListItemText, 
   ListItemButton, 
-  Divider,
-  Tooltip,
-  IconButton,
-  Typography,
-  useTheme,
-  // No uso useMediaQuery aquí, solo el contexto
   Collapse,
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import { useUISettings } from '../context/UISettingsContext';
-import { icons } from './menuIcons';
 import SidebarResizer from './SidebarResizer';
-import theme from '../context/ThemeContext';
+import { DynamicIcon } from '../components/common/DynamicIcon';
+import { SIDEBAR_CONFIG, TRANSITIONS, UI_COLORS, Z_INDEX, SPACING, getChildPadding } from '../config/uiConstants';
 
-export default function Sidebar({ moduloActivo }) {
-  const theme = useTheme();
+export default function Sidebar({ moduloActivo, nivel1Activo }) {
   const {
     isOpen,
     isDesktop,
@@ -31,11 +24,9 @@ export default function Sidebar({ moduloActivo }) {
     closeSidebar,
     selectedMain,
     setSelectedMain,
-    selectedSecond,
-    setSelectedSecond,
     handleSidebarResize,
-    getChildPadding,
-    getSidebarConfig
+    getSidebarConfig,
+    adjustChildAlignment
   } = useSidebar();
   const { showEntityToolbarNavigation } = useUISettings();
   const navigate = useNavigate();
@@ -51,11 +42,35 @@ export default function Sidebar({ moduloActivo }) {
     const isParent = level === 1;
     const isChild = level === 2;
 
-    // Padding según nivel: parents usan configuración centralizada, children usan función centralizada
+    // Determinar si debe estar expandido basado SOLO en la ruta actual (elimina estado duplicado)
+    const shouldExpand = nivel1Activo && nivel1Activo.id === item.id;
+
+    // Padding según nivel: parents y children usan configuración centralizada de uiConstants
     const config = getSidebarConfig();
     const padding = isChild 
-      ? getChildPadding(isOpen) 
+      ? getChildPadding(isOpen)  // ÚNICA DEFINICIÓN en uiConstants.js
       : (isOpen ? config.parent.paddingUnits : 0);
+
+    // Debug temporal - verificar valores de padding aplicados (comentado para producción)
+    // if (isChild && isOpen) {
+    //   console.log(`🔍 Child "${item.title}" | Level ${level}:`, {
+    //     appliedPadding: padding,
+    //     calculation: {
+    //       parentPadding: `${config.parent.paddingPx}px`,
+    //       parentIconWidth: `${config.parent.iconWidth}px`,  
+    //       additionalGap: `${config.child.additionalGap}px`,
+    //       alignmentOffset: `${config.child.alignmentOffset}px`,
+    //       total: `${config.child.baseAlignment + config.child.additionalGap + config.child.alignmentOffset}px`
+    //     },
+    //     debug: {
+    //       adjust: 'window.adjustChildAlignment(offset)',
+    //       example: 'window.adjustChildAlignment(-4) // move left 4px'
+    //     }
+    //   });
+    //   
+    //   // Exponer función de ajuste globalmente para debugging
+    //   window.adjustChildAlignment = adjustChildAlignment;
+    // }
 
     return (
       <React.Fragment key={item.id}>
@@ -65,27 +80,31 @@ export default function Sidebar({ moduloActivo }) {
               if (item.path && !item.isUnderConstruction) {
                 navigate(item.path);
               }
-              if (isParent) setSelectedSecond(item.id);
+              // La navegación se maneja solo por la ruta - elimina estado duplicado
             }}
             selected={isActive}
             disabled={item.isUnderConstruction}
             sx={{
-              minHeight: isChild ? 32 : 36,
+              minHeight: isChild ? SIDEBAR_CONFIG.child.minHeight : SIDEBAR_CONFIG.parent.minHeight,
               pl: padding,
               pr: isOpen ? 1.5 : (isChild ? 1 : 0),
-              borderRadius: '12px',
-              mb: isChild ? 0.15 : 0.25,
+              borderRadius: SIDEBAR_CONFIG.parent.borderRadius,
+              mb: isChild ? SIDEBAR_CONFIG.child.marginBottom : SIDEBAR_CONFIG.parent.marginBottom,
               justifyContent: isOpen ? 'initial' : 'center',
-              backgroundColor: isActive ? (isChild ? '#232323' : '#323232') : 'transparent',
+              backgroundColor: isActive 
+                ? (isChild ? UI_COLORS.backgroundActive.child : UI_COLORS.backgroundActive.parent) 
+                : 'transparent',
               '&:hover': {
-                backgroundColor: isActive ? (isChild ? '#232323' : '#3a3a3a') : '#232323',
+                backgroundColor: isActive 
+                  ? (isChild ? UI_COLORS.backgroundHover.child : UI_COLORS.backgroundHover.parent) 
+                  : UI_COLORS.backgroundHover.default,
               },
               '&.Mui-selected, &.Mui-selected:hover': {
-                backgroundColor: isChild ? '#232323' : '#323232',
+                backgroundColor: isChild ? UI_COLORS.backgroundActive.child : UI_COLORS.backgroundActive.parent,
                 color: '#fff',
               },
               opacity: item.isUnderConstruction ? 0.5 : 1,
-              transition: 'background 0.2s',
+              transition: TRANSITIONS.backgroundChange,
               position: 'relative',
               zIndex: 1,
               display: 'flex',
@@ -102,16 +121,15 @@ export default function Sidebar({ moduloActivo }) {
                 mx: isOpen ? 0 : 'auto',
               }}
             >
-              {typeof item.icon === 'string' && icons[item.icon] &&
-                React.createElement(icons[item.icon], { fontSize: 'small' })}
+              <DynamicIcon iconKey={item.icon} size="small" />
             </ListItemIcon>
             {isOpen && <ListItemText primary={item.title} />}
           </ListItemButton>
         </ListItem>
         
-        {/* Renderizar children recursivamente */}
-        {hasChildren && isParent && (
-          <Collapse in={selectedSecond === item.id && isOpen} timeout="auto" unmountOnExit>
+                 {/* Renderizar children recursivamente */}
+         {hasChildren && isParent && (
+           <Collapse in={shouldExpand && isOpen} timeout="auto" unmountOnExit>
             <List component="div" disablePadding>
               {item.subItems.map(child => renderMenuItem(child, level + 1))}
             </List>
@@ -130,40 +148,40 @@ export default function Sidebar({ moduloActivo }) {
 
   return (
     <Box sx={{
-      width: isOpen ? sidebarWidth : 56,
-      transition: 'width 0.3s ease',
+      width: isOpen ? sidebarWidth : SIDEBAR_CONFIG.collapsedWidth,
+      transition: TRANSITIONS.sidebarWidth,
       flexShrink: 0,
-      pb: { xs: '88px', sm: '88px', md: 0 },
-      backgroundColor: 'background.default',
+      pb: SPACING.sidebarPadding,
+      backgroundColor: UI_COLORS.backgroundDefault,
       height: '100%',
-      borderRight: '1.5px solid #232323',
+      borderRight: UI_COLORS.border,
       position: 'relative',
-      zIndex: 1100,
+      zIndex: Z_INDEX.sidebar,
     }}>
       <Drawer
         variant="permanent"
         sx={{
-          width: isOpen ? sidebarWidth : 56,
+          width: isOpen ? sidebarWidth : SIDEBAR_CONFIG.collapsedWidth,
           flexShrink: 0,
           '& .MuiDrawer-paper': {
             position: 'relative',
             left: 0,
             top: 0,
-            width: isOpen ? sidebarWidth : 56,
-            minWidth: 56,
-            maxWidth: 400,
+            width: isOpen ? sidebarWidth : SIDEBAR_CONFIG.collapsedWidth,
+            minWidth: SIDEBAR_CONFIG.collapsedWidth,
+            maxWidth: SIDEBAR_CONFIG.maxWidth,
             borderRadius: 0,
-            borderRight: '1.5px solid #232323',
-            backgroundColor: 'background.default',
+            borderRight: UI_COLORS.border,
+            backgroundColor: UI_COLORS.backgroundDefault,
             height: '100%',
-            transition: 'width 0.3s ease',
+            transition: TRANSITIONS.sidebarWidth,
             overflowX: 'hidden',
             overflowY: 'auto',
             display: 'flex',
             flexDirection: 'column',
             scrollbarWidth: 'thin',
-            zIndex: 1100,
-            pb: { xs: '88px', sm: '88px', md: 0 },
+            zIndex: Z_INDEX.sidebar,
+            pb: SPACING.sidebarPadding,
             '&::-webkit-scrollbar': { width: '6px' },
             '&::-webkit-scrollbar-track': { backgroundColor: 'transparent' },
             '&::-webkit-scrollbar-thumb': { backgroundColor: '#232323', borderRadius: 0 },
@@ -173,14 +191,15 @@ export default function Sidebar({ moduloActivo }) {
         {/* Renderizar estructura del módulo usando menuStructure.js */}
         {renderModuleStructure()}
         {/* Sidebar Resizer y otros elementos si es necesario */}
-        <SidebarResizer 
-          onResize={handleSidebarResize}
-          isOpen={isOpen}
-          isDesktop={isDesktop}
-          minWidth={200}
-          maxWidth={400}
-          defaultWidth={sidebarWidth}
-        />
+                 <SidebarResizer 
+           onResize={handleSidebarResize}
+           isOpen={isOpen}
+           isDesktop={isDesktop}
+           // Usa constantes centralizadas de uiConstants.js
+           minWidth={SIDEBAR_CONFIG.minWidth}
+           maxWidth={SIDEBAR_CONFIG.maxWidth}
+           defaultWidth={sidebarWidth}
+         />
       </Drawer>
     </Box>
   );

@@ -2,14 +2,16 @@
 // Toolbar modular: ahora recibe 'moduloActivo', 'nivel1' y 'currentPath' como props. Solo navega entre los hijos de nivel1.
 
 import React from 'react';
-import { Box, IconButton, Tooltip, Typography, useTheme, useMediaQuery } from '@mui/material';
+import { Box, IconButton, Tooltip, Typography } from '@mui/material';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { icons, getIconByKey } from './menuIcons';
+import { getIconByKey } from './menuIcons';
 import { SystemButtons } from '../components/common/SystemButtons';
 import { useEntityActions } from '../components/common/CommonActions';
 import { useUISettings } from '../context/UISettingsContext';
 import { useSidebar } from '../context/SidebarContext';
-import { modulos } from './menuStructure';
+import useResponsive from '../hooks/useResponsive';
+import { getMainModules, reorderModulesWithActiveFirst, findActiveModule } from '../utils/navigationUtils';
+import { DynamicIcon, ClickableIcon, IconWithText } from '../components/common/DynamicIcon';
 
 export default function Toolbar({
   moduloActivo,
@@ -23,16 +25,14 @@ export default function Toolbar({
   // 1. HOOKS Y CÁLCULOS PRINCIPALES
   const { showEntityToolbarNavigation } = useUISettings();
   const { isOpen: sidebarIsOpen, getMainMargin } = useSidebar();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
+  const { isMobile, isTablet, isMobileOrTablet } = useResponsive();
   const { getEntityConfig, showAddButton } = useEntityActions();
   const entityConfig = getEntityConfig();
   const location = useLocation();
   const navigate = useNavigate();
   
   // Usar función centralizada para calcular mainMargin
-  const mainMargin = getMainMargin(isMobile, isTablet);
+  const mainMargin = getMainMargin(isMobileOrTablet);
 
   // 2. LÓGICA DE NAVEGACIÓN
   // Siblings: los hijos de nivel1
@@ -43,18 +43,12 @@ export default function Toolbar({
   // Lógica para mostrar íconos de módulos principales (solo cuando sidebar está extendida)
   const shouldShowModuleIcons = sidebarIsOpen && !isMobile;
   const moduleData = shouldShowModuleIcons ? (() => {
-    // Detectar el módulo activo
-    const moduloActivo = modulos.find(modulo =>
-      modulo.subItems?.some(sub => location.pathname.startsWith(sub.path)) ||
-      location.pathname.startsWith(modulo.path)
-    );
+    // Usar utilidades centralizadas para navegación
+    const moduloActivo = findActiveModule(location.pathname);
+    const todosLosModulos = getMainModules(); // ['assets', 'salud', 'tiempo']
     
-    // Obtener todos los módulos principales
-    const todosLosModulos = modulos.filter(m => ['assets', 'salud', 'tiempo'].includes(m.id));
-    
-    // Reordenar: módulo activo primero, luego los otros
-    const otrosModulos = todosLosModulos.filter(m => m.id !== moduloActivo?.id);
-    return moduloActivo ? [moduloActivo, ...otrosModulos] : todosLosModulos;
+    // Reordenar usando utilidad centralizada
+    return reorderModulesWithActiveFirst(todosLosModulos, moduloActivo);
   })() : [];
 
   // 3. RENDER
@@ -87,60 +81,37 @@ export default function Toolbar({
           {/* Módulo activo a la izquierda */}
           {(() => {
             const moduloActivo = moduleData[0];
-            const IconComponent = getIconByKey(moduloActivo.icon);
             return (
               <Tooltip title={moduloActivo.title}>
-                <Box 
+                <IconWithText 
+                  iconKey={moduloActivo.icon}
+                  text={moduloActivo.title}
                   onClick={() => navigate(moduloActivo.path)}
                   sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 0.5,
                     color: 'text.primary',
-                    cursor: 'pointer',
-                    transition: 'color 0.2s',
-                    '&:hover': {
-                      color: 'primary.main',
-                    }
                   }}
-                >
-                                     {IconComponent && React.createElement(IconComponent, { 
-                     fontSize: 'small'
-                   })}
-                  <Typography variant="caption" sx={{ fontWeight: 500, fontSize: '0.75rem' }}>
-                    {moduloActivo.title}
-                  </Typography>
-                </Box>
+                  textSx={{
+                    fontSize: '0.75rem'
+                  }}
+                />
               </Tooltip>
             );
           })()}
 
           {/* Otros módulos a la derecha */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-            {moduleData.slice(1).map(modulo => {
-              const IconComponent = getIconByKey(modulo.icon);
-              return (
-                <Tooltip key={modulo.id} title={modulo.title}>
-                  <IconButton
-                    onClick={() => navigate(modulo.path)}
-                    size="small"
-                    sx={{
-                      bgcolor: 'transparent',
-                      color: 'text.secondary',
-                      borderRadius: 1,
-                      fontSize: 18,
-                      transition: 'color 0.2s',
-                      '&:hover': {
-                        color: 'primary.main',
-                        bgcolor: 'action.hover',
-                      }
-                    }}
-                  >
-                    {IconComponent && React.createElement(IconComponent, { fontSize: 'small' })}
-                  </IconButton>
-                </Tooltip>
-              );
-            })}
+            {moduleData.slice(1).map(modulo => (
+              <ClickableIcon
+                key={modulo.id}
+                iconKey={modulo.icon}
+                title={modulo.title}
+                onClick={() => navigate(modulo.path)}
+                size="small"
+                sx={{
+                  fontSize: 18
+                }}
+              />
+            ))}
           </Box>
         </Box>
       )}
@@ -224,25 +195,18 @@ export default function Toolbar({
               {siblings.map(item => {
                 const isActive = currentPath === item.path || currentPath.startsWith(item.path + '/');
                 return (
-                  <Tooltip key={item.path} title={item.title}>
-                    <span style={{ display: 'inline-flex' }}>
-                      <IconButton
-                        component={Link}
-                        to={item.path}
-                        size="small"
-                        sx={{
-                          bgcolor: isActive ? 'action.selected' : 'transparent',
-                          color: isActive ? 'primary.main' : 'text.secondary',
-                          borderRadius: 1,
-                          fontSize: 18,
-                          flexShrink: 0
-                        }}
-                        disabled={isActive}
-                      >
-                        {getIconByKey(item.icon) && React.createElement(getIconByKey(item.icon))}
-                      </IconButton>
-                    </span>
-                  </Tooltip>
+                  <ClickableIcon
+                    key={item.path}
+                    iconKey={item.icon}
+                    title={item.title}
+                    onClick={() => navigate(item.path)}
+                    isActive={isActive}
+                    size="small"
+                    sx={{
+                      fontSize: 18,
+                      flexShrink: 0
+                    }}
+                  />
                 );
               })}
             </Box>

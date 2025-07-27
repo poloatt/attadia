@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Box } from '@mui/material';
 import { useTheme } from '@mui/material';
 import { useSidebar } from '../context/SidebarContext';
+import { SIDEBAR_CONFIG } from '../config/uiConstants';
 
 /**
  * SidebarResizer modular y desacoplado.
@@ -12,11 +13,12 @@ import { useSidebar } from '../context/SidebarContext';
  *
  * Así puede ser usado en cualquier layout/sidebar, y la lógica de visibilidad queda centralizada.
  */
+
 const SidebarResizer = ({
   onResize,
-  minWidth = 200,
-  maxWidth = 400,
-  defaultWidth = 280,
+  minWidth = SIDEBAR_CONFIG.minWidth,
+  maxWidth = SIDEBAR_CONFIG.maxWidth,
+  defaultWidth = SIDEBAR_CONFIG.defaultWidth,
   isDesktop: propIsDesktop,
   isOpen: propIsOpen,
   isPinned: propIsPinned

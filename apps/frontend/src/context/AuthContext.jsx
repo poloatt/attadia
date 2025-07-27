@@ -25,8 +25,29 @@ export function AuthProvider({ children }) {
     isAuthenticated: false
   });
 
+  // Rate limiting para evitar loops infinitos
+  const [lastCheckTime, setLastCheckTime] = useState(0);
+  const [isChecking, setIsChecking] = useState(false);
+  const CHECK_COOLDOWN = 1000; // 1 segundo entre checks
+
   const checkAuth = useCallback(async () => {
     try {
+      // Prevenir múltiples llamadas simultáneas
+      if (isChecking) {
+        console.log('🔄 Check auth ya en progreso, saltando...');
+        return state.isAuthenticated;
+      }
+      
+      // Rate limiting para evitar demasiadas peticiones
+      const now = Date.now();
+      if (now - lastCheckTime < CHECK_COOLDOWN) {
+        console.log('🕒 Check auth en cooldown, saltando...');
+        return state.isAuthenticated;
+      }
+      
+      setIsChecking(true);
+      setLastCheckTime(now);
+
       const token = localStorage.getItem('token');
       if (!token) {
         setState(prev => ({ ...prev, user: null, loading: false, isAuthenticated: false }));
@@ -71,10 +92,27 @@ export function AuthProvider({ children }) {
                 localStorage.setItem('refreshToken', refreshData.refreshToken);
               }
               clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${refreshData.token}`;
-              return checkAuth();
+              
+              // CORREGIDO: No recursión - verificar directamente con el nuevo token
+              const { data: verifyData } = await clienteAxios.get(`${currentConfig.authPrefix}/check`);
+              if (verifyData.authenticated && verifyData.user) {
+                setState(prev => ({ 
+                  ...prev, 
+                  user: verifyData.user, 
+                  loading: false, 
+                  isAuthenticated: true,
+                  error: null 
+                }));
+                return true;
+              }
             }
           }
         } catch (refreshError) {
+          console.log('🚨 Error al refrescar token:', refreshError.message);
+          // Limpiar tokens inválidos
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          delete clienteAxios.defaults.headers.common['Authorization'];
         }
       }
       setState(prev => ({ 
@@ -88,11 +126,19 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('refreshToken');
       delete clienteAxios.defaults.headers.common['Authorization'];
       return false;
+    } finally {
+      setIsChecking(false);
     }
-  }, []);
+  }, [lastCheckTime, state.isAuthenticated, isChecking]);
 
   const login = async (credentials) => {
     try {
+      // Prevenir múltiples logins simultáneos
+      if (state.loading) {
+        console.log('🔄 Login ya en progreso, saltando...');
+        return;
+      }
+      
       setState(prev => ({ ...prev, loading: true, error: null }));
       const response = await clienteAxios.post(`${currentConfig.authPrefix}/login`, credentials);
       const { token, refreshToken } = response.data;
@@ -107,10 +153,13 @@ export function AuthProvider({ children }) {
       }
       clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
-      const authResult = await checkAuth();
-      if (!authResult) {
-        throw new Error('Fallo en la verificación de autenticación');
-      }
+      // No llamar checkAuth aquí para evitar loops
+      setState(prev => ({ 
+        ...prev, 
+        loading: false, 
+        isAuthenticated: true,
+        error: null 
+      }));
       return response.data;
     } catch (error) {
       setState(prev => ({ 
@@ -195,8 +244,14 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+    // Solo ejecutar una vez al montar el componente
+    const token = localStorage.getItem('token');
+    if (token) {
+      checkAuth();
+    } else {
+      setState(prev => ({ ...prev, loading: false, isAuthenticated: false }));
+    }
+  }, []); // Sin dependencias para evitar re-ejecuciones
 
   const value = {
     user: state.user,

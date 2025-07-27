@@ -10,6 +10,12 @@ function isRouteActive(path, currentPath) {
 
 // Ahora items es obligatorio, no hay valor por defecto
 export function getBreadcrumbs(currentPath, items, acc = []) {
+  // Validar que items sea un array iterable
+  if (!items || !Array.isArray(items)) {
+    console.warn('⚠️ getBreadcrumbs: items no es un array válido:', items);
+    return [];
+  }
+  
   for (const item of items) {
     if (item.path && isRouteActive(item.path, currentPath)) {
       acc.push(item);

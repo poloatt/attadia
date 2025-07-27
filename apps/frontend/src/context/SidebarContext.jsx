@@ -1,30 +1,30 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { useMediaQuery, useTheme } from '@mui/material';
+import useResponsive from '../hooks/useResponsive';
+import { SIDEBAR_CONFIG, STORAGE_KEYS, calculateMainMargin, getChildPadding } from '../config/uiConstants';
 
 const SidebarContext = createContext();
 
 export function SidebarProvider({ children }) {
-  const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up('md'), { noSsr: true });
+  const { isDesktop } = useResponsive();
 
   // Estado inicial de apertura/cierre
   const getInitialSidebarState = () => {
     if (typeof window === 'undefined') return true;
-    const pref = localStorage.getItem('sidebarOpen');
+    const pref = localStorage.getItem(STORAGE_KEYS.sidebarOpen);
     return pref === null ? true : pref === 'true';
   };
   const [isOpen, setIsOpen] = useState(getInitialSidebarState);
 
   // Ancho de la sidebar
   const [sidebarWidth, setSidebarWidth] = useState(() => {
-    const savedWidth = localStorage.getItem('sidebarWidth');
-    return savedWidth ? parseInt(savedWidth, 10) : 280;
+    const savedWidth = localStorage.getItem(STORAGE_KEYS.sidebarWidth);
+    return savedWidth ? parseInt(savedWidth, 10) : SIDEBAR_CONFIG.defaultWidth;
   });
-  const collapsedWidth = 56;
+  const collapsedWidth = SIDEBAR_CONFIG.collapsedWidth;
 
-  // Estado para la selección de niveles principales y subniveles
+  // Estado para la selección de niveles principales 
   const [selectedMain, setSelectedMain] = useState(null);
-  const [selectedSecond, setSelectedSecond] = useState(null);
+  // selectedSecond eliminado - la ruta actual es la única fuente de verdad
   
   // Estado para sidebar pinned (para el resizer)
   const [isPinned, setIsPinned] = useState(false);
@@ -33,63 +33,43 @@ export function SidebarProvider({ children }) {
   const toggleSidebar = useCallback(() => {
     setIsOpen(prev => {
       const newState = !prev;
-      localStorage.setItem('sidebarOpen', newState.toString());
+      localStorage.setItem(STORAGE_KEYS.sidebarOpen, newState.toString());
       return newState;
     });
   }, []);
 
   const closeSidebar = useCallback(() => {
     setIsOpen(false);
-    localStorage.setItem('sidebarOpen', 'false');
+    localStorage.setItem(STORAGE_KEYS.sidebarOpen, 'false');
   }, []);
 
   const openSidebar = useCallback(() => {
     setIsOpen(true);
-    localStorage.setItem('sidebarOpen', 'true');
+    localStorage.setItem(STORAGE_KEYS.sidebarOpen, 'true');
   }, []);
 
   // Función para manejar el resize de la sidebar
   const handleSidebarResize = useCallback((newWidth) => {
     setSidebarWidth(newWidth);
-    localStorage.setItem('sidebarWidth', newWidth.toString());
+    localStorage.setItem(STORAGE_KEYS.sidebarWidth, newWidth.toString());
   }, []);
 
-  // Función utilitaria para calcular mainMargin (evita duplicación)
-  const getMainMargin = useCallback((isMobile, isTablet) => {
-    return (!isMobile && !isTablet)
-      ? (isOpen ? sidebarWidth : collapsedWidth)
-      : 0;
-  }, [isOpen, sidebarWidth, collapsedWidth]);
+  // Función utilitaria para calcular mainMargin (usa utilidad centralizada)
+  const getMainMargin = useCallback((isMobileOrTablet, showSidebarCollapsed = false) => {
+    return calculateMainMargin(isOpen, sidebarWidth, isMobileOrTablet, showSidebarCollapsed);
+  }, [isOpen, sidebarWidth]);
 
-  // Configuración centralizada para alineación de elementos child
-  const SIDEBAR_CONFIG = {
-    parent: {
-      paddingUnits: 2,        // Theme spacing units (2 * 8px = 16px)
-      paddingPx: 16,          // Equivalente en píxeles para cálculos
-      iconWidth: 36,          // Ancho estándar de ícono parent
-      iconMinWidth: 36        // minWidth del ListItemIcon
-    },
-    child: {
-      collapsedPadding: 2,    // Padding cuando sidebar está colapsada
-      alignmentOffset: 0,     // Offset adicional para ajuste fino
-      iconSize: 'small'       // Tamaño de íconos child
-    }
-  };
+  // Eliminado: getChildPaddingCallback redundante - usar directamente getChildPadding de uiConstants
 
-  // Función modular para calcular padding de elementos child (nivel 2)
-  const getChildPadding = useCallback((isOpen) => {
-    if (!isOpen) return SIDEBAR_CONFIG.child.collapsedPadding;
-    
-    // Cálculo preciso: donde termina el ícono parent + offset
-    const alignmentPoint = SIDEBAR_CONFIG.parent.paddingPx + 
-                          SIDEBAR_CONFIG.parent.iconWidth + 
-                          SIDEBAR_CONFIG.child.alignmentOffset;
-     
-     return `${alignmentPoint}px`;
-   }, []);
-
-  // Función para acceder a la configuración desde otros componentes
+  // Función para acceder a la configuración desde otros componentes - usa configuración centralizada
   const getSidebarConfig = useCallback(() => SIDEBAR_CONFIG, []);
+
+  // Función para ajustar dinámicamente el offset de alineación (debugging/fine-tuning)
+  const adjustChildAlignment = useCallback((offset) => {
+    SIDEBAR_CONFIG.child.alignmentOffset = offset;
+            // console.log(`🔧 Child alignment offset ajustado a: ${offset}px`);
+        // console.log(`📏 Nuevo padding calculado: ${SIDEBAR_CONFIG.calculateChildPadding()}`);
+  }, []);
 
   return (
     <SidebarContext.Provider value={{ 
@@ -99,18 +79,16 @@ export function SidebarProvider({ children }) {
       setIsPinned,
       toggleSidebar,
       closeSidebar,
-      openSidebar,
-      selectedMain,
-      setSelectedMain,
-      selectedSecond,
-      setSelectedSecond,
-      sidebarWidth,
+           openSidebar,
+     selectedMain,
+     setSelectedMain,
+     sidebarWidth,
       collapsedWidth,
-      handleSidebarResize,
-      getMainMargin,
-      getChildPadding,
-      getSidebarConfig
-    }}>
+             handleSidebarResize,
+       getMainMargin,
+       getSidebarConfig,
+       adjustChildAlignment
+     }}>
       {children}
     </SidebarContext.Provider>
   );

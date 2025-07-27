@@ -1,9 +1,10 @@
 import React from 'react';
 import { Box, Paper, Typography } from '@mui/material';
 import { useLocation, Link } from 'react-router-dom';
-import { modulos } from './menuStructure';
 import { getIconByKey, isRouteActive } from './menuIcons';
 import theme from '../context/ThemeContext';
+import { findActiveModule } from '../utils/navigationUtils';
+import { DynamicIcon } from '../components/common/DynamicIcon';
 
 /**
  * Componente de navegación inferior con diseño geométrico
@@ -13,11 +14,8 @@ export default function BottomNavigation() {
   const location = useLocation();
   const currentPath = location.pathname;
 
-  // Encontrar el módulo activo según la ruta
-  const moduloActivo = modulos.find(modulo =>
-    modulo.subItems?.some(sub => currentPath.startsWith(sub.path)) ||
-    currentPath.startsWith(modulo.path)
-  );
+  // Usar utilidad centralizada para encontrar el módulo activo
+  const moduloActivo = findActiveModule(currentPath);
 
   // Obtener los menús de nivel 1 del módulo activo
   const navItems = moduloActivo?.subItems || [];
@@ -107,8 +105,7 @@ export default function BottomNavigation() {
                     p: 1,
                   }}
                 >
-                  {typeof item.icon === 'string' && getIconByKey(item.icon) &&
-                    React.createElement(getIconByKey(item.icon), { fontSize: 'small' })}
+                  <DynamicIcon iconKey={item.icon} size="small" />
                 </Box>
                 <Typography
                   variant="caption"

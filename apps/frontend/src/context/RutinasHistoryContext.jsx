@@ -53,9 +53,14 @@ export const RutinasHistoryProvider = ({ children }) => {
         setNoHistoryAvailable(true);
       }
     } catch (error) {
-      setError('Error al cargar historial de rutinas');
-      setNoHistoryAvailable(true);
-      enqueueSnackbar('Error al cargar historial de rutinas', { variant: 'error' });
+      // No mostrar error si es por token expirado (se maneja automáticamente)
+      if (error.response?.status === 401) {
+        console.log('🔒 Token expirado en historial - se manejará automáticamente');
+        setNoHistoryAvailable(true);
+      } else {
+        setError('Error al cargar historial de rutinas');
+        enqueueSnackbar('Error al cargar historial de rutinas', { variant: 'error' });
+      }
       setHistorialRutinas([]);
       setHistoricosPorItem({});
     } finally {
@@ -189,7 +194,11 @@ export const RutinasHistoryProvider = ({ children }) => {
   }, [historicosPorItem]);
   
   useEffect(() => {
-    cargarHistorial();
+    // Solo cargar si hay token válido
+    const token = localStorage.getItem('token');
+    if (token) {
+      cargarHistorial();
+    }
   }, [cargarHistorial]);
   
   const value = {
