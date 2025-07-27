@@ -1,3 +1,4 @@
+import React from 'react';
 import { Box, useTheme, useMediaQuery } from '@mui/material';
 import { useUISettings } from '../context/UISettingsContext';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';

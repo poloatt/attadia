@@ -43,117 +43,84 @@ export default function Sidebar({ moduloActivo }) {
   // Si no hay módulo activo, no renderizar nada
   if (!moduloActivo) return null;
 
-  // SubItems del módulo activo (nivel 1)
-  const nivel1 = moduloActivo.subItems || [];
+  // Función recursiva simplificada que usa directamente la estructura de menuStructure.js
+  const renderMenuItem = (item, level = 1) => {
+    const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+    const hasChildren = item.subItems && item.subItems.length > 0;
+    const isParent = level === 1;
+    const isChild = level === 2;
 
-  // Renderizar subItems de nivel 1 y sus hijos (nivel 2)
-  const renderNivel1 = () => (
+    // Padding según nivel: parents usan padding estándar, children usan función centralizada
+    const padding = isChild ? getChildPadding(isOpen) : (isOpen ? 2 : 0);
+
+    return (
+      <React.Fragment key={item.id}>
+        <ListItem disablePadding sx={{ bgcolor: 'transparent' }}>
+          <ListItemButton
+            onClick={() => {
+              if (item.path && !item.isUnderConstruction) {
+                navigate(item.path);
+              }
+              if (isParent) setSelectedSecond(item.id);
+            }}
+            selected={isActive}
+            disabled={item.isUnderConstruction}
+            sx={{
+              minHeight: isChild ? 32 : 36,
+              pl: padding,
+              pr: isOpen ? 1.5 : (isChild ? 1 : 0),
+              borderRadius: '12px',
+              mb: isChild ? 0.15 : 0.25,
+              justifyContent: isOpen ? 'initial' : 'center',
+              backgroundColor: isActive ? (isChild ? '#232323' : '#323232') : 'transparent',
+              '&:hover': {
+                backgroundColor: isActive ? (isChild ? '#232323' : '#3a3a3a') : '#232323',
+              },
+              '&.Mui-selected, &.Mui-selected:hover': {
+                backgroundColor: isChild ? '#232323' : '#323232',
+                color: '#fff',
+              },
+              opacity: item.isUnderConstruction ? 0.5 : 1,
+              transition: 'background 0.2s',
+              position: 'relative',
+              zIndex: 1,
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <ListItemIcon
+              sx={{
+                minWidth: 36,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                width: isOpen ? 'auto' : '100%',
+                mx: isOpen ? 0 : 'auto',
+              }}
+            >
+              {typeof item.icon === 'string' && icons[item.icon] &&
+                React.createElement(icons[item.icon], { fontSize: 'small' })}
+            </ListItemIcon>
+            {isOpen && <ListItemText primary={item.title} />}
+          </ListItemButton>
+        </ListItem>
+        
+        {/* Renderizar children recursivamente */}
+        {hasChildren && isParent && (
+          <Collapse in={selectedSecond === item.id && isOpen} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding>
+              {item.subItems.map(child => renderMenuItem(child, level + 1))}
+            </List>
+          </Collapse>
+        )}
+      </React.Fragment>
+    );
+  };
+
+  // Renderizar la estructura del módulo usando la función recursiva
+  const renderModuleStructure = () => (
     <List disablePadding>
-      {nivel1.map(item => {
-        const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
-        const hasChildren = item.subItems && item.subItems.length > 0;
-        return (
-          <React.Fragment key={item.id}>
-            <ListItem disablePadding sx={{ bgcolor: 'transparent' }}>
-              <ListItemButton
-                onClick={() => {
-                  if (item.path && !item.isUnderConstruction) {
-                    navigate(item.path);
-                  }
-                  setSelectedSecond(item.id);
-                }}
-                selected={isActive}
-                disabled={item.isUnderConstruction}
-                sx={{
-                  minHeight: 36,
-                  pl: isOpen ? 2 : 0,
-                  pr: isOpen ? 1.5 : 0,
-                  borderRadius: '12px',
-                  mb: 0.25,
-                  justifyContent: isOpen ? 'initial' : 'center',
-                  backgroundColor: isActive ? '#323232' : 'transparent',
-                  '&:hover': {
-                    backgroundColor: isActive ? '#3a3a3a' : '#232323',
-                  },
-                  '&.Mui-selected, &.Mui-selected:hover': {
-                    backgroundColor: '#323232',
-                    color: '#fff',
-                  },
-                  opacity: item.isUnderConstruction ? 0.5 : 1,
-                  transition: 'background 0.2s',
-                  position: 'relative',
-                  zIndex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
-                <ListItemIcon
-                  sx={{
-                    minWidth: 36,
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    width: isOpen ? 'auto' : '100%',
-                    mx: isOpen ? 0 : 'auto',
-                  }}
-                >
-                  {typeof item.icon === 'string' && icons[item.icon] &&
-                    React.createElement(icons[item.icon], { fontSize: 'small' })}
-                </ListItemIcon>
-                {isOpen && <ListItemText primary={item.title} />}
-              </ListItemButton>
-            </ListItem>
-            {/* Collapse para hijos de nivel 2 */}
-            {hasChildren && (
-              <Collapse in={selectedSecond === item.id && isOpen} timeout="auto" unmountOnExit>
-                <List component="div" disablePadding>
-                  {item.subItems.map(child => (
-                    <ListItem key={child.id} disablePadding sx={{ bgcolor: 'transparent' }}>
-                      <ListItemButton
-                        onClick={() => {
-                          if (child.path && !child.isUnderConstruction) {
-                            navigate(child.path);
-                          }
-                        }}
-                        selected={location.pathname === child.path}
-                        disabled={child.isUnderConstruction}
-                                                 sx={{
-                           minHeight: 32,
-                           pl: getChildPadding(isOpen), // Padding modular y centralizado para elementos child
-                           pr: isOpen ? 1.5 : 1,
-                          borderRadius: '12px',
-                          mb: 0.15,
-                          backgroundColor: location.pathname === child.path ? '#232323' : 'transparent',
-                          '&:hover': {
-                            backgroundColor: '#232323',
-                          },
-                          opacity: child.isUnderConstruction ? 0.5 : 1,
-                          transition: 'background 0.2s',
-                        }}
-                      >
-                        <ListItemIcon
-                          sx={{
-                            minWidth: 36,
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            width: isOpen ? 'auto' : '100%',
-                            mx: isOpen ? 0 : 'auto',
-                          }}
-                        >
-                          {typeof child.icon === 'string' && icons[child.icon] &&
-                            React.createElement(icons[child.icon], { fontSize: 'small' })}
-                        </ListItemIcon>
-                        {isOpen && <ListItemText primary={child.title} />}
-                      </ListItemButton>
-                    </ListItem>
-                  ))}
-                </List>
-              </Collapse>
-            )}
-          </React.Fragment>
-        );
-      })}
+      {(moduloActivo.subItems || []).map(item => renderMenuItem(item, 1))}
     </List>
   );
 
@@ -199,8 +166,8 @@ export default function Sidebar({ moduloActivo }) {
           }
         }}
       >
-        {/* Renderizar navegación de nivel 1 y 2 */}
-        {renderNivel1()}
+        {/* Renderizar estructura del módulo usando menuStructure.js */}
+        {renderModuleStructure()}
         {/* Sidebar Resizer y otros elementos si es necesario */}
         <SidebarResizer 
           onResize={handleSidebarResize}
