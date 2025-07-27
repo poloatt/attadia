@@ -55,7 +55,7 @@ cleanup_temp_files() {
     
     # Archivos de prueba y migración
     safe_remove "test-parseapi-fix.js"
-    safe_remove "backend/migrar_usuario_string_a_objectid.js"
+    safe_remove "apps/backend/migrar_usuario_string_a_objectid.js"
     
     # Limpiar directorio temp
     if [ -d "temp" ]; then
@@ -65,9 +65,9 @@ cleanup_temp_files() {
     fi
     
     # Eliminar backups antiguos (más de 30 días)
-    if [ -d "data/backups" ]; then
+    if [ -d "var/storage/backups" ]; then
         log "Eliminando backups antiguos..."
-        find data/backups/ -name "backup_*" -mtime +30 -delete 2>/dev/null || true
+        find var/storage/backups/ -name "backup_*" -mtime +30 -delete 2>/dev/null || true
         log "Backups antiguos eliminados"
     fi
 }
@@ -77,15 +77,15 @@ cleanup_deprecated_components() {
     log "🗑️ Limpiando componentes deprecados..."
     
     # Verificar si el componente deprecated aún se usa
-    if grep -r "InlineItemConfig" frontend/src/ --include="*.jsx" --exclude="InlineItemConfig.jsx" > /dev/null 2>&1; then
+    if grep -r "InlineItemConfig" apps/frontend/src/ --include="*.jsx" --exclude="InlineItemConfig.jsx" > /dev/null 2>&1; then
         warn "InlineItemConfig aún se está usando. No se puede eliminar."
     else
-        safe_remove "frontend/src/components/rutinas/InlineItemConfig.jsx"
+        safe_remove "apps/frontend/src/components/rutinas/InlineItemConfig.jsx"
         log "Componente deprecated eliminado"
     fi
     
     # Eliminar archivo de comparación si existe
-    safe_remove "frontend/src/components/rutinas/ConfigComparison.jsx"
+    safe_remove "apps/frontend/src/components/rutinas/ConfigComparison.jsx"
 }
 
 # Función para limpiar logs de desarrollo
@@ -93,17 +93,17 @@ cleanup_dev_logs() {
     log "📝 Limpiando logs de desarrollo..."
     
     # Buscar console.log en archivos del backend
-    local console_logs=$(grep -r "console\.log" backend/src/ --include="*.js" | wc -l)
-    info "Encontrados $console_logs console.log en backend/src/"
+    local console_logs=$(grep -r "console\.log" apps/backend/src/ --include="*.js" | wc -l)
+    info "Encontrados $console_logs console.log en apps/backend/src/"
     
     # Buscar console.log en archivos del frontend
-    local frontend_logs=$(grep -r "console\.log" frontend/src/ --include="*.jsx" | wc -l)
-    info "Encontrados $frontend_logs console.log en frontend/src/"
+    local frontend_logs=$(grep -r "console\.log" apps/frontend/src/ --include="*.jsx" | wc -l)
+    info "Encontrados $frontend_logs console.log en apps/frontend/src/"
     
     warn "Revisa manualmente los logs de desarrollo en:"
-    warn "  - backend/src/index.js"
-    warn "  - backend/src/config/passport.js"
-    warn "  - frontend/src/components/rutinas/DEBUG.js"
+    warn "  - apps/backend/src/index.js"
+    warn "  - apps/backend/src/config/passport.js"
+    warn "  - apps/frontend/src/components/rutinas/DEBUG.js"
 }
 
 # Función para detectar archivos no utilizados
@@ -162,7 +162,7 @@ main() {
     log "🚀 Iniciando limpieza de código..."
     
     # Verificar que estamos en el directorio correcto
-    if [ ! -f "package.json" ] && [ ! -f "frontend/package.json" ]; then
+    if [ ! -f "package.json" ] && [ ! -f "apps/frontend/package.json" ]; then
         error "No se encontró package.json. Asegúrate de estar en el directorio del proyecto."
         exit 1
     fi

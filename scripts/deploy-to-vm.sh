@@ -21,7 +21,7 @@ fi
 
 # Conectar a la VM y crear estructura de directorios
 echo -e "${BLUE}Conectando a la VM y creando estructura de directorios...${NC}"
-gcloud compute ssh --zone "$ZONE" "$VM_NAME" --project "$PROJECT_ID" -- "mkdir -p ~/present/backend ~/present/frontend ~/present/nginx/conf.d ~/present/ssl/nginx/ssl ~/present/scripts"
+gcloud compute ssh --zone "$ZONE" "$VM_NAME" --project "$PROJECT_ID" -- "mkdir -p ~/present/backend ~/present/frontend ~/present/config/nginx/conf.d ~/present/config/ssl/nginx/ssl ~/present/scripts"
 
 # Crear directorios de backup
 echo -e "${BLUE}Creando directorios de backup...${NC}"
@@ -32,14 +32,14 @@ echo -e "${BLUE}Copiando docker-compose.prod.yml a la VM...${NC}"
 gcloud compute scp ./docker-compose.prod.yml "$VM_NAME:~/present/docker-compose.yml" --zone "$ZONE" --project "$PROJECT_ID"
 
 # Verificar si hay archivos de configuración adicionales para copiar
-if [ -d "./nginx/conf.d" ]; then
+if [ -d "./config/nginx/conf.d" ]; then
     echo -e "${BLUE}Copiando configuración de Nginx...${NC}"
-    gcloud compute scp --recurse ./nginx/conf.d/production.conf "$VM_NAME:~/present/nginx/conf.d/default.conf" --zone "$ZONE" --project "$PROJECT_ID"
+    gcloud compute scp --recurse ./config/nginx/conf.d/production.conf "$VM_NAME:~/present/config/nginx/conf.d/default.conf" --zone "$ZONE" --project "$PROJECT_ID"
 fi
 
-if [ -d "./ssl/nginx/ssl" ]; then
+if [ -d "./config/ssl/nginx/ssl" ]; then
     echo -e "${BLUE}Copiando certificados SSL...${NC}"
-    gcloud compute scp --recurse ./ssl/nginx/ssl/ "$VM_NAME:~/present/ssl/nginx/ssl/" --zone "$ZONE" --project "$PROJECT_ID"
+    gcloud compute scp --recurse ./config/ssl/nginx/ssl/ "$VM_NAME:~/present/config/ssl/nginx/ssl/" --zone "$ZONE" --project "$PROJECT_ID"
 fi
 
 if [ -f "./backend/.env.prod" ]; then

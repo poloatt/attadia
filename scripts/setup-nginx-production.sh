@@ -23,7 +23,7 @@ fi
 
 # Copiar archivo de configuración
 echo -e "${BLUE}Copiando archivo de configuración...${NC}"
-sudo cp nginx/sites-available/present.attadia.com /etc/nginx/sites-available/
+sudo cp config/nginx/sites-available/present.attadia.com /etc/nginx/sites-available/
 
 # Crear enlace simbólico
 echo -e "${BLUE}Creando enlace simbólico...${NC}"

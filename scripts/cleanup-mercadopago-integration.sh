@@ -36,38 +36,38 @@ safe_remove "docs/MERCADOPAGO_SETUP.md"
 safe_remove "test-mercadopago-flow.js"
 
 # Verificar si hay archivos de configuración duplicados
-if [ -f "frontend/src/config/mercadopago.js" ] && [ -f "frontend/src/config/mercadopago.config.js" ]; then
+if [ -f "apps/frontend/src/config/mercadopago.js" ] && [ -f "apps/frontend/src/config/mercadopago.config.js" ]; then
     echo "⚠️  Detectado archivo de configuración duplicado"
-    echo "   Manteniendo: frontend/src/config/mercadopago.js"
-    safe_remove "frontend/src/config/mercadopago.config.js"
+    echo "   Manteniendo: apps/frontend/src/config/mercadopago.js"
+    safe_remove "apps/frontend/src/config/mercadopago.config.js"
 fi
 
 # Verificar si hay componentes duplicados
-if [ -f "frontend/src/components/bankconnections/MercadoPagoConnectButton.jsx" ] && [ -f "frontend/src/components/MercadoPagoConnectButton.jsx" ]; then
+if [ -f "apps/frontend/src/components/bankconnections/MercadoPagoConnectButton.jsx" ] && [ -f "apps/frontend/src/components/MercadoPagoConnectButton.jsx" ]; then
     echo "⚠️  Detectado componente duplicado"
-    echo "   Manteniendo: frontend/src/components/bankconnections/MercadoPagoConnectButton.jsx"
-    safe_remove "frontend/src/components/MercadoPagoConnectButton.jsx"
+    echo "   Manteniendo: apps/frontend/src/components/bankconnections/MercadoPagoConnectButton.jsx"
+    safe_remove "apps/frontend/src/components/MercadoPagoConnectButton.jsx"
 fi
 
 # Verificar si hay páginas duplicadas
-if [ -f "frontend/src/pages/MercadoPagoCallbackPage.jsx" ] && [ -f "frontend/src/components/MercadoPagoCallbackPage.jsx" ]; then
+if [ -f "apps/frontend/src/pages/MercadoPagoCallbackPage.jsx" ] && [ -f "apps/frontend/src/components/MercadoPagoCallbackPage.jsx" ]; then
     echo "⚠️  Detectada página duplicada"
-    echo "   Manteniendo: frontend/src/pages/MercadoPagoCallbackPage.jsx"
-    safe_remove "frontend/src/components/MercadoPagoCallbackPage.jsx"
+    echo "   Manteniendo: apps/frontend/src/pages/MercadoPagoCallbackPage.jsx"
+    safe_remove "apps/frontend/src/components/MercadoPagoCallbackPage.jsx"
 fi
 
 # Verificar si hay servicios duplicados
-if [ -f "frontend/src/services/mercadopagoService.js" ] && [ -f "frontend/src/services/mercadopago.js" ]; then
+if [ -f "apps/frontend/src/services/mercadopagoService.js" ] && [ -f "apps/frontend/src/services/mercadopago.js" ]; then
     echo "⚠️  Detectado servicio duplicado"
-    echo "   Manteniendo: frontend/src/services/mercadopagoService.js"
-    safe_remove "frontend/src/services/mercadopago.js"
+    echo "   Manteniendo: apps/frontend/src/services/mercadopagoService.js"
+    safe_remove "apps/frontend/src/services/mercadopago.js"
 fi
 
 # Verificar si hay hooks duplicados
-if [ -f "frontend/src/hooks/useMercadoPago.js" ] && [ -f "frontend/src/hooks/useMercadoPagoHook.js" ]; then
+if [ -f "apps/frontend/src/hooks/useMercadoPago.js" ] && [ -f "apps/frontend/src/hooks/useMercadoPagoHook.js" ]; then
     echo "⚠️  Detectado hook duplicado"
-    echo "   Manteniendo: frontend/src/hooks/useMercadoPago.js"
-    safe_remove "frontend/src/hooks/useMercadoPagoHook.js"
+    echo "   Manteniendo: apps/frontend/src/hooks/useMercadoPago.js"
+    safe_remove "apps/frontend/src/hooks/useMercadoPagoHook.js"
 fi
 
 # Limpiar archivos temporales
@@ -81,27 +81,27 @@ echo "📁 Verificando estructura final..."
 
 # Listar archivos de la integración modular
 echo "✅ Archivos de la integración modular:"
-echo "   📄 frontend/src/services/mercadopagoService.js"
-echo "   📄 frontend/src/hooks/useMercadoPago.js"
-echo "   📄 frontend/src/config/mercadopago.js"
-echo "   📄 frontend/src/components/bankconnections/MercadoPagoConnectButton.jsx"
-echo "   📄 frontend/src/components/bankconnections/DigitalWalletConnectButton.jsx"
-echo "   📄 frontend/src/pages/MercadoPagoCallbackPage.jsx"
-echo "   📄 backend/src/oauth/mercadoPagoOAuth.js"
-echo "   📄 backend/src/controllers/bankConnectionController.js"
-echo "   📄 backend/src/services/bankSyncService.js"
+echo "   📄 apps/frontend/src/services/mercadopagoService.js"
+echo "   📄 apps/frontend/src/hooks/useMercadoPago.js"
+echo "   📄 apps/frontend/src/config/mercadopago.js"
+echo "   📄 apps/frontend/src/components/bankconnections/MercadoPagoConnectButton.jsx"
+echo "   📄 apps/frontend/src/components/bankconnections/DigitalWalletConnectButton.jsx"
+echo "   📄 apps/frontend/src/pages/MercadoPagoCallbackPage.jsx"
+echo "   📄 apps/backend/src/oauth/mercadoPagoOAuth.js"
+echo "   📄 apps/backend/src/controllers/bankConnectionController.js"
+echo "   📄 apps/backend/src/services/bankSyncService.js"
 echo "   📄 docs/MERCADOPAGO_MODULAR_INTEGRATION.md"
 
 # Verificar que los archivos principales existen
 echo "🔍 Verificando archivos principales..."
 
 required_files=(
-    "frontend/src/services/mercadopagoService.js"
-    "frontend/src/hooks/useMercadoPago.js"
-    "frontend/src/config/mercadopago.js"
-    "frontend/src/components/bankconnections/MercadoPagoConnectButton.jsx"
-    "frontend/src/pages/MercadoPagoCallbackPage.jsx"
-    "backend/src/oauth/mercadoPagoOAuth.js"
+    "apps/frontend/src/services/mercadopagoService.js"
+    "apps/frontend/src/hooks/useMercadoPago.js"
+    "apps/frontend/src/config/mercadopago.js"
+    "apps/frontend/src/components/bankconnections/MercadoPagoConnectButton.jsx"
+    "apps/frontend/src/pages/MercadoPagoCallbackPage.jsx"
+    "apps/backend/src/oauth/mercadoPagoOAuth.js"
     "docs/MERCADOPAGO_MODULAR_INTEGRATION.md"
 )
 

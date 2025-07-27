@@ -1,0 +1,47 @@
+# Build stage
+FROM node:18-alpine
+
+# Argumentos de construcción
+ARG BUILD_ENV=prod
+
+# Instalar curl para health checks
+RUN apk add --no-cache curl
+
+# Directorio de trabajo
+WORKDIR /app
+
+# Copiar package.json y package-lock.json
+COPY package*.json ./
+
+# Instalar dependencias
+RUN npm install --production
+
+# Copiar el código fuente
+COPY . .
+
+# Crear un archivo .env por defecto si no existe
+RUN touch .env.default
+
+# Intentar copiar el archivo .env según el ambiente (si existe) o usar el default
+ARG BUILD_ENV=prod
+RUN if [ -f ".env.${BUILD_ENV}" ]; then \
+    cp .env.${BUILD_ENV} .env; \
+    else \
+    echo "# Default environment variables" > .env; \
+    fi
+
+# Copiar el script de inicialización
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Exponer el puerto
+EXPOSE 5000
+
+# Establecer variables de entorno
+ENV NODE_ENV=production
+
+# Usar el script de inicialización como punto de entrada
+ENTRYPOINT ["/entrypoint.sh"]
+
+# Comando por defecto
+CMD ["npm", "start"]

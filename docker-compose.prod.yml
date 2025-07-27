@@ -13,6 +13,7 @@ services:
     volumes:
       - mongodb_prod_data:/data/db
       - ./mongodb_backup:/mongodb_backup
+      - ./config/mongodb/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js
     networks:
       - app_network_prod
     healthcheck:
@@ -30,7 +31,7 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: ./apps/backend
       dockerfile: Dockerfile.prod
       args:
         - BUILD_ENV=prod
@@ -40,7 +41,7 @@ services:
     expose:
       - "5000"
     env_file:
-      - ./backend/.env.prod
+      - ./apps/backend/.env.prod
     environment:
       - NODE_ENV=production
       - ENVIRONMENT=production
@@ -65,7 +66,7 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: ./apps/frontend
       dockerfile: Dockerfile.prod
       args:
         - BUILD_ENV=prod
@@ -76,13 +77,13 @@ services:
       - "80:80"
       - "443:443"
     env_file:
-      - ./frontend/.env.prod
+      - ./apps/frontend/.env.prod
     environment:
       - NODE_ENV=production
       - ENVIRONMENT=production
     volumes:
-      - ./nginx/conf.d/production.conf:/etc/nginx/conf.d/default.conf
-      - ./ssl/nginx/ssl:/etc/nginx/ssl
+      - ./config/nginx/conf.d/production.conf:/etc/nginx/conf.d/default.conf
+      - ./config/ssl/nginx/ssl:/etc/nginx/ssl
     depends_on:
       - backend
     networks:
@@ -102,7 +103,7 @@ services:
 
   webhook:
     build:
-      context: ./webhook
+      context: ./apps/webhook
       dockerfile: Dockerfile.prod
       args:
         - BUILD_ENV=prod

@@ -35,8 +35,8 @@ mkdir -p /etc/nginx/ssl
 
 # Copiar certificados SSL
 echo "Copiando certificados SSL..."
-cp -f "$DIR/ssl/nginx/ssl/fullchain.pem" /etc/nginx/ssl/
-cp -f "$DIR/ssl/nginx/ssl/privkey.pem" /etc/nginx/ssl/
+cp -f "$DIR/config/ssl/nginx/ssl/fullchain.pem" /etc/nginx/ssl/
+cp -f "$DIR/config/ssl/nginx/ssl/privkey.pem" /etc/nginx/ssl/
 chmod 600 /etc/nginx/ssl/*.pem
 
 # Directorio para Let's Encrypt
@@ -49,7 +49,7 @@ rm -f /etc/nginx/sites-enabled/${ENV}.conf
 
 # Copiar nueva configuración
 echo "Copiando nueva configuración de $ENV..."
-cp -f "$DIR/nginx/${ENV}-nginx.conf" /etc/nginx/sites-available/${ENV}.conf
+cp -f "$DIR/config/nginx/${ENV}-nginx.conf" /etc/nginx/sites-available/${ENV}.conf
 
 # Crear enlace simbólico
 echo "Creando enlace simbólico..."

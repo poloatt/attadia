@@ -1,0 +1,32 @@
+# Imagen base
+FROM node:20-alpine
+
+# Establecer directorio de trabajo y variables de entorno
+WORKDIR /app
+ENV NODE_ENV=development
+ENV VITE_MODE=development
+ENV CHOKIDAR_USEPOLLING=true
+
+# Instalar dependencias globales necesarias
+RUN apk add --no-cache git
+
+# Copiar archivos de configuración
+COPY package*.json ./
+COPY vite.config.js ./
+
+# Instalar dependencias con cache optimizado
+RUN npm install -g npm@latest && \
+    npm install --no-package-lock
+
+# Configurar permisos
+RUN mkdir -p /app/node_modules/.vite && \
+    chown -R node:node /app
+
+# Cambiar al usuario node
+USER node
+
+# Puerto para Vite
+EXPOSE 5173
+
+# Iniciar en modo desarrollo con hot reload
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"] 

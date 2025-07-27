@@ -63,13 +63,13 @@ enable_site() {
     log_info "Habilitando sitio api.admin.attadia.com..."
     
     # Verificar que el archivo de configuración existe
-    if [ ! -f "/root/present/nginx/sites-available/api.admin.attadia.com" ]; then
-        log_error "Archivo de configuración no encontrado en /root/present/nginx/sites-available/"
+    if [ ! -f "/root/present/config/nginx/sites-available/api.admin.attadia.com" ]; then
+    log_error "Archivo de configuración no encontrado en /root/present/config/nginx/sites-available/"
         exit 1
     fi
     
     # Copiar configuración a sites-available de nginx
-    cp "/root/present/nginx/sites-available/api.admin.attadia.com" "/etc/nginx/sites-available/"
+    cp "/root/present/config/nginx/sites-available/api.admin.attadia.com" "/etc/nginx/sites-available/"
     
     # Crear enlace simbólico
     if [ -L "/etc/nginx/sites-enabled/api.admin.attadia.com" ]; then

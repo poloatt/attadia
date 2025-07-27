@@ -72,7 +72,7 @@ temp/
 
 ### 2. **Archivos de Backup**
 - `nginx/conf.d/default.conf.save`
-- Múltiples backups en `data/backups/`
+- Múltiples backups en `var/storage/backups/`
 
 ## 🔧 Mejoras Recomendadas
 
@@ -88,7 +88,7 @@ rm backend/migrar_usuario_string_a_objectid.js
 rm -rf temp/*
 
 # Eliminar backups antiguos
-find data/backups/ -name "backup_*" -mtime +30 -delete
+find var/storage/backups/ -name "backup_*" -mtime +30 -delete
 ```
 
 #### ✅ Eliminar Componente Deprecated

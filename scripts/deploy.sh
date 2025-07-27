@@ -25,8 +25,8 @@ echo ""
 echo "# Crear directorios necesarios"
 echo "mkdir -p ~/present-prod/backend"
 echo "mkdir -p ~/present-prod/frontend"
-echo "mkdir -p ~/present-prod/nginx/conf.d"
-echo "mkdir -p ~/present-prod/ssl/nginx/ssl"
+echo "mkdir -p ~/present-prod/config/nginx/conf.d"
+echo "mkdir -p ~/present-prod/config/ssl/nginx/ssl"
 echo "mkdir -p ~/present-prod/mongodb_backup"
 echo ""
 echo "# Instalar Docker si no está instalado"
@@ -149,7 +149,7 @@ services:
     expose:
       - "5000"
     env_file:
-      - ./backend/.env.prod
+      - ./apps/backend/.env.prod
     environment:
       - NODE_ENV=production
       - ENVIRONMENT=production
@@ -193,13 +193,13 @@ services:
       - "80:80"
       - "443:443"
     env_file:
-      - ./frontend/.env.prod
+      - ./apps/frontend/.env.prod
     environment:
       - NODE_ENV=production
       - ENVIRONMENT=production
     volumes:
-      - ./nginx/conf.d/production.conf:/etc/nginx/conf.d/default.conf
-      - ./ssl/nginx/ssl:/etc/nginx/ssl
+      - ./config/nginx/conf.d/production.conf:/etc/nginx/conf.d/default.conf
+      - ./config/ssl/nginx/ssl:/etc/nginx/ssl
     depends_on:
       - backend
     networks:
@@ -229,12 +229,12 @@ EOL
 # Crear directorios necesarios
 mkdir -p ~/present-prod/backend
 mkdir -p ~/present-prod/frontend
-mkdir -p ~/present-prod/nginx/conf.d
-mkdir -p ~/present-prod/ssl/nginx/ssl
+mkdir -p ~/present-prod/config/nginx/conf.d
+mkdir -p ~/present-prod/config/ssl/nginx/ssl
 mkdir -p ~/present-prod/mongodb_backup
 
 # Crear archivo .env.prod para backend
-cat > ~/present-prod/backend/.env.prod << 'EOL'
+cat > ~/present-prod/apps/backend/.env.prod << 'EOL'
 NODE_ENV=production
 PORT=5000
 <<<<<<< HEAD
@@ -249,14 +249,14 @@ FRONTEND_URL=https://tu-dominio-produccion.com
 EOL
 
 # Crear archivo .env.prod para frontend
-cat > ~/present-prod/frontend/.env.prod << 'EOL'
+cat > ~/present-prod/apps/frontend/.env.prod << 'EOL'
 REACT_APP_API_URL=https://tu-dominio-produccion.com/api
 REACT_APP_ENVIRONMENT=production
 REACT_APP_GOOGLE_CLIENT_ID=tu_google_client_id
 EOL
 
 # Crear archivo Dockerfile.prod para backend
-cat > ~/present-prod/backend/Dockerfile.prod << 'EOL'
+cat > ~/present-prod/apps/backend/Dockerfile.prod << 'EOL'
 FROM node:18-alpine
 
 WORKDIR /app
@@ -273,7 +273,7 @@ CMD ["npm", "start"]
 EOL
 
 # Crear archivo Dockerfile.prod para frontend
-cat > ~/present-prod/frontend/Dockerfile.prod << 'EOL'
+cat > ~/present-prod/apps/frontend/Dockerfile.prod << 'EOL'
 FROM node:18-alpine as build
 
 WORKDIR /app

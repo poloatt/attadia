@@ -31,10 +31,10 @@ log "${YELLOW}💾 Creando backup de configuraciones actuales...${NC}"
 BACKUP_DIR="backup_config_$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$BACKUP_DIR"
 
-cp -r nginx/conf.d/production.conf "$BACKUP_DIR/" 2>/dev/null || true
-cp -r nginx/production-nginx.conf "$BACKUP_DIR/" 2>/dev/null || true
-cp -r frontend/nginx.conf "$BACKUP_DIR/" 2>/dev/null || true
-cp -r nginx/sites-available/present.attadia.com* "$BACKUP_DIR/" 2>/dev/null || true
+cp -r config/nginx/conf.d/production.conf "$BACKUP_DIR/" 2>/dev/null || true
+cp -r config/nginx/production-nginx.conf "$BACKUP_DIR/" 2>/dev/null || true
+cp -r apps/frontend/nginx.conf "$BACKUP_DIR/" 2>/dev/null || true
+cp -r config/nginx/sites-available/present.attadia.com* "$BACKUP_DIR/" 2>/dev/null || true
 
 log "${GREEN}✅ Backup creado en: $BACKUP_DIR${NC}"
 
@@ -52,13 +52,13 @@ fi
 log "${BLUE}🔧 Aplicando cambios de configuración...${NC}"
 
 # Verificar que los archivos de configuración existen
-if [ ! -f "nginx/conf.d/production.conf" ]; then
-    log "${RED}❌ Error: No se encontró nginx/conf.d/production.conf${NC}"
+if [ ! -f "config/nginx/conf.d/production.conf" ]; then
+    log "${RED}❌ Error: No se encontró config/nginx/conf.d/production.conf${NC}"
     exit 1
 fi
 
-if [ ! -f "frontend/nginx.conf" ]; then
-    log "${RED}❌ Error: No se encontró frontend/nginx.conf${NC}"
+if [ ! -f "apps/frontend/nginx.conf" ]; then
+    log "${RED}❌ Error: No se encontró apps/frontend/nginx.conf${NC}"
     exit 1
 fi
 

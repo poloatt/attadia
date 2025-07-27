@@ -1,0 +1,32 @@
+FROM node:18-alpine
+
+# Instalar requisitos
+RUN apk add --no-cache wget git docker-cli bash curl
+
+WORKDIR /app
+
+# Copiar archivos de dependencias
+COPY package*.json ./
+
+# Instalar dependencias
+RUN npm install --production
+
+# Copiar código fuente específicamente
+COPY webhook-server.js ./
+COPY start.sh ./
+RUN chmod +x /app/start.sh
+
+# Crear directorio para logs
+RUN mkdir -p /var/log/webhook-server
+
+# No cambiar a usuario no root, necesitamos permisos para docker y git
+
+# Exponer puerto
+EXPOSE 9000
+
+# Health check con wget y fallback a curl
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD wget -q --spider http://localhost:9000/health || curl -f http://localhost:9000/health || exit 1
+
+# Comando para iniciar el servidor
+CMD ["/app/start.sh"]

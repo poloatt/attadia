@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "workspaces": [
-    "frontend",
-    "backend"
+    "apps/frontend",
+    "apps/backend"
   ],
   "scripts": {
     "dev": "docker-compose up",
@@ -19,12 +19,12 @@
     "logs": "docker-compose logs -f",
     "logs:staging": "docker-compose -f docker-compose.staging.yml logs -f",
     "logs:prod": "docker-compose -f docker-compose.prod.yml logs -f",
-    "frontend:dev": "cd frontend && npm run dev",
-    "frontend:build": "cd frontend && npm run build",
-    "frontend:lint": "cd frontend && npm run lint",
-    "backend:dev": "cd backend && npm run dev",
-    "backend:start": "cd backend && npm start",
-    "backend:lint": "cd backend && npm run lint",
+    "frontend:dev": "cd apps/frontend && npm run dev",
+    "frontend:build": "cd apps/frontend && npm run build",
+    "frontend:lint": "cd apps/frontend && npm run lint",
+    "backend:dev": "cd apps/backend && npm run dev",
+    "backend:start": "cd apps/backend && npm start",
+    "backend:lint": "cd apps/backend && npm run lint",
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces"
   },
