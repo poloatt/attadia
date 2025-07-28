@@ -7,7 +7,8 @@ import {
   TrendingUpOutlined as TrendingIcon,
   PersonSearchOutlined as PersonIcon,
   RepeatOutlined as RepeatIcon,
-  AttachMoneyOutlined as MoneyIcon
+  AttachMoneyOutlined as MoneyIcon,
+  ConstructionOutlined as ConstructionIcon
 } from '@mui/icons-material';
 import { useEffect, useState, useCallback } from 'react';
 import { CommonForm, CommonGrid } from '../components/common';
@@ -154,6 +155,18 @@ export default function Finanzas() {
     getIcon: (item) => item.icon,
     getColor: (item) => item.color,
     onItemClick: (item) => navigate(item.path),
+    getDetails: (item) => {
+      // Si el item está en construcción, mostrar un detalle
+      if (item.isUnderConstruction) {
+        return [
+          {
+            icon: <ConstructionIcon sx={{ fontSize: 14 }} />,
+            text: 'En construcción'
+          }
+        ];
+      }
+      return []; // Array vacío para items normales
+    },
     getActions: (item) => ({
       actions: item.isUnderConstruction ? [
         {
