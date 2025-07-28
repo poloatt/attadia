@@ -30,6 +30,7 @@ import SyncIcon from '@mui/icons-material/Sync';
 import { useSnackbar } from 'notistack';
 import { useRelationalData } from '../../../hooks/useRelationalData';
 import clienteAxios from '../../../config/axios';
+import { FORM_HEIGHTS } from '../../../config/uiConstants';
 import MercadoPagoConnectButton from './MercadoPagoConnectButton';
 import GoogleIcon from '@mui/icons-material/Google';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
@@ -61,7 +62,7 @@ const StyledDialog = styled(Dialog)(({ theme }) => ({
 const StyledTextField = styled(TextField)(({ theme }) => ({
   '& .MuiOutlinedInput-root': {
     borderRadius: 0,
-    height: 40,
+            height: FORM_HEIGHTS.input,
     backgroundColor: theme.palette.background.default,
     '& fieldset': {
       borderColor: theme.palette.divider
@@ -205,7 +206,7 @@ const BankAccountForm = ({ formData, handleChange, handleSubmit, isSaving, onClo
                 value={formData.tipo}
                 onChange={e => handleChange('tipo', e.target.value)}
                 error={!!errors.tipo}
-                sx={{ borderRadius: 0, height: 40 }}
+                sx={{ borderRadius: 0, height: FORM_HEIGHTS.input }}
               >
                 <MenuItem value="BANCO">Cuenta bancaria</MenuItem>
                 <MenuItem value="EFECTIVO">Efectivo</MenuItem>

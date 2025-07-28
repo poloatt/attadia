@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography } from '../../utils/materialImports';
 import useResponsive from '../../hooks/useResponsive';
 import FolderIcon from '@mui/icons-material/Folder';
 

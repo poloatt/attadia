@@ -45,6 +45,7 @@ import { snackbar } from '../common';
 import { useRelationalData } from '../../hooks/useRelationalData';
 import { useAuth } from '../../context/AuthContext';
 import clienteAxios from '../../config/axios';
+import { FORM_HEIGHTS } from '../../config/uiConstants';
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
@@ -86,7 +87,7 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
 
 const CategoryChip = styled(Chip)(({ theme, customcolor }) => ({
   borderRadius: 0,
-  height: 40,
+  height: FORM_HEIGHTS.input,
   minWidth: 40,
   padding: 0,
   transition: 'all 0.2s ease',
@@ -722,7 +723,7 @@ const PropiedadForm = ({
           disabled={isSaving}
           sx={{ 
             borderRadius: 0,
-            height: 40
+            height: FORM_HEIGHTS.button
           }}
         >
           Cancelar
@@ -734,7 +735,7 @@ const PropiedadForm = ({
           disabled={isSaving}
           sx={{ 
             borderRadius: 0,
-            height: 40
+            height: FORM_HEIGHTS.button
           }}
         >
           {isSaving ? 'Guardando...' : isEditing ? 'Actualizar' : 'Guardar'}

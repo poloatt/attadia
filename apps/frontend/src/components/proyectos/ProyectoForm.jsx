@@ -17,6 +17,7 @@ import {
   Tooltip
 } from '@mui/material';
 import useResponsive from '../../hooks/useResponsive';
+import { FORM_HEIGHTS } from '../../config/uiConstants';
 import {
   Close as CloseIcon,
   AttachFile as AttachFileIcon,
@@ -378,7 +379,7 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing, 
                       backgroundColor: 'transparent'
                     },
                     minWidth: 'auto',
-                    height: 40
+                    height: FORM_HEIGHTS.button
                   }}
                 >
                   {formData.prioridad === 'ALTA' ? 'Alta' : 'Baja'}

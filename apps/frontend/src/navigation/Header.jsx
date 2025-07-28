@@ -5,18 +5,18 @@ import {
     Box,
     IconButton,
     Tooltip
-  } from '@mui/material';
+  } from '../utils/materialImports';
   import { useSidebar } from '../context/SidebarContext';
   import { useUISettings } from '../context/UISettingsContext';
   import { useEntityActions } from '../components/common/CommonActions';
   import { AutorenewOutlined, AddOutlined } from '@mui/icons-material';
   import { useLocation, Link, useNavigate } from 'react-router-dom';
   import { useState } from 'react';
-  import Dialog from '@mui/material/Dialog';
+  import { Dialog } from '../utils/materialImports';
   import { MercadoPagoConnectButton, BankConnectionForm } from '../components/finance/bankconnections';
   import { getBreadcrumbs } from './breadcrumbUtils';
 import { getIconByKey, icons } from './menuIcons';
-import { Breadcrumbs } from '@mui/material';
+import { Breadcrumbs } from '../utils/materialImports';
 import useResponsive from '../hooks/useResponsive';
 import { useNavigationState } from '../utils/navigationUtils';
 import { HEADER_CONFIG } from '../config/uiConstants';

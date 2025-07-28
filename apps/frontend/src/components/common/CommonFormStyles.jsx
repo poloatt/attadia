@@ -1,5 +1,6 @@
-import { styled, alpha } from '@mui/material/styles';
-import { Dialog, TextField, Box, Chip, ToggleButton, TableContainer, IconButton } from '@mui/material';
+import { styled, alpha } from '../../utils/materialImports';
+import { Dialog, TextField, Box, Chip, ToggleButton, TableContainer, IconButton } from '../../utils/materialImports';
+import { FORM_HEIGHTS } from '../../config/uiConstants';
 
 export const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
@@ -50,7 +51,7 @@ export const FormSection = styled(Box)(({ theme }) => ({
 
 export const StyledToggleButton = styled(ToggleButton)(({ theme, customcolor }) => ({
   flex: 1,
-  height: 40,
+  height: FORM_HEIGHTS.input,
   borderRadius: 0,
   border: 'none',
   backgroundColor: 'transparent',
@@ -93,7 +94,7 @@ export const StyledToggleButton = styled(ToggleButton)(({ theme, customcolor }) 
 
 export const CategoryChip = styled(Chip)(({ theme, customcolor }) => ({
   borderRadius: 0,
-  height: 40,
+  height: FORM_HEIGHTS.input,
   minWidth: 40,
   padding: 0,
   transition: 'all 0.2s ease',

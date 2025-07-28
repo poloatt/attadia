@@ -74,7 +74,7 @@ const StyledDialog = styled(Dialog)(({ theme }) => ({
 const StyledTextField = styled(TextField)(({ theme }) => ({
   '& .MuiOutlinedInput-root': {
     borderRadius: 0,
-    height: 40,
+    height: FORM_HEIGHTS.input,
     backgroundColor: theme.palette.background.default,
     '& fieldset': {
       borderColor: theme.palette.divider
@@ -102,7 +102,7 @@ const StyledToggleButton = styled(ToggleButton)(({ theme }) => ({
   backgroundColor: theme.palette.background.paper,
   borderColor: theme.palette.divider,
   color: theme.palette.text.secondary,
-  height: 40,
+  height: FORM_HEIGHTS.input,
   '& .MuiSvgIcon-root': {
     fontSize: 18
   },
@@ -143,7 +143,7 @@ const CATEGORIAS = [
 
 const CategoryChip = styled(Chip)(({ theme }) => ({
   borderRadius: 0,
-  height: 40,
+  height: FORM_HEIGHTS.input,
   width: '100%',
   transition: 'all 0.2s ease',
   backgroundColor: 'transparent',
@@ -395,7 +395,7 @@ const TransaccionRecurrenteForm = ({
                 onChange={(e) => handleChange('frecuencia', e.target.value)}
                 label="Frecuencia"
                 error={!!errors.frecuencia}
-                sx={{ height: 40, borderRadius: 0 }}
+                sx={{ height: FORM_HEIGHTS.input, borderRadius: 0 }}
               >
                 <MenuItem value="MENSUAL">Mensual</MenuItem>
                 <MenuItem value="TRIMESTRAL">Trimestral</MenuItem>
@@ -545,7 +545,7 @@ const TransaccionRecurrenteForm = ({
                   onChange={(e) => handleChange('frecuencia', e.target.value)}
                   label="Frecuencia"
                   error={!!errors.frecuencia}
-                  sx={{ height: 40, borderRadius: 0 }}
+                  sx={{ height: FORM_HEIGHTS.input, borderRadius: 0 }}
                 >
                   <MenuItem value="MENSUAL">Mensual</MenuItem>
                   <MenuItem value="TRIMESTRAL">Trimestral</MenuItem>
@@ -622,7 +622,7 @@ const TransaccionRecurrenteForm = ({
           disabled={isSaving}
           sx={{ 
             borderRadius: 0,
-            height: 40
+            height: FORM_HEIGHTS.button
           }}
         >
           Cancelar
@@ -633,7 +633,7 @@ const TransaccionRecurrenteForm = ({
           disabled={isSaving}
           sx={{ 
             borderRadius: 0,
-            height: 40
+            height: FORM_HEIGHTS.button
           }}
         >
           {isSaving ? 'Guardando...' : isEditing ? 'Actualizar' : 'Guardar'}

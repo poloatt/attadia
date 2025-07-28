@@ -1,5 +1,6 @@
 import { styled } from '@mui/material/styles';
 import { Card, Box, Dialog, TextField, Chip, Typography } from '@mui/material';
+import { FORM_HEIGHTS } from '../../config/uiConstants';
 
 // Componente estilizado para las tarjetas con estilo angular
 export const StyledCard = styled(Card, {
@@ -84,7 +85,7 @@ export const StyledTextField = styled(TextField)(({ theme }) => ({
 // Chip de categoría estilizado
 export const CategoryChip = styled(Chip)(({ theme, customcolor }) => ({
   borderRadius: 0,
-  height: 40,
+  height: FORM_HEIGHTS.input,
   minWidth: 40,
   padding: 0,
   transition: 'all 0.2s ease',

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button, CircularProgress } from '@mui/material';
+import { FORM_HEIGHTS } from '../../../config/uiConstants';
 import { useMercadoPago } from '../../../hooks/useMercadoPago';
 // import mercadopagoLogo from './logos/mercadopago.svg';
 
@@ -47,7 +48,7 @@ export default function MercadoPagoConnectButton({ onSuccess, onError, fullWidth
           style={{ 
             maxWidth: 120, 
             width: '100%', 
-            height: 40, 
+            height: FORM_HEIGHTS.input, 
             objectFit: 'contain' 
           }} 
         />

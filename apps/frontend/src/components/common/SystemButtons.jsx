@@ -11,6 +11,7 @@ import { Badge, Menu, MenuItem, ListItemText, ListItemIcon, Chip } from '../../u
 import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import { modulos } from '../../navigation/menuStructure';
 import { getIconByKey } from '../../navigation/menuIcons';
+import { FORM_HEIGHTS } from '../../config/uiConstants';
 
 // Diálogo de confirmación para eliminar
 const DeleteConfirmDialog = memo(({ open, onClose, onConfirm, itemName }) => (
@@ -151,8 +152,8 @@ function HeaderMenuButton({ sx, disabled = false }) {
     <IconButton
       onClick={toggleSidebar}
       sx={{
-        width: 40,
-        height: 40,
+        width: FORM_HEIGHTS.iconButton,
+        height: FORM_HEIGHTS.iconButton,
         minWidth: 0,
         minHeight: 0,
         display: 'flex',
@@ -601,8 +602,8 @@ export function MenuButton(props) {
     <IconButton
       onClick={toggleSidebar}
       sx={{
-        width: 40,
-        height: 40,
+        width: FORM_HEIGHTS.iconButton,
+        height: FORM_HEIGHTS.iconButton,
         minWidth: 0,
         minHeight: 0,
         display: 'flex',

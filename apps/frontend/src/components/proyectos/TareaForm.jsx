@@ -18,6 +18,7 @@ import {
   Tooltip,
 } from '@mui/material';
 import useResponsive from '../../hooks/useResponsive';
+import { FORM_HEIGHTS } from '../../config/uiConstants';
 import {
   Close as CloseIcon,
   AttachFile as AttachFileIcon,
@@ -518,7 +519,7 @@ const TareaForm = ({
                     backgroundColor: 'transparent'
                   },
                   minWidth: 'auto',
-                  height: 40
+                  height: FORM_HEIGHTS.button
                 }}
               >
                 {formData.prioridad === 'ALTA' ? 'Alta' : 'Baja'}
@@ -613,7 +614,7 @@ const TareaForm = ({
                 sx={{ 
                   color: 'text.secondary',
                   minWidth: 'auto',
-                  height: 40,
+                  height: FORM_HEIGHTS.input,
                   '&:hover': {
                     color: 'primary.main',
                     backgroundColor: 'transparent'
@@ -639,7 +640,7 @@ const TareaForm = ({
               sx={{
                 ...commonInputStyles,
                 '& .MuiInputBase-root': {
-                  height: 40
+                  height: FORM_HEIGHTS.input
                 }
               }}
               InputProps={{
@@ -657,7 +658,7 @@ const TareaForm = ({
               sx={{ 
                 color: 'text.secondary',
                 minWidth: 'auto',
-                height: 40,
+                height: FORM_HEIGHTS.input,
                 '&:hover': {
                   color: 'primary.main',
                   backgroundColor: 'transparent'
@@ -683,7 +684,7 @@ const TareaForm = ({
                     borderColor: 'grey.800',
                     borderRadius: 1,
                     bgcolor: 'grey.900',
-                    height: 40
+                    height: FORM_HEIGHTS.input
                   }}
                 >
                   <IconButton

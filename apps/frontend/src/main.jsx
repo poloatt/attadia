@@ -9,7 +9,7 @@ import App from './App'
 import axios from 'axios'
 import './index.css'
 import './styles/notistack-override.css'
-import { ThemeProvider, CssBaseline } from '@mui/material';
+import { ThemeProvider, CssBaseline } from './utils/materialImports';
 import theme from './context/ThemeContext';
 
 // Configuración de React Router v7

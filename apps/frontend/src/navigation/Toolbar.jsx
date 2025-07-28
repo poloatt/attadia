@@ -60,7 +60,7 @@ export default function Toolbar({
       width: '100%',
       position: 'relative',
       bgcolor: '#181818',
-      minHeight: 40,
+      minHeight: FORM_HEIGHTS.minHeight,
       m: 0,
       p: 0,
       boxShadow: 'none'
@@ -221,7 +221,7 @@ export default function Toolbar({
           justifyContent: 'flex-end',
           flexShrink: 0,
           minWidth: 48,
-          height: 40
+          height: FORM_HEIGHTS.toolbar
         }}>
           {/* Acciones adicionales */}
           {!isMobile && additionalActions && additionalActions.map((action, idx) => {

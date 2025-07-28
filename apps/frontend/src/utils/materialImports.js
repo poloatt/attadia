@@ -85,6 +85,12 @@ export {
   ThemeProvider 
 } from '@mui/material/styles';
 
+// Hooks
+export { 
+  useTheme, 
+  useMediaQuery 
+} from '@mui/material';
+
 // Theme
 export { 
   ThemeProvider as MuiThemeProvider,
@@ -97,5 +103,6 @@ export {
   Accordion, 
   AccordionSummary, 
   AccordionDetails,
-  Fab
+  Fab,
+  Fade
 } from '@mui/material'; 

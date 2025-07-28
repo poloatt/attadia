@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button, CircularProgress } from '@mui/material';
+import { FORM_HEIGHTS } from '../../../config/uiConstants';
 
 export default function DigitalWalletConnectButton({ 
   logo, 
@@ -41,7 +42,7 @@ export default function DigitalWalletConnectButton({
           style={{ 
             maxWidth: 120, 
             width: '100%', 
-            height: 40, 
+            height: FORM_HEIGHTS.input, 
             objectFit: 'contain' 
           }} 
         />
