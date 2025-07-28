@@ -36,5 +36,8 @@
     "apps/frontend/dist/**/*.js": {
       "maxDuration": 30
     }
+  },
+  "env": {
+    "NPM_FLAGS": "--legacy-peer-deps"
   }
 } 
