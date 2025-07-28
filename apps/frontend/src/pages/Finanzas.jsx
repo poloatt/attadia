@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Grid, Card, CardContent, CardActionArea } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { 
   AccountBalanceOutlined as BankIcon,
@@ -10,45 +10,11 @@ import {
   AttachMoneyOutlined as MoneyIcon
 } from '@mui/icons-material';
 import { useEffect, useState, useCallback } from 'react';
-import { CommonForm } from '../components/common';
+import { CommonForm, CommonGrid } from '../components/common';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import { useAPI } from '../hooks/useAPI';
 import { Toolbar } from '../navigation';
-
-const FinanzasCard = ({ title, description, icon: Icon, path, color = 'primary.main' }) => {
-  const navigate = useNavigate();
-
-  return (
-    <Card 
-      elevation={0}
-      sx={{ 
-        border: '1px solid',
-        borderColor: 'divider',
-        transition: 'all 0.2s',
-        '&:hover': {
-          borderColor: color,
-          transform: 'translateY(-2px)',
-          boxShadow: 1
-        }
-      }}
-    >
-      <CardActionArea onClick={() => navigate(path)}>
-        <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <Icon sx={{ fontSize: 32, color, mr: 2 }} />
-            <Typography variant="h6" component="h2" sx={{ fontWeight: 500 }}>
-              {title}
-            </Typography>
-          </Box>
-          <Typography variant="body2" color="text.secondary">
-            {description}
-          </Typography>
-        </CardContent>
-      </CardActionArea>
-    </Card>
-  );
-};
 
 export default function Finanzas() {
   const navigate = useNavigate();
@@ -124,48 +90,81 @@ export default function Finanzas() {
 
   const finanzasSections = [
     {
+      id: 'transacciones',
       title: 'Transacciones',
-      // description: 'Gestiona tus ingresos y gastos diarios, categoriza transacciones y mantén un control detallado de tu flujo de dinero.',
       icon: MoneyIcon,
       path: '/assets/finanzas/transacciones',
-      color: '#4CAF50'
+      color: '#4CAF50',
+      description: 'Gestiona tus ingresos y gastos diarios'
     },
     {
+      id: 'cuentas',
       title: 'Cuentas',
-      // description: 'Administra tus cuentas bancarias, efectivo, billeteras digitales y otros instrumentos financieros.',
       icon: BankIcon,
       path: '/assets/finanzas/cuentas',
-      color: '#2196F3'
+      color: '#2196F3',
+      description: 'Administra tus cuentas bancarias y efectivo'
     },
     {
+      id: 'monedas',
       title: 'Monedas',
-      // description: 'Configura y gestiona las diferentes monedas que utilizas en tus transacciones y cuentas.',
       icon: CurrencyIcon,
       path: '/assets/finanzas/monedas',
-      color: '#FF9800'
+      color: '#FF9800',
+      description: 'Configura y gestiona las diferentes monedas'
     },
     {
+      id: 'inversiones',
       title: 'Inversiones',
-      // description: 'Realiza seguimiento de tus inversiones, portafolios y rendimientos financieros.',
       icon: TrendingIcon,
       path: '/assets/finanzas/inversiones',
-      color: '#9C27B0'
+      color: '#9C27B0',
+      description: 'Seguimiento de inversiones y portafolios',
+      isUnderConstruction: true
     },
     {
+      id: 'deudores',
       title: 'Deudores',
-      // description: 'Controla préstamos, deudas pendientes y gestiona cobros de manera eficiente.',
       icon: PersonIcon,
       path: '/assets/finanzas/deudores',
-      color: '#F44336'
+      color: '#F44336',
+      description: 'Controla préstamos y deudas pendientes',
+      isUnderConstruction: true
     },
     {
+      id: 'recurrente',
       title: 'Recurrente',
-      // description: 'Configura transacciones automáticas, suscripciones y pagos periódicos.',
       icon: RepeatIcon,
       path: '/assets/finanzas/recurrente',
-      color: '#607D8B'
+      color: '#607D8B',
+      description: 'Transacciones automáticas y suscripciones',
+      isUnderConstruction: true
     }
   ];
+
+  // Configuración para CommonGrid
+  const gridConfig = {
+    groupBy: (item) => ({
+      key: 'finanzas',
+      title: 'Secciones de Finanzas',
+      icon: MoneyIcon
+    }),
+    getTitle: (item) => item.title,
+    getSubtitle: (item) => item.description,
+    getIcon: (item) => item.icon,
+    getColor: (item) => item.color,
+    onItemClick: (item) => navigate(item.path),
+    getActions: (item) => ({
+      actions: item.isUnderConstruction ? [
+        {
+          icon: 'construction',
+          tooltip: 'En construcción',
+          onClick: () => {},
+          disabled: true
+        }
+      ] : []
+    })
+  };
 
   return (
     <Box component="main" className="page-main-content" sx={{ width: '100%', flex: 1, px: { xs: 1, sm: 2, md: 3 }, py: 2, pb: { xs: 10, sm: 4 }, display: 'flex', flexDirection: 'column' }}>
@@ -173,46 +172,13 @@ export default function Finanzas() {
       <CommonForm open={openCuenta} onClose={() => setOpenCuenta(false)} onSubmit={handleSubmitCuenta} title="Nueva Cuenta" fields={formFieldsCuenta} initialData={{}} isEditing={false} />
       <CommonForm open={openMoneda} onClose={() => setOpenMoneda(false)} onSubmit={handleSubmitMoneda} title="Nueva Moneda" fields={formFieldsMoneda} initialData={{}} isEditing={false} />
       <CommonForm open={openTransaccion} onClose={() => setOpenTransaccion(false)} onSubmit={handleSubmitTransaccion} title="Nueva Transacción" fields={formFieldsTransaccion} initialData={{}} isEditing={false} />
+      
       <Box sx={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <Grid container spacing={2} justifyContent="center" alignItems="center" sx={{ width: '100%', maxWidth: 700, mx: { xs: 0, md: 'auto' } }}>
-          {finanzasSections.map((section, idx) => (
-            <Grid item xs={6} sm={4} md={3} key={section.path} sx={{ display: 'flex', justifyContent: 'center' }}>
-              <Card 
-                elevation={0}
-                sx={{ 
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    borderColor: section.color,
-                    transform: 'translateY(-2px)',
-                    boxShadow: 1
-                  },
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minHeight: 90,
-                  maxWidth: 160,
-                  width: '100%',
-                  cursor: 'pointer',
-                  borderRadius: 0,
-                  px: 0.5,
-                  py: 1.2,
-                  bgcolor: '#181818'
-                }}
-                onClick={() => navigate(section.path)}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
-                  <section.icon sx={{ fontSize: 32, color: idx % 2 === 0 ? '#fff' : '#bdbdbd' }} />
-                </Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 500, textAlign: 'center', color: '#fff', fontSize: '1rem' }}>
-                  {section.title}
-                </Typography>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+        <CommonGrid 
+          data={finanzasSections}
+          config={gridConfig}
+          gridProps={{ xs: 6, sm: 4, md: 3 }}
+        />
       </Box>
     </Box>
   );
