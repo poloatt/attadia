@@ -139,11 +139,11 @@ export default function Toolbar({
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Tooltip title={parentInfo.title || 'Volver'}>
                 <IconButton onClick={onBack} size="small">
-                  {icons.arrowBack ? React.createElement(icons.arrowBack, { sx: { fontSize: 18 } }) : <span>&larr;</span>}
+                  {icons.arrowBack && typeof icons.arrowBack === 'function' ? React.createElement(icons.arrowBack, { sx: { fontSize: 18 } }) : <span>&larr;</span>}
                 </IconButton>
               </Tooltip>
               {/* Ícono del destino - solo mostrar en desktop */}
-              {parentInfo.icon && !isMobile && (
+              {parentInfo.icon && typeof parentInfo.icon === 'function' && !isMobile && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary', fontSize: '0.875rem' }}>
                   {React.createElement(parentInfo.icon, { sx: { fontSize: 16 } })}
                   <Typography variant="caption" sx={{ fontWeight: 500 }}>
