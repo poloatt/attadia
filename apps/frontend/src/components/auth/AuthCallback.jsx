@@ -53,15 +53,54 @@ function AuthCallback() {
         // Configurar axios
         clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-        // Verificar autenticación
-        const authResult = await checkAuth();
+        // Función para verificar autenticación con reintentos
+        const verifyAuth = async (retries = 3, delay = 1000) => {
+          for (let i = 0; i < retries; i++) {
+            try {
+              console.log(`Intento ${i + 1} de verificación de autenticación`);
+              
+              // Esperar un momento antes de cada intento
+              if (i > 0) {
+                await new Promise(resolve => setTimeout(resolve, delay));
+              }
+
+              const { data } = await clienteAxios.get('/api/auth/check');
+              
+              if (data.authenticated && data.user) {
+                console.log('Autenticación exitosa en intento', i + 1);
+                return true;
+              } else {
+                console.log('Verificación falló en intento', i + 1, data);
+              }
+            } catch (verifyError) {
+              console.error(`Error en intento ${i + 1}:`, verifyError);
+              if (i === retries - 1) {
+                throw verifyError;
+              }
+            }
+          }
+          return false;
+        };
+
+        // Intentar verificación con reintentos
+        const authSuccess = await verifyAuth();
         
-        if (authResult) {
+        if (authSuccess) {
           console.log('Autenticación exitosa, redirigiendo a assets');
           toast.success('¡Bienvenido!');
           navigate('/assets/finanzas', { replace: true });
         } else {
-          throw new Error('Fallo en la verificación de autenticación');
+          // Si fallan todos los reintentos, intentar con checkAuth como último recurso
+          console.log('Intentando verificación con checkAuth como fallback');
+          const authResult = await checkAuth();
+          
+          if (authResult) {
+            console.log('Autenticación exitosa con checkAuth, redirigiendo a assets');
+            toast.success('¡Bienvenido!');
+            navigate('/assets/finanzas', { replace: true });
+          } else {
+            throw new Error('Fallo en la verificación de autenticación después de múltiples intentos');
+          }
         }
       } catch (error) {
         console.error('Error en el callback:', error);
