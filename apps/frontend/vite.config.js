@@ -13,25 +13,9 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: 'autoUpdate',
-        manifest: {
-          name: 'Atta',
-          short_name: 'Atta',
-          start_url: '.',
-          display: 'standalone',
-          background_color: '#ffffff',
-          theme_color: '#1976d2',
-          icons: [
-            {
-              src: 'images/icon-192.png',
-              sizes: '192x192',
-              type: 'image/png'
-            },
-            {
-              src: 'images/icon-512.png',
-              sizes: '512x512',
-              type: 'image/png'
-            }
-          ]
+        manifest: './public/manifest.json',
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg}']
         }
       })
     ],
