@@ -1,23 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Container, Box, Typography, CircularProgress, Snackbar, Alert, Grid, Paper, Button } from '@mui/material';
+import { Box, Typography, CircularProgress, Paper, Button } from '@mui/material';
 import useResponsive from '../hooks/useResponsive';
 import RutinaTable from '../components/rutinas/RutinaTable';
 import { RutinaForm } from '../components/rutinas/RutinaForm';
-import { MemoizedRutinaNavigation as RutinaNavigation } from '../components/rutinas/RutinaNavigation';
+
 import { RutinasProvider, useRutinas } from '../context/RutinasContext';
-import { useRutinasHistorical } from '../context/RutinasHistoryContext';
-import HistoricalAlert from '../components/rutinas/HistoricalAlert';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useTimezone } from '../hooks/useTimezone';
 import { 
   CalendarMonthOutlined as DateIcon,
-  ScienceOutlined as LabIcon,
-  RestaurantOutlined as DietaIcon,
-  MonitorWeightOutlined as WeightIcon,
   Info as InfoIcon,
   Add as AddIcon
 } from '@mui/icons-material';
-import { FooterNavigation } from '../navigation/navigationbar';
 
 /**
  * Componente envoltorio que expone el contexto de rutinas
@@ -26,7 +19,6 @@ const RutinasWithContext = () => {
   const params = useParams();
   const rutinaId = params.id;
   const navigate = useNavigate();
-  const { timezone } = useTimezone(); // Configurar timezone del usuario
   const { isMobile } = useResponsive();
   const rutinasContext = useRutinas();
   const { 
@@ -35,10 +27,7 @@ const RutinasWithContext = () => {
     loading, 
     error, 
     fetchRutinas, 
-    getRutinaById,
-    handlePrevious,
-    handleNext,
-    deleteRutina
+    getRutinaById
   } = rutinasContext;
   const [editMode, setEditMode] = useState(false);
   const [rutinaToEdit, setRutinaToEdit] = useState(null);
@@ -82,15 +71,6 @@ const RutinasWithContext = () => {
     }
   }, [rutinaId, rutinas, getRutinaById, navigate]);
   
-  // Exponer el contexto de rutinas a nivel global para compatibilidad
-  useEffect(() => {
-    window.rutinasContext = rutinasContext;
-    
-    return () => {
-      delete window.rutinasContext;
-    };
-  }, [rutinasContext]);
-
   // Handler para crear nueva rutina
   const handleAddRutina = () => {
     setRutinaToEdit(null);
@@ -102,6 +82,35 @@ const RutinasWithContext = () => {
     setRutinaToEdit(rutina);
     setEditMode(true);
   };
+
+  // Exponer el contexto de rutinas a nivel global para compatibilidad
+  useEffect(() => {
+    window.rutinasContext = rutinasContext;
+    
+    return () => {
+      delete window.rutinasContext;
+    };
+  }, [rutinasContext]);
+
+  // Event listeners para manejar acciones desde la navegación específica
+  useEffect(() => {
+    const handleEditRutinaEvent = (event) => {
+      const { rutina } = event.detail;
+      handleEditRutina(rutina);
+    };
+
+    const handleAddRutinaEvent = () => {
+      handleAddRutina();
+    };
+
+    window.addEventListener('editRutina', handleEditRutinaEvent);
+    window.addEventListener('addRutina', handleAddRutinaEvent);
+
+    return () => {
+      window.removeEventListener('editRutina', handleEditRutinaEvent);
+      window.removeEventListener('addRutina', handleAddRutinaEvent);
+    };
+  }, [handleEditRutina, handleAddRutina]);
 
   // Handler para cerrar el formulario
   const handleCloseForm = () => {
@@ -175,17 +184,6 @@ const RutinasWithContext = () => {
   return (
     <Box component="main" className="page-main-content" sx={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
       <Box sx={{ width: '100%', px: { xs: 1, sm: 2, md: 3 }, flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {/* Alerta global de historial */}
-        {(() => {
-          try {
-            const historical = useRutinasHistorical();
-            if (historical.noHistoryAvailable ||
-                !['bodyCare','nutricion','ejercicio','cleaning'].some(section => historical.hasSectionHistory(section))) {
-              return <HistoricalAlert />;
-            }
-          } catch (e) {}
-          return null;
-        })()}
         <Box 
           sx={{ 
             py: isMobile ? 1 : 2,
@@ -214,27 +212,17 @@ const RutinasWithContext = () => {
             </Box>
           )}
           {/* Mensaje de estado vacío */}
-          <EmptyStateMessage />
+          {!loading && !rutina && <EmptyStateMessage />}
           {/* Vista principal de rutinas */}
           {!loading && !editMode && rutina && (
-            <>
-              <RutinaNavigation 
-                rutina={rutina}
-                loading={loading}
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onEdit={handleEditRutina}
-                onAdd={handleAddRutina}
-              />
-              <RutinaTable 
-                rutina={{
-                  ...rutina,
-                  _page: currentPage,
-                  _totalPages: totalPages
-                }}
-                onEdit={handleEditRutina}
-              />
-            </>
+            <RutinaTable 
+              rutina={{
+                ...rutina,
+                _page: currentPage,
+                _totalPages: totalPages
+              }}
+              onEdit={handleEditRutina}
+            />
           )}
           {/* Formulario de edición */}
           {editMode && (

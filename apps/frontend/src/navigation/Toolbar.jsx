@@ -22,6 +22,7 @@ export default function Toolbar({
   additionalActions = [],
   onBack,
   parentInfo,
+  customMainSection,
 }) {
   // 1. HOOKS Y CÁLCULOS PRINCIPALES
   const { showEntityToolbarNavigation } = useUISettings();
@@ -178,7 +179,7 @@ export default function Toolbar({
           )}
         </Box>
 
-        {/* Sección central: Hermanos (siblings) - centrados en el área del main */}
+        {/* Sección central: Hermanos (siblings) o navegación específica */}
         <Box sx={{
           display: 'flex',
           alignItems: 'center',
@@ -187,31 +188,37 @@ export default function Toolbar({
           minHeight: FORM_HEIGHTS.minHeight,
           position: 'relative'
         }}>
-          {siblings.length > 1 ? (
-            <Box sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.5
-            }}>
-              {siblings.map(item => {
-                const isActive = currentPath === item.path || currentPath.startsWith(item.path + '/');
-                return (
-                  <ClickableIcon
-                    key={item.path}
-                    iconKey={item.icon}
-                    title={item.title}
-                    onClick={() => navigate(item.path)}
-                    isActive={isActive}
-                    size="small"
-                    sx={{
-                      fontSize: 18,
-                      flexShrink: 0
-                    }}
-                  />
-                );
-              })}
-            </Box>
-          ) : null}
+          {customMainSection ? (
+            // Usar navegación específica si está disponible
+            customMainSection
+          ) : (
+            // Usar navegación estándar de siblings
+            siblings.length > 1 ? (
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5
+              }}>
+                {siblings.map(item => {
+                  const isActive = currentPath === item.path || currentPath.startsWith(item.path + '/');
+                  return (
+                    <ClickableIcon
+                      key={item.path}
+                      iconKey={item.icon}
+                      title={item.title}
+                      onClick={() => navigate(item.path)}
+                      isActive={isActive}
+                      size="small"
+                      sx={{
+                        fontSize: 18,
+                        flexShrink: 0
+                      }}
+                    />
+                  );
+                })}
+              </Box>
+            ) : null
+          )}
         </Box>
 
         {/* Sección derecha: Acciones y herramientas */}
