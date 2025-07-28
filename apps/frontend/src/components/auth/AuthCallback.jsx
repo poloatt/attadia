@@ -19,7 +19,7 @@ const ERROR_MESSAGES = {
 function AuthCallback() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { checkAuth } = useAuth();
+  const { checkAuthImmediate } = useAuth();
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -43,6 +43,12 @@ function AuthCallback() {
           navigate('/login');
           return;
         }
+
+        console.log('Token recibido:', {
+          tokenLength: token.length,
+          tokenStart: token.substring(0, 20) + '...',
+          refreshTokenPresent: !!refreshToken
+        });
 
         // Guardar tokens
         localStorage.setItem('token', token);
@@ -69,6 +75,13 @@ function AuthCallback() {
               }
 
               const { data } = await clienteAxios.get('/api/auth/check');
+              
+              console.log(`Respuesta del intento ${i + 1}:`, {
+                authenticated: data.authenticated,
+                hasUser: !!data.user,
+                error: data.error,
+                userEmail: data.user?.email
+              });
               
               if (data.authenticated && data.user) {
                 console.log('Autenticación exitosa en intento', i + 1);
@@ -97,12 +110,12 @@ function AuthCallback() {
           toast.success('¡Bienvenido!');
           navigate('/assets/finanzas', { replace: true });
         } else {
-          // Si fallan todos los reintentos, intentar con checkAuth como último recurso
-          console.log('Intentando verificación con checkAuth como fallback');
-          const checkAuthResult = await checkAuth();
+          // Si fallan todos los reintentos, intentar con checkAuthImmediate como último recurso
+          console.log('Intentando verificación con checkAuthImmediate como fallback');
+          const checkAuthResult = await checkAuthImmediate();
           
           if (checkAuthResult) {
-            console.log('Autenticación exitosa con checkAuth, redirigiendo a assets');
+            console.log('Autenticación exitosa con checkAuthImmediate, redirigiendo a assets');
             toast.success('¡Bienvenido!');
             navigate('/assets/finanzas', { replace: true });
           } else {
@@ -120,7 +133,7 @@ function AuthCallback() {
     };
 
     handleCallback();
-  }, [navigate, location.search, checkAuth]);
+  }, [navigate, location.search, checkAuthImmediate]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

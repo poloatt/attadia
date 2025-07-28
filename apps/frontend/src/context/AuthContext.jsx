@@ -131,6 +131,54 @@ export function AuthProvider({ children }) {
     }
   }, [lastCheckTime, state.isAuthenticated, isChecking]);
 
+  // Función para verificación inmediata sin rate limiting (para callbacks)
+  const checkAuthImmediate = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        return false;
+      }
+
+      clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      const { data } = await clienteAxios.get(`${currentConfig.authPrefix}/check`);
+      
+      if (data.authenticated && data.user) {
+        setState(prev => ({ 
+          ...prev, 
+          user: data.user, 
+          loading: false, 
+          isAuthenticated: true,
+          error: null 
+        }));
+        return true;
+      } else {
+        setState(prev => ({ 
+          ...prev, 
+          user: null, 
+          loading: false, 
+          isAuthenticated: false 
+        }));
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        delete clienteAxios.defaults.headers.common['Authorization'];
+        return false;
+      }
+    } catch (error) {
+      console.error('Error en checkAuthImmediate:', error);
+      setState(prev => ({ 
+        ...prev, 
+        user: null, 
+        error: error.response?.data?.message || error.message,
+        loading: false,
+        isAuthenticated: false
+      }));
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      delete clienteAxios.defaults.headers.common['Authorization'];
+      return false;
+    }
+  }, []);
+
   const login = async (credentials) => {
     try {
       // Prevenir múltiples logins simultáneos
@@ -262,6 +310,7 @@ export function AuthProvider({ children }) {
     loginWithGoogle,
     handleGoogleCallback,
     checkAuth,
+    checkAuthImmediate,
     logout
   };
 
