@@ -53,8 +53,12 @@ function AuthCallback() {
         // Configurar axios
         clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
+        // Esperar un momento inicial para asegurar que el token esté procesado
+        console.log('Esperando procesamiento inicial del token...');
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
         // Función para verificar autenticación con reintentos
-        const verifyAuth = async (retries = 3, delay = 1000) => {
+        const verifyAuth = async (retries = 5, delay = 1000) => {
           for (let i = 0; i < retries; i++) {
             try {
               console.log(`Intento ${i + 1} de verificación de autenticación`);
@@ -68,9 +72,12 @@ function AuthCallback() {
               
               if (data.authenticated && data.user) {
                 console.log('Autenticación exitosa en intento', i + 1);
-                return true;
+                return { success: true, data };
               } else {
                 console.log('Verificación falló en intento', i + 1, data);
+                if (data.error) {
+                  console.log('Error específico:', data.error);
+                }
               }
             } catch (verifyError) {
               console.error(`Error en intento ${i + 1}:`, verifyError);
@@ -79,22 +86,22 @@ function AuthCallback() {
               }
             }
           }
-          return false;
+          return { success: false };
         };
 
         // Intentar verificación con reintentos
-        const authSuccess = await verifyAuth();
+        const authResult = await verifyAuth();
         
-        if (authSuccess) {
+        if (authResult.success) {
           console.log('Autenticación exitosa, redirigiendo a assets');
           toast.success('¡Bienvenido!');
           navigate('/assets/finanzas', { replace: true });
         } else {
           // Si fallan todos los reintentos, intentar con checkAuth como último recurso
           console.log('Intentando verificación con checkAuth como fallback');
-          const authResult = await checkAuth();
+          const checkAuthResult = await checkAuth();
           
-          if (authResult) {
+          if (checkAuthResult) {
             console.log('Autenticación exitosa con checkAuth, redirigiendo a assets');
             toast.success('¡Bienvenido!');
             navigate('/assets/finanzas', { replace: true });
