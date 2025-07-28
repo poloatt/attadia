@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Box } from '@mui/material';
-import { useTheme } from '@mui/material';
+import useResponsive from '../hooks/useResponsive';
 import { useSidebar } from '../context/SidebarContext';
 import { SIDEBAR_CONFIG } from '../config/uiConstants';
 
@@ -23,7 +23,7 @@ const SidebarResizer = ({
   isOpen: propIsOpen,
   isPinned: propIsPinned
 }) => {
-  const theme = useTheme();
+  const { theme } = useResponsive();
   // Permite usar props o contexto SOLO si la prop no está definida
   const context = useSidebar();
   const isDesktop = propIsDesktop !== undefined ? propIsDesktop : context?.isDesktop;

@@ -24,7 +24,8 @@ import {
   FormControlLabel,
   Switch
 } from '@mui/material';
-import { styled, alpha } from '@mui/material/styles';
+import { styled, alpha } from '../../../utils/materialImports';
+import { FORM_HEIGHTS } from '../../../config/uiConstants';
 import {
   Close as CloseIcon,
   AttachMoney as MoneyIcon,
@@ -348,7 +349,7 @@ const TransaccionRecurrenteForm = ({
               onChange={(_, value) => value && handleChange('tipo', value)}
               fullWidth
               sx={{ 
-                height: 40,
+                height: FORM_HEIGHTS.input,
                 '& .MuiToggleButton-root': {
                   flex: 1
                 }

@@ -16,7 +16,8 @@ import {
   CardContent
 } from '@mui/material';
 import { Inventory2Outlined as InventoryIcon } from '@mui/icons-material';
-import { useTheme } from '@mui/material/styles';
+import useResponsive from '../../../hooks/useResponsive';
+
 
 const InventarioDetail = ({ 
   open, 
@@ -26,6 +27,7 @@ const InventarioDetail = ({
   inventarios = [],
   isModal = false 
 }) => {
+  const { theme } = useResponsive();
   // Si es modal, usar la lógica original
   if (isModal) {
     if (!inventario) return null;
@@ -38,7 +40,7 @@ const InventarioDetail = ({
         PaperProps={{
           sx: {
             borderRadius: 0,
-            bgcolor: theme => theme.palette.background.default
+            bgcolor: theme.palette.background.default
           }
         }}
       >

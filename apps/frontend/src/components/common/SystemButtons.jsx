@@ -1,5 +1,5 @@
 import React, { memo, useState, isValidElement } from 'react';
-import { IconButton, Tooltip, Box, Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography } from '@mui/material';
+import { IconButton, Tooltip, Box, Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography } from '../../utils/materialImports';
 import { Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon, Add as AddIcon } from '@mui/icons-material';
 import { useSidebar } from '../../context/SidebarContext';
 import { useActionHistory, ACTION_TYPES } from '../../context/ActionHistoryContext';
@@ -7,7 +7,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useValuesVisibility } from '../../context/ValuesVisibilityContext';
 import MenuIcon from '@mui/icons-material/MenuOutlined';
 import { Refresh as RefreshIcon, Undo as UndoIcon, History as HistoryIcon, AddOutlined as AddOutlinedIcon, VisibilityOff as HideValuesIcon, Apps as AppsIcon } from '@mui/icons-material';
-import { Badge, Menu, MenuItem, ListItemText, ListItemIcon, Chip } from '@mui/material';
+import { Badge, Menu, MenuItem, ListItemText, ListItemIcon, Chip } from '../../utils/materialImports';
 import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import { modulos } from '../../navigation/menuStructure';
 import { getIconByKey } from '../../navigation/menuIcons';

@@ -10,8 +10,7 @@ import {
   Paper,
   Tooltip,
   Alert,
-  Checkbox,
-  useTheme
+  Checkbox
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
@@ -25,6 +24,7 @@ import {
   StyledCuotasCheckbox,
   FormSection
 } from '../../common/CommonFormStyles';
+import useResponsive from '../../../hooks/useResponsive';
 import { calcularAlquilerMensualPromedio, calcularEstadoCuota, generarCuotasMensuales } from '../../../utils/contratoUtils';
 import { useCuotasContext } from '../../../context/CuotasContext';
 import CuotaInlineEditor from './CuotaInlineEditor';
@@ -36,7 +36,7 @@ const ContratoCuotasSection = ({
   compact = false,
   sx = {}
 }) => {
-  const theme = useTheme();
+  const { theme } = useResponsive();
   const { cuotas, updateAllCuotas, updateCuota, updateCuotaMonto, updateCuotaEstado, syncCuotas, refrescarCuotasDesdeBackend, isLoading } = useCuotasContext();
   const [totalCalculado, setTotalCalculado] = useState(0);
   const [diferencia, setDiferencia] = useState(0);

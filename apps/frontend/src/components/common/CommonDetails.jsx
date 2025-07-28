@@ -1,7 +1,8 @@
 import React from 'react';
 import { Box, Typography, Paper, IconButton, Dialog, Button, Accordion, AccordionSummary } from '@mui/material';
 import { getStatusIconComponent, getEstadoColor, getEstadoText } from './StatusSystem';
-import { styled, useTheme } from '@mui/material/styles';
+import { styled } from '@mui/material/styles';
+import useResponsive from '../../hooks/useResponsive';
 import CloseIcon from '@mui/icons-material/Close';
 import CommonActions from './CommonActions';
 import { CollapseIconButton } from './SystemButtons';
@@ -51,7 +52,7 @@ export const GeometricModalHeader = ({
   onClose,
   children
 }) => {
-  const theme = useTheme();
+  const { theme } = useResponsive();
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0, mt: 0, backgroundColor: theme.palette.collapseHeader.background, p: 2, pb: 1, borderBottom: `1px solid ${theme.palette.divider}` }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -86,7 +87,7 @@ export const GeometricDialog = ({
   children,
   ...rest
 }) => {
-  const theme = useTheme();
+  const { theme } = useResponsive();
   return (
     <Dialog
       open={open}

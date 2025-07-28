@@ -3,11 +3,10 @@ import {
   Container,
   Box,
   Button,
-  useTheme,
-  useMediaQuery,
   IconButton,
   Tooltip,
 } from '@mui/material';
+import useResponsive from '../hooks/useResponsive';
 import {
   Add as AddIcon,
   FilterList as FilterListIcon,
@@ -35,8 +34,7 @@ export function Archivo() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTarea, setEditingTarea] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { isMobile } = useResponsive();
   const { setTitle, setActions } = useNavigationBar();
   const location = useLocation();
   const { showValues, toggleValuesVisibility } = useValuesVisibility();

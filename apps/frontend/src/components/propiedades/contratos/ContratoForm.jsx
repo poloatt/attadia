@@ -7,10 +7,10 @@ import {
   Box,
   Typography,
   IconButton,
-  LinearProgress,
-  useTheme
+  LinearProgress
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import useResponsive from '../../../hooks/useResponsive';
 import {
   Close as CloseIcon,
   Description,
@@ -52,7 +52,7 @@ const ContratoForm = ({
   onClose,
   isSaving = false
 }) => {
-  const theme = useTheme();
+  const { theme } = useResponsive();
   
   const safeInitialData = initialData || {};
   

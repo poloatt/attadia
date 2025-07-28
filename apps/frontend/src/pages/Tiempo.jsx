@@ -3,8 +3,6 @@ import {
   Container,
   Box,
   Button,
-  useTheme,
-  useMediaQuery,
   IconButton,
   Tooltip,
   Paper,
@@ -27,6 +25,7 @@ import { useSnackbar } from 'notistack';
 import { useNavigationBar } from '../context/NavigationBarContext';
 import { useLocation } from 'react-router-dom';
 import { useValuesVisibility } from '../context/ValuesVisibilityContext';
+import useResponsive from '../hooks/useResponsive';
 
 export function Tiempo() {
   const [loading, setLoading] = useState(true);
@@ -45,8 +44,7 @@ export function Tiempo() {
     },
   });
   const { enqueueSnackbar } = useSnackbar();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { isMobile } = useResponsive();
   const location = useLocation();
   const { setTitle, setActions } = useNavigationBar();
   const { showValues, toggleValuesVisibility } = useValuesVisibility();

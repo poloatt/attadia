@@ -56,7 +56,7 @@ import EstadoFinanzasContrato from '../propiedades/contratos/EstadoFinanzasContr
 import { CuotasProvider } from './contratos';
 import { calcularEstadoCuotasContrato } from '../../utils/contratoUtils';
 import { SeccionUbicacion, SeccionHabitaciones, SeccionDocumentos } from '../propiedades/SeccionesPropiedad';
-import { useTheme } from '@mui/material/styles';
+
 
 // Constantes de estilo jerárquicas para alineación y separadores
 const SECTION_PADDING_X = 1;

@@ -2,15 +2,16 @@ import React from 'react';
 import { Box, Paper, Typography } from '@mui/material';
 import { useLocation, Link } from 'react-router-dom';
 import { getIconByKey, isRouteActive } from './menuIcons';
-import theme from '../context/ThemeContext';
 import { findActiveModule } from '../utils/navigationUtils';
 import { DynamicIcon } from '../components/common/DynamicIcon';
+import useResponsive from '../hooks/useResponsive';
 
 /**
  * Componente de navegación inferior con diseño geométrico
  * Ahora muestra dinámicamente los menús de nivel 1 del módulo activo
  */
 export default function BottomNavigation() {
+  const { theme } = useResponsive();
   const location = useLocation();
   const currentPath = location.pathname;
 

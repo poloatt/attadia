@@ -1,10 +1,10 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
+import useResponsive from '../../hooks/useResponsive';
 import FolderIcon from '@mui/icons-material/Folder';
 
 export function EmptyState() {
-  const theme = useTheme();
+  const { theme } = useResponsive();
 
   return (
     <Box 

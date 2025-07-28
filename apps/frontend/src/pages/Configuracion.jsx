@@ -8,7 +8,7 @@ import { Toolbar } from '../navigation';
 import useResponsive from '../hooks/useResponsive';
 
 export function Configuracion() {
-  const { isMobile } = useResponsive();
+  const { isMobile, theme } = useResponsive();
   const { 
     showEntityToolbarNavigation, 
     toggleEntityToolbarNavigation,

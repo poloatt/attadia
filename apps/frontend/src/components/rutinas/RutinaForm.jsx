@@ -8,8 +8,6 @@ import {
   Button,
   Typography,
   Box,
-  useTheme,
-  useMediaQuery,
   CircularProgress,
   Alert,
   Paper,
@@ -21,6 +19,7 @@ import {
   CardContent,
   TextField
 } from '@mui/material';
+import useResponsive from '../../hooks/useResponsive';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -40,8 +39,8 @@ import { CommonDate } from '../common/CommonDate';
 import { formatDateForAPI, getNormalizedToday, parseAPIDate } from '../../utils/dateUtils';
 
 export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => {
-  const theme = useTheme();
-  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const { isMobile, theme } = useResponsive();
+  const fullScreen = isMobile;
   const [fechaError, setFechaError] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);

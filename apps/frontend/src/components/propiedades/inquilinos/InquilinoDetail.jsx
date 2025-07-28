@@ -23,7 +23,7 @@ import { Typography, Box } from '@mui/material';
 import { Tooltip, IconButton } from '@mui/material';
 import OpenIcon from '@mui/icons-material/OpenInNew';
 import ViewIcon from '@mui/icons-material/Visibility';
-import { useTheme } from '@mui/material/styles';
+import useResponsive from '../../../hooks/useResponsive';
 import { SeccionContratos } from '../SeccionesPropiedad';
 import ContratoCard from '../contratos/ContratoCard';
 import { CuotasProvider } from '../contratos';
@@ -207,7 +207,7 @@ const InquilinoDetail = ({ open, onClose, inquilino, onEdit, onDelete, onContrat
         onClose={onClose}
       />
       {(() => {
-        const theme = useTheme();
+        const { theme } = useResponsive();
         return (
           <Box sx={{ p: 2, pt: 1, backgroundColor: theme.palette.collapseHeader.background }}>
             <EntityDetailGrid spacing={2}>

@@ -2,7 +2,8 @@
 // Toolbar modular: ahora recibe 'moduloActivo', 'nivel1' y 'currentPath' como props. Solo navega entre los hijos de nivel1.
 
 import React from 'react';
-import { Box, IconButton, Tooltip, Typography } from '@mui/material';
+import { Box, IconButton, Tooltip, Typography } from '../utils/materialImports';
+import { FORM_HEIGHTS } from '../config/uiConstants';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getIconByKey } from './menuIcons';
 import { SystemButtons } from '../components/common/SystemButtons';
@@ -71,7 +72,7 @@ export default function Toolbar({
           left: 0,
           top: 0,
           width: mainMargin,
-          height: 40,
+          height: FORM_HEIGHTS.toolbar,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -120,7 +121,7 @@ export default function Toolbar({
       <Box sx={{
         marginLeft: `${mainMargin}px`,
         width: `calc(100vw - ${mainMargin}px)`,
-        height: 40,
+        height: FORM_HEIGHTS.toolbar,
         display: 'flex',
         alignItems: 'center',
         px: { xs: 1, sm: 2, md: 3 },
@@ -183,7 +184,7 @@ export default function Toolbar({
           alignItems: 'center',
           justifyContent: 'center',
           flex: 1,
-          minHeight: 40,
+          minHeight: FORM_HEIGHTS.minHeight,
           position: 'relative'
         }}>
           {siblings.length > 1 ? (

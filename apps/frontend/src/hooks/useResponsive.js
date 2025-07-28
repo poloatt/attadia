@@ -1,4 +1,4 @@
-import { useTheme, useMediaQuery } from '@mui/material';
+import { useTheme, useMediaQuery } from '../utils/materialImports';
 import { useMemo } from 'react';
 
 /**
@@ -24,6 +24,9 @@ export function useResponsive() {
   }, []);
 
   return {
+    // Theme object for direct access
+    theme,
+    
     // Estados principales
     isMobile,
     isTablet, 

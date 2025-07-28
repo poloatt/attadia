@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Typography, DialogContent, useTheme, useMediaQuery } from '@mui/material';
+import { Box, Typography, DialogContent } from '@mui/material';
+import useResponsive from '../../hooks/useResponsive';
 import { GeometricDialog, GeometricModalHeader, EstadoChip, EntityDetailSection, EntityDetailGrid, CollapsibleSection, EntityDetailSections } from '../common/CommonDetails';
 import clienteAxios from '../../config/axios';
 import { toast } from 'react-hot-toast';
@@ -9,8 +10,7 @@ import CommonActions from '../common/CommonActions';
 import ContratoDetail from './contratos/ContratoDetail';
 
 const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { isMobile, theme } = useResponsive();
 
   const [propiedadCompleta, setPropiedadCompleta] = useState(propiedad);
   const [contratoDetailOpen, setContratoDetailOpen] = useState(false);

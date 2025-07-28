@@ -9,8 +9,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ContratoDetail from './ContratoDetail';
 import TipoPropiedadIcon from '../TipoPropiedadIcon';
 import { CuotasProvider } from '../../../context/CuotasContext';
-import useMediaQuery from '@mui/material/useMediaQuery';
-import { useTheme } from '@mui/material/styles';
+import useResponsive from '../../../hooks/useResponsive';
 
 const ContratoCard = ({ contrato, onClick }) => {
   // Obtener el inquilino principal
@@ -52,8 +51,7 @@ const ContratoCard = ({ contrato, onClick }) => {
   const simboloMoneda = contrato?.cuenta?.moneda?.simbolo || contrato?.moneda?.simbolo || '$';
 
   const [openDetail, setOpenDetail] = useState(false);
-  const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+  const { theme, isDesktop } = useResponsive();
 
   return (
     <Paper

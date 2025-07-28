@@ -1,7 +1,8 @@
 import React from 'react';
-import { Box, Typography, useTheme } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import useResponsive from '../../hooks/useResponsive';
 import {
   Apartment as BuildingFilledIcon,
   AccountBalanceWallet as WalletFilledIcon,
@@ -24,7 +25,7 @@ import {
 } from '@mui/icons-material';
 
 export function UnderConstruction() {
-  const theme = useTheme();
+  const { theme } = useResponsive();
   const location = useLocation();
   const currentPath = location.pathname.slice(1);
 

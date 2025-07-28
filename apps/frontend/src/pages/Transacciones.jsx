@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Container, Box, Button, Fab } from '@mui/material';
+import { Container, Box, Button, Fab } from '../utils/materialImports';
 
 import { 
   AccountBalanceOutlined as BankIcon,

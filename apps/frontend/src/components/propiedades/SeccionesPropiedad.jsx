@@ -30,7 +30,7 @@ import ContratoDetail from './contratos/ContratoDetail';
 import { getStatusIconComponent, getEstadoColor } from '../common/StatusSystem';
 import { getEstadoContrato, formatMesAnio } from '../../utils/contratoUtils';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { useTheme } from '@mui/material/styles';
+import useResponsive from '../../hooks/useResponsive';
 
 // Componente centralizado para el icono de contratos en documentos
 export const IconoContratoDocumentos = ({ sinDocumentos = false, onClick, url, ...props }) => (
@@ -297,7 +297,7 @@ export const SeccionInventario = ({ inventario = [] }) => {
 
 // Sección: Documentos y Contratos agrupados
 export const SeccionDocumentos = ({ documentos = [], propiedad }) => {
-  const theme = useTheme();
+  const { theme } = useResponsive();
   const [inquilinoDetailOpen, setInquilinoDetailOpen] = useState(false);
   const [selectedInquilino, setSelectedInquilino] = useState(null);
   const [contratoDetailOpen, setContratoDetailOpen] = useState(false);
@@ -453,7 +453,7 @@ export const SeccionDocumentos = ({ documentos = [], propiedad }) => {
 
 // Sección: Contratos (primaria, aparte)
 export const SeccionContratos = ({ contratos = [] }) => {
-  const theme = useTheme();
+  const { theme } = useResponsive();
   if (!contratos.length) return null;
   return (
     <Accordion sx={{ mb: 2, borderRadius: 0, bgcolor: theme.palette.collapse.background, border: `1px solid ${theme.palette.divider}` }}>

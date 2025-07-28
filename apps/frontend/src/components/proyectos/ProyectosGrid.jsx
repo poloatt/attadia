@@ -32,7 +32,7 @@ import clienteAxios from '../../config/axios';
 import { useSnackbar } from 'notistack';
 import TareaActions from './TareaActions';
 import { addDays, addWeeks, addMonths, isWeekend, startOfMonth } from 'date-fns';
-import { useTheme } from '@mui/material/styles';
+import useResponsive from '../../hooks/useResponsive';
 import { useValuesVisibility } from '../../context/ValuesVisibilityContext';
 
 const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory }) => {
@@ -40,7 +40,7 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory })
   const [isUpdating, setIsUpdating] = useState(false);
   const [tareaLocal, setTareaLocal] = useState(tarea);
   const { enqueueSnackbar } = useSnackbar();
-  const theme = useTheme();
+  const { theme } = useResponsive();
   const { maskText } = useValuesVisibility();
 
   useEffect(() => {

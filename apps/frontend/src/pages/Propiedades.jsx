@@ -37,7 +37,7 @@ import {
 } from '@mui/icons-material';
 import { snackbar } from '../components/common';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '@mui/material/styles';
+
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import SquareFootIcon from '@mui/icons-material/SquareFoot';
 import BathtubOutlinedIcon from '@mui/icons-material/BathtubOutlined';
@@ -50,6 +50,7 @@ import { usePageWithHistory } from '../hooks/useGlobalActionHistory';
 import { Toolbar } from '../navigation';
 import { CommonForm, CommonDetails, CommonActions } from '../components/common';
 import { usePropiedadesOptimizadas } from '../hooks/useStatusOptimizer.js';
+import useResponsive from '../hooks/useResponsive';
 
 // Cambiamos a exportación nombrada para coincidir con App.jsx
 export function Propiedades() {
@@ -59,7 +60,7 @@ export function Propiedades() {
   const [error, setError] = useState(null);
   // Usar snackbar unificado
   const { user } = useAuth();
-  const theme = useTheme();
+  const { theme } = useResponsive();
   const [selectedPropiedad, setSelectedPropiedad] = useState(null);
   const [formData, setFormData] = useState({
     titulo: '',

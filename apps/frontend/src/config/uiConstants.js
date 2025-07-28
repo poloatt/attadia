@@ -51,6 +51,21 @@ export const TOOLBAR_CONFIG = {
   zIndex: 1399
 };
 
+// ===== FORM AND COMPONENT HEIGHTS =====
+export const FORM_HEIGHTS = {
+  input: 40,           // Altura estándar para inputs y campos de formulario
+  button: 40,          // Altura estándar para botones
+  iconButton: 40,      // Altura estándar para icon buttons
+  toolbar: 40,         // Altura estándar para toolbars
+  header: 40,          // Altura estándar para headers
+  minHeight: 40,       // Altura mínima estándar
+  tableRow: 40,        // Altura estándar para filas de tabla
+  chip: 32,            // Altura para chips
+  small: 32,           // Altura pequeña
+  medium: 40,          // Altura media (estándar)
+  large: 48            // Altura grande
+};
+
 // ===== FOOTER CONFIGURATION =====
 export const FOOTER_CONFIG = {
   height: 48,

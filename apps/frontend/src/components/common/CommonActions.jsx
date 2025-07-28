@@ -8,7 +8,7 @@ import TipoPropiedadIcon from '../propiedades/TipoPropiedadIcon';
 import PhoneIcon from '@mui/icons-material/Phone';
 import SmsIcon from '@mui/icons-material/Sms';
 import EmailIcon from '@mui/icons-material/Email';
-import { IconButton } from '@mui/material';
+import { IconButton } from '../../utils/materialImports';
 
 /**
  * EntityActions: Componente de acciones reutilizable y extensible usando SystemButtons.

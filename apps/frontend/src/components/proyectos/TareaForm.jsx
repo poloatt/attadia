@@ -13,12 +13,11 @@ import {
   Stack,
   IconButton,
   Chip,
-  useTheme,
-  useMediaQuery,
   Divider,
   InputAdornment,
   Tooltip,
 } from '@mui/material';
+import useResponsive from '../../hooks/useResponsive';
 import {
   Close as CloseIcon,
   AttachFile as AttachFileIcon,
@@ -50,8 +49,7 @@ const TareaForm = ({
   onProyectosUpdate,
   updateWithHistory
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { isMobile } = useResponsive();
   const [isProyectoFormOpen, setIsProyectoFormOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   

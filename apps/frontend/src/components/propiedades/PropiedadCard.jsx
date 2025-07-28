@@ -13,8 +13,6 @@ import {
   Paper,
   Tooltip,
   LinearProgress,
-  useMediaQuery,
-  useTheme,
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -29,6 +27,7 @@ import {
   DialogActions,
   Button
 } from '@mui/material';
+import useResponsive from '../../hooks/useResponsive';
 import { styled } from '@mui/material/styles';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -85,8 +84,7 @@ import { SystemButtons } from '../common/SystemButtons';
 const PropiedadCard = ({ propiedad, onEdit, onDelete, isAssets = false, isExpanded = false, onToggleExpand, viewMode = 'grid', setViewMode = () => {}, onSyncSeccion }) => {
 
 
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { isMobile, theme } = useResponsive();
   
   const [expandedSections, setExpandedSections] = useState({
     inquilinos: false,

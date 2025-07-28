@@ -7,8 +7,7 @@ import {
 import { useSnackbar } from 'notistack';
 import { InquilinoList, InquilinoForm } from '../components/propiedades/inquilinos';
 import { InquilinoDetail } from '../components/propiedades/inquilinos';
-import useMediaQuery from '@mui/material/useMediaQuery';
-import { useTheme } from '@mui/material/styles';
+
 import { CommonDetails, CommonActions } from '../components/common';
 import { Toolbar } from '../navigation';
 
@@ -22,6 +21,7 @@ import clienteAxios from '../config/axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ContratoForm from '../components/propiedades/contratos/ContratoForm';
 import { useFormManager } from '../context/FormContext';
+import useResponsive from '../hooks/useResponsive';
 
 export function Inquilinos() {
   const [inquilinos, setInquilinos] = useState([]);
@@ -197,8 +197,7 @@ export function Inquilinos() {
     setOpenContratoForm(true);
   };
 
-  const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+  const { theme, isDesktop } = useResponsive();
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>

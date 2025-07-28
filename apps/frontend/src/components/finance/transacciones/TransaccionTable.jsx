@@ -9,10 +9,9 @@ import {
   Tooltip,
   Collapse,
   Box,
-  Typography,
-  useTheme,
-  useMediaQuery
+  Typography
 } from '@mui/material';
+import useResponsive from '../../../hooks/useResponsive';
 import { 
   EditOutlined as EditIcon, 
   DeleteOutlined as DeleteIcon,
@@ -32,8 +31,7 @@ import {
 
 const TransaccionTable = ({ transacciones, onEdit, onDelete, showValues = true }) => {
   const [expandedRow, setExpandedRow] = useState(null);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { isMobile, theme } = useResponsive();
 
   const handleRowClick = (id) => {
     setExpandedRow(expandedRow === id ? null : id);

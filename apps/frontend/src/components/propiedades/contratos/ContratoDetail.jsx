@@ -10,10 +10,9 @@ import {
   Divider,
   IconButton,
   Grid,
-  Paper,
-  useTheme,
-  useMediaQuery
+  Paper
 } from '@mui/material';
+import useResponsive from '../../../hooks/useResponsive';
 import CommonProgressBar from '../../common/CommonProgressBar';
 import { GeometricPaper, GeometricModalHeader, EstadoChip, GeometricDialog, EntityDetailSection, EntityDetailGrid, CollapsibleSection, EntityDetailSections } from '../../common/CommonDetails';
 import CommonActions from '../../common/CommonActions';
@@ -60,8 +59,7 @@ const ContratoDetail = ({
   onDelete,
   relatedData = {} 
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { isMobile, theme } = useResponsive();
   const navigate = useNavigate();
   const location = useLocation();
 

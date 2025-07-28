@@ -10,8 +10,6 @@ import {
   Collapse,
   Box,
   Typography,
-  useTheme,
-  useMediaQuery,
   Tooltip,
   LinearProgress,
   Stack,
@@ -23,6 +21,7 @@ import {
   Chip,
   TableHead,
 } from '@mui/material';
+import useResponsive from '../../hooks/useResponsive';
 import {
   EditOutlined as EditIcon,
   DeleteOutlined as DeleteIcon,
@@ -84,8 +83,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
   const [estadoLocal, setEstadoLocal] = useState(tarea.estado);
   const [subtareasLocal, setSubtareasLocal] = useState(tarea.subtareas || []);
   const [isUpdating, setIsUpdating] = useState(false);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { isMobile, theme } = useResponsive();
   const { enqueueSnackbar } = useSnackbar();
   const { maskText } = useValuesVisibility();
 
@@ -589,8 +587,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
 };
 
 const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, updateTareaWithHistory }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { isMobile, theme } = useResponsive();
   const { maskText } = useValuesVisibility();
 
   // Filtrar tareas según si es archivo o no

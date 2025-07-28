@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Grid, Box, Typography, Skeleton, Paper, IconButton, Menu, MenuItem, Collapse } from '@mui/material';
+import { Grid, Box, Typography, Skeleton, Paper, IconButton, Menu, MenuItem, Collapse } from '../utils/materialImports';
 import { Link } from 'react-router-dom';
 
 import PropiedadCard from '../components/propiedades/PropiedadCard';
@@ -49,12 +49,13 @@ import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EngineeringIcon from '@mui/icons-material/Engineering';
 import BookmarkAddedIcon from '@mui/icons-material/BookmarkAdded';
-import { useTheme } from '@mui/material/styles';
+
 import PageContainer from '../components/common/PageContainer';
+import useResponsive from '../hooks/useResponsive';
 
 
 export function Assets() {
-
+  const { theme } = useResponsive();
 
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState(30);
@@ -339,9 +340,7 @@ export function Assets() {
     }
   };
 
-  const theme = useTheme();
-
-  const FinanceSection = () => (
+  const FinanceSection = ({ theme }) => (
     <Box>
       <Box sx={{ 
         display: 'flex', 
@@ -460,7 +459,7 @@ export function Assets() {
     </Box>
   );
 
-  const PropertiesSection = () => {
+  const PropertiesSection = ({ theme }) => {
     // Función auxiliar para pluralizar
     const pluralize = (count, singular, plural) => {
       return count === 1 ? `${count} ${singular}` : `${count} ${plural}`;
@@ -590,25 +589,25 @@ export function Assets() {
       {/* Contenido principal */}
       <Box sx={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Grid container spacing={2}>
-          {/* Sección de Propiedades */}
-          <Grid item xs={12} md={6}>
-            <Box sx={{ width: '100%' }}>
-              <PropertiesSection />
-            </Box>
-          </Grid>
+                     {/* Sección de Propiedades */}
+           <Grid item xs={12} md={6}>
+             <Box sx={{ width: '100%' }}>
+               <PropertiesSection theme={theme} />
+             </Box>
+           </Grid>
 
           {/* Sección de Cuentas */}
           <Grid item xs={12} md={6}>
-            <Paper sx={{ 
-              p: 2, 
-              height: '100%',
-              borderRadius: 0,
-              boxShadow: 'none',
-              backgroundColor: (theme) => theme.palette.section.background,
-              width: '100%'
-            }}>
-              <FinanceSection />
-            </Paper>
+                         <Paper sx={{ 
+               p: 2, 
+               height: '100%',
+               borderRadius: 0,
+               boxShadow: 'none',
+               backgroundColor: (theme) => theme.palette.section.background,
+               width: '100%'
+             }}>
+               <FinanceSection theme={theme} />
+             </Paper>
           </Grid>
         </Grid>
       </Box>

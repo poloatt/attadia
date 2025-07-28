@@ -13,11 +13,10 @@ import {
   Stack,
   IconButton,
   Chip,
-  useTheme,
-  useMediaQuery,
   InputAdornment,
   Tooltip
 } from '@mui/material';
+import useResponsive from '../../hooks/useResponsive';
 import {
   Close as CloseIcon,
   AttachFile as AttachFileIcon,
@@ -38,8 +37,7 @@ import TareaForm from './TareaForm';
 import { useRelationalData } from '../../hooks/useRelationalData';
 
 const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing, createWithHistory, updateWithHistory }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { isMobile, theme } = useResponsive();
   
   const [formData, setFormData] = useState({
     nombre: initialData?.nombre || '',

@@ -4,10 +4,9 @@ import {
   Box,
   Typography,
   Collapse,
-  IconButton,
-  useTheme,
-  useMediaQuery
+  IconButton
 } from '@mui/material';
+import useResponsive from '../../../hooks/useResponsive';
 import CommonProgressBar from '../../common/CommonProgressBar';
 import {
   MonetizationOnOutlined as MoneyIcon,
@@ -192,8 +191,7 @@ const EstadoFinanzasContrato = ({
   const { cuotasPagadas, cuotasTotales, montoPagado, montoTotal, porcentajePagado, proximaCuota, cuotasVencidas } = estadoCuotasCalculado;
   const simboloMoneda = contrato?.cuenta?.moneda?.simbolo || contrato?.moneda?.simbolo || '$';
 
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { isMobile } = useResponsive();
 
   if (!contrato) {
     return null;

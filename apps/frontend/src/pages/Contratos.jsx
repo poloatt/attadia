@@ -36,8 +36,8 @@ import { useFormManager } from '../context/FormContext';
 import ContratoCard from '../components/propiedades/contratos/ContratoCard';
 import { CuotasProvider } from '../context/CuotasContext';
 import ContratoDetail from '../components/propiedades/contratos/ContratoDetail';
-import useMediaQuery from '@mui/material/useMediaQuery';
-import { useTheme } from '@mui/material/styles';
+
+import useResponsive from '../hooks/useResponsive';
 
 export function Contratos() {
   const [contratos, setContratos] = useState([]);
@@ -341,8 +341,7 @@ export function Contratos() {
     getIcon: () => DescriptionIcon,
   };
 
-  const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+  const { theme, isDesktop } = useResponsive();
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>
