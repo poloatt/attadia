@@ -20,7 +20,9 @@ const CommonHeader = ({
 }) => (
   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap, ...props }}>
     <Box sx={{ display: 'flex', alignItems: 'center', gap }}>
-      {Icon && <Icon {...iconProps} sx={{ fontSize: iconSize, ...iconProps.sx }} />}
+      {Icon && (typeof Icon === 'function' || React.isValidElement(Icon)) && (
+        <Icon {...iconProps} sx={{ fontSize: iconSize, ...iconProps.sx }} />
+      )}
       <Box>
         <Typography
           variant={titleSize}

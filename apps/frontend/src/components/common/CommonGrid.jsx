@@ -112,7 +112,7 @@ const CommonGrid = ({
                 </IconButton>
               </span>
             </Tooltip>
-            {group.info.icon}
+            {group.info.icon && (React.isValidElement(group.info.icon) ? group.info.icon : React.createElement(group.info.icon))}
             <Typography 
               variant="subtitle1" 
               color="text.secondary"
@@ -188,7 +188,7 @@ const CommonGrid = ({
                             height: 16
                           }}
                         >
-                          {detail.icon}
+                          {detail.icon && (React.isValidElement(detail.icon) ? detail.icon : React.createElement(detail.icon))}
                           <Typography 
                             variant="body2" 
                             color="text.secondary"
