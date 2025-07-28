@@ -1,4 +1,4 @@
-import { ConstructionOutlined as ConstructionIcon } from '@mui/icons-material';
+
 
 /**
  * Factory para crear configuraciones de grid estándar
@@ -32,12 +32,12 @@ export const createGridConfig = (options = {}) => {
 /**
  * Configuración estándar para secciones en construcción
  */
-export const createUnderConstructionConfig = (icon) => ({
+export const createUnderConstructionConfig = () => ({
   getDetails: (item) => {
     if (item.isUnderConstruction) {
       return [
         {
-          icon: <ConstructionIcon sx={{ fontSize: 14 }} />,
+          icon: 'construction',
           text: 'En construcción'
         }
       ];
