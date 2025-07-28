@@ -7,7 +7,8 @@ import {
   TrendingUpOutlined as TrendingIcon,
   PersonSearchOutlined as PersonIcon,
   RepeatOutlined as RepeatIcon,
-  AttachMoneyOutlined as MoneyIcon
+  AttachMoneyOutlined as MoneyIcon,
+  ConstructionOutlined as ConstructionIcon
 } from '@mui/icons-material';
 import { useEffect, useState, useCallback } from 'react';
 import { CommonForm, CommonGrid } from '../components/common';
@@ -15,7 +16,6 @@ import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import { useAPI } from '../hooks/useAPI';
 import { Toolbar } from '../navigation';
-import { createNavigationConfig } from '../utils/gridConfigUtils';
 
 export default function Finanzas() {
   const navigate = useNavigate();
@@ -143,13 +143,41 @@ export default function Finanzas() {
     }
   ];
 
-  // Configuración modular para CommonGrid
-  const gridConfig = createNavigationConfig(
-    navigate,
-    'finanzas',
-    'Secciones de Finanzas',
-    MoneyIcon
-  );
+  // Configuración para CommonGrid
+  const gridConfig = {
+    groupBy: (item) => ({
+      key: 'finanzas',
+      title: 'Secciones de Finanzas',
+      icon: MoneyIcon
+    }),
+    getTitle: (item) => item.title,
+    getSubtitle: (item) => item.description,
+    getIcon: (item) => item.icon,
+    getColor: (item) => item.color,
+    onItemClick: (item) => navigate(item.path),
+    getDetails: (item) => {
+      // Si el item está en construcción, mostrar un detalle
+      if (item.isUnderConstruction) {
+        return [
+          {
+            icon: <ConstructionIcon sx={{ fontSize: 14 }} />,
+            text: 'En construcción'
+          }
+        ];
+      }
+      return []; // Array vacío para items normales
+    },
+    getActions: (item) => ({
+      actions: item.isUnderConstruction ? [
+        {
+          icon: 'construction',
+          tooltip: 'En construcción',
+          onClick: () => {},
+          disabled: true
+        }
+      ] : []
+    })
+  };
 
   return (
     <Box component="main" className="page-main-content" sx={{ width: '100%', flex: 1, px: { xs: 1, sm: 2, md: 3 }, py: 2, pb: { xs: 10, sm: 4 }, display: 'flex', flexDirection: 'column' }}>
