@@ -1,8 +1,4 @@
 {
-  "buildCommand": "npm install && cd apps/frontend && npm run build",
-  "outputDirectory": "apps/frontend/dist",
-  "installCommand": "npm install",
-  "framework": "vite",
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -31,13 +27,5 @@
         }
       ]
     }
-  ],
-  "functions": {
-    "apps/frontend/dist/**/*.js": {
-      "maxDuration": 30
-    }
-  },
-  "env": {
-    "NPM_FLAGS": "--legacy-peer-deps --package-lock-only"
-  }
-} 
+  ]
+}
