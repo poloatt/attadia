@@ -38,6 +38,6 @@
     }
   },
   "env": {
-    "NPM_FLAGS": "--legacy-peer-deps"
+    "NPM_FLAGS": "--legacy-peer-deps --package-lock-only"
   }
 } 
