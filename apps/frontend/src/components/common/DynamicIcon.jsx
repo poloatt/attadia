@@ -33,7 +33,10 @@ export function DynamicIcon({
     ? (icons[iconKey] || getIconByKey(iconKey))
     : null;
 
-  if (!IconComponent) return null;
+  if (!IconComponent) {
+    console.warn(`DynamicIcon: No se pudo obtener icono para iconKey:`, iconKey);
+    return null;
+  }
 
   const iconProps = {
     fontSize: size,
@@ -96,7 +99,10 @@ export const ClickableIcon = React.forwardRef(({
 }, ref) => {
   const IconComponent = getIconByKey(iconKey);
   
-  if (!IconComponent) return null;
+  if (!IconComponent) {
+    console.warn(`ClickableIcon: No se pudo obtener icono para iconKey:`, iconKey);
+    return null;
+  }
 
   const buttonSx = {
     bgcolor: isActive ? 'action.selected' : 'transparent',

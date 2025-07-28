@@ -31,7 +31,8 @@ import {
   MonetizationOnOutlined, // icono "$" dentro de círculo para assets
   AddCircleOutline, // cruz médica dentro de círculo para salud
   BedOutlined, // icono de cama para habitaciones
-  TuneOutlined
+  TuneOutlined,
+  ConstructionOutlined // icono de construcción
 } from '@mui/icons-material';
 
 export const icons = {
@@ -67,12 +68,24 @@ export const icons = {
   fiberManualRecord: FiberManualRecordOutlined,
   arrowBack: KeyboardBackspaceOutlined,
   dollarSign: MonetizationOnOutlined, // icono "$" dentro de círculo para assets
-  bed: BedOutlined // icono de cama para habitaciones
+  bed: BedOutlined, // icono de cama para habitaciones
+  construction: ConstructionOutlined // icono de construcción
 };
 
 // Función helper para obtener el icono por clave
 export const getIconByKey = (iconKey) => {
-  return icons[iconKey] || icons.folder; // fallback a folder si no existe
+  if (!iconKey || typeof iconKey !== 'string') {
+    console.warn(`getIconByKey: iconKey inválido:`, iconKey);
+    return icons.folder;
+  }
+  
+  const icon = icons[iconKey];
+  if (!icon) {
+    console.warn(`getIconByKey: icono no encontrado para clave: "${iconKey}"`);
+    return icons.folder;
+  }
+  
+  return icon;
 };
 
 // Función helper para verificar si una ruta está activa
