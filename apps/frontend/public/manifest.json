@@ -1,9 +1,0 @@
-{
-  "name": "Attadia Admin",
-  "short_name": "Attadia",
-  "description": "Panel de administración de Attadia",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000"
-} 
