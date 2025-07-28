@@ -36,7 +36,7 @@ function GoogleCallback() {
         }
 
         // Redirigir a assets
-        navigate('/assets');
+        navigate('/assets/finanzas');
       } catch (error) {
         console.error('Error en el callback de Google:', error);
         navigate('/auth/error?message=auth_failed');

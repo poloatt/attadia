@@ -82,7 +82,7 @@ export function Proyectos() {
   );
 
   const handleBack = () => {
-    navigate('/tiempo');
+            navigate('/tiempo/rutinas');
   };
 
   useEffect(() => {

@@ -226,7 +226,7 @@ export function Tareas() {
   };
 
   const handleBack = () => {
-    navigate('/tiempo');
+            navigate('/tiempo/rutinas');
   };
 
   return (

@@ -63,7 +63,7 @@ export const FooterNavigation = () => {
 
   const navigationItems = [
     {
-      path: '/assets',
+              path: '/assets/finanzas',
       icon: <WalletIcon />,
       label: 'Assets'
     },
@@ -73,7 +73,7 @@ export const FooterNavigation = () => {
       label: 'Salud'
     },
     {
-      path: '/tiempo',
+      path: '/tiempo/rutinas',
       icon: <TareasIcon />,
       label: 'Tiempo'
     }

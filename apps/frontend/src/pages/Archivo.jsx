@@ -139,7 +139,7 @@ export function Archivo() {
   };
 
   const handleBack = () => {
-    navigate('/tiempo');
+            navigate('/tiempo/rutinas');
   };
 
   return (
