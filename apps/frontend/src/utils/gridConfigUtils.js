@@ -37,7 +37,7 @@ export const createUnderConstructionConfig = () => ({
     if (item.isUnderConstruction) {
       return [
         {
-          icon: 'construction',
+          icon: '🔨',
           text: 'En construcción'
         }
       ];
