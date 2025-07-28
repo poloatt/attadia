@@ -8,8 +8,7 @@ yarn.lock
 .env.test.local
 .env.production.local
 
-# Build artifacts
-dist
+# Build artifacts (keep dist for Vercel)
 build
 .next
 .nuxt
@@ -68,11 +67,9 @@ jspm_packages/
 
 # Nuxt.js build / generate output
 .nuxt
-dist
 
 # Gatsby files
 .cache/
-public
 
 # Storybook build outputs
 .out
@@ -81,3 +78,8 @@ public
 # Temporary folders
 tmp/
 temp/
+
+# Docker files (not needed for Vercel)
+Dockerfile*
+nginx.conf*
+.dockerignore
