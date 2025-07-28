@@ -47,7 +47,7 @@ const CommonGrid = ({
     const groups = {};
     
     data.forEach(item => {
-      const groupInfo = config.groupBy(item);
+      const groupInfo = config.groupBy ? config.groupBy(item) : { key: 'default', label: 'Default', icon: null };
       const key = groupInfo.key;
       
       if (!groups[key]) {
@@ -82,9 +82,9 @@ const CommonGrid = ({
   return (
     <Stack spacing={0.8}>
       {groupedData.map(group => (
-        <Box key={group.info.key}>
+        <Box key={group.info.key || 'default'}>
           <Box 
-            onClick={() => toggleGroup(group.info.key)}
+            onClick={() => toggleGroup(group.info.key || 'default')}
             sx={{ 
               display: 'flex',
               alignItems: 'center',
@@ -98,13 +98,13 @@ const CommonGrid = ({
               }
             }}
           >
-            <Tooltip title={expandedGroups[group.info.key] ? 'Ocultar' : 'Expandir'}>
+            <Tooltip title={expandedGroups[group.info.key || 'default'] ? 'Ocultar' : 'Expandir'}>
               <span>
                 <IconButton
                   size="small"
                   sx={{ 
                     p: 0,
-                    transform: expandedGroups[group.info.key] ? 'rotate(-180deg)' : 'rotate(0deg)',
+                    transform: expandedGroups[group.info.key || 'default'] ? 'rotate(-180deg)' : 'rotate(0deg)',
                     transition: 'transform 0.2s'
                   }}
                 >
@@ -122,11 +122,11 @@ const CommonGrid = ({
                 flexGrow: 1
               }}
             >
-              {group.info.label}
+              {group.info.label || group.info.title || 'Sin título'}
             </Typography>
             <Chip
               size="small"
-              label={`${group.items.length} ${group.items.length === 1 ? 'habitación' : 'habitaciones'}`}
+              label={`${group.items.length} ${group.items.length === 1 ? 'item' : 'items'}`}
               sx={{ 
                 height: 20,
                 borderRadius: 0,
@@ -135,10 +135,10 @@ const CommonGrid = ({
             />
           </Box>
 
-          <Collapse in={expandedGroups[group.info.key]} timeout={200}>
+          <Collapse in={expandedGroups[group.info.key || 'default']} timeout={200}>
             <Grid container spacing={0.4} sx={{ p: 0 }}>
               {group.items.map((item, index) => (
-                <Grid item key={item.id} {...gridProps}>
+                <Grid item key={item.id || item._id || index} {...gridProps}>
                   <Box
                     sx={{ 
                       height: '100%',
@@ -163,21 +163,37 @@ const CommonGrid = ({
                         justifyContent: 'space-between',
                         height: 24
                       }}>
-                        <Typography 
-                          variant="subtitle2"
-                          sx={{ 
-                            fontWeight: 500,
-                            lineHeight: 1
-                          }}
-                        >
-                          {config.getTitle(item)}
-                        </Typography>
-                        {config.getActions && (
+                        {config.getTitle ? (
+                          typeof config.getTitle(item) === 'string' ? (
+                            <Typography 
+                              variant="subtitle2"
+                              sx={{ 
+                                fontWeight: 500,
+                                lineHeight: 1
+                              }}
+                            >
+                              {config.getTitle(item)}
+                            </Typography>
+                          ) : (
+                            config.getTitle(item)
+                          )
+                        ) : (
+                          <Typography 
+                            variant="subtitle2"
+                            sx={{ 
+                              fontWeight: 500,
+                              lineHeight: 1
+                            }}
+                          >
+                            Sin título
+                          </Typography>
+                        )}
+                        {config.getActions && config.getActions(item) && (
                           <CommonActions {...config.getActions(item)} />
                         )}
                       </Box>
 
-                      {config.getDetails(item).map((detail, i) => (
+                      {(config.getDetails ? config.getDetails(item) : []).map((detail, i) => (
                         <Box 
                           key={i}
                           sx={{ 
@@ -188,13 +204,13 @@ const CommonGrid = ({
                             height: 16
                           }}
                         >
-                          {detail.icon && (React.isValidElement(detail.icon) ? detail.icon : React.createElement(detail.icon))}
+                          {detail.icon && (React.isValidElement(detail.icon) ? detail.icon : (typeof detail.icon === 'function' ? React.createElement(detail.icon) : null))}
                           <Typography 
                             variant="body2" 
                             color="text.secondary"
                             sx={{ lineHeight: 1 }}
                           >
-                            {detail.text}
+                            {detail.text || 'Sin descripción'}
                           </Typography>
                         </Box>
                       ))}
