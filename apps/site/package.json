@@ -4,7 +4,7 @@
   "description": "Landing page for Attadia",
   "main": "index.html",
   "scripts": {
-    "build": "echo 'Static site ready - no build needed'",
+    "build": "cp -r . ../dist && echo 'Static site built successfully'",
     "start": "echo 'Static site ready'",
     "dev": "echo 'Development mode for static site'"
   },

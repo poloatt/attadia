@@ -27,5 +27,6 @@
         }
       ]
     }
-  ]
+  ],
+  "comment": "Force Vercel to detect changes"
 }
