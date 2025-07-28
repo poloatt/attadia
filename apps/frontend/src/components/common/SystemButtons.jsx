@@ -12,6 +12,7 @@ import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import { modulos } from '../../navigation/menuStructure';
 import { getIconByKey } from '../../navigation/menuIcons';
 import { FORM_HEIGHTS } from '../../config/uiConstants';
+import { DynamicIcon } from './DynamicIcon';
 
 // Diálogo de confirmación para eliminar
 const DeleteConfirmDialog = memo(({ open, onClose, onConfirm, itemName }) => (
@@ -286,7 +287,12 @@ function HeaderAddButton({ entityConfig, buttonSx }) {
           {addableChildren.map((sub) => (
             <MenuItem key={sub.id || sub.title} onClick={() => handleCreateSubItem(sub)} disabled={sub.isUnderConstruction}>
               <ListItemIcon>
-                {sub.icon ? (typeof sub.icon === 'string' ? null : React.createElement(sub.icon)) : <AddOutlinedIcon fontSize="small" />}
+                {sub.icon ? (
+                  typeof sub.icon === 'string' ? 
+                    <DynamicIcon iconKey={sub.icon} size="small" /> : 
+                    (React.isValidElement(sub.icon) ? sub.icon : 
+                     (typeof sub.icon === 'function' ? React.createElement(sub.icon) : <AddOutlinedIcon fontSize="small" />))
+                ) : <AddOutlinedIcon fontSize="small" />}
               </ListItemIcon>
               <ListItemText primary={`Agregar ${sub.title}`} />
               {sub.isUnderConstruction && (
@@ -550,7 +556,7 @@ function HeaderAppsButton({ iconSx }) {
               }}
             >
               <ListItemIcon>
-                {IconComponent && React.createElement(IconComponent, { fontSize: 'small' })}
+                {IconComponent && typeof IconComponent === 'function' ? React.createElement(IconComponent, { fontSize: 'small' }) : <AddOutlinedIcon fontSize="small" />}
               </ListItemIcon>
               <ListItemText 
                 primary={modulo.title}
