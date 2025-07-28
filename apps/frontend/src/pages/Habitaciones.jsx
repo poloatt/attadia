@@ -34,6 +34,7 @@ import { EmptyState } from '../components/common';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useFormManager } from '../context/FormContext';
 import { Toolbar } from '../navigation';
+import { createEntityConfig } from '../utils/gridConfigUtils';
 
 export function Habitaciones() {
   const [habitaciones, setHabitaciones] = useState([]);
@@ -227,48 +228,9 @@ export function Habitaciones() {
     }
   };
 
-  const cardConfig = {
-    groupBy: (habitacion) => {
-      const propiedad = habitacion.propiedad?.titulo || 
-        propiedades.find(p => p.id === habitacion.propiedadId)?.titulo || 
-        'Sin Propiedad';
-      const propiedadData = habitacion.propiedad || 
-        propiedades.find(p => p.id === habitacion.propiedadId);
-      return {
-        key: propiedad,
-        label: propiedad,
-        icon: getPropiedadIcon(propiedadData?.tipo)
-      };
-    },
-    getTitle: (habitacion) => {
-      if (habitacion.tipo === 'OTRO') {
-        return (
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 1,
-            width: '100%'
-          }}>
-            <Box sx={{ 
-              display: 'flex',
-              alignItems: 'center',
-              '& .MuiSvgIcon-root': {
-                fontSize: '1rem',
-                color: 'text.secondary'
-              }
-            }}>
-              {getTipoIcon(habitacion.tipo)}
-            </Box>
-            <Typography 
-              variant="subtitle2"
-              sx={{ fontWeight: 500 }}
-            >
-              {habitacion.nombrePersonalizado}
-            </Typography>
-          </Box>
-        );
-      }
-      const tipoLabel = formFields.find(f => f.name === 'tipo')?.options.find(opt => opt.value === habitacion.tipo)?.label;
+  // Funciones auxiliares para la configuración
+  const getHabitacionTitle = (habitacion) => {
+    if (habitacion.tipo === 'OTRO') {
       return (
         <Box sx={{ 
           display: 'flex', 
@@ -290,16 +252,65 @@ export function Habitaciones() {
             variant="subtitle2"
             sx={{ fontWeight: 500 }}
           >
-            {tipoLabel || habitacion.tipo}
+            {habitacion.nombrePersonalizado}
           </Typography>
         </Box>
       );
-    },
+    }
+    const tipoLabel = formFields.find(f => f.name === 'tipo')?.options.find(opt => opt.value === habitacion.tipo)?.label;
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: 1,
+        width: '100%'
+      }}>
+        <Box sx={{ 
+          display: 'flex',
+          alignItems: 'center',
+          '& .MuiSvgIcon-root': {
+            fontSize: '1rem',
+            color: 'text.secondary'
+          }
+        }}>
+          {getTipoIcon(habitacion.tipo)}
+        </Box>
+        <Typography 
+          variant="subtitle2"
+          sx={{ fontWeight: 500 }}
+        >
+          {tipoLabel || habitacion.tipo}
+        </Typography>
+      </Box>
+    );
+  };
+
+  const getHabitacionGroup = (habitacion) => {
+    const propiedad = habitacion.propiedad?.titulo || 
+      propiedades.find(p => p.id === habitacion.propiedadId)?.titulo || 
+      'Sin Propiedad';
+    const propiedadData = habitacion.propiedad || 
+      propiedades.find(p => p.id === habitacion.propiedadId);
+    return {
+      key: propiedad,
+      label: propiedad,
+      icon: getPropiedadIcon(propiedadData?.tipo)
+    };
+  };
+
+  const getHabitacionItemName = (habitacion) => {
+    return `la habitación "${habitacion.tipo === 'OTRO' ? habitacion.nombrePersonalizado : formFields.find(f => f.name === 'tipo')?.options.find(opt => opt.value === habitacion.tipo)?.label || habitacion.tipo}"`;
+  };
+
+  // Configuración modular para CommonGrid
+  const cardConfig = {
+    groupBy: getHabitacionGroup,
+    getTitle: getHabitacionTitle,
     getDetails: () => [],
     getActions: (habitacion) => ({
       onEdit: () => handleEdit(habitacion),
       onDelete: () => handleDelete(habitacion.id),
-      itemName: `la habitación "${habitacion.tipo === 'OTRO' ? habitacion.nombrePersonalizado : formFields.find(f => f.name === 'tipo')?.options.find(opt => opt.value === habitacion.tipo)?.label || habitacion.tipo}"`
+      itemName: getHabitacionItemName(habitacion)
     })
   };
 
