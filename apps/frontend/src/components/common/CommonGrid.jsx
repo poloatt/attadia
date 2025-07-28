@@ -188,13 +188,7 @@ const CommonGrid = ({
                             height: 16
                           }}
                         >
-                          {typeof detail.icon === 'string' ? (
-                            <Box sx={{ fontSize: 14, color: 'text.secondary' }}>
-                              {detail.icon}
-                            </Box>
-                          ) : (
-                            detail.icon
-                          )}
+                          {detail.icon}
                           <Typography 
                             variant="body2" 
                             color="text.secondary"
