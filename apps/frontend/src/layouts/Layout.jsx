@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { Header, Toolbar } from '../navigation';
 import { Footer } from '../navigation';
 import { Sidebar, BottomNavigation } from '../navigation';
+import SpecificNavigation from '../components/navigation/SpecificNavigation';
 import { CustomSnackbarProvider } from '../components/common';
 import { useEffect } from 'react';
 import { FormManagerProvider } from '../context/FormContext';
@@ -14,6 +15,7 @@ import { GlobalFormEventListener } from '../context/GlobalFormEventListener';
 import useResponsive from '../hooks/useResponsive';
 import { useNavigationState } from '../utils/navigationUtils';
 import { calculateMainMargin, calculateTopPadding, HEADER_CONFIG, FOOTER_CONFIG, SPACING } from '../config/uiConstants';
+import { RutinasProvider } from '../context/RutinasContext';
 
 export function Layout() {
   const { isMobile, isTablet, isMobileOrTablet } = useResponsive();
@@ -59,6 +61,16 @@ export function Layout() {
   // Determinar si se debe renderizar la sidebar
   const shouldRenderSidebar = !isMobileOrTablet || (isMobileOrTablet && showSidebarCollapsed && isOpen);
 
+  // Determinar si debe mostrar navegación específica en lugar del Toolbar estándar
+  const shouldShowSpecificNavigation = () => {
+    const specificNavigationRoutes = [
+      '/tiempo/rutinas',
+      // Aquí se pueden agregar más rutas que necesiten navegación específica
+    ];
+    
+    return specificNavigationRoutes.some(route => currentPath.startsWith(route));
+  };
+
   return (
     <FormManagerProvider>
       <GlobalFormEventListener />
@@ -67,13 +79,22 @@ export function Layout() {
         <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', zIndex: 1400 }}>
           <Header />
         </Box>
-        {/* Toolbar */}
+        {/* Toolbar siempre se renderiza, pero la sección principal puede ser reemplazada */}
         {showToolbar && (
           <Box sx={{ position: 'fixed', top: `${HEADER_CONFIG.height}px`, left: 0, width: '100vw', zIndex: 1399 }}>
             <Toolbar 
               moduloActivo={moduloActivo}
               nivel1={nivel2}
               currentPath={currentPath}
+              customMainSection={shouldShowSpecificNavigation() ? (
+                currentPath.startsWith('/tiempo/rutinas') ? (
+                  <RutinasProvider>
+                    <SpecificNavigation currentPath={currentPath} />
+                  </RutinasProvider>
+                ) : (
+                  <SpecificNavigation currentPath={currentPath} />
+                )
+              ) : undefined}
             />
           </Box>
         )}
