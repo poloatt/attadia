@@ -43,7 +43,7 @@ export default function Footer({ isDesktop = false, isSidebarOpen = false }) {
 
   useEffect(() => {
     // Mostrar el footer solo en la ruta principal o assets
-    if (location.pathname === '/' || location.pathname === '/assets') {
+            if (location.pathname === '/' || location.pathname === '/assets' || location.pathname === '/assets/finanzas' || location.pathname === '/tiempo/rutinas') {
       setVisible(true);
       const timer = setTimeout(() => {
         setVisible(false);

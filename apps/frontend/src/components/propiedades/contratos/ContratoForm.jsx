@@ -52,7 +52,7 @@ const ContratoForm = ({
   onClose,
   isSaving = false
 }) => {
-  const { theme } = useResponsive();
+  const { theme, isMobile } = useResponsive();
   
   const safeInitialData = initialData || {};
   
@@ -340,7 +340,7 @@ const ContratoForm = ({
       onClose={!isSaving ? onClose : undefined}
       maxWidth="md"
       fullWidth
-      fullScreen={window.innerWidth < 600}
+      fullScreen={isMobile}
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         {/* Header minimal */}

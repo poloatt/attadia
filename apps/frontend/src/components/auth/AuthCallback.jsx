@@ -59,7 +59,7 @@ function AuthCallback() {
         if (authResult) {
           console.log('Autenticación exitosa, redirigiendo a assets');
           toast.success('¡Bienvenido!');
-          navigate('/assets', { replace: true });
+          navigate('/assets/finanzas', { replace: true });
         } else {
           throw new Error('Fallo en la verificación de autenticación');
         }

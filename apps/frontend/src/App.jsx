@@ -5,7 +5,6 @@ import { Login } from './pages/Login';
 import { Propiedades } from './pages/Propiedades';
 import { Layout } from './layouts/Layout';
 import { Register } from './pages';
-import Assets from './pages/Assets';
 import Finanzas from './pages/Finanzas';
 import Transacciones from './pages/Transacciones';
 import { Recurrente } from './pages/Recurrente';
@@ -32,7 +31,7 @@ import AuthCallback from './components/auth/AuthCallback';
 import Tareas from './pages/Tareas';
 import { ValuesVisibilityProvider } from './context/ValuesVisibilityContext';
 import { Archivo } from './pages/Archivo';
-import Tiempo from './pages/Tiempo';
+
 import { NavigationBarProvider } from './context/NavigationBarContext';
 import { useAuth } from './context/AuthContext';
 import AuthError from './components/auth/AuthError';
@@ -80,24 +79,22 @@ function App() {
               <ErrorBoundary>
                 <Routes>
                   {/* Rutas públicas */}
-                  <Route path="/login" element={user ? <Navigate to="/assets" replace /> : <Login />} />
+                  <Route path="/login" element={user ? <Navigate to="/assets/finanzas" replace /> : <Login />} />
                   <Route path="/registro" element={<Register />} />
                   <Route path="/auth/callback" element={<AuthCallback />} />
                   <Route path="/auth/error" element={<AuthError />} />
                   <Route path="/mercadopago/callback" element={<MercadoPagoCallbackPage />} />
                   
-                  {/* Ruta raíz redirige a /assets */}
-                  <Route path="/" element={<Navigate to="/assets" replace />} />
+                  {/* Ruta raíz redirige a /assets/finanzas */}
+                  <Route path="/" element={<Navigate to="/assets/finanzas" replace />} />
                   
                   {/* Rutas protegidas */}
                   <Route element={<PrivateRoute />}>
                     <Route element={<Layout />}>
-                      {/* Ruta principal de Assets */}
-                      <Route path="/assets" element={<Assets />} />
-                      <Route path="/assets/propiedades" element={<Propiedades />} />
-                      
-                      {/* Rutas anidadas para Assets/Finanzas */}
+                      {/* Ruta principal de Assets (ahora Finanzas) */}
+                      <Route path="/assets" element={<Navigate to="/assets/finanzas" replace />} />
                       <Route path="/assets/finanzas" element={<Finanzas />} />
+                      <Route path="/assets/propiedades" element={<Propiedades />} />
                       <Route path="/assets/finanzas/transacciones" element={<Transacciones />} />
                       <Route path="/assets/finanzas/cuentas" element={<Cuentas />} />
                       <Route path="/assets/finanzas/monedas" element={<Monedas />} />
@@ -119,13 +116,13 @@ function App() {
                       <Route path="/salud/dieta" element={<Dieta />} />
                       <Route path="/salud/datacorporal" element={<DataCorporal />} />
                       
-                      {/* Rutas principales y anidadas para Tiempo */}
-                      <Route path="/tiempo" element={<Tiempo />} />
-                      <Route path="/tiempo/proyectos" element={<Proyectos />} />
-                      <Route path="/tiempo/tareas" element={<Tareas />} />
-                      <Route path="/tiempo/archivo" element={<Archivo />} />
-                      {/* Usar path dinámico para Rutinas y Autos */}
-                      {rutinasPath && <Route path={rutinasPath} element={<Rutinas />} />}
+                                             {/* Rutas principales y anidadas para Tiempo */}
+                       <Route path="/tiempo" element={<Navigate to="/tiempo/rutinas" replace />} />
+                       <Route path="/tiempo/rutinas" element={<Rutinas />} />
+                       <Route path="/tiempo/proyectos" element={<Proyectos />} />
+                       <Route path="/tiempo/tareas" element={<Tareas />} />
+                       <Route path="/tiempo/archivo" element={<Archivo />} />
+                       {/* Usar path dinámico para Autos */}
                       {autosPath && <Route path={autosPath} element={<Autos />} />}
                       
                       {/* Rutas anidadas para Setup */}
@@ -139,7 +136,7 @@ function App() {
                   </Route>
 
                   {/* Ruta 404 */}
-                  <Route path="*" element={<Navigate to="/assets" replace />} />
+                  <Route path="*" element={<Navigate to="/assets/finanzas" replace />} />
                 </Routes>
               </ErrorBoundary>
             </SidebarProvider>

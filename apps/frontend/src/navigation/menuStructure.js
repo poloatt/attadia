@@ -7,7 +7,7 @@ export const modulos = [
     id: 'assets',
     title: 'Assets',
     icon: 'dollarSign',
-    path: '/assets',
+    path: '/assets/finanzas',
     subItems: [
       {
         id: 'finanzas',
@@ -65,7 +65,7 @@ export const modulos = [
     id: 'tiempo',
     title: 'Tiempo',
     icon: 'accessTime',
-    path: '/tiempo',
+    path: '/tiempo/rutinas',
     subItems: [
       { id: 'proyectos', title: 'Proyectos', icon: 'folder', path: '/tiempo/proyectos' },
       { id: 'tareas', title: 'Tareas', icon: 'task', path: '/tiempo/tareas' },
@@ -91,9 +91,9 @@ export const bottomNavigationItems = [
     id: 'assets',
     title: 'Assets',
     icon: 'dollarSign',
-    path: '/assets',
+    path: '/assets/finanzas',
     type: 'module',
-    activePaths: ['/', '/assets']
+    activePaths: ['/', '/assets', '/assets/finanzas']
   },
   {
     id: 'salud',
@@ -107,9 +107,9 @@ export const bottomNavigationItems = [
     id: 'tiempo',
     title: 'Tiempo',
     icon: 'accessTime',
-    path: '/tiempo',
+    path: '/tiempo/rutinas',
     type: 'module',
-    activePaths: ['/tiempo']
+    activePaths: ['/tiempo', '/tiempo/rutinas']
   }
 ];
 

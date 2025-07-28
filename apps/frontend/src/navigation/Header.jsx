@@ -16,6 +16,7 @@ import {
   import { MercadoPagoConnectButton, BankConnectionForm } from '../components/finance/bankconnections';
   import { getBreadcrumbs } from './breadcrumbUtils';
 import { getIconByKey, icons } from './menuIcons';
+import { modulos } from './menuStructure';
 import { Breadcrumbs } from '../utils/materialImports';
 import useResponsive from '../hooks/useResponsive';
 import { useNavigationState } from '../utils/navigationUtils';
@@ -42,8 +43,15 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
     const [isBankConnectionFormOpen, setIsBankConnectionFormOpen] = useState(false);
     const { isMobile, isTablet } = useResponsive();
     const { moduloActivo } = useNavigationState(location.pathname);
-    // Usar módulos completos si moduloActivo no está disponible
-    const breadcrumbs = getBreadcrumbs(location.pathname, moduloActivo?.subItems || []);
+    // Construir breadcrumbs incluyendo el módulo padre cuando estés dentro de un módulo
+    let breadcrumbs = [];
+    if (moduloActivo) {
+      // Si estás dentro de un módulo, incluir el módulo padre
+      breadcrumbs = getBreadcrumbs(location.pathname, [moduloActivo]);
+    } else {
+      // Si no estás dentro de un módulo, usar todos los módulos
+      breadcrumbs = getBreadcrumbs(location.pathname, modulos);
+    }
     
     // Usar función centralizada para calcular mainMargin
     const mainMargin = getMainMargin(isMobile || isTablet);

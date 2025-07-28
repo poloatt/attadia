@@ -1,14 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useResponsive } from '../hooks/useResponsive';
 
 const UISettingsContext = createContext();
 const UI_SETTINGS_KEY = 'uiSettings';
 
-// Función para detectar si es mobile
-const isMobileDevice = () => {
-  return window.innerWidth < 600; // breakpoint 'sm' de Material-UI
-};
-
-function getInitialSettings() {
+function getInitialSettings(isMobile) {
   if (typeof window !== 'undefined') {
     const saved = localStorage.getItem(UI_SETTINGS_KEY);
     if (saved) {
@@ -19,13 +15,14 @@ function getInitialSettings() {
   }
   // Valores por defecto - solo configuraciones de UI móvil
   return {
-    showEntityToolbarNavigation: !isMobileDevice(),
+    showEntityToolbarNavigation: !isMobile,
     showSidebarCollapsed: true // Por defecto visible en móvil
   };
 }
 
 export function UISettingsProvider({ children }) {
-  const initial = getInitialSettings();
+  const { isMobile } = useResponsive();
+  const initial = getInitialSettings(isMobile);
   const [showEntityToolbarNavigation, setShowEntityToolbarNavigation] = useState(
     typeof initial.showEntityToolbarNavigation === 'boolean' ? initial.showEntityToolbarNavigation : false
   );
@@ -41,13 +38,13 @@ export function UISettingsProvider({ children }) {
   }, [showEntityToolbarNavigation, showSidebarCollapsed]);
 
   const toggleEntityToolbarNavigation = () => {
-    if (isMobileDevice()) {
+    if (isMobile) {
       setShowEntityToolbarNavigation(prev => !prev);
     }
   };
 
   const toggleSidebarCollapsed = () => {
-    if (isMobileDevice()) {
+    if (isMobile) {
       setShowSidebarCollapsed(prev => !prev);
     }
   };
@@ -61,7 +58,7 @@ export function UISettingsProvider({ children }) {
         showSidebarCollapsed,
         toggleSidebarCollapsed,
         setShowSidebarCollapsed,
-        isMobile: isMobileDevice()
+        isMobile
       }}
     >
       {children}

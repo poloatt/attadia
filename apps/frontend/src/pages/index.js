@@ -2,9 +2,9 @@ export { default as Register } from './Register.jsx';
 export { default as Rutinas } from './Rutinas.jsx';
 export { default as Inquilinos } from './Inquilinos.jsx';
 export { default as Contratos } from './Contratos.jsx';
-export { default as Assets } from './Assets.jsx';
+
 export { default as Transacciones } from './Transacciones.jsx';
-export { default as Tiempo } from './Tiempo.jsx';
+
 export { default as Tareas } from './Tareas.jsx';
 export { default as Salud } from './Salud.jsx';
 export { default as Recurrente } from './Recurrente.jsx';
