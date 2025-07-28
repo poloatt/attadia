@@ -51,7 +51,12 @@ export function DynamicIcon({
 
   // Si hay un componente wrapper, úsalo
   if (component) {
-    return React.createElement(component, { onClick, ...otherProps }, iconElement);
+    if (typeof component === 'function' || React.isValidElement(component)) {
+      return React.createElement(component, { onClick, ...otherProps }, iconElement);
+    } else {
+      console.warn(`DynamicIcon: component no es válido:`, component);
+      return iconElement;
+    }
   }
 
   // Si hay onClick pero no component, usar Box

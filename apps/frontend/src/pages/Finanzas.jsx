@@ -148,7 +148,7 @@ export default function Finanzas() {
     groupBy: (item) => ({
       key: 'finanzas',
       title: 'Secciones de Finanzas',
-      icon: MoneyIcon
+      icon: <MoneyIcon />
     }),
     getTitle: (item) => item.title,
     getSubtitle: (item) => item.description,

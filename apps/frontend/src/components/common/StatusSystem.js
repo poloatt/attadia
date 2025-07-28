@@ -353,7 +353,16 @@ export function getEstadoText(estado, tipo = 'PROPIEDAD') {
 export const ICON_MAP = {
   'BookmarkAdded': BookmarkAddedOutlinedIcon,
   'BookmarkBorderOutlined': BookmarkBorderOutlinedIcon,
-  'EngineeringOutlined': EngineeringOutlinedIcon
+  'EngineeringOutlined': EngineeringOutlinedIcon,
+  'CheckCircle': CheckCircleOutlinedIcon,
+  'PendingActions': PendingActionsOutlinedIcon,
+  'Cancel': CancelOutlinedIcon,
+  'Engineering': EngineeringOutlinedIcon,
+  'Pause': PauseOutlinedIcon,
+  'ErrorOutline': ErrorOutlineOutlinedIcon,
+  'NewReleases': NewReleasesOutlinedIcon,
+  'WarningAmber': WarningAmberOutlinedIcon,
+  'Description': DescriptionOutlinedIcon
 };
 
 // Exportar todos los estados para compatibilidad

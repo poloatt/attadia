@@ -1305,15 +1305,20 @@ const EntityCard = ({
         {/* Icono a la izquierda */}
         {config.getIcon && (() => {
           const IconComponent = config.getIcon(item);
-          return (
-            <IconComponent 
-              sx={{ 
-                fontSize: isCompact ? '1rem' : '1.2rem', 
-                color: config.getIconColor ? config.getIconColor(item) : 'text.primary',
-                flexShrink: 0
-              }} 
-            />
-          );
+          if (IconComponent && (typeof IconComponent === 'function' || React.isValidElement(IconComponent))) {
+            return (
+              <IconComponent 
+                sx={{ 
+                  fontSize: isCompact ? '1rem' : '1.2rem', 
+                  color: config.getIconColor ? config.getIconColor(item) : 'text.primary',
+                  flexShrink: 0
+                }} 
+              />
+            );
+          } else {
+            console.warn(`EntityCard: IconComponent no es válido:`, IconComponent);
+            return null;
+          }
         })()}
         
         {/* Contenido a la derecha */}
