@@ -22,9 +22,9 @@ const handleUnauthorized = (req) => {
     });
   }
   
-  // Si es una petición a /check o /auth/check, devolver authenticated: false
+  // Para rutas de check, permitir que el controlador maneje la respuesta
   if (req.path === '/check' || req.path === '/auth/check') {
-    return { status: 200, message: { authenticated: false } };
+    return null; // No devolver respuesta, permitir que continúe al controlador
   }
   
   // Para otras rutas, devolver error 401
@@ -62,6 +62,11 @@ export const checkAuth = (req, res, next) => {
   passportConfig.authenticate('jwt', { session: false }, (err, user, info) => {
     if (err) {
       console.error('Error en autenticación JWT:', err);
+      // Para rutas de check, permitir que el controlador maneje el error
+      if (req.path === '/check' || req.path === '/auth/check') {
+        req.user = null;
+        return next();
+      }
       const { status, message } = handleAuthError(err, req);
       return res.status(status).json(message);
     }
@@ -71,8 +76,13 @@ export const checkAuth = (req, res, next) => {
       if (!isCommonEndpoint) {
         console.log('Usuario no encontrado o token inválido. Info:', info);
       }
-      const { status, message } = handleUnauthorized(req);
-      return res.status(status).json(message);
+      const unauthorizedResponse = handleUnauthorized(req);
+      if (unauthorizedResponse) {
+        return res.status(unauthorizedResponse.status).json(unauthorizedResponse.message);
+      }
+      // Si no hay respuesta específica, continuar al controlador con req.user = null
+      req.user = null;
+      return next();
     }
 
     // Verificar si el usuario está activo
