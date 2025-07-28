@@ -47,6 +47,7 @@ export default defineConfig(({ mode }) => {
       force: true
     },
     build: {
+      outDir: 'dist',
       sourcemap: !isProd,
       minify: isProd,
       rollupOptions: {

@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": ".",
+  "buildCommand": "npm run build:prod",
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/api/(.*)",

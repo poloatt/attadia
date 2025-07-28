@@ -8,7 +8,7 @@ yarn.lock
 .env.test.local
 .env.production.local
 
-# Build artifacts (keep dist for Vercel)
+# Build artifacts (keep dist for Vercel build)
 build
 .next
 .nuxt
