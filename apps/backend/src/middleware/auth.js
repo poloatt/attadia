@@ -93,6 +93,11 @@ export const checkAuth = (req, res, next) => {
         method: req.method,
         timestamp: new Date().toISOString()
       });
+      // Para rutas de check, permitir que el controlador maneje usuarios inactivos
+      if (req.path === '/check' || req.path === '/auth/check') {
+        req.user = null;
+        return next();
+      }
       return res.status(403).json({ error: 'Usuario inactivo' });
     }
 

@@ -195,7 +195,8 @@ export const authController = {
         user: req.user ? {
           id: req.user._id || req.user.id,
           email: req.user.email,
-          role: req.user.role
+          role: req.user.role,
+          activo: req.user.activo
         } : null,
         headers: {
           authorization: req.headers.authorization ? 'presente' : 'ausente'
@@ -203,8 +204,11 @@ export const authController = {
       });
 
       if (!req.user) {
-        console.log('No hay usuario en la request');
-        return res.json({ authenticated: false });
+        console.log('No hay usuario en la request - token inválido o expirado');
+        return res.json({ 
+          authenticated: false,
+          error: 'No hay usuario autenticado'
+        });
       }
 
       // Obtener el ID del usuario del token
@@ -217,13 +221,25 @@ export const authController = {
 
       if (!user) {
         console.log('Usuario no encontrado en la base de datos');
-        return res.json({ authenticated: false });
+        return res.json({ 
+          authenticated: false,
+          error: 'Usuario no encontrado en la base de datos'
+        });
       }
 
-      console.log('Usuario encontrado:', {
+      if (!user.activo) {
+        console.log('Usuario inactivo:', user.email);
+        return res.json({ 
+          authenticated: false,
+          error: 'Usuario inactivo'
+        });
+      }
+
+      console.log('Usuario encontrado y activo:', {
         id: user._id,
         email: user.email,
-        role: user.role
+        role: user.role,
+        activo: user.activo
       });
 
       // Asegurarnos de enviar todos los campos necesarios
@@ -245,7 +261,11 @@ export const authController = {
       });
     } catch (error) {
       console.error('Error en check:', error);
-      res.status(500).json({ error: 'Error al verificar la autenticación' });
+      res.status(500).json({ 
+        authenticated: false,
+        error: 'Error al verificar la autenticación',
+        details: error.message
+      });
     }
   },
 
