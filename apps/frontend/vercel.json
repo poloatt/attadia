@@ -1,8 +1,10 @@
 {
+  "buildCommand": "npm run build:prod",
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "destination": "https://api.admin.attadia.com/api/$1"
     },
     {
       "source": "/((?!.*\\..*).*)",
@@ -27,6 +29,5 @@
         }
       ]
     }
-  ],
-  "comment": "Force Vercel to detect changes"
+  ]
 }
