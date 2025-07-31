@@ -23,7 +23,7 @@ RUN NODE_ENV=production npm run build
 # Etapa de producción - usar nginx:alpine-slim para imagen más pequeña
 FROM nginx:alpine-slim AS runner
 # Copiar solo los archivos necesarios
-COPY --from=builder /app/. /usr/share/nginx/html
+COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Optimizar nginx
 RUN rm -rf /etc/nginx/conf.d/* && \

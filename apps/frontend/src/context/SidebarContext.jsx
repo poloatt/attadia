@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import useResponsive from '../hooks/useResponsive';
-import { SIDEBAR_CONFIG, STORAGE_KEYS, calculateMainMargin, getChildPadding } from '../config/uiConstants';
+import { SIDEBAR_CONFIG, STORAGE_KEYS, calculateMainMargin, getChildPadding } from '../config/uiConstants.js';
 
 const SidebarContext = createContext();
 

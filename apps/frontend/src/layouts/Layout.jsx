@@ -14,7 +14,7 @@ import { FormManagerProvider } from '../context/FormContext';
 import { GlobalFormEventListener } from '../context/GlobalFormEventListener';
 import useResponsive from '../hooks/useResponsive';
 import { useNavigationState } from '../utils/navigationUtils';
-import { calculateMainMargin, calculateTopPadding, HEADER_CONFIG, FOOTER_CONFIG, SPACING } from '../config/uiConstants';
+import { calculateMainMargin, calculateTopPadding, HEADER_CONFIG, FOOTER_CONFIG, SPACING } from '../config/uiConstants.js';
 import { RutinasProvider } from '../context/RutinasContext';
 
 export function Layout() {
