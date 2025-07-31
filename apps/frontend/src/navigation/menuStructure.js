@@ -32,21 +32,9 @@ export const modulos = [
           { id: 'inquilinos', title: 'Inquilinos', path: '/assets/propiedades/inquilinos', icon: 'person', canAdd: true },
           { id: 'contratos', title: 'Contratos', path: '/assets/propiedades/contratos', icon: 'description', canAdd: true },
           { id: 'habitaciones', title: 'Habitaciones', path: '/assets/propiedades/habitaciones', icon: 'bed', canAdd: true },
+          { id: 'autos', title: 'Autos', path: '/assets/propiedades/autos', icon: 'auto', isUnderConstruction: true },
+          { id: 'inventario', title: 'Inventario', path: '/assets/propiedades/inventario', icon: 'inventario', isUnderConstruction: true }
         ]
-      },
-      {
-        id: 'autos',
-        title: 'Autos',
-        icon: 'auto',
-        path: '/assets/autos',
-        isUnderConstruction: true
-      },
-      {
-        id: 'inventario',
-        title: 'Inventario',
-        icon: 'inventario',
-        path: '/assets/inventario',
-        isUnderConstruction: true
       }
     ]
   },
