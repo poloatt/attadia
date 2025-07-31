@@ -193,13 +193,8 @@ export const RutinasHistoryProvider = ({ children }) => {
     });
   }, [historicosPorItem]);
   
-  useEffect(() => {
-    // Solo cargar si hay token válido
-    const token = localStorage.getItem('token');
-    if (token) {
-      cargarHistorial();
-    }
-  }, [cargarHistorial]);
+  // Removido el useEffect automático para evitar cargas innecesarias
+  // El historial se cargará solo cuando se solicite explícitamente
   
   const value = {
     historialRutinas,

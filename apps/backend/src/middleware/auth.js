@@ -36,7 +36,8 @@ export const checkAuth = (req, res, next) => {
   // que se usan frecuentemente en la aplicación
   const isCommonEndpoint = req.path.includes('/check') || 
                            req.path.includes('/api/auth/check') ||
-                           req.path.endsWith('/status');
+                           req.path.endsWith('/status') ||
+                           req.path.includes('/api/rutinas');
                            
   if (!isCommonEndpoint) {
     console.log('Verificando autenticación para:', {

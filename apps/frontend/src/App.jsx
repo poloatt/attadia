@@ -74,7 +74,6 @@ function App() {
       <Toaster position="top-right" />
       <ValuesVisibilityProvider>
         <NavigationBarProvider>
-          <RutinasHistoryProvider>
             <SidebarProvider>
               <ErrorBoundary>
                 <Routes>
@@ -146,7 +145,6 @@ function App() {
                 </Routes>
               </ErrorBoundary>
             </SidebarProvider>
-          </RutinasHistoryProvider>
         </NavigationBarProvider>
       </ValuesVisibilityProvider>
     </ThemeProvider>

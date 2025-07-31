@@ -763,14 +763,8 @@ export const RutinasProvider = ({ children }) => {
     return localChangesRef.current;
   }, [markRutinaAsDirty, rutina, enqueueSnackbar]);
 
-  // Cargar rutinas al iniciar, una sola vez
-  useEffect(() => {
-    if (isInitialMount.current) {
-      console.log("Cargando rutinas iniciales (primera vez)...");
-      isInitialMount.current = false;
-      fetchRutinas();
-    }
-  }, [fetchRutinas]);
+  // Cargar rutinas solo cuando se solicite explícitamente
+  // Removido el useEffect automático para evitar cargas innecesarias
 
   // Manejo inicial de la rutina cuando se cargan las rutinas
   useEffect(() => {

@@ -490,7 +490,7 @@ class RutinasService {
         fechaFin: fechaFinUTC.toISOString()
       });
 
-      const response = await clienteAxios.get(`/api/rutinas/historial?${params}`);
+      const response = await clienteAxios.get(`/api/rutinas/historial-completaciones/${section}/${itemId}?${params}`);
       return response.data;
       
     } catch (error) {
