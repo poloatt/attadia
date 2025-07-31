@@ -18,6 +18,11 @@ README.md
 *.log
 node_modules/
 
+# Excluir archivos de Docker del frontend
+apps/frontend/Dockerfile*
+apps/frontend/nginx.conf*
+apps/frontend/.dockerignore
+
 # Mantener solo el frontend
 !apps/frontend/
 
