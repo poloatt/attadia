@@ -5,7 +5,7 @@ import React from 'react';
 import { Box, IconButton, Tooltip, Typography } from '../utils/materialImports';
 import { FORM_HEIGHTS } from '../config/uiConstants';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { getIconByKey } from './menuIcons';
+import { getIconByKey, icons } from './menuIcons';
 import { SystemButtons } from '../components/common/SystemButtons';
 import { useEntityActions } from '../components/common/CommonActions';
 import { useUISettings } from '../context/UISettingsContext';
@@ -13,6 +13,9 @@ import { useSidebar } from '../context/SidebarContext';
 import useResponsive from '../hooks/useResponsive';
 import { getMainModules, reorderModulesWithActiveFirst, findActiveModule } from '../utils/navigationUtils';
 import { DynamicIcon, ClickableIcon, IconWithText } from '../components/common/DynamicIcon';
+import { RutinaNavigation } from '../components/rutinas/RutinaNavigation';
+import { useRutinas } from '../context/RutinasContext';
+import { useRutinasStatistics } from '../context/RutinasStatisticsContext';
 
 export default function Toolbar({
   moduloActivo,
@@ -41,6 +44,69 @@ export default function Toolbar({
   const siblings = nivel1;
   // Determinar si mostrar botón de atrás
   const shouldShowBack = !!onBack && !!parentInfo;
+  
+  // Determinar si debe mostrar navegación específica
+  const shouldShowSpecificNavigation = () => {
+    const specificNavigationRoutes = [
+      '/tiempo/rutinas',
+      // Aquí se pueden agregar más rutas que necesiten navegación específica
+    ];
+    
+    return specificNavigationRoutes.some(route => currentPath.startsWith(route));
+  };
+  
+  // Componente de navegación específica para rutinas
+  const SpecificNavigationComponent = () => {
+    if (!shouldShowSpecificNavigation()) return null;
+    
+    if (currentPath.startsWith('/tiempo/rutinas')) {
+      return <RutinaNavigationWrapper />;
+    }
+    
+    return null;
+  };
+  
+  // Wrapper para RutinaNavigation que proporciona los datos necesarios desde el contexto
+  const RutinaNavigationWrapper = () => {
+    const { rutina, rutinas, loading } = useRutinas();
+    const { calculateCompletionPercentage } = useRutinasStatistics();
+    
+    // Calcular página actual y total de páginas
+    const currentPage = rutina ? rutinas.findIndex(r => r._id === rutina._id) + 1 : 1;
+    const totalPages = rutinas.length;
+    
+    // Handlers para las acciones
+    const handleEdit = (rutina) => {
+      // Disparar evento para que la página maneje la edición
+      window.dispatchEvent(new CustomEvent('editRutina', { detail: { rutina } }));
+    };
+    
+    const handleAdd = () => {
+      // Disparar evento para que la página maneje la adición
+      window.dispatchEvent(new CustomEvent('addRutina'));
+    };
+    
+    // Siempre renderizar RutinaNavigation, incluso si no hay rutina
+    // El componente RutinaNavigation maneja internamente los casos de rutina null
+    return (
+      <Box sx={{ 
+        width: '100%', 
+        height: '100%', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center' 
+      }}>
+        <RutinaNavigation 
+          rutina={rutina}
+          loading={loading}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onEdit={handleEdit}
+          onAdd={handleAdd}
+        />
+      </Box>
+    );
+  };
   
   // Lógica para mostrar íconos de módulos principales (solo cuando sidebar está extendida)
   const shouldShowModuleIcons = sidebarIsOpen && !isMobile;
@@ -188,8 +254,11 @@ export default function Toolbar({
           minHeight: FORM_HEIGHTS.minHeight,
           position: 'relative'
         }}>
-          {customMainSection ? (
+          {shouldShowSpecificNavigation() ? (
             // Usar navegación específica si está disponible
+            <SpecificNavigationComponent />
+          ) : customMainSection ? (
+            // Usar navegación específica pasada como prop si está disponible
             customMainSection
           ) : (
             // Usar navegación estándar de siblings

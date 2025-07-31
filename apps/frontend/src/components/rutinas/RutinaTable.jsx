@@ -34,7 +34,7 @@ import { useSnackbar } from 'notistack';
 import clienteAxios from '../../config/axios';
 import { NavigateBefore, NavigateNext, Today as TodayIcon } from '@mui/icons-material';
 import { useLocalPreservationState } from '../../hooks';
-import { RutinaNavigation } from './RutinaNavigation';
+
 import shouldShowItemUtil from '../../utils/shouldShowItem';
 import { getNormalizedToday, toISODateString } from '../../utils/dateUtils';
 
@@ -726,19 +726,7 @@ export const RutinaTable = ({
   return (
     <Box sx={{ width: '100%' }}>
       {/* Navegación y acciones */}
-      <Box sx={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        mb: 0,
-        borderBottom: '1px solid rgba(224, 224, 224, 0.1)',
-        paddingBottom: 0
-      }}>
-        <RutinaNavigation 
-          onEdit={onEdit}
-          onAdd={onAdd}
-        />
-      </Box>
+
 
 
 

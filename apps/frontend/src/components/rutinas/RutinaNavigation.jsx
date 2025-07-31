@@ -140,8 +140,6 @@ const RutinaNavigation = ({
     }
   }, [rutina, completionPercentage, limitedLog]);
 
-  if (!rutina) return null;
-  
   // Determinar el color de la barra de progreso según el porcentaje
   const progressColor = completionPercentage > 75 
     ? "success" 
@@ -176,7 +174,7 @@ const RutinaNavigation = ({
         {/* Lado izquierdo con fecha */}
         <Box sx={{ display: 'flex', alignItems: 'center', minWidth: '80px', justifyContent: 'flex-start' }}>
           <Typography variant="body2" component="div" sx={{ fontWeight: 700, fontSize: '0.8rem', color: '#aaa', textShadow: '0 0 2px #000' }}>
-            {formatFechaDisplay(rutina.fecha)}
+            {rutina ? formatFechaDisplay(rutina.fecha) : 'Sin fecha'}
           </Typography>
         </Box>
 
@@ -235,13 +233,13 @@ const RutinaNavigation = ({
           <Tooltip title="Editar">
             <IconButton 
               size="small" 
-              onClick={() => onEdit(rutina)}
-              disabled={loading}
+              onClick={() => rutina && onEdit(rutina)}
+              disabled={loading || !rutina}
               sx={{
                 padding: '2px',
               }}
             >
-              <EditIcon fontSize="small" sx={{ color: loading ? 'rgba(136,136,136,0.3) !important' : '#888 !important', textShadow: '0 0 2px #000', transition: 'color 0.2s', '&:hover': { color: '#fff !important', textShadow: '0 0 4px #000' } }} />
+              <EditIcon fontSize="small" sx={{ color: (loading || !rutina) ? 'rgba(136,136,136,0.3) !important' : '#888 !important', textShadow: '0 0 2px #000', transition: 'color 0.2s', '&:hover': { color: '#fff !important', textShadow: '0 0 4px #000' } }} />
             </IconButton>
           </Tooltip>
           
@@ -249,12 +247,12 @@ const RutinaNavigation = ({
             <IconButton 
               size="small" 
               onClick={handleDelete}
-              disabled={loading}
+              disabled={loading || !rutina}
               sx={{
                 padding: '2px',
               }}
             >
-              <DeleteIcon fontSize="small" sx={{ color: loading ? 'rgba(136,136,136,0.3) !important' : '#888 !important', textShadow: '0 0 2px #000', transition: 'color 0.2s', '&:hover': { color: '#fff !important', textShadow: '0 0 4px #000' } }} />
+              <DeleteIcon fontSize="small" sx={{ color: (loading || !rutina) ? 'rgba(136,136,136,0.3) !important' : '#888 !important', textShadow: '0 0 2px #000', transition: 'color 0.2s', '&:hover': { color: '#fff !important', textShadow: '0 0 4px #000' } }} />
             </IconButton>
           </Tooltip>
 
