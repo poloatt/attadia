@@ -309,7 +309,7 @@ export function Recurrente() {
           variant: 'error',
           autoHideDuration: 5000
         });
-        window.location.href = '/login';
+        window.location.href = '/#/login';
         return;
       }
       

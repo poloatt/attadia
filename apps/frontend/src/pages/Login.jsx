@@ -67,7 +67,9 @@ export function Login() {
     
     try {
       setLoading(true);
-      await login({ email, password });
+      console.log('🚀 Iniciando login...');
+      const result = await login({ email, password });
+      console.log('✅ Login completado, redirigiendo a /');
       navigate('/');
     } catch (error) {
       // Solo mostrar error si no es una cancelación por duplicación

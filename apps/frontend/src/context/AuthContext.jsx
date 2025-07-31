@@ -147,6 +147,12 @@ export function AuthProvider({ children }) {
       clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       // Actualizar estado
+      console.log('🔐 LOGIN EXITOSO:', {
+        userData,
+        token: token ? 'presente' : 'ausente',
+        refreshToken: refreshToken ? 'presente' : 'ausente'
+      });
+      
       setUser(userData || null);
       setIsAuthenticated(true);
       setError(null);
@@ -242,7 +248,7 @@ export function AuthProvider({ children }) {
       if (!window.location.pathname.includes('/login') && 
           !window.location.pathname.includes('/auth')) {
         // Usar redirección simple y confiable
-        window.location.replace('/login');
+        window.location.replace('/#/login');
       }
     }
   }, []);

@@ -188,7 +188,7 @@ clienteAxios.interceptors.response.use(
           // Redirigir a login solo si no estamos ya ahí
           if (!window.location.pathname.includes('/login') && 
               !window.location.pathname.includes('/auth')) {
-            window.location.href = '/login';
+            window.location.href = '/#/login';
           }
         }
       }

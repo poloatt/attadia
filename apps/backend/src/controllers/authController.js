@@ -140,7 +140,27 @@ export const authController = {
       // Generar tokens
       const { token, refreshToken } = generateTokens(user);
 
-      res.json({ token, refreshToken });
+      // Preparar datos del usuario para enviar al frontend
+      const userData = {
+        id: user._id.toString(),
+        email: user.email,
+        nombre: user.nombre,
+        role: user.role,
+        googleId: user.googleId,
+        activo: user.activo
+      };
+
+      console.log('🔐 BACKEND LOGIN RESPONSE:', {
+        token: token ? 'presente' : 'ausente',
+        refreshToken: refreshToken ? 'presente' : 'ausente',
+        user: userData
+      });
+
+      res.json({ 
+        token, 
+        refreshToken, 
+        user: userData 
+      });
     } catch (error) {
       console.error('Error en login:', error);
       res.status(500).json({ error: 'Error en el login' });
@@ -149,14 +169,14 @@ export const authController = {
 
   refreshToken: async (req, res) => {
     try {
-      const { refreshToken } = req.body;
+      const { refreshToken: oldRefreshToken } = req.body;
 
-      if (!refreshToken) {
+      if (!oldRefreshToken) {
         return res.status(400).json({ error: 'Refresh token no proporcionado' });
       }
 
       // Verificar refresh token
-      const decoded = jwt.verify(refreshToken, config.refreshTokenSecret);
+      const decoded = jwt.verify(oldRefreshToken, config.refreshTokenSecret);
       const user = await Users.findById(decoded.user.id);
 
       if (!user) {
@@ -164,8 +184,23 @@ export const authController = {
       }
 
       // Generar nuevos tokens
-      const tokens = generateTokens(user);
-      res.json(tokens);
+      const { token, refreshToken: newRefreshToken } = generateTokens(user);
+      
+      // Preparar datos del usuario para enviar al frontend
+      const userData = {
+        id: user._id.toString(),
+        email: user.email,
+        nombre: user.nombre,
+        role: user.role,
+        googleId: user.googleId,
+        activo: user.activo
+      };
+
+      res.json({ 
+        token, 
+        refreshToken: newRefreshToken, 
+        user: userData 
+      });
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
         return res.status(401).json({ error: 'Refresh token expirado' });

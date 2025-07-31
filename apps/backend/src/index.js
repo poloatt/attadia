@@ -45,6 +45,32 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
+// Middleware de debug para capturar peticiones problemáticas (solo para debugging)
+// Comentado temporalmente para evitar interferir con el parsing de JSON
+/*
+app.use((req, res, next) => {
+  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+    const chunks = [];
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end', () => {
+      if (chunks.length > 0) {
+        const rawBody = Buffer.concat(chunks).toString('utf8');
+        console.log('🔍 DEBUG JSON PARSING:');
+        console.log('  Method:', req.method);
+        console.log('  Path:', req.path);
+        console.log('  Content-Type:', req.headers['content-type']);
+        console.log('  Raw Body Length:', rawBody.length);
+        console.log('  Raw Body:', JSON.stringify(rawBody));
+        console.log('  Raw Body (hex):', Buffer.concat(chunks).toString('hex'));
+      }
+      next();
+    });
+  } else {
+    next();
+  }
+});
+*/
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -63,15 +89,19 @@ app.use((req, res, next) => {
     corsOrigins = [config.frontendUrl];
   }
 
-  // Log solo en staging/producción
-  if (config.env !== 'development') {
-    console.log('CORS Request:', {
-      env: config.env,
+  // En desarrollo, agregar explícitamente localhost:5173 si no está presente
+  if (config.env === 'development' && !corsOrigins.includes('http://localhost:5173')) {
+    corsOrigins.push('http://localhost:5173');
+  }
+
+  // Log para debug en desarrollo
+  if (config.env === 'development') {
+    console.log('🔍 CORS DEBUG:', {
       origin,
       method: req.method,
       path: req.path,
       allowedOrigins: corsOrigins,
-      headers: req.headers
+      isAllowed: origin && corsOrigins.includes(origin)
     });
   }
 
@@ -93,6 +123,14 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Cache-Control, Pragma');
     res.header('Vary', 'Origin');
+  } else {
+    // Log cuando se rechaza una petición CORS
+    console.log('❌ CORS REJECTED:', {
+      origin,
+      method: req.method,
+      path: req.path,
+      allowedOrigins: corsOrigins
+    });
   }
 
   // Manejar preflight requests
