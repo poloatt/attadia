@@ -10,7 +10,7 @@ const environment = process.env.NODE_ENV || 'development';
 console.log('Ambiente detectado:', environment);
 
 // Cargar el archivo .env correspondiente
-const envPath = path.resolve(__dirname, '../../../.env.' + environment);
+const envPath = path.resolve(__dirname, '../../.env');
 console.log('Cargando configuración desde:', envPath);
 dotenv.config({ path: envPath });
 
@@ -60,15 +60,15 @@ const configs = {
     ...baseConfig,
     env: 'development',
     isDev: true,
-    port: parseInt(process.env.PORT || '5173', 10),
+    port: parseInt(process.env.PORT || '5000', 10),
     mongoUrl: process.env.MONGO_URL || 'mongodb://localhost:27017/present',
     frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
-    backendUrl: process.env.BACKEND_URL || 'http://localhost:8080',
+    backendUrl: process.env.BACKEND_URL || 'http://localhost:5000',
     corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:5173'],
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:8080/api/auth/google/callback'
+      callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback'
     }
   },
   staging: {
