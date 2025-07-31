@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://api.admin.attadia.com/api/$1"
+      "destination": "https://api.admin.attadia.com/api/$1" 
     },
     {
       "source": "/((?!.*\\..*).*)",
