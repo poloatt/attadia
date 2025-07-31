@@ -19,7 +19,7 @@ const ERROR_MESSAGES = {
 function AuthCallback() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { checkAuthImmediate } = useAuth();
+  const { checkAuth } = useAuth();
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -110,12 +110,12 @@ function AuthCallback() {
           toast.success('¡Bienvenido!');
           navigate('/assets/finanzas', { replace: true });
         } else {
-          // Si fallan todos los reintentos, intentar con checkAuthImmediate como último recurso
-          console.log('Intentando verificación con checkAuthImmediate como fallback');
-          const checkAuthResult = await checkAuthImmediate();
+          // Si fallan todos los reintentos, intentar con checkAuth como último recurso
+          console.log('Intentando verificación con checkAuth como fallback');
+          const checkAuthResult = await checkAuth();
           
           if (checkAuthResult) {
-            console.log('Autenticación exitosa con checkAuthImmediate, redirigiendo a assets');
+            console.log('Autenticación exitosa con checkAuth, redirigiendo a assets');
             toast.success('¡Bienvenido!');
             navigate('/assets/finanzas', { replace: true });
           } else {
@@ -133,7 +133,7 @@ function AuthCallback() {
     };
 
     handleCallback();
-  }, [navigate, location.search, checkAuthImmediate]);
+  }, [navigate, location.search, checkAuth]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">
