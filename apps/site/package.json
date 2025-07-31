@@ -5,7 +5,8 @@
   "main": "index.html",
   "scripts": {
     "start": "echo 'Static site ready'",
-    "dev": "echo 'Development mode for static site'"
+    "dev": "echo 'Development mode for static site'",
+    "build": "echo 'Static site build completed'"
   },
   "keywords": ["landing", "static", "html"],
   "author": "Attadia",
