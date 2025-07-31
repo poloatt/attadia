@@ -8,7 +8,11 @@
       "destination": "https://api.admin.attadia.com/api/$1"
     },
     {
-      "source": "/((?!.*\\..*).*)",
+      "source": "/favicon.ico",
+      "destination": "/logos/atta.svg"
+    },
+    {
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
