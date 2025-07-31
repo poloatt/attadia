@@ -34,7 +34,6 @@ import { cadenciaManager, ITEM_STATES } from '../../utils/cadenciaManager';
 import { startOfWeek, isSameWeek, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { obtenerHistorialCompletaciones, esRutinaHistorica } from '../../utils/historialUtils';
-import HistoricalAlert from './HistoricalAlert';
 import ChecklistItem from './ChecklistItem';
 
 // Función para capitalizar solo la primera letra

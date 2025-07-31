@@ -5,7 +5,6 @@ import RutinaTable from '../components/rutinas/RutinaTable';
 import { RutinaForm } from '../components/rutinas/RutinaForm';
 
 import { RutinasProvider, useRutinas } from '../context/RutinasContext';
-import { RutinasHistoryProvider } from '../context/RutinasHistoryContext';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   CalendarMonthOutlined as DateIcon,
@@ -49,8 +48,11 @@ const RutinasWithContext = () => {
   
   // Cargar todas las rutinas solo cuando se accede a la página
   useEffect(() => {
-    console.log('[Rutinas] Página de rutinas accedida, cargando datos');
-    fetchRutinas();
+    if (!initialFetchDone.current) {
+      console.log('[Rutinas] Página de rutinas accedida, cargando datos');
+      initialFetchDone.current = true;
+      fetchRutinas();
+    }
   }, [fetchRutinas]);
   
   // Cargar rutina específica si hay un ID en los parámetros
@@ -242,11 +244,9 @@ const RutinasWithContext = () => {
  */
 const Rutinas = () => {
   return (
-    <RutinasHistoryProvider>
-      <RutinasProvider>
-        <RutinasWithContext />
-      </RutinasProvider>
-    </RutinasHistoryProvider>
+    <RutinasProvider>
+      <RutinasWithContext />
+    </RutinasProvider>
   );
 };
 

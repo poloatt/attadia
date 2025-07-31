@@ -5,8 +5,6 @@ import clienteAxios from '../config/axios';
 import { applyLocalChanges, saveLocalChanges } from '../utils/localChanges';
 import rutinasService from '../services/rutinasService';
 import shouldShowItem from '../utils/shouldShowItem';
-import { useRutinasHistorical } from './RutinasHistoryContext';
-import RutinasHistoryContext from './RutinasHistoryContext';
 import { RutinasStatisticsProvider } from './RutinasStatisticsContext';
 
 // Crear el contexto
@@ -78,8 +76,7 @@ export const RutinasProvider = ({ children }) => {
     }
   }, []);
 
-  // Tratar de obtener el contexto histórico si está disponible
-  const historicalContext = useContext(RutinasHistoryContext) || null;
+
 
   // Cargar rutinas
   const fetchRutinas = useCallback(async (forceReload = false) => {
@@ -177,7 +174,7 @@ export const RutinasProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [rutina, loading, enqueueSnackbar]);
+  }, [loading, enqueueSnackbar]);
 
   // Función para recargar la rutina actual - definirla antes de usarla
   const reloadCurrentRutina = useCallback(async () => {

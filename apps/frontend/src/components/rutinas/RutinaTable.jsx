@@ -36,8 +36,6 @@ import { NavigateBefore, NavigateNext, Today as TodayIcon } from '@mui/icons-mat
 import { useLocalPreservationState } from '../../hooks';
 import { RutinaNavigation } from './RutinaNavigation';
 import shouldShowItemUtil from '../../utils/shouldShowItem';
-import HistoricalAlert from './HistoricalAlert';
-import { useRutinasHistorical } from '../../context/RutinasHistoryContext';
 import { getNormalizedToday, toISODateString } from '../../utils/dateUtils';
 
 // Exportación nombrada para compatibilidad
@@ -55,7 +53,6 @@ export const RutinaTable = ({
   const today = useMemo(() => getNormalizedToday(), []);
   const [globalConfig, setGlobalConfig] = useState(null); // Para almacenar la configuración global
   const { enqueueSnackbar } = useSnackbar();
-  const historical = useRutinasHistorical();
   
   // Estos valores ahora se obtienen como props del componente padre
   const [currentPage, setCurrentPage] = useState(1);
@@ -743,12 +740,7 @@ export const RutinaTable = ({
         />
       </Box>
 
-      {/* Mostrar alerta de datos históricos si es necesario */}
-      {historical?.noHistoryAvailable && (
-        <Box sx={{ mt: 2, mx: 'auto', maxWidth: '100%' }}>
-          <HistoricalAlert />
-        </Box>
-      )}
+
 
       {/* Contenido principal */}
       <Grid container spacing={1.5} sx={{ mt: 0 }}>

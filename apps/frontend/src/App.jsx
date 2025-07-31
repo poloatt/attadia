@@ -36,7 +36,6 @@ import { NavigationBarProvider } from './context/NavigationBarContext';
 import { useAuth } from './context/AuthContext';
 import AuthError from './components/auth/AuthError';
 import { RutinasProvider } from './context/RutinasContext';
-import { RutinasHistoryProvider } from './context/RutinasHistoryContext';
 import PropiedadDocumentos from './components/propiedades/PropiedadDocumentos';
 import Inversiones from './pages/Inversiones';
 import Autos from './pages/Autos';

@@ -24,7 +24,6 @@ import InlineItemConfigImproved from './InlineItemConfigImproved';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useRutinas } from '../../context/RutinasContext';
-import { useRutinasHistorical } from '../../context/RutinasHistoryContext';
 
 import { useSnackbar } from 'notistack';
 // Importamos las utilidades de cadencia
@@ -35,7 +34,6 @@ import { cadenciaManager, ITEM_STATES } from '../../utils/cadenciaManager';
 import { startOfWeek, isSameWeek, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { obtenerHistorialCompletaciones, esRutinaHistorica } from '../../utils/historialUtils';
-import HistoricalAlert from './HistoricalAlert';
 import ChecklistItem, { HabitIconButton } from './ChecklistItem';
 
 // Función para capitalizar solo la primera letra
