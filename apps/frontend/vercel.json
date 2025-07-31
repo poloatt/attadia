@@ -58,11 +58,6 @@
       ]
     }
   ],
-  "functions": {
-    "app/api/**/*.js": {
-      "runtime": "nodejs20.x"
-    }
-  },
   "env": {
     "VITE_API_URL": "https://api.admin.attadia.com",
     "VITE_FRONTEND_URL": "https://admin.attadia.com"
