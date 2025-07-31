@@ -85,13 +85,19 @@ function App() {
                   <Route path="/auth/error" element={<AuthError />} />
                   <Route path="/mercadopago/callback" element={<MercadoPagoCallbackPage />} />
                   
-                  {/* Ruta raíz redirige a /assets/finanzas */}
+                  {/* Ruta raíz redirige a finanzas */}
                   <Route path="/" element={<Navigate to="/assets/finanzas" replace />} />
+                  
+                  {/* Rutas de fallback para rutas antiguas */}
+                  <Route path="/dashboard" element={<Navigate to="/assets/finanzas" replace />} />
+                  <Route path="/dashboard/*" element={<Navigate to="/assets/finanzas" replace />} />
+                  <Route path="/home" element={<Navigate to="/assets/finanzas" replace />} />
+                  <Route path="/home/*" element={<Navigate to="/assets/finanzas" replace />} />
                   
                   {/* Rutas protegidas */}
                   <Route element={<PrivateRoute />}>
                     <Route element={<Layout />}>
-                      {/* Ruta principal de Assets (ahora Finanzas) */}
+                      {/* Módulo Assets - redirige a finanzas */}
                       <Route path="/assets" element={<Navigate to="/assets/finanzas" replace />} />
                       <Route path="/assets/finanzas" element={<Finanzas />} />
                       <Route path="/assets/propiedades" element={<Propiedades />} />
@@ -109,20 +115,20 @@ function App() {
                       <Route path="/assets/propiedades/inventario" element={<Inventario />} />
                       <Route path="/assets/propiedades/autos" element={<Autos />} />
                       
-                      {/* Rutas principales y anidadas para Salud */}
-                      <Route path="/salud" element={<Salud />} />
-                      {/* <Route path="/salud/rutinas" element={<Rutinas />} /> */}
+                      {/* Módulo Salud - redirige a data corporal */}
+                      <Route path="/salud" element={<Navigate to="/salud/datacorporal" replace />} />
+                      <Route path="/salud/datacorporal" element={<DataCorporal />} />
                       <Route path="/salud/lab" element={<Lab />} />
                       <Route path="/salud/dieta" element={<Dieta />} />
-                      <Route path="/salud/datacorporal" element={<DataCorporal />} />
                       
-                                             {/* Rutas principales y anidadas para Tiempo */}
-                       <Route path="/tiempo" element={<Navigate to="/tiempo/rutinas" replace />} />
-                       <Route path="/tiempo/rutinas" element={<Rutinas />} />
-                       <Route path="/tiempo/proyectos" element={<Proyectos />} />
-                       <Route path="/tiempo/tareas" element={<Tareas />} />
-                       <Route path="/tiempo/archivo" element={<Archivo />} />
-                       {/* Usar path dinámico para Autos */}
+                      {/* Módulo Tiempo - redirige a rutinas */}
+                      <Route path="/tiempo" element={<Navigate to="/tiempo/rutinas" replace />} />
+                      <Route path="/tiempo/rutinas" element={<Rutinas />} />
+                      <Route path="/tiempo/proyectos" element={<Proyectos />} />
+                      <Route path="/tiempo/tareas" element={<Tareas />} />
+                      <Route path="/tiempo/archivo" element={<Archivo />} />
+                      
+                      {/* Usar path dinámico para Autos */}
                       {autosPath && <Route path={autosPath} element={<Autos />} />}
                       
                       {/* Rutas anidadas para Setup */}

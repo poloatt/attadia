@@ -54,9 +54,9 @@ export const modulos = [
     id: 'salud',
     title: 'Salud',
     icon: 'health',
-    path: '/salud',
+    path: '/salud/datacorporal',
     subItems: [
-      { id: 'datacorporal', title: 'Data corporal', icon: 'monitorHeart', path: '/salud/datacorporal', isUnderConstruction: true },
+      { id: 'datacorporal', title: 'Data corporal', icon: 'monitorHeart', path: '/salud/datacorporal', canAdd: true },
       { id: 'dieta', title: 'Dieta', icon: 'restaurant', path: '/salud/dieta', isUnderConstruction: true },
       { id: 'lab', title: 'Lab', icon: 'science', path: '/salud/lab', isUnderConstruction: true }
     ]
@@ -67,10 +67,10 @@ export const modulos = [
     icon: 'accessTime',
     path: '/tiempo/rutinas',
     subItems: [
+      { id: 'rutinas', title: 'Rutinas', icon: 'fitnessCenter', path: '/tiempo/rutinas', canAdd: true },
       { id: 'proyectos', title: 'Proyectos', icon: 'folder', path: '/tiempo/proyectos' },
       { id: 'tareas', title: 'Tareas', icon: 'task', path: '/tiempo/tareas' },
-      { id: 'archivo', title: 'Archivo', icon: 'archive', path: '/tiempo/archivo' },
-      { id: 'rutinas', title: 'Rutinas', icon: 'fitnessCenter', path: '/tiempo/rutinas' }
+      { id: 'archivo', title: 'Archivo', icon: 'archive', path: '/tiempo/archivo' }
     ]
   },
   {
@@ -99,9 +99,9 @@ export const bottomNavigationItems = [
     id: 'salud',
     title: 'Salud',
     icon: 'health',
-    path: '/salud',
+    path: '/salud/datacorporal',
     type: 'module',
-    activePaths: ['/salud']
+    activePaths: ['/salud', '/salud/datacorporal']
   },
   {
     id: 'tiempo',

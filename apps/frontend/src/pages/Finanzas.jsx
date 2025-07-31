@@ -83,7 +83,7 @@ export default function Finanzas() {
       if (e.detail?.type === 'transacciones') setOpenTransaccion(true);
       if (e.detail?.type === 'cuentas') setOpenCuenta(true);
       if (e.detail?.type === 'monedas') setOpenMoneda(true);
-      if (e.detail?.type === 'recurrente') navigate('/finanzas/recurrente', { state: { openAdd: true } });
+      if (e.detail?.type === 'recurrente') navigate('/assets/finanzas/recurrente', { state: { openAdd: true } });
     };
     window.addEventListener('headerAddButtonClicked', handleHeaderAdd);
     return () => window.removeEventListener('headerAddButtonClicked', handleHeaderAdd);
@@ -94,7 +94,7 @@ export default function Finanzas() {
       id: 'transacciones',
       title: 'Transacciones',
       icon: MoneyIcon,
-      path: '/finanzas/transacciones',
+      path: '/assets/finanzas/transacciones',
       color: '#4CAF50',
       description: 'Gestiona tus ingresos y gastos diarios'
     },
@@ -102,7 +102,7 @@ export default function Finanzas() {
       id: 'cuentas',
       title: 'Cuentas',
       icon: BankIcon,
-      path: '/finanzas/cuentas',
+      path: '/assets/finanzas/cuentas',
       color: '#2196F3',
       description: 'Administra tus cuentas bancarias y efectivo'
     },
@@ -110,7 +110,7 @@ export default function Finanzas() {
       id: 'monedas',
       title: 'Monedas',
       icon: CurrencyIcon,
-      path: '/finanzas/monedas',
+      path: '/assets/finanzas/monedas',
       color: '#FF9800',
       description: 'Configura y gestiona las diferentes monedas'
     },
@@ -118,7 +118,7 @@ export default function Finanzas() {
       id: 'inversiones',
       title: 'Inversiones',
       icon: TrendingIcon,
-      path: '/finanzas/inversiones',
+      path: '/assets/finanzas/inversiones',
       color: '#9C27B0',
       description: 'Seguimiento de inversiones y portafolios',
       isUnderConstruction: true
@@ -127,7 +127,7 @@ export default function Finanzas() {
       id: 'deudores',
       title: 'Deudores',
       icon: PersonIcon,
-      path: '/finanzas/deudores',
+      path: '/assets/finanzas/deudores',
       color: '#F44336',
       description: 'Controla préstamos y deudas pendientes',
       isUnderConstruction: true
@@ -136,7 +136,7 @@ export default function Finanzas() {
       id: 'recurrente',
       title: 'Recurrente',
       icon: RepeatIcon,
-      path: '/finanzas/recurrente',
+      path: '/assets/finanzas/recurrente',
       color: '#607D8B',
       description: 'Transacciones automáticas y suscripciones',
       isUnderConstruction: true
