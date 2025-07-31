@@ -127,7 +127,8 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
               marginLeft: `${mainMargin}px`,
               display: 'flex', 
               alignItems: 'center',
-              gap: 1
+              gap: 1,
+              flex: 1
             }}>
               {/* Botón de atrás solo si no estamos en la raíz y la toolbar no está activa */}
               {location.pathname !== '/' && !showEntityToolbarNavigation && (
@@ -135,39 +136,59 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                   {icons.arrowBack ? <icons.arrowBack sx={{ fontSize: 18 }} /> : <span>&larr;</span>}
                 </IconButton>
               )}
-              {(() => {
-                const last = breadcrumbs[breadcrumbs.length - 1];
-                const IconComponent = last?.icon && typeof last.icon === 'string' ? getIconByKey(last.icon) : null;
-                return (
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      left: `${mainMargin}px`,
-                      right: 0,
-                      width: `calc(100% - ${mainMargin}px)`,
-                      height: HEADER_CONFIG.height,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      pointerEvents: 'none',
-                      zIndex: 1
-                    }}
-                  >
-                    {last?.icon && (
-                      <DynamicIcon 
-                        iconKey={last.icon} 
-                        size="small" 
-                        color="primary.main" 
-                        sx={{ marginRight: 0.5 }} 
-                      />
-                    )}
-                    <Typography color="inherit" sx={{ fontWeight: 500 }}>
-                      {last?.title}
-                    </Typography>
-                  </Box>
-                );
-              })()}
             </Box>
+
+            {/* Título centrado - solo en desktop */}
+            {!isMobile && !isTablet && (() => {
+              const last = breadcrumbs[breadcrumbs.length - 1];
+              return (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    left: `${collapsedWidth}px`,
+                    right: 0,
+                    height: HEADER_CONFIG.height,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    pointerEvents: 'none',
+                    zIndex: 1
+                  }}
+                >
+                  {last?.icon && (
+                    <DynamicIcon 
+                      iconKey={last.icon} 
+                      size="small" 
+                      color="primary.main" 
+                      sx={{ marginRight: 0.5 }} 
+                    />
+                  )}
+                  <Typography color="inherit" sx={{ fontWeight: 500 }}>
+                    {last?.title}
+                  </Typography>
+                </Box>
+              );
+            })()}
+
+            {/* Título para móvil/tablet - dentro del contenedor de navegación */}
+            {(isMobile || isTablet) && (() => {
+              const last = breadcrumbs[breadcrumbs.length - 1];
+              return (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  {last?.icon && (
+                    <DynamicIcon 
+                      iconKey={last.icon} 
+                      size="small" 
+                      color="primary.main" 
+                      sx={{ marginRight: 0.5 }} 
+                    />
+                  )}
+                  <Typography color="inherit" sx={{ fontWeight: 500 }}>
+                    {last?.title}
+                  </Typography>
+                </Box>
+              );
+            })()}
   
             <Box sx={{ flexGrow: 1 }} />
 

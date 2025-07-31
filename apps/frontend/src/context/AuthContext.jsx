@@ -117,9 +117,16 @@ export function AuthProvider({ children }) {
     }
   }, [isAuthenticated]);
 
-  // Login simplificado
+  // Login simplificado con protección contra múltiples llamadas
   const login = useCallback(async (credentials) => {
+    // Prevenir múltiples llamadas simultáneas
+    if (isChecking.current) {
+      console.log('Login ya en progreso, ignorando llamada duplicada');
+      return;
+    }
+    
     try {
+      isChecking.current = true;
       setLoading(true);
       setError(null);
       
@@ -152,6 +159,8 @@ export function AuthProvider({ children }) {
       setError(error.response?.data?.message || error.message);
       setLoading(false);
       throw error;
+    } finally {
+      isChecking.current = false;
     }
   }, []);
 
@@ -232,7 +241,8 @@ export function AuthProvider({ children }) {
       // Redirigir solo si no estamos ya en login
       if (!window.location.pathname.includes('/login') && 
           !window.location.pathname.includes('/auth')) {
-        window.location.href = `${currentConfig.frontendUrl}/login`;
+        // Usar redirección simple y confiable
+        window.location.replace('/login');
       }
     }
   }, []);
@@ -243,12 +253,65 @@ export function AuthProvider({ children }) {
       isInitialized.current = true;
       const token = localStorage.getItem('token');
       if (token) {
-        checkAuth();
+        // Llamar checkAuth directamente sin dependencia para evitar re-ejecuciones
+        const initializeAuth = async () => {
+          try {
+            isChecking.current = true;
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+              setUser(null);
+              setIsAuthenticated(false);
+              setLoading(false);
+              return false;
+            }
+
+            // Configurar token en axios
+            clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            
+            const { data } = await clienteAxios.get(`${currentConfig.authPrefix}/check`);
+            
+            if (data.authenticated && data.user) {
+              setUser(data.user);
+              setIsAuthenticated(true);
+              setError(null);
+              setLoading(false);
+              return true;
+            } else {
+              // Token inválido, limpiar
+              localStorage.removeItem('token');
+              localStorage.removeItem('refreshToken');
+              delete clienteAxios.defaults.headers.common['Authorization'];
+              
+              setUser(null);
+              setIsAuthenticated(false);
+              setLoading(false);
+              return false;
+            }
+          } catch (error) {
+            console.log('Error en inicialización de auth:', error.message);
+            
+            // Limpiar tokens inválidos
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+            delete clienteAxios.defaults.headers.common['Authorization'];
+            
+            setUser(null);
+            setIsAuthenticated(false);
+            setError(error.response?.data?.message || error.message);
+            setLoading(false);
+            return false;
+          } finally {
+            isChecking.current = false;
+          }
+        };
+        
+        initializeAuth();
       } else {
         setLoading(false);
       }
     }
-  }, [checkAuth]);
+  }, []); // Sin dependencias para evitar re-ejecuciones
 
   const value = {
     user,

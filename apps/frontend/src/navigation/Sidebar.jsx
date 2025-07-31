@@ -8,6 +8,7 @@ import {
   ListItemText, 
   ListItemButton, 
   Collapse,
+  IconButton,
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
@@ -15,6 +16,7 @@ import { useUISettings } from '../context/UISettingsContext';
 import SidebarResizer from './SidebarResizer';
 import { DynamicIcon } from '../components/common/DynamicIcon';
 import { SIDEBAR_CONFIG, TRANSITIONS, UI_COLORS, Z_INDEX, SPACING, getChildPadding } from '../config/uiConstants';
+import { getIconByKey, icons } from './menuIcons';
 
 export default function Sidebar({ moduloActivo, nivel1Activo }) {
   const {
@@ -188,18 +190,64 @@ export default function Sidebar({ moduloActivo, nivel1Activo }) {
           }
         }}
       >
-        {/* Renderizar estructura del módulo usando menuStructure.js */}
-        {renderModuleStructure()}
+        {/* Contenedor principal con flexbox para separar contenido y botón de configuración */}
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          height: '100%',
+          justifyContent: 'space-between'
+        }}>
+          {/* Contenido principal del sidebar */}
+          <Box sx={{ flex: 1 }}>
+            {/* Renderizar estructura del módulo usando menuStructure.js */}
+            {renderModuleStructure()}
+          </Box>
+
+          {/* Botón de configuración al final */}
+          <Box sx={{ 
+            p: 1,
+            borderTop: UI_COLORS.border,
+            backgroundColor: UI_COLORS.backgroundDefault
+          }}>
+            <IconButton
+              onClick={() => navigate('/configuracion')}
+              sx={{
+                width: isOpen ? '100%' : '40px',
+                height: '40px',
+                borderRadius: SIDEBAR_CONFIG.parent.borderRadius,
+                justifyContent: isOpen ? 'flex-start' : 'center',
+                pl: isOpen ? 2 : 0,
+                color: 'inherit',
+                '&:hover': {
+                  backgroundColor: UI_COLORS.backgroundHover.default,
+                },
+                transition: TRANSITIONS.backgroundChange,
+              }}
+            >
+              <DynamicIcon 
+                iconKey="settings" 
+                size="small" 
+                sx={{ mr: isOpen ? 1 : 0 }}
+              />
+              {isOpen && (
+                <Box component="span" sx={{ fontSize: '0.875rem' }}>
+                  Configuración
+                </Box>
+              )}
+            </IconButton>
+          </Box>
+        </Box>
+
         {/* Sidebar Resizer y otros elementos si es necesario */}
-                 <SidebarResizer 
-           onResize={handleSidebarResize}
-           isOpen={isOpen}
-           isDesktop={isDesktop}
-           // Usa constantes centralizadas de uiConstants.js
-           minWidth={SIDEBAR_CONFIG.minWidth}
-           maxWidth={SIDEBAR_CONFIG.maxWidth}
-           defaultWidth={sidebarWidth}
-         />
+        <SidebarResizer 
+          onResize={handleSidebarResize}
+          isOpen={isOpen}
+          isDesktop={isDesktop}
+          // Usa constantes centralizadas de uiConstants.js
+          minWidth={SIDEBAR_CONFIG.minWidth}
+          maxWidth={SIDEBAR_CONFIG.maxWidth}
+          defaultWidth={sidebarWidth}
+        />
       </Drawer>
     </Box>
   );

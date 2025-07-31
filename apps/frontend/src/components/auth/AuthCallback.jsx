@@ -110,17 +110,9 @@ function AuthCallback() {
           toast.success('¡Bienvenido!');
           navigate('/assets/finanzas', { replace: true });
         } else {
-          // Si fallan todos los reintentos, intentar con checkAuth como último recurso
-          console.log('Intentando verificación con checkAuth como fallback');
-          const checkAuthResult = await checkAuth();
-          
-          if (checkAuthResult) {
-            console.log('Autenticación exitosa con checkAuth, redirigiendo a assets');
-            toast.success('¡Bienvenido!');
-            navigate('/assets/finanzas', { replace: true });
-          } else {
-            throw new Error('Fallo en la verificación de autenticación después de múltiples intentos');
-          }
+          // Si fallan todos los reintentos, mostrar error en lugar de intentar checkAuth
+          console.log('Fallo en la verificación de autenticación después de múltiples intentos');
+          throw new Error('Fallo en la verificación de autenticación después de múltiples intentos');
         }
       } catch (error) {
         console.error('Error en el callback:', error);
@@ -133,7 +125,7 @@ function AuthCallback() {
     };
 
     handleCallback();
-  }, [navigate, location.search, checkAuth]);
+  }, [navigate, location.search]); // Remover checkAuth de las dependencias
 
   return (
     <div className="flex items-center justify-center min-h-screen">

@@ -154,8 +154,10 @@ clienteAxios.interceptors.response.use(
 
     // 🔧 HABILITADO: Refresh token automático para peticiones que no son de auth
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Solo refrescar si no es una petición de auth
-      if (!originalRequest.url.includes('/auth/')) {
+      // Solo refrescar si no es una petición de auth y no es login
+      if (!originalRequest.url.includes('/auth/') && 
+          !originalRequest.url.includes('/login') &&
+          originalRequest.method !== 'post') {
         try {
           console.log('🔄 Intentando refresh token automático...');
           originalRequest._retry = true;

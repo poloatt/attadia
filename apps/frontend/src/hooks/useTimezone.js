@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useAuth } from './useAuth';
+import { useAuth } from '../context/AuthContext';
 import { setUserTimezone } from '../utils/dateUtils';
 
 /**

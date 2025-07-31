@@ -29,9 +29,14 @@ function GoogleCallback() {
         // Configurar el token en axios
         clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-        // Verificar la autenticación
-        const authResult = await checkAuth();
-        if (!authResult || authResult.error) {
+        // Verificar la autenticación directamente sin usar checkAuth
+        try {
+          const { data } = await clienteAxios.get('/api/auth/check');
+          if (!data.authenticated || !data.user) {
+            throw new Error('Error al verificar la autenticación');
+          }
+        } catch (verifyError) {
+          console.error('Error al verificar autenticación:', verifyError);
           throw new Error('Error al verificar la autenticación');
         }
 
@@ -44,7 +49,7 @@ function GoogleCallback() {
     };
 
     handleGoogleCallback();
-  }, [navigate, checkAuth]);
+  }, [navigate]); // Remover checkAuth de las dependencias
 
   return (
     <div className="flex items-center justify-center min-h-screen">
