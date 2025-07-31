@@ -11,6 +11,13 @@
       "destination": "/index.html"
     }
   ],
+  "functions": {
+    "manifest.json": {
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",

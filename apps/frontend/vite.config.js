@@ -69,6 +69,9 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.MODE': JSON.stringify(mode),
       'import.meta.env.VITE_API_URL': JSON.stringify(
         process.env.VITE_API_URL || 'https://api.admin.attadia.com'
+      ),
+      'import.meta.env.VITE_FRONTEND_URL': JSON.stringify(
+        process.env.VITE_FRONTEND_URL || 'https://admin.attadia.com'
       )
     }
   }

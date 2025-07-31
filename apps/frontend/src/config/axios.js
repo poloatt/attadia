@@ -21,7 +21,7 @@ const getBaseUrl = () => {
   }
   
   // Entorno de producción
-  if (hostname === 'admin.attadia.com' || hostname === 'present.attadia.com' || environment === 'production') {
+  if (hostname === 'admin.attadia.com' || environment === 'production') {
     // console.log('Detectado entorno de producción');
     return 'https://api.admin.attadia.com';
   }
