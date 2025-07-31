@@ -34,10 +34,15 @@ const getBaseUrl = () => {
 const baseURL = getBaseUrl();
 // console.log('URL base de Axios:', baseURL);
 
+// Detectar si es móvil
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
 const clienteAxios = axios.create({
   baseURL,
+  timeout: isMobile ? 30000 : 10000, // 30 segundos para móvil, 10 para desktop
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    ...(isMobile && { 'X-Device-Type': 'mobile' })
   }
 });
 
@@ -134,8 +139,24 @@ clienteAxios.interceptors.response.use(
       return Promise.reject(cancelError);
     }
     
+    // Manejo específico para errores de red en móvil
     if (error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
-      // console.error('Error de conexión:', error);
+      console.log('📱 Error de red detectado:', error.message);
+      
+      if (isMobile) {
+        // En móvil, intentar reintentar automáticamente una vez
+        if (!error.config._retry) {
+          error.config._retry = true;
+          console.log('🔄 Reintentando petición en móvil...');
+          
+          return new Promise(resolve => {
+            setTimeout(() => {
+              resolve(clienteAxios.request(error.config));
+            }, 2000); // Esperar 2 segundos antes de reintentar
+          });
+        }
+      }
+      
       throw new Error('Error de conexión con el servidor. Por favor, verifica tu conexión a internet.');
     }
 
@@ -168,7 +189,7 @@ clienteAxios.interceptors.response.use(
 
           const response = await clienteAxios.post('/api/auth/refresh', {
             refreshToken
-          });
+          }, { timeout: isMobile ? 30000 : 10000 });
           
           const { token: newToken } = response.data;
           localStorage.setItem('token', newToken);

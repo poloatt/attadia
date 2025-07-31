@@ -90,6 +90,73 @@ html, body {
       touch-action: manipulation;
     }
   }
+  
+  /* Mejoras específicas para autenticación en móvil */
+  .auth-error-message {
+    background-color: #ffebee;
+    color: #c62828;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 10px 0;
+    font-size: 14px;
+    text-align: center;
+    border: 1px solid #ffcdd2;
+  }
+  
+  .auth-success-message {
+    background-color: #e8f5e8;
+    color: #2e7d32;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 10px 0;
+    font-size: 14px;
+    text-align: center;
+    border: 1px solid #c8e6c9;
+  }
+  
+  .auth-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    font-size: 16px;
+    color: #666;
+  }
+  
+  /* Prevenir múltiples taps en botones de login */
+  .auth-button:disabled {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+  
+  /* Mejorar feedback visual en móvil */
+  .auth-form input:focus {
+    border-color: #1976d2;
+    box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+  }
+  
+  /* Prevenir problemas de red en móvil */
+  .network-error {
+    background-color: #fff3e0;
+    color: #ef6c00;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 10px 0;
+    font-size: 14px;
+    text-align: center;
+    border: 1px solid #ffcc02;
+  }
+  
+  .network-error .retry-button {
+    background-color: #ef6c00;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    margin-top: 8px;
+    font-size: 14px;
+    cursor: pointer;
+  }
 }
 
 /* Mejoras para tablets */

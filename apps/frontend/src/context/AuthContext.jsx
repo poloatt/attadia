@@ -13,9 +13,18 @@ const useAuth = () => {
   return context;
 };
 
+// Detectar si es móvil
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
 // Configurar axios con la URL base y credenciales
 clienteAxios.defaults.baseURL = currentConfig.baseUrl;
 clienteAxios.defaults.withCredentials = true;
+
+// Configuraciones específicas para móvil
+if (isMobile) {
+  clienteAxios.defaults.timeout = 30000; // 30 segundos para móvil
+  clienteAxios.defaults.headers.common['X-Device-Type'] = 'mobile';
+}
 
 export function AuthProvider({ children }) {
   const [state, setState] = useState({
@@ -28,7 +37,9 @@ export function AuthProvider({ children }) {
   // Refs para evitar múltiples llamadas
   const isCheckingRef = useRef(false);
   const lastCheckTimeRef = useRef(0);
-  const CHECK_COOLDOWN = 2000; // 2 segundos entre checks
+  const CHECK_COOLDOWN = isMobile ? 3000 : 2000; // 3 segundos en móvil, 2 en desktop
+  const loginAttemptsRef = useRef(0);
+  const maxLoginAttempts = 3;
 
   const checkAuth = useCallback(async () => {
     try {
@@ -56,7 +67,10 @@ export function AuthProvider({ children }) {
       }
 
       clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      const { data } = await clienteAxios.get(`${currentConfig.authPrefix}/check`);
+      
+      // Timeout específico para móvil
+      const config = isMobile ? { timeout: 30000 } : {};
+      const { data } = await clienteAxios.get(`${currentConfig.authPrefix}/check`, config);
       
       if (data.authenticated && data.user) {
         setState(prev => ({ 
@@ -82,13 +96,24 @@ export function AuthProvider({ children }) {
         return false;
       }
     } catch (error) {
+      console.log('🚨 Error en checkAuth:', error.message);
+      
+      // Manejo específico para errores de red en móvil
+      if (isMobile && (error.message === 'Network Error' || error.code === 'ERR_NETWORK')) {
+        console.log('📱 Error de red en móvil, manteniendo estado actual');
+        setState(prev => ({ ...prev, loading: false }));
+        isCheckingRef.current = false;
+        return state.isAuthenticated; // Mantener estado actual en caso de error de red
+      }
+      
       if (error.response?.status === 401) {
         try {
           const refreshToken = localStorage.getItem('refreshToken');
           if (refreshToken) {
             const { data: refreshData } = await clienteAxios.post(`${currentConfig.authPrefix}/refresh`, {
               refreshToken
-            });
+            }, { timeout: isMobile ? 30000 : 10000 });
+            
             if (refreshData.token) {
               localStorage.setItem('token', refreshData.token);
               if (refreshData.refreshToken) {
@@ -97,7 +122,7 @@ export function AuthProvider({ children }) {
               clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${refreshData.token}`;
               
               // Verificar directamente con el nuevo token
-              const { data: verifyData } = await clienteAxios.get(`${currentConfig.authPrefix}/check`);
+              const { data: verifyData } = await clienteAxios.get(`${currentConfig.authPrefix}/check`, { timeout: isMobile ? 30000 : 10000 });
               if (verifyData.authenticated && verifyData.user) {
                 setState(prev => ({ 
                   ...prev, 
@@ -119,6 +144,7 @@ export function AuthProvider({ children }) {
           delete clienteAxios.defaults.headers.common['Authorization'];
         }
       }
+      
       setState(prev => ({ 
         ...prev, 
         user: null, 
@@ -139,8 +165,21 @@ export function AuthProvider({ children }) {
         return;
       }
       
+      // Control de intentos de login
+      if (loginAttemptsRef.current >= maxLoginAttempts) {
+        const timeSinceLastAttempt = Date.now() - lastCheckTimeRef.current;
+        if (timeSinceLastAttempt < 60000) { // 1 minuto de cooldown
+          throw new Error('Demasiados intentos de login. Espera un momento antes de intentar nuevamente.');
+        }
+        loginAttemptsRef.current = 0; // Resetear contador
+      }
+      
+      loginAttemptsRef.current++;
       setState(prev => ({ ...prev, loading: true, error: null }));
-      const response = await clienteAxios.post(`${currentConfig.authPrefix}/login`, credentials);
+      
+      // Timeout específico para móvil
+      const config = isMobile ? { timeout: 30000 } : {};
+      const response = await clienteAxios.post(`${currentConfig.authPrefix}/login`, credentials, config);
       const { token, refreshToken, user } = response.data;
       
       if (!token) {
@@ -162,18 +201,32 @@ export function AuthProvider({ children }) {
         error: null 
       }));
       
-      // Resetear el ref de checking
+      // Resetear contadores
       isCheckingRef.current = false;
       lastCheckTimeRef.current = Date.now();
+      loginAttemptsRef.current = 0;
       
       return response.data;
     } catch (error) {
-      setState(prev => ({ 
-        ...prev, 
-        loading: false, 
-        error: error.response?.data?.message || error.message,
-        isAuthenticated: false 
-      }));
+      console.log('🚨 Error en login:', error.message);
+      
+      // Manejo específico para errores de red en móvil
+      if (isMobile && (error.message === 'Network Error' || error.code === 'ERR_NETWORK')) {
+        setState(prev => ({ 
+          ...prev, 
+          loading: false, 
+          error: 'Error de conexión. Verifica tu conexión a internet e intenta nuevamente.',
+          isAuthenticated: false 
+        }));
+      } else {
+        setState(prev => ({ 
+          ...prev, 
+          loading: false, 
+          error: error.response?.data?.message || error.message,
+          isAuthenticated: false 
+        }));
+      }
+      
       isCheckingRef.current = false;
       throw error;
     }
@@ -183,7 +236,8 @@ export function AuthProvider({ children }) {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
       
-      const { data } = await clienteAxios.get(`${currentConfig.authPrefix}/google/url`);
+      const config = isMobile ? { timeout: 30000 } : {};
+      const { data } = await clienteAxios.get(`${currentConfig.authPrefix}/google/url`, config);
       
       if (data.url) {
         window.location.href = data.url;
@@ -191,6 +245,7 @@ export function AuthProvider({ children }) {
         throw new Error('No se pudo obtener la URL de autenticación');
       }
     } catch (error) {
+      console.log('🚨 Error en loginWithGoogle:', error.message);
       setState(prev => ({ 
         ...prev, 
         error: error.response?.data?.message || 'Error al iniciar sesión con Google',
@@ -205,7 +260,8 @@ export function AuthProvider({ children }) {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
 
-      const { data } = await clienteAxios.post(`${currentConfig.authPrefix}/google/callback`, { code });
+      const config = isMobile ? { timeout: 30000 } : {};
+      const { data } = await clienteAxios.post(`${currentConfig.authPrefix}/google/callback`, { code }, config);
       
       if (data.token) {
         localStorage.setItem('token', data.token);
@@ -226,10 +282,12 @@ export function AuthProvider({ children }) {
         // Resetear refs
         isCheckingRef.current = false;
         lastCheckTimeRef.current = Date.now();
+        loginAttemptsRef.current = 0;
       } else {
         throw new Error('No se recibió el token de autenticación');
       }
     } catch (error) {
+      console.log('🚨 Error en handleGoogleCallback:', error.message);
       setState(prev => ({ 
         ...prev, 
         user: null,
@@ -244,8 +302,10 @@ export function AuthProvider({ children }) {
       setState(prev => ({ ...prev, loading: true }));
       const token = localStorage.getItem('token');
       if (token) {
+        const config = isMobile ? { timeout: 15000 } : {};
         await clienteAxios.post(`${currentConfig.authPrefix}/logout`, null, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
+          ...config
         });
       }
     } catch (error) {
@@ -258,6 +318,7 @@ export function AuthProvider({ children }) {
       // Resetear refs
       isCheckingRef.current = false;
       lastCheckTimeRef.current = 0;
+      loginAttemptsRef.current = 0;
       
       setState({ 
         user: null, 
