@@ -1,4 +1,8 @@
 {
+  "buildCommand": "echo 'Static site - no build needed'",
+  "outputDirectory": ".",
+  "installCommand": "echo 'No dependencies to install'",
+  "framework": null,
   "cleanUrls": true,
   "trailingSlash": false,
   "headers": [
@@ -16,6 +20,10 @@
         {
           "key": "X-XSS-Protection",
           "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
         },
         {
           "key": "Cache-Control",
