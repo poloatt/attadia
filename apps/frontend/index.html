@@ -22,15 +22,6 @@
         __REACT_DEVTOOLS_GLOBAL_HOOK__.inject = function() {};
       }
       
-      // Mejorar experiencia móvil
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/sw.js').catch(function(err) {
-            console.log('ServiceWorker registration failed: ', err);
-          });
-        });
-      }
-      
       // Prevenir zoom en input focus en iOS
       document.addEventListener('gesturestart', function(e) {
         e.preventDefault();
