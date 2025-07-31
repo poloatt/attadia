@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
+import { HashRouter } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { SidebarProvider } from './context/SidebarContext'
 import { UISettingsProvider } from './context/UISettingsContext'
@@ -72,7 +72,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <BrowserRouter {...router}>
+      <HashRouter {...router}>
         <AuthProvider>
           <UISettingsProvider>
             <ActionHistoryProvider>
@@ -82,7 +82,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             </ActionHistoryProvider>
           </UISettingsProvider>
         </AuthProvider>
-      </BrowserRouter>
+      </HashRouter>
     </ThemeProvider>
   </React.StrictMode>
 ) 
