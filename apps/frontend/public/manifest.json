@@ -1,0 +1,72 @@
+{
+  "name": "Atta",
+  "short_name": "Atta",
+  "description": "Aplicación de gestión personal y financiera",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "/logos/atta.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logos/atta.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/logos/atta.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["productivity", "finance", "lifestyle"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Finanzas",
+      "short_name": "Finanzas",
+      "description": "Acceso rápido a finanzas",
+      "url": "/#/assets/finanzas",
+      "icons": [
+        {
+          "src": "/logos/atta.svg",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Salud",
+      "short_name": "Salud",
+      "description": "Acceso rápido a salud",
+      "url": "/#/salud/datacorporal",
+      "icons": [
+        {
+          "src": "/logos/atta.svg",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Rutinas",
+      "short_name": "Rutinas",
+      "description": "Acceso rápido a rutinas",
+      "url": "/#/tiempo/rutinas",
+      "icons": [
+        {
+          "src": "/logos/atta.svg",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
+} 
