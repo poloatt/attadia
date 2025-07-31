@@ -12,21 +12,6 @@
       "destination": "/index.html"
     }
   ],
-  "headers": [
-    {
-      "source": "/manifest.json",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/json"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=3600"
-        }
-      ]
-    }
-  ],
   "env": {
     "VITE_API_URL": "https://api.admin.attadia.com",
     "VITE_FRONTEND_URL": "https://admin.attadia.com"
