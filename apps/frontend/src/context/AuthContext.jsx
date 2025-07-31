@@ -4,6 +4,7 @@ import currentConfig from '../config/envConfig';
 
 const AuthContext = createContext();
 
+// Hook personalizado para usar el contexto de autenticación
 const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -12,66 +13,63 @@ const useAuth = () => {
   return context;
 };
 
-// Configurar axios
+// Configurar axios con la URL base y credenciales
 clienteAxios.defaults.baseURL = currentConfig.baseUrl;
 clienteAxios.defaults.withCredentials = true;
 
 export function AuthProvider({ children }) {
-  const [state, setState] = useState({
-    user: null,
-    loading: true,
-    error: null,
-    isAuthenticated: false
-  });
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Ref para evitar múltiples llamadas simultáneas
-  const isCheckingRef = useRef(false);
+  // Refs para control de estado
+  const isInitialized = useRef(false);
+  const isChecking = useRef(false);
 
-  // Función para verificar autenticación (sin dependencias)
+  // Función simplificada para verificar autenticación
   const checkAuth = useCallback(async () => {
-    // Prevenir múltiples llamadas simultáneas
-    if (isCheckingRef.current) {
-      return state.isAuthenticated;
+    if (isChecking.current) {
+      return isAuthenticated;
     }
 
     try {
-      isCheckingRef.current = true;
-      
+      isChecking.current = true;
       const token = localStorage.getItem('token');
+      
       if (!token) {
-        setState(prev => ({ ...prev, user: null, loading: false, isAuthenticated: false }));
+        setUser(null);
+        setIsAuthenticated(false);
+        setLoading(false);
         return false;
       }
 
+      // Configurar token en axios
       clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
       const { data } = await clienteAxios.get(`${currentConfig.authPrefix}/check`);
       
       if (data.authenticated && data.user) {
-        setState(prev => ({ 
-          ...prev, 
-          user: data.user, 
-          loading: false, 
-          isAuthenticated: true,
-          error: null 
-        }));
+        setUser(data.user);
+        setIsAuthenticated(true);
+        setError(null);
+        setLoading(false);
         return true;
       } else {
         // Token inválido, limpiar
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
         delete clienteAxios.defaults.headers.common['Authorization'];
-        setState(prev => ({ 
-          ...prev, 
-          user: null, 
-          loading: false, 
-          isAuthenticated: false 
-        }));
+        
+        setUser(null);
+        setIsAuthenticated(false);
+        setLoading(false);
         return false;
       }
     } catch (error) {
       console.log('Error en checkAuth:', error.message);
       
-      // Si es 401, intentar refresh token
+      // Si es 401, intentar refresh
       if (error.response?.status === 401) {
         try {
           const refreshToken = localStorage.getItem('refreshToken');
@@ -85,18 +83,16 @@ export function AuthProvider({ children }) {
               if (refreshData.refreshToken) {
                 localStorage.setItem('refreshToken', refreshData.refreshToken);
               }
+              
               clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${refreshData.token}`;
               
               // Verificar con el nuevo token
               const { data: verifyData } = await clienteAxios.get(`${currentConfig.authPrefix}/check`);
               if (verifyData.authenticated && verifyData.user) {
-                setState(prev => ({ 
-                  ...prev, 
-                  user: verifyData.user, 
-                  loading: false, 
-                  isAuthenticated: true,
-                  error: null 
-                }));
+                setUser(verifyData.user);
+                setIsAuthenticated(true);
+                setError(null);
+                setLoading(false);
                 return true;
               }
             }
@@ -106,58 +102,55 @@ export function AuthProvider({ children }) {
         }
       }
       
-      // Limpiar tokens y estado
+      // Limpiar tokens inválidos
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
       delete clienteAxios.defaults.headers.common['Authorization'];
-      setState(prev => ({ 
-        ...prev, 
-        user: null, 
-        error: null,
-        loading: false,
-        isAuthenticated: false
-      }));
+      
+      setUser(null);
+      setIsAuthenticated(false);
+      setError(error.response?.data?.message || error.message);
+      setLoading(false);
       return false;
     } finally {
-      isCheckingRef.current = false;
+      isChecking.current = false;
     }
-  }, []); // Sin dependencias para evitar loops
+  }, [isAuthenticated]);
 
-  // Login
+  // Login simplificado
   const login = useCallback(async (credentials) => {
     try {
-      setState(prev => ({ ...prev, loading: true, error: null }));
+      setLoading(true);
+      setError(null);
       
       const response = await clienteAxios.post(`${currentConfig.authPrefix}/login`, credentials);
-      const { token, refreshToken, user } = response.data;
+      const { token, refreshToken, user: userData } = response.data;
       
       if (!token) {
         throw new Error('No se recibió token del servidor');
       }
 
+      // Guardar tokens
       localStorage.setItem('token', token);
       if (refreshToken) {
         localStorage.setItem('refreshToken', refreshToken);
       }
+      
+      // Configurar axios
       clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
-      setState(prev => ({ 
-        ...prev, 
-        user: user || null,
-        loading: false, 
-        isAuthenticated: true,
-        error: null 
-      }));
+      // Actualizar estado
+      setUser(userData || null);
+      setIsAuthenticated(true);
+      setError(null);
+      setLoading(false);
       
       return response.data;
     } catch (error) {
-      console.log('Error en login:', error.message);
-      setState(prev => ({ 
-        ...prev, 
-        loading: false, 
-        error: error.response?.data?.message || error.message,
-        isAuthenticated: false 
-      }));
+      setUser(null);
+      setIsAuthenticated(false);
+      setError(error.response?.data?.message || error.message);
+      setLoading(false);
       throw error;
     }
   }, []);
@@ -165,7 +158,8 @@ export function AuthProvider({ children }) {
   // Login con Google
   const loginWithGoogle = useCallback(async () => {
     try {
-      setState(prev => ({ ...prev, loading: true, error: null }));
+      setLoading(true);
+      setError(null);
       
       const { data } = await clienteAxios.get(`${currentConfig.authPrefix}/google/url`);
       
@@ -175,12 +169,8 @@ export function AuthProvider({ children }) {
         throw new Error('No se pudo obtener la URL de autenticación');
       }
     } catch (error) {
-      setState(prev => ({ 
-        ...prev, 
-        error: error.response?.data?.message || 'Error al iniciar sesión con Google',
-        loading: false,
-        isAuthenticated: false
-      }));
+      setError(error.response?.data?.message || 'Error al iniciar sesión con Google');
+      setLoading(false);
       throw error;
     }
   }, []);
@@ -188,7 +178,8 @@ export function AuthProvider({ children }) {
   // Callback de Google
   const handleGoogleCallback = useCallback(async (code) => {
     try {
-      setState(prev => ({ ...prev, loading: true, error: null }));
+      setLoading(true);
+      setError(null);
 
       const { data } = await clienteAxios.post(`${currentConfig.authPrefix}/google/callback`, { code });
       
@@ -197,31 +188,28 @@ export function AuthProvider({ children }) {
         if (data.refreshToken) {
           localStorage.setItem('refreshToken', data.refreshToken);
         }
+        
         clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
         
-        setState(prev => ({ 
-          ...prev, 
-          user: data.user || null,
-          loading: false,
-          isAuthenticated: true,
-          error: null
-        }));
+        setUser(data.user || null);
+        setIsAuthenticated(true);
+        setError(null);
+        setLoading(false);
       } else {
         throw new Error('No se recibió el token de autenticación');
       }
     } catch (error) {
-      setState(prev => ({ 
-        ...prev, 
-        user: null,
-        error: 'Error al completar la autenticación con Google',
-        loading: false
-      }));
+      setUser(null);
+      setIsAuthenticated(false);
+      setError('Error al completar la autenticación con Google');
+      setLoading(false);
     }
   }, []);
 
-  // Logout
+  // Logout simplificado
   const logout = useCallback(async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem('token');
       if (token) {
         await clienteAxios.post(`${currentConfig.authPrefix}/logout`, null, {
@@ -231,18 +219,17 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.log('Error en logout:', error.message);
     } finally {
+      // Limpiar todo
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
       delete clienteAxios.defaults.headers.common['Authorization'];
       
-      setState({ 
-        user: null, 
-        loading: false, 
-        error: null, 
-        isAuthenticated: false 
-      });
+      setUser(null);
+      setIsAuthenticated(false);
+      setError(null);
+      setLoading(false);
       
-      // Redirigir a login
+      // Redirigir solo si no estamos ya en login
       if (!window.location.pathname.includes('/login') && 
           !window.location.pathname.includes('/auth')) {
         window.location.href = `${currentConfig.frontendUrl}/login`;
@@ -250,25 +237,24 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  // Verificar auth al cargar (solo una vez)
+  // Inicialización única
   useEffect(() => {
-    const initializeAuth = async () => {
+    if (!isInitialized.current) {
+      isInitialized.current = true;
       const token = localStorage.getItem('token');
       if (token) {
-        await checkAuth();
+        checkAuth();
       } else {
-        setState(prev => ({ ...prev, loading: false, isAuthenticated: false }));
+        setLoading(false);
       }
-    };
-
-    initializeAuth();
-  }, []); // Sin dependencias para ejecutar solo una vez
+    }
+  }, [checkAuth]);
 
   const value = {
-    user: state.user,
-    loading: state.loading,
-    error: state.error,
-    isAuthenticated: state.isAuthenticated,
+    user,
+    loading,
+    error,
+    isAuthenticated,
     login,
     logout,
     loginWithGoogle,
