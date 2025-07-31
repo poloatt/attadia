@@ -1,7 +1,7 @@
 // Toolbar.jsx
 // Toolbar modular: ahora recibe 'moduloActivo', 'nivel1' y 'currentPath' como props. Solo navega entre los hijos de nivel1.
 
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Box, IconButton, Tooltip, Typography } from '../utils/materialImports';
 import { FORM_HEIGHTS } from '../config/uiConstants';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -36,8 +36,14 @@ export default function Toolbar({
   const location = useLocation();
   const navigate = useNavigate();
   
-  // Usar función centralizada para calcular mainMargin
-  const mainMargin = getMainMargin(isMobileOrTablet);
+  // Refs para medir el espacio de las secciones
+  const leftSectionRef = useRef(null);
+  const rightSectionRef = useRef(null);
+  const [leftSectionWidth, setLeftSectionWidth] = useState(0);
+  const [rightSectionWidth, setRightSectionWidth] = useState(0);
+  
+  // Usar función centralizada para calcular mainMargin base
+  const baseMainMargin = getMainMargin(isMobileOrTablet);
 
   // 2. LÓGICA DE NAVEGACIÓN
   // Siblings: los hijos de nivel1
@@ -119,6 +125,42 @@ export default function Toolbar({
     return reorderModulesWithActiveFirst(todosLosModulos, moduloActivo);
   })() : [];
 
+  // Efecto para medir el ancho de las secciones
+  useEffect(() => {
+    const measureSections = () => {
+      if (leftSectionRef.current) {
+        setLeftSectionWidth(leftSectionRef.current.offsetWidth);
+      }
+      if (rightSectionRef.current) {
+        setRightSectionWidth(rightSectionRef.current.offsetWidth);
+      }
+    };
+
+    // Medir inmediatamente
+    measureSections();
+
+    // Medir después de que el DOM se actualice
+    const timeoutId = setTimeout(measureSections, 0);
+
+    // Observer para cambios en el DOM
+    const resizeObserver = new ResizeObserver(measureSections);
+    if (leftSectionRef.current) {
+      resizeObserver.observe(leftSectionRef.current);
+    }
+    if (rightSectionRef.current) {
+      resizeObserver.observe(rightSectionRef.current);
+    }
+
+    return () => {
+      clearTimeout(timeoutId);
+      resizeObserver.disconnect();
+    };
+  }, [shouldShowBack, parentInfo, additionalActions, children, showAddButton, entityConfig, isMobile]);
+
+  // Calcular el margen ajustado considerando las secciones de acciones
+  const adjustedMainMargin = baseMainMargin + leftSectionWidth;
+  const mainContentWidth = `calc(100vw - ${adjustedMainMargin}px - ${rightSectionWidth}px)`;
+
   // 3. RENDER
   if (!showEntityToolbarNavigation) return null;
 
@@ -138,7 +180,7 @@ export default function Toolbar({
           position: 'absolute',
           left: 0,
           top: 0,
-          width: mainMargin,
+          width: baseMainMargin,
           height: FORM_HEIGHTS.toolbar,
           display: 'flex',
           alignItems: 'center',
@@ -186,8 +228,8 @@ export default function Toolbar({
 
       {/* Sección principal - posicionada en el área del main content */}
       <Box sx={{
-        marginLeft: `${mainMargin}px`,
-        width: `calc(100vw - ${mainMargin}px)`,
+        marginLeft: `${adjustedMainMargin}px`,
+        width: mainContentWidth,
         height: FORM_HEIGHTS.toolbar,
         display: 'flex',
         alignItems: 'center',
@@ -195,12 +237,15 @@ export default function Toolbar({
         gap: 1
       }}>
         {/* Sección izquierda: Botón de atrás */}
-        <Box sx={{
-          display: 'flex',
-          alignItems: 'center',
-          flexShrink: 0,
-          minWidth: 'fit-content'
-        }}>
+        <Box 
+          ref={leftSectionRef}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            flexShrink: 0,
+            minWidth: 'fit-content'
+          }}
+        >
           {shouldShowBack ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Tooltip title={parentInfo.title || 'Volver'}>
@@ -291,14 +336,17 @@ export default function Toolbar({
         </Box>
 
         {/* Sección derecha: Acciones y herramientas */}
-        <Box sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'flex-end',
-          flexShrink: 0,
-          minWidth: 48,
-          height: FORM_HEIGHTS.toolbar
-        }}>
+        <Box 
+          ref={rightSectionRef}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            flexShrink: 0,
+            minWidth: 48,
+            height: FORM_HEIGHTS.toolbar
+          }}
+        >
           {/* Acciones adicionales */}
           {!isMobile && additionalActions && additionalActions.map((action, idx) => {
             const isButton = action.icon && action.icon.type && (action.icon.type.displayName === 'IconButton' || action.icon.type.muiName === 'IconButton' || action.icon.type.isButtonComponent);

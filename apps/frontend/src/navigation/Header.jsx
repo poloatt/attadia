@@ -124,7 +124,7 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
             
             {/* Sección de navegación alineada con main content */}
             <Box sx={{ 
-              marginLeft: `${mainMargin}px`,
+              marginLeft: showEntityToolbarNavigation ? 0 : `${mainMargin}px`,
               display: 'flex', 
               alignItems: 'center',
               gap: 1,

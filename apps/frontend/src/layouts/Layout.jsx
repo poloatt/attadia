@@ -13,7 +13,7 @@ import { FormManagerProvider } from '../context/FormContext';
 import { GlobalFormEventListener } from '../context/GlobalFormEventListener';
 import useResponsive from '../hooks/useResponsive';
 import { useNavigationState } from '../utils/navigationUtils';
-import { calculateMainMargin, calculateTopPadding, HEADER_CONFIG, FOOTER_CONFIG, SPACING } from '../config/uiConstants.js';
+import { calculateTopPadding, HEADER_CONFIG, FOOTER_CONFIG, SPACING } from '../config/uiConstants.js';
 import { RutinasProvider } from '../context/RutinasContext';
 
 export function Layout() {
@@ -51,16 +51,11 @@ export function Layout() {
   const showToolbar = showEntityToolbarNavigation;
   const totalTopPadding = calculateTopPadding(showToolbar);
   
-  // Usar utilidad centralizada para calcular mainMargin
-  const mainMargin = calculateMainMargin(isOpen, sidebarWidth, isMobileOrTablet, showSidebarCollapsed);
-  
   // Padding superior para el main
   const mainTopPadding = totalTopPadding;
 
   // Determinar si se debe renderizar la sidebar
   const shouldRenderSidebar = !isMobileOrTablet || (isMobileOrTablet && showSidebarCollapsed && isOpen);
-
-
 
   return (
     <FormManagerProvider>
@@ -117,10 +112,10 @@ export function Layout() {
           sx={{
             position: 'fixed',
             top: 0,
-            left: mainMargin,
+            left: 0,
             right: 0,
             bottom: 0,
-            pt: `${mainTopPadding}px`, // <-- AJUSTADO PARA INCLUIR TOOLBAR SI ESTÁ VISIBLE
+            pt: `${mainTopPadding}px`,
             pb: `${FOOTER_CONFIG.height}px`,
             bgcolor: 'background.default',
             overflowY: 'auto',
