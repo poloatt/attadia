@@ -1,11 +1,11 @@
-# Excluir directorios que no son necesarios para el build del frontend
-apps/backend/
-apps/site/
-config/
-docs/
-scripts/
-var/
-webhook/
+# Excluir contenido de directorios innecesarios pero mantener la estructura
+apps/backend/*
+apps/site/*
+config/*
+docs/*
+scripts/*
+var/*
+webhook/*
 
 # Excluir archivos de configuración de Docker
 docker-compose*.yml
