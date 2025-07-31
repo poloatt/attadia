@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": ".",
+  "buildCommand": "npm run frontend:build",
+  "outputDirectory": "apps/frontend",
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -43,4 +43,4 @@
       ]
     }
   ]
-}
+} 

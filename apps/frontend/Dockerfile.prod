@@ -16,7 +16,6 @@ COPY vite.config.js ./
 COPY index.html ./
 COPY public ./public
 COPY src ./src
-COPY vercel.json ./
 
 # Construir con npm
 RUN NODE_ENV=production npm run build
