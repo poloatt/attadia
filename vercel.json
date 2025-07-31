@@ -1,6 +1,6 @@
 {
-  "buildCommand": "ls -la && cd apps/frontend && ls -la && npm install && npm run build",
-  "outputDirectory": "apps/frontend/dist",
+  "buildCommand": "npm install && npm run build",
+  "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
     {
