@@ -4,18 +4,36 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logos/atta.svg" />
     <link rel="apple-touch-icon" href="/logos/atta.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#000000" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="manifest" content="" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    <meta name="apple-touch-fullscreen" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Atta" />
     <title>Atta</title>
     <script>
       // Evitar mensaje de React DevTools en desarrollo
       if (typeof window.__REACT_DEVTOOLS_GLOBAL_HOOK__ === 'object') {
         __REACT_DEVTOOLS_GLOBAL_HOOK__.inject = function() {};
       }
+      
+      // Mejorar experiencia móvil
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js').catch(function(err) {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+      
+      // Prevenir zoom en input focus en iOS
+      document.addEventListener('gesturestart', function(e) {
+        e.preventDefault();
+      });
     </script>
   </head>
   <body>

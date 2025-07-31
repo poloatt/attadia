@@ -38,7 +38,33 @@ const getBaseUrl = () => {
 };
 
 axios.defaults.baseURL = getBaseUrl();
-axios.defaults.withCredentials = true
+axios.defaults.withCredentials = true;
+
+// Mejoras específicas para móvil
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+if (isMobile) {
+  // Configuraciones específicas para móvil
+  axios.defaults.timeout = 30000; // 30 segundos para móvil
+  axios.defaults.headers.common['X-Device-Type'] = 'mobile';
+  
+  // Mejorar manejo de errores de red en móvil
+  axios.interceptors.response.use(
+    response => response,
+    error => {
+      if (error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
+        console.log('Error de red en móvil, reintentando...');
+        // Reintentar automáticamente en móvil
+        return new Promise(resolve => {
+          setTimeout(() => {
+            resolve(axios.request(error.config));
+          }, 1000);
+        });
+      }
+      return Promise.reject(error);
+    }
+  );
+}
 
 // Las rutas de la app se centralizan en menuStructure.js y se usan dinámicamente en App.jsx
 // Si necesitas rutas dinámicas aquí, importa modulos desde './navigation/menuStructure'
