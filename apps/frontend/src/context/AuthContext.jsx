@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import clienteAxios from '../config/axios';
 import currentConfig from '../config/envConfig';
 
@@ -25,32 +25,33 @@ export function AuthProvider({ children }) {
     isAuthenticated: false
   });
 
-  // Rate limiting para evitar loops infinitos
-  const [lastCheckTime, setLastCheckTime] = useState(0);
-  const [isChecking, setIsChecking] = useState(false);
-  const CHECK_COOLDOWN = 1000; // 1 segundo entre checks
+  // Refs para evitar múltiples llamadas
+  const isCheckingRef = useRef(false);
+  const lastCheckTimeRef = useRef(0);
+  const CHECK_COOLDOWN = 2000; // 2 segundos entre checks
 
   const checkAuth = useCallback(async () => {
     try {
       // Prevenir múltiples llamadas simultáneas
-      if (isChecking) {
+      if (isCheckingRef.current) {
         console.log('🔄 Check auth ya en progreso, saltando...');
         return state.isAuthenticated;
       }
       
       // Rate limiting para evitar demasiadas peticiones
       const now = Date.now();
-      if (now - lastCheckTime < CHECK_COOLDOWN) {
+      if (now - lastCheckTimeRef.current < CHECK_COOLDOWN) {
         console.log('🕒 Check auth en cooldown, saltando...');
         return state.isAuthenticated;
       }
       
-      setIsChecking(true);
-      setLastCheckTime(now);
+      isCheckingRef.current = true;
+      lastCheckTimeRef.current = now;
 
       const token = localStorage.getItem('token');
       if (!token) {
         setState(prev => ({ ...prev, user: null, loading: false, isAuthenticated: false }));
+        isCheckingRef.current = false;
         return false;
       }
 
@@ -65,6 +66,7 @@ export function AuthProvider({ children }) {
           isAuthenticated: true,
           error: null 
         }));
+        isCheckingRef.current = false;
         return true;
       } else {
         setState(prev => ({ 
@@ -76,6 +78,7 @@ export function AuthProvider({ children }) {
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
         delete clienteAxios.defaults.headers.common['Authorization'];
+        isCheckingRef.current = false;
         return false;
       }
     } catch (error) {
@@ -93,7 +96,7 @@ export function AuthProvider({ children }) {
               }
               clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${refreshData.token}`;
               
-              // CORREGIDO: No recursión - verificar directamente con el nuevo token
+              // Verificar directamente con el nuevo token
               const { data: verifyData } = await clienteAxios.get(`${currentConfig.authPrefix}/check`);
               if (verifyData.authenticated && verifyData.user) {
                 setState(prev => ({ 
@@ -103,6 +106,7 @@ export function AuthProvider({ children }) {
                   isAuthenticated: true,
                   error: null 
                 }));
+                isCheckingRef.current = false;
                 return true;
               }
             }
@@ -122,74 +126,22 @@ export function AuthProvider({ children }) {
         loading: false,
         isAuthenticated: false
       }));
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      delete clienteAxios.defaults.headers.common['Authorization'];
-      return false;
-    } finally {
-      setIsChecking(false);
-    }
-  }, [lastCheckTime, state.isAuthenticated, isChecking]);
-
-  // Función para verificación inmediata sin rate limiting (para callbacks)
-  const checkAuthImmediate = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        return false;
-      }
-
-      clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      const { data } = await clienteAxios.get(`${currentConfig.authPrefix}/check`);
-      
-      if (data.authenticated && data.user) {
-        setState(prev => ({ 
-          ...prev, 
-          user: data.user, 
-          loading: false, 
-          isAuthenticated: true,
-          error: null 
-        }));
-        return true;
-      } else {
-        setState(prev => ({ 
-          ...prev, 
-          user: null, 
-          loading: false, 
-          isAuthenticated: false 
-        }));
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-        delete clienteAxios.defaults.headers.common['Authorization'];
-        return false;
-      }
-    } catch (error) {
-      console.error('Error en checkAuthImmediate:', error);
-      setState(prev => ({ 
-        ...prev, 
-        user: null, 
-        error: error.response?.data?.message || error.message,
-        loading: false,
-        isAuthenticated: false
-      }));
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      delete clienteAxios.defaults.headers.common['Authorization'];
+      isCheckingRef.current = false;
       return false;
     }
-  }, []);
+  }, [state.isAuthenticated]);
 
   const login = async (credentials) => {
     try {
       // Prevenir múltiples logins simultáneos
-      if (state.loading) {
+      if (state.loading || isCheckingRef.current) {
         console.log('🔄 Login ya en progreso, saltando...');
         return;
       }
       
       setState(prev => ({ ...prev, loading: true, error: null }));
       const response = await clienteAxios.post(`${currentConfig.authPrefix}/login`, credentials);
-      const { token, refreshToken } = response.data;
+      const { token, refreshToken, user } = response.data;
       
       if (!token) {
         throw new Error('No se recibió token del servidor');
@@ -201,13 +153,19 @@ export function AuthProvider({ children }) {
       }
       clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
-      // No llamar checkAuth aquí para evitar loops
+      // Establecer estado directamente sin llamar checkAuth
       setState(prev => ({ 
         ...prev, 
+        user: user || null,
         loading: false, 
         isAuthenticated: true,
         error: null 
       }));
+      
+      // Resetear el ref de checking
+      isCheckingRef.current = false;
+      lastCheckTimeRef.current = Date.now();
+      
       return response.data;
     } catch (error) {
       setState(prev => ({ 
@@ -216,6 +174,7 @@ export function AuthProvider({ children }) {
         error: error.response?.data?.message || error.message,
         isAuthenticated: false 
       }));
+      isCheckingRef.current = false;
       throw error;
     }
   };
@@ -253,7 +212,20 @@ export function AuthProvider({ children }) {
         if (data.refreshToken) {
           localStorage.setItem('refreshToken', data.refreshToken);
         }
-        await checkAuth();
+        clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
+        
+        // Establecer estado directamente
+        setState(prev => ({ 
+          ...prev, 
+          user: data.user || null,
+          loading: false,
+          isAuthenticated: true,
+          error: null
+        }));
+        
+        // Resetear refs
+        isCheckingRef.current = false;
+        lastCheckTimeRef.current = Date.now();
       } else {
         throw new Error('No se recibió el token de autenticación');
       }
@@ -265,7 +237,7 @@ export function AuthProvider({ children }) {
         loading: false
       }));
     }
-  }, [checkAuth]);
+  }, []);
 
   const logout = async () => {
     try {
@@ -277,17 +249,28 @@ export function AuthProvider({ children }) {
         });
       }
     } catch (error) {
+      console.log('Error en logout:', error.message);
     } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
       delete clienteAxios.defaults.headers.common['Authorization'];
+      
+      // Resetear refs
+      isCheckingRef.current = false;
+      lastCheckTimeRef.current = 0;
+      
       setState({ 
         user: null, 
         loading: false, 
         error: null, 
         isAuthenticated: false 
       });
-      window.location.href = `${currentConfig.frontendUrl}/login`;
+      
+      // Redirigir solo si no estamos ya en login
+      if (!window.location.pathname.includes('/login') && 
+          !window.location.pathname.includes('/auth')) {
+        window.location.href = `${currentConfig.frontendUrl}/login`;
+      }
     }
   };
 
@@ -307,11 +290,10 @@ export function AuthProvider({ children }) {
     error: state.error,
     isAuthenticated: state.isAuthenticated,
     login,
+    logout,
     loginWithGoogle,
     handleGoogleCallback,
-    checkAuth,
-    checkAuthImmediate,
-    logout
+    checkAuth
   };
 
   return (
