@@ -7,6 +7,14 @@
     {
       "source": "/api/(.*)",
       "destination": "https://api.admin.attadia.com/api/$1"
+    },
+    {
+      "source": "/auth/callback",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/auth/callback/*",
+      "destination": "/index.html"
     }
   ],
   "headers": [
