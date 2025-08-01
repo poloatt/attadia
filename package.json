@@ -1,37 +1,16 @@
 {
-  "name": "atta",
+  "name": "atta-admin",
   "version": "1.0.0",
   "private": true,
-  "workspaces": [
-    "apps/frontend",
-    "apps/backend"
-  ],
   "scripts": {
-    "dev": "docker-compose up",
-    "dev:build": "docker-compose up --build",
-    "staging": "docker-compose -f docker-compose.staging.yml up",
-    "staging:build": "docker-compose -f docker-compose.staging.yml up --build",
-    "prod": "docker-compose -f docker-compose.prod.yml up",
-    "prod:build": "docker-compose -f docker-compose.prod.yml up --build",
-    "stop": "docker-compose down",
-    "stop:staging": "docker-compose -f docker-compose.staging.yml down",
-    "stop:prod": "docker-compose -f docker-compose.prod.yml down",
-    "logs": "docker-compose logs -f",
-    "logs:staging": "docker-compose -f docker-compose.staging.yml logs -f",
-    "logs:prod": "docker-compose -f docker-compose.prod.yml logs -f",
-    "frontend:dev": "cd apps/frontend && npm run dev",
-    "frontend:build": "cd apps/frontend && npm run build",
-    "frontend:lint": "cd apps/frontend && npm run lint",
-    "backend:dev": "cd apps/backend && npm run dev",
-    "backend:start": "cd apps/backend && npm start",
-    "backend:lint": "cd apps/backend && npm run lint",
-    "test": "npm run test --workspaces",
-    "lint": "npm run lint --workspaces"
+    "build": "cd apps/frontend && npm install && npm run build",
+    "dev": "cd apps/frontend && npm run dev",
+    "start": "cd apps/frontend && npm run start"
   },
-  "devDependencies": {
-    "concurrently": "^8.2.2"
-  },
-  "dependencies": {
-    "mongoose": "^8.16.1"
+  "workspaces": [
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
