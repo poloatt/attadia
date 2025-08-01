@@ -121,7 +121,11 @@ function AuthCallback() {
     };
 
     handleCallback();
+<<<<<<< HEAD
   }, [navigate, location.search, checkAuth]);
+=======
+  }, [navigate, location.search, isProcessing]);
+>>>>>>> main
 
   return (
     <div className="flex items-center justify-center min-h-screen">
