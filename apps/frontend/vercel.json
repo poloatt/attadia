@@ -13,7 +13,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/auth/callback/*",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
