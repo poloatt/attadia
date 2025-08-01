@@ -122,9 +122,13 @@ function AuthCallback() {
 
     handleCallback();
 <<<<<<< HEAD
+<<<<<<< HEAD
   }, [navigate, location.search, checkAuth]);
 =======
   }, [navigate, location.search, isProcessing]);
+>>>>>>> main
+=======
+  }, [navigate, location.search, checkAuth]);
 >>>>>>> main
 
   return (
