@@ -79,7 +79,7 @@ function AuthCallback() {
     };
 
     handleCallback();
-  }, [navigate, location.search]); // Remover checkAuth de las dependencias
+  }, [navigate, location.search, isProcessing]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">
