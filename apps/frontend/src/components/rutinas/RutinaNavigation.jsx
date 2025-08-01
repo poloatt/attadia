@@ -166,111 +166,42 @@ const RutinaNavigation = ({
         sx={{ 
           display: 'flex', 
           alignItems: 'center', 
-          justifyContent: 'space-between',
+          justifyContent: 'center',
           p: 1,
-          px: 0.5
+          px: 0.5,
+          position: 'relative',
+          width: '100%',
+          height: '40px'
         }}
       >
-        {/* Lado izquierdo con fecha */}
-        <Box sx={{ display: 'flex', alignItems: 'center', minWidth: '80px', justifyContent: 'flex-start' }}>
-          <Typography variant="body2" component="div" sx={{ fontWeight: 700, fontSize: '0.8rem', color: '#aaa', textShadow: '0 0 2px #000' }}>
-            {rutina ? formatFechaDisplay(rutina.fecha) : 'Sin fecha'}
+        {/* Lado izquierdo con fecha y controles de navegación - posicionado absolutamente */}
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1,
+          minWidth: '140px', 
+          justifyContent: 'flex-start',
+          position: 'absolute',
+          left: 0
+        }}>
+          <Typography variant="body2" component="div" sx={{ fontWeight: 700, fontSize: '0.8rem', color: '#aaa', textShadow: '0 0 2px #000', minWidth: '60px' }}>
+            {rutina ? formatFechaDisplay(rutina.fecha) : ''}
           </Typography>
-        </Box>
-
-        {/* Centro con todos los controles de navegación agrupados */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, justifyContent: 'center' }}>
+          
+          {/* Mover algunos controles al lado izquierdo para balance visual */}
           <Tooltip title="Rutina más reciente">
             <span>
               <IconButton 
                 size="small" 
                 onClick={onPrevious}
                 disabled={currentPage <= 1 || loading}
-                sx={{
-                  padding: '2px',
-                }}
+                sx={{ padding: '2px' }}
                 data-testid="prev-button"
               >
                 <NavigateBefore 
                   sx={{ 
                     color: '#888 !important',
-                    fontSize: '1.5rem',
-                    textShadow: '0 0 2px #000',
-                    transition: 'color 0.2s',
-                    '&:hover': { color: '#fff !important', textShadow: '0 0 4px #000' }
-                  }} 
-                />
-              </IconButton>
-            </span>
-          </Tooltip>
-
-          <Tooltip title="Ir a hoy">
-            <IconButton 
-              size="small" 
-              onClick={goToToday}
-              disabled={loading}
-              sx={{
-                padding: '2px',
-              }}
-            >
-              <TodayIcon sx={{ color: loading ? 'rgba(136,136,136,0.3) !important' : '#888 !important', textShadow: '0 0 2px #000', transition: 'color 0.2s', '&:hover': { color: '#fff !important', textShadow: '0 0 4px #000' } }} />
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title="Agregar nueva rutina">
-            <IconButton 
-              size="small" 
-              onClick={onAdd}
-              disabled={loading}
-              sx={{
-                padding: '2px',
-              }}
-            >
-              <AddIcon fontSize="small" sx={{ color: loading ? 'rgba(136,136,136,0.3) !important' : '#888 !important', textShadow: '0 0 2px #000', transition: 'color 0.2s', '&:hover': { color: '#fff !important', textShadow: '0 0 4px #000' } }} />
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title="Editar">
-            <IconButton 
-              size="small" 
-              onClick={() => rutina && onEdit(rutina)}
-              disabled={loading || !rutina}
-              sx={{
-                padding: '2px',
-              }}
-            >
-              <EditIcon fontSize="small" sx={{ color: (loading || !rutina) ? 'rgba(136,136,136,0.3) !important' : '#888 !important', textShadow: '0 0 2px #000', transition: 'color 0.2s', '&:hover': { color: '#fff !important', textShadow: '0 0 4px #000' } }} />
-            </IconButton>
-          </Tooltip>
-          
-          <Tooltip title="Eliminar">
-            <IconButton 
-              size="small" 
-              onClick={handleDelete}
-              disabled={loading || !rutina}
-              sx={{
-                padding: '2px',
-              }}
-            >
-              <DeleteIcon fontSize="small" sx={{ color: (loading || !rutina) ? 'rgba(136,136,136,0.3) !important' : '#888 !important', textShadow: '0 0 2px #000', transition: 'color 0.2s', '&:hover': { color: '#fff !important', textShadow: '0 0 4px #000' } }} />
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title="Rutina siguiente">
-            <span>
-              <IconButton 
-                size="small" 
-                onClick={onNext}
-                disabled={currentPage >= totalPages || loading}
-                sx={{
-                  padding: '2px',
-                }}
-                data-testid="next-button"
-              >
-                <NavigateNext 
-                  sx={{ 
-                    color: '#888 !important',
-                    fontSize: '1.5rem',
+                    fontSize: '1.2rem',
                     textShadow: '0 0 2px #000',
                     transition: 'color 0.2s',
                     '&:hover': { color: '#fff !important', textShadow: '0 0 4px #000' }
@@ -281,8 +212,81 @@ const RutinaNavigation = ({
           </Tooltip>
         </Box>
 
-        {/* Lado derecho con porcentaje */}
-        <Box sx={{ display: 'flex', alignItems: 'center', minWidth: '80px', justifyContent: 'flex-end' }}>
+        {/* Centro con controles principales - centrado absolutamente */}
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 0.75, 
+          justifyContent: 'center',
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0
+        }}>
+          <Tooltip title="Ir a hoy">
+            <span>
+              <IconButton 
+                size="small" 
+                onClick={goToToday}
+                disabled={loading}
+                sx={{ padding: '2px' }}
+              >
+                <TodayIcon sx={{ color: loading ? 'rgba(136,136,136,0.3) !important' : '#888 !important', textShadow: '0 0 2px #000', transition: 'color 0.2s', '&:hover': { color: '#fff !important', textShadow: '0 0 4px #000' } }} />
+              </IconButton>
+            </span>
+          </Tooltip>
+
+          <Tooltip title="Agregar nueva rutina">
+            <span>
+              <IconButton 
+                size="small" 
+                onClick={onAdd}
+                disabled={loading}
+                sx={{ padding: '2px' }}
+              >
+                <AddIcon fontSize="small" sx={{ color: loading ? 'rgba(136,136,136,0.3) !important' : '#888 !important', textShadow: '0 0 2px #000', transition: 'color 0.2s', '&:hover': { color: '#fff !important', textShadow: '0 0 4px #000' } }} />
+              </IconButton>
+            </span>
+          </Tooltip>
+
+          <Tooltip title="Editar">
+            <span>
+              <IconButton 
+                size="small" 
+                onClick={() => rutina && onEdit(rutina)}
+                disabled={loading || !rutina}
+                sx={{ padding: '2px' }}
+              >
+                <EditIcon fontSize="small" sx={{ color: (loading || !rutina) ? 'rgba(136,136,136,0.3) !important' : '#888 !important', textShadow: '0 0 2px #000', transition: 'color 0.2s', '&:hover': { color: '#fff !important', textShadow: '0 0 4px #000' } }} />
+              </IconButton>
+            </span>
+          </Tooltip>
+          
+          <Tooltip title="Eliminar">
+            <span>
+              <IconButton 
+                size="small" 
+                onClick={handleDelete}
+                disabled={loading || !rutina}
+                sx={{ padding: '2px' }}
+              >
+                <DeleteIcon fontSize="small" sx={{ color: (loading || !rutina) ? 'rgba(136,136,136,0.3) !important' : '#888 !important', textShadow: '0 0 2px #000', transition: 'color 0.2s', '&:hover': { color: '#fff !important', textShadow: '0 0 4px #000' } }} />
+              </IconButton>
+            </span>
+          </Tooltip>
+        </Box>
+
+        {/* Lado derecho con porcentaje y navegación siguiente - posicionado absolutamente */}
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1,
+          minWidth: '140px', 
+          justifyContent: 'flex-end',
+          position: 'absolute',
+          right: 0
+        }}>
           <Chip 
             size="small"
             label={`${completionPercentage}%`} 
@@ -290,14 +294,37 @@ const RutinaNavigation = ({
             color={progressColor}
             sx={{
               fontWeight: 500,
-              minWidth: '40px',
+              minWidth: '50px',
               height: '22px',
               '& .MuiChip-label': {
-                padding: '0 6px',
+                padding: '0 8px',
                 fontSize: '0.75rem'
               }
             }}
           />
+          
+          {/* Mover la flecha siguiente al lado derecho para balance */}
+          <Tooltip title="Rutina siguiente">
+            <span>
+              <IconButton 
+                size="small" 
+                onClick={onNext}
+                disabled={currentPage >= totalPages || loading}
+                sx={{ padding: '2px' }}
+                data-testid="next-button"
+              >
+                <NavigateNext 
+                  sx={{ 
+                    color: '#888 !important',
+                    fontSize: '1.2rem',
+                    textShadow: '0 0 2px #000',
+                    transition: 'color 0.2s',
+                    '&:hover': { color: '#fff !important', textShadow: '0 0 4px #000' }
+                  }} 
+                />
+              </IconButton>
+            </span>
+          </Tooltip>
         </Box>
       </Box>
     </Box>

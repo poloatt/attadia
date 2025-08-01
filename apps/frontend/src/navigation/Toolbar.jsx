@@ -157,10 +157,6 @@ export default function Toolbar({
     };
   }, [shouldShowBack, parentInfo, additionalActions, children, showAddButton, entityConfig, isMobile]);
 
-  // Calcular el margen ajustado considerando las secciones de acciones
-  const adjustedMainMargin = baseMainMargin + leftSectionWidth;
-  const mainContentWidth = `calc(100vw - ${adjustedMainMargin}px - ${rightSectionWidth}px)`;
-
   // 3. RENDER
   if (!showEntityToolbarNavigation) return null;
 
@@ -228,13 +224,13 @@ export default function Toolbar({
 
       {/* Sección principal - posicionada en el área del main content */}
       <Box sx={{
-        marginLeft: `${adjustedMainMargin}px`,
-        width: mainContentWidth,
+        width: '100%',
         height: FORM_HEIGHTS.toolbar,
         display: 'flex',
         alignItems: 'center',
         px: { xs: 1, sm: 2, md: 3 },
-        gap: 1
+        gap: 1,
+        position: 'relative'
       }}>
         {/* Sección izquierda: Botón de atrás */}
         <Box 
@@ -243,7 +239,9 @@ export default function Toolbar({
             display: 'flex',
             alignItems: 'center',
             flexShrink: 0,
-            minWidth: 'fit-content'
+            minWidth: 'fit-content',
+            position: 'absolute',
+            left: { xs: 1, sm: 2, md: 3 }
           }}
         >
           {shouldShowBack ? (
@@ -295,9 +293,12 @@ export default function Toolbar({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          flex: 1,
-          minHeight: FORM_HEIGHTS.minHeight,
-          position: 'relative'
+          width: '100%',
+          height: FORM_HEIGHTS.toolbar,
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: 0
         }}>
           {shouldShowSpecificNavigation() ? (
             // Usar navegación específica si está disponible
@@ -344,7 +345,9 @@ export default function Toolbar({
             justifyContent: 'flex-end',
             flexShrink: 0,
             minWidth: 48,
-            height: FORM_HEIGHTS.toolbar
+            height: FORM_HEIGHTS.toolbar,
+            position: 'absolute',
+            right: { xs: 1, sm: 2, md: 3 }
           }}
         >
           {/* Acciones adicionales */}

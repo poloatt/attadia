@@ -57,6 +57,17 @@ export function Layout() {
   // Determinar si se debe renderizar la sidebar
   const shouldRenderSidebar = !isMobileOrTablet || (isMobileOrTablet && showSidebarCollapsed && isOpen);
 
+  // Calcular el margen para el contenido principal en desktop
+  const getMainContentMargin = () => {
+    if (isMobileOrTablet) {
+      return 0; // En móvil/tablet, el contenido ocupa todo el ancho
+    }
+    // En desktop, siempre dejar espacio para la sidebar (colapsada o expandida)
+    return isOpen ? sidebarWidth : collapsedWidth;
+  };
+
+  const mainContentMargin = getMainContentMargin();
+
   return (
     <FormManagerProvider>
       <GlobalFormEventListener />
@@ -112,7 +123,7 @@ export function Layout() {
           sx={{
             position: 'fixed',
             top: 0,
-            left: 0,
+            left: mainContentMargin,
             right: 0,
             bottom: 0,
             pt: `${mainTopPadding}px`,
@@ -122,6 +133,7 @@ export function Layout() {
             overflowX: 'hidden',
             zIndex: 1,
             scrollbarGutter: 'stable',
+            transition: 'left 0.3s',
             '&::-webkit-scrollbar': {
               width: '8px',
             },
