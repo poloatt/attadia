@@ -39,7 +39,8 @@ function AuthCallback() {
 
         if (!token) {
           console.error('No se recibió token de autenticación');
-          toast.error(ERROR_MESSAGES.token_missing);
+          console.log('Redirigiendo a login porque no hay token en el callback');
+          toast.error('Sesión de autenticación inválida. Por favor, inicia sesión nuevamente.');
           navigate('/login');
           return;
         }
