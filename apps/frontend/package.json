@@ -7,6 +7,7 @@
     "dev": "vite",
     "staging": "vite --mode staging",
     "build": "vite build",
+    "build:vercel": "npx vite build",
     "build:staging": "vite build --mode staging",
     "build:prod": "vite build --mode production",
     "start": "vite preview",
