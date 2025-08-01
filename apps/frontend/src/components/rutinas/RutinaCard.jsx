@@ -987,9 +987,6 @@ const RutinaCard = ({
         onClick={handleToggle}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-          <Typography variant="subtitle2" sx={{ color: 'white', fontWeight: 'bold', fontSize: '0.92rem', flexShrink: 0 }}>
-            {capitalizeFirstLetter(title) || section}
-          </Typography>
           <Box sx={{ flexGrow: 1 }} />
           {!isExpanded && (
             <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 0.3, alignItems: 'center' }}>
