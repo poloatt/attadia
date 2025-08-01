@@ -88,6 +88,7 @@ function App() {
                   <Route path="/login" element={user ? <Navigate to="/assets/finanzas" replace /> : <Login />} />
                   <Route path="/registro" element={<Register />} />
                   <Route path="/auth/callback" element={<AuthCallback />} />
+                  <Route path="/auth/callback/*" element={<AuthCallback />} />
                   <Route path="/auth/error" element={<AuthError />} />
                   <Route path="/mercadopago/callback" element={<MercadoPagoCallbackPage />} />
                   
