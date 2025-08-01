@@ -21,14 +21,40 @@ function AuthCallback() {
   const location = useLocation();
   const { checkAuth } = useAuth();
 
+  console.log('🔍 AuthCallback renderizado:', {
+    pathname: location.pathname,
+    search: location.search,
+    hash: location.hash
+  });
+
   useEffect(() => {
+    console.log('🔍 AuthCallback useEffect ejecutado');
     const handleCallback = async () => {
       try {
         console.log('Iniciando manejo de callback de Google');
-        const params = new URLSearchParams(location.search);
-        const token = params.get('token');
-        const refreshToken = params.get('refreshToken');
-        const error = params.get('error');
+        
+        // Buscar parámetros tanto en location.search como en la URL completa
+        let params = new URLSearchParams(location.search);
+        let token = params.get('token');
+        let refreshToken = params.get('refreshToken');
+        let error = params.get('error');
+        
+        // Si no se encuentran en location.search, buscar en la URL completa
+        if (!token && !error) {
+          const urlParams = new URLSearchParams(window.location.search);
+          token = urlParams.get('token');
+          refreshToken = urlParams.get('refreshToken');
+          error = urlParams.get('error');
+        }
+        
+        console.log('Parámetros encontrados:', {
+          token: token ? 'presente' : 'ausente',
+          refreshToken: refreshToken ? 'presente' : 'ausente',
+          error: error || 'ninguno',
+          locationSearch: location.search,
+          windowLocationSearch: window.location.search,
+          fullUrl: window.location.href
+        });
 
         if (error) {
           console.error('Error en callback:', error);
@@ -65,7 +91,23 @@ function AuthCallback() {
         await new Promise(resolve => setTimeout(resolve, 500));
 
         // Verificación simplificada - confiar en que el token es válido si se recibió
-        console.log('Token recibido exitosamente, redirigiendo directamente');
+        console.log('Token recibido exitosamente, actualizando contexto de autenticación');
+        
+        // Decodificar el token JWT para obtener la información del usuario
+        try {
+          const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+          console.log('Token decodificado:', tokenPayload);
+          
+          // Actualizar el contexto de autenticación con la información del usuario
+          if (tokenPayload.user) {
+            // Forzar la actualización del contexto
+            await checkAuth();
+            console.log('Contexto de autenticación actualizado');
+          }
+        } catch (authError) {
+          console.error('Error al actualizar contexto:', authError);
+        }
+        
         toast.success('¡Bienvenido!');
         navigate('/assets/finanzas', { replace: true });
       } catch (error) {
@@ -79,7 +121,7 @@ function AuthCallback() {
     };
 
     handleCallback();
-  }, [navigate, location.search, isProcessing]);
+  }, [navigate, location.search, checkAuth]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

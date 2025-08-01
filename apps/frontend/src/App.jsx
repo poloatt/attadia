@@ -64,7 +64,10 @@ function App() {
     user: user ? 'presente' : 'ausente',
     loading,
     userEmail: user?.email,
-    isAuthenticated: !!user
+    isAuthenticated: !!user,
+    pathname: window.location.pathname,
+    search: window.location.search,
+    hash: window.location.hash
   });
 
   if (loading) {
