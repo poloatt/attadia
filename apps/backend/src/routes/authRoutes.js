@@ -171,7 +171,7 @@ router.get('/google/callback',
         error_description: req.query.error_description,
         error_uri: req.query.error_uri
       });
-      return res.redirect(`${config.frontendUrl}/auth/callback?error=${encodeURIComponent(req.query.error)}`);
+      return res.redirect(`${config.frontendUrl}/#/auth/callback?error=${encodeURIComponent(req.query.error)}`);
     }
 
     if (!req.query.code) {
@@ -179,12 +179,12 @@ router.get('/google/callback',
         env: config.env,
         headers: req.headers
       });
-      return res.redirect(`${config.frontendUrl}/auth/callback?error=no_auth_code`);
+      return res.redirect(`${config.frontendUrl}/#/auth/callback?error=no_auth_code`);
     }
 
     passport.authenticate('google', { 
       session: false,
-      failureRedirect: `${config.frontendUrl}/auth/callback?error=auth_failed`,
+      failureRedirect: `${config.frontendUrl}/#/auth/callback?error=auth_failed`,
       failureMessage: true
     })(req, res, next);
   },

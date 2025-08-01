@@ -15,7 +15,7 @@ import {
   import { Dialog } from '../utils/materialImports';
   import { MercadoPagoConnectButton, BankConnectionForm } from '../components/finance/bankconnections';
   import { getBreadcrumbs } from './breadcrumbUtils';
-import { getIconByKey } from './menuIcons';
+import { getIconByKey, icons } from './menuIcons';
 import { modulos } from './menuStructure';
 import { Breadcrumbs } from '../utils/materialImports';
 import useResponsive from '../hooks/useResponsive';
@@ -133,10 +133,7 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
               {/* Botón de atrás solo si no estamos en la raíz y la toolbar no está activa */}
               {location.pathname !== '/' && !showEntityToolbarNavigation && (
                 <IconButton onClick={handleBack} size="small" sx={{ ml: 0, mr: 0.5 }}>
-                  {(() => {
-                    const ArrowBackIcon = getIconByKey('arrowBack');
-                    return ArrowBackIcon ? <ArrowBackIcon sx={{ fontSize: 18 }} /> : <span>&larr;</span>;
-                  })()}
+                  {icons.arrowBack ? <icons.arrowBack sx={{ fontSize: 18 }} /> : <span>&larr;</span>}
                 </IconButton>
               )}
             </Box>
@@ -215,10 +212,7 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                  } : null,
                  !showEntityToolbarNavigation ? {
                    key: 'config',
-                   icon: (() => {
-                     const SettingsIcon = getIconByKey('settings');
-                     return SettingsIcon ? <SettingsIcon sx={{ fontSize: 20 }} /> : <span>⚙️</span>;
-                   })(),
+                   icon: icons.settings ? <icons.settings sx={{ fontSize: 20 }} /> : <span>⚙️</span>,
                    label: 'Configuración',
                    tooltip: 'Configuración',
                    onClick: () => navigate('/configuracion'),
