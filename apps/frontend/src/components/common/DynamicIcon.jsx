@@ -118,6 +118,8 @@ export const ClickableIcon = React.forwardRef(({
       color: 'primary.main',
       bgcolor: 'action.hover',
     },
+    // Aplicar padding personalizado si se proporciona
+    ...(sx.padding && { padding: sx.padding }),
     ...sx
   };
 

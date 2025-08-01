@@ -312,11 +312,46 @@ export default function Toolbar({
               <Box sx={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 0.5
+                gap: { xs: 0.125, sm: 0.5 }
               }}>
                 {siblings.map(item => {
                   const isActive = currentPath === item.path || currentPath.startsWith(item.path + '/');
-                  return (
+                  return isMobile ? (
+                    // Versión simplificada para móvil
+                    <Tooltip key={item.path} title={item.title}>
+                      <IconButton
+                        onClick={() => navigate(item.path)}
+                        size="small"
+                        sx={{
+                          bgcolor: 'transparent',
+                          color: isActive ? 'primary.main' : 'text.secondary',
+                          borderRadius: '50%',
+                          padding: 0.25,
+                          minWidth: 32,
+                          height: 32,
+                          position: 'relative',
+                          '&::after': isActive ? {
+                            content: '""',
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            width: 23,
+                            height: 23,
+                            borderRadius: '50%',
+                            bgcolor: 'action.selected',
+                            zIndex: -1
+                          } : {},
+                          '&:hover': {
+                            color: 'primary.main',
+                            bgcolor: isActive ? 'transparent' : 'action.hover',
+                          }
+                        }}
+                      >
+                        {React.createElement(getIconByKey(item.icon), { sx: { fontSize: 14 } })}
+                      </IconButton>
+                    </Tooltip>
+                  ) : (
                     <ClickableIcon
                       key={item.path}
                       iconKey={item.icon}
