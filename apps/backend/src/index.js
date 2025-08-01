@@ -117,7 +117,9 @@ app.use((req, res, next) => {
   }
 
   // En desarrollo permitir cualquier origen, en otros ambientes solo los configurados
-  if (config.env === 'development' || (origin && corsOrigins.includes(origin))) {
+  // También permitir dominios de Vercel automáticamente
+  const isVercelDomain = origin && origin.includes('vercel.app');
+  if (config.env === 'development' || (origin && corsOrigins.includes(origin)) || isVercelDomain) {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
