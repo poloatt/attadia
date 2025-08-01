@@ -7,8 +7,6 @@
     "dev": "vite",
     "staging": "vite --mode staging",
     "build": "vite build",
-    "build:vercel": "bash build.sh",
-    "build:vercel-simple": "node_modules/.bin/vite build",
     "build:staging": "vite build --mode staging",
     "build:prod": "vite build --mode production",
     "start": "vite preview",
