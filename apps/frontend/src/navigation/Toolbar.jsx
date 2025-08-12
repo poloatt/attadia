@@ -396,10 +396,10 @@ export default function Toolbar({
           })}
           {/* Children */}
           {!isMobile && children}
-          {/* Botón de agregar según reglas de nivel */}
-          {showAddButton && entityConfig ? (
+          {/* Botón de agregar según reglas de nivel - ocultar si hay navegación específica */}
+          {!shouldShowSpecificNavigation() && showAddButton && entityConfig ? (
             <SystemButtons.AddButton entityConfig={entityConfig} buttonSx={{ ml: 1 }} />
-          ) : (
+          ) : !shouldShowSpecificNavigation() ? (
             <Box sx={{
               display: 'flex',
               alignItems: 'center',
@@ -427,7 +427,7 @@ export default function Toolbar({
                 +
               </Box>
             </Box>
-          )}
+          ) : null}
         </Box>
       </Box>
     </Box>

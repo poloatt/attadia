@@ -183,11 +183,22 @@ const RutinasWithContext = () => {
 
   return (
     <Box component="main" className="page-main-content" sx={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ width: '100%', px: { xs: 1, sm: 2, md: 3 }, flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ 
+        width: '100%', 
+        maxWidth: 900,
+        mx: 'auto',
+        px: { xs: 1, sm: 2, md: 3 },
+        py: 0,
+        pb: { xs: 10, sm: 4 },
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 0
+      }}>
         <Box 
           sx={{ 
             py: isMobile ? 1 : 2,
-            px: isMobile ? 0 : 1,
+            px: { xs: 1, sm: 2, md: 3 },
             height: isMobile ? 'calc(100vh - 180px)' : 'calc(100vh - 190px)',
             overflowY: 'auto',
             '&::-webkit-scrollbar': {

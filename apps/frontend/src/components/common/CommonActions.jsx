@@ -110,19 +110,16 @@ export function getStandardActions({ onEdit, onDelete, itemName = 'este registro
 }
 
 // Helper para encontrar el item activo y su jerarquía
-function findMenuItemByPath(path, items = modulos) {
+// Preferir el match más profundo (buscar hijos antes que padres)
+function findMenuItemByPath(path, items = modulos, parent = null) {
   for (const item of items) {
-    if (item.path === path) return { item, parent: null };
-    if (item.subItems) {
-      for (const sub of item.subItems) {
-        if (sub.path === path) return { item: sub, parent: item };
-        if (sub.subItems) {
-          for (const subsub of sub.subItems) {
-            if (subsub.path === path) return { item: subsub, parent: sub };
-          }
-        }
-      }
+    // Buscar primero en los hijos para privilegiar el match más profundo
+    if (item.subItems && item.subItems.length > 0) {
+      const nested = findMenuItemByPath(path, item.subItems, item);
+      if (nested.item) return nested;
     }
+    // Si no se encontró en hijos, comparar el propio item
+    if (item.path === path) return { item, parent };
   }
   return { item: null, parent: null };
 }

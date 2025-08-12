@@ -724,18 +724,25 @@ export const RutinaTable = ({
   }
 
   return (
-    <Box sx={{ width: '100%' }}>
+    <Box sx={{ 
+      width: '100%',
+      maxWidth: 900,
+      mx: 'auto',
+      px: { xs: 1, sm: 2, md: 3 },
+      py: 3,
+      boxSizing: 'border-box'
+    }}>
       {/* Navegación y acciones */}
 
 
 
 
       {/* Contenido principal */}
-      <Grid container spacing={1.5} sx={{ mt: 0 }}>
+      <Grid container spacing={0} sx={{ mt: 0 }}>
         <Grid item xs={12}>
           <Card variant="outlined" sx={{ boxShadow: 'none', border: 'none', borderRadius: 0 }}>
-            <CardContent sx={{ p: 0 }}>
-              <Grid container spacing={1.5}>
+            <CardContent sx={{ p: 0.5 }}>
+              <Grid container spacing={1}>
                 {/* Body Care */}
                 <Grid item xs={12} md={6}>
                   <RutinaCard

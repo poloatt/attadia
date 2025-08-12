@@ -1051,7 +1051,7 @@ const CollapsedIcons = memo(({
   }, [sectionIcons, section, config, rutina, localData]);
   
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 0.5, width: '100%', alignItems: 'center', justifyContent: 'flex-end' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1, width: '100%', alignItems: 'center', justifyContent: 'flex-start', px: 1 }}>
       {itemsParaMostrar.length === 0 ? (
         <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', ml: 1 }}>
           No hay elementos para mostrar
@@ -1075,9 +1075,9 @@ const CollapsedIcons = memo(({
               }}
               readOnly={readOnly}
               sx={{
-                m: 0.5,
-                width: 28,
-                height: 28,
+                m: 0,
+                width: 32,
+                height: 32,
                 color: isCompleted ? 'primary.main' : 'rgba(255,255,255,0.5)',
                 bgcolor: isCompleted ? 'action.selected' : 'transparent',
                 borderRadius: '50%',
