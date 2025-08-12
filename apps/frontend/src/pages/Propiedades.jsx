@@ -41,7 +41,7 @@ import { useAuth } from '../context/AuthContext';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import SquareFootIcon from '@mui/icons-material/SquareFoot';
 import BathtubOutlinedIcon from '@mui/icons-material/BathtubOutlined';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import clienteAxios from '../config/axios';
 import { EmptyState } from '../components/common';
 import PropiedadForm from '../components/propiedades/PropiedadForm';
@@ -78,6 +78,7 @@ export function Propiedades() {
     cuentaId: ''
   });
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedItems, setSelectedItems] = useState([]);
   const [filteredPropiedades, setFilteredPropiedades] = useState([]);
   const [monedas, setMonedas] = useState([]);
@@ -207,10 +208,32 @@ export function Propiedades() {
     };
   }, []); // Solo ejecutar una vez al montar
 
-  // Escuchar evento del Header para abrir formulario cuando Toolbar esté oculto
+  // Abrir formulario automáticamente si viene de navegación con openAdd
+  useEffect(() => {
+    if (location.state?.openAdd) {
+      setEditingPropiedad(null);
+      setIsFormOpen(true);
+      // Limpiar el estado para evitar abrirlo de nuevo al navegar
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
+  // Listener local para abrir el formulario si ya estamos en la ruta
+  useEffect(() => {
+    const openLocal = () => {
+      setEditingPropiedad(null);
+      setIsFormOpen(true);
+    };
+    window.addEventListener('openAddFormLocal', openLocal);
+    return () => window.removeEventListener('openAddFormLocal', openLocal);
+  }, []);
+
+  // Escuchar evento del Header para abrir formulario cuando Toolbar esté oculta o visible
   useEffect(() => {
     const handleHeaderAddButton = (event) => {
-      if (event.detail.type === 'propiedad') {
+      const isSamePath = event.detail?.path && event.detail.path === window.location.pathname;
+      const isPropiedadType = event.detail?.type === 'propiedad' || event.detail?.type === 'propiedades';
+      if (isSamePath || isPropiedadType) {
         setEditingPropiedad(null);
         setIsFormOpen(true);
       }

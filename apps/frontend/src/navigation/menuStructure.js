@@ -5,7 +5,7 @@ import React from 'react';
 export const modulos = [
   {
     id: 'assets',
-    title: 'Assets',
+    title: 'Atta',
     icon: 'dollarSign',
     path: '/assets/finanzas',
     subItems: [
@@ -28,6 +28,7 @@ export const modulos = [
         title: 'Propiedades',
         icon: 'apartment',
         path: '/assets/propiedades',
+        canAdd: true,
         subItems: [
           { id: 'inquilinos', title: 'Inquilinos', path: '/assets/propiedades/inquilinos', icon: 'person', canAdd: true },
           { id: 'contratos', title: 'Contratos', path: '/assets/propiedades/contratos', icon: 'description', canAdd: true },
@@ -40,7 +41,7 @@ export const modulos = [
   },
   {
     id: 'salud',
-    title: 'Salud',
+    title: 'Pulso',
     icon: 'health',
     path: '/salud/datacorporal',
     subItems: [
@@ -51,7 +52,7 @@ export const modulos = [
   },
   {
     id: 'tiempo',
-    title: 'Tiempo',
+    title: 'Foco',
     icon: 'accessTime',
     path: '/tiempo/rutinas',
     subItems: [
@@ -77,7 +78,7 @@ export const modulos = [
 export const bottomNavigationItems = [
   {
     id: 'assets',
-    title: 'Assets',
+    title: 'Atta',
     icon: 'dollarSign',
     path: '/assets/finanzas',
     type: 'module',
@@ -85,7 +86,7 @@ export const bottomNavigationItems = [
   },
   {
     id: 'salud',
-    title: 'Salud',
+    title: 'Pulso',
     icon: 'health',
     path: '/salud/datacorporal',
     type: 'module',
@@ -93,7 +94,7 @@ export const bottomNavigationItems = [
   },
   {
     id: 'tiempo',
-    title: 'Tiempo',
+    title: 'Foco',
     icon: 'accessTime',
     path: '/tiempo/rutinas',
     type: 'module',

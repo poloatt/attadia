@@ -29,7 +29,7 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
   
   export default function Header() {
     const { toggleSidebar, isOpen: sidebarIsOpen, collapsedWidth, getMainMargin } = useSidebar();
-    const { showEntityToolbarNavigation } = useUISettings();
+    const { showEntityToolbarNavigation, showSidebarCollapsed } = useUISettings();
     const { 
       getRouteTitle, 
       getEntityConfig, 
@@ -53,8 +53,8 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
       breadcrumbs = getBreadcrumbs(location.pathname, modulos);
     }
     
-    // Usar función centralizada para calcular mainMargin
-    const mainMargin = getMainMargin(isMobile || isTablet);
+    // Usar función centralizada para calcular mainMargin (pasando visibilidad colapsada en móvil)
+    const mainMargin = getMainMargin(isMobile || isTablet, showSidebarCollapsed);
   
     const handleBack = () => {
       // Encuentra el menú padre según la ruta

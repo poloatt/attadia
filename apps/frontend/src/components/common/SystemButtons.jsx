@@ -278,7 +278,12 @@ function HeaderAddButton({ entityConfig, buttonSx }) {
           {canAddSelf && (
             <MenuItem onClick={handleCreateSelf}>
               <ListItemIcon>
-                <AddOutlinedIcon fontSize="small" />
+                {entityConfig.icon ? (
+                  typeof entityConfig.icon === 'string' ? 
+                    <DynamicIcon iconKey={entityConfig.icon} size="small" /> : 
+                    (React.isValidElement(entityConfig.icon) ? entityConfig.icon : 
+                     (typeof entityConfig.icon === 'function' ? React.createElement(entityConfig.icon) : <AddOutlinedIcon fontSize="small" />))
+                ) : <AddOutlinedIcon fontSize="small" />}
               </ListItemIcon>
               <ListItemText primary={`Agregar ${entityConfig.name || entityConfig.title}`} />
             </MenuItem>
@@ -541,6 +546,7 @@ function HeaderAppsButton({ iconSx }) {
       >
         {modulesList.map((modulo) => {
           const IconComponent = getIconByKey(modulo.icon);
+          console.log(`[HeaderAppsButton] Módulo: ${modulo.id}, icon: ${modulo.icon}, IconComponent:`, IconComponent, 'typeof:', typeof IconComponent);
           const isCurrentModule = location.pathname.startsWith(modulo.path) || 
                                  modulo.subItems?.some(sub => location.pathname.startsWith(sub.path));
           
@@ -556,13 +562,13 @@ function HeaderAppsButton({ iconSx }) {
               }}
             >
               <ListItemIcon>
-                {IconComponent && typeof IconComponent === 'function' ? React.createElement(IconComponent, { fontSize: 'small' }) : <AddOutlinedIcon fontSize="small" />}
+                {IconComponent ? React.createElement(IconComponent, { fontSize: 'small', sx: { color: 'white' } }) : <AddOutlinedIcon fontSize="small" sx={{ color: 'white' }} />}
               </ListItemIcon>
               <ListItemText 
                 primary={modulo.title}
                 primaryTypographyProps={{ 
                   fontWeight: isCurrentModule ? 600 : 400,
-                  color: isCurrentModule ? 'primary.main' : 'text.primary'
+                  color: 'white'
                 }}
               />
             </MenuItem>

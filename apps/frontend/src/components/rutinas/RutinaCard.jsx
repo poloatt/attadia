@@ -946,29 +946,25 @@ const RutinaCard = ({
   };
 
   return (
-    <Card sx={{ mb: 1, bgcolor: 'background.paper', borderRadius: 1.5, boxShadow: 'none', border: 'none', overflow: 'hidden' }}>
+    <Card sx={{ mb: 1, bgcolor: 'background.paper', borderRadius: 1.5, boxShadow: 'none', border: 'none', overflow: 'visible', position: 'relative' }}>
       {/* Label flotante de sección */}
       <Typography
         variant="caption"
         sx={{
           position: 'absolute',
-          top: 0,
-          left: 0,
-          mt: '-10px',
-          ml: 1,
-          px: 1.2,
-          py: 0.2,
-          bgcolor: theme => theme.palette.background.paper,
-          color: theme => theme.palette.text.secondary,
-          border: theme => `1.5px solid ${theme.palette.divider}`,
-          borderRadius: 0,
-          fontWeight: 600,
+          top: -10,
+          left: 8,
+          px: 0,
+          py: 0,
+          bgcolor: 'transparent',
+          color: 'text.secondary',
+          fontWeight: 700,
           fontSize: '0.72rem',
           zIndex: 10,
-          boxShadow: 'none',
           letterSpacing: 0.2,
           textTransform: 'uppercase',
           pointerEvents: 'none',
+          textShadow: '0 0 2px rgba(0,0,0,0.6)'
         }}
       >
         {capitalizeFirstLetter(title) || section}
