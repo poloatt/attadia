@@ -30,16 +30,25 @@
         e.preventDefault();
       });
 
-      // Registrar Service Worker para PWA
+      // Registrar Service Worker para PWA (forzar actualización inmediata)
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
           navigator.serviceWorker.register('/sw.js')
             .then(function(registration) {
               console.log('SW registered: ', registration);
+              // Forzar chequeo de nueva versión del SW
+              if (registration.update) {
+                registration.update();
+              }
             })
             .catch(function(registrationError) {
               console.log('SW registration failed: ', registrationError);
             });
+
+          // Recargar cuando el nuevo SW tome control (evita index.html viejo)
+          navigator.serviceWorker.addEventListener('controllerchange', function() {
+            window.location.reload();
+          });
         });
       }
     </script>
