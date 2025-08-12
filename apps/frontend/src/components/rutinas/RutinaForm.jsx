@@ -171,6 +171,27 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
     return configCompleta;
   };
 
+  // Normalizar configuración completa (todas las secciones/ítems)
+  const normalizeFullConfig = (config) => {
+    if (!config || typeof config !== 'object') return {};
+    const sections = ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'];
+    const normalized = {};
+    sections.forEach(section => {
+      const secCfg = config[section] || {};
+      normalized[section] = {};
+      Object.entries(secCfg).forEach(([itemId, cfg]) => {
+        if (!cfg) return;
+        normalized[section][itemId] = {
+          tipo: (cfg.tipo || 'DIARIO').toUpperCase(),
+          frecuencia: Number(cfg.frecuencia || 1),
+          periodo: cfg.periodo || 'CADA_DIA',
+          activo: cfg.activo !== false
+        };
+      });
+    });
+    return normalized;
+  };
+
   // Asegurar que rutinaData tiene una configuración completa al inicializarse
   useEffect(() => {
     if (!initialData) {
@@ -289,25 +310,35 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
         } catch {}
         onClose();
       } else {
-        // En creación, el backend ignora config y usa la global si useGlobalConfig=true
+        // En creación: crear y luego forzar actualización de config exacta
         const rutinaToCreate = {
           fecha: formData.fecha,
           useGlobalConfig: true
         };
         response = await clienteAxios.post('/api/rutinas', rutinaToCreate);
-        snackbar.success('Rutina creada con éxito');
-        
         const createdRutina = response.data;
         const rutinaId = createdRutina?._id;
+
         if (rutinaId) {
+          // Forzar que el nuevo registro tenga exactamente la config mostrada en el form
+          try {
+            const normalizedConfig = normalizeFullConfig(rutinaData.config);
+            await clienteAxios.put(`/api/rutinas/${rutinaId}`, {
+              _id: rutinaId,
+              config: normalizedConfig
+            });
+          } catch (e) {
+            console.warn('[RutinaForm] No se pudo aplicar la configuración completa al crear. Se usará la del backend', e);
+          }
+
+          snackbar.success('Rutina creada con éxito');
           // Notificar al contexto para que recargue y seleccione la nueva rutina
           try {
             window.dispatchEvent(new CustomEvent('rutina-updated', {
-              detail: { rutina: createdRutina, action: 'create' }
+              detail: { rutina: { ...createdRutina }, action: 'create' }
             }));
           } catch {}
           onClose();
-          // Navegar a la vista de rutinas (ruta válida)
           navigate('/tiempo/rutinas');
         }
       }

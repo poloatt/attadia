@@ -13,15 +13,53 @@ export default function shouldShowItem(section, itemId, rutina, additionalData =
     const config = rutina?.config?.[section]?.[itemId];
     if (!config || config.activo === false) return false;
 
+    // Normalizar fecha de rutina
     const fechaRutina = parseAPIDate(rutina.fecha) || new Date();
 
-    // Historial opcional en formato: additionalData.historial[section][itemId] => { 'YYYY-MM-DD': true }
+    // 1) Preferir contadores/períodos embebidos en la config (sin historial)
+    const tipo = (config.tipo || 'DIARIO').toUpperCase();
+    const frecuencia = Number(config.frecuencia || 1);
+    const progresoActual = Number(config.progresoActual || config.progress || 0);
+    const ultimoPeriodo = config.ultimoPeriodo; // { inicio, fin } opcional
+
+    if (ultimoPeriodo && ultimoPeriodo.inicio && ultimoPeriodo.fin) {
+      const inicio = new Date(ultimoPeriodo.inicio);
+      const fin = new Date(ultimoPeriodo.fin);
+      if (fechaRutina >= inicio && fechaRutina <= fin) {
+        // Si el contador del período actual alcanza la frecuencia, ocultar
+        if (progresoActual >= frecuencia) {
+          return false;
+        }
+      }
+    } else if (progresoActual >= frecuencia) {
+      // Si no hay información de período pero el progreso satisface la cuota, aplicar lógica mínima por tipo
+      if (tipo === 'DIARIO') {
+        return false;
+      }
+      // Para SEMANAL/MENSUAL sin período explícito, no podemos afirmar con certeza -> continuar a heurística
+    }
+
+    // 2) Historial: combinar diferentes formas de estructura (si existe)
+    // 1) additionalData.historial[section][itemId] => { 'YYYY-MM-DD': true }
+    // 2) additionalData.historial[section] => { 'YYYY-MM-DD': { [itemId]: true } }
     let historial = [];
-    const itemHist = additionalData?.historial?.[section]?.[itemId];
-    if (itemHist && typeof itemHist === 'object') {
+    const sectionHist = additionalData?.historial?.[section];
+    const itemHist = sectionHist?.[itemId];
+    if (Array.isArray(itemHist)) {
+      historial = itemHist.map(d => new Date(d));
+    } else if (itemHist && typeof itemHist === 'object') {
       historial = Object.entries(itemHist)
         .filter(([, completed]) => completed === true)
         .map(([dateStr]) => new Date(dateStr));
+    } else if (sectionHist && typeof sectionHist === 'object') {
+      // Forma por fecha -> items
+      historial = Object.entries(sectionHist)
+        .filter(([, items]) => items && items[itemId] === true)
+        .map(([dateStr]) => new Date(dateStr));
+    }
+    // Incluir completación de hoy si la rutina marca el item como completado
+    if (rutina?.[section]?.[itemId] === true) {
+      historial.push(fechaRutina);
     }
 
     return debesMostrarHabitoEnFecha(fechaRutina, config, historial);

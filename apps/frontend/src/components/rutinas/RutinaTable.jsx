@@ -35,7 +35,7 @@ import clienteAxios from '../../config/axios';
 import { NavigateBefore, NavigateNext, Today as TodayIcon } from '@mui/icons-material';
 import { useRutinas } from '../../context/RutinasContext';
 
-import shouldShowItemUtil from '../../utils/shouldShowItem';
+// Visibilidad centralizada gestionada en subcomponentes mediante visibilityUtils
 import { getNormalizedToday, toISODateString, parseAPIDate } from '../../utils/dateUtils';
 
 // Exportación nombrada para compatibilidad
@@ -201,26 +201,7 @@ export const RutinaTable = ({
     };
   }, [enqueueSnackbar]);
 
-  const shouldShowItem = (itemId, config, fecha) => {
-    // Si estamos en modo vista completa, mostrar todos los ítems
-    if (forceShowAll) return true;
-    
-    // Crear un objeto rutina simplificado para usar con la utilidad
-    const rutinaSimulada = {
-      fecha: fecha,
-      config: {
-        [section]: {
-          [itemId]: config
-        }
-      },
-      [section]: {
-        [itemId]: false
-      }
-    };
-    
-    // Usar la nueva utilidad para determinar si debe mostrarse
-    return shouldShowItemUtil(section, itemId, rutinaSimulada);
-  };
+  // Lógica de visibilidad unificada: se delega a RutinaCard/ChecklistSection vía visibilityUtils
 
   const handleConfigChange = (seccionId, itemId, newConfig) => {
     if (!rutina || !rutina._id) {

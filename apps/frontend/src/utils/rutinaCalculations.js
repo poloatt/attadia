@@ -1,4 +1,5 @@
 import shouldShowItem from './shouldShowItem.js';
+import { parseAPIDate } from './dateUtils.js';
 
 /**
  * Calcula los ítems visibles y completados para una rutina
@@ -39,10 +40,11 @@ export const calculateVisibleItems = (rutina) => {
       // Obtener todos los items de la sección
       Object.entries(rutina[section]).forEach(([itemId, isCompleted]) => {
         try {
-          // Siempre considerar los ítems como visibles para el cálculo de completitud
-          // Esto corrige el problema de mostrar 0% al inicio en la rutina de hoy
-          // También permite la actualización correcta del porcentaje en rutinas pasadas
-          const visible = true;
+          // Usar shouldShowItem para visibilidad coherente con UX (útiles)
+          const visible = shouldShowItem(section, itemId, {
+            ...rutina,
+            fecha: parseAPIDate(rutina.fecha)?.toISOString() || rutina.fecha
+          }, { historial: rutina?.historial || {} });
           
           if (visible) {
             // Agregar a la lista de ítems visibles

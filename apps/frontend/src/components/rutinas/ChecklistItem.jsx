@@ -117,7 +117,16 @@ const ChecklistItem = ({
                   color="text.secondary"
                   sx={{ fontSize: '0.7rem', mt: 0.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}
                 >
-                  {getFrecuenciaLabel(config)}
+                  {(() => {
+                    const tipo = (config?.tipo || 'DIARIO').toUpperCase();
+                    const frecuencia = Number(config?.frecuencia || 1);
+                    const progresoActual = typeof config?.progresoActual === 'number' ? config.progresoActual : null;
+                    // Heurística sin historial: para diario usar estado local; para otros, usar progresoActual si existe
+                    const completados = tipo === 'DIARIO'
+                      ? (isCompleted ? 1 : 0)
+                      : (progresoActual != null ? Math.min(frecuencia, Math.max(0, progresoActual)) : (isCompleted ? 1 : 0));
+                    return `${getFrecuenciaLabel(config)} • ${completados}/${frecuencia}`;
+                  })()}
                 </Typography>
               )}
             </Box>

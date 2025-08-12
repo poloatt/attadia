@@ -16,7 +16,8 @@ function getInitialSettings(isMobile) {
   // Valores por defecto - solo configuraciones de UI móvil
   return {
     showEntityToolbarNavigation: !isMobile,
-    showSidebarCollapsed: true // Por defecto visible en móvil
+    showSidebarCollapsed: true, // Por defecto visible en móvil
+    autoUpdateHabitPreferences: true // Nuevo: actualizar preferencias al editar inline
   };
 }
 
@@ -29,13 +30,17 @@ export function UISettingsProvider({ children }) {
   const [showSidebarCollapsed, setShowSidebarCollapsed] = useState(
     typeof initial.showSidebarCollapsed === 'boolean' ? initial.showSidebarCollapsed : false
   );
+  const [autoUpdateHabitPreferences, setAutoUpdateHabitPreferences] = useState(
+    typeof initial.autoUpdateHabitPreferences === 'boolean' ? initial.autoUpdateHabitPreferences : true
+  );
 
   useEffect(() => {
     localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify({
       showEntityToolbarNavigation,
-      showSidebarCollapsed
+      showSidebarCollapsed,
+      autoUpdateHabitPreferences
     }));
-  }, [showEntityToolbarNavigation, showSidebarCollapsed]);
+  }, [showEntityToolbarNavigation, showSidebarCollapsed, autoUpdateHabitPreferences]);
 
   const toggleEntityToolbarNavigation = () => {
     if (isMobile) {
@@ -58,6 +63,8 @@ export function UISettingsProvider({ children }) {
         showSidebarCollapsed,
         toggleSidebarCollapsed,
         setShowSidebarCollapsed,
+        autoUpdateHabitPreferences,
+        setAutoUpdateHabitPreferences,
         isMobile
       }}
     >

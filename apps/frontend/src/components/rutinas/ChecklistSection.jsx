@@ -29,12 +29,12 @@ import { useSnackbar } from 'notistack';
 // Importamos las utilidades de cadencia
 import { debesMostrarHabitoEnFecha, generarMensajeCadencia, obtenerUltimaCompletacion } from '../../utils/cadenciaUtils';
 import { getFrecuenciaLabel } from './InlineItemConfigImproved';
-// Importar el nuevo gestor de cadencia
-import { cadenciaManager, ITEM_STATES } from '../../utils/cadenciaManager';
+// Importar el nuevo gestor de visibilidad centralizado
 import { startOfWeek, isSameWeek, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { obtenerHistorialCompletaciones, esRutinaHistorica } from '../../utils/historialUtils';
+// historial removido del flujo simplificado
 import ChecklistItem from './ChecklistItem';
+import { getVisibleItemIds } from '../../utils/visibilityUtils';
 
 // Función para capitalizar solo la primera letra
 const capitalizeFirstLetter = (string) => {
@@ -42,73 +42,7 @@ const capitalizeFirstLetter = (string) => {
   return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
 };
 
-// Función mejorada para determinar si un ítem debe mostrarse según su configuración de cadencia
-const debesMostrarItem = async (itemId, section, config, rutina) => {
-  if (!config || !itemId || !config[itemId]) {
-    // Si no hay configuración, mostrar por defecto
-    return true;
-  }
-
-  const cadenciaConfig = config[itemId];
-
-  // Si la configuración está inactiva, no mostrar
-  if (!cadenciaConfig.activo) {
-    return false;
-  }
-
-  // Si estamos en modo edición o no existe rutina, mostrar siempre
-  if (!rutina || rutina._id === 'new') {
-    return true;
-  }
-
-  // Usar el nuevo gestor de cadencia
-  try {
-    const result = await cadenciaManager.shouldShowItem(section, itemId, rutina, {
-      historial: rutina.historial
-    });
-    
-    console.log(`[ChecklistSection] ${section}.${itemId}: ${result.shouldShow ? 'MOSTRAR' : 'OCULTAR'} - ${result.reason}`);
-    
-    return result.shouldShow;
-  } catch (error) {
-    console.error(`[ChecklistSection] Error determinando visibilidad para ${section}.${itemId}:`, error);
-    return true; // En caso de error, mostrar por defecto
-  }
-};
-
-// Función mejorada para determinar si un ítem debe mostrarse en la vista principal (no colapsable)
-const debesMostrarItemEnVistaPrincipal = async (itemId, section, config, rutina, localData = {}) => {
-  // Si no hay configuración, mostrar por defecto
-  if (!config || !itemId || !config[itemId]) {
-    return true;
-  }
-
-  // Si estamos en modo edición o no existe rutina, mostrar siempre
-  if (!rutina || rutina._id === 'new') {
-    return true;
-  }
-  
-  // Usar el nuevo gestor de cadencia con datos locales
-  try {
-    const result = await cadenciaManager.shouldShowItem(section, itemId, rutina, {
-      historial: rutina.historial,
-      localData: localData
-    });
-    
-    // Si está completado hoy (según datos locales), siempre mostrar 
-    const completadoHoy = localData[itemId] === true || rutina?.[section]?.[itemId] === true;
-    if (completadoHoy) {
-      return true;
-    }
-    
-    console.log(`[ChecklistSection-VistaPrincipal] ${section}.${itemId}: ${result.shouldShow ? 'MOSTRAR' : 'OCULTAR'} - ${result.reason}`);
-    
-    return result.shouldShow;
-  } catch (error) {
-    console.error(`[ChecklistSection] Error determinando visibilidad principal para ${section}.${itemId}:`, error);
-    return true; // En caso de error, mostrar por defecto
-  }
-};
+// Eliminadas funciones ad-hoc de visibilidad: usamos visibilityUtils centralizado
 
 // Función para obtener el historial de completados de un ítem
 const obtenerHistorialCompletados = (itemId, section, rutina) => {
@@ -700,41 +634,9 @@ const RutinaCard = ({
 
   // Filtrar ítems según configuración de cadencia (lógica sincrónica)
   const itemsAMostrar = useMemo(() => {
-    if (!section || !iconConfig[section]) {
-      return [];
-    }
-
-    // Forzar actualización de la UI cuando cambia la configuración
-    const configKeys = config ? Object.keys(config).join(',') : '';
-    
-    // Incluir forceUpdate para garantizar que se recalcule cuando cambia la configuración
-    const refreshTrigger = forceUpdate;
-
-    return Object.keys(iconConfig[section])
-      .filter(itemId => {
-        // Lógica sincrónica simplificada para el filtrado inicial
-        const cadenciaConfig = config && config[itemId] ? config[itemId] : null;
-        
-        // Si no hay configuración, mostrar por defecto
-        if (!cadenciaConfig) {
-          return true;
-        }
-        
-        // Si la configuración está inactiva, no mostrar
-        if (!cadenciaConfig.activo) {
-          return false;
-        }
-        
-        // Si estamos en modo edición o no existe rutina, mostrar siempre
-        if (!rutina || rutina._id === 'new') {
-          return true;
-        }
-        
-        // Para la vista expandida, mostrar todos los elementos activos
-        // La lógica completa de cadencia se aplica en `renderItems`
-        return true;
-      });
-  }, [section, config, rutina, forceUpdate]);
+    if (!section || !iconConfig[section]) return [];
+    return getVisibleItemIds(iconConfig[section], section, rutina, config, localData);
+  }, [section, config, rutina, localData, forceUpdate]);
 
   // Verificar que tenemos iconos para mostrar
   if (Object.keys(sectionIcons).length === 0) {
@@ -776,7 +678,7 @@ const RutinaCard = ({
   // Renderizar cada ítem con su propio setup (engranaje) que muestra/oculte su InlineItemConfigImproved
   const renderItems = () => {
     const icons = sectionIcons || {};
-    const orderedKeys = Object.keys(icons).sort((a, b) => {
+    const orderedKeys = itemsAMostrar.sort((a, b) => {
       const labelA = icons[a]?.label?.toLowerCase() || a;
       const labelB = icons[b]?.label?.toLowerCase() || b;
       return labelA.localeCompare(labelB);
@@ -960,19 +862,7 @@ const CollapsedIcons = memo(({
   if (!rutina) return null;
   
   const itemsParaMostrar = useMemo(() => {
-    return Object.keys(sectionIcons).filter(itemId => {
-      // Usar una comprobación rápida en lugar de la función más lenta
-      if (!rutina?.config?.[section]?.[itemId]) {
-        return true;
-      }
-      
-      const itemConfig = rutina.config[section][itemId];
-      if (itemConfig && itemConfig.activo === false) {
-        return false;
-      }
-      
-      return debesMostrarItemEnVistaPrincipal(itemId, section, config, rutina, localData);
-    });
+    return getVisibleItemIds(sectionIcons, section, rutina, config, localData);
   }, [sectionIcons, section, config, rutina, localData]);
   
   return (

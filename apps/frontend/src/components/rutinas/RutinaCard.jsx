@@ -29,11 +29,10 @@ import { useSnackbar } from 'notistack';
 // Importamos las utilidades de cadencia
 import { debesMostrarHabitoEnFecha, generarMensajeCadencia, obtenerUltimaCompletacion } from '../../utils/cadenciaUtils';
 import { getFrecuenciaLabel } from './InlineItemConfigImproved';
-// Importar el nuevo gestor de cadencia
-import { cadenciaManager, ITEM_STATES } from '../../utils/cadenciaManager';
+// La visibilidad en esta vista extendida no oculta ítems; solo se ocultan completos en vista colapsada
 import { startOfWeek, isSameWeek, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { obtenerHistorialCompletaciones, esRutinaHistorica } from '../../utils/historialUtils';
+// historial removido del flujo simplificado
 import ChecklistItem, { HabitIconButton } from './ChecklistItem';
 
 // Función para capitalizar solo la primera letra
@@ -42,73 +41,7 @@ const capitalizeFirstLetter = (string) => {
   return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
 };
 
-// Función mejorada para determinar si un ítem debe mostrarse según su configuración de cadencia
-const debesMostrarItem = async (itemId, section, config, rutina) => {
-  if (!config || !itemId || !config[itemId]) {
-    // Si no hay configuración, mostrar por defecto
-    return true;
-  }
-
-  const cadenciaConfig = config[itemId];
-
-  // Si la configuración está inactiva, no mostrar
-  if (!cadenciaConfig.activo) {
-    return false;
-  }
-
-  // Si estamos en modo edición o no existe rutina, mostrar siempre
-  if (!rutina || rutina._id === 'new') {
-    return true;
-  }
-
-  // Usar el nuevo gestor de cadencia
-  try {
-    const result = await cadenciaManager.shouldShowItem(section, itemId, rutina, {
-      historial: rutina.historial
-    });
-    
-    console.log(`[ChecklistSection] ${section}.${itemId}: ${result.shouldShow ? 'MOSTRAR' : 'OCULTAR'} - ${result.reason}`);
-    
-    return result.shouldShow;
-  } catch (error) {
-    console.error(`[ChecklistSection] Error determinando visibilidad para ${section}.${itemId}:`, error);
-    return true; // En caso de error, mostrar por defecto
-  }
-};
-
-// Función mejorada para determinar si un ítem debe mostrarse en la vista principal (no colapsable)
-const debesMostrarItemEnVistaPrincipal = async (itemId, section, config, rutina, localData = {}) => {
-  // Si no hay configuración, mostrar por defecto
-  if (!config || !itemId || !config[itemId]) {
-    return true;
-  }
-
-  // Si estamos en modo edición o no existe rutina, mostrar siempre
-  if (!rutina || rutina._id === 'new') {
-    return true;
-  }
-  
-  // Usar el nuevo gestor de cadencia con datos locales
-  try {
-    const result = await cadenciaManager.shouldShowItem(section, itemId, rutina, {
-      historial: rutina.historial,
-      localData: localData
-    });
-    
-    // Si está completado hoy (según datos locales), siempre mostrar 
-    const completadoHoy = localData[itemId] === true || rutina?.[section]?.[itemId] === true;
-    if (completadoHoy) {
-      return true;
-    }
-    
-    console.log(`[ChecklistSection-VistaPrincipal] ${section}.${itemId}: ${result.shouldShow ? 'MOSTRAR' : 'OCULTAR'} - ${result.reason}`);
-    
-    return result.shouldShow;
-  } catch (error) {
-    console.error(`[ChecklistSection] Error determinando visibilidad principal para ${section}.${itemId}:`, error);
-    return true; // En caso de error, mostrar por defecto
-  }
-};
+// Eliminadas funciones ad-hoc de visibilidad: usamos visibilityUtils centralizado
 
 // Función para obtener el historial de completados de un ítem
 const obtenerHistorialCompletados = (itemId, section, rutina) => {
@@ -776,6 +709,7 @@ const RutinaCard = ({
   // Renderizar cada ítem con su propio setup (engranaje) que muestra/oculte su InlineItemConfigImproved
   const renderItems = () => {
     const icons = sectionIcons || {};
+    // Vista extendida: NO ocultar ítems por visibilidad; mostrar todos los activos
     const orderedKeys = Object.keys(icons).sort((a, b) => {
       const labelA = icons[a]?.label?.toLowerCase() || a;
       const labelB = icons[b]?.label?.toLowerCase() || b;
@@ -1036,18 +970,12 @@ const CollapsedIcons = memo(({
   if (!rutina) return null;
   
   const itemsParaMostrar = useMemo(() => {
+    // Vista colapsada: ocultar íconos completados; mostrar ítems activos no completados
     return Object.keys(sectionIcons).filter(itemId => {
-      // Usar una comprobación rápida en lugar de la función más lenta
-      if (!rutina?.config?.[section]?.[itemId]) {
-        return true;
-      }
-      
-      const itemConfig = rutina.config[section][itemId];
-      if (itemConfig && itemConfig.activo === false) {
-        return false;
-      }
-      
-      return debesMostrarItemEnVistaPrincipal(itemId, section, config, rutina, localData);
+      const itemConfig = config?.[itemId];
+      if (!itemConfig || itemConfig.activo === false) return false;
+      const isCompleted = !!localData[itemId] || !!rutina?.[section]?.[itemId];
+      return !isCompleted; // ocultar completados
     });
   }, [sectionIcons, section, config, rutina, localData]);
   
