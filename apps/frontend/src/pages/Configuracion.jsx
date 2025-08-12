@@ -18,7 +18,7 @@ import {
 } from '@mui/material';
 import { useUISettings } from '../context/UISettingsContext';
 import { useSidebar } from '../context/SidebarContext';
-import { CommonConstruction } from '../components/common';
+
 import { useAuth } from '../context/AuthContext';
 import { Toolbar } from '../navigation';
 import useResponsive from '../hooks/useResponsive';
@@ -130,7 +130,7 @@ export function Configuracion() {
           </Box>
         </Paper>
 
-        <CommonConstruction />
+
 
         {/* Sección de Cuenta de Usuario */}
         <Paper
