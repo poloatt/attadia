@@ -39,7 +39,7 @@ export const EntityActions = memo(({
   disabled = false,
   extraActions = []
 }) => {
-  const actions = [
+  const builtActions = [
     ...extraActions,
     onContratoDetail && {
       key: 'contratoDetail',
@@ -64,7 +64,7 @@ export const EntityActions = memo(({
   ].filter(Boolean);
   return (
     <SystemButtons
-      actions={actions}
+      actions={builtActions}
       direction={direction}
       size={size}
       disabled={disabled}

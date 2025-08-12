@@ -90,7 +90,9 @@ const theme = createTheme({
           borderRight: '1px solid rgba(140, 140, 140, 0.15)',
           '& .MuiListItemButton-root': {
             minHeight: 40,
-            padding: '4px 12px',
+            paddingTop: 4,
+            paddingBottom: 4,
+            paddingRight: 12,
             margin: '2px 4px',
             borderRadius: 1,
             '&:hover': {

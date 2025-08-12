@@ -60,15 +60,16 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
     }
   });
 
-  // Cambiar la inicialización de formData para que fecha sea string YYYY-MM-DD
+  // Cambiar la inicialización de formData para que fecha sea string YYYY-MM-DD sin desfases de timezone
   const [formData, setFormData] = useState(() => {
     let initialDate;
     if (initialData?.fecha) {
-      // Si hay fecha inicial, usarla como string
-      initialDate = typeof initialData.fecha === 'string' ? initialData.fecha : formatDate(initialData.fecha);
+      // Interpretar siempre como día (sin arrastre de timezone)
+      const parsed = parseAPIDate(initialData.fecha);
+      initialDate = formatDateForAPI(parsed);
     } else {
-      // Usar la fecha de hoy como string
-      initialDate = formatDate(getNormalizedToday());
+      // Usar la fecha de hoy normalizada y formateada
+      initialDate = formatDateForAPI(getNormalizedToday());
     }
     return {
       fecha: initialDate, // Guardar como string YYYY-MM-DD
@@ -80,11 +81,11 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
   useEffect(() => {
     if (initialData) {
       setRutinaData(initialData);
-      // Usar la fecha como string YYYY-MM-DD
-      const parsedDate = typeof initialData.fecha === 'string' ? new Date(initialData.fecha) : initialData.fecha;
+      // Usar la fecha como string YYYY-MM-DD sin desfases
+      const parsedDate = parseAPIDate(initialData.fecha);
       setFormData(prev => ({
         ...prev,
-        fecha: parsedDate ? formatDate(parsedDate) : formatDate(getNormalizedToday())
+        fecha: parsedDate ? formatDateForAPI(parsedDate) : formatDateForAPI(getNormalizedToday())
       }));
     }
   }, [initialData]);
@@ -92,7 +93,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
   // handleDateChange simplificado
   const handleDateChange = (newDate) => {
     if (!newDate || isNaN(newDate.getTime())) return;
-    const fechaString = formatDate(newDate);
+    const fechaString = formatDateForAPI(newDate);
     setFormData(prev => ({
       ...prev,
       fecha: fechaString
@@ -136,6 +137,18 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
     activo: true
   });
 
+  // Crear secciones por defecto con todos los ítems en false
+  const createDefaultSections = () => {
+    const defaultSections = {};
+    Object.keys(iconConfig).forEach(section => {
+      defaultSections[section] = {};
+      Object.keys(iconConfig[section]).forEach(item => {
+        defaultSections[section][item] = false;
+      });
+    });
+    return defaultSections;
+  };
+
   const initializeDefaultConfig = () => {
     // Crear una estructura de configuración completa para todas las secciones
     const configCompleta = {
@@ -160,9 +173,11 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
     if (!initialData) {
       // Si es una nueva rutina, inicializar con configuración completa
       const configPorDefecto = initializeDefaultConfig();
+      const seccionesPorDefecto = createDefaultSections();
       
       setRutinaData(prev => ({
         ...prev,
+        ...seccionesPorDefecto,
         config: configPorDefecto
       }));
       
@@ -208,27 +223,47 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
     setError(null);
     
     try {
-      const rutinaToSubmit = {
-        fecha: formData.fecha,
-        useGlobalConfig: true,
-        config: rutinaData.config
-      };
-      
       let response;
       if (isEditing && initialData?._id) {
+        // En edición, enviar configuración para persistir cambios
+        const rutinaToSubmit = {
+          fecha: formData.fecha,
+          useGlobalConfig: true,
+          config: rutinaData.config
+        };
         response = await clienteAxios.put(`/api/rutinas/${initialData._id}`, rutinaToSubmit);
         snackbar.success('Rutina actualizada con éxito');
+        // Notificar al contexto para recargar la rutina actualizada
+        try {
+          const updatedRutina = response?.data;
+          if (updatedRutina && updatedRutina._id) {
+            window.dispatchEvent(new CustomEvent('rutina-updated', {
+              detail: { rutina: updatedRutina, action: 'update' }
+            }));
+          }
+        } catch {}
         onClose();
       } else {
-        response = await clienteAxios.post('/api/rutinas', rutinaToSubmit);
+        // En creación, el backend ignora config y usa la global si useGlobalConfig=true
+        const rutinaToCreate = {
+          fecha: formData.fecha,
+          useGlobalConfig: true
+        };
+        response = await clienteAxios.post('/api/rutinas', rutinaToCreate);
         snackbar.success('Rutina creada con éxito');
         
-        const rutinaId = response.data?._id;
+        const createdRutina = response.data;
+        const rutinaId = createdRutina?._id;
         if (rutinaId) {
+          // Notificar al contexto para que recargue y seleccione la nueva rutina
+          try {
+            window.dispatchEvent(new CustomEvent('rutina-updated', {
+              detail: { rutina: createdRutina, action: 'create' }
+            }));
+          } catch {}
           onClose();
-          setTimeout(() => {
-            navigate(`/rutinas/${rutinaId}`);
-          }, 50);
+          // Navegar a la vista de rutinas (ruta válida)
+          navigate('/tiempo/rutinas');
         }
       }
       

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useSnackbar } from 'notistack';
 import { useNavigate, useParams } from 'react-router-dom';
 import clienteAxios from '../config/axios';
+import { getNormalizedToday, toISODateString } from '../utils/dateUtils';
 import { applyLocalChanges, saveLocalChanges } from '../utils/localChanges';
 import rutinasService from '../services/rutinasService';
 import shouldShowItem from '../utils/shouldShowItem';
@@ -124,44 +125,28 @@ export const RutinasProvider = ({ children }) => {
       
       setRutinas(rutinasConCambiosLocales);
       
-      // Si existe rutina seleccionada, encontrar su índice en el nuevo array ordenado
-      const rutinaActual = rutina;
-      if (rutinaActual && rutinaActual._id) {
-        const rutinaIndex = rutinasConCambiosLocales.findIndex(r => r._id === rutinaActual._id);
-        
-        if (rutinaIndex !== -1) {
-          // Si la rutina existe, actualizarla con los cambios locales y mantener su posición
-          const rutinaActualizada = {
-            ...rutinasConCambiosLocales[rutinaIndex],
-            _page: rutinaIndex + 1,
-            _totalPages: totalRutinas
-          };
-          
-          setRutina(rutinaActualizada);
-          setCurrentPage(rutinaIndex + 1);
-          
-          console.log(`[RutinasContext] Rutina actual actualizada en posición ${rutinaIndex + 1}/${totalRutinas}`);
-        } else if (rutinasConCambiosLocales.length > 0) {
-          // Si la rutina ya no existe, seleccionar la primera
-          setRutina({
-            ...rutinasConCambiosLocales[0],
-            _page: 1,
-            _totalPages: totalRutinas
-          });
-          setCurrentPage(1);
-          
-          console.log('[RutinasContext] Rutina actual no encontrada, seleccionando la primera');
-        }
-      } else if (rutinasConCambiosLocales.length > 0) {
-        // Si no hay rutina seleccionada, seleccionar la primera por defecto
+      // Selección simple: primero intentar la rutina de hoy, si no existe usar la más reciente
+      if (rutinasConCambiosLocales.length > 0) {
+        const todayStr = toISODateString(getNormalizedToday());
+        const indexToday = rutinasConCambiosLocales.findIndex(r => {
+          try {
+            return new Date(r.fecha).toISOString().split('T')[0] === todayStr;
+          } catch {
+            return false;
+          }
+        });
+        const selectedIndex = indexToday >= 0 ? indexToday : 0;
+        const selected = rutinasConCambiosLocales[selectedIndex];
         setRutina({
-          ...rutinasConCambiosLocales[0],
-          _page: 1,
+          ...selected,
+          _page: selectedIndex + 1,
           _totalPages: totalRutinas
         });
+        setCurrentPage(selectedIndex + 1);
+        console.log(`[RutinasContext] Seleccionada rutina inicial: posición ${selectedIndex + 1}/${totalRutinas}`);
+      } else {
+        setRutina(null);
         setCurrentPage(1);
-        
-        console.log('[RutinasContext] No hay rutina seleccionada, seleccionando la primera por defecto');
       }
       
     } catch (error) {
@@ -760,8 +745,13 @@ export const RutinasProvider = ({ children }) => {
     return localChangesRef.current;
   }, [markRutinaAsDirty, rutina, enqueueSnackbar]);
 
-  // Cargar rutinas solo cuando se solicite explícitamente
-  // Removido el useEffect automático para evitar cargas innecesarias
+  // Carga inicial simplificada: si no hay datos, cargar automáticamente una vez
+  useEffect(() => {
+    if (!loading && rutinas.length === 0) {
+      fetchRutinas();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Manejo inicial de la rutina cuando se cargan las rutinas
   useEffect(() => {

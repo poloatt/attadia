@@ -27,8 +27,8 @@ export const SIDEBAR_CONFIG = {
   child: {
     collapsedPadding: 2,    // Theme units cuando colapsada
     baseAlignment: 52,      // 16px (parent) + 36px (icon) = punto base de alineación
-    additionalGap: 0,       // Gap adicional si es necesario
-    alignmentOffset: 0,     // Offset fino para ajustes
+    additionalGap: 0,       // Sin gap adicional: hijos comienzan donde termina el ícono del parent
+    alignmentOffset: -12,    // Ajuste fino: reducir 4px el margen
     iconSize: 'small',      // Tamaño de íconos child
     minHeight: 32,          // Altura mínima del ListItemButton child
     marginBottom: 0.15      // Margen inferior entre items child

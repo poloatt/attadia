@@ -24,17 +24,18 @@ export const modulos = [
         ]
       },
       {
-        id: 'propiedades',
-        title: 'Propiedades',
-        icon: 'apartment',
+        id: 'bienes',
+        title: 'Bienes',
+        icon: 'bienes',
         path: '/assets/propiedades',
         canAdd: true,
         subItems: [
-          { id: 'inquilinos', title: 'Inquilinos', path: '/assets/propiedades/inquilinos', icon: 'person', canAdd: true },
-          { id: 'contratos', title: 'Contratos', path: '/assets/propiedades/contratos', icon: 'description', canAdd: true },
+          { id: 'propiedades', title: 'Propiedades', path: '/assets/propiedades', icon: 'apartment', canAdd: true },
           { id: 'habitaciones', title: 'Habitaciones', path: '/assets/propiedades/habitaciones', icon: 'bed', canAdd: true },
-          { id: 'autos', title: 'Autos', path: '/assets/propiedades/autos', icon: 'auto', isUnderConstruction: true },
-          { id: 'inventario', title: 'Inventario', path: '/assets/propiedades/inventario', icon: 'inventario', isUnderConstruction: true }
+          { id: 'contratos', title: 'Contratos', path: '/assets/propiedades/contratos', icon: 'description', canAdd: true },
+          { id: 'inquilinos', title: 'Inquilinos', path: '/assets/propiedades/inquilinos', icon: 'person', canAdd: true },
+          { id: 'inventario', title: 'Inventario', path: '/assets/propiedades/inventario', icon: 'inventario', isUnderConstruction: true },
+          { id: 'vehiculos', title: 'Vehículos', path: '/assets/propiedades/vehiculos', icon: 'auto', isUnderConstruction: true }
         ]
       }
     ]

@@ -88,8 +88,8 @@ export default function Sidebar({ moduloActivo, nivel1Activo }) {
             disabled={item.isUnderConstruction}
             sx={{
               minHeight: isChild ? SIDEBAR_CONFIG.child.minHeight : SIDEBAR_CONFIG.parent.minHeight,
-              pl: padding,
-              pr: isOpen ? 1.5 : (isChild ? 1 : 0),
+              paddingLeft: padding,
+              paddingRight: isOpen ? 12 : (isChild ? 8 : 0),
               borderRadius: SIDEBAR_CONFIG.parent.borderRadius,
               mb: isChild ? SIDEBAR_CONFIG.child.marginBottom : SIDEBAR_CONFIG.parent.marginBottom,
               justifyContent: isOpen ? 'initial' : 'center',

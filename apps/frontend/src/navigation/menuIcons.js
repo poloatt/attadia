@@ -32,7 +32,8 @@ import {
   AddCircleOutline, // cruz médica dentro de círculo para salud
   BedOutlined, // icono de cama para habitaciones
   TuneOutlined,
-  ConstructionOutlined // icono de construcción
+  ConstructionOutlined, // icono de construcción
+  HomeOutlined // icono de casa para bienes
 } from '@mui/icons-material';
 
 export const icons = {
@@ -69,7 +70,8 @@ export const icons = {
   arrowBack: KeyboardBackspaceOutlined,
   dollarSign: MonetizationOnOutlined, // icono "$" dentro de círculo para assets
   bed: BedOutlined, // icono de cama para habitaciones
-  construction: ConstructionOutlined // icono de construcción
+  construction: ConstructionOutlined, // icono de construcción
+  bienes: HomeOutlined // icono de casa para bienes
 };
 
 // Función helper para obtener el icono por clave
