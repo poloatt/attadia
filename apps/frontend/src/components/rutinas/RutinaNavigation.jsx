@@ -9,7 +9,9 @@ import {
   DeleteOutline as DeleteIcon,
   AddOutlined as AddIcon
 } from '@mui/icons-material';
-import { formatDateDisplay } from '../../utils/dateUtils';
+import { parseAPIDate } from '../../utils/dateUtils';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { useRutinas } from '../../context/RutinasContext';
 import { useRutinasStatistics } from '../../context/RutinasStatisticsContext';
 import { useSnackbar } from 'notistack';
@@ -204,7 +206,7 @@ const RutinaNavigation = ({
               textOverflow: 'ellipsis'
             }}
           >
-            {rutina ? formatDateDisplay(rutina.fecha) : ''}
+            {rutina ? format(parseAPIDate(rutina.fecha), 'dd MMM yy', { locale: es }) : ''}
           </Typography>
         </Box>
 
