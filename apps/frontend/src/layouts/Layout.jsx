@@ -76,94 +76,170 @@ export function Layout() {
         <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', zIndex: 1400 }}>
           <Header />
         </Box>
-        {/* Toolbar siempre se renderiza */}
-        {showToolbar && (
-          <Box sx={{ position: 'fixed', top: `${HEADER_CONFIG.height}px`, left: 0, width: '100vw', zIndex: 1399 }}>
-            {currentPath.startsWith('/tiempo/rutinas') ? (
-              <RutinasProvider>
+        {/* Toolbar + Sidebar + Main: envueltos por RutinasProvider cuando corresponde */}
+        {currentPath.startsWith('/tiempo/rutinas') ? (
+          <RutinasProvider>
+            {/* Toolbar siempre se renderiza */}
+            {showToolbar && (
+              <Box sx={{ position: 'fixed', top: `${HEADER_CONFIG.height}px`, left: 0, width: '100vw', zIndex: 1399 }}>
                 <Toolbar 
                   moduloActivo={moduloActivo}
                   nivel1={nivel2}
                   currentPath={currentPath}
                 />
-              </RutinasProvider>
-            ) : (
-              <Toolbar 
-                moduloActivo={moduloActivo}
-                nivel1={nivel2}
-                currentPath={currentPath}
-              />
+              </Box>
             )}
-          </Box>
+            {/* Sidebar */}
+            {isOpen !== undefined && shouldRenderSidebar && (
+              <Box
+                sx={{
+                  position: 'fixed',
+                  top: `${totalTopPadding}px`,
+                  left: 0,
+                  height: isMobile
+                    ? `calc(100vh - ${totalTopPadding}px - ${SPACING.bottomNavigationHeight}px)`
+                    : `calc(100vh - ${totalTopPadding}px - ${FOOTER_CONFIG.height}px)`,
+                  zIndex: 1100,
+                  width: isOpen ? sidebarWidth : collapsedWidth,
+                  transition: 'width 0.3s',
+                  bgcolor: 'background.default',
+                  borderRight: '1.5px solid #232323',
+                  overflow: 'hidden',
+                  display: 'block',
+                }}
+              >
+                <Sidebar moduloActivo={moduloActivo} nivel1Activo={nivel1Activo} />
+              </Box>
+            )}
+            {/* Main content */}
+            <Box
+              sx={{
+                position: 'fixed',
+                top: 0,
+                left: mainContentMargin,
+                right: 0,
+                bottom: 0,
+                pt: `${mainTopPadding}px`,
+                pb: `${FOOTER_CONFIG.height}px`,
+                bgcolor: 'background.default',
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                zIndex: 1,
+                scrollbarGutter: 'stable',
+                transition: 'left 0.3s',
+                '&::-webkit-scrollbar': {
+                  width: '8px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  background: 'transparent',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '4px',
+                },
+                '&::-webkit-scrollbar-thumb:hover': {
+                  background: 'rgba(255, 255, 255, 0.2)',
+                }
+              }}
+            >
+              <Box sx={{
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 0,
+                minHeight: 0,
+                border: 'none',
+                outline: 'none',
+              }}>
+                <Outlet />
+              </Box>
+              {(isMobile || isTablet) && <BottomNavigation />}
+              <CustomSnackbarProvider />
+            </Box>
+          </RutinasProvider>
+        ) : (
+          <>
+            {/* Toolbar siempre se renderiza */}
+            {showToolbar && (
+              <Box sx={{ position: 'fixed', top: `${HEADER_CONFIG.height}px`, left: 0, width: '100vw', zIndex: 1399 }}>
+                <Toolbar 
+                  moduloActivo={moduloActivo}
+                  nivel1={nivel2}
+                  currentPath={currentPath}
+                />
+              </Box>
+            )}
+            {/* Sidebar */}
+            {isOpen !== undefined && shouldRenderSidebar && (
+              <Box
+                sx={{
+                  position: 'fixed',
+                  top: `${totalTopPadding}px`,
+                  left: 0,
+                  height: isMobile
+                    ? `calc(100vh - ${totalTopPadding}px - ${SPACING.bottomNavigationHeight}px)`
+                    : `calc(100vh - ${totalTopPadding}px - ${FOOTER_CONFIG.height}px)`,
+                  zIndex: 1100,
+                  width: isOpen ? sidebarWidth : collapsedWidth,
+                  transition: 'width 0.3s',
+                  bgcolor: 'background.default',
+                  borderRight: '1.5px solid #232323',
+                  overflow: 'hidden',
+                  display: 'block',
+                }}
+              >
+                <Sidebar moduloActivo={moduloActivo} nivel1Activo={nivel1Activo} />
+              </Box>
+            )}
+            {/* Main content */}
+            <Box
+              sx={{
+                position: 'fixed',
+                top: 0,
+                left: mainContentMargin,
+                right: 0,
+                bottom: 0,
+                pt: `${mainTopPadding}px`,
+                pb: `${FOOTER_CONFIG.height}px`,
+                bgcolor: 'background.default',
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                zIndex: 1,
+                scrollbarGutter: 'stable',
+                transition: 'left 0.3s',
+                '&::-webkit-scrollbar': {
+                  width: '8px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  background: 'transparent',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '4px',
+                },
+                '&::-webkit-scrollbar-thumb:hover': {
+                  background: 'rgba(255, 255, 255, 0.2)',
+                }
+              }}
+            >
+              <Box sx={{
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 0,
+                minHeight: 0,
+                border: 'none',
+                outline: 'none',
+              }}>
+                <Outlet />
+              </Box>
+              {(isMobile || isTablet) && <BottomNavigation />}
+              <CustomSnackbarProvider />
+            </Box>
+          </>
         )}
-        {/* Sidebar */}
-        {isOpen !== undefined && shouldRenderSidebar && (
-          <Box
-            sx={{
-              position: 'fixed',
-              top: `${totalTopPadding}px`,
-              left: 0,
-              height: isMobile
-                ? `calc(100vh - ${totalTopPadding}px - ${SPACING.bottomNavigationHeight}px)`
-                : `calc(100vh - ${totalTopPadding}px - ${FOOTER_CONFIG.height}px)`,
-              zIndex: 1100,
-              width: isOpen ? sidebarWidth : collapsedWidth,
-              transition: 'width 0.3s',
-              bgcolor: 'background.default',
-              borderRight: '1.5px solid #232323',
-              overflow: 'hidden',
-              display: 'block',
-            }}
-          >
-            <Sidebar moduloActivo={moduloActivo} nivel1Activo={nivel1Activo} />
-          </Box>
-        )}
-        {/* Main content */}
-        <Box
-          sx={{
-            position: 'fixed',
-            top: 0,
-            left: mainContentMargin,
-            right: 0,
-            bottom: 0,
-            pt: `${mainTopPadding}px`,
-            pb: `${FOOTER_CONFIG.height}px`,
-            bgcolor: 'background.default',
-            overflowY: 'auto',
-            overflowX: 'hidden',
-            zIndex: 1,
-            scrollbarGutter: 'stable',
-            transition: 'left 0.3s',
-            '&::-webkit-scrollbar': {
-              width: '8px',
-            },
-            '&::-webkit-scrollbar-track': {
-              background: 'transparent',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              background: 'rgba(255, 255, 255, 0.1)',
-              borderRadius: '4px',
-            },
-            '&::-webkit-scrollbar-thumb:hover': {
-              background: 'rgba(255, 255, 255, 0.2)',
-            }
-          }}
-        >
-          <Box sx={{
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 0,
-            minHeight: 0,
-            border: 'none',
-            outline: 'none',
-          }}>
-            <Outlet />
-          </Box>
-          {(isMobile || isTablet) && <BottomNavigation />}
-          <CustomSnackbarProvider />
-        </Box>
         {/* Footer */}
         <Box sx={{ position: 'fixed', left: 0, bottom: 0, width: '100vw', zIndex: 1300, height: `${FOOTER_CONFIG.height}px` }}>
           <Footer isDesktop={isDesktop} isSidebarOpen={isOpen && isDesktop} />

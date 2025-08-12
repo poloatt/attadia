@@ -233,6 +233,9 @@ const RutinasWithContext = () => {
                 _totalPages: totalPages
               }}
               onEdit={handleEditRutina}
+              loading={loading}
+              currentPage={currentPage}
+              totalPages={totalPages}
             />
           )}
           {/* Formulario de edición */}
@@ -251,14 +254,9 @@ const RutinasWithContext = () => {
 };
 
 /**
- * Componente principal que provee el contexto
+ * Componente principal de página.
+ * Nota: El Provider de Rutinas se monta a nivel de Layout para esta ruta.
  */
-const Rutinas = () => {
-  return (
-    <RutinasProvider>
-      <RutinasWithContext />
-    </RutinasProvider>
-  );
-};
+const Rutinas = () => <RutinasWithContext />;
 
 export default Rutinas;

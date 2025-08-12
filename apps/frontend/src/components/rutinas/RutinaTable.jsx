@@ -36,7 +36,7 @@ import { NavigateBefore, NavigateNext, Today as TodayIcon } from '@mui/icons-mat
 import { useLocalPreservationState } from '../../hooks';
 
 import shouldShowItemUtil from '../../utils/shouldShowItem';
-import { getNormalizedToday, toISODateString } from '../../utils/dateUtils';
+import { getNormalizedToday, toISODateString, parseAPIDate } from '../../utils/dateUtils';
 
 // Exportación nombrada para compatibilidad
 export const RutinaTable = ({ 
@@ -45,9 +45,12 @@ export const RutinaTable = ({
   onDelete, 
   onCheckChange, 
   onRutinaChange = null,
-  onAdd
+  onAdd,
+  currentPage: currentPageProp,
+  totalPages: totalPagesProp,
+  loading: loadingProp
 }) => {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(loadingProp));
   const [error, setError] = useState(null);
   const [rutinas, setRutinas] = useState([]);
   const today = useMemo(() => getNormalizedToday(), []);
@@ -55,8 +58,16 @@ export const RutinaTable = ({
   const { enqueueSnackbar } = useSnackbar();
   
   // Estos valores ahora se obtienen como props del componente padre
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(currentPageProp || 1);
+  const [totalPages, setTotalPages] = useState(totalPagesProp || 1);
+  // Key estable basada en fecha (modelo único por día)
+  const rutinaDateKey = useMemo(() => {
+    try {
+      return rutina?.fecha ? toISODateString(parseAPIDate(rutina.fecha)) : 'no-rutina';
+    } catch {
+      return rutina?._id || 'no-rutina';
+    }
+  }, [rutina?.fecha]);
 
   // Usar el hook de preservación de cambios locales con soporte para localStorage
   const { 
@@ -69,6 +80,19 @@ export const RutinaTable = ({
     storagePrefix: 'rutina_config_changes',
     preserveFields: ['tipo', 'frecuencia', 'periodo']
   });
+
+  // Sincronizar estados con props cuando cambian
+  useEffect(() => {
+    if (typeof loadingProp === 'boolean') setLoading(loadingProp);
+  }, [loadingProp]);
+
+  useEffect(() => {
+    if (typeof currentPageProp === 'number' && currentPageProp > 0) setCurrentPage(currentPageProp);
+  }, [currentPageProp]);
+
+  useEffect(() => {
+    if (typeof totalPagesProp === 'number' && totalPagesProp >= 1) setTotalPages(totalPagesProp);
+  }, [totalPagesProp]);
 
   // Actualizar valores de navegación cuando la rutina cambia
   useEffect(() => {
@@ -724,7 +748,7 @@ export const RutinaTable = ({
   }
 
   return (
-    <Box sx={{ 
+    <Box key={rutinaDateKey} sx={{ 
       width: '100%',
       maxWidth: 900,
       mx: 'auto',
@@ -746,6 +770,7 @@ export const RutinaTable = ({
                 {/* Body Care */}
                 <Grid item xs={12} md={6}>
                   <RutinaCard
+                    key={`card-bodyCare-${rutinaDateKey}`}
                     title="Cuidado Personal"
                     section="bodyCare"
                     data={rutina.bodyCare || {}}
@@ -763,6 +788,7 @@ export const RutinaTable = ({
                 {/* Nutrición */}
                 <Grid item xs={12} md={6}>
                   <RutinaCard
+                    key={`card-nutricion-${rutinaDateKey}`}
                     title="Nutrición"
                     section="nutricion"
                     data={rutina.nutricion || {}}
@@ -780,6 +806,7 @@ export const RutinaTable = ({
                 {/* Ejercicio */}
                 <Grid item xs={12} md={6}>
                   <RutinaCard
+                    key={`card-ejercicio-${rutinaDateKey}`}
                     title="Ejercicio"
                     section="ejercicio"
                     data={rutina.ejercicio || {}}
@@ -797,6 +824,7 @@ export const RutinaTable = ({
                 {/* Limpieza */}
                 <Grid item xs={12} md={6}>
                   <RutinaCard
+                    key={`card-cleaning-${rutinaDateKey}`}
                     title="Limpieza"
                     section="cleaning"
                     data={rutina.cleaning || {}}

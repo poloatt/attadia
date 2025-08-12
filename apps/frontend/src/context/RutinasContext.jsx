@@ -3,7 +3,8 @@ import { useSnackbar } from 'notistack';
 import { useNavigate, useParams } from 'react-router-dom';
 import clienteAxios from '../config/axios';
 import { getNormalizedToday, toISODateString } from '../utils/dateUtils';
-import { applyLocalChanges, saveLocalChanges } from '../utils/localChanges';
+import { applyLocalChanges } from '../utils/localChanges';
+import { useLocalPreservationState } from '../hooks/useLocalPreservationState';
 import rutinasService from '../services/rutinasService';
 import shouldShowItem from '../utils/shouldShowItem';
 import { RutinasStatisticsProvider } from './RutinasStatisticsContext';
@@ -36,7 +37,13 @@ export const RutinasProvider = ({ children }) => {
   const [totalPages, setTotalPages] = useState(1);
   const { enqueueSnackbar } = useSnackbar();
   const recentlyCreatedRutinas = useRef(new Set());
-  const localChangesRef = useRef({});
+  // Cambios locales preservados (centralizado en hook)
+  const { pendingLocalChanges, registerLocalChange, clearLocalChanges } = useLocalPreservationState({}, {
+    debug: false,
+    enableStorage: true,
+    storagePrefix: 'rutina_config_changes',
+    preserveFields: ['tipo', 'frecuencia', 'periodo']
+  });
   const [processingSubmit, setProcessingSubmit] = useState(false);
   // Referencia para evitar loops
   const isInitialMount = useRef(true);
@@ -117,7 +124,7 @@ export const RutinasProvider = ({ children }) => {
       );
       
       // Aplicar cambios locales a cada rutina antes de actualizar el estado
-      const rutinasConCambiosLocales = rutinasOrdenadas.filter(r => r && r._id).map(r => applyLocalChanges(r, localChangesRef.current));
+      const rutinasConCambiosLocales = rutinasOrdenadas.filter(r => r && r._id).map(r => applyLocalChanges(r, pendingLocalChanges));
       
       // Actualizar el total de páginas según la cantidad de rutinas
       const totalRutinas = rutinasConCambiosLocales.length;
@@ -254,7 +261,7 @@ export const RutinasProvider = ({ children }) => {
         console.log(`[RutinasContext] Rutina encontrada en posición ${page} de ${rutinas.length}`);
         
         // Aplicar cambios locales a la rutina
-        const rutinaConCambiosLocales = applyLocalChanges(rutinaData, localChangesRef.current);
+        const rutinaConCambiosLocales = applyLocalChanges(rutinaData, pendingLocalChanges);
         
         // Actualizar la rutina actual
         const rutinaActualizada = {
@@ -408,7 +415,7 @@ export const RutinasProvider = ({ children }) => {
         console.log(`[RutinasContext] Navegando a rutina anterior: ${rutinaAnterior._id} (${rutinaAnterior.fecha})`);
         
         // Aplicar cambios locales a la rutina
-        const rutinaConCambios = applyLocalChanges(rutinaAnterior, localChangesRef.current);
+        const rutinaConCambios = applyLocalChanges(rutinaAnterior, pendingLocalChanges);
         
         // Actualizar el estado con la rutina anterior
         setRutina({
@@ -431,7 +438,7 @@ export const RutinasProvider = ({ children }) => {
         enqueueSnackbar('Ya estás en la rutina más reciente', { variant: 'info' });
       }
     }
-  }, [currentPage, totalPages, loading, rutinas, enqueueSnackbar]);
+  }, [currentPage, totalPages, loading, rutinas, enqueueSnackbar, pendingLocalChanges]);
 
   const handleNext = useCallback(async () => {
     if (currentPage < totalPages && !loading) {
@@ -460,7 +467,7 @@ export const RutinasProvider = ({ children }) => {
         console.log(`[RutinasContext] Navegando a rutina siguiente: ${rutinaSiguiente._id} (${rutinaSiguiente.fecha})`);
         
         // Aplicar cambios locales a la rutina
-        const rutinaConCambios = applyLocalChanges(rutinaSiguiente, localChangesRef.current);
+        const rutinaConCambios = applyLocalChanges(rutinaSiguiente, pendingLocalChanges);
         
         // Actualizar el estado con la rutina siguiente
         setRutina({
@@ -483,7 +490,7 @@ export const RutinasProvider = ({ children }) => {
         enqueueSnackbar('Ya estás en la rutina más antigua', { variant: 'info' });
       }
     }
-  }, [currentPage, totalPages, loading, rutinas, enqueueSnackbar]);
+  }, [currentPage, totalPages, loading, rutinas, enqueueSnackbar, pendingLocalChanges]);
 
   // Actualizar la completitud de una rutina después de marcar un ítem
   const actualizarCompletitudRutina = (rutinaId, responseData) => {
@@ -631,14 +638,6 @@ export const RutinasProvider = ({ children }) => {
   const saveLocalChangesForRutina = useCallback((rutinaId, section, itemId, config) => {
     console.log(`[RutinasContext] 🔐 Guardando cambios locales para ${rutinaId}, ${section}.${itemId}:`, JSON.stringify(config));
     
-    if (!localChangesRef.current[rutinaId]) {
-      localChangesRef.current[rutinaId] = { config: {} };
-    }
-    
-    if (!localChangesRef.current[rutinaId].config[section]) {
-      localChangesRef.current[rutinaId].config[section] = {};
-    }
-    
     // Normalizar explícitamente los tipos de datos para asegurar consistencia
     const normalizedConfig = {
       ...config,
@@ -654,16 +653,8 @@ export const RutinasProvider = ({ children }) => {
       diasCompletados: Number(config.diasCompletados || 0),
       diasConsecutivos: Number(config.diasConsecutivos || 0)
     };
-    
-    // Guardar todos los campos del config para asegurar la sincronización completa
-    localChangesRef.current[rutinaId].config[section][itemId] = {
-      ...normalizedConfig
-    };
-    
-    // Guardar los cambios en localStorage
-    saveLocalChanges(localChangesRef.current);
-    console.log(`[RutinasContext] ✅ Cambios guardados en localStorage de forma sincrónica:`, 
-      JSON.stringify(localChangesRef.current[rutinaId].config[section][itemId]));
+    // Registrar cambios locales preservables mediante el hook centralizado
+    registerLocalChange(section, itemId, normalizedConfig);
     
     // Marcar la rutina como modificada
     markRutinaAsDirty(rutinaId);
@@ -742,8 +733,8 @@ export const RutinasProvider = ({ children }) => {
       console.log(`[RutinasContext] ℹ️ No se actualizó el servidor porque la rutina actual (${rutina?._id}) no es la misma que se modificó (${rutinaId})`);
     }
     
-    return localChangesRef.current;
-  }, [markRutinaAsDirty, rutina, enqueueSnackbar]);
+    return pendingLocalChanges;
+  }, [markRutinaAsDirty, rutina, enqueueSnackbar, registerLocalChange, pendingLocalChanges]);
 
   // Carga inicial simplificada: si no hay datos, cargar automáticamente una vez
   useEffect(() => {
@@ -1113,7 +1104,7 @@ export const RutinasProvider = ({ children }) => {
     handlePrevious,
     handleNext,
     saveLocalChangesForRutina,
-    pendingLocalChanges: localChangesRef.current,
+    pendingLocalChanges,
     deleteRutina,
     syncRutinaWithGlobal,
     applyUserPreferencesToRutina,
