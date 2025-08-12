@@ -16,6 +16,7 @@ class RutinasService {
     this.cache = new Map();
     this.cacheTimeout = 5 * 60 * 1000;
     this.pendingRequests = new Map();
+    this.LOCAL_PREFS_KEY = 'rutina_user_preferences';
   }
 
   async retryOperation(operation, retries = MAX_RETRIES) {
@@ -46,6 +47,41 @@ class RutinasService {
       console.error('Error al obtener rutinas:', error);
       throw error;
     }
+  }
+
+  // --- Preferencias locales (fallback/caché) ---
+  getLocalUserPreferences() {
+    try {
+      const raw = localStorage.getItem(this.LOCAL_PREFS_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  setLocalUserPreferences(preferences = {}) {
+    try {
+      localStorage.setItem(this.LOCAL_PREFS_KEY, JSON.stringify(preferences));
+    } catch (_) {
+      // noop
+    }
+  }
+
+  mergeLocalUserPreference(section, itemId, config) {
+    const prefs = this.getLocalUserPreferences();
+    if (!prefs[section]) prefs[section] = {};
+    prefs[section][itemId] = {
+      ...prefs[section][itemId],
+      ...config,
+      tipo: (config?.tipo || 'DIARIO').toUpperCase(),
+      frecuencia: Number(config?.frecuencia || 1),
+      periodo: config?.periodo || 'CADA_DIA',
+      activo: config?.activo !== false
+    };
+    this.setLocalUserPreferences(prefs);
+    return prefs;
   }
 
   /**
@@ -434,16 +470,30 @@ class RutinasService {
   async getUserHabitPreferences() {
     try {
       const response = await clienteAxios.get('/api/rutinas/user-preferences');
+      const prefs = response.data || {};
+      // Cachear también localmente para inicializar formularios rápidamente
+      this.setLocalUserPreferences(prefs);
       return { 
-        preferences: response.data, 
+        preferences: prefs, 
         updated: true, 
         global: true 
       };
     } catch (error) {
-      console.error('[rutinasService] Error al obtener preferencias de usuario:', error);
-      
-      // Si no hay endpoint, retornar estado honesto
-      if (error.response?.status === 404) {
+      // Evitar ruido en consola: degradar silenciosamente a configuración local
+      const status = error?.response?.status;
+      const errMsg = error?.message || 'Error al obtener preferencias';
+      // Intentar usar caché local
+      const localPrefs = this.getLocalUserPreferences();
+      if (Object.keys(localPrefs).length > 0) {
+        return {
+          preferences: localPrefs,
+          updated: false,
+          global: false,
+          error: errMsg,
+          fallback: 'Usando preferencias locales en caché'
+        };
+      }
+      if (status === 404) {
         return { 
           preferences: {}, 
           updated: false, 
@@ -452,13 +502,23 @@ class RutinasService {
           fallback: 'Usando configuración local'
         };
       }
+      if (status >= 500) {
+        return {
+          preferences: localPrefs || {},
+          updated: false,
+          global: false,
+          error: errMsg,
+          fallback: 'Preferencias no disponibles (servidor). Usando configuración local'
+        };
+      }
       
-      // Otros errores
-      return { 
-        preferences: {}, 
-        updated: false, 
-        global: false, 
-        error: error.message || 'Error al obtener preferencias'
+      // Otros errores (degradar a local)
+      return {
+        preferences: localPrefs || {},
+        updated: false,
+        global: false,
+        error: errMsg,
+        fallback: 'Usando configuración local'
       };
     }
   }
@@ -481,11 +541,12 @@ class RutinasService {
           ultimaActualizacion: new Date().toISOString()
         }
       });
-      
+      // Actualizar caché local también
+      this.mergeLocalUserPreference(section, itemId, config);
       return { 
         updated: true, 
         global: true, 
-        preferences: response.data,
+        preferences: response.data || this.getLocalUserPreferences(),
         message: 'Preferencia global actualizada correctamente'
       };
     } catch (error) {
@@ -493,20 +554,25 @@ class RutinasService {
       
       // Si no hay endpoint, retornar estado honesto
       if (error.response?.status === 404) {
+        // Guardar localmente para mantener UX
+        const localPrefs = this.mergeLocalUserPreference(section, itemId, config);
         return { 
           updated: false, 
           global: false, 
           error: 'Endpoint de preferencias globales no disponible',
           fallback: 'Cambios guardados solo localmente',
-          localConfig: { [section]: { [itemId]: config } }
+          preferences: localPrefs
         };
       }
       
       // Otros errores
+      const localPrefs = this.mergeLocalUserPreference(section, itemId, config);
       return { 
         updated: false, 
         global: false, 
-        error: error.message || 'Error al actualizar preferencias globales'
+        error: error.message || 'Error al actualizar preferencias globales',
+        fallback: 'Cambios guardados localmente',
+        preferences: localPrefs
       };
     }
   }

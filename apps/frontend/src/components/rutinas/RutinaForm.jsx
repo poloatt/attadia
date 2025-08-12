@@ -36,6 +36,8 @@ import { useAuth } from '../../context/AuthContext';
 import RutinaCard from './RutinaCard';
 import { CommonDate } from '../common/CommonDate';
 import { formatDateForAPI, getNormalizedToday, parseAPIDate } from '../../utils/dateUtils';
+import rutinasService from '../../services/rutinasService';
+import { useRutinas } from '../../context/RutinasContext';
 
 export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => {
   const { isMobile, theme } = useResponsive();
@@ -46,6 +48,7 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
   const { user } = useAuth();
   const { syncRutinaWithGlobal, updateGlobalFromRutina } = useRutinasCRUD();
   const navigate = useNavigate();
+  const { rutina: rutinaActual } = useRutinas();
   
   const [rutinaData, setRutinaData] = useState({
     bodyCare: {},
@@ -171,19 +174,61 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
   // Asegurar que rutinaData tiene una configuración completa al inicializarse
   useEffect(() => {
     if (!initialData) {
-      // Si es una nueva rutina, inicializar con configuración completa
+      // Si es una nueva rutina, inicializar con configuración por defecto y luego
+      // sobrescribir con la última preferencia global si existe
       const configPorDefecto = initializeDefaultConfig();
       const seccionesPorDefecto = createDefaultSections();
-      
+
       setRutinaData(prev => ({
         ...prev,
         ...seccionesPorDefecto,
         config: configPorDefecto
       }));
-      
-      console.log('[RutinaForm] Configuración por defecto inicializada para nueva rutina');
+
+      (async () => {
+        try {
+          const res = await rutinasService.getUserHabitPreferences();
+          const prefs = res?.preferences || {};
+
+          const hasPrefs = prefs && Object.keys(prefs).length > 0;
+          // Fallback 1: si no hay prefs del servicio, intentar con la rutina actual abierta
+          const fallbackFromCurrent = !hasPrefs && rutinaActual?.config ? rutinaActual.config : null;
+
+          const source = hasPrefs ? prefs : (fallbackFromCurrent || {});
+
+          if (Object.keys(source).length > 0) {
+            // Merge seguro: normalizar tipos y completar campos mínimos
+            const merged = JSON.parse(JSON.stringify(configPorDefecto));
+            const sections = ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'];
+
+            sections.forEach(section => {
+              if (!merged[section]) merged[section] = {};
+              if (source[section]) {
+                Object.entries(source[section]).forEach(([itemId, cfg]) => {
+                  const norm = {
+                    tipo: (cfg?.tipo || 'DIARIO').toUpperCase(),
+                    frecuencia: Number(cfg?.frecuencia || 1),
+                    periodo: cfg?.periodo || 'CADA_DIA',
+                    activo: cfg?.activo !== false
+                  };
+                  merged[section][itemId] = norm;
+                });
+              }
+            });
+
+            setRutinaData(prev => ({
+              ...prev,
+              ...seccionesPorDefecto,
+              config: merged
+            }));
+            console.log('[RutinaForm] Configuración aplicada desde', hasPrefs ? 'preferencias de usuario' : 'rutina actual');
+          }
+        } catch (e) {
+          console.warn('[RutinaForm] No se pudieron cargar preferencias globales, usando valores por defecto');
+        }
+      })();
     }
-  }, []);
+  }, [initialData, rutinaActual]);
 
   // Función para auto-guardado simplificada
   const handleAutoSave = async () => {

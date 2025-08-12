@@ -611,7 +611,8 @@ export const RutinasProvider = ({ children }) => {
 
   // Función unificada para actualizar configuración de ítems
   const updateItemConfiguration = useCallback(async (section, itemId, config, options = {}) => {
-    const { isLocal = false, isGlobal = false, rutinaId = null } = options;
+    // Simplificación UX: por defecto, toda edición inline actualiza también preferencias globales
+    const { isLocal = false, isGlobal = true, rutinaId = null } = options;
     
     if (!section || !itemId || !config) {
       handleError(new Error('Datos incompletos para actualizar configuración'), 'updateItemConfiguration', 'Datos incompletos');
@@ -674,13 +675,14 @@ export const RutinasProvider = ({ children }) => {
         };
       });
 
-      // Actualizar preferencias globales si es necesario
+      // Actualizar preferencias globales (por defecto true)
       if (isGlobal) {
         try {
           const result = await rutinasService.updateUserHabitPreference(section, itemId, normalizedConfig);
           if (result.updated && result.global) {
             console.log(`[RutinasContext] ✅ Preferencia global actualizada para ${section}.${itemId}`);
-            enqueueSnackbar('Preferencia global actualizada', { variant: 'success' });
+            // Feedback sutil para no saturar al usuario en cada cambio
+            // enqueueSnackbar('Preferencia global actualizada', { variant: 'success' });
           } else if (result.fallback) {
             console.log(`[RutinasContext] ⚠️ ${result.fallback}`);
             enqueueSnackbar(result.fallback, { variant: 'warning' });
