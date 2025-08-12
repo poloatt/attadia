@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -9,7 +9,8 @@ import {
   IconButton,
   Tooltip,
   Fade,
-  Divider
+  Divider,
+  Button
 } from '@mui/material';
 import TuneIcon from '@mui/icons-material/Tune';
 import CheckIcon from '@mui/icons-material/Check';
@@ -119,6 +120,15 @@ const InlineItemConfigImproved = ({
   itemId,
   sectionId
 }) => {
+  // Estado base original (desde props) - NO debe cambiar hasta que se guarde
+  const [originalConfig, setOriginalConfig] = useState({
+    tipo: (config?.tipo || 'DIARIO').toUpperCase(),
+    frecuencia: normalizeFrecuencia(config?.frecuencia),
+    activo: config?.activo !== false,
+    periodo: config?.periodo || 'CADA_DIA'
+  });
+
+  // Estado actual con cambios acumulativos - se va modificando con cada cambio
   const [configState, setConfigState] = useState({
     tipo: (config?.tipo || 'DIARIO').toUpperCase(),
     frecuencia: normalizeFrecuencia(config?.frecuencia),
@@ -126,38 +136,145 @@ const InlineItemConfigImproved = ({
     periodo: config?.periodo || 'CADA_DIA'
   });
 
+  // Estado de cambios pendientes para debugging
+  const [pendingChanges, setPendingChanges] = useState({});
+  
   const [hasChanges, setHasChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSavedConfig, setLastSavedConfig] = useState(null);
+  
+  // Usar useRef para evitar comparaciones innecesarias
+  const configRef = useRef(config);
+  const hasChangesRef = useRef(hasChanges);
 
-  // Auto-save con debounce
+  // Sincronizar configuración original cuando cambien las props (solo si no hay cambios pendientes)
   useEffect(() => {
-    if (hasChanges) {
-      const timer = setTimeout(() => {
-        if (typeof onConfigChange === 'function') {
-          onConfigChange(configState);
-          setHasChanges(false);
-        }
-      }, 800);
-      return () => clearTimeout(timer);
-    }
-  }, [configState, hasChanges, onConfigChange]);
-
-  // Sincronizar con props
-  useEffect(() => {
-    const newState = {
+    const newOriginalConfig = {
       tipo: (config?.tipo || 'DIARIO').toUpperCase(),
       frecuencia: normalizeFrecuencia(config?.frecuencia),
       activo: config?.activo !== false,
       periodo: config?.periodo || 'CADA_DIA'
     };
-    setConfigState(newState);
+
+    // Solo actualizar si realmente cambió la configuración original Y no hay cambios pendientes
+    if (JSON.stringify(newOriginalConfig) !== JSON.stringify(originalConfig) && !hasChanges) {
+      console.log('[InlineItemConfigImproved] Configuración original actualizada (sin cambios pendientes):', newOriginalConfig);
+      setOriginalConfig(newOriginalConfig);
+      setConfigState(newOriginalConfig);
+      setLastSavedConfig(JSON.stringify(newOriginalConfig));
+    }
+  }, [config, hasChanges]);
+
+  // Actualizar refs cuando cambien los estados
+  useEffect(() => {
+    hasChangesRef.current = hasChanges;
+  }, [hasChanges]);
+
+  useEffect(() => {
+    configRef.current = config;
   }, [config]);
+
+  // Función para detectar cambios acumulativos comparando con la configuración original
+  const detectChanges = useCallback((newConfig) => {
+    const changes = {};
+    let hasAnyChanges = false;
+
+    Object.keys(newConfig).forEach(key => {
+      if (newConfig[key] !== originalConfig[key]) {
+        changes[key] = {
+          from: originalConfig[key],
+          to: newConfig[key]
+        };
+        hasAnyChanges = true;
+      }
+    });
+
+    setPendingChanges(changes);
+    setHasChanges(hasAnyChanges);
+    
+    if (hasAnyChanges) {
+      console.log('[InlineItemConfigImproved] Cambios detectados:', changes);
+    } else {
+      console.log('[InlineItemConfigImproved] No hay cambios pendientes');
+    }
+  }, [originalConfig]);
 
   const cadenciaLabel = useMemo(() => getFrecuenciaLabel(configState), [configState]);
 
   const handleConfigChange = (newConfig) => {
-    setConfigState(prev => ({ ...prev, ...newConfig }));
-    setHasChanges(true);
+    console.log('[InlineItemConfigImproved] Aplicando cambio:', newConfig);
+    
+    // Aplicar cambios al estado actual (ACUMULATIVO)
+    const updatedConfig = { ...configState, ...newConfig };
+    setConfigState(updatedConfig);
+    
+    // Detectar todos los cambios acumulativos comparando con la configuración original
+    detectChanges(updatedConfig);
   };
+
+  const handleSave = async () => {
+    if (typeof onConfigChange === 'function') {
+      setIsSaving(true);
+      try {
+        console.log('[InlineItemConfigImproved] Guardando configuración completa:', configState);
+        console.log('[InlineItemConfigImproved] Cambios acumulativos:', pendingChanges);
+        
+        await onConfigChange(configState);
+        
+        // Marcar como guardado exitosamente
+        setHasChanges(false);
+        setLastSavedConfig(JSON.stringify(configState));
+        setPendingChanges({});
+        
+        // IMPORTANTE: Actualizar la configuración original para futuras comparaciones
+        setOriginalConfig(configState);
+        
+        console.log('[InlineItemConfigImproved] Configuración guardada exitosamente');
+        
+        // Mostrar feedback visual temporal
+        setTimeout(() => {
+          setIsSaving(false);
+        }, 1000);
+      } catch (error) {
+        console.error('Error al guardar configuración:', error);
+        setIsSaving(false);
+        // Mantener hasChanges como true para que el usuario pueda reintentar
+      }
+    }
+  };
+
+  const handleCancel = () => {
+    console.log('[InlineItemConfigImproved] Cancelando cambios, restaurando configuración original');
+    setConfigState(originalConfig);
+    setHasChanges(false);
+    setPendingChanges({});
+    setLastSavedConfig(JSON.stringify(originalConfig));
+  };
+
+  const handleResetToDefault = () => {
+    const defaultState = {
+      tipo: 'DIARIO',
+      frecuencia: 1,
+      activo: true,
+      periodo: 'CADA_DIA'
+    };
+    console.log('[InlineItemConfigImproved] Reseteando a configuración por defecto');
+    setConfigState(defaultState);
+    setPendingChanges({});
+    detectChanges(defaultState);
+  };
+
+  // Función para verificar si hay cambios reales (comparando con original)
+  const hasRealChanges = useMemo(() => {
+    return Object.keys(configState).some(key => configState[key] !== originalConfig[key]);
+  }, [configState, originalConfig]);
+
+  // Sincronizar hasChanges con los cambios reales
+  useEffect(() => {
+    if (hasChanges !== hasRealChanges) {
+      setHasChanges(hasRealChanges);
+    }
+  }, [hasChanges, hasRealChanges]);
 
   const tipoOptions = [
     { value: 'DIARIO', label: 'Diario' },
@@ -301,6 +418,126 @@ const InlineItemConfigImproved = ({
           </Box>
         </Box>
       </Box>
+
+      {/* Botones de acción - solo visibles cuando hay cambios */}
+      {hasChanges && (
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          gap: 1, 
+          justifyContent: 'center', 
+          mt: 1, 
+          pt: 0.5,
+          borderTop: '1px solid rgba(255, 255, 255, 0.06)'
+        }}>
+          {/* Indicador de cambios pendientes */}
+          <Box sx={{ 
+            display: 'flex', 
+            flexWrap: 'wrap', 
+            gap: 0.5, 
+            justifyContent: 'center',
+            mb: 0.5
+          }}>
+            {Object.entries(pendingChanges).map(([key, change]) => (
+              <Chip
+                key={key}
+                size="small"
+                label={`${key}: ${change.from} → ${change.to}`}
+                variant="outlined"
+                sx={{
+                  fontSize: '0.65rem',
+                  height: 20,
+                  color: '#ff9800',
+                  borderColor: '#ff9800',
+                  backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                  '& .MuiChip-label': { px: 0.5 }
+                }}
+              />
+            ))}
+          </Box>
+          
+          {/* Botones de acción */}
+          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+            <Button 
+              size="small" 
+              variant="outlined" 
+              onClick={handleCancel}
+              disabled={isSaving}
+              sx={{
+                color: 'rgba(255, 255, 255, 0.7)',
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                '&:hover': {
+                  borderColor: 'rgba(255, 255, 255, 0.4)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.04)'
+                }
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              size="small" 
+              variant="outlined" 
+              onClick={handleResetToDefault}
+              disabled={isSaving}
+              sx={{
+                color: 'rgba(255, 255, 255, 0.6)',
+                borderColor: 'rgba(255, 255, 255, 0.15)',
+                '&:hover': {
+                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.04)'
+                }
+              }}
+            >
+              Por defecto
+            </Button>
+            <Button 
+              size="small" 
+              variant="contained" 
+              onClick={handleSave}
+              disabled={isSaving}
+              sx={{
+                backgroundColor: isSaving ? '#4caf50' : '#1976d2',
+                color: '#fff',
+                '&:hover': {
+                  backgroundColor: isSaving ? '#4caf50' : '#1565c0'
+                },
+                '&:disabled': {
+                  backgroundColor: '#4caf50',
+                  color: '#fff'
+                }
+              }}
+            >
+              {isSaving ? 'Guardando...' : 'Guardar'}
+            </Button>
+          </Box>
+        </Box>
+      )}
+
+      {/* Indicador de éxito cuando se guarda */}
+      {!hasChanges && isSaving && (
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          mt: 1, 
+          pt: 0.5,
+          borderTop: '1px solid rgba(255, 255, 255, 0.06)'
+        }}>
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              color: '#4caf50',
+              fontSize: '0.75rem',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5
+            }}
+          >
+            <CheckIcon sx={{ fontSize: '1rem' }} />
+            Configuración guardada
+          </Typography>
+        </Box>
+      )}
     </ConfigContainer>
   );
 };

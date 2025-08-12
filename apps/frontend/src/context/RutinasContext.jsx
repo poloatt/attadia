@@ -6,7 +6,6 @@ import { getNormalizedToday, toISODateString } from '../utils/dateUtils';
 import { applyLocalChanges } from '../utils/localChanges';
 import { useLocalPreservationState } from '../hooks/useLocalPreservationState';
 import rutinasService from '../services/rutinasService';
-import shouldShowItem from '../utils/shouldShowItem';
 import { RutinasStatisticsProvider } from './RutinasStatisticsContext';
 
 // Crear el contexto
@@ -37,6 +36,7 @@ export const RutinasProvider = ({ children }) => {
   const [totalPages, setTotalPages] = useState(1);
   const { enqueueSnackbar } = useSnackbar();
   const recentlyCreatedRutinas = useRef(new Set());
+  
   // Cambios locales preservados (centralizado en hook)
   const { pendingLocalChanges, registerLocalChange, clearLocalChanges } = useLocalPreservationState({}, {
     debug: false,
@@ -44,45 +44,20 @@ export const RutinasProvider = ({ children }) => {
     storagePrefix: 'rutina_config_changes',
     preserveFields: ['tipo', 'frecuencia', 'periodo']
   });
-  const [processingSubmit, setProcessingSubmit] = useState(false);
-  // Referencia para evitar loops
-  const isInitialMount = useRef(true);
   
-  // Estado para rastrear las IDs de rutinas que han cambiado
-  const [dirtyRutinasIds, setDirtyRutinasIds] = useState(new Set());
-
-  // Marcar una rutina como modificada
-  const markRutinaAsDirty = useCallback((id) => {
-    setDirtyRutinasIds(prev => new Set([...prev, id]));
-  }, []);
-
-  // Declarar primero la función reloadCurrentRutina como una referencia
+  // Referencia para evitar loops
   const reloadCurrentRutinaRef = useRef(null);
 
-  // Optimización para evitar logs excesivos
-  const logTimers = useRef({});
-  const lastLogTimes = useRef({});
+  // Logs centralizados: usar utils/logger cuando sea necesario
 
-  // Función para controlar logs evitando spam
-  const controlledLog = useCallback((id, message, data = null, level = 'log') => {
-    const now = Date.now();
-    const key = `${id}_${level}`;
-    
-    // Limitar logs del mismo tipo a cada 3 segundos
-    if (!lastLogTimes.current[key] || now - lastLogTimes.current[key] > 3000) {
-      if (data) {
-        console[level](`[RutinasContext] ${message}`, data);
-      } else {
-        console[level](`[RutinasContext] ${message}`);
-      }
-      lastLogTimes.current[key] = now;
-      
-      // Limpiar timers antiguos
-      if (logTimers.current[key]) {
-        clearTimeout(logTimers.current[key]);
-      }
-    }
-  }, []);
+  // Función centralizada para manejo de errores
+  const handleError = useCallback((error, context, fallbackMessage) => {
+    const message = error?.message || fallbackMessage;
+    console.error(`[RutinasContext] ${context}:`, error);
+    enqueueSnackbar(message, { variant: 'error' });
+  }, [enqueueSnackbar]);
+
+  // (control de logs propio eliminado para evitar duplicación)
 
 
 
@@ -634,115 +609,142 @@ export const RutinasProvider = ({ children }) => {
     }
   }, [rutinas, enqueueSnackbar, updateLocalRutina]);
 
-  // Guardar cambios locales para una rutina
-  const saveLocalChangesForRutina = useCallback((rutinaId, section, itemId, config) => {
-    console.log(`[RutinasContext] 🔐 Guardando cambios locales para ${rutinaId}, ${section}.${itemId}:`, JSON.stringify(config));
+  // Función unificada para actualizar configuración de ítems
+  const updateItemConfiguration = useCallback(async (section, itemId, config, options = {}) => {
+    const { isLocal = false, isGlobal = false, rutinaId = null } = options;
     
-    // Normalizar explícitamente los tipos de datos para asegurar consistencia
+    if (!section || !itemId || !config) {
+      handleError(new Error('Datos incompletos para actualizar configuración'), 'updateItemConfiguration', 'Datos incompletos');
+      return { updated: false, error: "Datos incompletos" };
+    }
+
+    const targetRutinaId = rutinaId || rutina?._id;
+    if (!targetRutinaId) {
+      handleError(new Error('No hay rutina para actualizar'), 'updateItemConfiguration', 'No hay rutina actual');
+      return { updated: false, error: "No hay rutina actual" };
+    }
+
+    try {
+      console.log(`[RutinasContext] 📝 Actualizando configuración para ${section}.${itemId}:`, config);
+      
+      // Normalizar configuración
     const normalizedConfig = {
-      ...config,
       tipo: (config.tipo || 'DIARIO').toUpperCase(),
       frecuencia: Number(config.frecuencia || 1),
       activo: config.activo !== undefined ? Boolean(config.activo) : true,
-      diasSemana: config.diasSemana || [],
-      diasMes: config.diasMes || [],
       periodo: config.periodo || 'CADA_DIA',
-      // Nuevos campos normalizados
       esPreferenciaUsuario: config.esPreferenciaUsuario !== undefined ? Boolean(config.esPreferenciaUsuario) : true,
-      ultimaActualizacion: config.ultimaActualizacion || new Date().toISOString(),
-      diasCompletados: Number(config.diasCompletados || 0),
-      diasConsecutivos: Number(config.diasConsecutivos || 0)
-    };
-    // Registrar cambios locales preservables mediante el hook centralizado
-    registerLocalChange(section, itemId, normalizedConfig);
-    
-    // Marcar la rutina como modificada
-    markRutinaAsDirty(rutinaId);
-    
-    // Aplicar cambios a la rutina actual si corresponde
-    if (rutina && rutina._id === rutinaId) {
-      setRutina(prevRutina => {
-        // Crear copia profunda para evitar modificaciones no deseadas
-        const updatedRutina = {...prevRutina};
-        
-        // Asegurar que la estructura existe
-        if (!updatedRutina.config) updatedRutina.config = {};
-        if (!updatedRutina.config[section]) updatedRutina.config[section] = {};
-        
-        // Actualizar la configuración
-        updatedRutina.config[section][itemId] = {...normalizedConfig};
-        
-        console.log(`[RutinasContext] 🔄 Actualizando rutina actual con nueva configuración para ${section}.${itemId}`);
-        return updatedRutina;
-      });
-      
-      // Enviar cambios directamente al servidor
-      console.log(`[RutinasContext] 📡 Enviando actualización al servidor para rutina ${rutinaId}, sección ${section}, item ${itemId}`);
-      
-      // Datos para enviar al servidor
-      const updateData = {
-        _id: rutinaId,
-        config: {
-          [section]: {
-            [itemId]: normalizedConfig
-          }
-        }
+        ultimaActualizacion: new Date().toISOString()
       };
-      
-      // También actualizar las preferencias de usuario si está marcado como preferencia
-      if (normalizedConfig.esPreferenciaUsuario) {
-        // Crear estructura para actualizar las preferencias de usuario
-        updateData.userPreferences = {
-          habits: {
-            [section]: {
+
+      // Aplicar cambios locales si es necesario
+      if (isLocal) {
+        registerLocalChange(section, itemId, normalizedConfig);
+        console.log(`[RutinasContext] 🔐 Cambios locales registrados para ${section}.${itemId}`);
+      }
+
+      // Actualizar estado local de la rutina
+      setRutina(prevRutina => {
+        if (!prevRutina || prevRutina._id !== targetRutinaId) return prevRutina;
+        
+        const newConfig = { ...(prevRutina.config || {}) };
+        if (!newConfig[section]) newConfig[section] = {};
+        
+        // ✅ CORREGIDO: Preservar TODA la configuración existente de la sección
+        newConfig[section] = {
+          ...(newConfig[section] || {}), // Preservar TODOS los ítems existentes
               [itemId]: {
-                ...normalizedConfig,
-                lastSyncedWithRutina: rutinaId // Guardar referencia de qué rutina generó esta preferencia
-              }
-            }
+            ...(newConfig[section][itemId] || {}), // Preservar configuración existente del ítem
+            ...normalizedConfig, // Aplicar solo los cambios nuevos
+            _timestamp: Date.now() // Forzar actualización en componentes
           }
         };
         
-        console.log(`[RutinasContext] 🔄 También actualizando preferencias de usuario para ${section}.${itemId}`);
-      }
-      
-      // Enviar cambios al servidor
-      clienteAxios.put(`/api/rutinas/${rutinaId}`, updateData)
-        .then(response => {
-          console.log(`[RutinasContext] ✅ Servidor actualizó configuración correctamente para ${section}.${itemId}:`, 
-            JSON.stringify(response.data?.config?.[section]?.[itemId] || "Sin datos de respuesta"));
-          
-          // Si se actualizaron también las preferencias de usuario, mostrar confirmación
-          if (normalizedConfig.esPreferenciaUsuario && response.data?.userPreferences?.updated) {
-            console.log(`[RutinasContext] ✅ Preferencias de usuario también actualizadas`);
-            enqueueSnackbar('Preferencias de hábito guardadas correctamente', { variant: 'success' });
-          }
-        })
-        .catch(error => {
-          console.error(`[RutinasContext] ❌ Error al actualizar ${section}.${itemId} en servidor:`, error.message);
-          console.error(`[RutinasContext] Detalles del error:`, {
-            status: error.response?.status,
-            statusText: error.response?.statusText,
-            data: error.response?.data
-          });
-          
-          // Mostrar notificación de error
-          enqueueSnackbar(`Error al guardar: ${error.response?.data?.message || error.message}`, { variant: 'error' });
+        console.log(`[RutinasContext] 🔄 Configuración actualizada para ${section}.${itemId}:`, {
+          configuracionAnterior: prevRutina.config?.[section]?.[itemId],
+          configuracionNueva: newConfig[section][itemId],
+          todosLosItemsEnSeccion: Object.keys(newConfig[section])
         });
-    } else {
-      console.log(`[RutinasContext] ℹ️ No se actualizó el servidor porque la rutina actual (${rutina?._id}) no es la misma que se modificó (${rutinaId})`);
-    }
-    
-    return pendingLocalChanges;
-  }, [markRutinaAsDirty, rutina, enqueueSnackbar, registerLocalChange, pendingLocalChanges]);
+        
+        return {
+          ...prevRutina,
+          config: newConfig,
+          _uiRefreshTimestamp: Date.now(),
+          _expandedSections: prevRutina._expandedSections || {}
+        };
+      });
 
-  // Carga inicial simplificada: si no hay datos, cargar automáticamente una vez
+      // Actualizar preferencias globales si es necesario
+      if (isGlobal) {
+        try {
+          const result = await rutinasService.updateUserHabitPreference(section, itemId, normalizedConfig);
+          if (result.updated && result.global) {
+            console.log(`[RutinasContext] ✅ Preferencia global actualizada para ${section}.${itemId}`);
+            enqueueSnackbar('Preferencia global actualizada', { variant: 'success' });
+          } else if (result.fallback) {
+            console.log(`[RutinasContext] ⚠️ ${result.fallback}`);
+            enqueueSnackbar(result.fallback, { variant: 'warning' });
+          }
+        } catch (prefError) {
+          console.error(`[RutinasContext] ❌ Error al actualizar preferencia global:`, prefError);
+        }
+      }
+
+      // Enviar al servidor
+      try {
+        // ✅ Enviar la configuración COMPLETA de la sección para evitar
+        // que el backend sobreescriba y pierda otros ítems
+        const currentSectionConfig = (rutina?.config?.[section]) || {};
+        const mergedSectionConfig = {
+          ...currentSectionConfig,
+          [itemId]: normalizedConfig
+        };
+
+        const updateData = {
+          _id: targetRutinaId,
+          config: {
+            [section]: mergedSectionConfig
+          }
+        };
+
+        await clienteAxios.put(`/api/rutinas/${targetRutinaId}`, updateData);
+        console.log(`[RutinasContext] ✅ Configuración guardada en servidor para ${section}.${itemId}`);
+        
+        enqueueSnackbar("Configuración guardada", { variant: "success" });
+        return { updated: true, config: normalizedConfig };
+        
+      } catch (serverError) {
+        console.error(`[RutinasContext] ❌ Error al guardar en servidor:`, serverError);
+        handleError(serverError, 'updateItemConfiguration', 'Error al guardar en servidor');
+        return { updated: false, error: serverError.message };
+      }
+
+    } catch (error) {
+      handleError(error, 'updateItemConfiguration', 'Error inesperado al actualizar configuración');
+      return { updated: false, error: error.message };
+    }
+  }, [rutina, enqueueSnackbar, registerLocalChange, handleError]);
+
+  // Función para actualizar el estado de expansión de las secciones
+  const updateSectionExpandedState = useCallback((section, isExpanded) => {
+    if (!rutina) return;
+    
+    setRutina(prevRutina => {
+      const updatedRutina = {...prevRutina};
+      if (!updatedRutina._expandedSections) {
+        updatedRutina._expandedSections = {};
+      }
+      updatedRutina._expandedSections[section] = isExpanded;
+      return updatedRutina;
+    });
+  }, [rutina]);
+
+  // Carga inicial simplificada
   useEffect(() => {
     if (!loading && rutinas.length === 0) {
       fetchRutinas();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loading, rutinas.length, fetchRutinas]);
 
   // Manejo inicial de la rutina cuando se cargan las rutinas
   useEffect(() => {
@@ -751,153 +753,11 @@ export const RutinasProvider = ({ children }) => {
       getRutinaById(rutinas[0]._id);
     }
   }, [rutinas, rutina, loading, getRutinaById]);
-
-  // Cargar preferencias de hábitos del usuario
-  const fetchUserHabitPreferences = useCallback(async () => {
-    try {
-      setLoading(true);
-      console.log('[RutinasContext] Cargando preferencias de hábitos del usuario');
-      
-      const preferencias = await rutinasService.getUserHabitPreferences();
-      console.log('[RutinasContext] Preferencias cargadas:', preferencias);
-      
-      return preferencias;
-    } catch (error) {
-      console.error('[RutinasContext] Error al cargar preferencias:', error);
-      enqueueSnackbar('Error al cargar preferencias de hábitos', { variant: 'error' });
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [enqueueSnackbar]);
-  
-  // Aplicar preferencias de usuario a una rutina específica
-  const applyUserPreferencesToRutina = useCallback(async (rutinaId) => {
-    try {
-      if (!rutinaId || rutinaId === 'new') {
-        console.warn('[RutinasContext] No se puede aplicar preferencias a una rutina sin ID');
-        return null;
-      }
-      
-      setLoading(true);
-      console.log(`[RutinasContext] Aplicando preferencias de usuario a rutina ${rutinaId}`);
-      
-      const resultado = await rutinasService.syncRutinaWithUserPreferences(rutinaId);
-      
-      // Refrescar la rutina con los cambios aplicados
-      if (resultado.updated) {
-        await getRutinaById(rutinaId);
-        enqueueSnackbar('Preferencias de usuario aplicadas', { variant: 'success' });
-      }
-      
-      return resultado;
-    } catch (error) {
-      console.error('[RutinasContext] Error al aplicar preferencias:', error);
-      enqueueSnackbar('Error al aplicar preferencias de usuario', { variant: 'error' });
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [enqueueSnackbar, getRutinaById]);
-  
-  // Actualizar preferencia de usuario para un hábito
-  const updateUserHabitPreference = useCallback(async (section, itemId, config) => {
-    if (!section || !itemId || !config) {
-      controlledLog('preference_error', 'Datos incompletos para actualizar preferencia', 
-        { section, itemId }, 'warn');
-      return { updated: false, error: "Datos incompletos" };
-    }
-    
-    try {
-      setLoading(true);
-      controlledLog('preference_update', `Actualizando preferencia para ${section}.${itemId}`, config);
-      
-      // Actualizar el estado de la rutina con los nuevos datos
-      const updatedConfig = {
-        ...config,
-        esPreferenciaUsuario: true,
-        ultimaActualizacion: new Date().toISOString()
-      };
-      
-      // Usar el método renombrado del servicio y mejorar manejo de respuesta
-      const response = await rutinasService.updateUserHabitPreference(
-        section, 
-        itemId, 
-        updatedConfig
-      );
-      
-      // Mejor manejo de respuesta
-      if (response.updated) {
-        controlledLog('preference_success', `Preferencia ${section}.${itemId} actualizada correctamente`);
-        
-        // Verificar si tenemos una advertencia pero se pudo actualizar
-        if (response.warning) {
-          console.warn(`[RutinasContext] ⚠️ Advertencia al actualizar preferencia:`, response.warning);
-          enqueueSnackbar('Preferencia actualizada con advertencia', { variant: 'warning' });
-        }
-        
-        setLoading(false);
-        return { updated: true, preferences: response.preferences };
-      } else {
-        controlledLog('preference_warning', `Respuesta inesperada al actualizar preferencia:`, 
-          response, 'warn');
-        
-        setLoading(false);
-        
-        // Mostrar error amigable en la UI
-        const errorMessage = response.error || "Respuesta vacía o inesperada del servidor";
-        enqueueSnackbar(errorMessage, { variant: 'warning' });
-        
-        return { 
-          updated: false, 
-          error: errorMessage,
-          detail: response.detail || null
-        };
-      }
-    } catch (error) {
-      controlledLog('preference_error', `Error al actualizar preferencia de usuario:`, 
-        error, 'error');
-        
-      setError(error.message || "Error al guardar preferencia");
-      setLoading(false);
-      
-      // Mostrar error en la UI
-      enqueueSnackbar(`Error: ${error.message || "Error desconocido"}`, { variant: 'error' });
-      
-      return { 
-        updated: false, 
-        error: error.message || "Error desconocido",
-        detail: error
-      };
-    }
-  }, [rutina, setRutina, setLoading, setError, controlledLog, enqueueSnackbar]);
-
-  // Función para actualizar el estado de expansión de las secciones
-  const updateSectionExpandedState = useCallback((section, isExpanded) => {
-    if (!rutina) return;
-    
-    setRutina(prevRutina => {
-      // Crear copia de la rutina para no mutar el estado
-      const updatedRutina = {...prevRutina};
-      
-      // Asegurar que existe la estructura para el estado de UI
-      if (!updatedRutina._expandedSections) {
-        updatedRutina._expandedSections = {};
-      }
-      
-      // Actualizar el estado de expansión para esta sección
-      updatedRutina._expandedSections[section] = isExpanded;
-      
-      return updatedRutina;
-    });
-  }, [rutina]);
   
   // Escuchar eventos personalizados para el estado de expansión
   useEffect(() => {
     const handleSectionExpanded = (event) => {
       const { section, isExpanded, rutinaId } = event.detail;
-      
-      // Solo actualizar si la rutina coincide
       if (rutinaId === rutina?._id) {
         updateSectionExpandedState(section, isExpanded);
       }
@@ -905,113 +765,11 @@ export const RutinasProvider = ({ children }) => {
     
     if (typeof window !== 'undefined') {
       window.addEventListener('sectionExpanded', handleSectionExpanded);
-      
       return () => {
         window.removeEventListener('sectionExpanded', handleSectionExpanded);
       };
     }
   }, [rutina, updateSectionExpandedState]);
-
-  // Implementar función de actualización de config para un ítem concreto
-  const updateItemConfig = useCallback(async (seccion, itemId, config) => {
-    if (!rutina || !rutina._id) {
-      console.warn("[RutinasContext] No hay rutina actual para actualizar configuración");
-      enqueueSnackbar("No hay rutina actual para guardar la configuración", { variant: "warning" });
-      return false;
-    }
-    
-    try {
-      // Mostrar indicador de carga sutil sin bloquear la interfaz
-      // setLoading(true); // Comentamos esto para evitar bloquear la UI
-      
-      console.log(`[RutinasContext] 📝 Actualizando configuración para ${seccion}.${itemId}:`, config);
-      
-      // Guardar el estado de expansión actual
-      const previousRutinaState = {...rutina};
-      
-      // Aplicar el cambio localmente para mejor UX
-      setRutina(prevRutina => {
-        if (!prevRutina) return prevRutina;
-        
-        // Crear estructura de configuración si no existe
-        const newConfig = { ...(prevRutina.config || {}) };
-        if (!newConfig[seccion]) newConfig[seccion] = {};
-        
-        // Actualizar la configuración específica
-        newConfig[seccion] = {
-          ...(newConfig[seccion] || {}),
-          [itemId]: {
-            ...config,
-            _timestamp: Date.now() // Forzar actualización en componentes
-          }
-        };
-        
-        // Retornar la rutina actualizada con timestamp para forzar re-renderizado
-        return {
-          ...prevRutina,
-          config: newConfig,
-          _uiRefreshTimestamp: Date.now(),
-          // Mantener cualquier otro estado como la expansión
-          _expandedSections: prevRutina._expandedSections || {}
-        };
-      });
-      
-      try {
-        // Guardar en el backend
-        const result = await rutinasService.updateItemConfig(
-          rutina._id, 
-          seccion, 
-          itemId, 
-          config
-        );
-        
-        // Recargar de forma silenciosa sin actualizar toda la UI
-        setTimeout(async () => {
-          try {
-            // Obtener los nuevos datos
-            const updatedRutina = await rutinasService.getRutinaById(rutina._id, true);
-            
-            // Actualizar solo los datos sin afectar el estado de UI
-            if (updatedRutina) {
-              setRutina(prevRutina => {
-                // Combinar los datos nuevos con el estado de UI actual
-                return {
-                  ...updatedRutina,
-                  _page: prevRutina._page,
-                  _totalPages: prevRutina._totalPages,
-                  _refreshTimestamp: Date.now(),
-                  // Preservar el estado de expansión
-                  _expandedSections: prevRutina._expandedSections || {}
-                };
-              });
-            }
-          } catch (reloadError) {
-            console.error(`[RutinasContext] Error en la recarga silenciosa:`, reloadError);
-            // No mostrar error al usuario porque la actualización principal ya funcionó
-          }
-        }, 800);
-        
-        console.log(`[RutinasContext] ✅ Configuración guardada exitosamente`);
-        enqueueSnackbar("Configuración guardada", { variant: "success" });
-        
-        return true;
-      } catch (error) {
-        console.error(`[RutinasContext] ❌ Error al enviar configuración al servidor:`, error);
-        
-        // Restaurar estado previo en caso de error
-        setRutina(previousRutinaState);
-        
-        enqueueSnackbar(`Error al guardar la configuración: ${error.message}`, { variant: "error" });
-        return false;
-      }
-    } catch (error) {
-      console.error(`[RutinasContext] ❌ Error al actualizar configuración:`, error);
-      enqueueSnackbar(`Error al guardar la configuración: ${error.message}`, { variant: "error" });
-      return false;
-    } finally {
-      // setLoading(false); // Comentamos esto para evitar bloquear la UI
-    }
-  }, [rutina, enqueueSnackbar]);
 
   // Función para eliminar una rutina
   const deleteRutina = useCallback(async (rutinaId) => {
@@ -1103,13 +861,10 @@ export const RutinasProvider = ({ children }) => {
     markItemComplete,
     handlePrevious,
     handleNext,
-    saveLocalChangesForRutina,
+    updateItemConfiguration,
     pendingLocalChanges,
     deleteRutina,
     syncRutinaWithGlobal,
-    applyUserPreferencesToRutina,
-    updateUserHabitPreference,
-    updateItemConfig,
     reloadCurrentRutina,
     updateSectionExpandedState
   };

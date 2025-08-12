@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import * as rutinaCalculations from '../utils/rutinaCalculations';
+import logger from '../utils/logger';
 
 // Crear el contexto
 const RutinasStatisticsContext = createContext();
@@ -15,28 +16,12 @@ export const useRutinasStatistics = () => {
 
 // Provider del contexto
 export const RutinasStatisticsProvider = ({ children }) => {
-  // Optimización para evitar logs excesivos
-  const logTimers = useRef({});
-  const lastLogTimes = useRef({});
-
-  // Función para controlar logs evitando spam
-  const controlledLog = useCallback((id, message, data = null, level = 'log') => {
-    const now = Date.now();
-    const key = `${id}_${level}`;
-    
-    // Limitar logs del mismo tipo a cada 3 segundos
-    if (!lastLogTimes.current[key] || now - lastLogTimes.current[key] > 3000) {
-      if (data) {
-        console[level](`[RutinasStatistics] ${message}`, data);
-      } else {
-        console[level](`[RutinasStatistics] ${message}`);
-      }
-      lastLogTimes.current[key] = now;
-      
-      // Limpiar timers antiguos
-      if (logTimers.current[key]) {
-        clearTimeout(logTimers.current[key]);
-      }
+  // Usar logger centralizado
+  const statsLog = useCallback((message, data = null) => {
+    if (data) {
+      logger.log('RutinasStatistics', message, data);
+    } else {
+      logger.log('RutinasStatistics', message);
     }
   }, []);
 
@@ -54,7 +39,7 @@ export const RutinasStatisticsProvider = ({ children }) => {
       const esRutinaPasada = fechaRutina < hoy;
       
       // Log controlado para entender qué tipo de rutina estamos procesando
-      controlledLog('rutina_tipo', 'Tipo de rutina a procesar:', {
+      statsLog('Tipo de rutina a procesar:', {
         fecha: rutinaData.fecha,
         id: rutinaData._id,
         esRutinaHoy,
@@ -66,7 +51,7 @@ export const RutinasStatisticsProvider = ({ children }) => {
       
       // Log detallado para depuración
       if (typeof rutinaData.completitud === 'number') {
-        controlledLog('backend_completion', 'Usando completitud calculada por backend:', { 
+        statsLog('Usando completitud calculada por backend:', { 
           value: rutinaData.completitud, 
           percentage, 
           rutinaId: rutinaData._id, 
@@ -76,7 +61,7 @@ export const RutinasStatisticsProvider = ({ children }) => {
         // Para cálculos manuales, obtener detalles
         const { visibleItems, completedItems, sectionStats } = rutinaCalculations.calculateVisibleItems(rutinaData);
         
-        controlledLog('manual_completion', 'Cálculo manual de completitud:', {
+        statsLog('Cálculo manual de completitud:', {
           rutinaId: rutinaData._id,
           fecha: rutinaData.fecha,
           esRutinaHoy,
@@ -94,7 +79,7 @@ export const RutinasStatisticsProvider = ({ children }) => {
       console.error('[RutinasStatistics] Error en wrapper de cálculo de completitud:', error);
       return 0;
     }
-  }, [controlledLog]);
+  }, [statsLog]);
 
   // Wrapper para estadísticas por sección
   const getSectionStats = useCallback((rutinaData) => {

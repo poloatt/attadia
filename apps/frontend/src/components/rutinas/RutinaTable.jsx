@@ -33,7 +33,7 @@ import axios from 'axios';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '../../config/axios';
 import { NavigateBefore, NavigateNext, Today as TodayIcon } from '@mui/icons-material';
-import { useLocalPreservationState } from '../../hooks';
+import { useRutinas } from '../../context/RutinasContext';
 
 import shouldShowItemUtil from '../../utils/shouldShowItem';
 import { getNormalizedToday, toISODateString, parseAPIDate } from '../../utils/dateUtils';
@@ -69,17 +69,8 @@ export const RutinaTable = ({
     }
   }, [rutina?.fecha]);
 
-  // Usar el hook de preservación de cambios locales con soporte para localStorage
-  const { 
-    registerLocalChange, 
-    pendingLocalChanges,
-    clearLocalChanges 
-  } = useLocalPreservationState({}, { 
-    debug: true,
-    enableStorage: true,
-    storagePrefix: 'rutina_config_changes',
-    preserveFields: ['tipo', 'frecuencia', 'periodo']
-  });
+  // Funciones del contexto para guardar y enviar configuración
+  const { updateItemConfiguration } = useRutinas();
 
   // Sincronizar estados con props cuando cambian
   useEffect(() => {
@@ -238,14 +229,12 @@ export const RutinaTable = ({
       return;
     }
     
-    // Verificar si la rutina es de una fecha pasada
-    const rutinaDate = new Date(rutina.fecha);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Normalizar a inicio del día
-    rutinaDate.setHours(0, 0, 0, 0); // Normalizar a inicio del día
+    // Verificar si la rutina es de una fecha pasada usando dateUtils
+    const rutinaDate = parseAPIDate(rutina.fecha);
+    const today = getNormalizedToday();
     
     if (rutinaDate < today) {
-      console.log(`[RutinaTable] ⚠️ Intento de modificar cadencia en rutina con fecha pasada: ${rutinaDate.toISOString().split('T')[0]}`);
+      console.log(`[RutinaTable] ⚠️ Intento de modificar cadencia en rutina con fecha pasada: ${toISODateString(rutinaDate)}`);
       enqueueSnackbar('La configuración de cadencia no se puede modificar en rutinas de fechas pasadas. Para cambiar la configuración de este hábito, actualiza tus preferencias globales.', { 
         variant: 'warning',
         autoHideDuration: 5000
@@ -279,12 +268,10 @@ export const RutinaTable = ({
     
     console.log(`[RutinaTable] ✅ Configuración normalizada:`, JSON.stringify(normalizedConfig));
     
-    // Registrar el cambio local para preservarlo en futuras actualizaciones
-    registerLocalChange(seccionId, itemId, {
-      tipo: normalizedConfig.tipo,
-      frecuencia: normalizedConfig.frecuencia, 
-      periodo: normalizedConfig.periodo
-    });
+    // Registrar el cambio local a nivel de contexto
+    try {
+      // saveLocalChangesForRutina(rutina._id, seccionId, itemId, normalizedConfig); // Eliminado
+    } catch {}
     
     // Crear una copia profunda del objeto rutina para actualización local
     const updatedRutina = JSON.parse(JSON.stringify(rutina));
@@ -309,83 +296,17 @@ export const RutinaTable = ({
       });
     }
     
-    // Crear datos para enviar al servidor
-    const updateData = {
-      config: {
-        [seccionId]: {
-          [itemId]: normalizedConfig
-        }
-      }
-    };
-    
-    console.log(`[RutinaTable] 📡 Enviando al servidor:`, JSON.stringify(updateData));
-    console.log(`[RutinaTable] 🔍 Tipo de configuración: ${normalizedConfig.tipo}, Periodo: ${normalizedConfig.periodo}, Frecuencia: ${normalizedConfig.frecuencia} (${typeof normalizedConfig.frecuencia})`);
-    console.log(`[RutinaTable] 🔍 URL: /api/rutinas/${rutina._id}`);
-    
-    // Guardar localmente la configuración original para compararla con la respuesta
-    const originalConfig = { ...normalizedConfig };
-    
-    // Enviar actualización al servidor con timeout más largo
-    clienteAxios.put(`/api/rutinas/${rutina._id}`, updateData, { timeout: 10000 })
-      .then(response => {
-        console.log('[RutinaTable] ✅ Respuesta del servidor:', JSON.stringify(response.data));
-        
-        // Verificar que la configuración se guardó correctamente
-        const serverConfig = response.data.config?.[seccionId]?.[itemId];
-        if (serverConfig) {
-          console.log(`[RutinaTable] 🔍 Comparando configuración enviada vs recibida:`);
-          console.log(`- Tipo enviado: ${originalConfig.tipo}, recibido: ${serverConfig.tipo}`);
-          console.log(`- Frecuencia enviada: ${originalConfig.frecuencia}, recibida: ${serverConfig.frecuencia}`);
-          console.log(`- Tipo de dato recibido: ${typeof serverConfig.frecuencia}`);
-          console.log(`- Periodo enviado: ${originalConfig.periodo}, recibido: ${serverConfig.periodo}`);
-          
-          // Verificar si hay discrepancias entre lo que enviamos y lo que recibimos
-          if (originalConfig.frecuencia !== serverConfig.frecuencia || 
-              originalConfig.tipo !== serverConfig.tipo ||
-              originalConfig.periodo !== serverConfig.periodo) {
-            console.warn('[RutinaTable] ⚠️ ¡Hay discrepancias entre la configuración local y la del servidor!');
-            
-            // Mantener los valores originales en la UI
-            const rutinaConValoresLocales = JSON.parse(JSON.stringify(response.data));
-            
-            // Asegurar la estructura de configuración
-            if (!rutinaConValoresLocales.config) rutinaConValoresLocales.config = {};
-            if (!rutinaConValoresLocales.config[seccionId]) rutinaConValoresLocales.config[seccionId] = {};
-            if (!rutinaConValoresLocales.config[seccionId][itemId]) rutinaConValoresLocales.config[seccionId][itemId] = {};
-            
-            // Sobrescribir los valores que queremos preservar
-            rutinaConValoresLocales.config[seccionId][itemId] = {
-              ...rutinaConValoresLocales.config[seccionId][itemId],
-              tipo: originalConfig.tipo,
-              frecuencia: originalConfig.frecuencia,
-              periodo: originalConfig.periodo
-            };
-            
-            if (typeof onRutinaChange === 'function') {
-              console.log('[RutinaTable] 🔄 Actualizando UI con valores locales preservados');
-              // Aplicar los valores locales a la UI, preservando el flag
-              onRutinaChange({
-                ...rutinaConValoresLocales,
-                _preserve_local_changes: true
-              });
-            }
-          } else {
-            console.log('[RutinaTable] ✅ Configuración validada correctamente en el servidor');
-          }
-        }
-        
-        enqueueSnackbar('Configuración guardada', { variant: 'success' });
+    // Enviar actualización a través del contexto (gestiona recarga silenciosa)
+    updateItemConfiguration(seccionId, itemId, normalizedConfig)
+      .then((ok) => {
+        if (ok) enqueueSnackbar('Configuración guardada', { variant: 'success' });
       })
       .catch(error => {
         console.error('[RutinaTable] ❌ Error al actualizar configuración:', error);
-        console.log('[RutinaTable] Detalles del error:', error.response?.data || error.message);
-        
-        // Restaurar estado previo en caso de error
         if (typeof onRutinaChange === 'function') {
           onRutinaChange(rutina);
         }
-        
-        enqueueSnackbar('Error al actualizar configuración: ' + (error.response?.data?.error || error.message), { 
+        enqueueSnackbar('Error al actualizar configuración: ' + (error?.message || 'Error desconocido'), { 
           variant: 'error',
           autoHideDuration: 5000
         });
@@ -435,54 +356,14 @@ export const RutinaTable = ({
 
   const handleItemConfigChange = async (rutinaId, seccionId, itemId, newConfig) => {
     try {
-      // console.log(`Actualizando config para ${seccionId}.${itemId} en rutina ${rutinaId}:`, newConfig);
-      
-      // Normalizar los valores
       const normalizedConfig = {
         ...newConfig,
-        frecuencia: Number(newConfig.frecuencia || 1), // Usar Number en lugar de parseInt para mantener precisión
+        frecuencia: Number(newConfig.frecuencia || 1),
         tipo: (newConfig.tipo || 'DIARIO').toUpperCase()
       };
-      
-      // console.log(`Configuración normalizada (frecuencia tipo: ${typeof normalizedConfig.frecuencia}):`, normalizedConfig);
-      
-      await clienteAxios.patch(`/api/rutinas/${rutinaId}/configurar`, {
-        seccion: seccionId,
-        item: itemId,
-        config: normalizedConfig
-      });
-      
-      // Actualizar el estado local
-      setRutinas(prevRutinas => prevRutinas.map(rutina => {
-        if (rutina._id === rutinaId) {
-          // Clonar la rutina para evitar mutar el objeto original
-          const updatedRutina = { ...rutina };
-          
-          // Asegurarse de que la sección existe
-          if (!updatedRutina.secciones) {
-            updatedRutina.secciones = {};
-          }
-          
-          if (!updatedRutina.secciones[seccionId]) {
-            updatedRutina.secciones[seccionId] = {};
-          }
-          
-          // Asegurarse de que el item existe
-          if (!updatedRutina.secciones[seccionId][itemId]) {
-            updatedRutina.secciones[seccionId][itemId] = {};
-          }
-          
-          // Actualizar la configuración
-          updatedRutina.secciones[seccionId][itemId].config = normalizedConfig;
-          
-          return updatedRutina;
-        }
-        return rutina;
-      }));
-      
+      await updateItemConfiguration(seccionId, itemId, normalizedConfig);
       enqueueSnackbar('Configuración actualizada', { variant: 'success' });
     } catch (error) {
-      // console.error('Error al actualizar configuración:', error);
       enqueueSnackbar('Error al actualizar configuración', { variant: 'error' });
     }
   };
@@ -611,9 +492,6 @@ export const RutinaTable = ({
 
   // Limpiar cambios locales cuando se elimina una rutina
   const handleRutinaDelete = (rutinaId) => {
-    // Limpiar todos los cambios locales para esta rutina
-    clearLocalChanges();
-    
     // Llamar al handler original si existe
     if (typeof onDelete === 'function') {
       onDelete(rutinaId);

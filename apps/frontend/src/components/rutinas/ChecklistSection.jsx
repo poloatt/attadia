@@ -147,7 +147,7 @@ const RutinaCard = ({
   }
   
   // Contexto de rutinas
-  const { rutina, markItemComplete, updateItemConfig, updateUserHabitPreference } = useRutinas();
+  const { rutina, markItemComplete, updateItemConfiguration, updateUserHabitPreference } = useRutinas();
   
   // Referencia para controlar la actualización de datos
   const dataRef = useRef(data);
@@ -809,7 +809,7 @@ const RutinaCard = ({
   };
 
   // Manejar cambios en la configuración de un ítem
-  const handleConfigChange = (itemId, newConfig) => {
+  const handleConfigChange = async (itemId, newConfig) => {
     try {
       // Verificar que tenemos datos de rutina
       // No necesitamos acceder a contextData, ya tenemos la variable rutina disponible
@@ -852,52 +852,43 @@ const RutinaCard = ({
       
       // Intentar actualizar en el contexto, con manejo de errores
       try {
-        if (updateItemConfig && typeof updateItemConfig === 'function') {
-          updateItemConfig(section, itemId, cleanConfig)
-            .then(() => {
-              console.log(`[ChecklistSection] ✅ Configuración guardada y sincronizada con backend para ${section}.${itemId}`);
-              
-              // Muy importante: actualizar también las preferencias globales del usuario
-              // Verificamos si tenemos la función en el contexto (updateUserHabitPreference)
-              if (updateUserHabitPreference && typeof updateUserHabitPreference === 'function') {
-                updateUserHabitPreference(section, itemId, cleanConfig)
-                  .then(result => {
-                    if (result && result.updated) {
-                      console.log(`[ChecklistSection] ✅ Preferencia de usuario actualizada correctamente para ${section}.${itemId}`);
-                    } else {
-                      console.warn(`[ChecklistSection] ⚠️ No se pudo actualizar preferencia de usuario para ${section}.${itemId}`);
-                    }
-                  })
-                  .catch(prefError => {
-                    console.error(`[ChecklistSection] ❌ Error al actualizar preferencia de usuario:`, prefError);
-                  });
+        if (updateItemConfiguration && typeof updateItemConfiguration === 'function') {
+          await updateItemConfiguration(section, itemId, cleanConfig);
+          console.log(`[ChecklistSection] ✅ Configuración guardada y sincronizada con backend para ${section}.${itemId}`);
+          
+          // Muy importante: actualizar también las preferencias globales del usuario
+          // Verificamos si tenemos la función en el contexto (updateUserHabitPreference)
+          if (updateUserHabitPreference && typeof updateUserHabitPreference === 'function') {
+            try {
+              const result = await updateUserHabitPreference(section, itemId, cleanConfig);
+              if (result && result.updated) {
+                console.log(`[ChecklistSection] ✅ Preferencia de usuario actualizada correctamente para ${section}.${itemId}`);
+              } else {
+                console.warn(`[ChecklistSection] ⚠️ No se pudo actualizar preferencia de usuario para ${section}.${itemId}`);
               }
-              
-              // Cerrar configurador una vez guardados los cambios
-              // if (typeof setSelectedItemId === 'function') { // Eliminado
-              //   setSelectedItemId(null);
-              // }
-              
-              // Forzar actualización de UI si es necesario
-              if (typeof setForceUpdate === 'function') {
-                setForceUpdate(Date.now());
-              }
-            })
-            .catch(error => {
-              console.error(`[ChecklistSection] ❌ Error al guardar configuración:`, error);
-              enqueueSnackbar('Error al guardar configuración', { variant: 'error' });
-            });
+            } catch (prefError) {
+              console.error(`[ChecklistSection] ❌ Error al actualizar preferencia de usuario:`, prefError);
+            }
+          }
+          
+          // Forzar actualización de UI si es necesario
+          if (typeof setForceUpdate === 'function') {
+            setForceUpdate(Date.now());
+          }
         } else {
-          console.error('[ChecklistSection] ❌ Función updateItemConfig no disponible');
-          enqueueSnackbar('No se puede guardar la configuración', { variant: 'error' });
+          console.error('[ChecklistSection] ❌ Función updateItemConfiguration no disponible');
+          enqueueSnackbar('Error: Función de actualización no disponible', { variant: 'error' });
+          throw new Error('Función updateItemConfiguration no disponible');
         }
       } catch (execError) {
         console.error('[ChecklistSection] ❌ Error en ejecución al guardar configuración:', execError);
         enqueueSnackbar('Error inesperado al guardar', { variant: 'error' });
+        throw execError;
       }
     } catch (error) {
       console.error('[ChecklistSection] ❌ Error general:', error);
       enqueueSnackbar('Error inesperado', { variant: 'error' });
+      throw error;
     }
   };
 

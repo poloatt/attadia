@@ -147,7 +147,7 @@ const RutinaCard = ({
   }
   
   // Contexto de rutinas
-  const { rutina, markItemComplete, updateItemConfig, updateUserHabitPreference } = useRutinas();
+  const { rutina, markItemComplete, updateItemConfiguration, updateUserHabitPreference } = useRutinas();
   
   // Referencia para controlar la actualización de datos
   const dataRef = useRef(data);
@@ -852,8 +852,8 @@ const RutinaCard = ({
       
       // Intentar actualizar en el contexto, con manejo de errores
       try {
-        if (updateItemConfig && typeof updateItemConfig === 'function') {
-          updateItemConfig(section, itemId, cleanConfig)
+        if (updateItemConfiguration && typeof updateItemConfiguration === 'function') {
+          updateItemConfiguration(section, itemId, cleanConfig)
             .then(() => {
               console.log(`[ChecklistSection] ✅ Configuración guardada y sincronizada con backend para ${section}.${itemId}`);
               
@@ -888,8 +888,9 @@ const RutinaCard = ({
               enqueueSnackbar('Error al guardar configuración', { variant: 'error' });
             });
         } else {
-          console.error('[ChecklistSection] ❌ Función updateItemConfig no disponible');
-          enqueueSnackbar('No se puede guardar la configuración', { variant: 'error' });
+          console.error('[ChecklistSection] ❌ Función updateItemConfiguration no disponible');
+          enqueueSnackbar('Error: Función de actualización no disponible', { variant: 'error' });
+          throw new Error('Función updateItemConfiguration no disponible');
         }
       } catch (execError) {
         console.error('[ChecklistSection] ❌ Error en ejecución al guardar configuración:', execError);

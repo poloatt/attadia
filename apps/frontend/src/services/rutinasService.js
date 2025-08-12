@@ -299,119 +299,7 @@ class RutinasService {
     keysToRemove.forEach(key => this.cache.delete(key));
   }
 
-  /**
-   * Obtiene el historial de completaciones para un ítem específico
-   * @param {string} section - Sección del ítem (bodyCare, nutricion, etc)
-   * @param {string} itemId - Identificador del ítem
-   * @param {Date|string} fechaInicio - Fecha de inicio para la consulta
-   * @param {Date|string} fechaFin - Fecha de fin para la consulta
-   * @returns {Promise} Promesa con el resultado de la consulta
-   */
-  async obtenerHistorialCompletaciones(section, itemId, fechaInicio, fechaFin) {
-    try {
-      // Validación básica de parámetros
-      if (!section || !itemId) {
-        console.error('[RutinasService] ❌ Sección o itemId no proporcionados');
-        return [];
-      }
-
-      // Normalizar fechas con manejo de errores mejorado
-      let inicio, fin;
-      try {
-        // Obtener fecha actual y año máximo permitido
-        const ahora = new Date();
-        const añoMaximo = 2024; // Año máximo permitido
-
-        // Procesar fecha de inicio
-        if (!fechaInicio) {
-          inicio = new Date(ahora);
-          inicio.setDate(inicio.getDate() - 30); // Por defecto, últimos 30 días
-        } else {
-          inicio = fechaInicio instanceof Date ? new Date(fechaInicio) : new Date(fechaInicio);
-        }
-
-        // Procesar fecha de fin
-        if (!fechaFin) {
-          fin = new Date(ahora);
-        } else {
-          fin = fechaFin instanceof Date ? new Date(fechaFin) : new Date(fechaFin);
-        }
-
-        // Corregir años futuros
-        if (inicio.getFullYear() > añoMaximo) {
-          console.log(`[RutinasService] ⚠️ Corrigiendo año futuro ${inicio.getFullYear()} a ${añoMaximo} en fecha inicio`);
-          inicio.setFullYear(añoMaximo);
-        }
-        if (fin.getFullYear() > añoMaximo) {
-          console.log(`[RutinasService] ⚠️ Corrigiendo año futuro ${fin.getFullYear()} a ${añoMaximo} en fecha fin`);
-          fin.setFullYear(añoMaximo);
-        }
-
-        // Verificar que las fechas sean válidas
-        if (isNaN(inicio.getTime())) {
-          console.error('[RutinasService] ❌ Fecha de inicio inválida:', fechaInicio);
-          throw new Error(`Fecha de inicio inválida: ${fechaInicio}`);
-        }
-
-        if (isNaN(fin.getTime())) {
-          console.error('[RutinasService] ❌ Fecha de fin inválida:', fechaFin);
-          throw new Error(`Fecha de fin inválida: ${fechaFin}`);
-        }
-
-        // Normalizar horas
-        inicio.setUTCHours(0, 0, 0, 0);
-        fin.setUTCHours(23, 59, 59, 999);
-
-        // Verificar que inicio no sea posterior a fin
-        if (inicio > fin) {
-          console.error('[RutinasService] ❌ Fecha de inicio posterior a fecha fin');
-          throw new Error('La fecha de inicio no puede ser posterior a la fecha fin');
-        }
-
-        // Log detallado del rango de fechas
-        console.log('[RutinasService] 📅 Rango de fechas procesado:', {
-          inicio: inicio.toISOString(),
-          fin: fin.toISOString(),
-          section,
-          itemId
-        });
-
-      } catch (error) {
-        console.error('[RutinasService] ❌ Error al procesar fechas:', error);
-        return [];
-      }
-
-      // Generar clave de caché
-      const cacheKey = `${section}_${itemId}_${inicio.toISOString()}_${fin.toISOString()}`;
-      
-      // Verificar caché
-      const cachedData = this.getFromCache(cacheKey);
-      if (cachedData) {
-        console.log(`[RutinasService] ✅ Usando datos en caché para ${cacheKey}`);
-        return cachedData;
-      }
-
-      // Configurar parámetros para la consulta
-      const params = { 
-        fechaInicio: inicio.toISOString(),
-        fechaFin: fin.toISOString()
-      };
-
-      // Realizar la petición al backend
-      const response = await clienteAxios.get(`/api/rutinas/historial-completaciones/${section}/${itemId}`, { params });
-      
-      if (response.data) {
-        this.setInCache(cacheKey, response.data);
-        console.log(`[RutinasService] ✅ Datos obtenidos y guardados en caché para ${section}.${itemId}`);
-        return response.data;
-      }
-
-      return [];
-    } catch (error) {
-      console.error(`[RutinasService] ❌ Error al obtener historial de completaciones:`, error);
-      return [];
-    }
-  }
+  // Nota: usar getHistorialCompletaciones (único método soportado)
 
   getCacheKey(section, itemId, fechaInicio, fechaFin) {
     // Implementa la lógica para generar una clave única para la caché basada en los parámetros
@@ -536,6 +424,90 @@ class RutinasService {
     } catch (error) {
       console.error('[rutinasService] Error al obtener rutinas históricas:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Obtener las preferencias globales de hábitos del usuario
+   * @returns {Promise} Respuesta con las preferencias del usuario
+   */
+  async getUserHabitPreferences() {
+    try {
+      const response = await clienteAxios.get('/api/rutinas/user-preferences');
+      return { 
+        preferences: response.data, 
+        updated: true, 
+        global: true 
+      };
+    } catch (error) {
+      console.error('[rutinasService] Error al obtener preferencias de usuario:', error);
+      
+      // Si no hay endpoint, retornar estado honesto
+      if (error.response?.status === 404) {
+        return { 
+          preferences: {}, 
+          updated: false, 
+          global: false, 
+          error: 'Endpoint de preferencias globales no disponible',
+          fallback: 'Usando configuración local'
+        };
+      }
+      
+      // Otros errores
+      return { 
+        preferences: {}, 
+        updated: false, 
+        global: false, 
+        error: error.message || 'Error al obtener preferencias'
+      };
+    }
+  }
+
+  /**
+   * Actualizar las preferencias globales de hábitos del usuario
+   * @param {string} section - Sección del hábito (bodyCare, nutricion, etc.)
+   * @param {string} itemId - ID del ítem específico
+   * @param {Object} config - Configuración del hábito
+   * @returns {Promise} Respuesta con el estado de la actualización
+   */
+  async updateUserHabitPreference(section, itemId, config) {
+    try {
+      const response = await clienteAxios.put('/api/rutinas/user-preferences', {
+        section,
+        itemId,
+        config: {
+          ...config,
+          esPreferenciaUsuario: true,
+          ultimaActualizacion: new Date().toISOString()
+        }
+      });
+      
+      return { 
+        updated: true, 
+        global: true, 
+        preferences: response.data,
+        message: 'Preferencia global actualizada correctamente'
+      };
+    } catch (error) {
+      console.error('[rutinasService] Error al actualizar preferencia de usuario:', error);
+      
+      // Si no hay endpoint, retornar estado honesto
+      if (error.response?.status === 404) {
+        return { 
+          updated: false, 
+          global: false, 
+          error: 'Endpoint de preferencias globales no disponible',
+          fallback: 'Cambios guardados solo localmente',
+          localConfig: { [section]: { [itemId]: config } }
+        };
+      }
+      
+      // Otros errores
+      return { 
+        updated: false, 
+        global: false, 
+        error: error.message || 'Error al actualizar preferencias globales'
+      };
     }
   }
 }
