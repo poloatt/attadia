@@ -18,28 +18,28 @@ export default function Footer({ isDesktop = false, isSidebarOpen = false }) {
   const location = useLocation();
 
   useEffect(() => {
+    let interval;
     const checkConnections = async () => {
       try {
-        const response = await clienteAxios.get('/api/health');
-        setConnectionStatus({
-          backend: true,
-          database: true,
-          loading: false
-        });
+        await clienteAxios.get('/api/health', { timeout: 2500 });
+        setConnectionStatus({ backend: true, database: true, loading: false });
       } catch (error) {
-        console.error('Connection error:', error);
-        setConnectionStatus({
-          backend: false,
-          database: false,
-          loading: false
-        });
+        // Silencioso: no loggear en consola en cada fallo
+        setConnectionStatus({ backend: false, database: false, loading: false });
       }
     };
 
-    checkConnections();
-    const interval = setInterval(checkConnections, 5000);
-    return () => clearInterval(interval);
-  }, []);
+    // Sólo iniciar el health-check si el footer está visible en alguna de las rutas objetivo
+    const shouldRun = (path) => {
+      return path === '/' || path.startsWith('/assets') || path.startsWith('/tiempo');
+    };
+
+    if (shouldRun(location.pathname)) {
+      checkConnections();
+      interval = setInterval(checkConnections, 10000);
+    }
+    return () => interval && clearInterval(interval);
+  }, [location.pathname]);
 
   useEffect(() => {
     // Mostrar el footer solo en la ruta principal o assets

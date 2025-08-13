@@ -469,19 +469,77 @@ class RutinasService {
    */
   async getUserHabitPreferences() {
     try {
-      const response = await clienteAxios.get('/api/rutinas/user-preferences');
-      const prefs = response.data || {};
-      // Cachear también localmente para inicializar formularios rápidamente
-      this.setLocalUserPreferences(prefs);
-      return { 
-        preferences: prefs, 
-        updated: true, 
-        global: true 
-      };
+      // Respetar ventana de deshabilitación si hubo errores previos prolongados
+      const now = Date.now();
+      let disabledUntil = 0;
+      try { disabledUntil = Number(localStorage.getItem('rutina_user_prefs_disabled_until') || '0'); } catch (_) {}
+      if (disabledUntil && now < disabledUntil) {
+        const localPrefs = this.getLocalUserPreferences();
+        return {
+          preferences: localPrefs,
+          updated: false,
+          global: false,
+          fallback: 'Endpoint deshabilitado temporalmente por errores previos'
+        };
+      }
+
+      // Evitar reintentos agresivos tras un error reciente
+      // reutilizar el timestamp calculado arriba para evitar redeclaración
+      // y mantener coherencia en la ventana de backoff
+      // const now2 = Date.now(); // no necesario
+      let lastErrorAt = 0;
+      try { lastErrorAt = Number(localStorage.getItem('rutina_user_prefs_last_error') || '0'); } catch (_) {}
+      if (lastErrorAt && (now - lastErrorAt) < 60_000) { // 60s de backoff
+        const localPrefsQuick = this.getLocalUserPreferences();
+        return {
+          preferences: localPrefsQuick,
+          updated: false,
+          global: false,
+          fallback: 'Backoff activo tras error reciente. Usando preferencias locales'
+        };
+      }
+
+      // Deduplicar solicitudes concurrentes
+      if (!this.pendingRequests) {
+        this.pendingRequests = new Map();
+      }
+      if (this.pendingRequests.has('user-prefs')) {
+        return await this.pendingRequests.get('user-prefs');
+      }
+
+      const requestPromise = (async () => {
+        const response = await clienteAxios.get('/api/rutinas/user-preferences');
+        const prefs = response.data || {};
+        // Cache local para inicialización rápida
+        this.setLocalUserPreferences(prefs);
+        return {
+          preferences: prefs,
+          updated: true,
+          global: true
+        };
+      })();
+
+      this.pendingRequests.set('user-prefs', requestPromise);
+      const result = await requestPromise;
+      this.pendingRequests.delete('user-prefs');
+      return result;
     } catch (error) {
-      // Evitar ruido en consola: degradar silenciosamente a configuración local
+      // Evitar ruido en consola y reintentos constantes: degradar silenciosamente a configuración local
       const status = error?.response?.status;
       const errMsg = error?.message || 'Error al obtener preferencias';
+      // No volver a intentar inmediatamente hasta que se refresque la página
+      // Guardar un timestamp para evitar múltiples llamadas fallidas seguidas
+      try { localStorage.setItem('rutina_user_prefs_last_error', String(Date.now())); } catch (_) {}
+      if (this.pendingRequests) {
+        this.pendingRequests.delete('user-prefs');
+      }
+      // Si el servidor devuelve 404 o 5xx, deshabilitar por 12h para evitar 500 en consola
+      if (!status || status === 404 || status >= 500) {
+        try {
+          const twelveHours = 12 * 60 * 60 * 1000;
+          localStorage.setItem('rutina_user_prefs_disabled_until', String(Date.now() + twelveHours));
+        } catch (_) {}
+      }
       // Intentar usar caché local
       const localPrefs = this.getLocalUserPreferences();
       if (Object.keys(localPrefs).length > 0) {

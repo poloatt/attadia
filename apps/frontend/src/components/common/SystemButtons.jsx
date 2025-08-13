@@ -314,6 +314,9 @@ function HeaderAddButton({ entityConfig, buttonSx }) {
   return null;
 }
 
+// Marcar el componente como botón para evitar anidado dentro de otro IconButton
+HeaderAddButton.isButtonComponent = true;
+
 // HeaderRefreshButton
 function HeaderRefreshButton({ iconSx }) {
   const btn = (
@@ -546,7 +549,6 @@ function HeaderAppsButton({ iconSx }) {
       >
         {modulesList.map((modulo) => {
           const IconComponent = getIconByKey(modulo.icon);
-          console.log(`[HeaderAppsButton] Módulo: ${modulo.id}, icon: ${modulo.icon}, IconComponent:`, IconComponent, 'typeof:', typeof IconComponent);
           const isCurrentModule = location.pathname.startsWith(modulo.path) || 
                                  modulo.subItems?.some(sub => location.pathname.startsWith(sub.path));
           
@@ -613,25 +615,22 @@ export function MenuButton(props) {
   return (
     <IconButton
       onClick={toggleSidebar}
+      size="small"
       sx={{
-        width: FORM_HEIGHTS.iconButton,
-        height: FORM_HEIGHTS.iconButton,
         minWidth: 0,
         minHeight: 0,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 0,
+        borderRadius: 1,
         color: 'inherit',
-        position: 'relative',
-        left: 0,
         '&:hover': { color: 'text.primary', background: 'action.hover' },
         ...props.sx
       }}
       aria-label="Abrir menú"
       disabled={props.disabled}
     >
-      <MenuIcon sx={props.sx || { fontSize: 18, color: 'text.secondary' }} />
+      <MenuIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
     </IconButton>
   );
 } 

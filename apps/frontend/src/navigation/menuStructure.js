@@ -58,8 +58,8 @@ export const modulos = [
     path: '/tiempo/rutinas',
     subItems: [
       { id: 'rutinas', title: 'Rutinas', icon: 'fitnessCenter', path: '/tiempo/rutinas', canAdd: true },
-      { id: 'proyectos', title: 'Proyectos', icon: 'folder', path: '/tiempo/proyectos' },
-      { id: 'tareas', title: 'Tareas', icon: 'task', path: '/tiempo/tareas' },
+          { id: 'proyectos', title: 'Proyectos', icon: 'folder', path: '/tiempo/proyectos', canAdd: true },
+          { id: 'tareas', title: 'Tareas', icon: 'task', path: '/tiempo/tareas', canAdd: true },
       { id: 'archivo', title: 'Archivo', icon: 'archive', path: '/tiempo/archivo' }
     ]
   },

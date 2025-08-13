@@ -79,3 +79,4 @@ export const reconcileRoutineProgressFromRecords = (rutina, rutinas) => {
 
 
 
+

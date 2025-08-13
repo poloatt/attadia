@@ -1,4 +1,6 @@
-const API_URL = import.meta.env.VITE_API_URL || 'https://admin.attadia.com/api';
+// Preferir VITE_API_URL, si no existe usar mismo host (browser) o localhost
+const defaultHost = typeof window !== 'undefined' ? `${window.location.origin}/api` : 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || defaultHost;
 
 export const endpoints = {
   auth: {

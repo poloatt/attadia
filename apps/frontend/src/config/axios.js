@@ -5,30 +5,29 @@ const getBaseUrl = () => {
   const mode = import.meta.env.MODE;
   const apiUrl = import.meta.env.VITE_API_URL;
   const hostname = window.location.hostname;
-  const environment = import.meta.env.VITE_ENVIRONMENT || mode;
   
-  // console.log('Configuración de Axios:', {
-  //   mode,
-  //   environment,
-  //   hostname,
-  //   apiUrl
-  // });
-  
-  // Entorno de staging (prioridad más alta)
-  if (hostname.includes('staging') || environment === 'staging') {
-    // console.log('Detectado entorno de staging');
+  // Si el desarrollador definió explícitamente VITE_API_URL, respetarla SIEMPRE
+  if (apiUrl && typeof apiUrl === 'string') {
+    return apiUrl;
+  }
+
+  const isLocalHost = ['localhost', '127.0.0.1', '::1'].includes(hostname);
+
+  // En localhost, nunca forzar producción ni staging
+  if (isLocalHost) {
+    return 'http://localhost:5000';
+  }
+
+  // Detección por hostname únicamente (evita confusiones por variables de entorno)
+  if (hostname.includes('staging.present.attadia.com')) {
     return 'https://api.staging.present.attadia.com';
   }
-  
-  // Entorno de producción
-  if (hostname === 'admin.attadia.com' || environment === 'production') {
-    // console.log('Detectado entorno de producción');
+  if (hostname === 'admin.attadia.com') {
     return 'https://api.admin.attadia.com';
   }
-  
-  // Entorno de desarrollo (fallback)
-  // console.log('Detectado entorno de desarrollo');
-  return apiUrl || 'http://localhost:5000';
+
+  // Fallback a desarrollo
+  return 'http://localhost:5000';
 };
 
 const baseURL = getBaseUrl();
