@@ -39,60 +39,9 @@ export const RutinasProvider = ({ children }) => {
   const [totalPages, setTotalPages] = useState(1);
   const { enqueueSnackbar } = useSnackbar();
   const { autoUpdateHabitPreferences } = useUISettings();
-  // Cache simple de preferencias para esta sesión
-  const userPrefsRef = useRef(null);
+  // User preferences cache eliminado - modelo simplificado
 
-  const mergeProgressFromPrefs = useCallback((rutinaObj, prefs) => {
-    try {
-      if (!rutinaObj || !prefs) return rutinaObj;
-      const fechaRutina = parseAPIDate(rutinaObj.fecha) || new Date();
-      const sections = ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'];
-      const merged = { ...rutinaObj, config: { ...(rutinaObj.config || {}) } };
-      sections.forEach(section => {
-        if (!merged.config[section]) merged.config[section] = {};
-        const secPrefs = prefs[section] || {};
-
-        // Asegurar que también consideramos ítems presentes solo en preferencias
-        const itemIds = new Set([
-          ...Object.keys(merged.config[section] || {}),
-          ...Object.keys(secPrefs || {})
-        ]);
-
-        itemIds.forEach(itemId => {
-          const itemCfg = merged.config[section][itemId] || {};
-          const prefCfg = secPrefs[itemId] || {};
-
-          // Normalizar base
-          const baseCfg = {
-            ...itemCfg,
-            tipo: (itemCfg?.tipo || prefCfg?.tipo || 'DIARIO').toUpperCase(),
-            frecuencia: Number(itemCfg?.frecuencia != null ? itemCfg.frecuencia : (prefCfg?.frecuencia != null ? prefCfg.frecuencia : 1)),
-            periodo: itemCfg?.periodo || prefCfg?.periodo || 'CADA_DIA',
-            activo: itemCfg?.activo !== false ? true : (prefCfg?.activo !== false)
-          };
-
-          // Determinar si el periodo de preferencias aplica para la fecha de esta rutina
-          let withinPeriod = false;
-          if (prefCfg?.ultimoPeriodo?.inicio && prefCfg?.ultimoPeriodo?.fin) {
-            const inicio = new Date(prefCfg.ultimoPeriodo.inicio);
-            const fin = new Date(prefCfg.ultimoPeriodo.fin);
-            withinPeriod = inicio <= fechaRutina && fechaRutina <= fin;
-          }
-
-          merged.config[section][itemId] = {
-            ...baseCfg,
-            progresoActual: withinPeriod
-              ? (prefCfg?.progresoActual != null ? Number(prefCfg.progresoActual) : (itemCfg?.progresoActual || 0))
-              : (baseCfg.tipo === 'DIARIO' ? 0 : (itemCfg?.progresoActual || 0)),
-            ultimoPeriodo: withinPeriod ? (prefCfg?.ultimoPeriodo || itemCfg?.ultimoPeriodo) : (itemCfg?.ultimoPeriodo || null)
-          };
-        });
-      });
-      return merged;
-    } catch {
-      return rutinaObj;
-    }
-  }, [parseAPIDate]);
+  // mergeProgressFromPrefs eliminado - modelo UX simplificado
   const recentlyCreatedRutinas = useRef(new Set());
   
   // Cambios locales preservados (centralizado en hook)
@@ -152,22 +101,12 @@ export const RutinasProvider = ({ children }) => {
         return new Date(b.fecha) - new Date(a.fecha);
       });
       
-      console.log('[RutinasContext] Rutinas ordenadas por fecha:', 
-        rutinasOrdenadas.filter(r => r && r._id).map(r => ({id: r._id, fecha: new Date(r.fecha).toISOString().split('T')[0]}))
-      );
+      // Log eliminado para mejor rendimiento
       
-      // Aplicar cambios locales a cada rutina antes de actualizar el estado
-      // Cargar preferencias una sola vez
-      if (!userPrefsRef.current) {
-        try {
-          const resPrefs = await rutinasService.getUserHabitPreferences();
-          userPrefsRef.current = resPrefs?.preferences || {};
-        } catch {}
-      }
+      // Aplicar cambios locales a cada rutina - modelo simplificado
       let rutinasConCambiosLocales = rutinasOrdenadas
         .filter(r => r && r._id)
-        .map(r => applyLocalChanges(r, pendingLocalChanges))
-        .map(r => mergeProgressFromPrefs(r, userPrefsRef.current || {}));
+        .map(r => applyLocalChanges(r, pendingLocalChanges));
 
       // Reconciliar progreso real usando los registros del período
       rutinasConCambiosLocales = rutinasConCambiosLocales.map(r =>
@@ -198,7 +137,7 @@ export const RutinasProvider = ({ children }) => {
           _totalPages: totalRutinas
         });
         setCurrentPage(selectedIndex + 1);
-        console.log(`[RutinasContext] Seleccionada rutina inicial: posición ${selectedIndex + 1}/${totalRutinas}`);
+        // Log eliminado para mejor rendimiento
       } else {
         setRutina(null);
         setCurrentPage(1);
@@ -239,20 +178,14 @@ export const RutinasProvider = ({ children }) => {
         const index = updatedRutinas.findIndex(r => r._id === rutina._id);
         
         if (index >= 0) {
-          updatedRutinas[index] = reconcileRoutineProgressFromRecords(
-            mergeProgressFromPrefs(response, userPrefsRef.current || {}),
-            updatedRutinas
-          );
+          updatedRutinas[index] = reconcileRoutineProgressFromRecords(response, updatedRutinas);
         }
         
         return updatedRutinas;
       });
       
       // Preservar la página actual y actualizar la rutina
-      const mergedResponse = reconcileRoutineProgressFromRecords(
-        mergeProgressFromPrefs(response, userPrefsRef.current || {}),
-        rutinas
-      );
+      const mergedResponse = reconcileRoutineProgressFromRecords(response, rutinas);
       setRutina({
         ...mergedResponse,
         _page: currentPage,
@@ -315,12 +248,9 @@ export const RutinasProvider = ({ children }) => {
         
         console.log(`[RutinasContext] Rutina encontrada en posición ${page} de ${rutinas.length}`);
         
-        // Aplicar cambios locales, fusionar prefs y reconciliar con registros
+        // Aplicar cambios locales y reconciliar con registros - modelo simplificado
         const rutinaConCambiosLocales = reconcileRoutineProgressFromRecords(
-          mergeProgressFromPrefs(
-            applyLocalChanges(rutinaData, pendingLocalChanges),
-            userPrefsRef.current || {}
-          ),
+          applyLocalChanges(rutinaData, pendingLocalChanges),
           rutinas
         );
         
@@ -452,15 +382,11 @@ export const RutinasProvider = ({ children }) => {
   const handlePrevious = useCallback(async () => {
     if (currentPage > 1 && !loading) {
       try {
-        console.log('[RutinasContext] 🔄 Navegando hacia atrás desde registro', currentPage, 'de', totalPages);
-        
         // Calcular el índice correcto del array para la rutina anterior
         const newPage = currentPage - 1;
-        console.log(`[RutinasContext] Calculada nueva posición: ${newPage}`);
         
         // Verificar que el índice es válido
         if (newPage <= 0 || newPage > rutinas.length) {
-          console.error(`[RutinasContext] ⚠️ Índice de rutina inválido: ${newPage}`);
           return;
         }
         
@@ -469,18 +395,12 @@ export const RutinasProvider = ({ children }) => {
         const rutinaAnterior = rutinas[index];
         
         if (!rutinaAnterior || !rutinaAnterior._id) {
-          console.error(`[RutinasContext] ⚠️ No se encontró rutina en la posición ${index}:`, rutinaAnterior);
           return;
         }
         
-        console.log(`[RutinasContext] Navegando a rutina anterior: ${rutinaAnterior._id} (${rutinaAnterior.fecha})`);
-        
-        // Aplicar cambios locales, fusionar progreso desde prefs y reconciliar con registros
+        // Aplicar cambios locales y reconciliar con registros - modelo simplificado
         const rutinaConCambios = reconcileRoutineProgressFromRecords(
-          mergeProgressFromPrefs(
-            applyLocalChanges(rutinaAnterior, pendingLocalChanges),
-            userPrefsRef.current || {}
-          ),
+          applyLocalChanges(rutinaAnterior, pendingLocalChanges),
           rutinas
         );
         
@@ -493,8 +413,6 @@ export const RutinasProvider = ({ children }) => {
         
         // Actualizar la página actual
         setCurrentPage(newPage);
-        
-        console.log(`[RutinasContext] ✅ Navegación a registro anterior completada: ${newPage}/${totalPages}`);
       } catch (error) {
         console.error('[RutinasContext] ❌ Error navegando a la rutina anterior:', error);
         enqueueSnackbar('Error al navegar a la rutina anterior', { variant: 'error' });
@@ -510,15 +428,11 @@ export const RutinasProvider = ({ children }) => {
   const handleNext = useCallback(async () => {
     if (currentPage < totalPages && !loading) {
       try {
-        console.log('[RutinasContext] 🔄 Navegando hacia adelante desde registro', currentPage, 'de', totalPages);
-        
         // Calcular el índice correcto del array para la rutina siguiente
         const newPage = currentPage + 1;
-        console.log(`[RutinasContext] Calculada nueva posición: ${newPage}`);
         
         // Verificar que el índice es válido
         if (newPage <= 0 || newPage > rutinas.length) {
-          console.error(`[RutinasContext] ⚠️ Índice de rutina inválido: ${newPage}`);
           return;
         }
         
@@ -527,18 +441,12 @@ export const RutinasProvider = ({ children }) => {
         const rutinaSiguiente = rutinas[index];
         
         if (!rutinaSiguiente || !rutinaSiguiente._id) {
-          console.error(`[RutinasContext] ⚠️ No se encontró rutina en la posición ${index}:`, rutinaSiguiente);
           return;
         }
         
-        console.log(`[RutinasContext] Navegando a rutina siguiente: ${rutinaSiguiente._id} (${rutinaSiguiente.fecha})`);
-        
-        // Aplicar cambios locales, fusionar progreso desde prefs y reconciliar con registros
+        // Aplicar cambios locales y reconciliar con registros - modelo simplificado
         const rutinaConCambios = reconcileRoutineProgressFromRecords(
-          mergeProgressFromPrefs(
-            applyLocalChanges(rutinaSiguiente, pendingLocalChanges),
-            userPrefsRef.current || {}
-          ),
+          applyLocalChanges(rutinaSiguiente, pendingLocalChanges),
           rutinas
         );
         
@@ -551,8 +459,6 @@ export const RutinasProvider = ({ children }) => {
         
         // Actualizar la página actual
         setCurrentPage(newPage);
-        
-        console.log(`[RutinasContext] ✅ Navegación a registro siguiente completada: ${newPage}/${totalPages}`);
       } catch (error) {
         console.error('[RutinasContext] ❌ Error navegando a la rutina siguiente:', error);
         enqueueSnackbar('Error al navegar a la rutina siguiente', { variant: 'error' });
@@ -571,30 +477,11 @@ export const RutinasProvider = ({ children }) => {
     const index = rutinas.findIndex(r => r._id === rutinaId);
     if (index === -1) return;
 
-    // Si el backend proporciona un valor de completitud, usarlo
+    // El backend devuelve completitud incorrecta (siempre 0)
+    // Ignorar valor del servidor y usar cálculo local más preciso
     if (responseData && typeof responseData.completitud === 'number') {
-      const completitudDecimal = responseData.completitud;
-      const completitudPorcentaje = Math.round(completitudDecimal * 100);
-      
-      console.log(`[RutinasContext] Actualizando completitud con valor del servidor: ${completitudDecimal} (${completitudPorcentaje}%)`);
-      
-      // Actualizar la rutina con la completitud proporcionada por el servidor
-      setRutinas(prev => {
-        const nuevasRutinas = [...prev];
-        nuevasRutinas[index] = {
-          ...nuevasRutinas[index],
-          completitud: completitudDecimal
-        };
-        return nuevasRutinas;
-      });
-      
-      // Actualizar la rutina actual si es la misma
-      if (rutina && rutina._id === rutinaId) {
-        setRutina(prev => ({
-          ...prev,
-          completitud: completitudDecimal
-        }));
-      }
+      // Log eliminado para mejor rendimiento  
+      // No actualizar completitud desde servidor - el cálculo local es correcto
     } else {
       // Si no hay valor del servidor, recalcular
       import("../utils/rutinaCalculations.js").then(({ calculateCompletionPercentage }) => {
@@ -602,9 +489,7 @@ export const RutinasProvider = ({ children }) => {
         const porcentaje = calculateCompletionPercentage(rutinaActual);
         const completitudDecimal = porcentaje / 100;
         
-        console.log(`[RutinasContext] Recalculando completitud localmente: ${completitudDecimal} (${porcentaje}%)`);
-        
-        // Actualizar la rutina con el valor calculado
+        // Actualizar la rutina con el valor calculado - simplificado
         setRutinas(prev => {
           const nuevasRutinas = [...prev];
           nuevasRutinas[index] = {
@@ -675,11 +560,8 @@ export const RutinasProvider = ({ children }) => {
     }
     
     try {
-      console.log(`[RutinasContext] Marcando ítem en rutina ${rutinaId}, sección ${section}:`, data);
-      
-      // Extraer el primer ítem del objeto (solo actualizamos uno a la vez)
+      // Logging simplificado para mejor rendimiento
       const [itemId, isCompleted] = Object.entries(data)[0];
-      console.log(`[RutinasContext] Item: ${itemId}, Completado: ${isCompleted}`);
       
       // Obtener estado previo antes del optimistic update
       const prevRoutine = rutinas.find(r => r._id === rutinaId) || rutina;
@@ -752,39 +634,21 @@ export const RutinasProvider = ({ children }) => {
         });
       }
 
-      // Intentar reflejar el progreso en preferencias del usuario (para continuidad entre días)
-      try {
-        const currentCfg = (prevRoutine?.config?.[section]?.[itemId]) || {};
-        const updatedCfg = updateProgressForItem(currentCfg);
-        const result = await rutinasService.updateUserHabitPreference(section, itemId, {
-          tipo: currentCfg.tipo,
-          frecuencia: currentCfg.frecuencia,
-          periodo: currentCfg.periodo,
-          activo: currentCfg.activo !== false,
-          progresoActual: updatedCfg.progresoActual,
-          ultimoPeriodo: updatedCfg.ultimoPeriodo
-        });
-        // Sincronizar caché en memoria para que próximas cargas/navegaciones apliquen acumulado
-        if (result && result.preferences) {
-          userPrefsRef.current = result.preferences;
-        }
-      } catch (e) {
-        // Silencioso: fallback local ya mantiene UX
-      }
+      // User preferences eliminadas - modelo UX simplificado no las necesita
       
       // Actualizar en el servidor
       const response = await rutinasService.markComplete(rutinaId, section, data);
-      console.log(`[RutinasContext] ✅ Actualización exitosa para ${section}.${itemId}`);
+      // Log eliminado - rutinasService ya muestra tick/cross
       
       // Actualizar UI con los datos del servidor
       const index = rutinas.findIndex(r => r._id === rutinaId);
       if (index !== -1) {
-        console.log(`[RutinasContext] Actualizando UI para rutina ${rutinaId} en posición ${index + 1}`);
+        // Log eliminado para simplicidad
         
         // Usar la nueva función para actualizar la completitud
         actualizarCompletitudRutina(rutinaId, response);
         
-        console.log(`[RutinasContext] UI actualizada con datos del servidor para rutina ${rutinaId}`);
+        // Log eliminado para simplicidad
       }
       
       return response;

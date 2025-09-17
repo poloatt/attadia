@@ -124,7 +124,7 @@ const RutinaCard = ({
   useEffect(() => {
     // Detectar cambios en la configuración
     if (JSON.stringify(configRef.current) !== JSON.stringify(config)) {
-      console.log(`[ChecklistSection] Configuración actualizada para sección ${section}`, config);
+      // Log eliminado para simplicidad
       configRef.current = config;
       // Forzar re-renderizado
       setForceUpdate(Date.now());
@@ -682,16 +682,8 @@ const RutinaCard = ({
   }
 
   // Escuchar cambios en los datos de completitud para forzar actualización
-  useEffect(() => {
-    // Cuando cambian los datos de completitud, forzar actualización
-    // para garantizar que los iconos se muestren u oculten correctamente
-    setForceUpdate(Date.now());
-    
-    // Log para depuración
-    if (Object.keys(localData).length > 0) {
-      console.log(`[ChecklistSection] Datos actualizados para ${section}, forzando actualización`);
-    }
-  }, [localData, section]);
+  // useEffect eliminado - causa bucles infinitos
+  // Los componentes se actualizan automáticamente cuando cambian las props
   
   // Renderizar los iconos colapsados con memorización (pasar localData como prop)
   const renderedCollapsedIcons = (
@@ -1028,6 +1020,16 @@ const CollapsedIcons = memo(({
   );
 });
 
-// Exportar el componente con memorización para prevenir re-renderizados innecesarios
-export const MemoizedRutinaCard = memo(RutinaCard);
-export default RutinaCard;
+// Memoizar RutinaCard con comparación optimizada
+const MemoizedRutinaCard = memo(RutinaCard, (prevProps, nextProps) => {
+  // Comparación optimizada para evitar re-renderizados innecesarios
+  return (
+    prevProps.section === nextProps.section &&
+    prevProps.title === nextProps.title &&
+    prevProps.readOnly === nextProps.readOnly &&
+    JSON.stringify(prevProps.data) === JSON.stringify(nextProps.data) &&
+    JSON.stringify(prevProps.config) === JSON.stringify(nextProps.config)
+  );
+});
+
+export default MemoizedRutinaCard;

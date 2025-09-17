@@ -651,16 +651,8 @@ const RutinaCard = ({
   }
 
   // Escuchar cambios en los datos de completitud para forzar actualización
-  useEffect(() => {
-    // Cuando cambian los datos de completitud, forzar actualización
-    // para garantizar que los iconos se muestren u oculten correctamente
-    setForceUpdate(Date.now());
-    
-    // Log para depuración
-    if (Object.keys(localData).length > 0) {
-      console.log(`[ChecklistSection] Datos actualizados para ${section}, forzando actualización`);
-    }
-  }, [localData, section]);
+  // useEffect eliminado - causa bucles infinitos y logs excesivos
+  // Los componentes React se actualizan automáticamente cuando cambian las props
   
   // Renderizar los iconos colapsados con memorización (pasar localData como prop)
   const renderedCollapsedIcons = (

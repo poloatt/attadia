@@ -1,0 +1,42 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Instalar dependencias necesarias
+RUN apk add --no-cache curl wget git
+
+# Configurar npm
+RUN npm config set registry https://registry.npmjs.org/
+
+# Copiar package.json y package-lock.json
+COPY package*.json ./
+
+# Instalar dependencias
+RUN npm cache clean --force && \
+    rm -rf node_modules && \
+    npm install --no-audit
+
+# Variables de entorno para desarrollo
+ENV NODE_ENV=development
+ENV VITE_API_URL=http://localhost:5000
+ENV CHOKIDAR_USEPOLLING=true
+
+# Crear usuario y establecer permisos
+RUN addgroup -g 1000 appgroup && \
+    adduser -u 1000 -G appgroup -s /bin/sh -D appuser
+
+# Cambiar propietario del directorio de trabajo
+RUN chown -R appuser:appgroup /app
+
+# Cambiar al usuario no-root
+USER appuser
+
+# Exponer el puerto de Vite
+EXPOSE 5173
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=30s --start-period=30s --retries=3 \
+    CMD wget -q --spider http://localhost:5173 || exit 1
+
+# Comando para desarrollo con Vite
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

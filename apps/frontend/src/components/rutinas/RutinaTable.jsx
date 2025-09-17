@@ -381,7 +381,7 @@ export const RutinaTable = ({
       }
       
       // Log para depuración
-      console.log(`[RutinaTable] Enviando PUT a /api/rutinas/${rutinaId}:`, JSON.stringify(updateData));
+      // Log eliminado - rutinasService ya muestra tick/cross
       
       try {
         // Realizar la actualización en el servidor con error handling mejorado

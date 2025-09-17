@@ -38,40 +38,17 @@ export const RutinasStatisticsProvider = ({ children }) => {
       const esRutinaHoy = fechaRutina.toISOString().split('T')[0] === hoy.toISOString().split('T')[0];
       const esRutinaPasada = fechaRutina < hoy;
       
-      // Log controlado para entender qué tipo de rutina estamos procesando
-      statsLog('Tipo de rutina a procesar:', {
-        fecha: rutinaData.fecha,
-        id: rutinaData._id,
-        esRutinaHoy,
-        esRutinaPasada
-      });
+      // Log eliminado para mejor rendimiento
       
       // Calcular el porcentaje usando la función separada
       const percentage = rutinaCalculations.calculateCompletionPercentage(rutinaData);
       
-      // Log detallado para depuración
+      // Logs eliminados para mejor rendimiento
       if (typeof rutinaData.completitud === 'number') {
-        statsLog('Usando completitud calculada por backend:', { 
-          value: rutinaData.completitud, 
-          percentage, 
-          rutinaId: rutinaData._id, 
-          fecha: rutinaData.fecha 
-        });
+        // Usar valor del backend sin logging
       } else {
-        // Para cálculos manuales, obtener detalles
+        // Cálculo manual sin logging excesivo
         const { visibleItems, completedItems, sectionStats } = rutinaCalculations.calculateVisibleItems(rutinaData);
-        
-        statsLog('Cálculo manual de completitud:', {
-          rutinaId: rutinaData._id,
-          fecha: rutinaData.fecha,
-          esRutinaHoy,
-          esRutinaPasada,
-          totalItemsVisibles: visibleItems.length,
-          completedItems: completedItems.length,
-          percentage,
-          sectionStats,
-          itemsVisibles: visibleItems.length <= 10 ? visibleItems : `${visibleItems.length} items (primeros 10 mostrados)`
-        });
       }
       
       return percentage;

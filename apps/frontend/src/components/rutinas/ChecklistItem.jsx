@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { ListItem, Box, IconButton, Typography, Button } from '@mui/material';
 import TuneIcon from '@mui/icons-material/Tune';
 import InlineItemConfigImproved, { getFrecuenciaLabel } from './InlineItemConfigImproved';
@@ -175,10 +175,16 @@ const ChecklistItem = ({
   );
 };
 
-export default React.memo(ChecklistItem, (prevProps, nextProps) => {
+export default memo(ChecklistItem, (prevProps, nextProps) => {
+  // Comparación optimizada - evitar JSON.stringify costoso
   return (
+    prevProps.itemId === nextProps.itemId &&
+    prevProps.section === nextProps.section &&
     prevProps.isCompleted === nextProps.isCompleted &&
+    prevProps.readOnly === nextProps.readOnly &&
     prevProps.isSetupOpen === nextProps.isSetupOpen &&
-    JSON.stringify(prevProps.config) === JSON.stringify(nextProps.config)
+    prevProps.config?.tipo === nextProps.config?.tipo &&
+    prevProps.config?.frecuencia === nextProps.config?.frecuencia &&
+    prevProps.config?.activo === nextProps.config?.activo
   );
 }); 

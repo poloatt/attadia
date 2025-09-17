@@ -74,47 +74,38 @@ const RutinaNavigation = ({
       clearTimeout(logLimitTimer.current);
     }
     
-    // Solo mostrar logs cuando cambia la rutina
+    // Solo mostrar logs cuando cambia la rutina (limitado)
     if (!previousRutinaId.current || previousRutinaId.current !== rutina?._id) {
-      limitedLog("Estado actual:", { 
-        rutinaId: rutina?._id,
-        currentPage, 
-        totalPages,
-        loading, 
-        fecha: rutina?.fecha
-      });
+      // Solo log cuando realmente cambia la rutina, no en cada render
+      if (rutina?._id && process.env.NODE_ENV === 'development') {
+        // Log eliminado para simplicidad
+      }
       previousRutinaId.current = rutina?._id;
       logCount.current = 0;
     }
-  }, [rutina, currentPage, totalPages, loading, limitedLog]);
+  }, [rutina?._id, currentPage, totalPages, loading]);
 
   // Función para navegar hacia atrás
-  const onPrevious = () => {
-    console.log('[RutinaNavigation] Navegando al registro anterior desde posición', currentPage, 'de', totalPages);
-    if (currentPage <= 1) {
-      console.warn('[RutinaNavigation] No se puede navegar hacia atrás - ya estás en el registro más reciente');
+  const onPrevious = useCallback(() => {
+    console.log('[RutinaNavigation] Click anterior - currentPage:', currentPage, 'totalPages:', totalPages, 'loading:', loading);
+    if (currentPage <= 1 || loading) {
+      console.log('[RutinaNavigation] Navegación anterior bloqueada');
       return;
     }
-    if (loading) {
-      console.warn('[RutinaNavigation] No se puede navegar mientras se está cargando');
-      return;
-    }
+    console.log('[RutinaNavigation] Ejecutando handlePrevious');
     handlePrevious();
-  };
+  }, [currentPage, loading, handlePrevious]);
 
   // Función para navegar hacia adelante
-  const onNext = () => {
-    console.log('[RutinaNavigation] Navegando al registro siguiente desde posición', currentPage, 'de', totalPages);
-    if (currentPage >= totalPages) {
-      console.warn('[RutinaNavigation] No se puede navegar hacia adelante - ya estás en el registro más antiguo');
+  const onNext = useCallback(() => {
+    console.log('[RutinaNavigation] Click siguiente - currentPage:', currentPage, 'totalPages:', totalPages, 'loading:', loading);
+    if (currentPage >= totalPages || loading) {
+      console.log('[RutinaNavigation] Navegación siguiente bloqueada');
       return;
     }
-    if (loading) {
-      console.warn('[RutinaNavigation] No se puede navegar mientras se está cargando');
-      return;
-    }
+    console.log('[RutinaNavigation] Ejecutando handleNext');
     handleNext();
-  };
+  }, [currentPage, totalPages, loading, handleNext]);
 
   // Función para ir a la rutina de hoy
   const goToToday = () => {
@@ -135,16 +126,7 @@ const RutinaNavigation = ({
   // Calcular porcentaje de completitud
   const completionPercentage = rutina ? calculateCompletionPercentage(rutina) : 0;
   
-  // Logs optimizados para depuración
-  useEffect(() => {
-    if (rutina && logCount.current <= 1) {
-      limitedLog("Datos de completitud:", {
-        rutina_id: rutina._id,
-        completitud_original: rutina.completitud,
-        completionPercentage
-      });
-    }
-  }, [rutina, completionPercentage, limitedLog]);
+  // Logs de completitud eliminados para mejor rendimiento
 
   // Determinar el color de la barra de progreso según el porcentaje
   const progressColor = completionPercentage > 75 

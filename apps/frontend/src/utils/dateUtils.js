@@ -185,18 +185,7 @@ export const parseAPIDate = (date) => {
     // Esta fecha representará el día específico sin importar el timezone
     const parsed = new Date(year, month, day, 12, 0, 0, 0);
     
-    // Solo log en desarrollo y cuando sea necesario
-    if (process.env.NODE_ENV === 'development' && Math.random() < 0.1) {
-      console.log('[dateUtils] parseAPIDate - FIX TIMEZONE:', {
-        input: date,
-        inputType: typeof date,
-        extractedComponents: { year, month: month + 1, day },
-        resultDate: parsed.toISOString(),
-        resultLocal: parsed.toDateString(),
-        userTimezone,
-        explanation: `Entrada "${date}" parseada como día ${day}/${month + 1}/${year}`
-      });
-    }
+    // Logs eliminados para mejor rendimiento
     
     return parsed;
   } catch (error) {

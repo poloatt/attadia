@@ -49,7 +49,7 @@ const RutinasWithContext = () => {
   // Cargar todas las rutinas solo cuando se accede a la página
   useEffect(() => {
     if (!initialFetchDone.current) {
-      console.log('[Rutinas] Página de rutinas accedida, cargando datos');
+      // Log eliminado para mejor rendimiento
       initialFetchDone.current = true;
       fetchRutinas();
     }

@@ -32,6 +32,7 @@ export default defineConfig(({ mode }) => {
         }
       }
     },
+    cacheDir: process.env.VITE_CACHE_DIR || 'node_modules/.vite',
     optimizeDeps: {
       include: [
         '@mui/material',

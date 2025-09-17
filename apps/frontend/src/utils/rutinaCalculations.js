@@ -56,6 +56,7 @@ export const calculateVisibleItems = (rutina) => {
               completedItems.push({ section, itemId });
               sectionStats[section].completed++;
             }
+            // Debug eliminado para mejor rendimiento
           }
         } catch (error) {
           console.error(`${logPrefix} Error evaluando visibilidad del ítem ${section}.${itemId}:`, error);
@@ -90,14 +91,7 @@ export const calculateCompletionPercentage = (rutina) => {
     // pero recalculamos para asegurar consistencia
     let percentage = Math.round((totalCompleted / totalVisible) * 100);
     
-    // Log detallado para depuración
-    console.log(`[rutinaCalculations] Cálculo de completitud para rutina ${rutina._id}:`, {
-      totalVisible,
-      totalCompleted,
-      percentage,
-      completitudBackend: rutina.completitud,
-      percentageFromBackend: rutina.completitud ? Math.round(rutina.completitud * 100) : null
-    });
+    // Logs eliminados para mejor rendimiento
     
     return percentage;
   } catch (error) {

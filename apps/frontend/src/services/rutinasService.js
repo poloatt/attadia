@@ -281,33 +281,25 @@ class RutinasService {
       const cacheKey = `${section}_${itemId}_completado`;
       this.cache.set(cacheKey, isCompleted);
       
-      // Estructura para actualizar
+      // Payload simplificado para mejor rendimiento
       const payload = {
         [section]: {
           [itemId]: isCompleted
         },
-        historial: {
-          [section]: {
-            [new Date().toISOString()]: {
-              [itemId]: isCompleted
-            }
-          }
-        },
         _metadata: {
-          timestamp: new Date().toISOString(),
+          timestamp: Date.now(),
           action: isCompleted ? 'COMPLETE' : 'UNCOMPLETE'
         }
       };
 
-      console.log(`[RutinasService] 🔄 Actualizando ${section}.${itemId} a ${isCompleted}`);
-      
       const response = await clienteAxios.put(`/api/rutinas/${id}`, payload);
       
       if (response.data) {
         // Invalidar caché de historial
         this.invalidateCache(section, itemId);
         
-        console.log(`[RutinasService] ✅ Actualización exitosa de ${section}.${itemId}`);
+        // Log simplificado: solo tick o cross
+        console.log(`${isCompleted ? '✅' : '❌'} ${section}.${itemId}`);
         return response.data;
       }
 
@@ -464,10 +456,13 @@ class RutinasService {
   }
 
   /**
-   * Obtener las preferencias globales de hábitos del usuario
+   * MÉTODO DESHABILITADO - User preferences eliminadas del modelo UX simplificado
    * @returns {Promise} Respuesta con las preferencias del usuario
    */
   async getUserHabitPreferences() {
+    // Método deshabilitado - retornar estructura vacía para compatibilidad
+    return { preferences: {}, updated: false, global: false, fallback: 'Método deshabilitado' };
+    /*
     try {
       // Respetar ventana de deshabilitación si hubo errores previos prolongados
       const now = Date.now();
@@ -579,16 +574,20 @@ class RutinasService {
         fallback: 'Usando configuración local'
       };
     }
+    */
   }
 
   /**
-   * Actualizar las preferencias globales de hábitos del usuario
+   * MÉTODO DESHABILITADO - User preferences eliminadas del modelo UX simplificado
    * @param {string} section - Sección del hábito (bodyCare, nutricion, etc.)
    * @param {string} itemId - ID del ítem específico
    * @param {Object} config - Configuración del hábito
    * @returns {Promise} Respuesta con el estado de la actualización
    */
   async updateUserHabitPreference(section, itemId, config) {
+    // Método deshabilitado - retornar éxito falso para compatibilidad
+    return { updated: false, global: false, fallback: 'Método deshabilitado', preferences: {} };
+    /*
     try {
       const response = await clienteAxios.put('/api/rutinas/user-preferences', {
         section,
@@ -633,6 +632,7 @@ class RutinasService {
         preferences: localPrefs
       };
     }
+    */
   }
 }
 
