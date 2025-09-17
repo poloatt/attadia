@@ -1,9 +1,8 @@
 {
-  "buildCommand": "cd ../.. && npm install && cd apps/frontend && npx vite build",
+  "buildCommand": "npm install && npx vite build",
   "outputDirectory": "dist",
-  "installCommand": "cd ../.. && npm install",
+  "installCommand": "npm install",
   "framework": "vite",
-  "rootDirectory": "apps/frontend",
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
