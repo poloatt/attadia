@@ -10,6 +10,7 @@ import { useUISettings } from './UISettingsContext';
 import { RutinasStatisticsProvider } from './RutinasStatisticsContext';
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { reconcileRoutineProgressFromRecords } from '../utils/progressUtils';
+import { calculateCompletionPercentage } from '../utils/rutinaCalculations';
 
 // Crear el contexto
 const RutinasContext = createContext();
@@ -73,7 +74,7 @@ export const RutinasProvider = ({ children }) => {
     try {
       // Si ya estamos cargando, no iniciar otra petición
       if (loading) {
-        console.log('[RutinasContext] Ya hay una operación de carga en curso, cancelando fetchRutinas');
+        // Cancelando fetch duplicado
         return;
       }
       
@@ -103,15 +104,18 @@ export const RutinasProvider = ({ children }) => {
       
       // Log eliminado para mejor rendimiento
       
-      // Aplicar cambios locales a cada rutina - modelo simplificado
+      // Aplicar cambios locales solo si hay cambios pendientes - optimización
+      const hasLocalChanges = Object.keys(pendingLocalChanges).length > 0;
       let rutinasConCambiosLocales = rutinasOrdenadas
         .filter(r => r && r._id)
-        .map(r => applyLocalChanges(r, pendingLocalChanges));
+        .map(r => hasLocalChanges ? applyLocalChanges(r, pendingLocalChanges) : r);
 
-      // Reconciliar progreso real usando los registros del período
-      rutinasConCambiosLocales = rutinasConCambiosLocales.map(r =>
-        reconcileRoutineProgressFromRecords(r, rutinasOrdenadas)
-      );
+      // Reconciliar progreso solo si hay cambios locales o es recarga forzada
+      if (hasLocalChanges || forceReload) {
+        rutinasConCambiosLocales = rutinasConCambiosLocales.map(r =>
+          reconcileRoutineProgressFromRecords(r, rutinasOrdenadas)
+        );
+      }
       
       // Actualizar el total de páginas según la cantidad de rutinas
       const totalRutinas = rutinasConCambiosLocales.length;
@@ -337,26 +341,35 @@ export const RutinasProvider = ({ children }) => {
     const handleRutinaUpdated = (event) => {
       const { rutina: updatedRutina, action } = event.detail || {};
       
-      console.log(`[RutinasContext] 🔄 Evento rutina-updated recibido. Acción: ${action}`);
+      // Log simplificado
       
       if (!updatedRutina || !updatedRutina._id) {
         console.warn('[RutinasContext] Datos de rutina incompletos en evento rutina-updated');
         return;
       }
       
-      // Recargar todas las rutinas para asegurar que tenemos los datos actualizados
+      // Actualización optimista - sin recargas innecesarias
       if (action === 'create') {
-        console.log('[RutinasContext] Nueva rutina creada, recargando datos...');
+        // Actualización optimista para nueva rutina
         
-        // Force-reload para obtener todas las rutinas actualizadas
-        fetchRutinas(true).then(() => {
-          // Navegar a la rutina recién creada
-          setTimeout(() => {
-            getRutinaById(updatedRutina._id);
-          }, 300);
+        // Agregar la nueva rutina al estado directamente
+        setRutinas(prev => {
+          const updated = [updatedRutina, ...prev].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+          return updated;
         });
+        
+        // Seleccionar la rutina recién creada
+        const rutinaConCambios = applyLocalChanges(updatedRutina, pendingLocalChanges);
+        setRutina({
+          ...rutinaConCambios,
+          _page: 1,
+          _totalPages: rutinas.length + 1
+        });
+        setCurrentPage(1);
+        setTotalPages(rutinas.length + 1);
+        
       } else if (action === 'update') {
-        console.log('[RutinasContext] Rutina actualizada, recargando datos...');
+        // Actualización de rutina existente
         
         // Si es la rutina actual, recargarla específicamente
         if (rutina && rutina._id === updatedRutina._id) {
@@ -398,11 +411,14 @@ export const RutinasProvider = ({ children }) => {
           return;
         }
         
-        // Aplicar cambios locales y reconciliar con registros - modelo simplificado
-        const rutinaConCambios = reconcileRoutineProgressFromRecords(
-          applyLocalChanges(rutinaAnterior, pendingLocalChanges),
-          rutinas
-        );
+        // Aplicar cambios locales solo si hay cambios pendientes - optimización navegación
+        const hasLocalChanges = Object.keys(pendingLocalChanges).length > 0;
+        const rutinaConCambios = hasLocalChanges 
+          ? reconcileRoutineProgressFromRecords(
+              applyLocalChanges(rutinaAnterior, pendingLocalChanges),
+              rutinas
+            )
+          : rutinaAnterior;
         
         // Actualizar el estado con la rutina anterior
         setRutina({
@@ -444,11 +460,14 @@ export const RutinasProvider = ({ children }) => {
           return;
         }
         
-        // Aplicar cambios locales y reconciliar con registros - modelo simplificado
-        const rutinaConCambios = reconcileRoutineProgressFromRecords(
-          applyLocalChanges(rutinaSiguiente, pendingLocalChanges),
-          rutinas
-        );
+        // Aplicar cambios locales solo si hay cambios pendientes - optimización navegación
+        const hasLocalChanges = Object.keys(pendingLocalChanges).length > 0;
+        const rutinaConCambios = hasLocalChanges 
+          ? reconcileRoutineProgressFromRecords(
+              applyLocalChanges(rutinaSiguiente, pendingLocalChanges),
+              rutinas
+            )
+          : rutinaSiguiente;
         
         // Actualizar el estado con la rutina siguiente
         setRutina({
@@ -483,30 +502,28 @@ export const RutinasProvider = ({ children }) => {
       // Log eliminado para mejor rendimiento  
       // No actualizar completitud desde servidor - el cálculo local es correcto
     } else {
-      // Si no hay valor del servidor, recalcular
-      import("../utils/rutinaCalculations.js").then(({ calculateCompletionPercentage }) => {
-        const rutinaActual = rutinas[index];
-        const porcentaje = calculateCompletionPercentage(rutinaActual);
-        const completitudDecimal = porcentaje / 100;
-        
-        // Actualizar la rutina con el valor calculado - simplificado
-        setRutinas(prev => {
-          const nuevasRutinas = [...prev];
-          nuevasRutinas[index] = {
-            ...nuevasRutinas[index],
-            completitud: completitudDecimal
-          };
-          return nuevasRutinas;
-        });
-        
-        // Actualizar la rutina actual si es la misma
-        if (rutina && rutina._id === rutinaId) {
-          setRutina(prev => ({
-            ...prev,
-            completitud: completitudDecimal
-          }));
-        }
+      // Si no hay valor del servidor, recalcular con import estático (más rápido)
+      const rutinaActual = rutinas[index];
+      const porcentaje = calculateCompletionPercentage(rutinaActual);
+      const completitudDecimal = porcentaje / 100;
+      
+      // Actualizar la rutina con el valor calculado - simplificado
+      setRutinas(prev => {
+        const nuevasRutinas = [...prev];
+        nuevasRutinas[index] = {
+          ...nuevasRutinas[index],
+          completitud: completitudDecimal
+        };
+        return nuevasRutinas;
       });
+      
+      // Actualizar la rutina actual si es la misma
+      if (rutina && rutina._id === rutinaId) {
+        setRutina(prev => ({
+          ...prev,
+          completitud: completitudDecimal
+        }));
+      }
     }
   };
 
@@ -831,7 +848,7 @@ export const RutinasProvider = ({ children }) => {
     }
     try {
       setLoading(true);
-      console.log(`[RutinasContext] Eliminando rutina ${rutinaId}...`);
+      // Eliminando rutina
       await rutinasService.deleteRutina(rutinaId);
       setRutinas(prevRutinas => {
         const newRutinas = prevRutinas.filter(r => r._id !== rutinaId);
@@ -852,7 +869,7 @@ export const RutinasProvider = ({ children }) => {
         setTotalPages(newRutinas.length);
         return newRutinas;
       });
-      console.log(`[RutinasContext] ✅ Rutina eliminada exitosamente`);
+      // Rutina eliminada exitosamente
       enqueueSnackbar('Rutina eliminada correctamente', { variant: 'success' });
       return true;
     } catch (error) {

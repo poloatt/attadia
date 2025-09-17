@@ -58,14 +58,14 @@ const RutinasWithContext = () => {
   // Cargar rutina específica si hay un ID en los parámetros
   useEffect(() => {
     if (rutinaId && rutinas.length > 0) {
-      console.log(`[Rutinas] Intentando cargar rutina específica con ID: ${rutinaId}`);
+      // Cargando rutina específica
       const rutina = rutinas.find(r => r._id === rutinaId);
       
       if (rutina) {
-        console.log(`[Rutinas] Rutina encontrada, cargando detalles`);
+        // Rutina encontrada
         getRutinaById(rutinaId);
       } else {
-        console.log(`[Rutinas] Rutina con ID ${rutinaId} no encontrada, redireccionando`);
+        // Rutina no encontrada, redirigiendo
         navigate('/tiempo/rutinas');
       }
     }

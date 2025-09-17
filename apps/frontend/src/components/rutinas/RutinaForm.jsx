@@ -310,32 +310,21 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
         } catch {}
         onClose();
       } else {
-        // En creación: crear y luego forzar actualización de config exacta
+        // En creación: enviar config completa en una sola llamada
         const rutinaToCreate = {
           fecha: formData.fecha,
-          useGlobalConfig: true
+          useGlobalConfig: true,
+          config: normalizeFullConfig(rutinaData.config)  // Config incluida en creación
         };
         response = await clienteAxios.post('/api/rutinas', rutinaToCreate);
         const createdRutina = response.data;
-        const rutinaId = createdRutina?._id;
 
-        if (rutinaId) {
-          // Forzar que el nuevo registro tenga exactamente la config mostrada en el form
-          try {
-            const normalizedConfig = normalizeFullConfig(rutinaData.config);
-            await clienteAxios.put(`/api/rutinas/${rutinaId}`, {
-              _id: rutinaId,
-              config: normalizedConfig
-            });
-          } catch (e) {
-            console.warn('[RutinaForm] No se pudo aplicar la configuración completa al crear. Se usará la del backend', e);
-          }
-
+        if (createdRutina?._id) {
           snackbar.success('Rutina creada con éxito');
-          // Notificar al contexto para que recargue y seleccione la nueva rutina
+          // Notificar al contexto con actualización optimista
           try {
             window.dispatchEvent(new CustomEvent('rutina-updated', {
-              detail: { rutina: { ...createdRutina }, action: 'create' }
+              detail: { rutina: createdRutina, action: 'create' }
             }));
           } catch {}
           onClose();

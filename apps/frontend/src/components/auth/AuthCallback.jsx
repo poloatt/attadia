@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
@@ -20,17 +20,26 @@ function AuthCallback() {
   const navigate = useNavigate();
   const location = useLocation();
   const { checkAuth } = useAuth();
+  const hasProcessed = useRef(false);
 
   console.log('🔍 AuthCallback renderizado:', {
     pathname: location.pathname,
     search: location.search,
-    hash: location.hash
+    hash: location.hash,
+    hasProcessed: hasProcessed.current
   });
 
   useEffect(() => {
+    // Prevenir múltiples ejecuciones
+    if (hasProcessed.current) {
+      console.log('🔍 AuthCallback ya procesado, ignorando');
+      return;
+    }
+
     console.log('🔍 AuthCallback useEffect ejecutado');
     const handleCallback = async () => {
       try {
+        hasProcessed.current = true;
         console.log('Iniciando manejo de callback de Google');
         
         // Buscar parámetros tanto en location.search como en la URL completa
@@ -129,7 +138,11 @@ function AuthCallback() {
           return;
         }
         
-        toast.success('¡Bienvenido!');
+        // Limpiar toasts anteriores y mostrar bienvenida
+        toast.dismiss();
+        setTimeout(() => {
+          toast.success('¡Bienvenido!', { id: 'welcome-message' });
+        }, 100);
         navigate('/assets/finanzas', { replace: true });
       } catch (error) {
         console.error('Error en el callback:', error);
