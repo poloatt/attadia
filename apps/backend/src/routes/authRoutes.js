@@ -101,6 +101,11 @@ router.post('/refresh-token', [
   validateFields
 ], authController.refreshToken);
 
+// Cache para URL de Google (evitar regenerar constantemente)
+let cachedGoogleUrl = null;
+let cacheTimestamp = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+
 // Rutas de autenticación con Google
 router.get('/google/url', (req, res) => {
   if (!config.google.clientId || !config.google.clientSecret) {
@@ -112,9 +117,15 @@ router.get('/google/url', (req, res) => {
     });
   }
 
+  // Usar URL cacheada si está disponible y no ha expirado
+  const now = Date.now();
+  if (cachedGoogleUrl && (now - cacheTimestamp) < CACHE_DURATION) {
+    return res.json({ url: cachedGoogleUrl });
+  }
+
   // Solo loggear en staging/producción
   if (config.env !== 'development') {
-    console.log('Configuración de Google OAuth para ambiente:', {
+    console.log('Generando nueva URL de Google OAuth para ambiente:', {
       env: config.env,
       clientId: config.google.clientId ? 'configurado' : 'no configurado',
       callbackUrl: config.google.callbackUrl,
@@ -136,14 +147,9 @@ router.get('/google/url', (req, res) => {
     `access_type=offline&` +
     `prompt=consent`;
   
-  // Solo loggear en staging/producción
-  if (config.env !== 'development') {
-    console.log('URL de autenticación generada:', {
-      env: config.env,
-      redirectUri: config.google.callbackUrl,
-      scopes
-    });
-  }
+  // Cachear la URL generada
+  cachedGoogleUrl = authUrl;
+  cacheTimestamp = now;
   
   res.json({ url: authUrl });
 });

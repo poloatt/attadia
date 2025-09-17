@@ -171,9 +171,16 @@ if (config.google.clientId && config.google.clientSecret) {
             lastLogin: new Date()
           });
           
-          // Inicializar datos de ejemplo para el nuevo usuario
-          console.log('Inicializando datos de ejemplo para nuevo usuario:', user._id);
-          await initializeSampleData(user._id);
+          // Inicializar datos de ejemplo de forma asíncrona (no bloquear auth)
+          console.log('Programando inicialización de datos para nuevo usuario:', user._id);
+          setImmediate(async () => {
+            try {
+              await initializeSampleData(user._id);
+              console.log('Datos de ejemplo inicializados para usuario:', user._id);
+            } catch (error) {
+              console.error('Error al inicializar datos de ejemplo:', error);
+            }
+          });
         } else {
           console.log('Actualizando usuario existente en ambiente:', config.env);
           user.lastLogin = new Date();

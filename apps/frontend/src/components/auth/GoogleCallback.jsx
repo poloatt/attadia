@@ -29,18 +29,7 @@ function GoogleCallback() {
         // Configurar el token en axios
         clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-        // Verificar la autenticación directamente sin usar checkAuth
-        try {
-          const { data } = await clienteAxios.get('/api/auth/check');
-          if (!data.authenticated || !data.user) {
-            throw new Error('Error al verificar la autenticación');
-          }
-        } catch (verifyError) {
-          console.error('Error al verificar autenticación:', verifyError);
-          throw new Error('Error al verificar la autenticación');
-        }
-
-        // Redirigir a assets
+        // Redirigir inmediatamente - la verificación se hará en el contexto
         navigate('/assets/finanzas');
       } catch (error) {
         console.error('Error en el callback de Google:', error);

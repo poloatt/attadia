@@ -183,9 +183,9 @@ export function AuthProvider({ children }) {
       setLoading(true);
       setError(null);
       
-      // Timeout para la petición
+      // Timeout para la petición (aumentado para Google OAuth)
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout: La petición tardó demasiado')), 10000)
+        setTimeout(() => reject(new Error('Timeout: La petición tardó demasiado')), 30000)
       );
       
       const requestPromise = clienteAxios.get(`${currentConfig.authPrefix}/google/url`);
