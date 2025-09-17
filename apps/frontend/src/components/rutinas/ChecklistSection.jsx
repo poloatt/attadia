@@ -899,5 +899,14 @@ const CollapsedIcons = memo(({
 });
 
 // Exportar el componente con memorización para prevenir re-renderizados innecesarios
-export const MemoizedRutinaCard = memo(RutinaCard);
-export default RutinaCard;
+const MemoizedChecklistSection = memo(RutinaCard, (prevProps, nextProps) => {
+  return (
+    prevProps.section === nextProps.section &&
+    prevProps.title === nextProps.title &&
+    prevProps.readOnly === nextProps.readOnly &&
+    JSON.stringify(prevProps.data) === JSON.stringify(nextProps.data) &&
+    JSON.stringify(prevProps.config) === JSON.stringify(nextProps.config)
+  );
+});
+
+export default MemoizedChecklistSection;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef, memo } from 'react';
 import {
   Paper,
   Table,
@@ -73,28 +73,19 @@ export const RutinaTable = ({
   const { updateItemConfiguration } = useRutinas();
 
   // Sincronizar estados con props cuando cambian
+  // Consolidar múltiples useEffect para evitar cascadas de re-renders
   useEffect(() => {
+    // Actualizar loading
     if (typeof loadingProp === 'boolean') setLoading(loadingProp);
-  }, [loadingProp]);
-
-  useEffect(() => {
+    
+    // Actualizar páginas desde props
     if (typeof currentPageProp === 'number' && currentPageProp > 0) setCurrentPage(currentPageProp);
-  }, [currentPageProp]);
-
-  useEffect(() => {
     if (typeof totalPagesProp === 'number' && totalPagesProp >= 1) setTotalPages(totalPagesProp);
-  }, [totalPagesProp]);
-
-  // Actualizar valores de navegación cuando la rutina cambia
-  useEffect(() => {
-    if (rutina?._page) {
-      setCurrentPage(rutina._page);
-    }
-    if (rutina?._totalPages) {
-      setTotalPages(rutina._totalPages);
-    }
-    // console.log('RutinaTable recibió nueva rutina:', rutina);
-  }, [rutina]);
+    
+    // Actualizar valores desde rutina
+    if (rutina?._page) setCurrentPage(rutina._page);
+    if (rutina?._totalPages) setTotalPages(rutina._totalPages);
+  }, [loadingProp, currentPageProp, totalPagesProp, rutina?._page, rutina?._totalPages]);
 
   // Actualizar fecha actual para asegurar que coincide con el formato del servidor
   useEffect(() => {
@@ -706,5 +697,16 @@ export const RutinaTable = ({
   );
 };
 
+// Memoizar RutinaTable para evitar re-renders innecesarios
+const MemoizedRutinaTable = memo(RutinaTable, (prevProps, nextProps) => {
+  return (
+    prevProps.rutina?._id === nextProps.rutina?._id &&
+    prevProps.loading === nextProps.loading &&
+    prevProps.currentPage === nextProps.currentPage &&
+    prevProps.totalPages === nextProps.totalPages &&
+    JSON.stringify(prevProps.rutina?.fecha) === JSON.stringify(nextProps.rutina?.fecha)
+  );
+});
+
 // Exportación por defecto para importación directa
-export default RutinaTable; 
+export default MemoizedRutinaTable; 

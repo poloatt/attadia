@@ -207,9 +207,8 @@ export const RutinasProvider = ({ children }) => {
   }, [rutina, currentPage, totalPages]);
   
   // Asignar la función a la referencia para usarla posteriormente
-  useEffect(() => {
-    reloadCurrentRutinaRef.current = reloadCurrentRutina;
-  }, [reloadCurrentRutina]);
+  // Usar useRef para evitar re-renders innecesarios
+  reloadCurrentRutinaRef.current = reloadCurrentRutina;
 
   // Cargar una rutina específica por ID
   const getRutinaById = useCallback(async (rutinaId) => {

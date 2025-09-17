@@ -35,16 +35,19 @@ const RutinasWithContext = () => {
   const [totalPages, setTotalPages] = useState(1);
   const initialFetchDone = useRef(false);
   
-  // Actualizar la página actual cuando cambia la rutina
+  // Actualizar la página actual cuando cambia la rutina - memoizado para evitar re-renders
   useEffect(() => {
-    if (rutina) {
+    if (rutina?._id) {
       const index = rutinas.findIndex(r => r._id === rutina._id);
       if (index !== -1) {
-        setCurrentPage(index + 1);
-        setTotalPages(rutinas.length);
+        const newPage = index + 1;
+        const newTotal = rutinas.length;
+        // Solo actualizar si realmente cambió para evitar re-renders
+        if (currentPage !== newPage) setCurrentPage(newPage);
+        if (totalPages !== newTotal) setTotalPages(newTotal);
       }
     }
-  }, [rutina, rutinas]);
+  }, [rutina?._id, rutinas.length, currentPage, totalPages]);
   
   // Cargar todas las rutinas solo cuando se accede a la página
   useEffect(() => {
