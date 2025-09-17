@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Container,
   Box,
@@ -39,25 +39,6 @@ export function Tareas() {
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
   const navigate = useNavigate();
 
-  // Usar el sistema automático de historial
-  const { 
-    isSupported,
-    createWithHistory, 
-    updateWithHistory, 
-    deleteWithHistory 
-  } = usePageWithHistory(
-    // Función para recargar datos
-    async () => {
-      await fetchProyectos();
-      await fetchTareas();
-    },
-    // Función para manejar errores
-    (error) => {
-      console.error('Error al revertir acción:', error);
-      enqueueSnackbar('Error al revertir la acción', { variant: 'error' });
-    }
-  );
-
   useEffect(() => {
     setTitle('Tareas');
     setActions([
@@ -80,43 +61,91 @@ export function Tareas() {
     ]);
   }, [setTitle, setActions]);
 
+  const fetchProyectosRef = useRef(null);
   const fetchProyectos = useCallback(async () => {
-    try {
-      // Obtener proyectos con sus tareas incluidas
-      const response = await clienteAxios.get(`/api/proyectos?populate=tareas&_t=${Date.now()}`);
-      console.log('Proyectos con tareas:', response.data);
-      setProyectos(response.data.docs || []);
-    } catch (error) {
-      console.error('Error:', error);
-      enqueueSnackbar('Error al cargar proyectos', { variant: 'error' });
-      setProyectos([]);
+    // Cancelar llamada anterior si existe
+    if (fetchProyectosRef.current) {
+      clearTimeout(fetchProyectosRef.current);
     }
+    
+    return new Promise((resolve, reject) => {
+      fetchProyectosRef.current = setTimeout(async () => {
+        try {
+          // Obtener proyectos con sus tareas incluidas
+          const response = await clienteAxios.get(`/api/proyectos?populate=tareas&_t=${Date.now()}`);
+          setProyectos(response.data.docs || []);
+          resolve(response.data);
+        } catch (error) {
+          console.error('Error:', error);
+          enqueueSnackbar('Error al cargar proyectos', { variant: 'error' });
+          setProyectos([]);
+          reject(error);
+        }
+      }, 100); // Debounce de 100ms
+    });
   }, [enqueueSnackbar]);
 
+  const fetchTareasRef = useRef(null);
   const fetchTareas = useCallback(async () => {
-    try {
-      // Agregar timestamp para evitar cache
-      const response = await clienteAxios.get(`/api/tareas?_t=${Date.now()}`);
-      setTareas(response.data.docs || []);
-    } catch (error) {
-      console.error('Error:', error);
-      enqueueSnackbar('Error al cargar tareas', { variant: 'error' });
-      setTareas([]);
+    // Cancelar llamada anterior si existe
+    if (fetchTareasRef.current) {
+      clearTimeout(fetchTareasRef.current);
     }
+    
+    return new Promise((resolve, reject) => {
+      fetchTareasRef.current = setTimeout(async () => {
+        try {
+          // Agregar timestamp para evitar cache
+          const response = await clienteAxios.get(`/api/tareas?_t=${Date.now()}`);
+          setTareas(response.data.docs || []);
+          resolve(response.data);
+        } catch (error) {
+          console.error('Error:', error);
+          enqueueSnackbar('Error al cargar tareas', { variant: 'error' });
+          setTareas([]);
+          reject(error);
+        }
+      }, 100); // Debounce de 100ms
+    });
   }, [enqueueSnackbar]);
+
+  // Usar el sistema automático de historial
+  const { 
+    isSupported,
+    createWithHistory, 
+    updateWithHistory, 
+    deleteWithHistory 
+  } = usePageWithHistory(
+    // Función para recargar datos
+    async () => {
+      await fetchProyectos();
+      await fetchTareas();
+    },
+    // Función para manejar errores
+    (error) => {
+      console.error('Error al revertir acción:', error);
+      enqueueSnackbar('Error al revertir la acción', { variant: 'error' });
+    }
+  );
 
   useEffect(() => {
     fetchTareas();
     fetchProyectos();
   }, [fetchTareas, fetchProyectos]);
 
-  // Escuchar eventos del Header
+  // Escuchar eventos del Header y navegación
   useEffect(() => {
     const handleHeaderAddButton = (event) => {
       if (event.detail.type === 'tarea') {
         setEditingTarea(null);
         setIsFormOpen(true);
       }
+    };
+
+    // Escuchar eventos de la navegación de proyectos
+    const handleAddTask = () => {
+      setEditingTarea(null);
+      setIsFormOpen(true);
     };
 
     // Escuchar eventos de deshacer específicos para tareas
@@ -131,10 +160,12 @@ export function Tareas() {
     };
 
     window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
+    window.addEventListener('addTask', handleAddTask);
     window.addEventListener('undoAction_tarea', handleUndoTareaAction);
     
     return () => {
       window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
+      window.removeEventListener('addTask', handleAddTask);
       window.removeEventListener('undoAction_tarea', handleUndoTareaAction);
     };
   }, [fetchTareas, fetchProyectos]);
@@ -146,15 +177,9 @@ export function Tareas() {
         proyecto: formData.proyecto?._id || formData.proyecto
       };
 
-      console.log('📝 Datos a enviar:', datosAEnviar);
-
       if (editingTarea) {
-        console.log('🔄 Actualizando tarea:', editingTarea._id);
-        
         // Usar la función con historial automático
         const updatedTarea = await updateWithHistory(editingTarea._id, datosAEnviar, editingTarea);
-        
-        console.log('✅ Tarea actualizada recibida:', updatedTarea);
         
         // Actualizar estado local inmediatamente
         setTareas(prevTareas => 
@@ -165,12 +190,8 @@ export function Tareas() {
         
         enqueueSnackbar('Tarea actualizada exitosamente', { variant: 'success' });
       } else {
-        console.log('➕ Creando nueva tarea');
-        
         // Usar la función con historial automático
         const newTarea = await createWithHistory(datosAEnviar);
-        
-        console.log('✅ Nueva tarea creada:', newTarea);
         
         // Agregar la nueva tarea al estado local
         setTareas(prevTareas => [newTarea, ...prevTareas]);
@@ -183,13 +204,11 @@ export function Tareas() {
       
       // Recargar datos después de un breve delay para asegurar sincronización
       setTimeout(() => {
-        console.log('🔄 Recargando datos...');
         fetchTareas();
         fetchProyectos();
       }, 500);
     } catch (error) {
-      console.error('❌ Error completo:', error);
-      console.error('❌ Detalles del error:', error.response?.data);
+      console.error('Error al guardar tarea:', error.response?.data || error.message);
       enqueueSnackbar(
         error.response?.data?.error || 'Error al guardar la tarea', 
         { variant: 'error' }

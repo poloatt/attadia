@@ -61,7 +61,7 @@ export default function Toolbar({
     return specificNavigationRoutes.some(route => currentPath.startsWith(route));
   };
   
-  // Componente de navegación específica para rutinas
+  // Componente de navegación específica
   const SpecificNavigationComponent = () => {
     if (!shouldShowSpecificNavigation()) return null;
     
@@ -396,38 +396,98 @@ export default function Toolbar({
           })}
           {/* Children */}
           {!isMobile && children}
-          {/* Botón de agregar según reglas de nivel - ocultar si hay navegación específica */}
-          {!shouldShowSpecificNavigation() && showAddButton && entityConfig ? (
-            <SystemButtons.AddButton entityConfig={entityConfig} buttonSx={{ ml: 1 }} />
-          ) : !shouldShowSpecificNavigation() ? (
-            <Box sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 32,
-              height: 32,
-              ml: 1,
-              opacity: 0.1,
-              color: 'background.default',
-              pointerEvents: 'none',
-              borderRadius: 1,
-              padding: 0.5
-            }}>
-              <Box component="span" sx={{
-                fontSize: 18,
-                color: 'background.default',
-                fontWeight: 300,
-                lineHeight: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 18,
-                height: 18
-              }}>
-                +
-              </Box>
-            </Box>
-          ) : null}
+          {/* Botón de agregar inteligente */}
+          {(() => {
+            // Para páginas de proyectos, usar botón inteligente
+            if (currentPath.startsWith('/tiempo/proyectos') || 
+                currentPath.startsWith('/tiempo/tareas') || 
+                currentPath.startsWith('/tiempo/archivo')) {
+              
+              const getSmartAddButton = () => {
+                const handleSmartAdd = () => {
+                  if (currentPath === '/tiempo/proyectos') {
+                    window.dispatchEvent(new CustomEvent('addProject'));
+                  } else if (currentPath === '/tiempo/tareas') {
+                    window.dispatchEvent(new CustomEvent('addTask'));
+                  } else if (currentPath === '/tiempo/archivo') {
+                    navigate('/tiempo/tareas');
+                    setTimeout(() => {
+                      window.dispatchEvent(new CustomEvent('addTask'));
+                    }, 100);
+                  }
+                };
+
+                const getTooltip = () => {
+                  if (currentPath === '/tiempo/proyectos') return 'Nuevo Proyecto';
+                  if (currentPath === '/tiempo/tareas') return 'Nueva Tarea';
+                  if (currentPath === '/tiempo/archivo') return 'Nueva Tarea';
+                  return 'Agregar';
+                };
+
+                return (
+                  <Tooltip title={getTooltip()}>
+                    <IconButton
+                      size="small"
+                      onClick={handleSmartAdd}
+                      sx={{ 
+                        ml: 1,
+                        color: 'text.secondary',
+                        '&:hover': {
+                          color: 'primary.main',
+                          backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                          transform: 'scale(1.05)',
+                        },
+                        transition: 'all 0.2s ease-in-out'
+                      }}
+                    >
+                      {React.createElement(icons.add, { sx: { fontSize: 18 } })}
+                    </IconButton>
+                  </Tooltip>
+                );
+              };
+
+              return getSmartAddButton();
+            }
+            
+            // Para otras páginas, usar la lógica original
+            if (!shouldShowSpecificNavigation() && showAddButton && entityConfig) {
+              return <SystemButtons.AddButton entityConfig={entityConfig} buttonSx={{ ml: 1 }} />;
+            }
+            
+            if (!shouldShowSpecificNavigation()) {
+              return (
+                <Box sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 32,
+                  height: 32,
+                  ml: 1,
+                  opacity: 0.1,
+                  color: 'background.default',
+                  pointerEvents: 'none',
+                  borderRadius: 1,
+                  padding: 0.5
+                }}>
+                  <Box component="span" sx={{
+                    fontSize: 18,
+                    color: 'background.default',
+                    fontWeight: 300,
+                    lineHeight: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 18,
+                    height: 18
+                  }}>
+                    +
+                  </Box>
+                </Box>
+              );
+            }
+            
+            return null;
+          })()}
         </Box>
       </Box>
     </Box>

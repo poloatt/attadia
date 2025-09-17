@@ -5,6 +5,33 @@ import clienteAxios from '../config/axios';
 
 // Mapeo de rutas a entidades y servicios de API
 const ROUTE_ENTITY_MAP = {
+  '/tiempo/proyectos': {
+    entity: 'proyecto',
+    apiService: {
+      create: (data) => clienteAxios.post('/api/proyectos', data).then(res => res.data),
+      update: (id, data) => clienteAxios.put(`/api/proyectos/${id}`, data).then(res => res.data),
+      delete: (id) => clienteAxios.delete(`/api/proyectos/${id}`).then(res => res.data),
+      getById: (id) => clienteAxios.get(`/api/proyectos/${id}`).then(res => res.data)
+    }
+  },
+  '/tiempo/tareas': {
+    entity: 'tarea',
+    apiService: {
+      create: (data) => clienteAxios.post('/api/tareas', data).then(res => res.data),
+      update: (id, data) => clienteAxios.put(`/api/tareas/${id}`, data).then(res => res.data),
+      delete: (id) => clienteAxios.delete(`/api/tareas/${id}`).then(res => res.data),
+      getById: (id) => clienteAxios.get(`/api/tareas/${id}`).then(res => res.data)
+    }
+  },
+  '/tiempo/archivo': {
+    entity: 'tarea',
+    apiService: {
+      create: (data) => clienteAxios.post('/api/tareas', data).then(res => res.data),
+      update: (id, data) => clienteAxios.put(`/api/tareas/${id}`, data).then(res => res.data),
+      delete: (id) => clienteAxios.delete(`/api/tareas/${id}`).then(res => res.data),
+      getById: (id) => clienteAxios.get(`/api/tareas/${id}`).then(res => res.data)
+    }
+  },
   '/proyectos': {
     entity: 'proyecto',
     apiService: {

@@ -59,16 +59,10 @@ function findPathById(id, items = modulos) {
 function App() {
   const { user, loading } = useAuth();
 
-  // Debug del estado de autenticación
-  console.log('🏠 APP RENDER:', {
-    user: user ? 'presente' : 'ausente',
-    loading,
-    userEmail: user?.email,
-    isAuthenticated: !!user,
-    pathname: window.location.pathname,
-    search: window.location.search,
-    hash: window.location.hash
-  });
+  // Debug del estado de autenticación (solo en desarrollo)
+  if (process.env.NODE_ENV === 'development' && !user && !loading) {
+    console.log('🏠 AUTH STATE:', { authenticated: !!user, loading });
+  }
 
   if (loading) {
     return <div>Cargando...</div>;

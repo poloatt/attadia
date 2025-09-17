@@ -578,7 +578,14 @@ const TareaForm = ({
                 fullWidth
                 size="small"
                 label="Proyecto"
-                value={formData.proyecto || ''}
+                value={(() => {
+                  const currentValue = formData.proyecto || '';
+                  // Verificar si el valor actual existe en las opciones
+                  const projectExists = (proyectos || []).some(p => 
+                    (p._id || p.id) === currentValue
+                  );
+                  return projectExists ? currentValue : '';
+                })()}
                 onChange={handleChange('proyecto')}
                 error={!!errors.proyecto}
                 helperText={errors.proyecto}

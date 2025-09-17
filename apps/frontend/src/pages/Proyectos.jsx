@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Container,
   Box,
@@ -43,19 +43,29 @@ export function Proyectos() {
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
   const navigate = useNavigate();
 
-  // 1. Definir fetchProyectos primero
+  // 1. Definir fetchProyectos primero con debounce
+  const fetchProyectosRef = useRef(null);
   const fetchProyectos = useCallback(async () => {
-    try {
-      console.log('Solicitando proyectos con tareas...');
-      // Agregar timestamp para evitar cache
-      const response = await clienteAxios.get(`/api/proyectos?populate=tareas&_t=${Date.now()}`);
-      console.log('Respuesta completa:', response.data);
-      setProyectos(response.data.docs || []);
-    } catch (error) {
-      console.error('Error:', error);
-      enqueueSnackbar('Error al cargar proyectos', { variant: 'error' });
-      setProyectos([]);
+    // Cancelar llamada anterior si existe
+    if (fetchProyectosRef.current) {
+      clearTimeout(fetchProyectosRef.current);
     }
+    
+    return new Promise((resolve, reject) => {
+      fetchProyectosRef.current = setTimeout(async () => {
+        try {
+          // Agregar timestamp para evitar cache
+          const response = await clienteAxios.get(`/api/proyectos?populate=tareas&_t=${Date.now()}`);
+          setProyectos(response.data.docs || []);
+          resolve(response.data);
+        } catch (error) {
+          console.error('Error:', error);
+          enqueueSnackbar('Error al cargar proyectos', { variant: 'error' });
+          setProyectos([]);
+          reject(error);
+        }
+      }, 100); // Debounce de 100ms
+    });
   }, [enqueueSnackbar]);
 
   // 2. Historial de proyectos (ruta actual)
@@ -111,7 +121,7 @@ export function Proyectos() {
     fetchProyectos();
   }, [fetchProyectos]);
 
-  // Escuchar eventos del Header
+  // Escuchar eventos del Header y navegación
   useEffect(() => {
     const handleHeaderAddButton = (event) => {
       if (event.detail.type === 'proyecto') {
@@ -120,10 +130,25 @@ export function Proyectos() {
       }
     };
 
+    // Escuchar eventos de la navegación de proyectos
+    const handleAddProject = () => {
+      setEditingProyecto(null);
+      setIsFormOpen(true);
+    };
+
+    const handleAddTask = () => {
+      setSelectedProyecto(null);
+      setIsTareaFormOpen(true);
+    };
+
     // Escuchar eventos de deshacer específicos para proyectos
     const handleUndoAction = (event) => {
       const action = event.detail;
-      handleUndoAction(action);
+      console.log('Undo de proyecto detectado:', action);
+      // Refrescar proyectos después del undo
+      setTimeout(() => {
+        fetchProyectos();
+      }, 500);
     };
 
     // Escuchar eventos de deshacer específicos para tareas
@@ -137,11 +162,15 @@ export function Proyectos() {
     };
 
     window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
+    window.addEventListener('addProject', handleAddProject);
+    window.addEventListener('addTask', handleAddTask);
     window.addEventListener('undoAction_proyecto', handleUndoAction);
     window.addEventListener('undoAction_tarea', handleUndoTareaAction);
     
     return () => {
       window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
+      window.removeEventListener('addProject', handleAddProject);
+      window.removeEventListener('addTask', handleAddTask);
       window.removeEventListener('undoAction_proyecto', handleUndoAction);
       window.removeEventListener('undoAction_tarea', handleUndoTareaAction);
     };
@@ -292,6 +321,22 @@ export function Proyectos() {
           updateWithHistory={updateWithHistory}
           deleteWithHistory={deleteWithHistory}
         />
+        
+        {/* Formulario de tarea cuando se abre desde la navegación */}
+        {isTareaFormOpen && (
+          <TareaForm
+            open={isTareaFormOpen}
+            onClose={() => {
+              setIsTareaFormOpen(false);
+              setSelectedProyecto(null);
+            }}
+            onSubmit={handleTareaSubmit}
+            isEditing={false}
+            initialData={null}
+            proyectos={proyectos}
+            onProyectosUpdate={fetchProyectos}
+          />
+        )}
       </Box>
     </Box>
   );

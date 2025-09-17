@@ -74,6 +74,27 @@ export function Archivo() {
     fetchProyectos();
   }, [fetchTareas, fetchProyectos]);
 
+  // Escuchar eventos de la navegación de proyectos
+  useEffect(() => {
+    // En la página de archivo, los eventos de agregar no hacen nada
+    // pero podríamos redirigir a las páginas correspondientes
+    const handleAddProject = () => {
+      navigate('/tiempo/proyectos');
+    };
+
+    const handleAddTask = () => {
+      navigate('/tiempo/tareas');
+    };
+
+    window.addEventListener('addProject', handleAddProject);
+    window.addEventListener('addTask', handleAddTask);
+    
+    return () => {
+      window.removeEventListener('addProject', handleAddProject);
+      window.removeEventListener('addTask', handleAddTask);
+    };
+  }, [navigate]);
+
   const handleFormSubmit = async (formData) => {
     try {
       let response;

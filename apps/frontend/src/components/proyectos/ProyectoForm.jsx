@@ -439,7 +439,7 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing, 
                   <em>Seleccionar moneda</em>
                 </MenuItem>
                 {relatedData?.moneda?.map((moneda) => (
-                  <MenuItem key={moneda._id} value={moneda._id}>
+                  <MenuItem key={moneda._id || moneda.id || `moneda-${moneda.nombre}`} value={moneda._id || moneda.id}>
                     {moneda.simbolo} - {moneda.nombre}
                   </MenuItem>
                 ))}
@@ -479,7 +479,7 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing, 
                   <em>Sin propiedad asociada</em>
                 </MenuItem>
                 {relatedData?.propiedad?.map((propiedad) => (
-                  <MenuItem key={propiedad._id} value={propiedad._id}>
+                  <MenuItem key={propiedad._id || propiedad.id || `propiedad-${propiedad.titulo}`} value={propiedad._id || propiedad.id}>
                     {propiedad.titulo}
                   </MenuItem>
                 ))}

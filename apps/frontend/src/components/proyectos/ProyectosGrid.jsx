@@ -45,7 +45,6 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory })
 
   useEffect(() => {
     setTareaLocal(tarea);
-    console.log('🔄 TareaItem recibió nueva tarea:', tarea);
   }, [tarea]);
 
   const handleSubtareaToggle = async (subtareaId) => {
