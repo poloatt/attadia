@@ -86,26 +86,47 @@ function AuthCallback() {
         // Configurar axios
         clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-        // Esperar un momento para asegurar que el token esté guardado
-        console.log('Esperando procesamiento del token...');
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Verificación simplificada - confiar en que el token es válido si se recibió
-        console.log('Token recibido exitosamente, actualizando contexto de autenticación');
+        // Verificación rápida del token
+        console.log('Token recibido exitosamente, validando...');
         
         // Decodificar el token JWT para obtener la información del usuario
         try {
           const tokenPayload = JSON.parse(atob(token.split('.')[1]));
           console.log('Token decodificado:', tokenPayload);
           
-          // Actualizar el contexto de autenticación con la información del usuario
-          if (tokenPayload.user) {
-            // Forzar la actualización del contexto
-            await checkAuth();
-            console.log('Contexto de autenticación actualizado');
+          // Verificar que el token no esté expirado
+          if (tokenPayload.exp && tokenPayload.exp * 1000 < Date.now()) {
+            throw new Error('El token ha expirado');
           }
-        } catch (authError) {
-          console.error('Error al actualizar contexto:', authError);
+          
+          // Actualizar el contexto de autenticación con timeout
+          if (tokenPayload.user) {
+            console.log('Actualizando contexto de autenticación...');
+            
+            // Timeout para checkAuth
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Timeout: Verificación de autenticación tardó demasiado')), 5000)
+            );
+            
+            const authPromise = checkAuth();
+            
+            try {
+              await Promise.race([authPromise, timeoutPromise]);
+              console.log('Contexto de autenticación actualizado exitosamente');
+            } catch (authError) {
+              console.warn('Error al actualizar contexto (continuando):', authError.message);
+              // Continuar sin bloquear, el token ya está guardado
+            }
+          }
+        } catch (tokenError) {
+          console.error('Error al procesar token:', tokenError);
+          // Si hay error con el token, limpiar y redirigir
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          delete clienteAxios.defaults.headers.common['Authorization'];
+          toast.error('Token de autenticación inválido');
+          navigate('/login');
+          return;
         }
         
         toast.success('¡Bienvenido!');

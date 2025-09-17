@@ -84,10 +84,14 @@ export function Login() {
 
   const handleGoogleLogin = async () => {
     try {
+      setLoading(true);
+      toast.loading('Redirigiendo a Google...', { id: 'google-login' });
       await loginWithGoogle();
     } catch (error) {
       console.error('Error al iniciar sesión con Google:', error);
-      toast.error('Error al iniciar sesión con Google. Por favor, intenta más tarde.');
+      toast.dismiss('google-login');
+      toast.error(error.message || 'Error al iniciar sesión con Google. Por favor, intenta más tarde.');
+      setLoading(false);
     }
   };
 

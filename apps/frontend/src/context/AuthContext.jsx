@@ -47,7 +47,14 @@ export function AuthProvider({ children }) {
       // Configurar token en axios
       clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
-      const { data } = await clienteAxios.get(`${currentConfig.authPrefix}/check`);
+      // Timeout para la verificación
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout: Verificación de autenticación tardó demasiado')), 8000)
+      );
+      
+      const requestPromise = clienteAxios.get(`${currentConfig.authPrefix}/check`);
+      
+      const { data } = await Promise.race([requestPromise, timeoutPromise]);
       
       if (data.authenticated && data.user) {
         setUser(data.user);
@@ -176,15 +183,24 @@ export function AuthProvider({ children }) {
       setLoading(true);
       setError(null);
       
-      const { data } = await clienteAxios.get(`${currentConfig.authPrefix}/google/url`);
+      // Timeout para la petición
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout: La petición tardó demasiado')), 10000)
+      );
+      
+      const requestPromise = clienteAxios.get(`${currentConfig.authPrefix}/google/url`);
+      
+      const { data } = await Promise.race([requestPromise, timeoutPromise]);
       
       if (data.url) {
+        // Resetear loading antes de redirigir
+        setLoading(false);
         window.location.href = data.url;
       } else {
         throw new Error('No se pudo obtener la URL de autenticación');
       }
     } catch (error) {
-      setError(error.response?.data?.message || 'Error al iniciar sesión con Google');
+      setError(error.response?.data?.message || error.message);
       setLoading(false);
       throw error;
     }
@@ -275,7 +291,14 @@ export function AuthProvider({ children }) {
             // Configurar token en axios
             clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             
-            const { data } = await clienteAxios.get(`${currentConfig.authPrefix}/check`);
+            // Timeout para la verificación inicial
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Timeout: Verificación inicial tardó demasiado')), 8000)
+            );
+            
+            const requestPromise = clienteAxios.get(`${currentConfig.authPrefix}/check`);
+            
+            const { data } = await Promise.race([requestPromise, timeoutPromise]);
             
             if (data.authenticated && data.user) {
               setUser(data.user);
