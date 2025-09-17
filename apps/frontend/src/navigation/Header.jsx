@@ -231,7 +231,7 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                 <Box
                   sx={{
                     position: 'absolute',
-                    left: `${collapsedWidth}px`,
+                    left: `${mainMargin}px`,
                     right: 0,
                     height: HEADER_CONFIG.height,
                     display: 'flex',

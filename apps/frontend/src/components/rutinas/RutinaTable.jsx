@@ -41,6 +41,7 @@ import { getNormalizedToday, toISODateString, parseAPIDate } from '../../utils/d
 // Exportación nombrada para compatibilidad
 export const RutinaTable = ({ 
   rutina, 
+  rutinas = [], 
   onEdit, 
   onDelete, 
   onCheckChange, 
@@ -50,9 +51,9 @@ export const RutinaTable = ({
   totalPages: totalPagesProp,
   loading: loadingProp
 }) => {
-  const [loading, setLoading] = useState(Boolean(loadingProp));
+  // Usar loading prop directamente para evitar estados duplicados y parpadeos
   const [error, setError] = useState(null);
-  const [rutinas, setRutinas] = useState([]);
+  // rutinas viene del contexto padre, no necesitamos estado local
   const today = useMemo(() => getNormalizedToday(), []);
   const [globalConfig, setGlobalConfig] = useState(null); // Para almacenar la configuración global
   const { enqueueSnackbar } = useSnackbar();
@@ -75,9 +76,6 @@ export const RutinaTable = ({
   // Sincronizar estados con props cuando cambian
   // Consolidar múltiples useEffect para evitar cascadas de re-renders
   useEffect(() => {
-    // Actualizar loading
-    if (typeof loadingProp === 'boolean') setLoading(loadingProp);
-    
     // Actualizar páginas desde props
     if (typeof currentPageProp === 'number' && currentPageProp > 0) setCurrentPage(currentPageProp);
     if (typeof totalPagesProp === 'number' && totalPagesProp >= 1) setTotalPages(totalPagesProp);
@@ -85,7 +83,7 @@ export const RutinaTable = ({
     // Actualizar valores desde rutina
     if (rutina?._page) setCurrentPage(rutina._page);
     if (rutina?._totalPages) setTotalPages(rutina._totalPages);
-  }, [loadingProp, currentPageProp, totalPagesProp, rutina?._page, rutina?._totalPages]);
+  }, [currentPageProp, totalPagesProp, rutina?._page, rutina?._totalPages]);
 
   // Actualizar fecha actual para asegurar que coincide con el formato del servidor
   useEffect(() => {
@@ -114,54 +112,46 @@ export const RutinaTable = ({
       if (!isMounted.current) return;
       
       try {
-        setLoading(true);
+        // Loading manejado por contexto padre
         
-        // Obtener rutinas
-        try {
-          const rutinasResponse = await clienteAxios.get('/api/rutinas');
+        // Los datos de rutinas vienen del contexto, no necesitamos cargar aquí
           
-          // Verificar si el componente sigue montado después de la petición
-          if (!isMounted.current) return;
-          
-          setRutinas(Array.isArray(rutinasResponse.data?.docs) ? rutinasResponse.data.docs : []);
-          
-          // Intentar cargar la configuración global solo si no ha sido cargada aún
-          if (!configLoaded && isMounted.current) {
-            try {
-              const configResponse = await clienteAxios.get('/api/users/rutinas-config');
-              
-              // Verificar si el componente sigue montado después de la petición
-              if (!isMounted.current) return;
-              
-              configLoaded = true;
-              setGlobalConfig(configResponse.data || {});
-            } catch (configError) {
-              // Ignorar errores de cancelación
-              if (configError.cancelado) {
-                console.log('Solicitud de configuración global cancelada');
-              } else {
-                console.warn('No se pudo cargar la configuración global:', configError);
-                // Establecer un objeto vacío como configuración por defecto si hay un error
-                if (isMounted.current) {
-                  setGlobalConfig({});
-                }
+        // Intentar cargar la configuración global solo si no ha sido cargada aún
+        if (!configLoaded && isMounted.current) {
+          try {
+            const configResponse = await clienteAxios.get('/api/users/rutinas-config');
+            
+            // Verificar si el componente sigue montado después de la petición
+            if (!isMounted.current) return;
+            
+            configLoaded = true;
+            setGlobalConfig(configResponse.data || {});
+          } catch (configError) {
+            // Ignorar errores de cancelación
+            if (configError.cancelado) {
+              console.log('Solicitud de configuración global cancelada');
+            } else {
+              console.warn('No se pudo cargar la configuración global:', configError);
+              // Establecer un objeto vacío como configuración por defecto si hay un error
+              if (isMounted.current) {
+                setGlobalConfig({});
               }
             }
           }
-        } catch (rutinasError) {
-          // Ignorar errores de cancelación
-          if (rutinasError.cancelado) {
-            console.log('Solicitud de rutinas cancelada');
-          } else if (isMounted.current) {
-            console.error('Error al cargar rutinas:', rutinasError);
-            setError('Error al cargar las rutinas. Por favor, intenta de nuevo.');
-            enqueueSnackbar('Error al cargar las rutinas', { variant: 'error' });
-          }
+        }
+      } catch (error) {
+        // Manejo general de errores
+        if (error.cancelado) {
+          console.log('Solicitud cancelada');
+        } else if (isMounted.current) {
+          console.error('Error en fetchData:', error);
+          setError('Error al cargar los datos. Por favor, intenta de nuevo.');
+          enqueueSnackbar('Error al cargar los datos', { variant: 'error' });
         }
       } finally {
         // Solo actualizar el estado si el componente sigue montado
         if (isMounted.current) {
-          setLoading(false);
+          // Loading manejado por contexto padre
         }
       }
     };
@@ -429,9 +419,7 @@ export const RutinaTable = ({
       
       const newRutina = response.data;
       
-      // Añadir la nueva rutina al principio del array (es la más reciente)
-      const updatedRutinas = [newRutina, ...rutinas];
-      setRutinas(updatedRutinas);
+      // La actualización de rutinas se maneja en el contexto padre
       
       // Notificar al componente padre sobre la nueva rutina seleccionada
       if (onRutinaChange && typeof onRutinaChange === 'function') {
@@ -488,7 +476,7 @@ export const RutinaTable = ({
     }
   };
 
-  if (loading) {
+  if (loadingProp) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '70vh' }}>
         <CircularProgress />

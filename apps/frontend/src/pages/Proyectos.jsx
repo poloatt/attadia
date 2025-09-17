@@ -5,6 +5,7 @@ import {
   Button,
   IconButton,
   Tooltip,
+  CircularProgress,
 } from '@mui/material';
 import useResponsive from '../hooks/useResponsive';
 import {
@@ -32,6 +33,7 @@ import { useNavigate } from 'react-router-dom';
 
 export function Proyectos() {
   const [proyectos, setProyectos] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProyecto, setEditingProyecto] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
@@ -57,11 +59,13 @@ export function Proyectos() {
           // Agregar timestamp para evitar cache
           const response = await clienteAxios.get(`/api/proyectos?populate=tareas&_t=${Date.now()}`);
           setProyectos(response.data.docs || []);
+          setLoading(false);
           resolve(response.data);
         } catch (error) {
           console.error('Error:', error);
           enqueueSnackbar('Error al cargar proyectos', { variant: 'error' });
           setProyectos([]);
+          setLoading(false);
           reject(error);
         }
       }, 100); // Debounce de 100ms
@@ -296,20 +300,26 @@ export function Proyectos() {
             },
           }}
         >
-          <ProyectosGrid
-            proyectos={proyectos}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onAdd={() => {
-              setEditingProyecto(null);
-              setIsFormOpen(true);
-            }}
-            onUpdateTarea={handleUpdateTarea}
-            onAddTarea={handleAddTarea}
-            showValues={showValues}
-            updateWithHistory={updateWithHistory}
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <ProyectosGrid
+              proyectos={proyectos}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onAdd={() => {
+                setEditingProyecto(null);
+                setIsFormOpen(true);
+              }}
+              onUpdateTarea={handleUpdateTarea}
+              onAddTarea={handleAddTarea}
+              showValues={showValues}
+              updateWithHistory={updateWithHistory}
             updateTareaWithHistory={updateTareaWithHistory}
           />
+          )}
         </Box>
         <ProyectoForm
           open={isFormOpen}

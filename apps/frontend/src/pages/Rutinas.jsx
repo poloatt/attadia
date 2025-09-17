@@ -29,6 +29,14 @@ const RutinasWithContext = () => {
     fetchRutinas, 
     getRutinaById
   } = rutinasContext;
+  
+  // Debug temporal
+  console.log('[DEBUG Rutinas.jsx] Estado actual:', {
+    loading,
+    rutinasLength: rutinas?.length,
+    rutina: rutina?._id,
+    error
+  });
   const [editMode, setEditMode] = useState(false);
   const [rutinaToEdit, setRutinaToEdit] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -37,7 +45,7 @@ const RutinasWithContext = () => {
   
   // Actualizar la página actual cuando cambia la rutina - memoizado para evitar re-renders
   useEffect(() => {
-    if (rutina?._id) {
+    if (rutina?._id && rutinas.length > 0) {
       const index = rutinas.findIndex(r => r._id === rutina._id);
       if (index !== -1) {
         const newPage = index + 1;
@@ -47,7 +55,7 @@ const RutinasWithContext = () => {
         if (totalPages !== newTotal) setTotalPages(newTotal);
       }
     }
-  }, [rutina?._id, rutinas.length, currentPage, totalPages]);
+  }, [rutina?._id, rutinas.length]);
   
   // Cargar todas las rutinas solo cuando se accede a la página
   useEffect(() => {
@@ -56,7 +64,7 @@ const RutinasWithContext = () => {
       initialFetchDone.current = true;
       fetchRutinas();
     }
-  }, [fetchRutinas]);
+  }, [fetchRutinas]); // Dependencia necesaria
   
   // Cargar rutina específica si hay un ID en los parámetros
   useEffect(() => {
@@ -93,7 +101,7 @@ const RutinasWithContext = () => {
     return () => {
       delete window.rutinasContext;
     };
-  }, [rutinasContext]);
+  }, []); // Solo una vez al montar
 
   // Event listeners para manejar acciones desde la navegación específica
   useEffect(() => {
@@ -113,7 +121,7 @@ const RutinasWithContext = () => {
       window.removeEventListener('editRutina', handleEditRutinaEvent);
       window.removeEventListener('addRutina', handleAddRutinaEvent);
     };
-  }, [handleEditRutina, handleAddRutina]);
+  }, []); // Handlers son estables, no necesitan dependencias
 
   // Handler para cerrar el formulario
   const handleCloseForm = () => {
@@ -235,6 +243,7 @@ const RutinasWithContext = () => {
                 _page: currentPage,
                 _totalPages: totalPages
               }}
+              rutinas={rutinas}
               onEdit={handleEditRutina}
               loading={loading}
               currentPage={currentPage}

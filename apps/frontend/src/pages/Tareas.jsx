@@ -5,6 +5,7 @@ import {
   Button,
   IconButton,
   Tooltip,
+  CircularProgress,
 } from '@mui/material';
 import useResponsive from '../hooks/useResponsive';
 import {
@@ -30,6 +31,7 @@ import { usePageWithHistory } from '../hooks/useGlobalActionHistory';
 export function Tareas() {
   const [tareas, setTareas] = useState([]);
   const [proyectos, setProyectos] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTarea, setEditingTarea] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
@@ -91,18 +93,20 @@ export function Tareas() {
     if (fetchTareasRef.current) {
       clearTimeout(fetchTareasRef.current);
     }
-    
+
     return new Promise((resolve, reject) => {
       fetchTareasRef.current = setTimeout(async () => {
         try {
           // Agregar timestamp para evitar cache
           const response = await clienteAxios.get(`/api/tareas?_t=${Date.now()}`);
           setTareas(response.data.docs || []);
+          setLoading(false);
           resolve(response.data);
         } catch (error) {
           console.error('Error:', error);
-          enqueueSnackbar('Error al cargar tareas', { variant: 'error' });
+          enqueueSnackbar('Error al cargar tareas', { variant: 'error' });  
           setTareas([]);
+          setLoading(false);
           reject(error);
         }
       }, 100); // Debounce de 100ms
@@ -273,16 +277,22 @@ export function Tareas() {
             },
           }}
         >
-          <TareasTable
-            tareas={tareas}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onUpdateEstado={handleUpdateEstado}
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <TareasTable
+              tareas={tareas}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onUpdateEstado={handleUpdateEstado}
             isArchive={false}
             showValues={showValues}
             updateWithHistory={updateWithHistory}
             updateTareaWithHistory={updateWithHistory}
           />
+          )}
         </Box>
         {isFormOpen && (
           <TareaForm

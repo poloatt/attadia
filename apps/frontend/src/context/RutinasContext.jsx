@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSnackbar } from 'notistack';
 import { useNavigate, useParams } from 'react-router-dom';
 import clienteAxios from '../config/axios';
@@ -34,7 +34,7 @@ export const RutinasProvider = ({ children }) => {
   // Estados
   const [rutina, setRutina] = useState(null);
   const [rutinas, setRutinas] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -53,8 +53,9 @@ export const RutinasProvider = ({ children }) => {
     preserveFields: ['tipo', 'frecuencia', 'periodo']
   });
   
-  // Referencia para evitar loops
+  // Referencias para control de estado
   const reloadCurrentRutinaRef = useRef(null);
+  const fetchingRef = useRef(false);
 
   // Logs centralizados: usar utils/logger cuando sea necesario
 
@@ -71,12 +72,15 @@ export const RutinasProvider = ({ children }) => {
 
   // Cargar rutinas
   const fetchRutinas = useCallback(async (forceReload = false) => {
+    console.log('[DEBUG fetchRutinas] Iniciando carga, fetchingRef:', fetchingRef.current, 'forceReload:', forceReload);
     try {
       // Si ya estamos cargando, no iniciar otra petición
-      if (loading) {
-        // Cancelando fetch duplicado
+      if (fetchingRef.current && !forceReload) {
+        console.log('[DEBUG fetchRutinas] Cancelando fetch duplicado');
         return;
       }
+      
+      fetchingRef.current = true;
       
       setLoading(true);
       setError(null);
@@ -121,6 +125,7 @@ export const RutinasProvider = ({ children }) => {
       const totalRutinas = rutinasConCambiosLocales.length;
       setTotalPages(totalRutinas);
       
+      console.log('[DEBUG fetchRutinas] Seteando rutinas:', rutinasConCambiosLocales.length, 'rutinas');
       setRutinas(rutinasConCambiosLocales);
       
       // Selección simple: primero intentar la rutina de hoy, si no existe usar la más reciente
@@ -155,9 +160,10 @@ export const RutinasProvider = ({ children }) => {
         enqueueSnackbar('Error al cargar las rutinas', { variant: 'error' });
       }
     } finally {
+      fetchingRef.current = false;
       setLoading(false);
     }
-  }, [loading, enqueueSnackbar]);
+  }, [enqueueSnackbar, pendingLocalChanges]);
 
   // Función para recargar la rutina actual - definirla antes de usarla
   const reloadCurrentRutina = useCallback(async () => {
@@ -807,20 +813,15 @@ export const RutinasProvider = ({ children }) => {
     });
   }, [rutina]);
 
-  // Carga inicial simplificada
-  useEffect(() => {
-    if (!loading && rutinas.length === 0) {
-      fetchRutinas();
-    }
-  }, [loading, rutinas.length, fetchRutinas]);
+  // Carga inicial eliminada - se maneja desde la página
 
   // Manejo inicial de la rutina cuando se cargan las rutinas
   useEffect(() => {
-    if (rutinas.length > 0 && !rutina && !loading) {
+    if (rutinas.length > 0 && !rutina) {
       console.log("Inicializando rutina después de cargar rutinas");
       getRutinaById(rutinas[0]._id);
     }
-  }, [rutinas, rutina, loading, getRutinaById]);
+  }, [rutinas.length, rutina, getRutinaById]);
   
   // Escuchar eventos personalizados para el estado de expansión
   useEffect(() => {
@@ -915,8 +916,8 @@ export const RutinasProvider = ({ children }) => {
     }
   }, [enqueueSnackbar, rutina]);
 
-  // Valores a exponer en el contexto
-  const contextValue = {
+  // Valores a exponer en el contexto - memoizados para evitar re-renders
+  const contextValue = useMemo(() => ({
     rutina,
     rutinas,
     loading,
@@ -935,7 +936,26 @@ export const RutinasProvider = ({ children }) => {
     syncRutinaWithGlobal,
     reloadCurrentRutina,
     updateSectionExpandedState
-  };
+  }), [
+    rutina,
+    rutinas,
+    loading,
+    error,
+    currentPage,
+    totalPages,
+    setRutina,
+    fetchRutinas,
+    getRutinaById,
+    markItemComplete,
+    handlePrevious,
+    handleNext,
+    updateItemConfiguration,
+    pendingLocalChanges,
+    deleteRutina,
+    syncRutinaWithGlobal,
+    reloadCurrentRutina,
+    updateSectionExpandedState
+  ]);
 
   return (
     <RutinasContext.Provider value={contextValue}>
