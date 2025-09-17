@@ -1,9 +1,8 @@
 {
-  "buildCommand": "npm install && npm run clean && npm run build",
-  "outputDirectory": "dist", 
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "installCommand": "npm install",
   "framework": "vite",
-  "nodeVersion": "18",
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
