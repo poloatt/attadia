@@ -103,11 +103,13 @@ const ordenarTareas = (tareas) => {
   });
 };
 
-const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea }) => {
+const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea, onActivateMultiSelect }) => {
   const [open, setOpen] = useState(false);
   const [estadoLocal, setEstadoLocal] = useState(tarea.estado);
   const [subtareasLocal, setSubtareasLocal] = useState(tarea.subtareas || []);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [longPressTimer, setLongPressTimer] = useState(null);
+  const [isLongPressing, setIsLongPressing] = useState(false);
   const { isMobile, theme } = useResponsive();
   const { enqueueSnackbar } = useSnackbar();
   const { maskText } = useValuesVisibility();
@@ -116,6 +118,77 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
     setEstadoLocal(tarea.estado);
     setSubtareasLocal(tarea.subtareas || []);
   }, [tarea]);
+
+  // Limpiar timer al desmontar
+  useEffect(() => {
+    return () => {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+      }
+    };
+  }, [longPressTimer]);
+
+  // Funciones para manejar presión larga
+  const handleMouseDown = (e) => {
+    if (selectedTareas.length > 0) return; // No hacer nada si ya hay selecciones
+    
+    setIsLongPressing(true);
+    const timer = setTimeout(() => {
+      // Seleccionar automáticamente esta tarea
+      if (onSelectTarea) {
+        onSelectTarea(tarea._id);
+      }
+    }, 500); // 500ms para activar presión larga
+    
+    setLongPressTimer(timer);
+  };
+
+  const handleMouseUp = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    setIsLongPressing(false);
+  };
+
+  const handleMouseLeave = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    setIsLongPressing(false);
+  };
+
+  // Funciones para touch events (móvil)
+  const handleTouchStart = (e) => {
+    if (selectedTareas.length > 0) return;
+    
+    setIsLongPressing(true);
+    const timer = setTimeout(() => {
+      // Seleccionar automáticamente esta tarea
+      if (onSelectTarea) {
+        onSelectTarea(tarea._id);
+      }
+    }, 500);
+    
+    setLongPressTimer(timer);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    setIsLongPressing(false);
+  };
+
+  const handleTouchCancel = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    setIsLongPressing(false);
+  };
 
   const handleSubtareaToggle = async (subtareaId, completada) => {
     if (isUpdating) return;
@@ -354,6 +427,32 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
     }
   };
 
+  // Función para manejar click normal (no presión larga)
+  const handleRowClick = (e) => {
+    // Si estamos en modo selección múltiple, solo manejar selección
+    if (isMultiSelectMode) {
+      e.stopPropagation();
+      if (onSelectTarea) {
+        onSelectTarea(tarea._id);
+      }
+      return;
+    }
+    
+    // Si hay tareas seleccionadas, manejar como selección múltiple
+    if (selectedTareas.length > 0) {
+      e.stopPropagation();
+      if (onSelectTarea) {
+        onSelectTarea(tarea._id);
+      }
+      return;
+    }
+    
+    // Solo hacer toggle del colapse si no hay selecciones activas
+    if (!longPressTimer && !isLongPressing && selectedTareas.length === 0) {
+      setOpen(!open);
+    }
+  };
+
   return (
     <>
       <TableRow 
@@ -365,7 +464,13 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
           },
           position: 'relative',
           height: '38px',
-          bgcolor: 'background.paper',
+          bgcolor: isLongPressing ? 'action.selected' : (selectedTareas.includes(tarea._id) ? 'action.selected' : 'background.paper'),
+          transition: 'background-color 0.2s ease',
+          ...(selectedTareas.length > 0 && {
+            border: '1px solid',
+            borderColor: selectedTareas.includes(tarea._id) ? 'primary.main' : 'transparent',
+            borderRadius: 1
+          }),
           '&::before': {
             content: '""',
             position: 'absolute',
@@ -374,20 +479,43 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
             bottom: 0,
             width: 4,
             backgroundColor: getEstadoColor(estadoLocal, 'TAREA')
-          }
+          },
+          ...(isLongPressing && {
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(25, 118, 210, 0.1)',
+              border: '2px solid',
+              borderColor: 'primary.main',
+              borderRadius: 1,
+              pointerEvents: 'none'
+            }
+          })
         }}
-        onClick={() => setOpen(!open)}
+        onClick={handleRowClick}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
       >
         <TableCell sx={{ py: 0.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 0.5 : 1 }}>
             {/* Checkbox de selección múltiple */}
-            {isMultiSelectMode && (
+            {selectedTareas.length > 0 && (
               <Checkbox
                 checked={selectedTareas.includes(tarea._id)}
                 onChange={(e) => {
                   e.stopPropagation();
                   onSelectTarea(tarea._id);
                 }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
                 size="small"
                 sx={{
                   padding: 0.25,
@@ -401,6 +529,10 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
             
             <IconButton
               size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpen(!open);
+              }}
               sx={{
                 p: isMobile ? 0.125 : 0.25,
                 transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -630,7 +762,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
   );
 };
 
-const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea }) => {
+const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea, onActivateMultiSelect }) => {
   const { isMobile, theme } = useResponsive();
   const { maskText } = useValuesVisibility();
 
@@ -724,6 +856,7 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
                     isMultiSelectMode={isMultiSelectMode}
                     selectedTareas={selectedTareas}
                     onSelectTarea={onSelectTarea}
+                    onActivateMultiSelect={onActivateMultiSelect}
                   />
                 ))}
               </TableBody>

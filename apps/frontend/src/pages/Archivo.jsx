@@ -8,6 +8,7 @@ import {
   Checkbox,
   Typography,
   Chip,
+  Fab,
 } from '@mui/material';
 import useResponsive from '../hooks/useResponsive';
 import {
@@ -22,8 +23,10 @@ import {
   VisibilityOff as HideValuesIcon,
   AccessTimeOutlined as TimeIcon,
   Delete as DeleteIcon,
+  CheckBoxOutlined as MultiSelectIcon,
 } from '@mui/icons-material';
 import { Toolbar } from '../navigation';
+import { SystemButtons } from '../components/common/SystemButtons';
 import TareasTable from '../components/proyectos/TareasTable';
 import TareaForm from '../components/proyectos/TareaForm';
 import clienteAxios from '../config/axios';
@@ -61,8 +64,49 @@ export function Archivo() {
 
   useEffect(() => {
     setTitle('Archivo de Tareas');
-    setActions([]);
-  }, [setTitle, setActions]);
+    
+    // Solo mostrar iconos en desktop
+    if (!isMobile) {
+      const actions = [];
+      
+      if (!isMultiSelectMode) {
+        // Icono para activar selección múltiple usando componente modular
+        actions.push({
+          component: (
+            <SystemButtons.MultiSelectButton 
+              onActivate={handleActivateMultiSelect}
+            />
+          ),
+          onClick: handleActivateMultiSelect
+        });
+      } else {
+        // Opciones cuando está activo el modo selección múltiple usando componentes modulares
+        actions.push({
+          component: (
+            <SystemButtons.MultiSelectDeleteButton 
+              onDelete={handleDeleteSelected}
+              selectedCount={selectedTareas.length}
+            />
+          ),
+          onClick: handleDeleteSelected
+        });
+        
+        // Botón para cancelar selección múltiple usando componente modular
+        actions.push({
+          component: (
+            <SystemButtons.MultiSelectCancelButton 
+              onCancel={handleDeactivateMultiSelect}
+            />
+          ),
+          onClick: handleDeactivateMultiSelect
+        });
+      }
+      
+      setActions(actions);
+    } else {
+      setActions([]);
+    }
+  }, [setTitle, setActions, isMobile, isMultiSelectMode, selectedTareas.length]);
 
   const fetchProyectos = useCallback(async () => {
     try {
@@ -208,11 +252,13 @@ export function Archivo() {
   };
 
   // Funciones para selección múltiple
-  const handleToggleMultiSelect = () => {
-    setIsMultiSelectMode(!isMultiSelectMode);
-    if (isMultiSelectMode) {
-      setSelectedTareas([]);
-    }
+  const handleActivateMultiSelect = () => {
+    setIsMultiSelectMode(true);
+  };
+
+  const handleDeactivateMultiSelect = () => {
+    setIsMultiSelectMode(false);
+    setSelectedTareas([]);
   };
 
   const handleSelectTarea = (tareaId) => {
@@ -238,68 +284,6 @@ export function Archivo() {
       <Box sx={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
         {/* Eliminar <Toolbar /> */}
 
-        {/* Barra de controles */}
-        <Box sx={{ 
-          px: isMobile ? 1 : 2, 
-          py: 1, 
-          bgcolor: 'background.paper',
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 1
-        }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {!isMultiSelectMode ? (
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={handleToggleMultiSelect}
-                startIcon={<Checkbox />}
-                sx={{ fontSize: '0.75rem' }}
-              >
-                Seleccionar múltiple
-              </Button>
-            ) : (
-              <>
-                <Checkbox
-                  checked={selectedTareas.length === tareas.length && tareas.length > 0}
-                  indeterminate={selectedTareas.length > 0 && selectedTareas.length < tareas.length}
-                  onChange={handleSelectAll}
-                  size="small"
-                />
-                <Typography variant="body2">
-                  {selectedTareas.length > 0 
-                    ? `${selectedTareas.length} de ${tareas.length} seleccionadas`
-                    : 'Seleccionar todas'
-                  }
-                </Typography>
-              </>
-            )}
-          </Box>
-          
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {isMultiSelectMode && (
-              <Button
-                variant="text"
-                size="small"
-                onClick={handleToggleMultiSelect}
-                sx={{ fontSize: '0.75rem' }}
-              >
-                Cancelar
-              </Button>
-            )}
-            {selectedTareas.length > 0 && (
-              <Chip
-                label={`${selectedTareas.length} seleccionadas`}
-                size="small"
-                color="primary"
-                variant="outlined"
-              />
-            )}
-          </Box>
-        </Box>
 
         <Box 
           sx={{ 
@@ -333,6 +317,7 @@ export function Archivo() {
             isMultiSelectMode={isMultiSelectMode}
             selectedTareas={selectedTareas}
             onSelectTarea={handleSelectTarea}
+            onActivateMultiSelect={handleActivateMultiSelect}
           />
         </Box>
 
@@ -349,6 +334,51 @@ export function Archivo() {
             proyectos={proyectos}
             onProyectosUpdate={fetchProyectos}
           />
+        )}
+
+        {/* Barra flotante minimalista para selección múltiple */}
+        {isMultiSelectMode && (
+          <Box
+            sx={{
+              position: 'fixed',
+              bottom: isMobile ? 100 : 20,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              bgcolor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 2,
+              px: 2,
+              py: 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              boxShadow: 3,
+              zIndex: 1000,
+              minWidth: 200,
+              justifyContent: 'center'
+            }}
+          >
+            <Chip
+              label={`${selectedTareas.length} seleccionadas`}
+              size="small"
+              color="primary"
+              variant="outlined"
+            />
+            
+            <IconButton
+              size="small"
+              onClick={handleDeactivateMultiSelect}
+              sx={{ 
+                color: 'text.secondary',
+                '&:hover': {
+                  backgroundColor: 'action.hover'
+                }
+              }}
+            >
+              ✕
+            </IconButton>
+          </Box>
         )}
       </Box>
     </Box>

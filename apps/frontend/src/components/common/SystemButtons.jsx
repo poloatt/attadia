@@ -1,6 +1,6 @@
 import React, { memo, useState, isValidElement } from 'react';
 import { IconButton, Tooltip, Box, Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography } from '../../utils/materialImports';
-import { Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon, Add as AddIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon, Add as AddIcon, CheckBoxOutlined as MultiSelectIcon } from '@mui/icons-material';
 import { useSidebar } from '../../context/SidebarContext';
 import { useActionHistory, ACTION_TYPES } from '../../context/ActionHistoryContext';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -633,4 +633,81 @@ export function MenuButton(props) {
       <MenuIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
     </IconButton>
   );
-} 
+}
+
+// HeaderMultiSelectButton - Botón para activar selección múltiple
+function HeaderMultiSelectButton({ onActivate, iconSx }) {
+  const btn = (
+    <Tooltip title="Selección múltiple">
+      <IconButton
+        size="small"
+        onClick={onActivate}
+        sx={{
+          color: 'white',
+          '&:hover': {
+            backgroundColor: 'rgba(255, 255, 255, 0.1)'
+          },
+          ...iconSx
+        }}
+      >
+        <MultiSelectIcon />
+      </IconButton>
+    </Tooltip>
+  );
+  btn.type.isButtonComponent = true;
+  return btn;
+}
+
+// HeaderMultiSelectDeleteButton - Botón de delete para selección múltiple
+function HeaderMultiSelectDeleteButton({ onDelete, selectedCount, iconSx }) {
+  const btn = (
+    <Tooltip title={selectedCount > 0 ? `Eliminar ${selectedCount} elemento(s)` : 'Selecciona elementos para eliminar'}>
+      <IconButton
+        size="small"
+        onClick={onDelete}
+        disabled={selectedCount === 0}
+        sx={{
+          color: selectedCount > 0 ? 'error.main' : 'text.disabled',
+          '&:hover': {
+            backgroundColor: selectedCount > 0 ? 'rgba(244, 67, 54, 0.1)' : 'transparent'
+          },
+          ...iconSx
+        }}
+      >
+        <DeleteIcon />
+      </IconButton>
+    </Tooltip>
+  );
+  btn.type.isButtonComponent = true;
+  return btn;
+}
+
+// HeaderMultiSelectCancelButton - Botón para cancelar selección múltiple
+function HeaderMultiSelectCancelButton({ onCancel, iconSx }) {
+  const btn = (
+    <Tooltip title="Cancelar selección múltiple">
+      <IconButton
+        size="small"
+        onClick={onCancel}
+        sx={{
+          color: 'white',
+          '&:hover': {
+            backgroundColor: 'rgba(255, 255, 255, 0.1)'
+          },
+          ...iconSx
+        }}
+      >
+        <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+          Cancelar
+        </Typography>
+      </IconButton>
+    </Tooltip>
+  );
+  btn.type.isButtonComponent = true;
+  return btn;
+}
+
+// Exportar los nuevos componentes
+SystemButtons.MultiSelectButton = HeaderMultiSelectButton;
+SystemButtons.MultiSelectDeleteButton = HeaderMultiSelectDeleteButton;
+SystemButtons.MultiSelectCancelButton = HeaderMultiSelectCancelButton; 

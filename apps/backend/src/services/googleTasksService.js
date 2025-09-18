@@ -10,7 +10,19 @@ class GoogleTasksService {
       `${config.backendUrl}/api/google-tasks/callback`
     );
     
-    this.tasks = google.tasks({ version: 'v1', auth: this.oauth2Client });
+    this.tasks = google.tasks({ 
+      version: 'v1', 
+      auth: this.oauth2Client,
+      // Configuración para mejores prácticas de Google APIs
+      params: {
+        quotaUser: 'attadia-app'
+      }
+    });
+    
+    // Rate limiting y retry configuration
+    this.rateLimitDelay = 100; // ms entre requests
+    this.maxRetries = 3;
+    this.retryDelay = 1000; // ms
   }
 
   /**
@@ -31,14 +43,114 @@ class GoogleTasksService {
   }
 
   /**
+   * Ejecuta una operación con retry automático siguiendo las mejores prácticas de Google
+   */
+  async executeWithRetry(operation, context = '') {
+    let lastError;
+    
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        // Rate limiting
+        if (attempt > 1) {
+          await this.delay(this.rateLimitDelay * attempt);
+        }
+        
+        const result = await operation();
+        return result;
+      } catch (error) {
+        lastError = error;
+        
+        // Verificar si es un error que vale la pena reintentar
+        if (this.shouldRetry(error, attempt)) {
+          console.warn(`⚠️ Intento ${attempt}/${this.maxRetries} falló para ${context}:`, error.message);
+          await this.delay(this.retryDelay * attempt);
+          continue;
+        } else {
+          // Error no recuperable, fallar inmediatamente
+          throw error;
+        }
+      }
+    }
+    
+    throw lastError;
+  }
+
+  /**
+   * Determina si un error debe ser reintentado
+   */
+  shouldRetry(error, attempt) {
+    if (attempt >= this.maxRetries) return false;
+    
+    const retryableErrors = [
+      'rateLimitExceeded',
+      'quotaExceeded', 
+      'userRateLimitExceeded',
+      'internalError',
+      'backendError',
+      'timeout'
+    ];
+    
+    const errorCode = error.code || error.status || '';
+    const errorMessage = error.message || '';
+    
+    return retryableErrors.some(retryableError => 
+      errorCode.includes(retryableError) || 
+      errorMessage.includes(retryableError)
+    );
+  }
+
+  /**
+   * Delay utility
+   */
+  delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Optimiza operaciones en lote para reducir llamadas a la API
+   */
+  async batchOperation(operations, batchSize = 10) {
+    const results = [];
+    
+    for (let i = 0; i < operations.length; i += batchSize) {
+      const batch = operations.slice(i, i + batchSize);
+      
+      // Ejecutar operaciones en paralelo dentro del lote
+      const batchPromises = batch.map(async (operation, index) => {
+        try {
+          // Pequeño delay entre operaciones para evitar rate limiting
+          await this.delay(this.rateLimitDelay * (index + 1));
+          return await operation();
+        } catch (error) {
+          console.error(`Error en operación ${i + index + 1}:`, error);
+          return { error: error.message };
+        }
+      });
+      
+      const batchResults = await Promise.allSettled(batchPromises);
+      results.push(...batchResults);
+      
+      // Delay entre lotes para evitar rate limiting
+      if (i + batchSize < operations.length) {
+        await this.delay(this.rateLimitDelay * batchSize);
+      }
+    }
+    
+    return results;
+  }
+
+  /**
    * Obtiene o crea la lista de tareas por defecto en Google Tasks
    */
   async getOrCreateDefaultTaskList(userId) {
     await this.setUserCredentials(userId);
 
     try {
-      // Primero intentar obtener las listas existentes
-      const response = await this.tasks.tasklists.list();
+      // Primero intentar obtener las listas existentes con retry
+      const response = await this.executeWithRetry(
+        () => this.tasks.tasklists.list(),
+        'obtener listas de tareas'
+      );
       const taskLists = response.data.items || [];
 
       // Buscar una lista llamada "Attadia Tasks" o usar la primera disponible
@@ -50,12 +162,15 @@ class GoogleTasksService {
       }
 
       if (!targetList) {
-        // Si no hay listas, crear una nueva
-        const createResponse = await this.tasks.tasklists.insert({
-          requestBody: {
-            title: 'Attadia Tasks'
-          }
-        });
+        // Si no hay listas, crear una nueva con retry
+        const createResponse = await this.executeWithRetry(
+          () => this.tasks.tasklists.insert({
+            requestBody: {
+              title: 'Attadia Tasks'
+            }
+          }),
+          'crear lista de tareas'
+        );
         targetList = createResponse.data;
       }
 
@@ -67,7 +182,19 @@ class GoogleTasksService {
       return targetList;
     } catch (error) {
       console.error('Error al obtener/crear lista de tareas:', error);
-      throw new Error('No se pudo acceder a Google Tasks');
+      
+      // Manejo específico de errores de Google APIs
+      if (error.code === 403) {
+        throw new Error('Permisos insuficientes para acceder a Google Tasks. Verifica que la aplicación tenga los permisos necesarios.');
+      } else if (error.code === 401) {
+        throw new Error('Token de acceso inválido. Por favor, reconecta tu cuenta de Google.');
+      } else if (error.code === 429) {
+        throw new Error('Límite de solicitudes excedido. Intenta nuevamente en unos minutos.');
+      } else if (error.code >= 500) {
+        throw new Error('Error temporal del servidor de Google. Intenta nuevamente más tarde.');
+      } else {
+        throw new Error(`Error al acceder a Google Tasks: ${error.message}`);
+      }
     }
   }
 
@@ -82,30 +209,21 @@ class GoogleTasksService {
 
     await this.setUserCredentials(userId);
     
-    // Determinar la TaskList correcta basada en el proyecto
-    let taskList;
-    if (tarea.proyecto && tarea.proyecto.googleTasksSync?.googleTaskListId) {
-      // Usar la TaskList asociada al proyecto
-      try {
-        const response = await this.tasks.tasklists.get({
-          tasklist: tarea.proyecto.googleTasksSync.googleTaskListId
-        });
-        taskList = response.data;
-      } catch (error) {
-        console.warn(`⚠️  TaskList del proyecto no encontrada, usando default`);
-        taskList = await this.getOrCreateDefaultTaskList(userId);
-      }
-    } else {
-      // Usar TaskList por defecto
-      taskList = await this.getOrCreateDefaultTaskList(userId);
-    }
+    // Siempre usar la TaskList por defecto para evitar confusión
+    // Los proyectos de Attadia se mapean conceptualmente, no estructuralmente
+    const taskList = await this.getOrCreateDefaultTaskList(userId);
 
     try {
       // Usar el método del modelo para obtener el formato de Google Tasks
       const googleTaskData = tarea.toGoogleTaskFormat();
       
-      // Asegurar que notes tenga el formato correcto
+      // Asegurar que notes tenga el formato correcto con información del proyecto
       googleTaskData.notes = this.buildTaskNotes(tarea);
+      
+      // Agregar información del proyecto en el título si existe
+      if (tarea.proyecto && tarea.proyecto.nombre) {
+        googleTaskData.title = `[${tarea.proyecto.nombre}] ${googleTaskData.title}`;
+      }
       
       // Eliminar campos que Google Tasks maneja automáticamente en creación
       if (!tarea.googleTasksSync?.googleTaskId) {
@@ -126,18 +244,26 @@ class GoogleTasksService {
       }
       
       if (tarea.googleTasksSync.googleTaskId) {
-        // Actualizar tarea existente
-        googleTask = await this.tasks.tasks.update({
-          tasklist: taskList.id,
-          task: tarea.googleTasksSync.googleTaskId,
-          requestBody: googleTaskData
-        });
+        // Actualizar tarea existente con retry
+        googleTask = await this.executeWithRetry(
+          () => this.tasks.tasks.update({
+            tasklist: taskList.id,
+            task: tarea.googleTasksSync.googleTaskId,
+            requestBody: googleTaskData,
+            fields: 'id,title,status,updated' // Solo campos necesarios
+          }),
+          `actualizar tarea ${tarea.titulo}`
+        );
       } else {
-        // Crear nueva tarea
-        googleTask = await this.tasks.tasks.insert({
-          tasklist: taskList.id,
-          requestBody: googleTaskData
-        });
+        // Crear nueva tarea con retry
+        googleTask = await this.executeWithRetry(
+          () => this.tasks.tasks.insert({
+            tasklist: taskList.id,
+            requestBody: googleTaskData,
+            fields: 'id,title,status,updated' // Solo campos necesarios
+          }),
+          `crear tarea ${tarea.titulo}`
+        );
 
         // Actualizar el documento local con el ID de Google
         await Tareas.findByIdAndUpdate(tareaId, {
@@ -176,34 +302,30 @@ class GoogleTasksService {
    * Sincroniza subtareas como tareas hijas en Google Tasks
    */
   async syncSubtasksToGoogle(subtareas, taskListId, parentTaskId, userId) {
-    for (const subtarea of subtareas) {
-      try {
+    try {
+      for (const [index, subtarea] of subtareas.entries()) {
         const subtaskData = {
-          title: `└ ${subtarea.titulo}`, // Prefijo visual para identificar subtareas
+          title: subtarea.titulo,
           status: subtarea.completada ? 'completed' : 'needsAction',
-          parent: parentTaskId
+          parent: parentTaskId,
+          position: String(index).padStart(20, '0') // Mantener orden
         };
 
-        if (subtarea.googleTaskId) {
-          // Actualizar subtarea existente
-          await this.tasks.tasks.update({
+        // Crear la subtarea en Google Tasks con retry
+        const googleSubtask = await this.executeWithRetry(
+          () => this.tasks.tasks.insert({
             tasklist: taskListId,
-            task: subtarea.googleTaskId,
-            requestBody: subtaskData
-          });
-        } else {
-          // Crear nueva subtarea
-          const googleSubtask = await this.tasks.tasks.insert({
-            tasklist: taskListId,
-            requestBody: subtaskData
-          });
+            requestBody: subtaskData,
+            fields: 'id,title,status,parent' // Solo campos necesarios
+          }),
+          `crear subtarea ${subtarea.titulo}`
+        );
 
-          // Actualizar subtarea con ID de Google (esto requeriría modificar el esquema)
-          subtarea.googleTaskId = googleSubtask.data.id;
-        }
-      } catch (error) {
-        console.error(`Error al sincronizar subtarea "${subtarea.titulo}":`, error);
+        console.log(`📥 Subtarea sincronizada a Google: "${subtarea.titulo}" (parent: ${parentTaskId})`);
       }
+    } catch (error) {
+      console.error('Error al sincronizar subtareas a Google:', error);
+      throw error;
     }
   }
 
@@ -215,11 +337,16 @@ class GoogleTasksService {
     const taskList = await this.getOrCreateDefaultTaskList(userId);
 
     try {
-      const response = await this.tasks.tasks.list({
-        tasklist: taskList.id,
-        showCompleted: true,
-        showHidden: true
-      });
+      const response = await this.executeWithRetry(
+        () => this.tasks.tasks.list({
+          tasklist: taskList.id,
+          showCompleted: true,
+          showHidden: true,
+          maxResults: 100, // Limitar resultados para mejor performance
+          fields: 'items(id,title,notes,status,updated,due,parent,position)' // Solo campos necesarios
+        }),
+        'obtener tareas de Google'
+      );
 
       const googleTasks = response.data.items || [];
       const syncResults = {
@@ -297,32 +424,40 @@ class GoogleTasksService {
                 syncResults.errors.push(`${googleTask.title}: Tarea padre no encontrada`);
               }
             } else {
-              // Es una tarea principal, buscar o crear proyecto correspondiente a la TaskList
+              // Es una tarea principal, extraer información del proyecto del título si existe
               const { Proyectos } = await import('../models/index.js');
               
-              // Buscar proyecto que corresponda a esta TaskList
-              let proyecto = await Proyectos.findOne({ 
-                usuario: userId,
-                'googleTasksSync.googleTaskListId': taskList.id
-              });
+              let tituloLimpio = googleTask.title;
+              let proyecto = null;
               
-              // Si no existe, buscar un proyecto por defecto o crear uno
-              if (!proyecto) {
-                proyecto = await Proyectos.findOne({ usuario: userId });
+              // Extraer proyecto del título si tiene formato [Proyecto] Tarea
+              const proyectoMatch = googleTask.title.match(/^\[([^\]]+)\]\s*(.+)$/);
+              if (proyectoMatch) {
+                const nombreProyecto = proyectoMatch[1];
+                tituloLimpio = proyectoMatch[2];
                 
-                // Si encontramos un proyecto, vincularlo a esta TaskList
-                if (proyecto) {
-                  if (!proyecto.googleTasksSync) proyecto.googleTasksSync = {};
-                  proyecto.googleTasksSync.enabled = true;
-                  proyecto.googleTasksSync.googleTaskListId = taskList.id;
-                  proyecto.googleTasksSync.syncStatus = 'synced';
+                // Buscar o crear proyecto
+                proyecto = await Proyectos.findOne({ 
+                  usuario: userId, 
+                  nombre: nombreProyecto 
+                });
+                
+                if (!proyecto) {
+                  proyecto = new Proyectos({
+                    nombre: nombreProyecto,
+                    usuario: userId,
+                    descripcion: `Proyecto creado automáticamente desde Google Tasks`
+                  });
                   await proyecto.save();
-                  console.log(`🔗 Vinculado proyecto "${proyecto.nombre}" con TaskList "${taskList.title}"`);
+                  console.log(`📁 Creado proyecto automáticamente: "${nombreProyecto}"`);
                 }
+              } else {
+                // Buscar un proyecto por defecto
+                proyecto = await Proyectos.findOne({ usuario: userId });
               }
               
               const nuevaTarea = new Tareas({
-                titulo: googleTask.title,
+                titulo: tituloLimpio,
                 descripcion: googleTask.notes || '',
                 usuario: userId,
                 fechaInicio: new Date(),
@@ -334,7 +469,7 @@ class GoogleTasksService {
               nuevaTarea.updateFromGoogleTask(googleTask);
               nuevaTarea.googleTasksSync.googleTaskListId = taskList.id;
               
-              console.log(`📥 Creando nueva tarea desde Google: "${googleTask.title}" en proyecto: ${proyecto?.nombre || 'Sin proyecto'}`);
+              console.log(`📥 Creando nueva tarea desde Google: "${tituloLimpio}" en proyecto: ${proyecto?.nombre || 'Sin proyecto'}`);
               await nuevaTarea.save();
               syncResults.created++;
             }
@@ -372,6 +507,8 @@ class GoogleTasksService {
 
   /**
    * Sincroniza proyectos con Google TaskLists
+   * NOTA: Los proyectos de Attadia se mapean conceptualmente a Google Tasks,
+   * no estructuralmente. Todos los proyectos se sincronizan a la misma TaskList.
    */
   async syncProyectosWithTaskLists(userId) {
     try {
@@ -383,20 +520,11 @@ class GoogleTasksService {
       // Obtener todos los proyectos del usuario
       const proyectos = await Proyectos.find({ usuario: userId });
       
-      // Obtener todas las TaskLists de Google
-      const taskListsResponse = await this.tasks.tasklists.list();
-      const googleTaskLists = taskListsResponse.data.items || [];
+      // Obtener la TaskList por defecto
+      const taskList = await this.getOrCreateDefaultTaskList(userId);
       
-      console.log(`🔄 Sincronizando ${proyectos.length} proyectos con ${googleTaskLists.length} TaskLists de Google`);
-      
-      // Debug: mostrar TaskLists de Google
-      if (googleTaskLists.length > 0) {
-        console.log('🔍 DEBUG - TaskLists de Google:', googleTaskLists.map(list => ({
-          id: list.id,
-          title: list.title,
-          updated: list.updated
-        })));
-      }
+      console.log(`🔄 Habilitando Google Tasks para ${proyectos.length} proyectos`);
+      console.log(`📋 Usando TaskList: "${taskList.title}" (${taskList.id})`);
       
       // Habilitar Google Tasks para proyectos existentes
       for (const proyecto of proyectos) {
@@ -405,11 +533,12 @@ class GoogleTasksService {
           proyecto.googleTasksSync.enabled = true;
           proyecto.googleTasksSync.syncStatus = 'pending';
           proyecto.googleTasksSync.needsSync = true;
+          proyecto.googleTasksSync.googleTaskListId = taskList.id;
           await proyecto.save();
         }
       }
       
-      return { proyectos: proyectos.length, taskLists: googleTaskLists.length };
+      return { proyectos: proyectos.length, taskList: taskList.title };
     } catch (error) {
       console.error('Error al sincronizar proyectos con TaskLists:', error);
       throw error;
@@ -601,15 +730,18 @@ class GoogleTasksService {
       notes += `\nProyecto: ${tarea.proyecto.nombre || 'Sin nombre'}`;
     }
 
+    // Agregar información de sincronización
+    notes += `\n\n---\nSincronizado desde Attadia el ${new Date().toLocaleString()}`;
+
     return notes;
   }
 
   extractDescriptionFromNotes(notes) {
     if (!notes) return '';
     
-    // Extraer solo la descripción, antes de "Subtareas:" o "Proyecto:"
+    // Extraer solo la descripción, antes de "Subtareas:", "Proyecto:" o "---"
     const lines = notes.split('\n');
-    const endMarkers = ['Subtareas:', 'Proyecto:'];
+    const endMarkers = ['Subtareas:', 'Proyecto:', '---'];
     
     let description = '';
     for (const line of lines) {
@@ -640,32 +772,6 @@ class GoogleTasksService {
     }
   }
 
-  /**
-   * Sincroniza subtareas como tareas hijas en Google Tasks
-   */
-  async syncSubtasksToGoogle(subtareas, taskListId, parentTaskId, userId) {
-    try {
-      for (const [index, subtarea] of subtareas.entries()) {
-        const subtareaData = {
-          title: subtarea.titulo,
-          status: subtarea.completada ? 'completed' : 'needsAction',
-          parent: parentTaskId,
-          position: String(index).padStart(20, '0')
-        };
-
-        // Crear la subtarea en Google Tasks
-        const googleSubtask = await this.tasks.tasks.insert({
-          tasklist: taskListId,
-          requestBody: subtareaData
-        });
-
-        console.log(`📥 Subtarea sincronizada a Google: "${subtarea.titulo}" (parent: ${parentTaskId})`);
-      }
-    } catch (error) {
-      console.error('Error al sincronizar subtareas a Google:', error);
-      throw error;
-    }
-  }
 }
 
 export default new GoogleTasksService();

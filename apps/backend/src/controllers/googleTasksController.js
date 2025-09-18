@@ -424,6 +424,14 @@ export const manualSync = async (req, res) => {
       });
     }
 
+    // Verificar que el usuario tenga Google Tasks habilitado
+    if (!req.user.googleTasksConfig?.enabled) {
+      return res.status(400).json({
+        success: false,
+        error: 'Google Tasks no está habilitado para este usuario. Conecta tu cuenta de Google primero.'
+      });
+    }
+
     // Modo real - sincronización real
     // Pasar el usuario completo en lugar de solo el ID para evitar consultas adicionales
     const syncResults = await googleTasksService.fullSyncWithUser(req.user);
@@ -434,16 +442,32 @@ export const manualSync = async (req, res) => {
       'googleTasksConfig.lastSync': new Date()
     });
 
+    // Preparar mensaje informativo
+    let message = 'Sincronización completada correctamente';
+    if (syncResults.toGoogle?.success > 0 || syncResults.fromGoogle?.created > 0) {
+      message += '. Los proyectos de Attadia se sincronizan como tareas en Google Tasks.';
+    }
+
     res.json({ 
       success: true, 
-      message: 'Sincronización completada correctamente',
+      message,
       results: syncResults
     });
   } catch (error) {
     console.error('Error en sincronización manual:', error);
+    
+    let errorMessage = 'Error en sincronización manual';
+    if (error.message.includes('Google Tasks no está habilitado')) {
+      errorMessage = 'Google Tasks no está habilitado para este usuario';
+    } else if (error.message.includes('token') || error.message.includes('credentials')) {
+      errorMessage = 'Error de autenticación con Google. Intenta reconectar tu cuenta.';
+    } else if (error.message.includes('No se pudo acceder a Google Tasks')) {
+      errorMessage = 'No se pudo acceder a Google Tasks. Verifica tu conexión y permisos.';
+    }
+    
     res.status(500).json({ 
       success: false, 
-      error: 'Error en sincronización manual' 
+      error: errorMessage 
     });
   }
 };

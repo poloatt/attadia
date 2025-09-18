@@ -480,8 +480,8 @@ export default function Toolbar({
                     </Tooltip>
                   )}
                   
-                  {/* Botón de eliminar múltiple para /tiempo/archivo */}
-                  {currentPath === '/tiempo/archivo' && (
+                  {/* Botón de eliminar múltiple para /tiempo/archivo y /tiempo/tareas */}
+                  {(currentPath === '/tiempo/archivo' || currentPath === '/tiempo/tareas') && (
                     <Tooltip title="Eliminar seleccionadas">
                       <IconButton
                         size="small"

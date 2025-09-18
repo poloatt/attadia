@@ -6,6 +6,9 @@ import {
   IconButton,
   Tooltip,
   CircularProgress,
+  Chip,
+  Fab,
+  Typography,
 } from '@mui/material';
 import useResponsive from '../hooks/useResponsive';
 import {
@@ -17,8 +20,11 @@ import {
   Visibility as ShowValuesIcon,
   VisibilityOff as HideValuesIcon,
   AccessTimeOutlined as TimeIcon,
+  Delete as DeleteIcon,
+  CheckBoxOutlined as MultiSelectIcon,
 } from '@mui/icons-material';
 import { Toolbar } from '../navigation';
+import { SystemButtons } from '../components/common/SystemButtons';
 import TareasTable from '../components/proyectos/TareasTable';
 import TareaForm from '../components/proyectos/TareaForm';
 import GoogleTasksConfig from '../components/proyectos/GoogleTasksConfig';
@@ -36,6 +42,8 @@ export function Tareas() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTarea, setEditingTarea] = useState(null);
   const [isGoogleTasksConfigOpen, setIsGoogleTasksConfigOpen] = useState(false);
+  const [selectedTareas, setSelectedTareas] = useState([]);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   const { isMobile } = useResponsive();
   const location = useLocation();
@@ -43,10 +51,55 @@ export function Tareas() {
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
   const navigate = useNavigate();
 
+  // Funciones para selección múltiple
+  const handleDeactivateMultiSelect = () => {
+    setSelectedTareas([]);
+  };
+
+  const handleSelectTarea = (tareaId) => {
+    setSelectedTareas(prev => {
+      if (prev.includes(tareaId)) {
+        return prev.filter(id => id !== tareaId);
+      } else {
+        return [...prev, tareaId];
+      }
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedTareas.length === tareas.length) {
+      setSelectedTareas([]);
+    } else {
+      setSelectedTareas(tareas.map(tarea => tarea._id));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedTareas.length === 0) return;
+    
+    try {
+      // Eliminar todas las tareas seleccionadas usando el sistema de historial
+      await Promise.all(
+        selectedTareas.map(id => deleteWithHistory(id))
+      );
+      
+      enqueueSnackbar(`${selectedTareas.length} tarea(s) eliminada(s) exitosamente`, { variant: 'success' });
+      setSelectedTareas([]);
+    } catch (error) {
+      console.error('Error al eliminar tareas:', error);
+      enqueueSnackbar('Error al eliminar las tareas', { variant: 'error' });
+    }
+  };
+
   useEffect(() => {
     setTitle('Tareas');
-    setActions([
-      {
+    
+    // Solo mostrar iconos en desktop
+    if (!isMobile) {
+      const actions = [];
+      
+      // Botón "Nueva Tarea" siempre visible
+      actions.push({
         component: (
           <Button
             variant="contained"
@@ -61,9 +114,54 @@ export function Tareas() {
           </Button>
         ),
         onClick: () => {}
+      });
+      
+      // Si hay tareas seleccionadas, mostrar botón de delete
+      if (selectedTareas.length > 0) {
+        actions.push({
+          component: (
+            <SystemButtons.MultiSelectDeleteButton 
+              onDelete={handleDeleteSelected}
+              selectedCount={selectedTareas.length}
+            />
+          ),
+          onClick: handleDeleteSelected
+        });
+        
+        // Botón para limpiar selección
+        actions.push({
+          component: (
+            <SystemButtons.MultiSelectCancelButton 
+              onCancel={handleDeactivateMultiSelect}
+            />
+          ),
+          onClick: handleDeactivateMultiSelect
+        });
       }
-    ]);
-  }, [setTitle, setActions]);
+      
+      setActions(actions);
+    } else {
+      // En móvil, solo mostrar el botón "Nueva Tarea"
+      setActions([
+        {
+          component: (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => {
+                setEditingTarea(null);
+                setIsFormOpen(true);
+              }}
+              sx={{ borderRadius: 0 }}
+            >
+              Nueva Tarea
+            </Button>
+          ),
+          onClick: () => {}
+        }
+      ]);
+    }
+  }, [setTitle, setActions, isMobile, selectedTareas.length]);
 
   const fetchProyectosRef = useRef(null);
   const fetchProyectos = useCallback(async () => {
@@ -317,10 +415,14 @@ export function Tareas() {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onUpdateEstado={handleUpdateEstado}
-            isArchive={false}
-            showValues={showValues}
-            updateTareaWithHistory={updateWithHistory}
-          />
+              isArchive={false}
+              showValues={showValues}
+              updateWithHistory={updateWithHistory}
+              isMultiSelectMode={selectedTareas.length > 0}
+              selectedTareas={selectedTareas}
+              onSelectTarea={handleSelectTarea}
+              onActivateMultiSelect={() => {}} // Ya no necesitamos esta función
+            />
           )}
         </Box>
         {isFormOpen && (
@@ -343,6 +445,51 @@ export function Tareas() {
           open={isGoogleTasksConfigOpen}
           onClose={() => setIsGoogleTasksConfigOpen(false)}
         />
+
+        {/* Barra flotante minimalista para selección múltiple */}
+        {selectedTareas.length > 0 && (
+          <Box
+            sx={{
+              position: 'fixed',
+              bottom: isMobile ? 100 : 20,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              bgcolor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 2,
+              px: 2,
+              py: 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              boxShadow: 3,
+              zIndex: 1000,
+              minWidth: 200,
+              justifyContent: 'center'
+            }}
+          >
+            <Chip
+              label={`${selectedTareas.length} seleccionadas`}
+              size="small"
+              color="primary"
+              variant="outlined"
+            />
+            
+            <IconButton
+              size="small"
+              onClick={handleDeactivateMultiSelect}
+              sx={{ 
+                color: 'text.secondary',
+                '&:hover': {
+                  backgroundColor: 'action.hover'
+                }
+              }}
+            >
+              ✕
+            </IconButton>
+          </Box>
+        )}
       </Box>
     </Box>
   );

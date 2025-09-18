@@ -11,14 +11,21 @@ import {
   FormControlLabel,
   LinearProgress,
   IconButton,
-  Stack
+  Stack,
+  Alert,
+  Chip,
+  CircularProgress,
+  Tooltip
 } from '@mui/material';
 import {
   Google as GoogleIcon,
   Sync as SyncIcon,
   CheckCircle as CheckCircleIcon,
   Close as CloseIcon,
-  CloudSync as CloudSyncIcon
+  CloudSync as CloudSyncIcon,
+  Error as ErrorIcon,
+  Info as InfoIcon,
+  Warning as WarningIcon
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '../../config/axios';
@@ -34,6 +41,12 @@ const GoogleTasksConfig = ({ open, onClose }) => {
   });
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState({
+    current: 0,
+    total: 0,
+    message: ''
+  });
+  const [error, setError] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
@@ -156,16 +169,47 @@ const GoogleTasksConfig = ({ open, onClose }) => {
   const handleSyncNow = async () => {
     try {
       setSyncing(true);
+      setError(null);
+      setSyncProgress({ current: 0, total: 0, message: 'Iniciando sincronización...' });
+      
+      // Simular progreso para mejor UX
+      const progressInterval = setInterval(() => {
+        setSyncProgress(prev => ({
+          ...prev,
+          current: Math.min(prev.current + 1, prev.total || 10),
+          message: prev.current < 5 ? 'Sincronizando tareas hacia Google...' : 
+                   prev.current < 8 ? 'Sincronizando tareas desde Google...' :
+                   'Finalizando sincronización...'
+        }));
+      }, 500);
+      
       const response = await clienteAxios.post('/api/google-tasks/sync');
+      clearInterval(progressInterval);
       
       const { results } = response.data;
-      let message = 'Sincronización completada: ';
-      message += `${results.toGoogle.success} tareas enviadas a Google`;
-      if (results.fromGoogle) {
-        message += `, ${results.fromGoogle.created} creadas, ${results.fromGoogle.updated} actualizadas desde Google`;
+      
+      // Mostrar resultados con mejor formato
+      const successCount = (results.toGoogle?.success || 0) + (results.fromGoogle?.created || 0) + (results.fromGoogle?.updated || 0);
+      const errorCount = (results.toGoogle?.errors?.length || 0) + (results.fromGoogle?.errors?.length || 0);
+      
+      if (successCount > 0) {
+        enqueueSnackbar(
+          `✅ Sincronización exitosa: ${successCount} operaciones completadas${errorCount > 0 ? `, ${errorCount} errores` : ''}`,
+          { variant: 'success', autoHideDuration: 6000 }
+        );
       }
       
-      enqueueSnackbar(message, { variant: 'success' });
+      if (errorCount > 0) {
+        setError({
+          type: 'warning',
+          title: 'Sincronización completada con errores',
+          message: `${errorCount} operaciones fallaron. Revisa los detalles.`,
+          details: [
+            ...(results.toGoogle?.errors || []),
+            ...(results.fromGoogle?.errors || [])
+          ]
+        });
+      }
       
       await loadConfig();
       
@@ -175,12 +219,39 @@ const GoogleTasksConfig = ({ open, onClose }) => {
       
     } catch (error) {
       console.error('Error en sincronización:', error);
-      enqueueSnackbar(
-        error.response?.data?.error || 'Error en la sincronización', 
-        { variant: 'error' }
-      );
+      
+      let errorMessage = 'Error en la sincronización';
+      let errorType = 'error';
+      
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+        
+        // Clasificar errores según las mejores prácticas de Google
+        if (errorMessage.includes('Permisos insuficientes')) {
+          errorType = 'warning';
+          errorMessage += '\n\nSolución: Verifica que la aplicación tenga los permisos necesarios en tu cuenta de Google.';
+        } else if (errorMessage.includes('Token de acceso inválido')) {
+          errorType = 'error';
+          errorMessage += '\n\nSolución: Reconecta tu cuenta de Google desde la configuración.';
+        } else if (errorMessage.includes('Límite de solicitudes')) {
+          errorType = 'warning';
+          errorMessage += '\n\nSolución: Espera unos minutos antes de intentar nuevamente.';
+        } else if (errorMessage.includes('Error temporal del servidor')) {
+          errorType = 'warning';
+          errorMessage += '\n\nSolución: Intenta nuevamente en unos minutos.';
+        }
+      }
+      
+      setError({
+        type: errorType,
+        title: 'Error en sincronización',
+        message: errorMessage
+      });
+      
+      enqueueSnackbar(errorMessage, { variant: errorType, autoHideDuration: 8000 });
     } finally {
       setSyncing(false);
+      setSyncProgress({ current: 0, total: 0, message: '' });
     }
   };
 
@@ -216,6 +287,81 @@ const GoogleTasksConfig = ({ open, onClose }) => {
         {loading && <LinearProgress sx={{ mb: 2 }} />}
         
         <Stack spacing={2}>
+          {/* Información explicativa */}
+          {config.enabled && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              <Typography variant="body2">
+                <strong>ℹ️ Cómo funciona la sincronización:</strong><br/>
+                • Los proyectos de Attadia se sincronizan como tareas en Google Tasks<br/>
+                • Las tareas se marcan con el nombre del proyecto: [Proyecto] Tarea<br/>
+                • Las subtareas se mantienen como subtareas en Google Tasks<br/>
+                • Los cambios se sincronizan automáticamente en ambas direcciones
+              </Typography>
+            </Alert>
+          )}
+
+          {/* Mostrar errores */}
+          {error && (
+            <Alert 
+              severity={error.type} 
+              sx={{ mb: 2 }}
+              action={
+                <IconButton
+                  size="small"
+                  onClick={() => setError(null)}
+                  color="inherit"
+                >
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              }
+            >
+              <Typography variant="body2">
+                <strong>{error.title}</strong><br/>
+                {error.message}
+              </Typography>
+              {error.details && error.details.length > 0 && (
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Detalles:
+                  </Typography>
+                  {error.details.slice(0, 3).map((detail, index) => (
+                    <Chip 
+                      key={index}
+                      label={detail}
+                      size="small"
+                      variant="outlined"
+                      sx={{ mr: 0.5, mt: 0.5 }}
+                    />
+                  ))}
+                  {error.details.length > 3 && (
+                    <Typography variant="caption" color="text.secondary">
+                      ... y {error.details.length - 3} más
+                    </Typography>
+                  )}
+                </Box>
+              )}
+            </Alert>
+          )}
+
+          {/* Progreso de sincronización */}
+          {syncing && (
+            <Box sx={{ mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <CircularProgress size={20} sx={{ mr: 1 }} />
+                <Typography variant="body2" color="text.secondary">
+                  {syncProgress.message}
+                </Typography>
+              </Box>
+              {syncProgress.total > 0 && (
+                <LinearProgress 
+                  variant="determinate" 
+                  value={(syncProgress.current / syncProgress.total) * 100}
+                  sx={{ height: 6, borderRadius: 3 }}
+                />
+              )}
+            </Box>
+          )}
+          
           {/* Estado de conexión - Mínimo */}
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -248,16 +394,33 @@ const GoogleTasksConfig = ({ open, onClose }) => {
               </Box>
 
               {/* Botón de sync manual */}
-              <Button
-                variant="contained"
-                startIcon={syncing ? <SyncIcon className="animate-spin" /> : <SyncIcon />}
-                onClick={handleSyncNow}
-                disabled={syncing || loading}
-                size="small"
-                fullWidth
-              >
-                {syncing ? 'Sincronizando...' : 'Sync Manual'}
-              </Button>
+              <Tooltip title={syncing ? "Sincronización en progreso..." : "Sincronizar tareas con Google Tasks"}>
+                <Button
+                  variant="contained"
+                  startIcon={
+                    syncing ? (
+                      <CircularProgress size={16} color="inherit" />
+                    ) : (
+                      <SyncIcon />
+                    )
+                  }
+                  onClick={handleSyncNow}
+                  disabled={syncing || loading}
+                  size="small"
+                  fullWidth
+                  sx={{
+                    position: 'relative',
+                    overflow: 'hidden',
+                    '&:hover': {
+                      transform: syncing ? 'none' : 'translateY(-1px)',
+                      boxShadow: syncing ? 'none' : 2
+                    },
+                    transition: 'all 0.2s ease-in-out'
+                  }}
+                >
+                  {syncing ? 'Sincronizando...' : 'Sync Manual'}
+                </Button>
+              </Tooltip>
             </>
           ) : (
             <Button
