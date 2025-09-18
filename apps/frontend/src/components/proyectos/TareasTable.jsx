@@ -38,10 +38,18 @@ import TareaActions from './TareaActions';
 import { useValuesVisibility } from '../../context/ValuesVisibilityContext';
 
 const getPeriodo = (tarea, isArchive = false) => {
+  // Si no hay fecha de inicio, categorizar como "Sin Fecha"
+  if (!tarea.fechaInicio) {
+    console.log(`📅 "${tarea.titulo}" → "Sin Fecha" (no tiene fechaInicio)`);
+    return 'Sin Fecha';
+  }
+  
   const fechaInicio = new Date(tarea.fechaInicio);
   const fechaFin = tarea.fechaVencimiento ? new Date(tarea.fechaVencimiento) : null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  
+  // Debug eliminado - enfocándonos en la sincronización
 
   if (isArchive) {
     // Lógica para archivo (tareas completadas)
@@ -55,17 +63,34 @@ const getPeriodo = (tarea, isArchive = false) => {
     return 'Más Antiguo';
   } else {
     // Lógica para tareas activas (no completadas)
+    
+    // Tareas sin fecha de vencimiento que empezaron antes de hoy → van a "Hoy"
     if (!tarea.completada && fechaInicio < today && !fechaFin) {
+      return 'Hoy';
+    }
+    
+    // Tareas sin fecha de vencimiento que empezaron hoy → van a "Hoy"  
+    if (!tarea.completada && isToday(fechaInicio) && !fechaFin) {
       return 'Hoy';
     }
 
     const fechaReferencia = fechaFin || fechaInicio;
 
-    if (isToday(fechaReferencia)) return 'Hoy';
-    if (isThisWeek(fechaReferencia)) return 'Esta Semana';
-    if (isThisMonth(fechaReferencia)) return 'Este Mes';
-    if (isBefore(fechaReferencia, addMonths(new Date(), 3))) return 'Próximo Trimestre';
-    if (isThisYear(fechaReferencia)) return 'Este Año';
+    if (isToday(fechaReferencia)) {
+      return 'Hoy';
+    }
+    if (isThisWeek(fechaReferencia)) {
+      return 'Esta Semana';
+    }
+    if (isThisMonth(fechaReferencia)) {
+      return 'Este Mes';
+    }
+    if (isBefore(fechaReferencia, addMonths(new Date(), 3))) {
+      return 'Próximo Trimestre';
+    }
+    if (isThisYear(fechaReferencia)) {
+      return 'Este Año';
+    }
     return 'Más Adelante';
   }
 };
@@ -590,10 +615,31 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
   const { isMobile, theme } = useResponsive();
   const { maskText } = useValuesVisibility();
 
+  // Debug temporal para ver qué está pasando
+  console.log('🔍 DEBUG TEMPORAL - Tareas recibidas:', {
+    total: tareas.length,
+    tareas: tareas.map(t => ({
+      titulo: t.titulo,
+      completada: t.completada,
+      estado: t.estado,
+      fechaInicio: t.fechaInicio
+    })),
+    isArchive
+  });
+
   // Filtrar tareas según si es archivo o no
   const tareasAMostrar = isArchive 
     ? tareas.filter(tarea => tarea.completada) 
     : tareas.filter(tarea => !tarea.completada);
+    
+  console.log('🔍 DEBUG TEMPORAL - Después del filtro:', {
+    mostradas: tareasAMostrar.length,
+    tareas: tareasAMostrar.map(t => ({
+      titulo: t.titulo,
+      completada: t.completada,
+      estado: t.estado
+    }))
+  });
 
   // Agrupar tareas por período
   const tareasAgrupadas = tareasAMostrar.reduce((grupos, tarea) => {
@@ -609,8 +655,8 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
   });
 
   // Ordenar períodos según si es archivo o no
-  const ordenPeriodosArchivo = ['Hoy', 'Esta Semana', 'Este Mes', 'Último Trimestre', 'Último Año', 'Más Antiguo'];
-  const ordenPeriodosActivas = ['Hoy', 'Esta Semana', 'Este Mes', 'Próximo Trimestre', 'Este Año', 'Más Adelante'];
+  const ordenPeriodosArchivo = ['Hoy', 'Esta Semana', 'Este Mes', 'Último Trimestre', 'Último Año', 'Más Antiguo', 'Sin Fecha'];
+  const ordenPeriodosActivas = ['Hoy', 'Esta Semana', 'Este Mes', 'Próximo Trimestre', 'Este Año', 'Más Adelante', 'Sin Fecha'];
   
   const ordenPeriodos = isArchive ? ordenPeriodosArchivo : ordenPeriodosActivas;
   const periodosOrdenados = Object.keys(tareasAgrupadas).sort(

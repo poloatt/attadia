@@ -169,16 +169,38 @@ export function Tareas() {
       setIsGoogleTasksConfigOpen(true);
     };
 
+    // Manejar la sincronización completada de Google Tasks
+    const handleGoogleTasksSyncCompleted = (event) => {
+      console.log('🔄 Sincronización de Google Tasks completada, recargando tareas...', event.detail);
+      
+      // Recargar tareas y proyectos después de la sincronización
+      setTimeout(() => {
+        fetchTareas();
+        fetchProyectos();
+      }, 500);
+      
+      // Mostrar notificación adicional
+      const { results } = event.detail;
+      if (results.fromGoogle?.created > 0 || results.fromGoogle?.updated > 0) {
+        enqueueSnackbar(
+          `Se han sincronizado ${results.fromGoogle.created + results.fromGoogle.updated} tareas desde Google Tasks`, 
+          { variant: 'info' }
+        );
+      }
+    };
+
     window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);   
     window.addEventListener('addTask', handleAddTask);
     window.addEventListener('undoAction_tarea', handleUndoTareaAction);
     window.addEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
+    window.addEventListener('googleTasksSyncCompleted', handleGoogleTasksSyncCompleted);
 
     return () => {
       window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
       window.removeEventListener('addTask', handleAddTask);
       window.removeEventListener('undoAction_tarea', handleUndoTareaAction);    
       window.removeEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
+      window.removeEventListener('googleTasksSyncCompleted', handleGoogleTasksSyncCompleted);
     };
   }, [fetchTareas, fetchProyectos]);
 

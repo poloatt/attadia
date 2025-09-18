@@ -46,6 +46,9 @@ const GoogleTasksConfig = ({ open, onClose }) => {
     lastSync: null,
     syncDirection: 'bidirectional'
   });
+
+  // Debug del estado del config
+  console.log('🔧 Estado actual del config:', config);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -62,6 +65,8 @@ const GoogleTasksConfig = ({ open, onClose }) => {
     try {
       setLoading(true);
       const response = await clienteAxios.get('/api/google-tasks/status');
+      console.log('📊 Configuración recibida del backend:', response.data);
+      console.log('📊 Status específico:', response.data.status);
       setConfig(response.data.status);
     } catch (error) {
       console.error('Error al cargar configuración:', error);
@@ -82,34 +87,89 @@ const GoogleTasksConfig = ({ open, onClose }) => {
 
   const handleEnableGoogleTasks = async () => {
     try {
+      console.log('🔄 Iniciando conexión con Google Tasks...');
       setLoading(true);
       
-      // Obtener URL de autorización
-      const response = await clienteAxios.get('/api/google-tasks/auth-url');
+      // Obtener URL de autorización (evitar cache)
+      console.log('📡 Solicitando URL de autorización...');
+      const response = await clienteAxios.get('/api/google-tasks/auth-url', {
+        params: { _t: Date.now() },
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      console.log('✅ Respuesta del servidor:', response.data);
+
+      // Si se habilitó directamente usando sesión existente
+      if (response.data.directEnable) {
+        console.log('🎉 Google Tasks habilitado directamente');
+        enqueueSnackbar(response.data.message || 'Google Tasks conectado usando tu sesión de Google', { variant: 'success' });
+        
+        // Recargar configuración y estadísticas
+        setTimeout(() => {
+          loadConfig();
+          loadStats();
+        }, 500);
+        return;
+      }
       
-      // Abrir ventana de autorización
+      // Si necesita OAuth, abrir ventana de autorización
+      if (!response.data.authUrl) {
+        enqueueSnackbar('No se pudo generar URL de autorización', { variant: 'error' });
+        return;
+      }
+
       const authWindow = window.open(
         response.data.authUrl,
         'google-tasks-auth',
         'width=500,height=600,scrollbars=yes,resizable=yes'
       );
 
-      // Escuchar el cierre de la ventana
-      const checkClosed = setInterval(() => {
-        if (authWindow.closed) {
-          clearInterval(checkClosed);
-          // Recargar configuración después de la autorización
-          setTimeout(() => {
-            loadConfig();
-            loadStats();
-          }, 1000);
-        }
-      }, 1000);
+      if (!authWindow) {
+        enqueueSnackbar('No se pudo abrir la ventana de autorización. Verifica que no esté bloqueada por el navegador.', { variant: 'error' });
+        return;
+      }
 
       enqueueSnackbar('Completa la autorización en la ventana emergente', { variant: 'info' });
+
+      // Escuchar mensajes del popup de autorización
+      const handleAuthMessage = (event) => {
+        if (event.data && event.data.type === 'google_tasks_auth') {
+          console.log('📨 Mensaje recibido del popup:', event.data);
+          
+          if (event.data.status === 'success') {
+            enqueueSnackbar(event.data.message || 'Google Tasks conectado exitosamente', { variant: 'success' });
+            // Recargar configuración y estadísticas
+            setTimeout(() => {
+              loadConfig();
+              loadStats();
+            }, 500);
+          } else if (event.data.status === 'error') {
+            enqueueSnackbar(event.data.message || 'Error en la autorización', { variant: 'error' });
+          }
+          
+          // Limpiar el listener
+          window.removeEventListener('message', handleAuthMessage);
+          setLoading(false);
+        }
+      };
+
+      window.addEventListener('message', handleAuthMessage);
+
+      // Limpiar el listener después de 5 minutos si no se recibe respuesta
+      setTimeout(() => {
+        window.removeEventListener('message', handleAuthMessage);
+        setLoading(false);
+      }, 300000);
     } catch (error) {
       console.error('Error al habilitar Google Tasks:', error);
-      enqueueSnackbar('Error al conectar con Google Tasks', { variant: 'error' });
+      
+      // Mostrar mensaje de error más específico
+      const errorMessage = error.response?.data?.error || 
+                          error.response?.data?.message || 
+                          error.message || 
+                          'Error al conectar con Google Tasks';
+      
+      console.log('📋 Mensaje de error:', errorMessage);
+      enqueueSnackbar(errorMessage, { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -174,6 +234,11 @@ const GoogleTasksConfig = ({ open, onClose }) => {
       // Recargar estadísticas
       await loadStats();
       await loadConfig();
+      
+      // Notificar a la página de Tareas para que se actualice
+      window.dispatchEvent(new CustomEvent('googleTasksSyncCompleted', {
+        detail: { results }
+      }));
       
     } catch (error) {
       console.error('Error en sincronización:', error);

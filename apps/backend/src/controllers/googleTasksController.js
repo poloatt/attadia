@@ -7,8 +7,18 @@ let oauth2Client = null;
 let googleTasksService = null;
 
 try {
+  console.log('🔄 Intentando cargar googleapis...');
   const googleModule = await import('googleapis');
   google = googleModule.google;
+  console.log('✅ googleapis cargado exitosamente');
+  
+  console.log('🔄 Configurando OAuth2 client...');
+  console.log('🔑 Config disponible:', {
+    hasClientId: !!config.google?.clientId,
+    hasClientSecret: !!config.google?.clientSecret,
+    backendUrl: config.backendUrl,
+    clientIdStart: config.google?.clientId?.substring(0, 10) + '...'
+  });
   
   // Configurar OAuth2 client para Google Tasks
   oauth2Client = new google.auth.OAuth2(
@@ -16,35 +26,136 @@ try {
     config.google.clientSecret,
     `${config.backendUrl}/api/google-tasks/callback`
   );
+  console.log('✅ OAuth2 client configurado');
   
   // Importar servicio de Google Tasks
-  const serviceModule = await import('../services/googleTasksService.js');
-  googleTasksService = serviceModule.default;
+  try {
+    const serviceModule = await import('../services/googleTasksService.js');
+    googleTasksService = serviceModule.default;
+    console.log('✅ Google Tasks service cargado');
+  } catch (serviceError) {
+    console.warn('⚠️ Google Tasks service no disponible:', serviceError.message);
+  }
   
   console.log('✅ Google Tasks API habilitado con googleapis');
 } catch (error) {
+  console.error('❌ Error cargando googleapis:', error);
   console.warn('⚠️ googleapis no disponible, usando modo simulado para Google Tasks');
 }
 
-const isGoogleTasksEnabled = () => google !== null && oauth2Client !== null;
+const isGoogleTasksEnabled = () => {
+  const hasGoogle = google !== null && oauth2Client !== null;
+  const hasConfig = config.google?.clientId && config.google?.clientSecret;
+  console.log('🔍 Verificando Google Tasks habilitado:', { hasGoogle, hasConfig, clientId: config.google?.clientId ? 'PRESENTE' : 'AUSENTE' });
+  return hasGoogle && hasConfig;
+};
+
+/**
+ * Intenta habilitar Google Tasks para un usuario que ya tiene sesión de Google
+ */
+async function enableGoogleTasksForExistingUser(userId) {
+  const user = await Users.findById(userId);
+  if (!user?.googleId) {
+    throw new Error('Usuario no tiene sesión de Google');
+  }
+
+  console.log('🔄 Intentando habilitar Tasks con sesión existente para:', user.email);
+
+  // Si ya tiene token de Google Tasks, intentar usarlo
+  if (user.googleTasksConfig?.accessToken) {
+    console.log('✅ Usuario ya tiene token de Google Tasks, verificando validez');
+    
+    try {
+      // Configurar cliente con token existente
+      oauth2Client.setCredentials({
+        access_token: user.googleTasksConfig.accessToken,
+        refresh_token: user.googleTasksConfig.refreshToken
+      });
+
+      // Probar acceso a Google Tasks
+      const tasks = google.tasks({ version: 'v1', auth: oauth2Client });
+      await tasks.tasklists.list(); // Test call
+      
+      console.log('✅ Token existente válido, habilitando Google Tasks');
+      
+      await Users.findByIdAndUpdate(userId, {
+        'googleTasksConfig.enabled': true,
+        'googleTasksConfig.lastSync': new Date()
+      });
+
+      return { success: true, message: 'Google Tasks habilitado con token existente' };
+    } catch (error) {
+      console.log('⚠️ Token existente inválido:', error.message);
+      // Continuar para solicitar nuevos permisos
+    }
+  }
+
+  // Si no tiene token o es inválido, necesita nuevos permisos
+  throw new Error('Requiere nuevos permisos para Google Tasks');
+}
 
 /**
  * Obtiene la URL de autorización para Google Tasks
  */
 export const getAuthUrl = async (req, res) => {
   try {
+    console.log('🚀 getAuthUrl llamado - req.user:', req.user);
+    
+    // Evitar cache
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+
     if (!isGoogleTasksEnabled()) {
-      // Modo simulado - generar URL mock
-      const mockAuthUrl = `https://accounts.google.com/o/oauth2/auth?client_id=${config.google.clientId}&redirect_uri=${encodeURIComponent(`${config.backendUrl}/api/google-tasks/callback`)}&scope=${encodeURIComponent('https://www.googleapis.com/auth/tasks')}&response_type=code&access_type=offline&state=${req.user.userId}`;
+      console.log('❌ Google Tasks no habilitado');
+      const errorMessage = !google 
+        ? 'Google Tasks no está disponible. Instala googleapis: npm install googleapis'
+        : !config.google?.clientId || !config.google?.clientSecret
+        ? 'Configuración de Google OAuth incompleta. Verifica GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET en .env'
+        : 'Google Tasks no está disponible';
       
-      return res.json({ 
-        success: true, 
-        authUrl: mockAuthUrl,
-        message: 'URL de autorización generada (modo simulado)'
+      return res.status(503).json({ 
+        success: false, 
+        error: errorMessage
       });
     }
 
-    // Modo real con googleapis
+    // Obtener userId correctamente
+    const userId = req.user?.userId || req.user?.id;
+    console.log('🔑 userId extraído:', userId, 'de req.user:', req.user);
+    
+    if (!userId) {
+      console.log('❌ Usuario no autenticado');
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Usuario no autenticado' 
+      });
+    }
+
+    // Verificar si el usuario ya tiene una sesión de Google activa
+    const user = await Users.findById(userId);
+    console.log('👤 Usuario encontrado:', { googleId: user?.googleId, hasGoogleTasksToken: !!user?.googleTasksConfig?.accessToken });
+
+    if (user?.googleId) {
+      console.log('✅ Usuario ya logueado con Google, intentando habilitar Tasks directamente');
+      
+      try {
+        // Intentar habilitar Google Tasks usando el token existente o solicitando permisos adicionales
+        await enableGoogleTasksForExistingUser(userId);
+        
+        return res.json({
+          success: true,
+          message: 'Google Tasks habilitado usando sesión existente',
+          directEnable: true
+        });
+      } catch (error) {
+        console.log('⚠️ No se pudo usar sesión existente, generando nueva URL:', error.message);
+        // Si falla, continuar con el flujo OAuth normal
+      }
+    }
+
+    console.log('🔑 Generando URL OAuth para nuevos permisos');
+
     const scopes = [
       'https://www.googleapis.com/auth/tasks',
       'https://www.googleapis.com/auth/tasks.readonly'
@@ -53,9 +164,12 @@ export const getAuthUrl = async (req, res) => {
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: scopes,
-      state: (req.user?.userId || req.user?.id),
-      prompt: 'consent'
+      state: String(userId),
+      prompt: 'consent',
+      login_hint: user?.email // Sugerir la cuenta ya logueada
     });
+
+    console.log('🔗 URL generada con state:', String(userId));
 
     res.json({ 
       success: true, 
@@ -63,7 +177,7 @@ export const getAuthUrl = async (req, res) => {
       message: 'URL de autorización generada correctamente'
     });
   } catch (error) {
-    console.error('Error en getAuthUrl:', error);
+    console.error('❌ Error en getAuthUrl:', error);
     res.status(500).json({ 
       success: false, 
       error: 'Error interno del servidor' 
@@ -80,27 +194,49 @@ export const handleCallback = async (req, res) => {
     
     if (authError) {
       console.error('Error de autorización:', authError);
-      return res.redirect(`${config.frontendUrl}/tiempo/tareas?google_tasks_auth=error&message=${encodeURIComponent('Autorización denegada')}`);
+      const html = `<!DOCTYPE html><html><body><script>
+        try { window.opener && window.opener.postMessage({ type: 'google_tasks_auth', status: 'error', message: 'Autorización denegada' }, '*'); } catch (e) {}
+        window.close();
+      </script>
+      <p>Autorización denegada. Puedes cerrar esta ventana.</p></body></html>`;
+      return res.send(html);
     }
 
     if (!code) {
-      return res.redirect(`${config.frontendUrl}/tiempo/tareas?google_tasks_auth=error&message=${encodeURIComponent('Código de autorización no proporcionado')}`);
+      const html = `<!DOCTYPE html><html><body><script>
+        try { window.opener && window.opener.postMessage({ type: 'google_tasks_auth', status: 'error', message: 'Código de autorización no proporcionado' }, '*'); } catch (e) {}
+        window.close();
+      </script>
+      <p>Error: No se recibió código de autorización. Puedes cerrar esta ventana.</p></body></html>`;
+      return res.send(html);
     }
 
-    const userId = state || req.user?.userId || req.user?.id;
-    if (!userId) {
-      return res.redirect(`${config.frontendUrl}/tiempo/tareas?google_tasks_auth=error&message=${encodeURIComponent('Usuario no identificado')}`);
+    console.log('🔄 Google Tasks Callback recibido:');
+    console.log('  - code:', !!code ? 'PRESENTE' : 'AUSENTE');
+    console.log('  - state:', state);
+    console.log('  - authError:', authError);
+    console.log('  - req.user:', req.user);
+    
+    const userId = state;
+    console.log('🔍 userId final extraído:', userId);
+    
+    if (!userId || userId === 'undefined') {
+      console.error('❌ UserId inválido en callback:', userId);
+      const html = `<!DOCTYPE html><html><body><script>
+        try { window.opener && window.opener.postMessage({ type: 'google_tasks_auth', status: 'error', message: 'Usuario no identificado' }, '*'); } catch (e) {}
+        window.close();
+      </script>
+      <p>Error: Usuario no identificado. Puedes cerrar esta ventana.</p></body></html>`;
+      return res.send(html);
     }
 
     if (!isGoogleTasksEnabled()) {
-      // Modo simulado
-      await Users.findByIdAndUpdate(userId, {
-        'googleTasksConfig.enabled': true,
-        'googleTasksConfig.lastSync': new Date(),
-        'googleTasksConfig.syncDirection': 'bidirectional'
-      });
-      
-      return res.redirect(`${config.frontendUrl}/tiempo/tareas?google_tasks_auth=success&message=${encodeURIComponent('Google Tasks conectado (modo simulado)')}`);
+      const html = `<!DOCTYPE html><html><body><script>
+        try { window.opener && window.opener.postMessage({ type: 'google_tasks_auth', status: 'error', message: 'Google Tasks no disponible' }, '*'); } catch (e) {}
+        window.close();
+      </script>
+      <p>Error: Google Tasks no está disponible. Puedes cerrar esta ventana.</p></body></html>`;
+      return res.send(html);
     }
 
     // Modo real - intercambiar código por tokens
@@ -120,21 +256,33 @@ export const handleCallback = async (req, res) => {
     let syncResults = null;
     if (googleTasksService) {
       try {
-        syncResults = await googleTasksService.performBidirectionalSync(userId);
+        syncResults = await googleTasksService.fullSync(userId);
       } catch (syncError) {
         console.warn('Error en sincronización inicial:', syncError);
       }
     }
 
     const message = syncResults 
-      ? `Google Tasks conectado y sincronizado. ${syncResults.created} creadas, ${syncResults.updated} actualizadas`
+      ? `Google Tasks conectado y sincronizado. ${syncResults.toGoogle?.success || 0} enviadas, ${syncResults.fromGoogle?.created || 0} importadas`
       : 'Google Tasks conectado correctamente';
 
-    res.redirect(`${config.frontendUrl}/tiempo/tareas?google_tasks_auth=success&message=${encodeURIComponent(message)}`);
+    console.log('🎉 Conexión exitosa:', message);
+
+    const html = `<!DOCTYPE html><html><body><script>
+      try { window.opener && window.opener.postMessage({ type: 'google_tasks_auth', status: 'success', message: ${JSON.stringify(message)} }, '*'); } catch (e) {}
+      window.close();
+    </script>
+    <p>¡Google Tasks conectado exitosamente! Puedes cerrar esta ventana.</p></body></html>`;
+    return res.send(html);
 
   } catch (error) {
-    console.error('Error en callback de Google Tasks:', error);
-    res.redirect(`${config.frontendUrl}/tiempo/tareas?google_tasks_auth=error&message=${encodeURIComponent('Error al procesar autorización')}`);
+    console.error('❌ Error en callback de Google Tasks:', error);
+    const html = `<!DOCTYPE html><html><body><script>
+      try { window.opener && window.opener.postMessage({ type: 'google_tasks_auth', status: 'error', message: 'Error al procesar autorización' }, '*'); } catch (e) {}
+      window.close();
+    </script>
+    <p>Ocurrió un error al procesar la autorización. Puedes cerrar esta ventana.</p></body></html>`;
+    return res.send(html);
   }
 };
 
@@ -143,8 +291,15 @@ export const handleCallback = async (req, res) => {
  */
 export const getStatus = async (req, res) => {
   try {
-    const user = await Users.findById(req.user.userId);
-    const googleTasksConfig = user?.googleTasksConfig || {};
+    console.log('📊 req.user en getStatus:', req.user);
+    console.log('📊 req.user.userId:', req.user.userId);
+    console.log('📊 req.user.id:', req.user.id);
+    console.log('📊 req.user._id:', req.user._id);
+    
+    // El middleware de Passport devuelve el usuario completo en req.user
+    // No necesitamos hacer otra consulta a la BD
+    const googleTasksConfig = req.user?.googleTasksConfig || {};
+    console.log('📊 Google Tasks Config desde req.user:', googleTasksConfig);
 
     const status = {
       enabled: googleTasksConfig.enabled || false,
@@ -158,6 +313,7 @@ export const getStatus = async (req, res) => {
         : 'Google Tasks no conectado'
     };
 
+    console.log('📊 Status que se enviará al frontend:', status);
     res.json({ success: true, status });
   } catch (error) {
     console.error('Error al obtener estado:', error);
@@ -259,28 +415,28 @@ export const manualSync = async (req, res) => {
       return res.json({ 
         success: true, 
         message: 'Sincronización completada (modo simulado)',
-        syncResults: {
-          created: 0,
-          updated: 0,
-          deleted: 0,
-          errors: [],
+        results: {
+          toGoogle: { success: 0, errors: [] },
+          fromGoogle: { created: 0, updated: 0, errors: [] },
           mode: 'simulation'
         }
       });
     }
 
     // Modo real - sincronización real
-    const syncResults = await googleTasksService.performBidirectionalSync(req.user.userId);
+    // Pasar el usuario completo en lugar de solo el ID para evitar consultas adicionales
+    const syncResults = await googleTasksService.fullSyncWithUser(req.user);
     
     // Actualizar fecha de última sincronización
-    await Users.findByIdAndUpdate(req.user.userId, {
+    const userId = req.user._id || req.user.id;
+    await Users.findByIdAndUpdate(userId, {
       'googleTasksConfig.lastSync': new Date()
     });
 
     res.json({ 
       success: true, 
       message: 'Sincronización completada correctamente',
-      syncResults
+      results: syncResults
     });
   } catch (error) {
     console.error('Error en sincronización manual:', error);

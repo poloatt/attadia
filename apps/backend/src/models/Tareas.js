@@ -87,24 +87,127 @@ const tareaSchema = createSchema({
     type: Number,
     default: 0
   },
-  // Campos para integración con Google Tasks
+  // Campos para integración completa con Google Tasks API
   googleTasksSync: {
     enabled: {
       type: Boolean,
       default: false
     },
-    googleTaskId: String, // ID de la tarea en Google Tasks
-    googleTaskListId: String, // ID de la lista en Google Tasks
+    // Campos principales de Google Tasks
+    googleTaskId: String, // ID único de la tarea en Google Tasks
+    googleTaskListId: String, // ID de la lista en Google Tasks donde está la tarea
+    
+    // Campos de posición y jerarquía (para subtareas)
+    position: String, // Posición de la tarea en la lista (para ordenamiento)
+    parent: String, // ID de la tarea padre (si es subtarea)
+    
+    // Campos de fechas según Google Tasks
+    completed: Date, // Fecha y hora de finalización (cuando se marca como completada)
+    updated: Date, // Fecha de última modificación en Google Tasks
+    
+    // Campos de sincronización
     lastSyncDate: Date,
     syncStatus: {
       type: String,
       enum: ['pending', 'synced', 'error'],
       default: 'pending'
     },
-    syncErrors: [String] // Array de errores de sincronización
+    syncErrors: [String], // Array de errores de sincronización
+    
+    // Metadatos adicionales
+    etag: String, // ETag de Google Tasks para control de versiones
+    kind: {
+      type: String,
+      default: 'tasks#task'
+    }, // Tipo de recurso de Google Tasks
+    selfLink: String, // URL de la tarea en Google Tasks
+    
+    // Campos para manejo de conflictos
+    localVersion: {
+      type: Number,
+      default: 1
+    }, // Versión local para detectar conflictos
+    needsSync: {
+      type: Boolean,
+      default: false
+    } // Flag para marcar tareas que necesitan sincronización
   },
   ...commonFields
 });
+
+// Middleware para inicializar Google Tasks sync en tareas nuevas
+tareaSchema.pre('save', function(next) {
+  // Solo para tareas nuevas que no tienen googleTasksSync configurado
+  if (this.isNew && !this.googleTasksSync) {
+    this.googleTasksSync = {
+      enabled: false, // Se habilitará cuando el usuario active Google Tasks
+      syncStatus: 'pending',
+      needsSync: false,
+      localVersion: 1
+    };
+  }
+  
+  // Marcar para sincronización si la tarea fue modificada y tiene Google Tasks habilitado
+  if (!this.isNew && this.isModified() && this.googleTasksSync?.enabled) {
+    this.googleTasksSync.needsSync = true;
+    this.googleTasksSync.localVersion = (this.googleTasksSync.localVersion || 0) + 1;
+    this.googleTasksSync.syncStatus = 'pending';
+  }
+  
+  next();
+});
+
+// Middleware para mapear estados entre Google Tasks y nuestra app
+tareaSchema.methods.toGoogleTaskFormat = function() {
+  return {
+    id: this.googleTasksSync?.googleTaskId,
+    title: this.titulo,
+    notes: this.descripcion || '',
+    status: this.completada ? 'completed' : 'needsAction',
+    due: this.fechaVencimiento ? this.fechaVencimiento.toISOString() : null,
+    completed: this.completada && this.googleTasksSync?.completed ? this.googleTasksSync.completed.toISOString() : null,
+    parent: this.googleTasksSync?.parent || null,
+    position: this.googleTasksSync?.position || null,
+    updated: this.googleTasksSync?.updated || this.updatedAt
+  };
+};
+
+// Método para convertir subtareas a formato Google Tasks
+tareaSchema.methods.getSubtareasForGoogle = function() {
+  return this.subtareas.map((subtarea, index) => ({
+    title: subtarea.titulo,
+    status: subtarea.completada ? 'completed' : 'needsAction',
+    parent: this.googleTasksSync?.googleTaskId, // La tarea principal es el parent
+    position: String(index).padStart(20, '0') // Posición para ordenamiento
+  }));
+};
+
+// Método para actualizar desde Google Tasks
+tareaSchema.methods.updateFromGoogleTask = function(googleTask) {
+  this.titulo = googleTask.title || this.titulo;
+  this.descripcion = googleTask.notes || this.descripcion;
+  this.completada = googleTask.status === 'completed';
+  this.estado = googleTask.status === 'completed' ? 'COMPLETADA' : 'PENDIENTE';
+  
+  if (googleTask.due) {
+    this.fechaVencimiento = new Date(googleTask.due);
+  }
+  
+  // Actualizar campos de Google Tasks
+  if (!this.googleTasksSync) this.googleTasksSync = {};
+  
+  this.googleTasksSync.googleTaskId = googleTask.id;
+  this.googleTasksSync.updated = googleTask.updated ? new Date(googleTask.updated) : new Date();
+  this.googleTasksSync.completed = googleTask.completed ? new Date(googleTask.completed) : null;
+  this.googleTasksSync.parent = googleTask.parent || null;
+  this.googleTasksSync.position = googleTask.position || null;
+  this.googleTasksSync.etag = googleTask.etag || null;
+  this.googleTasksSync.selfLink = googleTask.selfLink || null;
+  this.googleTasksSync.lastSyncDate = new Date();
+  this.googleTasksSync.syncStatus = 'synced';
+  this.googleTasksSync.needsSync = false;
+  this.googleTasksSync.enabled = true;
+};
 
 // Middleware para validar fechas
 tareaSchema.pre('save', function(next) {
