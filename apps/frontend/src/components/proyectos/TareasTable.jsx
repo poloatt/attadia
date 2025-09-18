@@ -103,7 +103,7 @@ const ordenarTareas = (tareas) => {
   });
 };
 
-const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, updateTareaWithHistory }) => {
+const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea }) => {
   const [open, setOpen] = useState(false);
   const [estadoLocal, setEstadoLocal] = useState(tarea.estado);
   const [subtareasLocal, setSubtareasLocal] = useState(tarea.subtareas || []);
@@ -147,7 +147,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
 
       console.log('📝 Enviando actualización:', { subtareas: nuevasSubtareas });
       
-      const response = await updateTareaWithHistory(tarea._id, {
+      const response = await updateWithHistory(tarea._id, {
         subtareas: nuevasSubtareas
       }, tareaOriginal);
       
@@ -182,7 +182,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
       // Guardar el estado original ANTES de cualquier cambio
       const tareaOriginal = { ...tarea };
       
-      const response = await updateTareaWithHistory(tarea._id, { estado: nuevoEstado }, tareaOriginal);
+      const response = await updateWithHistory(tarea._id, { estado: nuevoEstado }, tareaOriginal);
       setEstadoLocal(nuevoEstado);
       if (onUpdateEstado) {
         onUpdateEstado(response);
@@ -265,7 +265,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
       // Guardar el estado original ANTES de cualquier cambio
       const tareaOriginal = { ...tarea };
       
-      const updated = await updateTareaWithHistory(tarea._id, { fechaInicio: nuevaFecha.toISOString(), pushCount: (tarea.pushCount || 0) + 1 }, tareaOriginal);
+      const updated = await updateWithHistory(tarea._id, { fechaInicio: nuevaFecha.toISOString(), pushCount: (tarea.pushCount || 0) + 1 }, tareaOriginal);
       if (onUpdateEstado) onUpdateEstado(updated);
       enqueueSnackbar('Fecha actualizada exitosamente', { variant: 'success' });
     } catch (error) {
@@ -285,7 +285,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
       // Guardar el estado original ANTES de cualquier cambio
       const tareaOriginal = { ...tarea };
       
-      const updated = await updateTareaWithHistory(tarea._id, { prioridad: nuevaPrioridad }, tareaOriginal);
+      const updated = await updateWithHistory(tarea._id, { prioridad: nuevaPrioridad }, tareaOriginal);
       if (onUpdateEstado) onUpdateEstado(updated);
       enqueueSnackbar('Prioridad actualizada exitosamente', { variant: 'success' });
     } catch (error) {
@@ -305,7 +305,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
       // Guardar el estado original ANTES de cualquier cambio
       const tareaOriginal = { ...tarea };
       
-      const response = await updateTareaWithHistory(tarea._id, { subtareas: nuevasSubtareas }, tareaOriginal);
+      const response = await updateWithHistory(tarea._id, { subtareas: nuevasSubtareas }, tareaOriginal);
       
       if (onUpdateEstado) {
         onUpdateEstado(response);
@@ -328,7 +328,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
       // Guardar el estado original ANTES de cualquier cambio
       const tareaOriginal = { ...tarea };
       
-      const response = await updateTareaWithHistory(tarea._id, { subtareas: nuevasSubtareas }, tareaOriginal);
+      const response = await updateWithHistory(tarea._id, { subtareas: nuevasSubtareas }, tareaOriginal);
       
       if (onUpdateEstado) {
         onUpdateEstado(response);
@@ -345,7 +345,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
       // Guardar el estado original ANTES de cualquier cambio
       const tareaOriginal = { ...tarea };
       
-      const updated = await updateTareaWithHistory(tarea._id, { estado: 'CANCELADA', completada: false }, tareaOriginal);
+      const updated = await updateWithHistory(tarea._id, { estado: 'CANCELADA', completada: false }, tareaOriginal);
       if (onUpdateEstado) onUpdateEstado(updated);
       enqueueSnackbar('Tarea cancelada exitosamente', { variant: 'success' });
     } catch (error) {
@@ -380,6 +380,25 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
       >
         <TableCell sx={{ py: 0.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 0.5 : 1 }}>
+            {/* Checkbox de selección múltiple */}
+            {isMultiSelectMode && (
+              <Checkbox
+                checked={selectedTareas.includes(tarea._id)}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  onSelectTarea(tarea._id);
+                }}
+                size="small"
+                sx={{
+                  padding: 0.25,
+                  color: 'text.secondary',
+                  '&.Mui-checked': {
+                    color: 'primary.main'
+                  }
+                }}
+              />
+            )}
+            
             <IconButton
               size="small"
               sx={{
@@ -611,7 +630,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
   );
 };
 
-const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, updateTareaWithHistory }) => {
+const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea }) => {
   const { isMobile, theme } = useResponsive();
   const { maskText } = useValuesVisibility();
 
@@ -702,7 +721,9 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
                     isArchive={isArchive}
                     showValues={showValues}
                     updateWithHistory={updateWithHistory}
-                    updateTareaWithHistory={updateTareaWithHistory}
+                    isMultiSelectMode={isMultiSelectMode}
+                    selectedTareas={selectedTareas}
+                    onSelectTarea={onSelectTarea}
                   />
                 ))}
               </TableBody>

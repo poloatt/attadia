@@ -11,6 +11,7 @@ import connectDB from './config/database/mongodb.js';
 import { initializeMonedas } from './config/initData.js';
 import MongoStore from 'connect-mongo';
 import BankSyncScheduler from './services/bankSyncScheduler.js';
+import autoSyncService from './services/autoSyncService.js';
 
 // Importar configuración según el entorno
 let config;
@@ -242,6 +243,10 @@ const startServer = async () => {
     const bankSyncScheduler = new BankSyncScheduler();
     bankSyncScheduler.start();
     console.log('Scheduler de sincronización bancaria iniciado');
+    
+    // Iniciar servicio de sincronización automática de Google Tasks
+    autoSyncService.start();
+    console.log('Servicio de sincronización automática de Google Tasks iniciado');
     
     app.listen(config.port, '0.0.0.0', () => {
       // Asegurarse de que corsOrigins sea un array antes de usar join

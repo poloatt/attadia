@@ -26,4 +26,11 @@ router.post('/sync/task/:taskId', googleTasksController.syncTask);
 router.get('/stats', googleTasksController.getStats);
 router.get('/task-lists', googleTasksController.getTaskLists);
 
+// Rutas de sincronización automática
+router.get('/auto-sync/status', googleTasksController.getAutoSyncStatus);
+router.post('/auto-sync/start', googleTasksController.startAutoSync);
+router.post('/auto-sync/stop', googleTasksController.stopAutoSync);
+router.put('/auto-sync/interval', googleTasksController.setAutoSyncInterval);
+router.post('/auto-sync/force', googleTasksController.forceAutoSync);
+
 export default router;

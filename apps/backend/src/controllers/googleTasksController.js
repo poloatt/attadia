@@ -1,5 +1,6 @@
 import { Users } from '../models/index.js';
 import config from '../config/config.js';
+import autoSyncService from '../services/autoSyncService.js';
 
 // Intentar importar googleapis de forma condicional
 let google = null;
@@ -501,6 +502,102 @@ export const getTaskLists = async (req, res) => {
     res.status(500).json({ 
       success: false, 
       error: 'Error al obtener listas de tareas' 
+    });
+  }
+};
+
+// Endpoints para sincronización automática
+export const getAutoSyncStatus = async (req, res) => {
+  try {
+    const status = autoSyncService.getStatus();
+    
+    res.json({
+      success: true,
+      autoSync: status
+    });
+  } catch (error) {
+    console.error('Error al obtener estado de sincronización automática:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error al obtener estado de sincronización automática'
+    });
+  }
+};
+
+export const startAutoSync = async (req, res) => {
+  try {
+    autoSyncService.start();
+    
+    res.json({
+      success: true,
+      message: 'Sincronización automática iniciada'
+    });
+  } catch (error) {
+    console.error('Error al iniciar sincronización automática:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error al iniciar sincronización automática'
+    });
+  }
+};
+
+export const stopAutoSync = async (req, res) => {
+  try {
+    autoSyncService.stop();
+    
+    res.json({
+      success: true,
+      message: 'Sincronización automática detenida'
+    });
+  } catch (error) {
+    console.error('Error al detener sincronización automática:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error al detener sincronización automática'
+    });
+  }
+};
+
+export const setAutoSyncInterval = async (req, res) => {
+  try {
+    const { interval } = req.body;
+    
+    if (!interval) {
+      return res.status(400).json({
+        success: false,
+        error: 'Intervalo requerido'
+      });
+    }
+
+    autoSyncService.setInterval(interval);
+    
+    res.json({
+      success: true,
+      message: 'Intervalo de sincronización actualizado',
+      interval
+    });
+  } catch (error) {
+    console.error('Error al actualizar intervalo de sincronización:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error al actualizar intervalo de sincronización'
+    });
+  }
+};
+
+export const forceAutoSync = async (req, res) => {
+  try {
+    await autoSyncService.forceSync();
+    
+    res.json({
+      success: true,
+      message: 'Sincronización forzada completada'
+    });
+  } catch (error) {
+    console.error('Error al forzar sincronización:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error al forzar sincronización'
     });
   }
 };

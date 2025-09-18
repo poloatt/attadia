@@ -88,7 +88,11 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory })
 
       console.log('📝 Enviando actualización:', { subtareas: nuevasSubtareas });
 
-      const response = await updateTareaWithHistory(tarea._id, {
+      const tareaId = tarea._id || tarea.id;
+      if (!tareaId) {
+        throw new Error('ID de tarea no encontrado');
+      }
+      const response = await updateTareaWithHistory(tareaId, {
         subtareas: nuevasSubtareas
       }, tareaOriginal);
 
@@ -146,7 +150,11 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory })
           break;
       }
 
-      const response = await updateTareaWithHistory(tarea._id, {
+      const tareaId = tarea._id || tarea.id;
+      if (!tareaId) {
+        throw new Error('ID de tarea no encontrado');
+      }
+      const response = await updateTareaWithHistory(tareaId, {
         fechaInicio: nuevaFecha.toISOString(),
         pushCount: (tarea.pushCount || 0) + 1
       }, tareaOriginal);
@@ -178,7 +186,11 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory })
       const tareaOriginal = { ...tareaLocal };
       
       const nuevaPrioridad = tarea.prioridad === 'ALTA' ? 'BAJA' : 'ALTA';
-      const updated = await updateTareaWithHistory(tarea._id, { prioridad: nuevaPrioridad }, tareaOriginal);
+      const tareaId = tarea._id || tarea.id;
+      if (!tareaId) {
+        throw new Error('ID de tarea no encontrado');
+      }
+      const updated = await updateTareaWithHistory(tareaId, { prioridad: nuevaPrioridad }, tareaOriginal);
       if (onUpdateTarea) onUpdateTarea(updated);
     } catch (error) {
       console.error('Error al actualizar prioridad:', error);
@@ -202,7 +214,11 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory })
         completada: true
       }));
 
-      const response = await updateTareaWithHistory(tarea._id, {
+      const tareaId = tarea._id || tarea.id;
+      if (!tareaId) {
+        throw new Error('ID de tarea no encontrado');
+      }
+      const response = await updateTareaWithHistory(tareaId, {
         subtareas: nuevasSubtareas
       }, tareaOriginal);
       
@@ -234,6 +250,8 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory })
       setIsUpdating(true);
       
       console.log('🔄 Reactivando tarea en ProyectosGrid');
+      console.log('🔍 Tarea recibida:', tarea);
+      console.log('🔍 Tarea ID:', tarea._id || tarea.id);
       
       // Guardar el estado original ANTES de cualquier cambio
       const tareaOriginal = { ...tareaLocal };
@@ -243,7 +261,12 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory })
         completada: false
       }));
 
-      const response = await updateTareaWithHistory(tarea._id, {
+      const tareaId = tarea._id || tarea.id;
+      if (!tareaId) {
+        throw new Error('ID de tarea no encontrado');
+      }
+
+      const response = await updateTareaWithHistory(tareaId, {
         subtareas: nuevasSubtareas
       }, tareaOriginal);
       
@@ -277,7 +300,11 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory })
       // Guardar el estado original ANTES de cualquier cambio
       const tareaOriginal = { ...tareaLocal };
       
-      const response = await updateTareaWithHistory(tarea._id, {
+      const tareaId = tarea._id || tarea.id;
+      if (!tareaId) {
+        throw new Error('ID de tarea no encontrado');
+      }
+      const response = await updateTareaWithHistory(tareaId, {
         estado: 'CANCELADA',
         completada: false
       }, tareaOriginal);

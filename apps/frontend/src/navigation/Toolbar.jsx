@@ -479,6 +479,36 @@ export default function Toolbar({
                       </IconButton>
                     </Tooltip>
                   )}
+                  
+                  {/* Botón de eliminar múltiple para /tiempo/archivo */}
+                  {currentPath === '/tiempo/archivo' && (
+                    <Tooltip title="Eliminar seleccionadas">
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          // Disparar evento para eliminar tareas seleccionadas
+                          window.dispatchEvent(new CustomEvent('deleteSelectedTasks'));
+                        }}
+                        sx={{
+                          mr: 0.5,
+                          color: 'error.main',
+                          '&:hover': {
+                            backgroundColor: 'error.main',
+                            color: 'white',
+                            transform: 'scale(1.05)',
+                          },
+                          transition: 'all 0.2s ease-in-out'
+                        }}
+                      >
+                        {React.createElement(icons.delete || (() => (
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                          </svg>
+                        )), { sx: { fontSize: 18 } })}
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                  
                   {getSmartAddButton()}
                 </Box>
               );

@@ -225,8 +225,13 @@ class GoogleTasksService {
       const syncResults = {
         created: 0,
         updated: 0,
-        errors: []
+        errors: [],
+        skipped: 0
       };
+
+      // Filtro de fecha: solo sincronizar tareas de los últimos 30 días
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
 
       console.log(`📥 Importando ${googleTasks.length} tareas de Google Tasks desde TaskList: ${taskList.title}`);
       
@@ -244,6 +249,17 @@ class GoogleTasksService {
 
       for (const googleTask of googleTasks) {
         try {
+          // Verificar si la tarea es anterior a un mes
+          const taskDate = googleTask.updated ? new Date(googleTask.updated) : 
+                         googleTask.due ? new Date(googleTask.due) : 
+                         new Date();
+          
+          if (taskDate < oneMonthAgo) {
+            console.log(`⏭️ Saltando tarea antigua: "${googleTask.title}" (${taskDate.toISOString()})`);
+            syncResults.skipped++;
+            continue;
+          }
+
           // Buscar tarea existente por Google Task ID
           let tarea = await Tareas.findOne({
             'googleTasksSync.googleTaskId': googleTask.id,
@@ -334,6 +350,7 @@ class GoogleTasksService {
         'googleTasksConfig.lastSync': new Date()
       });
 
+      console.log(`📊 Resumen de sincronización desde Google: ${syncResults.created} creadas, ${syncResults.updated} actualizadas, ${syncResults.skipped} omitidas (antiguas)`);
       return syncResults;
     } catch (error) {
       console.error('Error al sincronizar desde Google Tasks:', error);

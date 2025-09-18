@@ -319,7 +319,6 @@ export function Tareas() {
               onUpdateEstado={handleUpdateEstado}
             isArchive={false}
             showValues={showValues}
-            updateWithHistory={updateWithHistory}
             updateTareaWithHistory={updateWithHistory}
           />
           )}
