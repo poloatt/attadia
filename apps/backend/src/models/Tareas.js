@@ -87,6 +87,22 @@ const tareaSchema = createSchema({
     type: Number,
     default: 0
   },
+  // Campos para integración con Google Tasks
+  googleTasksSync: {
+    enabled: {
+      type: Boolean,
+      default: false
+    },
+    googleTaskId: String, // ID de la tarea en Google Tasks
+    googleTaskListId: String, // ID de la lista en Google Tasks
+    lastSyncDate: Date,
+    syncStatus: {
+      type: String,
+      enum: ['pending', 'synced', 'error'],
+      default: 'pending'
+    },
+    syncErrors: [String] // Array de errores de sincronización
+  },
   ...commonFields
 });
 

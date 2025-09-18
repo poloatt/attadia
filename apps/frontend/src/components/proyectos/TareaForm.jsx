@@ -30,6 +30,8 @@ import {
   PriorityHigh as PriorityIcon,
   CheckCircleOutline as CompletedIcon,
   AccountTree as ProjectIcon,
+  Google as GoogleIcon,
+  Sync as SyncIcon,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -75,11 +77,13 @@ const TareaForm = ({
     fechaFin: initialData?.fechaFin ? new Date(initialData.fechaFin) : null,
     fechaVencimiento: initialData?.fechaVencimiento ? new Date(initialData.fechaVencimiento) : null,
     proyecto: proyectoId || (initialData?.proyecto?._id || initialData?.proyecto) || null,
-    estado: initialData?.estado || 'PENDIENTE'
+    estado: initialData?.estado || 'PENDIENTE',
+    googleTasksSync: initialData?.googleTasksSync || { enabled: false }
   }));
 
   const [errors, setErrors] = useState({});
   const [newSubtarea, setNewSubtarea] = useState('');
+  const [syncingToGoogle, setSyncingToGoogle] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -308,6 +312,48 @@ const TareaForm = ({
     }
   };
 
+  const handleSyncToGoogle = async () => {
+    if (!formData._id) {
+      enqueueSnackbar('Guarda la tarea primero antes de sincronizar', { variant: 'warning' });
+      return;
+    }
+
+    try {
+      setSyncingToGoogle(true);
+      const response = await clienteAxios.post(`/api/google-tasks/sync/task/${formData._id}`);
+      
+      // Actualizar el estado local con la información de sincronización
+      setFormData(prev => ({
+        ...prev,
+        googleTasksSync: {
+          ...prev.googleTasksSync,
+          enabled: true,
+          googleTaskId: response.data.googleTask.id,
+          syncStatus: 'synced',
+          lastSyncDate: new Date()
+        }
+      }));
+
+      enqueueSnackbar('Tarea sincronizada con Google Tasks exitosamente', { variant: 'success' });
+    } catch (error) {
+      console.error('Error al sincronizar con Google Tasks:', error);
+      const errorMessage = error.response?.data?.error || 'Error al sincronizar con Google Tasks';
+      enqueueSnackbar(errorMessage, { variant: 'error' });
+    } finally {
+      setSyncingToGoogle(false);
+    }
+  };
+
+  const handleToggleGoogleSync = () => {
+    setFormData(prev => ({
+      ...prev,
+      googleTasksSync: {
+        ...prev.googleTasksSync,
+        enabled: !prev.googleTasksSync.enabled
+      }
+    }));
+  };
+
   const getEstadoColor = (estado) => {
     switch (estado) {
       case 'PENDIENTE':
@@ -424,6 +470,49 @@ const TareaForm = ({
               onChange={handleFileChange}
             />
           </Button>
+          
+          {/* Google Tasks Sync Button */}
+          {isEditing && formData._id && (
+            <Tooltip title={
+              formData.googleTasksSync?.enabled 
+                ? (formData.googleTasksSync?.googleTaskId 
+                   ? 'Sincronizado con Google Tasks' 
+                   : 'Sincronizar con Google Tasks')
+                : 'Habilitar sincronización con Google Tasks'
+            }>
+              <Button
+                variant="text"
+                startIcon={
+                  syncingToGoogle ? (
+                    <SyncIcon className="animate-spin" />
+                  ) : (
+                    <GoogleIcon 
+                      sx={{ 
+                        color: formData.googleTasksSync?.googleTaskId 
+                          ? 'success.main' 
+                          : 'text.secondary' 
+                      }} 
+                    />
+                  )
+                }
+                size="small"
+                onClick={handleSyncToGoogle}
+                disabled={syncingToGoogle}
+                sx={{ 
+                  color: formData.googleTasksSync?.googleTaskId 
+                    ? 'success.main' 
+                    : 'text.secondary',
+                  '&:hover': {
+                    color: 'primary.main',
+                    backgroundColor: 'transparent'
+                  }
+                }}
+              >
+                {syncingToGoogle ? 'Sincronizando...' : 'Google'}
+              </Button>
+            </Tooltip>
+          )}
+          
           <IconButton
             aria-label="close"
             onClick={onClose}

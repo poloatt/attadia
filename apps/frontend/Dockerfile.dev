@@ -21,15 +21,8 @@ ENV NODE_ENV=development
 ENV VITE_API_URL=http://localhost:5000
 ENV CHOKIDAR_USEPOLLING=true
 
-# Crear usuario y establecer permisos
-RUN addgroup -g 1000 appgroup && \
-    adduser -u 1000 -G appgroup -s /bin/sh -D appuser
-
-# Cambiar propietario del directorio de trabajo
-RUN chown -R appuser:appgroup /app
-
-# Cambiar al usuario no-root
-USER appuser
+# En desarrollo, ejecutar como root para simplificar
+# En producción se debería usar un usuario no-root
 
 # Exponer el puerto de Vite
 EXPOSE 5173

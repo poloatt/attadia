@@ -5,4 +5,5 @@ export { default as TareaActions } from './TareaActions';
 export { default as ProyectosStats } from './ProyectosStats';
 export { default as ProyectosGrid } from './ProyectosGrid';
 export { default as ProyectoForm } from './ProyectoForm';
-export { default as ProyectoCard } from './ProyectoCard'; 
+export { default as ProyectoCard } from './ProyectoCard';
+export { default as GoogleTasksConfig } from './GoogleTasksConfig'; 

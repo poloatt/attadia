@@ -15,7 +15,8 @@ COPY package*.json ./
 RUN npm cache clean --force && \
     rm -rf node_modules && \
     npm install --no-audit && \
-    npm install connect-mongo@5.1.0 --save
+    npm install connect-mongo@5.1.0 --save && \
+    npm install googleapis@131.0.0 --save
 
 # Variables de entorno para desarrollo
 ENV NODE_ENV=development

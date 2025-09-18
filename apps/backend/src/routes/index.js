@@ -12,6 +12,7 @@ import transaccionRecurrenteRoutes from './transaccionRecurrenteRoutes.js';
 import proyectosRoutes from './proyectosRoutes.js';
 import tareasRoutes from './tareasRoutes.js';
 import subtareasRoutes from './subtareasRoutes.js';
+import googleTasksRoutes from './googleTasksRoutes.js';
 import rutinasRoutes from './rutinasRoutes.js';
 import labsRoutes from './labsRoutes.js';
 import dietasRoutes from './dietasRoutes.js';
@@ -49,6 +50,7 @@ router.use('/bankconnections', bankConnectionRoutes);
 router.use('/proyectos', proyectosRoutes);
 router.use('/tareas', tareasRoutes);
 router.use('/subtareas', subtareasRoutes);
+router.use('/google-tasks', googleTasksRoutes);
 
 // Rutas de salud y bienestar
 router.use('/rutinas', rutinasRoutes);

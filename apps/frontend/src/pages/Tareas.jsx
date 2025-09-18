@@ -21,6 +21,7 @@ import {
 import { Toolbar } from '../navigation';
 import TareasTable from '../components/proyectos/TareasTable';
 import TareaForm from '../components/proyectos/TareaForm';
+import GoogleTasksConfig from '../components/proyectos/GoogleTasksConfig';
 import clienteAxios from '../config/axios';
 import { useSnackbar } from 'notistack';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -34,6 +35,7 @@ export function Tareas() {
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTarea, setEditingTarea] = useState(null);
+  const [isGoogleTasksConfigOpen, setIsGoogleTasksConfigOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   const { isMobile } = useResponsive();
   const location = useLocation();
@@ -163,14 +165,20 @@ export function Tareas() {
       }, 500);
     };
 
-    window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
+    const handleOpenGoogleTasksConfig = () => {
+      setIsGoogleTasksConfigOpen(true);
+    };
+
+    window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);   
     window.addEventListener('addTask', handleAddTask);
     window.addEventListener('undoAction_tarea', handleUndoTareaAction);
-    
+    window.addEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
+
     return () => {
       window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
       window.removeEventListener('addTask', handleAddTask);
-      window.removeEventListener('undoAction_tarea', handleUndoTareaAction);
+      window.removeEventListener('undoAction_tarea', handleUndoTareaAction);    
+      window.removeEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
     };
   }, [fetchTareas, fetchProyectos]);
 
@@ -308,6 +316,12 @@ export function Tareas() {
             deleteWithHistory={deleteWithHistory}
           />
         )}
+        
+        {/* Modal de configuración de Google Tasks */}
+        <GoogleTasksConfig
+          open={isGoogleTasksConfigOpen}
+          onClose={() => setIsGoogleTasksConfigOpen(false)}
+        />
       </Box>
     </Box>
   );

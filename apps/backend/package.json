@@ -33,6 +33,7 @@
     "express-session": "^1.18.1",
     "express-validator": "^7.2.1",
     "faker": "^6.6.6",
+    "googleapis": "^131.0.0",
     "jsonwebtoken": "^9.0.2",
     "mercadopago": "^2.8.0",
     "mongoose": "^8.0.0",

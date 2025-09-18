@@ -91,6 +91,22 @@ const userSchema = new mongoose.Schema({
   },
   telefono: String,
   googleId: String,
+  // Configuración de Google Tasks
+  googleTasksConfig: {
+    enabled: {
+      type: Boolean,
+      default: false
+    },
+    accessToken: String,
+    refreshToken: String,
+    lastSync: Date,
+    defaultTaskList: String, // ID de la lista de tareas por defecto en Google
+    syncDirection: {
+      type: String,
+      enum: ['bidirectional', 'to_google', 'from_google'],
+      default: 'bidirectional'
+    }
+  },
   // --- NUEVO: país del usuario (código ISO 2 letras, ej: 'AR', 'BR', 'US') ---
   pais: {
     type: String,
