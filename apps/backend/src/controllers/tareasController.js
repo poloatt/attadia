@@ -170,9 +170,23 @@ class TareasController extends BaseController {
       });
 
       await tarea.save();
-      await tarea.populate('proyecto');
+      await tarea.populate([
+        { 
+          path: 'proyecto',
+          select: 'nombre descripcion estado googleTasksSync'
+        },
+        {
+          path: 'subtareas',
+          select: 'titulo descripcion estado completada orden'
+        }
+      ]);
       
-      res.status(201).json(tarea);
+      res.status(201).json({
+        ...tarea.toObject(),
+        isGoogleTasksEnabled: tarea.googleTasksSync?.enabled || false,
+        googleTasksSyncStatus: tarea.googleTasksSync?.syncStatus || null,
+        googleTaskId: tarea.googleTasksSync?.googleTaskId || null
+      });
     } catch (error) {
       console.error('Error al crear tarea:', error);
       if (error.name === 'ValidationError') {
@@ -429,7 +443,16 @@ class TareasController extends BaseController {
         page: parseInt(page),
         limit: parseInt(limit),
         sort,
-        populate: ['proyecto', 'subtareas'],
+        populate: [
+          { 
+            path: 'proyecto',
+            select: 'nombre descripcion estado googleTasksSync'
+          },
+          {
+            path: 'subtareas',
+            select: 'titulo descripcion estado completada orden'
+          }
+        ],
         lean: true,
         leanWithId: true
       };
@@ -442,7 +465,11 @@ class TareasController extends BaseController {
         proyecto: doc.proyecto ? {
           ...doc.proyecto,
           id: doc.proyecto._id.toString()
-        } : null
+        } : null,
+        // Incluir información de sincronización con Google Tasks
+        isGoogleTasksEnabled: doc.googleTasksSync?.enabled || false,
+        googleTasksSyncStatus: doc.googleTasksSync?.syncStatus || null,
+        googleTaskId: doc.googleTasksSync?.googleTaskId || null
       }));
 
       res.json({

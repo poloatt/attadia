@@ -9,7 +9,7 @@ class ProyectosController extends BaseController {
         {
           path: 'tareas',
           model: 'Tareas',
-          select: 'titulo descripcion estado fechaInicio fechaFin fechaVencimiento prioridad completada subtareas',
+          select: 'titulo descripcion estado fechaInicio fechaFin fechaVencimiento prioridad completada subtareas googleTasksSync',
           populate: {
             path: 'subtareas',
             model: 'Subtareas',
@@ -63,11 +63,14 @@ class ProyectosController extends BaseController {
 
       // Para cada proyecto, sincronizar sus tareas
       for (const proyecto of proyectos) {
-        // Encontrar todas las tareas asociadas a este proyecto
+        // Encontrar todas las tareas asociadas a este proyecto (incluyendo campos de Google Tasks)
         const tareasDelProyecto = await Tareas.find({
           proyecto: proyecto._id,
           usuario: req.user.id
-        }).lean();
+        })
+        .select('titulo descripcion estado fechaInicio fechaFin fechaVencimiento prioridad completada subtareas googleTasksSync')
+        .populate('subtareas', 'titulo completada orden')
+        .lean();
 
         // Actualizar el array de tareas en el proyecto
         await this.Model.findByIdAndUpdate(
@@ -230,7 +233,16 @@ class ProyectosController extends BaseController {
         usuario: req.user.id
       });
       const savedItem = await item.save();
-      res.status(201).json(savedItem);
+      
+      // Incluir información de Google Tasks en la respuesta
+      const response = {
+        ...savedItem.toObject(),
+        isGoogleTasksEnabled: savedItem.googleTasksSync?.enabled || false,
+        googleTaskListId: savedItem.googleTasksSync?.googleTaskListId || null,
+        googleTasksSyncStatus: savedItem.googleTasksSync?.syncStatus || null
+      };
+      
+      res.status(201).json(response);
     } catch (error) {
       console.error('Error en create:', error);
       res.status(400).json({ error: error.message });

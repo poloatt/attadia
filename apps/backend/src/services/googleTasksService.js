@@ -75,13 +75,30 @@ class GoogleTasksService {
    * Sincroniza una tarea de Attadia hacia Google Tasks
    */
   async syncTaskToGoogle(tareaId, userId) {
-    const tarea = await Tareas.findById(tareaId);
+    const tarea = await Tareas.findById(tareaId).populate('proyecto');
     if (!tarea) {
       throw new Error('Tarea no encontrada');
     }
 
     await this.setUserCredentials(userId);
-    const taskList = await this.getOrCreateDefaultTaskList(userId);
+    
+    // Determinar la TaskList correcta basada en el proyecto
+    let taskList;
+    if (tarea.proyecto && tarea.proyecto.googleTasksSync?.googleTaskListId) {
+      // Usar la TaskList asociada al proyecto
+      try {
+        const response = await this.tasks.tasklists.get({
+          tasklist: tarea.proyecto.googleTasksSync.googleTaskListId
+        });
+        taskList = response.data;
+      } catch (error) {
+        console.warn(`⚠️  TaskList del proyecto no encontrada, usando default`);
+        taskList = await this.getOrCreateDefaultTaskList(userId);
+      }
+    } else {
+      // Usar TaskList por defecto
+      taskList = await this.getOrCreateDefaultTaskList(userId);
+    }
 
     try {
       // Usar el método del modelo para obtener el formato de Google Tasks
@@ -211,6 +228,20 @@ class GoogleTasksService {
         errors: []
       };
 
+      console.log(`📥 Importando ${googleTasks.length} tareas de Google Tasks desde TaskList: ${taskList.title}`);
+      
+      // Debug: mostrar las primeras 3 tareas para verificar su estructura
+      if (googleTasks.length > 0) {
+        console.log('🔍 DEBUG - Primeras tareas de Google:', googleTasks.slice(0, 3).map(task => ({
+          id: task.id,
+          title: task.title,
+          notes: task.notes,
+          status: task.status,
+          parent: task.parent,
+          hasParent: !!task.parent
+        })));
+      }
+
       for (const googleTask of googleTasks) {
         try {
           // Buscar tarea existente por Google Task ID
@@ -250,9 +281,29 @@ class GoogleTasksService {
                 syncResults.errors.push(`${googleTask.title}: Tarea padre no encontrada`);
               }
             } else {
-              // Es una tarea principal, crear nueva tarea
+              // Es una tarea principal, buscar o crear proyecto correspondiente a la TaskList
               const { Proyectos } = await import('../models/index.js');
-              const proyectoDefault = await Proyectos.findOne({ usuario: userId });
+              
+              // Buscar proyecto que corresponda a esta TaskList
+              let proyecto = await Proyectos.findOne({ 
+                usuario: userId,
+                'googleTasksSync.googleTaskListId': taskList.id
+              });
+              
+              // Si no existe, buscar un proyecto por defecto o crear uno
+              if (!proyecto) {
+                proyecto = await Proyectos.findOne({ usuario: userId });
+                
+                // Si encontramos un proyecto, vincularlo a esta TaskList
+                if (proyecto) {
+                  if (!proyecto.googleTasksSync) proyecto.googleTasksSync = {};
+                  proyecto.googleTasksSync.enabled = true;
+                  proyecto.googleTasksSync.googleTaskListId = taskList.id;
+                  proyecto.googleTasksSync.syncStatus = 'synced';
+                  await proyecto.save();
+                  console.log(`🔗 Vinculado proyecto "${proyecto.nombre}" con TaskList "${taskList.title}"`);
+                }
+              }
               
               const nuevaTarea = new Tareas({
                 titulo: googleTask.title,
@@ -260,14 +311,14 @@ class GoogleTasksService {
                 usuario: userId,
                 fechaInicio: new Date(),
                 prioridad: 'BAJA',
-                proyecto: proyectoDefault?._id || null
+                proyecto: proyecto?._id || null
               });
               
               // Usar el método del modelo para configurar Google Tasks
               nuevaTarea.updateFromGoogleTask(googleTask);
               nuevaTarea.googleTasksSync.googleTaskListId = taskList.id;
               
-              console.log(`📥 Creando nueva tarea desde Google: "${googleTask.title}" en proyecto: ${proyectoDefault?.nombre || 'Sin proyecto'}`);
+              console.log(`📥 Creando nueva tarea desde Google: "${googleTask.title}" en proyecto: ${proyecto?.nombre || 'Sin proyecto'}`);
               await nuevaTarea.save();
               syncResults.created++;
             }
@@ -300,6 +351,52 @@ class GoogleTasksService {
     }
 
     return this.fullSyncWithUser(user);
+  }
+
+  /**
+   * Sincroniza proyectos con Google TaskLists
+   */
+  async syncProyectosWithTaskLists(userId) {
+    try {
+      // IMPORTANTE: Configurar credenciales OAuth antes de hacer llamadas a la API
+      await this.setUserCredentials(userId);
+      
+      const { Proyectos } = await import('../models/index.js');
+      
+      // Obtener todos los proyectos del usuario
+      const proyectos = await Proyectos.find({ usuario: userId });
+      
+      // Obtener todas las TaskLists de Google
+      const taskListsResponse = await this.tasks.tasklists.list();
+      const googleTaskLists = taskListsResponse.data.items || [];
+      
+      console.log(`🔄 Sincronizando ${proyectos.length} proyectos con ${googleTaskLists.length} TaskLists de Google`);
+      
+      // Debug: mostrar TaskLists de Google
+      if (googleTaskLists.length > 0) {
+        console.log('🔍 DEBUG - TaskLists de Google:', googleTaskLists.map(list => ({
+          id: list.id,
+          title: list.title,
+          updated: list.updated
+        })));
+      }
+      
+      // Habilitar Google Tasks para proyectos existentes
+      for (const proyecto of proyectos) {
+        if (!proyecto.googleTasksSync?.enabled) {
+          if (!proyecto.googleTasksSync) proyecto.googleTasksSync = {};
+          proyecto.googleTasksSync.enabled = true;
+          proyecto.googleTasksSync.syncStatus = 'pending';
+          proyecto.googleTasksSync.needsSync = true;
+          await proyecto.save();
+        }
+      }
+      
+      return { proyectos: proyectos.length, taskLists: googleTaskLists.length };
+    } catch (error) {
+      console.error('Error al sincronizar proyectos con TaskLists:', error);
+      throw error;
+    }
   }
 
   /**
@@ -348,10 +445,13 @@ class GoogleTasksService {
     };
 
     try {
-      // 1. Primero, habilitar Google Tasks para todas las tareas existentes del usuario
+      // 1. Sincronizar proyectos con Google TaskLists
+      await this.syncProyectosWithTaskLists(userId);
+
+      // 2. Habilitar Google Tasks para todas las tareas existentes del usuario
       await this.enableGoogleTasksForAllUserTasks(userId);
       
-      // 2. Sincronizar tareas locales pendientes hacia Google
+      // 3. Sincronizar tareas locales pendientes hacia Google
       const tareasLocales = await Tareas.find({
         usuario: userId,
         $or: [
