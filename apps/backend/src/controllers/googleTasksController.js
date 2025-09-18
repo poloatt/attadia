@@ -53,7 +53,7 @@ export const getAuthUrl = async (req, res) => {
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: scopes,
-      state: req.user.userId,
+      state: (req.user?.userId || req.user?.id),
       prompt: 'consent'
     });
 
@@ -87,7 +87,7 @@ export const handleCallback = async (req, res) => {
       return res.redirect(`${config.frontendUrl}/tiempo/tareas?google_tasks_auth=error&message=${encodeURIComponent('Código de autorización no proporcionado')}`);
     }
 
-    const userId = state;
+    const userId = state || req.user?.userId || req.user?.id;
     if (!userId) {
       return res.redirect(`${config.frontendUrl}/tiempo/tareas?google_tasks_auth=error&message=${encodeURIComponent('Usuario no identificado')}`);
     }
