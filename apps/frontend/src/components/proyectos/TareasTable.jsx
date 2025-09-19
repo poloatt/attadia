@@ -110,6 +110,9 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
   const [isUpdating, setIsUpdating] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState(null);
   const [isLongPressing, setIsLongPressing] = useState(false);
+  const [lastTapTime, setLastTapTime] = useState(0);
+  const [longPressActivated, setLongPressActivated] = useState(false);
+  const [showMultiSelectHint, setShowMultiSelectHint] = useState(false);
   const { isMobile, theme } = useResponsive();
   const { enqueueSnackbar } = useSnackbar();
   const { maskText } = useValuesVisibility();
@@ -128,17 +131,41 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
     };
   }, [longPressTimer]);
 
-  // Funciones para manejar presión larga
+  // Escuchar evento para mostrar pista visual de selección múltiple
+  useEffect(() => {
+    const handleShowMultiSelectHint = (event) => {
+      const { active } = event.detail;
+      setShowMultiSelectHint(active);
+      
+      // Auto-ocultar después de 5 segundos
+      if (active) {
+        setTimeout(() => {
+          setShowMultiSelectHint(false);
+        }, 5000);
+      }
+    };
+
+    window.addEventListener('showMultiSelectHint', handleShowMultiSelectHint);
+    
+    return () => {
+      window.removeEventListener('showMultiSelectHint', handleShowMultiSelectHint);
+    };
+  }, []);
+
+  // Funciones para manejar presión larga - Desktop (Mouse)
   const handleMouseDown = (e) => {
-    if (selectedTareas.length > 0) return; // No hacer nada si ya hay selecciones
+    // Solo en desktop, usar presión larga para activar selección múltiple
+    if (isMobile || selectedTareas.length > 0) return;
     
     setIsLongPressing(true);
+    setLongPressActivated(false);
     const timer = setTimeout(() => {
       // Seleccionar automáticamente esta tarea
       if (onSelectTarea) {
         onSelectTarea(tarea._id);
+        setLongPressActivated(true); // Marcar que la presión larga se activó
       }
-    }, 500); // 500ms para activar presión larga
+    }, 500); // 500ms para activar presión larga en desktop
     
     setLongPressTimer(timer);
   };
@@ -149,6 +176,10 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
       setLongPressTimer(null);
     }
     setIsLongPressing(false);
+    // Solo resetear longPressActivated después de un delay para evitar conflictos
+    setTimeout(() => {
+      setLongPressActivated(false);
+    }, 100);
   };
 
   const handleMouseLeave = () => {
@@ -157,19 +188,26 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
       setLongPressTimer(null);
     }
     setIsLongPressing(false);
+    // Solo resetear longPressActivated después de un delay para evitar conflictos
+    setTimeout(() => {
+      setLongPressActivated(false);
+    }, 100);
   };
 
-  // Funciones para touch events (móvil)
+  // Funciones para touch events - Mobile/Tablet
   const handleTouchStart = (e) => {
-    if (selectedTareas.length > 0) return;
+    // Solo en mobile/tablet, usar presión larga para activar selección múltiple
+    if (!isMobile || selectedTareas.length > 0) return;
     
     setIsLongPressing(true);
+    setLongPressActivated(false);
     const timer = setTimeout(() => {
       // Seleccionar automáticamente esta tarea
       if (onSelectTarea) {
         onSelectTarea(tarea._id);
+        setLongPressActivated(true); // Marcar que la presión larga se activó
       }
-    }, 500);
+    }, 300); // 300ms para activar presión larga en mobile (más rápido)
     
     setLongPressTimer(timer);
   };
@@ -180,6 +218,10 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
       setLongPressTimer(null);
     }
     setIsLongPressing(false);
+    // Solo resetear longPressActivated después de un delay para evitar conflictos
+    setTimeout(() => {
+      setLongPressActivated(false);
+    }, 100);
   };
 
   const handleTouchCancel = () => {
@@ -188,6 +230,10 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
       setLongPressTimer(null);
     }
     setIsLongPressing(false);
+    // Solo resetear longPressActivated después de un delay para evitar conflictos
+    setTimeout(() => {
+      setLongPressActivated(false);
+    }, 100);
   };
 
   const handleSubtareaToggle = async (subtareaId, completada) => {
@@ -447,9 +493,36 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
       return;
     }
     
-    // Solo hacer toggle del colapse si no hay selecciones activas
+    // Si la presión larga ya se activó, no hacer nada más
+    if (longPressActivated) {
+      e.stopPropagation();
+      return;
+    }
+    
+    // Solo hacer toggle del colapse si no hay selecciones activas y no fue presión larga
     if (!longPressTimer && !isLongPressing && selectedTareas.length === 0) {
-      setOpen(!open);
+      // En mobile, verificar si es doble tap para activar selección múltiple
+      if (isMobile) {
+        const currentTime = Date.now();
+        const timeDiff = currentTime - lastTapTime;
+        
+        if (timeDiff < 300 && timeDiff > 0) {
+          // Doble tap detectado - activar selección múltiple
+          e.stopPropagation();
+          if (onSelectTarea) {
+            onSelectTarea(tarea._id);
+          }
+          setLastTapTime(0); // Reset para evitar triple tap
+          return;
+        } else {
+          // Tap simple - hacer toggle del colapse
+          setLastTapTime(currentTime);
+          setOpen(!open);
+        }
+      } else {
+        // En desktop, hacer toggle del colapse normalmente
+        setOpen(!open);
+      }
     }
   };
 
@@ -470,6 +543,17 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
             border: '1px solid',
             borderColor: selectedTareas.includes(tarea._id) ? 'primary.main' : 'transparent',
             borderRadius: 1
+          }),
+          // Indicación visual cuando el modo selección múltiple está activo
+          ...(showMultiSelectHint && selectedTareas.length === 0 && {
+            border: '2px dashed',
+            borderColor: 'primary.main',
+            borderRadius: 1,
+            backgroundColor: 'rgba(25, 118, 210, 0.05)',
+            '&:hover': {
+              backgroundColor: 'rgba(25, 118, 210, 0.1)',
+              borderColor: 'primary.dark'
+            }
           }),
           '&::before': {
             content: '""',
@@ -516,13 +600,19 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
                 }}
                 onMouseDown={(e) => e.stopPropagation()}
                 onTouchStart={(e) => e.stopPropagation()}
-                size="small"
+                size={isMobile ? "medium" : "small"}
                 sx={{
-                  padding: 0.25,
+                  padding: isMobile ? 0.5 : 0.25,
                   color: 'text.secondary',
                   '&.Mui-checked': {
                     color: 'primary.main'
-                  }
+                  },
+                  // En mobile, hacer el checkbox más visible
+                  ...(isMobile && {
+                    '& .MuiSvgIcon-root': {
+                      fontSize: '1.5rem'
+                    }
+                  })
                 }}
               />
             )}

@@ -206,7 +206,20 @@ export function useCRUDWithHistory(entityType, apiService) {
   // Eliminar con historial
   const deleteWithHistory = useCallback(async (id) => {
     try {
-      const originalData = await apiService.getById(id);
+      // Primero intentar obtener los datos originales
+      let originalData;
+      try {
+        originalData = await apiService.getById(id);
+      } catch (getError) {
+        // Si no se puede obtener la entidad (404), significa que ya fue eliminada
+        if (getError.response?.status === 404) {
+          console.warn(`La ${entityType} con ID ${id} ya fue eliminada, saltando eliminación`);
+          return { success: true, message: 'Ya eliminada' };
+        }
+        throw getError;
+      }
+
+      // Intentar eliminar
       const result = await apiService.delete(id);
       
       // Limpiar datos para propiedades antes de guardar en historial
@@ -234,6 +247,11 @@ export function useCRUDWithHistory(entityType, apiService) {
       addDeleteAction(cleanOriginalData, `Eliminar ${entityType} "${originalData.nombre || originalData.titulo || originalData._id}"`);
       return result;
     } catch (error) {
+      // Si el error es 404, significa que la entidad ya fue eliminada
+      if (error.response?.status === 404) {
+        console.warn(`La ${entityType} con ID ${id} ya fue eliminada`);
+        return { success: true, message: 'Ya eliminada' };
+      }
       console.error(`Error deleting ${entityType}:`, error);
       throw error;
     }

@@ -36,6 +36,9 @@ export default function Toolbar({
   const location = useLocation();
   const navigate = useNavigate();
   
+  // Estado para controlar el botón de delete
+  const [hasSelectedItems, setHasSelectedItems] = useState(false);
+  
   // Refs para medir el espacio de las secciones
   const leftSectionRef = useRef(null);
   const rightSectionRef = useRef(null);
@@ -124,6 +127,20 @@ export default function Toolbar({
     // Reordenar usando utilidad centralizada
     return reorderModulesWithActiveFirst(todosLosModulos, moduloActivo);
   })() : [];
+
+  // Efecto para escuchar cambios en la selección de elementos
+  useEffect(() => {
+    const handleSelectionChange = (event) => {
+      const { hasSelections } = event.detail;
+      setHasSelectedItems(hasSelections);
+    };
+
+    window.addEventListener('selectionChanged', handleSelectionChange);
+    
+    return () => {
+      window.removeEventListener('selectionChanged', handleSelectionChange);
+    };
+  }, []);
 
   // Efecto para medir el ancho de las secciones
   useEffect(() => {
@@ -480,31 +497,66 @@ export default function Toolbar({
                     </Tooltip>
                   )}
                   
-                  {/* Botón de eliminar múltiple para /tiempo/archivo y /tiempo/tareas */}
+                  {/* Botón de eliminar múltiple para /tiempo/archivo y /tiempo/tareas - solo cuando hay selecciones */}
                   {(currentPath === '/tiempo/archivo' || currentPath === '/tiempo/tareas') && (
-                    <Tooltip title="Eliminar seleccionadas">
+                    <Tooltip title={hasSelectedItems ? "Eliminar seleccionadas" : "Selecciona elementos para eliminar"}>
                       <IconButton
                         size="small"
                         onClick={() => {
-                          // Disparar evento para eliminar tareas seleccionadas
-                          window.dispatchEvent(new CustomEvent('deleteSelectedTasks'));
+                          if (hasSelectedItems) {
+                            // Disparar evento para eliminar tareas seleccionadas
+                            window.dispatchEvent(new CustomEvent('deleteSelectedTasks'));
+                          }
                         }}
                         sx={{
                           mr: 0.5,
                           color: 'error.main',
+                          opacity: hasSelectedItems ? 1 : 0.3,
                           '&:hover': {
-                            backgroundColor: 'error.main',
-                            color: 'white',
-                            transform: 'scale(1.05)',
+                            backgroundColor: hasSelectedItems ? 'error.main' : 'transparent',
+                            color: hasSelectedItems ? 'white' : 'error.main',
+                            transform: hasSelectedItems ? 'scale(1.05)' : 'none',
+                            opacity: 1,
                           },
                           transition: 'all 0.2s ease-in-out'
                         }}
+                        disabled={!hasSelectedItems}
                       >
                         {React.createElement(icons.delete || (() => (
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
                           </svg>
                         )), { sx: { fontSize: 18 } })}
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                  
+                  {/* Botón de selección múltiple para /tiempo/archivo y /tiempo/tareas - solo desktop */}
+                  {(currentPath === '/tiempo/archivo' || currentPath === '/tiempo/tareas') && (
+                    <Tooltip title="Activar selección múltiple">
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          console.log('🔍 Botón de selección múltiple clickeado');
+                          // Disparar evento para activar selección múltiple
+                          window.dispatchEvent(new CustomEvent('activateMultiSelect'));
+                        }}
+                        sx={{
+                          mr: 0.5,
+                          color: hasSelectedItems ? 'primary.main' : 'text.secondary',
+                          opacity: hasSelectedItems ? 1 : 0.7,
+                          '&:hover': {
+                            backgroundColor: hasSelectedItems ? 'primary.main' : 'action.hover',
+                            color: hasSelectedItems ? 'white' : 'primary.main',
+                            transform: 'scale(1.05)',
+                            opacity: 1,
+                          },
+                          transition: 'all 0.2s ease-in-out'
+                        }}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        </svg>
                       </IconButton>
                     </Tooltip>
                   )}

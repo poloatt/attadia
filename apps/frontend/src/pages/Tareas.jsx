@@ -54,15 +54,24 @@ export function Tareas() {
   // Funciones para selección múltiple
   const handleDeactivateMultiSelect = () => {
     setSelectedTareas([]);
+    // Comunicar que no hay selecciones
+    window.dispatchEvent(new CustomEvent('selectionChanged', { 
+      detail: { hasSelections: false } 
+    }));
   };
 
   const handleSelectTarea = (tareaId) => {
     setSelectedTareas(prev => {
-      if (prev.includes(tareaId)) {
-        return prev.filter(id => id !== tareaId);
-      } else {
-        return [...prev, tareaId];
-      }
+      const newSelection = prev.includes(tareaId) 
+        ? prev.filter(id => id !== tareaId)
+        : [...prev, tareaId];
+      
+      // Comunicar el estado de selección al Toolbar
+      window.dispatchEvent(new CustomEvent('selectionChanged', { 
+        detail: { hasSelections: newSelection.length > 0 } 
+      }));
+      
+      return newSelection;
     });
   };
 
@@ -79,12 +88,45 @@ export function Tareas() {
     
     try {
       // Eliminar todas las tareas seleccionadas usando el sistema de historial
-      await Promise.all(
+      const results = await Promise.allSettled(
         selectedTareas.map(id => deleteWithHistory(id))
       );
       
-      enqueueSnackbar(`${selectedTareas.length} tarea(s) eliminada(s) exitosamente`, { variant: 'success' });
+      // Contar eliminaciones exitosas y fallidas
+      const successful = results.filter(result => 
+        result.status === 'fulfilled' && 
+        (result.value?.success !== false)
+      ).length;
+      
+      const failed = results.length - successful;
+      
+      // Actualizar estado local inmediatamente removiendo las tareas eliminadas
+      setTareas(prevTareas => 
+        prevTareas.filter(tarea => !selectedTareas.includes(tarea._id))
+      );
+      
+      // Mostrar mensaje apropiado
+      if (successful > 0) {
+        enqueueSnackbar(`${successful} tarea(s) eliminada(s) exitosamente`, { variant: 'success' });
+      }
+      
+      if (failed > 0) {
+        enqueueSnackbar(`${failed} tarea(s) ya fueron eliminadas`, { variant: 'warning' });
+      }
+      
       setSelectedTareas([]);
+      
+      // Comunicar que no hay selecciones
+      window.dispatchEvent(new CustomEvent('selectionChanged', { 
+        detail: { hasSelections: false } 
+      }));
+      
+      // Recargar datos después de un breve delay para asegurar sincronización
+      setTimeout(() => {
+        fetchTareas();
+        fetchProyectos();
+      }, 500);
+      
     } catch (error) {
       console.error('Error al eliminar tareas:', error);
       enqueueSnackbar('Error al eliminar las tareas', { variant: 'error' });
@@ -287,11 +329,36 @@ export function Tareas() {
       }
     };
 
+    // Manejar eliminación de tareas seleccionadas desde el Toolbar
+    const handleDeleteSelectedTasks = () => {
+      handleDeleteSelected();
+    };
+
+    // Manejar activación de selección múltiple desde el Toolbar
+    const handleActivateMultiSelect = () => {
+      console.log('🔍 Evento activateMultiSelect recibido en Tareas.jsx');
+      // Si no hay selecciones, activar modo selección múltiple
+      if (selectedTareas.length === 0) {
+        // Mostrar mensaje informativo
+        enqueueSnackbar('Modo selección múltiple activado. Haz presión larga o doble tap en las tareas para seleccionarlas.', { 
+          variant: 'info',
+          autoHideDuration: 3000
+        });
+        
+        // Disparar evento para activar visualmente la selección múltiple
+        window.dispatchEvent(new CustomEvent('showMultiSelectHint', { 
+          detail: { active: true } 
+        }));
+      }
+    };
+
     window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);   
     window.addEventListener('addTask', handleAddTask);
     window.addEventListener('undoAction_tarea', handleUndoTareaAction);
     window.addEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
     window.addEventListener('googleTasksSyncCompleted', handleGoogleTasksSyncCompleted);
+    window.addEventListener('deleteSelectedTasks', handleDeleteSelectedTasks);
+    window.addEventListener('activateMultiSelect', handleActivateMultiSelect);
 
     return () => {
       window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
@@ -299,8 +366,10 @@ export function Tareas() {
       window.removeEventListener('undoAction_tarea', handleUndoTareaAction);    
       window.removeEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
       window.removeEventListener('googleTasksSyncCompleted', handleGoogleTasksSyncCompleted);
+      window.removeEventListener('deleteSelectedTasks', handleDeleteSelectedTasks);
+      window.removeEventListener('activateMultiSelect', handleActivateMultiSelect);
     };
-  }, [fetchTareas, fetchProyectos]);
+  }, [fetchTareas, fetchProyectos, handleDeleteSelected]);
 
   const handleFormSubmit = async (formData) => {
     try {
@@ -356,8 +425,19 @@ export function Tareas() {
   const handleDelete = useCallback(async (id) => {
     try {
       // Usar la función con historial automático
-      await deleteWithHistory(id);
-      enqueueSnackbar('Tarea eliminada exitosamente', { variant: 'success' });
+      const result = await deleteWithHistory(id);
+      
+      // Si la tarea ya fue eliminada, mostrar mensaje apropiado
+      if (result?.message === 'Ya eliminada') {
+        enqueueSnackbar('La tarea ya fue eliminada', { variant: 'warning' });
+        // Actualizar estado local removiendo la tarea
+        setTareas(prevTareas => prevTareas.filter(tarea => tarea._id !== id));
+      } else {
+        enqueueSnackbar('Tarea eliminada exitosamente', { variant: 'success' });
+        // Actualizar estado local removiendo la tarea
+        setTareas(prevTareas => prevTareas.filter(tarea => tarea._id !== id));
+      }
+      
       // Los datos se recargan automáticamente después de la acción
     } catch (error) {
       console.error('Error al eliminar tarea:', error);
@@ -457,30 +537,42 @@ export function Tareas() {
               bgcolor: 'background.paper',
               border: '1px solid',
               borderColor: 'divider',
-              borderRadius: 2,
-              px: 2,
-              py: 1,
+              borderRadius: isMobile ? 3 : 2,
+              px: isMobile ? 3 : 2,
+              py: isMobile ? 1.5 : 1,
               display: 'flex',
               alignItems: 'center',
-              gap: 1,
+              gap: isMobile ? 2 : 1,
               boxShadow: 3,
               zIndex: 1000,
-              minWidth: 200,
-              justifyContent: 'center'
+              minWidth: isMobile ? 250 : 200,
+              justifyContent: 'center',
+              // En mobile, hacer la barra más grande y fácil de tocar
+              ...(isMobile && {
+                '& *': {
+                  fontSize: '1rem !important'
+                }
+              })
             }}
           >
             <Chip
               label={`${selectedTareas.length} seleccionadas`}
-              size="small"
+              size={isMobile ? "medium" : "small"}
               color="primary"
               variant="outlined"
+              sx={{
+                fontSize: isMobile ? '0.9rem' : '0.75rem',
+                height: isMobile ? 32 : 24
+              }}
             />
             
             <IconButton
-              size="small"
+              size={isMobile ? "medium" : "small"}
               onClick={handleDeactivateMultiSelect}
               sx={{ 
                 color: 'text.secondary',
+                fontSize: isMobile ? '1.2rem' : '1rem',
+                padding: isMobile ? 1 : 0.5,
                 '&:hover': {
                   backgroundColor: 'action.hover'
                 }

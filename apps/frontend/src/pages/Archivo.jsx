@@ -69,18 +69,8 @@ export function Archivo() {
     if (!isMobile) {
       const actions = [];
       
-      if (!isMultiSelectMode) {
-        // Icono para activar selección múltiple usando componente modular
-        actions.push({
-          component: (
-            <SystemButtons.MultiSelectButton 
-              onActivate={handleActivateMultiSelect}
-            />
-          ),
-          onClick: handleActivateMultiSelect
-        });
-      } else {
-        // Opciones cuando está activo el modo selección múltiple usando componentes modulares
+      // Si hay tareas seleccionadas, mostrar botón de delete
+      if (selectedTareas.length > 0) {
         actions.push({
           component: (
             <SystemButtons.MultiSelectDeleteButton 
@@ -91,7 +81,7 @@ export function Archivo() {
           onClick: handleDeleteSelected
         });
         
-        // Botón para cancelar selección múltiple usando componente modular
+        // Botón para limpiar selección
         actions.push({
           component: (
             <SystemButtons.MultiSelectCancelButton 
@@ -106,7 +96,7 @@ export function Archivo() {
     } else {
       setActions([]);
     }
-  }, [setTitle, setActions, isMobile, isMultiSelectMode, selectedTareas.length]);
+  }, [setTitle, setActions, isMobile, selectedTareas.length]);
 
   const fetchProyectos = useCallback(async () => {
     try {
@@ -149,6 +139,12 @@ export function Archivo() {
       enqueueSnackbar(`${selectedTareas.length} tarea(s) eliminada(s) exitosamente`, { variant: 'success' });
       setSelectedTareas([]);
       setIsMultiSelectMode(false);
+      
+      // Comunicar que no hay selecciones
+      window.dispatchEvent(new CustomEvent('selectionChanged', { 
+        detail: { hasSelections: false } 
+      }));
+      
       await fetchTareas();
     } catch (error) {
       console.error('Error al eliminar tareas:', error);
@@ -172,14 +168,34 @@ export function Archivo() {
       handleDeleteSelected();
     };
 
+    // Manejar activación de selección múltiple desde el Toolbar
+    const handleActivateMultiSelect = () => {
+      console.log('🔍 Evento activateMultiSelect recibido en Archivo.jsx');
+      // Si no hay selecciones, activar modo selección múltiple
+      if (selectedTareas.length === 0) {
+        // Mostrar mensaje informativo
+        enqueueSnackbar('Modo selección múltiple activado. Haz presión larga o doble tap en las tareas para seleccionarlas.', { 
+          variant: 'info',
+          autoHideDuration: 3000
+        });
+        
+        // Disparar evento para activar visualmente la selección múltiple
+        window.dispatchEvent(new CustomEvent('showMultiSelectHint', { 
+          detail: { active: true } 
+        }));
+      }
+    };
+
     window.addEventListener('addProject', handleAddProject);
     window.addEventListener('addTask', handleAddTask);
     window.addEventListener('deleteSelectedTasks', handleDeleteSelectedTasks);
+    window.addEventListener('activateMultiSelect', handleActivateMultiSelect);
     
     return () => {
       window.removeEventListener('addProject', handleAddProject);
       window.removeEventListener('addTask', handleAddTask);
       window.removeEventListener('deleteSelectedTasks', handleDeleteSelectedTasks);
+      window.removeEventListener('activateMultiSelect', handleActivateMultiSelect);
     };
   }, [navigate, handleDeleteSelected]);
 
@@ -259,15 +275,24 @@ export function Archivo() {
   const handleDeactivateMultiSelect = () => {
     setIsMultiSelectMode(false);
     setSelectedTareas([]);
+    // Comunicar que no hay selecciones
+    window.dispatchEvent(new CustomEvent('selectionChanged', { 
+      detail: { hasSelections: false } 
+    }));
   };
 
   const handleSelectTarea = (tareaId) => {
     setSelectedTareas(prev => {
-      if (prev.includes(tareaId)) {
-        return prev.filter(id => id !== tareaId);
-      } else {
-        return [...prev, tareaId];
-      }
+      const newSelection = prev.includes(tareaId) 
+        ? prev.filter(id => id !== tareaId)
+        : [...prev, tareaId];
+      
+      // Comunicar el estado de selección al Toolbar
+      window.dispatchEvent(new CustomEvent('selectionChanged', { 
+        detail: { hasSelections: newSelection.length > 0 } 
+      }));
+      
+      return newSelection;
     });
   };
 
@@ -314,10 +339,10 @@ export function Archivo() {
             isArchive={true}
             showValues={showValues}
             updateWithHistory={updateWithHistory}
-            isMultiSelectMode={isMultiSelectMode}
+            isMultiSelectMode={selectedTareas.length > 0}
             selectedTareas={selectedTareas}
             onSelectTarea={handleSelectTarea}
-            onActivateMultiSelect={handleActivateMultiSelect}
+            onActivateMultiSelect={() => {}} // Ya no necesitamos esta función
           />
         </Box>
 
@@ -337,7 +362,7 @@ export function Archivo() {
         )}
 
         {/* Barra flotante minimalista para selección múltiple */}
-        {isMultiSelectMode && (
+        {selectedTareas.length > 0 && (
           <Box
             sx={{
               position: 'fixed',
@@ -347,30 +372,42 @@ export function Archivo() {
               bgcolor: 'background.paper',
               border: '1px solid',
               borderColor: 'divider',
-              borderRadius: 2,
-              px: 2,
-              py: 1,
+              borderRadius: isMobile ? 3 : 2,
+              px: isMobile ? 3 : 2,
+              py: isMobile ? 1.5 : 1,
               display: 'flex',
               alignItems: 'center',
-              gap: 1,
+              gap: isMobile ? 2 : 1,
               boxShadow: 3,
               zIndex: 1000,
-              minWidth: 200,
-              justifyContent: 'center'
+              minWidth: isMobile ? 250 : 200,
+              justifyContent: 'center',
+              // En mobile, hacer la barra más grande y fácil de tocar
+              ...(isMobile && {
+                '& *': {
+                  fontSize: '1rem !important'
+                }
+              })
             }}
           >
             <Chip
               label={`${selectedTareas.length} seleccionadas`}
-              size="small"
+              size={isMobile ? "medium" : "small"}
               color="primary"
               variant="outlined"
+              sx={{
+                fontSize: isMobile ? '0.9rem' : '0.75rem',
+                height: isMobile ? 32 : 24
+              }}
             />
             
             <IconButton
-              size="small"
+              size={isMobile ? "medium" : "small"}
               onClick={handleDeactivateMultiSelect}
               sx={{ 
                 color: 'text.secondary',
+                fontSize: isMobile ? '1.2rem' : '1rem',
+                padding: isMobile ? 1 : 0.5,
                 '&:hover': {
                   backgroundColor: 'action.hover'
                 }
