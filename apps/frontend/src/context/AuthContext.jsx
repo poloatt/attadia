@@ -47,9 +47,9 @@ export function AuthProvider({ children }) {
       // Configurar token en axios
       clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
-      // Timeout para la verificación
+      // Timeout más generoso para reducir errores falsos
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout: Verificación de autenticación tardó demasiado')), 8000)
+        setTimeout(() => reject(new Error('Timeout: Verificación de autenticación tardó demasiado')), 15000)
       );
       
       const requestPromise = clienteAxios.get(`${currentConfig.authPrefix}/check`);
@@ -76,14 +76,21 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.log('Error en checkAuth:', error.message);
       
-      // Si es 401, intentar refresh
+      // Si es 401, intentar refresh una sola vez
       if (error.response?.status === 401) {
         try {
           const refreshToken = localStorage.getItem('refreshToken');
           if (refreshToken) {
-            const { data: refreshData } = await clienteAxios.post(`${currentConfig.authPrefix}/refresh`, {
+            // Timeout para refresh también
+            const refreshTimeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Timeout en refresh token')), 10000)
+            );
+            
+            const refreshRequestPromise = clienteAxios.post(`${currentConfig.authPrefix}/refresh-token`, {
               refreshToken
             });
+            
+            const { data: refreshData } = await Promise.race([refreshRequestPromise, refreshTimeoutPromise]);
             
             if (refreshData.token) {
               localStorage.setItem('token', refreshData.token);
@@ -93,7 +100,7 @@ export function AuthProvider({ children }) {
               
               clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${refreshData.token}`;
               
-              // Verificar con el nuevo token
+              // Verificar con el nuevo token - sin timeout adicional
               const { data: verifyData } = await clienteAxios.get(`${currentConfig.authPrefix}/check`);
               if (verifyData.authenticated && verifyData.user) {
                 setUser(verifyData.user);
@@ -153,12 +160,14 @@ export function AuthProvider({ children }) {
       // Configurar axios
       clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
-      // Actualizar estado
-      console.log('🔐 LOGIN EXITOSO:', {
-        userData,
-        token: token ? 'presente' : 'ausente',
-        refreshToken: refreshToken ? 'presente' : 'ausente'
-      });
+      // Log solo en desarrollo
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔐 LOGIN EXITOSO:', {
+          userId: userData?.id,
+          token: token ? 'presente' : 'ausente',
+          refreshToken: refreshToken ? 'presente' : 'ausente'
+        });
+      }
       
       setUser(userData || null);
       setIsAuthenticated(true);
@@ -183,9 +192,9 @@ export function AuthProvider({ children }) {
       setLoading(true);
       setError(null);
       
-      // Timeout para la petición (aumentado para Google OAuth)
+      // Timeout optimizado para Google OAuth
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout: La petición tardó demasiado')), 30000)
+        setTimeout(() => reject(new Error('Timeout: La petición tardó demasiado')), 20000)
       );
       
       const requestPromise = clienteAxios.get(`${currentConfig.authPrefix}/google/url`);
@@ -291,9 +300,9 @@ export function AuthProvider({ children }) {
             // Configurar token en axios
             clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             
-            // Timeout para la verificación inicial
+            // Timeout más generoso para verificación inicial
             const timeoutPromise = new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Timeout: Verificación inicial tardó demasiado')), 8000)
+              setTimeout(() => reject(new Error('Timeout: Verificación inicial tardó demasiado')), 12000)
             );
             
             const requestPromise = clienteAxios.get(`${currentConfig.authPrefix}/check`);

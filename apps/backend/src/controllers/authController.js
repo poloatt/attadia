@@ -24,10 +24,14 @@ const generateTokens = (user) => {
     type: 'access'
   };
 
-  console.log('Generando token con payload:', {
-    ...payload,
-    jwtSecret: config.jwtSecret ? 'configurado' : 'no configurado'
-  });
+  // Solo loggear en desarrollo
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Generando token con payload:', {
+      userId: userInfo.id,
+      email: userInfo.email,
+      jwtSecret: config.jwtSecret ? 'configurado' : 'no configurado'
+    });
+  }
 
   const refreshPayload = {
     user: { id: userInfo.id },  // Solo incluir el ID para el refresh token
@@ -39,12 +43,10 @@ const generateTokens = (user) => {
   const token = jwt.sign(payload, config.jwtSecret);
   const refreshToken = jwt.sign(refreshPayload, config.refreshTokenSecret);
 
-  console.log('Tokens generados:', {
-    token: token.substring(0, 20) + '...',
-    refreshToken: refreshToken.substring(0, 20) + '...',
-    tokenLength: token.length,
-    refreshTokenLength: refreshToken.length
-  });
+  // Solo loggear en desarrollo
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Tokens generados exitosamente');
+  }
   
   return { token, refreshToken };
 };
@@ -96,9 +98,18 @@ export const authController = {
         pais: pais || 'AR'
       });
 
-      // Inicializar datos de ejemplo para el nuevo usuario
-      console.log('Inicializando datos de ejemplo para nuevo usuario:', user._id);
-      await initializeSampleData(user._id);
+      // Inicializar datos de ejemplo para el nuevo usuario de forma asíncrona
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Inicializando datos de ejemplo para nuevo usuario:', user._id);
+      }
+      // Ejecutar en background para no bloquear la respuesta
+      setImmediate(async () => {
+        try {
+          await initializeSampleData(user._id);
+        } catch (error) {
+          console.error('Error al inicializar datos de ejemplo:', error);
+        }
+      });
 
       // Generar tokens
       const { token, refreshToken } = generateTokens(user);
@@ -150,11 +161,14 @@ export const authController = {
         activo: user.activo
       };
 
-      console.log('🔐 BACKEND LOGIN RESPONSE:', {
-        token: token ? 'presente' : 'ausente',
-        refreshToken: refreshToken ? 'presente' : 'ausente',
-        user: userData
-      });
+      // Solo loggear en desarrollo
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔐 BACKEND LOGIN RESPONSE:', {
+          token: token ? 'presente' : 'ausente',
+          refreshToken: refreshToken ? 'presente' : 'ausente',
+          userId: userData.id
+        });
+      }
 
       res.json({ 
         token, 
@@ -226,20 +240,22 @@ export const authController = {
 
   check: async (req, res) => {
     try {
-      console.log('Check de autenticación:', {
-        user: req.user ? {
-          id: req.user._id || req.user.id,
-          email: req.user.email,
-          role: req.user.role,
-          activo: req.user.activo
-        } : null,
-        headers: {
-          authorization: req.headers.authorization ? 'presente' : 'ausente'
-        }
-      });
+      // Solo loggear en desarrollo
+      const shouldLog = process.env.NODE_ENV === 'development';
+      
+      if (shouldLog) {
+        console.log('Check de autenticación:', {
+          user: req.user ? {
+            id: req.user._id || req.user.id,
+            email: req.user.email
+          } : null
+        });
+      }
 
       if (!req.user) {
-        console.log('No hay usuario en la request - token inválido o expirado');
+        if (shouldLog) {
+          console.log('No hay usuario en la request - token inválido o expirado');
+        }
         return res.json({ 
           authenticated: false,
           error: 'No hay usuario autenticado'
@@ -248,14 +264,16 @@ export const authController = {
 
       // Obtener el ID del usuario del token
       const userId = req.user.id || req.user._id;
-      console.log('Buscando usuario con ID:', userId);
       
+      // Optimizar consulta - solo obtener campos necesarios
       const user = await Users.findById(userId)
-        .select('-password')
+        .select('nombre email role googleId activo preferences lastLogin createdAt updatedAt telefono')
         .lean();
 
       if (!user) {
-        console.log('Usuario no encontrado en la base de datos');
+        if (shouldLog) {
+          console.log('Usuario no encontrado en la base de datos');
+        }
         return res.json({ 
           authenticated: false,
           error: 'Usuario no encontrado en la base de datos'
@@ -263,21 +281,20 @@ export const authController = {
       }
 
       if (!user.activo) {
-        console.log('Usuario inactivo:', user.email);
+        if (shouldLog) {
+          console.log('Usuario inactivo:', user.email);
+        }
         return res.json({ 
           authenticated: false,
           error: 'Usuario inactivo'
         });
       }
 
-      console.log('Usuario encontrado y activo:', {
-        id: user._id,
-        email: user.email,
-        role: user.role,
-        activo: user.activo
-      });
+      if (shouldLog) {
+        console.log('Usuario autenticado exitosamente:', user._id);
+      }
 
-      // Asegurarnos de enviar todos los campos necesarios
+      // Respuesta optimizada
       res.json({
         authenticated: true,
         user: {
@@ -295,11 +312,10 @@ export const authController = {
         }
       });
     } catch (error) {
-      console.error('Error en check:', error);
+      console.error('Error en check:', error.message);
       res.status(500).json({ 
         authenticated: false,
-        error: 'Error al verificar la autenticación',
-        details: error.message
+        error: 'Error al verificar la autenticación'
       });
     }
   },

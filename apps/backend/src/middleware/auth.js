@@ -32,37 +32,28 @@ const handleUnauthorized = (req) => {
 };
 
 export const checkAuth = (req, res, next) => {
-  // No loggear verificaciones de autenticación para rutas de comprobación
-  // que se usan frecuentemente en la aplicación
+  // Identificar endpoints comunes para reducir logging
   const isCommonEndpoint = req.path.includes('/check') || 
                            req.path.includes('/api/auth/check') ||
                            req.path.endsWith('/status') ||
                            req.path.includes('/api/rutinas');
-                           
-  if (!isCommonEndpoint) {
+
+  // Solo loggear en desarrollo y para rutas no comunes
+  const shouldLog = process.env.NODE_ENV === 'development' && !isCommonEndpoint;
+  
+  if (shouldLog) {
     console.log('Verificando autenticación para:', {
       path: req.path,
       method: req.method
     });
   }
 
-  // Decodificar el token manualmente para debugging solo en rutas no comunes
-  if (req.headers.authorization && !isCommonEndpoint) {
-    const token = req.headers.authorization.split(' ')[1];
-    try {
-      const decoded = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-      console.log('Token decodificado:', {
-        userId: decoded.user?.id,
-        type: decoded.type
-      });
-    } catch (error) {
-      console.error('Error al decodificar token:', error);
-    }
-  }
-
+  // Eliminar decodificación manual innecesaria del token para mejorar rendimiento
   passportConfig.authenticate('jwt', { session: false }, (err, user, info) => {
     if (err) {
-      console.error('Error en autenticación JWT:', err);
+      if (shouldLog) {
+        console.error('Error en autenticación JWT:', err.message);
+      }
       // Para rutas de check, permitir que el controlador maneje el error
       if (req.path === '/check' || req.path === '/auth/check') {
         req.user = null;
@@ -73,27 +64,22 @@ export const checkAuth = (req, res, next) => {
     }
 
     if (!user) {
-      // Reducir logging para endpoints comunes
-      if (!isCommonEndpoint) {
-        console.log('Usuario no encontrado o token inválido. Info:', info);
+      if (shouldLog) {
+        console.log('Usuario no encontrado o token inválido');
       }
       const unauthorizedResponse = handleUnauthorized(req);
       if (unauthorizedResponse) {
         return res.status(unauthorizedResponse.status).json(unauthorizedResponse.message);
       }
-      // Si no hay respuesta específica, continuar al controlador con req.user = null
       req.user = null;
       return next();
     }
 
-    // Verificar si el usuario está activo
+    // Verificar si el usuario está activo - optimizado
     if (!user.activo) {
-      console.warn('Usuario inactivo intentando acceder:', {
-        userId: user.id,
-        path: req.path,
-        method: req.method,
-        timestamp: new Date().toISOString()
-      });
+      if (shouldLog) {
+        console.warn('Usuario inactivo:', user.id);
+      }
       // Para rutas de check, permitir que el controlador maneje usuarios inactivos
       if (req.path === '/check' || req.path === '/auth/check') {
         req.user = null;
@@ -102,13 +88,8 @@ export const checkAuth = (req, res, next) => {
       return res.status(403).json({ error: 'Usuario inactivo' });
     }
 
-    // Reducir logging para endpoints comunes
-    if (!isCommonEndpoint) {
-      console.log('Usuario autenticado:', {
-        userId: user.id,
-        email: user.email,
-        role: user.role
-      });
+    if (shouldLog) {
+      console.log('Usuario autenticado:', user.id);
     }
 
     req.user = user;
@@ -116,16 +97,5 @@ export const checkAuth = (req, res, next) => {
   })(req, res, next);
 };
 
-export const checkRole = (roles) => {
-  return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({ error: 'Usuario no autenticado' });
-    }
-
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'No tienes permisos para realizar esta acción' });
-    }
-
-    next();
-  };
-}; 
+// checkRole se ha movido a ./checkRole.js para evitar duplicación
+// Importar desde: import { checkRole } from './checkRole.js'; 

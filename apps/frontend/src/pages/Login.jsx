@@ -67,9 +67,14 @@ export function Login() {
     
     try {
       setLoading(true);
-      console.log('🚀 Iniciando login...');
+      // Solo loggear en desarrollo
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🚀 Iniciando login...');
+      }
       const result = await login({ email, password });
-      console.log('✅ Login completado, redirigiendo a /');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Login completado, redirigiendo a /');
+      }
       navigate('/');
     } catch (error) {
       // Solo mostrar error si no es una cancelación por duplicación
@@ -83,12 +88,19 @@ export function Login() {
   };
 
   const handleGoogleLogin = async () => {
+    // Prevenir múltiples clics
+    if (loading) {
+      return;
+    }
+    
     try {
       setLoading(true);
       toast.loading('Redirigiendo a Google...', { id: 'google-login' });
       await loginWithGoogle();
     } catch (error) {
-      console.error('Error al iniciar sesión con Google:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error al iniciar sesión con Google:', error);
+      }
       toast.dismiss('google-login');
       toast.error(error.message || 'Error al iniciar sesión con Google. Por favor, intenta más tarde.');
       setLoading(false);
@@ -189,6 +201,7 @@ export function Login() {
             variant="outlined"
             startIcon={<GoogleIcon sx={{ fontSize: 18 }} />}
             onClick={handleGoogleLogin}
+            disabled={loading}
             sx={{ 
               textTransform: 'none',
               py: 1,
@@ -197,10 +210,14 @@ export function Login() {
               '&:hover': {
                 borderColor: 'rgba(255, 255, 255, 0.3)',
                 bgcolor: 'transparent'
+              },
+              '&:disabled': {
+                color: 'rgba(255, 255, 255, 0.5)',
+                borderColor: 'rgba(255, 255, 255, 0.05)'
               }
             }}
           >
-            Continuar con Google
+            {loading ? 'Conectando...' : 'Continuar con Google'}
           </Button>
         </Box>
       </Paper>

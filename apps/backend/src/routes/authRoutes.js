@@ -46,10 +46,10 @@ if (config.env !== 'development') {
 
 const router = express.Router();
 
-// Configurar rate limiting
+// Configurar rate limiting optimizado para mejor UX
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 10, // límite de 10 intentos por ventana (aumentado de 5)
+  max: 20, // Aumentado para reducir false positives con Google OAuth
   message: { error: 'Demasiados intentos de inicio de sesión. Por favor, intente más tarde.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -59,13 +59,17 @@ const loginLimiter = rateLimit({
                   req.ip;
     return realIp;
   },
-  skipSuccessfulRequests: true, // No contar requests exitosos
-  skipFailedRequests: false // Contar requests fallidos
+  skipSuccessfulRequests: true,
+  skipFailedRequests: false,
+  skip: (req) => {
+    // Skip rate limiting para rutas de Google OAuth callback
+    return req.path.includes('/google/callback') || req.path.includes('/google/url');
+  }
 });
 
 const generalLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hora
-  max: 100, // límite de 100 peticiones por hora
+  max: 200, // Aumentado para mejor UX
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
@@ -73,6 +77,10 @@ const generalLimiter = rateLimit({
                   req.headers['x-forwarded-for']?.split(',')[0] || 
                   req.ip;
     return realIp;
+  },
+  skip: (req) => {
+    // Skip para rutas críticas de autenticación
+    return req.path.includes('/check') || req.path.includes('/google/');
   }
 });
 
