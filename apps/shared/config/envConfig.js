@@ -29,7 +29,11 @@ const isProduction = typeof window !== 'undefined' &&
    window.location.hostname === 'foco.attadia.com' || 
    window.location.hostname === 'pulso.attadia.com');
 
-export const currentConfig = isProduction 
+// Forzar uso de configuración de producción si VITE_API_URL está definido
+const useProductionConfig = typeof window !== 'undefined' && 
+  (import.meta.env.VITE_API_URL || isProduction);
+
+export const currentConfig = useProductionConfig 
   ? config.production 
   : config[env] || config.development;
 
