@@ -91,7 +91,7 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.MODE': JSON.stringify(mode),
       'import.meta.env.VITE_APP_NAME': JSON.stringify('Pulso'),
       'import.meta.env.VITE_API_URL': JSON.stringify(
-        process.env.VITE_API_URL || 'http://localhost:5000'
+        process.env.VITE_API_URL || 'https://api.attadia.com'
       ),
       'import.meta.env.VITE_FRONTEND_URL': JSON.stringify(
         process.env.VITE_FRONTEND_URL || 'https://pulso.attadia.com'
