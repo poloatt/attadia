@@ -349,8 +349,77 @@ export const authController = {
       // Generar tokens
       const { token, refreshToken } = generateTokens(req.user);
 
-      // Redirigir al frontend con los tokens (usando hash para HashRouter)
-      const redirectUrl = new URL('/#/auth/callback', config.frontendUrl);
+      // Detección automática del origen - prioridad: sesión > referer > configuración
+      let callbackOrigin = null;
+      
+      // 1. Prioridad: origen guardado en sesión
+      if (req.session?.googleCallbackOrigin) {
+        callbackOrigin = req.session.googleCallbackOrigin;
+        console.log(`🔍 Usando origen de sesión: ${callbackOrigin}`);
+      }
+      // 2. Detectar desde el referer (cuando Google redirige)
+      else if (req.headers.referer) {
+        try {
+          const refererUrl = new URL(req.headers.referer);
+          const refererOrigin = `${refererUrl.protocol}//${refererUrl.host}`;
+          
+          // Verificar si el origen está en los CORS permitidos
+          if (config.corsOrigins && config.corsOrigins.includes(refererOrigin)) {
+            callbackOrigin = refererOrigin;
+            console.log(`🔍 Detectado origen desde referer: ${callbackOrigin}`);
+          }
+        } catch (error) {
+          console.log('Error al parsear referer:', error.message);
+        }
+      }
+      
+      // 3. Fallback: usar configuración de múltiples apps
+      if (!callbackOrigin && config.frontendUrls) {
+        // En desarrollo: detectar por puerto desde la URL de callback
+        if (config.env === 'development') {
+          // Intentar detectar desde el host de la petición
+          const host = req.headers.host;
+          if (host) {
+            // Si el host incluye un puerto, usarlo para detectar la app
+            const port = host.split(':')[1];
+            if (port === '5173' && config.frontendUrls.foco) {
+              callbackOrigin = config.frontendUrls.foco;
+            } else if (port === '5174' && config.frontendUrls.atta) {
+              callbackOrigin = config.frontendUrls.atta;
+            } else if (port === '5175' && config.frontendUrls.pulso) {
+              callbackOrigin = config.frontendUrls.pulso;
+            }
+          }
+        }
+        // En producción: detectar por subdominio
+        else if (config.env === 'production') {
+          const host = req.headers.host;
+          if (host) {
+            if (host.includes('foco.attadia.com') && config.frontendUrls.foco) {
+              callbackOrigin = config.frontendUrls.foco;
+            } else if (host.includes('atta.attadia.com') && config.frontendUrls.atta) {
+              callbackOrigin = config.frontendUrls.atta;
+            } else if (host.includes('pulso.attadia.com') && config.frontendUrls.pulso) {
+              callbackOrigin = config.frontendUrls.pulso;
+            }
+          }
+        }
+        
+        if (callbackOrigin) {
+          console.log(`🔍 Detectado origen por configuración de apps: ${callbackOrigin}`);
+        }
+      }
+      
+      // 4. Último fallback: usar frontendUrl configurado
+      if (!callbackOrigin) {
+        callbackOrigin = config.frontendUrl;
+        console.log(`🔍 Usando frontendUrl como fallback: ${callbackOrigin}`);
+      }
+      
+      console.log(`🔗 Redirigiendo a origen: ${callbackOrigin} (desde sesión: ${!!req.session?.googleCallbackOrigin})`);
+
+      // Redirigir al frontend con los tokens (usando query params para BrowserRouter)
+      const redirectUrl = new URL('/auth/callback', callbackOrigin);
       redirectUrl.searchParams.append('token', token);
       redirectUrl.searchParams.append('refreshToken', refreshToken);
 
@@ -361,7 +430,8 @@ export const authController = {
       res.redirect(redirectUrl.toString());
     } catch (error) {
       console.error('Error en callback de Google:', error);
-      res.redirect(`${config.frontendUrl}/#/auth/callback?error=server_error`);
+      const callbackOrigin = req.session?.googleCallbackOrigin || config.frontendUrl;
+      res.redirect(`${callbackOrigin}/#/auth/callback?error=server_error`);
     }
   }
 };

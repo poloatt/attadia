@@ -17,16 +17,18 @@ import autoSyncService from './services/autoSyncService.js';
 let config;
 try {
   config = (await import('./config/config.js')).default;
+  console.log('✅ Configuración principal cargada correctamente:', { frontendUrl: config.frontendUrl, corsOrigins: config.corsOrigins });
 } catch (error) {
-  console.error('Error al cargar la configuración, usando configuración básica:', error.message);
+  console.error('❌ Error al cargar la configuración, usando configuración básica:', error.message);
   config = {
     env: process.env.NODE_ENV || 'development',
     port: parseInt(process.env.PORT || '8080', 10),
     mongoUrl: process.env.MONGO_PUBLIC_URL || process.env.MONGO_URL,
-    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
-    corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim()) : ['http://localhost:3000'],
+    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+    corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim()) : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'],
     sessionSecret: process.env.SESSION_SECRET || 'fallback_session_secret'
   };
+  console.log('⚠️ Usando configuración FALLBACK:', { frontendUrl: config.frontendUrl, corsOrigins: config.corsOrigins });
 }
 
 // Logs de configuración removidos para producción
@@ -120,8 +122,12 @@ app.use((req, res, next) => {
   // En desarrollo permitir cualquier origen, en otros ambientes solo los configurados
   // También permitir dominios de Vercel automáticamente
   const isVercelDomain = origin && origin.includes('vercel.app');
-  if (config.env === 'development' || (origin && corsOrigins.includes(origin)) || isVercelDomain) {
-    res.header('Access-Control-Allow-Origin', origin);
+  const isAllowedOrigin = config.env === 'development' || 
+                         (origin && corsOrigins.includes(origin)) || 
+                         isVercelDomain;
+  
+  if (isAllowedOrigin) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Cache-Control, Pragma, X-Device-Type');
@@ -179,7 +185,7 @@ const sessionConfig = {
 };
 
 // En producción, usar MongoStore
-if (config.env === 'production' || config.env === 'staging') {
+if (config.env === 'production') {
   sessionConfig.store = MongoStore.create({
     mongoUrl: config.mongoUrl,
     ttl: 24 * 60 * 60, // 24 horas
@@ -239,14 +245,22 @@ const startServer = async () => {
     await initializeMonedas();
     console.log('Datos iniciales cargados');
     
-    // Iniciar scheduler de sincronización bancaria
-    const bankSyncScheduler = new BankSyncScheduler();
-    bankSyncScheduler.start();
-    console.log('Scheduler de sincronización bancaria iniciado');
+    // Iniciar scheduler de sincronización bancaria SOLO en producción
+    if (config.env === 'production') {
+      const bankSyncScheduler = new BankSyncScheduler();
+      bankSyncScheduler.start();
+      console.log('Scheduler de sincronización bancaria iniciado');
+    } else {
+      console.log('⚠️ Bank Sync DESACTIVADO en desarrollo para reducir logs');
+    }
     
-    // Iniciar servicio de sincronización automática de Google Tasks
-    autoSyncService.start();
-    console.log('Servicio de sincronización automática de Google Tasks iniciado');
+    // Iniciar servicio de sincronización automática de Google Tasks SOLO en producción
+    if (config.env === 'production') {
+      autoSyncService.start();
+      console.log('Servicio de sincronización automática de Google Tasks iniciado');
+    } else {
+      console.log('⚠️ Google Tasks AutoSync DESACTIVADO en desarrollo para reducir logs');
+    }
     
     app.listen(config.port, '0.0.0.0', () => {
       // Asegurarse de que corsOrigins sea un array antes de usar join

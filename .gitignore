@@ -1,37 +1,51 @@
+# ================================================
+# MONOREPO GITIGNORE - ATTADIA
+# ================================================
+
 # Dependencies
 node_modules/
-.pnp
+**/node_modules/
+/.pnp
 .pnp.js
+.pnpm-store
+.npm
+pnpm-debug.log*
+yarn.lock
+pnpm-lock.yaml
 
-# Testing
-coverage/
-
-# Production
-build/
+# Build outputs
 dist/
+build/
 .next/
-out/
+.nuxt/
+.vuepress/dist/
+.cache/
+.vite/
+.parcel-cache/
 
-# Environment files
+# Environment variables
 .env
+.env.*
+!.env.example
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-.env.production
-!backend/.env.staging
-!backend/.env.example
-!backend/.env.prod
-
-# Config files (usar .example.js como templates)
-**/config.dev.js
 
 # Logs
-logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Testing
+coverage/
+*.lcov
+.nyc_output
+test-results/
+playwright-report/
 
 # Runtime data
 pids
@@ -39,25 +53,56 @@ pids
 *.seed
 *.pid.lock
 
-# IDE
+# IDE and Editor files
+.DS_Store
 .idea/
 .vscode/
 *.swp
 *.swo
+*~
+.sublime-workspace
+.sublime-project
 
-# OS
-.DS_Store
-Thumbs.db
+# Cache files
+.eslintcache
+.stylelintcache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
 
-# Docker
+# Temporary folders
+tmp/
+temp/
+.tmp/
+
+# Docker (para desarrollo local si se usa)
+.dockerignore
 docker-compose.override.yml
 
-# Archivos temporales
-temp/
-*.bak
-*.tmp
+# Deployment
+.vercel
+.netlify
 
-# SSL Certificates
-ssl/certbot/conf/*
-!ssl/certbot/conf/*.example
-ssl/certbot/www/*
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Backups
+*.backup
+*.bak
+*.old
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Package manager files (opcional mantener algunos)
+# yarn.lock
+# pnpm-lock.yaml
+
+# Specific to apps (si necesitas excepciones específicas)
+# apps/frontend/specific-ignore-pattern
+# apps/backend/specific-ignore-pattern

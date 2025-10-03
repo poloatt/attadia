@@ -1,0 +1,11 @@
+{
+  "name": "Pulso - Bienestar y Salud",
+  "short_name": "Pulso",
+  "description": "Monitoreo de bienestar y salud personal",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1976d2",
+  "icons": []
+}
+

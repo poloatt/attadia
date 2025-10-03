@@ -1,0 +1,85 @@
+/**
+ * Notificaciones con estilo idéntico a los Chips del Footer
+ * Posición: 4px desde el bottom (centrado en el Footer de 32px)
+ * Última actualización: 2024-12-31
+ */
+
+/* Notificaciones como chips del footer - perfectamente alineadas y de borde a borde */
+div[class*="SnackbarItem-message"],
+div[class*="SnackbarContent-message"],
+.SnackbarContent-root > div,
+.MuiSnackbarContent-root > div {
+  position: fixed !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 32px !important; /* Justo encima del Footer de 32px */
+  width: 100vw !important;
+  min-width: 0 !important;
+  max-width: 100vw !important;
+  border-radius: 0 !important;
+  height: 32px !important;
+  padding: 0 16px !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  font-size: 0.75rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 1202 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* Reset todo lo demás */
+.SnackbarContent-root,
+.MuiSnackbarContent-root,
+.SnackbarItem-contentRoot {
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Colores por tipo - Exactos del Footer */
+.snackbar-success div { border-color: #4caf50 !important; }
+.snackbar-error div { border-color: #f44336 !important; }
+.snackbar-warning div { border-color: #ff9800 !important; }
+.snackbar-info div { border-color: #2196f3 !important; }
+
+/* Configuración del contenedor */
+.SnackbarItem-root {
+  z-index: 1202 !important;
+  pointer-events: none !important;
+}
+
+.SnackbarItem-root[class*="SnackbarItem-anchorOriginBottomCenter"] {
+  margin-bottom: 0 !important;
+}
+
+/* Forzar una sola línea en el contenido interno de la notificación */
+div[class*="SnackbarItem-message"] > *,
+div[class*="SnackbarContent-message"] > *,
+.SnackbarContent-root > div > *,
+.MuiSnackbarContent-root > div > * {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: block !important;
+  max-width: 100% !important;
+}
+
+/* Forzar iconos alineados verticalmente y tamaño igual al texto */
+div[class*="SnackbarItem-message"] svg,
+div[class*="SnackbarContent-message"] svg,
+.SnackbarContent-root > div svg,
+.MuiSnackbarContent-root > div svg {
+  font-size: 18px !important;
+  vertical-align: middle !important;
+  margin: 0 4px 0 0 !important;
+  display: inline-block !important;
+} 

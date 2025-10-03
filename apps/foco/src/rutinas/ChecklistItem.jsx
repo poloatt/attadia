@@ -1,0 +1,190 @@
+import React, { useState, useEffect, memo } from 'react';
+import { ListItem, Box, IconButton, Typography, Button } from '@mui/material';
+import TuneIcon from '@mui/icons-material/Tune';
+import InlineItemConfigImproved, { getFrecuenciaLabel } from './InlineItemConfigImproved';
+
+// Botón de hábito modularizado para uso en RutinaCard y otros
+export const HabitIconButton = ({ isCompleted, Icon, onClick, readOnly, size = 38, iconSize = 'small', mr = 1, ...props }) => (
+  <IconButton
+    size="small"
+    onClick={onClick}
+    disabled={readOnly}
+    sx={{
+      width: size,
+      height: size,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      mr: mr,
+      cursor: 'pointer',
+      color: isCompleted ? 'primary.main' : 'rgba(255,255,255,0.5)',
+      bgcolor: isCompleted ? 'action.selected' : 'transparent',
+      borderRadius: '50%',
+      transition: 'all 0.2s ease',
+      '&:hover': {
+        color: isCompleted ? 'primary.main' : 'white',
+        bgcolor: isCompleted ? 'action.selected' : 'rgba(255,255,255,0.1)'
+      }
+    }}
+    {...props}
+  >
+    {Icon && <Icon fontSize={iconSize} />}
+  </IconButton>
+);
+
+const ChecklistItem = ({
+  itemId,
+  section,
+  Icon,
+  isCompleted,
+  readOnly,
+  onItemClick,
+  config = {},
+  onConfigChange,
+  isSetupOpen,
+  onSetupToggle
+}) => {
+
+  return (
+    <>
+      <ListItem 
+        disablePadding
+        sx={{ 
+          mb: 0.5,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          bgcolor: 'transparent',
+        }}
+      >
+        <Box sx={{ 
+          width: '100%', 
+          display: 'flex',
+          alignItems: 'center',
+          py: 0.5,
+          position: 'relative'
+        }}>
+          {/* Icono de hábito */}
+          {!readOnly && (
+            <HabitIconButton
+              isCompleted={isCompleted}
+              Icon={Icon}
+              onClick={(e) => {
+                e.stopPropagation();
+                onItemClick(itemId, e);
+              }}
+              readOnly={readOnly}
+            />
+          )}
+          {/* Contenido principal */}
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            flexGrow: 1,
+            minWidth: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            color: isCompleted ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.9)',
+            pr: 0 // sin padding derecho, para que el engranaje quede pegado
+          }}>
+            <Box sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              minWidth: 0,
+              flexGrow: 1,
+              overflow: 'hidden',
+            }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontWeight: 400,
+                  color: isCompleted ? 'rgba(255,255,255,0.5)' : 'inherit',
+                  textDecoration: isCompleted ? 'line-through' : 'none',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  maxWidth: '100%'
+                }}
+              >
+                {itemId}
+              </Typography>
+              {/* Resumen de configuración centralizado */}
+              {config && (
+                <Typography 
+                  variant="caption" 
+                  color="text.secondary"
+                  sx={{ fontSize: '0.7rem', mt: 0.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}
+                >
+                  {(() => {
+                    const tipo = (config?.tipo || 'DIARIO').toUpperCase();
+                    const frecuencia = Number(config?.frecuencia || 1);
+                    const progresoActual = typeof config?.progresoActual === 'number' ? config.progresoActual : null;
+                    // Heurística sin historial: para diario usar estado local; para otros, usar progresoActual si existe
+                    const completados = tipo === 'DIARIO'
+                      ? (isCompleted ? 1 : 0)
+                      : (progresoActual != null ? Math.min(frecuencia, Math.max(0, progresoActual)) : (isCompleted ? 1 : 0));
+                    return `${getFrecuenciaLabel(config)} • ${completados}/${frecuencia}`;
+                  })()}
+                </Typography>
+              )}
+            </Box>
+          </Box>
+          {/* Engranaje alineado a la derecha */}
+          {!readOnly && (
+            <IconButton
+              edge="end"
+              aria-label="setup"
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onSetupToggle) onSetupToggle();
+              }}
+              sx={{
+                color: isSetupOpen ? 'primary.main' : 'rgba(255,255,255,0.3)',
+                borderRadius: 0,
+                ml: 'auto',
+                position: 'absolute',
+                right: 0,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                '&:hover': {
+                  color: 'primary.main',
+                  bgcolor: 'rgba(255,255,255,0.08)'
+                }
+              }}
+            >
+              <TuneIcon sx={{ fontSize: '1.2rem' }} />
+            </IconButton>
+          )}
+        </Box>
+      </ListItem>
+      {/* Setup debajo del ítem */}
+      {isSetupOpen && (
+        <Box sx={{ width: '100%', mt: 1 }}>
+          <InlineItemConfigImproved
+            config={config}
+            onConfigChange={onConfigChange}
+            itemId={itemId}
+            sectionId={section}
+          />
+        </Box>
+      )}
+    </>
+  );
+};
+
+export default memo(ChecklistItem, (prevProps, nextProps) => {
+  // Comparación optimizada - evitar JSON.stringify costoso
+  return (
+    prevProps.itemId === nextProps.itemId &&
+    prevProps.section === nextProps.section &&
+    prevProps.isCompleted === nextProps.isCompleted &&
+    prevProps.readOnly === nextProps.readOnly &&
+    prevProps.isSetupOpen === nextProps.isSetupOpen &&
+    prevProps.config?.tipo === nextProps.config?.tipo &&
+    prevProps.config?.frecuencia === nextProps.config?.frecuencia &&
+    prevProps.config?.activo === nextProps.config?.activo
+  );
+}); 

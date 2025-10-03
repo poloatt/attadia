@@ -21,6 +21,7 @@ router.delete('/disable', googleTasksController.disconnect);
 // Rutas de sincronización
 router.post('/sync', googleTasksController.manualSync);
 router.post('/sync/task/:taskId', googleTasksController.syncTask);
+router.post('/cleanup', googleTasksController.cleanupDuplicates);
 
 // Rutas adicionales
 router.get('/stats', googleTasksController.getStats);

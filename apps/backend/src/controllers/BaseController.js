@@ -18,21 +18,23 @@ export class BaseController {
     this.delete = this.delete.bind(this);
     this.toggleActive = this.toggleActive.bind(this);
 
-    // Log para verificar la estructura de la clase base
-    console.log('BaseController methods:', {
-      getAll: typeof this.getAll,
-      getSelectOptions: typeof this.getSelectOptions,
-      getById: typeof this.getById,
-      create: typeof this.create,
-      update: typeof this.update,
-      delete: typeof this.delete,
-      toggleActive: typeof this.toggleActive
-    });
+    // Log para verificar la estructura de la clase base (solo si se habilita explícitamente)
+    if (process.env.DEBUG_BASECONTROLLER === 'true') {
+      console.log('BaseController methods:', {
+        getAll: typeof this.getAll,
+        getSelectOptions: typeof this.getSelectOptions,
+        getById: typeof this.getById,
+        create: typeof this.create,
+        update: typeof this.update,
+        delete: typeof this.delete,
+        toggleActive: typeof this.toggleActive
+      });
+    }
   }
 
   // GET /api/resource
   getAll(req, res) {
-    console.log('BaseController.getAll called');
+    if (process.env.DEBUG_BASECONTROLLER === 'true') console.debug('BaseController.getAll called');
     try {
       const { 
         page = 1, 
@@ -81,7 +83,7 @@ export class BaseController {
 
   // GET /api/resource/select-options
   getSelectOptions(req, res) {
-    console.log('BaseController.getSelectOptions called');
+    if (process.env.DEBUG_BASECONTROLLER === 'true') console.debug('BaseController.getSelectOptions called');
     try {
       const { filter } = req.query;
       const query = filter ? JSON.parse(filter) : { activo: true };
@@ -197,7 +199,7 @@ export class BaseController {
 
   // POST /api/resource
   create(req, res) {
-    console.log('BaseController.create called');
+    if (process.env.DEBUG_BASECONTROLLER === 'true') console.debug('BaseController.create called');
     const item = new this.Model(req.body);
     return item.save()
       .then(savedItem => res.status(201).json(savedItem))
@@ -209,7 +211,7 @@ export class BaseController {
 
   // PUT /api/resource/:id
   update(req, res) {
-    console.log('BaseController.update called');
+    if (process.env.DEBUG_BASECONTROLLER === 'true') console.debug('BaseController.update called');
     return this.Model.findByIdAndUpdate(
       req.params.id,
       req.body,
@@ -229,7 +231,7 @@ export class BaseController {
 
   // DELETE /api/resource/:id
   delete(req, res) {
-    console.log('BaseController.delete called');
+    if (process.env.DEBUG_BASECONTROLLER === 'true') console.debug('BaseController.delete called');
     return this.Model.findByIdAndDelete(req.params.id)
       .then(item => {
         if (!item) {
@@ -245,7 +247,7 @@ export class BaseController {
 
   // PATCH /api/resource/:id/toggle-active
   toggleActive(req, res) {
-    console.log('BaseController.toggleActive called');
+    if (process.env.DEBUG_BASECONTROLLER === 'true') console.debug('BaseController.toggleActive called');
     return this.Model.findById(req.params.id)
       .then(item => {
         if (!item) {

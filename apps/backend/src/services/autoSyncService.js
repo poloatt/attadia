@@ -5,8 +5,9 @@ import googleTasksService from './googleTasksService.js';
 class AutoSyncService {
   constructor() {
     this.isRunning = false;
-    this.syncInterval = '*/5 * * * *'; // Cada 5 minutos por defecto
+    this.syncInterval = '*/15 * * * *'; // Cada 15 minutos por defecto (reducido de 5)
     this.job = null;
+    this.lastSyncTimes = new Map(); // Track last sync time per user
   }
 
   /**
@@ -18,7 +19,7 @@ class AutoSyncService {
       return;
     }
 
-    console.log(`🔄 Iniciando sincronización automática cada 5 minutos`);
+    console.log(`🔄 Iniciando sincronización automática cada 15 minutos`);
     
     this.job = cron.schedule(this.syncInterval, async () => {
       await this.performAutoSync();
@@ -99,12 +100,26 @@ class AutoSyncService {
 
       console.log(`👥 Encontrados ${users.length} usuarios para sincronizar`);
 
-      // Sincronizar cada usuario
+      // Sincronizar cada usuario (con protección contra sincronizaciones muy frecuentes)
       const results = await Promise.allSettled(
         users.map(async (user) => {
           try {
+            const userId = user._id.toString();
+            const lastSyncTime = this.lastSyncTimes.get(userId);
+            const now = new Date();
+            
+            // No sincronizar si la última sincronización fue hace menos de 10 minutos
+            if (lastSyncTime && (now - lastSyncTime) < 10 * 60 * 1000) {
+              console.log(`⏭️ Saltando usuario ${user.email} - sincronizado hace menos de 10 minutos`);
+              return { userId: user._id, email: user.email, success: true, skipped: true };
+            }
+
             console.log(`🔄 Sincronizando usuario: ${user.email}`);
             const result = await googleTasksService.fullSyncWithUser(user);
+            
+            // Actualizar tiempo de última sincronización
+            this.lastSyncTimes.set(userId, now);
+            
             console.log(`✅ Usuario ${user.email} sincronizado exitosamente`);
             return { userId: user._id, email: user.email, success: true, result };
           } catch (error) {

@@ -1,0 +1,10 @@
+{
+  "name": "Atta - Gestión de Propiedades",
+  "short_name": "Atta",
+  "description": "Gestión integral de propiedades inmobiliarias",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1976d2",
+  "icons": []
+}

@@ -1,20 +1,37 @@
 {
-  "name": "atta-admin",
+  "name": "attadia-monorepo",
   "version": "1.0.0",
   "private": true,
+  "description": "Attadia Monorepo - Atta, Foco, Pulso Apps",
   "scripts": {
-    "build": "npm run build --workspace=frontend",
-    "dev": "npm run dev --workspace=frontend",
-    "start": "npm run start --workspace=frontend"
+    "dev": "turbo run dev --parallel",
+    "dev:legacy": "concurrently \"npm run dev --workspace=apps/foco\" \"npm run dev --workspace=apps/atta\" \"npm run dev --workspace=apps/pulso\" \"npm run dev --workspace=apps/backend\"",
+    "dev:foco": "npm run dev --workspace=apps/foco",
+    "dev:atta": "npm run dev --workspace=apps/atta",
+    "dev:pulso": "npm run dev --workspace=apps/pulso",
+    "dev:backend": "npm run dev --workspace=apps/backend",
+    "build": "turbo run build",
+    "build:legacy": "npm run build:shared && npm run build:apps",
+    "build:shared": "npm run build --workspace=apps/shared",
+    "build:apps": "npm run build --workspace=apps/foco && npm run build --workspace=apps/atta && npm run build --workspace=apps/pulso",
+    "build:foco": "npm run build --workspace=apps/foco",
+    "build:atta": "npm run build --workspace=apps/atta",
+    "build:pulso": "npm run build --workspace=apps/pulso",
+    "clean": "npm run clean --workspaces --if-present",
+    "clean:cache": "rm -rf apps/*/node_modules/.vite apps/*/dist",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "install:all": "npm install"
   },
   "workspaces": [
     "apps/*"
   ],
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   },
-  "dependencies": {
-    "vite": "^5.1.0",
-    "@vitejs/plugin-react": "^4.2.1"
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "turbo": "^1.10.0"
   }
 }

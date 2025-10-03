@@ -24,7 +24,7 @@ try {
 
   config = {
     env: process.env.NODE_ENV || 'development',
-    frontendUrl: process.env.FRONTEND_URL || defaultFrontendUrl,
+    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
     backendUrl: process.env.BACKEND_URL || defaultBackendUrl,
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
@@ -125,6 +125,55 @@ router.get('/google/url', (req, res) => {
     });
   }
 
+  // Obtener origen del frontend para redirección correcta
+  const origin = req.query.origin;
+  
+  if (!origin) {
+    console.error('No se proporcionó origen en la petición Google Auth:', {
+      query: req.query,
+      headers: req.headers
+    });
+    return res.status(400).json({ 
+      error: 'Origen requerido',
+      details: 'Se debe proporcionar el parámetro origin'
+    });
+  }
+
+  // Validar que el origen esté permitido usando la configuración dinámica
+  let allowedOrigins = [];
+  
+  if (config.corsOrigins && Array.isArray(config.corsOrigins)) {
+    allowedOrigins = config.corsOrigins;
+  } else if (config.frontendUrls) {
+    // Construir orígenes desde la configuración de múltiples apps
+    allowedOrigins = Object.values(config.frontendUrls);
+  } else {
+    // Fallback a orígenes por defecto
+    allowedOrigins = ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'];
+  }
+  
+  if (!allowedOrigins.includes(origin)) {
+    console.error('Origen no permitido:', {
+      origin,
+      allowedOrigins,
+      corsOrigins: config.corsOrigins,
+      frontendUrls: config.frontendUrls
+    });
+    return res.status(400).json({ 
+      error: 'Origen no autorizado',
+      details: `El origen ${origin} no está permitido`,
+      allowedOrigins
+    });
+  }
+
+  // Guardar el origen en la sesión para usar en el callback
+  if (!req.session) {
+    req.session = {};
+  }
+  req.session.googleCallbackOrigin = origin;
+
+  console.log(`🚀 Google Auth iniciado desde: ${origin}`);
+
   // Usar URL cacheada si está disponible y no ha expirado
   const now = Date.now();
   if (cachedGoogleUrl && (now - cacheTimestamp) < CACHE_DURATION) {
@@ -185,7 +234,8 @@ router.get('/google/callback',
         error_description: req.query.error_description,
         error_uri: req.query.error_uri
       });
-      return res.redirect(`${config.frontendUrl}/#/auth/callback?error=${encodeURIComponent(req.query.error)}`);
+      const callbackOrigin = req.session?.googleCallbackOrigin || config.frontendUrl;
+      return res.redirect(`${callbackOrigin}/auth/callback?error=${encodeURIComponent(req.query.error)}`);
     }
 
     if (!req.query.code) {
@@ -193,14 +243,21 @@ router.get('/google/callback',
         env: config.env,
         headers: req.headers
       });
-      return res.redirect(`${config.frontendUrl}/#/auth/callback?error=no_auth_code`);
+      const callbackOrigin = req.session?.googleCallbackOrigin || config.frontendUrl;
+      return res.redirect(`${callbackOrigin}/auth/callback?error=no_auth_code`);
     }
 
     passport.authenticate('google', { 
       session: false,
-      failureRedirect: `${config.frontendUrl}/#/auth/callback?error=auth_failed`,
       failureMessage: true
-    })(req, res, next);
+    })(req, res, (err) => {
+      if (err) {
+        console.error('Error en passport authenticate:', err);
+        const callbackOrigin = req.session?.googleCallbackOrigin || config.frontendUrl;
+        return res.redirect(`${callbackOrigin}/auth/callback?error=auth_failed`);
+      }
+      next();
+    });
   },
   authController.googleCallback
 );

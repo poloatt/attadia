@@ -10,11 +10,17 @@ const connectDB = async (retries = 5) => {
     console.log('Ambiente:', config.env);
     
     const conn = await mongoose.connect(mongoUrl, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
       maxPoolSize: 10,
       retryWrites: true,
-      family: 4
+      w: 'majority',
+      // Configuración para MongoDB Atlas con API estable
+      serverApi: {
+        version: '1',
+        strict: true,
+        deprecationErrors: true,
+      }
     });
     
     console.log(`MongoDB conectado exitosamente a ${conn.connection.host}`);

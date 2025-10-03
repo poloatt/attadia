@@ -7,13 +7,11 @@
   "scripts": {
     "start": "node src/index.js",
     "start-simple": "node src/index-simple.js",
-    "dev": "NODE_ENV=development nodemon src/index.js",
-    "staging": "NODE_ENV=staging nodemon src/index.js",
-    "prod": "NODE_ENV=production node src/index.js",
+    "dev": "set NODE_ENV=development && nodemon src/index.js",
+    "prod": "set NODE_ENV=production && node src/index.js",
     "lint": "eslint src/**/*.js",
     "test": "jest",
-    "test:staging": "NODE_ENV=staging jest",
-    "test:prod": "NODE_ENV=production jest"
+    "test:prod": "set NODE_ENV=production && jest"
   },
   "keywords": [],
   "author": "",
@@ -21,7 +19,6 @@
   "dependencies": {
     "@faker-js/faker": "^9.9.0",
     "@mui/icons-material": "^6.4.4",
-    "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
     "connect-mongo": "^5.1.0",
     "cookie-parser": "^1.4.6",

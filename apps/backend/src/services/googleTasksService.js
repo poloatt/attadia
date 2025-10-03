@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { google } from 'googleapis';
 import { Users, Tareas } from '../models/index.js';
 import config from '../config/config.js';
@@ -90,13 +91,19 @@ class GoogleTasksService {
       'timeout'
     ];
     
-    const errorCode = error.code || error.status || '';
-    const errorMessage = error.message || '';
+    // Códigos de error HTTP que son reintentatables
+    const retryableHttpCodes = [429, 500, 502, 503, 504];
     
+    // Convertir errorCode a string para evitar errores de tipo
+    const errorCode = String(error.code || error.status || '');
+    const errorMessage = String(error.message || '');
+    const httpStatus = parseInt(error.code || error.status || 0);
+    
+    // Verificar si el error es reintentable por código de texto o código HTTP
     return retryableErrors.some(retryableError => 
       errorCode.includes(retryableError) || 
       errorMessage.includes(retryableError)
-    );
+    ) || retryableHttpCodes.includes(httpStatus);
   }
 
   /**
@@ -207,6 +214,23 @@ class GoogleTasksService {
       throw new Error('Tarea no encontrada');
     }
 
+    // CORRECCIÓN AUTOMÁTICA: Normalizar y limpiar antes de sincronizar
+    const tituloOriginal = tarea.titulo;
+    const tituloNormalizado = this.normalizeTitle(tarea.titulo);
+    
+    // Si el título cambió, actualizarlo automáticamente
+    if (tituloNormalizado !== tituloOriginal) {
+      console.log(`🔧 Auto-corrigiendo título: "${tituloOriginal}" -> "${tituloNormalizado}"`);
+      tarea.titulo = tituloNormalizado;
+      await tarea.save();
+    }
+
+    // Protección básica: evitar sincronizaciones concurrentes
+    if (tarea.googleTasksSync?.syncStatus === 'syncing') {
+      console.log(`⚠️ Tarea "${tarea.titulo}" ya está siendo sincronizada, saltando...`);
+      return;
+    }
+
     await this.setUserCredentials(userId);
     
     // Siempre usar la TaskList por defecto para evitar confusión
@@ -220,9 +244,12 @@ class GoogleTasksService {
       // Asegurar que notes tenga el formato correcto con información del proyecto
       googleTaskData.notes = this.buildTaskNotes(tarea);
       
-      // Agregar información del proyecto en el título si existe
+      // Agregar información del proyecto en el título si existe y no está ya presente
       if (tarea.proyecto && tarea.proyecto.nombre) {
-        googleTaskData.title = `[${tarea.proyecto.nombre}] ${googleTaskData.title}`;
+        const proyectoPrefix = `[${tarea.proyecto.nombre}]`;
+        if (!googleTaskData.title.startsWith(proyectoPrefix)) {
+          googleTaskData.title = `${proyectoPrefix} ${googleTaskData.title}`;
+        }
       }
       
       // Eliminar campos que Google Tasks maneja automáticamente en creación
@@ -242,6 +269,11 @@ class GoogleTasksService {
           localVersion: 1
         };
       }
+
+      // Marcar como "syncing" para evitar sincronizaciones concurrentes
+      await Tareas.findByIdAndUpdate(tareaId, {
+        'googleTasksSync.syncStatus': 'syncing'
+      });
       
       if (tarea.googleTasksSync.googleTaskId) {
         // Actualizar tarea existente con retry
@@ -393,7 +425,22 @@ class GoogleTasksService {
             usuario: userId
           });
 
+          // Si no existe, crear nueva tarea automáticamente
+          if (!tarea) {
+            console.log(`📥 Creando nueva tarea desde Google: "${googleTask.title}"`);
+          }
+
           if (tarea) {
+            // Limpiar notas duplicadas antes de actualizar
+            if (googleTask.notes) {
+              const notasLimpias = this.cleanDuplicatedNotes(googleTask.notes);
+              
+              if (notasLimpias !== googleTask.notes) {
+                console.log(`🧹 Limpiando notas duplicadas para: "${googleTask.title}"`);
+                googleTask.notes = notasLimpias;
+              }
+            }
+            
             // Actualizar tarea existente usando el nuevo método del modelo
             tarea.updateFromGoogleTask(googleTask);
             await tarea.save();
@@ -424,19 +471,20 @@ class GoogleTasksService {
                 syncResults.errors.push(`${googleTask.title}: Tarea padre no encontrada`);
               }
             } else {
-              // Es una tarea principal, extraer información del proyecto del título si existe
+              // Es una tarea principal - crear automáticamente con normalización
               const { Proyectos } = await import('../models/index.js');
               
-              let tituloLimpio = googleTask.title;
+              // Normalizar el título automáticamente
+              const tituloNormalizado = this.normalizeTitle(googleTask.title);
               let proyecto = null;
               
-              // Extraer proyecto del título si tiene formato [Proyecto] Tarea
-              const proyectoMatch = googleTask.title.match(/^\[([^\]]+)\]\s*(.+)$/);
+              // Extraer proyecto del título normalizado
+              const proyectoMatch = tituloNormalizado.match(/^\[([^\]]+)\]\s*(.+)$/);
               if (proyectoMatch) {
                 const nombreProyecto = proyectoMatch[1];
-                tituloLimpio = proyectoMatch[2];
+                const tituloLimpio = proyectoMatch[2];
                 
-                // Buscar o crear proyecto
+                // Buscar o crear proyecto automáticamente
                 proyecto = await Proyectos.findOne({ 
                   usuario: userId, 
                   nombre: nombreProyecto 
@@ -451,27 +499,44 @@ class GoogleTasksService {
                   await proyecto.save();
                   console.log(`📁 Creado proyecto automáticamente: "${nombreProyecto}"`);
                 }
+                
+                const nuevaTarea = new Tareas({
+                  titulo: tituloLimpio, // Sin prefijo de proyecto
+                  descripcion: googleTask.notes || '',
+                  usuario: userId,
+                  fechaInicio: new Date(),
+                  prioridad: 'BAJA',
+                  proyecto: proyecto._id
+                });
+                
+                // Configurar Google Tasks
+                nuevaTarea.updateFromGoogleTask(googleTask);
+                nuevaTarea.googleTasksSync.googleTaskListId = taskList.id;
+                
+                console.log(`📥 Creando nueva tarea desde Google: "${tituloLimpio}" en proyecto: "${nombreProyecto}"`);
+                await nuevaTarea.save();
+                syncResults.created++;
               } else {
-                // Buscar un proyecto por defecto
+                // Tarea sin proyecto - usar proyecto por defecto
                 proyecto = await Proyectos.findOne({ usuario: userId });
+                
+                const nuevaTarea = new Tareas({
+                  titulo: tituloNormalizado,
+                  descripcion: googleTask.notes || '',
+                  usuario: userId,
+                  fechaInicio: new Date(),
+                  prioridad: 'BAJA',
+                  proyecto: proyecto?._id || null
+                });
+                
+                // Configurar Google Tasks
+                nuevaTarea.updateFromGoogleTask(googleTask);
+                nuevaTarea.googleTasksSync.googleTaskListId = taskList.id;
+                
+                console.log(`📥 Creando nueva tarea desde Google: "${tituloNormalizado}"`);
+                await nuevaTarea.save();
+                syncResults.created++;
               }
-              
-              const nuevaTarea = new Tareas({
-                titulo: tituloLimpio,
-                descripcion: googleTask.notes || '',
-                usuario: userId,
-                fechaInicio: new Date(),
-                prioridad: 'BAJA',
-                proyecto: proyecto?._id || null
-              });
-              
-              // Usar el método del modelo para configurar Google Tasks
-              nuevaTarea.updateFromGoogleTask(googleTask);
-              nuevaTarea.googleTasksSync.googleTaskListId = taskList.id;
-              
-              console.log(`📥 Creando nueva tarea desde Google: "${tituloLimpio}" en proyecto: ${proyecto?.nombre || 'Sin proyecto'}`);
-              await nuevaTarea.save();
-              syncResults.created++;
             }
           }
         } catch (error) {
@@ -597,17 +662,23 @@ class GoogleTasksService {
       // 2. Habilitar Google Tasks para todas las tareas existentes del usuario
       await this.enableGoogleTasksForAllUserTasks(userId);
       
-      // 3. Sincronizar tareas locales pendientes hacia Google
+      // 3. Sincronizar tareas locales pendientes hacia Google (con filtro más estricto)
       const tareasLocales = await Tareas.find({
         usuario: userId,
+        'googleTasksSync.enabled': true,
         $or: [
           // Tareas con sincronización pendiente
           { 'googleTasksSync.syncStatus': 'pending' },
           { 'googleTasksSync.needsSync': true },
-          // Tareas habilitadas que no están sincronizadas
-          { 'googleTasksSync.enabled': true, 'googleTasksSync.syncStatus': { $ne: 'synced' } },
           // Tareas que NO tienen googleTaskId (nunca se han sincronizado)
-          { 'googleTasksSync.enabled': true, 'googleTasksSync.googleTaskId': { $exists: false } }
+          { 'googleTasksSync.googleTaskId': { $exists: false } },
+          // Tareas modificadas recientemente (menos de 1 hora) que necesitan actualización
+          { 
+            'googleTasksSync.syncStatus': { $ne: 'synced' },
+            'googleTasksSync.lastSyncDate': { 
+              $lt: new Date(Date.now() - 60 * 60 * 1000) // Hace más de 1 hora
+            }
+          }
         ]
       });
       
@@ -730,8 +801,10 @@ class GoogleTasksService {
       notes += `\nProyecto: ${tarea.proyecto.nombre || 'Sin nombre'}`;
     }
 
-    // Agregar información de sincronización
-    notes += `\n\n---\nSincronizado desde Attadia el ${new Date().toLocaleString()}`;
+    // SOLO agregar información de sincronización si es una tarea nueva que nunca se ha sincronizado
+    if (!tarea.googleTasksSync?.googleTaskId) {
+      notes += `\n\n---\nTarea creada desde Attadia el ${new Date().toLocaleString()}`;
+    }
 
     return notes;
   }
@@ -754,6 +827,38 @@ class GoogleTasksService {
     return description.trim();
   }
 
+  /**
+   * Limpia las notas duplicadas de sincronización
+   */
+  cleanDuplicatedNotes(notes) {
+    if (!notes) return '';
+    
+    // Dividir por "---" para separar secciones
+    const sections = notes.split('---');
+    
+    if (sections.length < 2) return notes;
+    
+    // Tomar solo la primera sección (contenido útil) y limpiar espacios
+    let cleanedNotes = sections[0].trim();
+    
+    // Si había contenido útil después de las secciones de sincronización,
+    // también incluirlo
+    const hasSubtareas = sections.some(section => section.includes('Subtareas:'));
+    const hasProyecto = sections.some(section => section.includes('Proyecto:'));
+    
+    if (hasSubtareas || hasProyecto) {
+      // Buscar la primera sección que contenga información útil (Subtareas o Proyecto)
+      for (let i = 1; i < sections.length; i++) {
+        if (sections[i].includes('Subtareas:') || sections[i].includes('Proyecto:')) {
+          cleanedNotes += '\n---' + sections[i].trim();
+          break;
+        }
+      }
+    }
+    
+    return cleanedNotes;
+  }
+
   mapEstadoToGoogleStatus(estado) {
     switch (estado) {
       case 'COMPLETADA':
@@ -772,6 +877,148 @@ class GoogleTasksService {
     }
   }
 
+  /**
+   * Elimina una tarea en Google Tasks
+   */
+  async deleteGoogleTask(userId, taskListId, taskId) {
+    await this.setUserCredentials(userId);
+    const taskList = taskListId || (await this.getOrCreateDefaultTaskList(userId)).id;
+    await this.executeWithRetry(
+      () => this.tasks.tasks.delete({ tasklist: taskList, task: taskId }),
+      `eliminar tarea ${taskId}`
+    );
+  }
+
+  /**
+   * Actualiza el título de una tarea en Google Tasks
+   */
+  async updateGoogleTaskTitle(userId, taskListId, taskId, title) {
+    await this.setUserCredentials(userId);
+    const taskList = taskListId || (await this.getOrCreateDefaultTaskList(userId)).id;
+    await this.executeWithRetry(
+      () => this.tasks.tasks.patch({
+        tasklist: taskList,
+        task: taskId,
+        requestBody: { title },
+        fields: 'id,title,updated'
+      }),
+      `actualizar título de tarea ${taskId}`
+    );
+  }
+
+  /**
+   * Normaliza un título eliminando prefijos duplicados pero PRESERVANDO el prefijo de proyecto
+   * NOTA: Los prefijos [Proyecto] son válidos y deben mantenerse
+   */
+  normalizeTitle(rawTitle) {
+    if (!rawTitle) return '';
+    let title = String(rawTitle).trim();
+    
+    // Fase 1: Detectar y manejar títulos spam
+    if (this.isSpamTitle(title)) {
+      console.log(`🚨 Detectado título spam: "${title}"`);
+      // Para títulos spam, tratamos de extraer solo el contenido útil
+      const spamCleaned = this.cleanSpamTitle(title);
+      if (spamCleaned) {
+        return spamCleaned;
+      }
+      // Si no se puede limpiar, usar un título genérico
+      return '[Tarea importada]';
+    }
+    
+    // Fase 2: Limpiar múltiples repeticiones de prefijos [X] PERO preservar el prefijo de proyecto
+    const prefixRegex = /^((\[[^\]]+\]\s*)+)/;
+    const m = title.match(prefixRegex);
+    if (m) {
+      const allPrefixes = m[1].trim().match(/\[[^\]]+\]/g) || [];
+      
+      // Eliminar prefijos duplicados consecutivos, pero mantener al menos el primero (proyecto)
+      const uniquePrefixes = [];
+      for (const prefix of allPrefixes) {
+        if (uniquePrefixes[uniquePrefixes.length - 1] !== prefix) {
+          uniquePrefixes.push(prefix);
+        }
+      }
+      
+      // Si hay más de 2 prefijos únicos, considerar spam
+      if (uniquePrefixes.length > 2) {
+        console.log(`🚨 Detectado exceso de prefijos (${uniquePrefixes.length}): "${title}"`);
+        return this.cleanSpamTitle(title);
+      }
+      
+      // Reconstruir el título manteniendo el prefijo de proyecto y limpiando duplicados
+      title = `${uniquePrefixes.join(' ')} ${title.replace(prefixRegex, '').trim()}`.trim();
+    }
+    
+    // Fase 3: Limpiar espacios y caracteres extraños
+    title = title.replace(/\s{2,}/g, ' ').trim();
+    
+    return title;
+  }
+
+  /**
+   * Detecta si un título es considerado spam
+   * NOTA: Los prefijos [Proyecto] son válidos y NO deben considerarse spam
+   */
+  isSpamTitle(title) {
+    if (!title) return false;
+    const t = String(title);
+    
+    // Patrón 1: Título que contiene solo números después de limpiar prefijos de proyecto
+    const cleanOfPrefixes = t.replace(/^(\[[^\]]+\]\s*)/, '').trim(); // Solo el primer prefijo de proyecto
+    if (/^(\d+\s*)+$/.test(cleanOfPrefixes)) {
+      return true;
+    }
+    
+    // Patrón 2: Múltiples prefijos de proyecto repetidos (esto SÍ es spam)
+    // Ejemplo: "[Salud] [Salud] [Salud] Tarea" - prefijos duplicados
+    const matches = t.match(/\[[^\]]+\]/g) || [];
+    if (matches.length >= 3) {
+      // Verificar si son prefijos consecutivos duplicados
+      const uniquePrefixes = [...new Set(matches)];
+      if (uniquePrefixes.length < matches.length) {
+        return true; // Hay prefijos duplicados consecutivos
+      }
+    }
+    
+    // Patrón 3: Títulos muy cortos con patrones como "[Salud] 1", "[Salud] 2"
+    // PERO solo si el contenido después del proyecto es solo un número
+    const proyectoMatch = t.match(/^(\[[^\]]+\])\s*(.+)$/);
+    if (proyectoMatch) {
+      const [, proyecto, contenido] = proyectoMatch;
+      if (/^[12]\s*$/.test(contenido.trim())) {
+        return true; // "[Salud] 1" o "[Salud] 2" es spam
+      }
+    }
+    
+    return false;
+  }
+
+  /**
+   * Intenta limpiar un título spam manteniendo información útil
+   * PRESERVA el prefijo de proyecto si existe
+   */
+  cleanSpamTitle(spamTitle) {
+    // Extraer el primer prefijo de proyecto si existe
+    const proyectoMatch = spamTitle.match(/^\[([^\]]+)\]/);
+    if (proyectoMatch) {
+      const proyecto = `[${proyectoMatch[1]}]`;
+      
+      // Buscar contenido después del prefijo de proyecto
+      const restOfTitle = spamTitle.replace(/^(\[[^\]]+\]\s*)/, '').trim();
+      
+      // Si hay contenido útil después del proyecto, mantenerlo
+      if (restOfTitle && restOfTitle.length > 2 && !/^[12]\s*$/.test(restOfTitle)) {
+        return `${proyecto} ${restOfTitle}`;
+      }
+      
+      // Si no hay contenido útil, crear un título descriptivo pero mantener el proyecto
+      return `${proyecto} Tarea`;
+    }
+    
+    // Si no hay prefijo de proyecto, crear un título genérico
+    return '[Tarea importada]';
+  }
 }
 
 export default new GoogleTasksService();

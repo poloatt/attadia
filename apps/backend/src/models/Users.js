@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 // Definir el esquema de configuración de cadencia global por usuario
 const cadenciaConfigSchema = {

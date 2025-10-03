@@ -62,39 +62,38 @@ const configs = {
     isDev: true,
     port: parseInt(process.env.PORT || '5000', 10),
     mongoUrl: process.env.MONGO_URL || 'mongodb://localhost:27017/present',
-    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173', // Foco por defecto
     backendUrl: process.env.BACKEND_URL || 'http://localhost:5000',
-    corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:5173'],
+    corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'],
+    // URLs de todas las apps en desarrollo
+    frontendUrls: {
+      foco: 'http://localhost:5173',
+      atta: 'http://localhost:5174', 
+      pulso: 'http://localhost:5175'
+    },
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback'
     }
   },
-  staging: {
-    ...baseConfig,
-    env: 'staging',
-    mongoUrl: process.env.MONGO_PUBLIC_URL || process.env.MONGO_URL || process.env.MONGODB_URI || `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@mongodb-staging:27017/${process.env.MONGO_DB}?authSource=admin`,
-    frontendUrl: process.env.FRONTEND_URL,
-    backendUrl: process.env.BACKEND_URL,
-    corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [],
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackUrl: process.env.GOOGLE_CALLBACK_URL
-    }
-  },
   production: {
     ...baseConfig,
     env: 'production',
     mongoUrl: process.env.MONGO_PUBLIC_URL || process.env.MONGO_URL || process.env.MONGODB_URI || `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@mongodb:27017/${process.env.MONGO_DB}?authSource=admin`,
-    frontendUrl: process.env.FRONTEND_URL || 'https://admin.attadia.com',
-    backendUrl: process.env.BACKEND_URL || 'https://api.admin.attadia.com',
-    corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['https://admin.attadia.com'],
+    frontendUrl: process.env.FRONTEND_URL || 'https://foco.attadia.com',
+    backendUrl: process.env.BACKEND_URL || 'https://api.attadia.com',
+    corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['https://foco.attadia.com', 'https://atta.attadia.com', 'https://pulso.attadia.com'],
+    // URLs de todas las apps en producción
+    frontendUrls: {
+      foco: 'https://foco.attadia.com',
+      atta: 'https://atta.attadia.com',
+      pulso: 'https://pulso.attadia.com'
+    },
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'https://api.admin.attadia.com/api/auth/google/callback'
+      callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'https://api.attadia.com/api/auth/google/callback'
     }
   }
 };

@@ -9,7 +9,7 @@ console.log('process.env.PORT:', process.env.PORT);
 
 // CORS básico
 app.use(cors({
-  origin: 'https://admin.attadia.com',
+  origin: ['https://foco.attadia.com', 'https://atta.attadia.com', 'https://pulso.attadia.com'],
   credentials: true
 }));
 

@@ -1,0 +1,21 @@
+// Exportar hooks personalizados (usar named exports cuando corresponde)
+export * from './useActionHistory.js';
+export * from './useAPI.js';
+export * from './useAppDetection.js';
+export * from './useContratoData.js';
+export * from './useContratoExpansion.js';
+export * from './useCuotaGuardado.js';
+export { default as useDebounce } from './useDebounce.js';
+export * from './useDocumentosPropiedad.js';
+export * from './useGlobalActionHistory.js';
+export * from './useLocalPreservationState.js';
+export * from './useMercadoPago.js';
+export * from './useOptimisticUpdate.js';
+export * from './usePerformanceOptimizer.js';
+export * from './usePropiedadDatos.js';
+export * from './useRelationalData.js';
+export { default as useResponsive } from './useResponsive.js';
+export * from './useRutinasCRUD.js';
+export * from './useStatusOptimizer.js';
+export * from './useTimezone.js';
+export * from './rutinaHooks.js';

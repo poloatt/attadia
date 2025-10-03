@@ -1,5 +1,103 @@
-node_modules
-npm-debug.log
-build
+# ================================================
+# MONOREPO DOCKERIGNORE - ATTADIA
+# ================================================
+
+# Dependencies
+node_modules/
+**/node_modules/
+.pnpm-store
+.npm
+pnpm-debug.log*
+
+# Build artifacts (excepto dist que se necesita para producción)
+.cache
+.vite
+.next
+.nuxt
+coverage
+.nyc_output
+
+# Sistema y editores
+.DS_Store
+.idea
+.vscode
+*.swp
+*.swo
+*~
+Thumbs.db
+
+# Control de versiones
 .git
-.gitignore 
+.gitignore
+.svn
+.hg
+
+# Configuración y logs
+.env*
+*.log
+.eslintcache
+.stylelintcache
+
+# Archivos de desarrollo innecesarios
+*.md
+README*
+CHANGELOG*
+LICENSE*
+docs/
+examples/
+.husky/
+
+# Testing
+test/
+tests/
+__tests__/
+*.test.js
+*.test.ts
+*.test.jsx
+*.test.tsx
+*.spec.js
+*.spec.ts
+*.spec.jsx
+*.spec.tsx
+coverage/
+.nyc_output/
+
+# Archivos de configuración de desarrollo
+.eslintrc*
+.prettierrc*
+.editorconfig
+tsconfig.json
+jsconfig.json
+
+# Permitir solo archivos esenciales para build
+!package.json
+!package-lock.json
+!pnpm-lock.yaml
+!yarn.lock
+!vite.config.js
+!vite.config.ts
+!next.config.js
+!nuxt.config.js
+!index.html
+!src/**
+!public/**
+!apps/*/src/**
+!apps/*/public/**
+!apps/*/package.json
+!apps/*/vite.config.js
+!apps/*/index.html
+
+# Asegurar que estos se ignoren incluso en directorios permitidos
+**/*.log
+**/.DS_Store
+**/.env*
+**/node_modules/
+**/.git/
+**/.vscode/
+**/*.test.*
+**/__tests__/
+**/*.spec.*
+**/coverage/
+**/.nyc_output/
+**/.cache/
+**/.vite/

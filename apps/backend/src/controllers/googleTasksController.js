@@ -407,6 +407,100 @@ export const getStats = async (req, res) => {
 };
 
 /**
+ * Limpia duplicados de Google Tasks
+ */
+export const cleanupDuplicates = async (req, res) => {
+  try {
+    if (!isGoogleTasksEnabled() || !googleTasksService) {
+      return res.json({
+        success: false,
+        error: 'Google Tasks no está disponible'
+      });
+    }
+
+    const userId = req.user.userId || req.user._id;
+    console.log(`🧹 Iniciando limpieza de duplicados para usuario: ${userId}`);
+
+    // 1. Primero, limpiar tareas locales spam
+    const { Tareas } = await import('../models/index.js');
+    
+    const localTasks = await Tareas.find({
+      usuario: userId,
+      'googleTasksSync.enabled': true
+    });
+
+    let localFixed = 0;
+    let localSpamDeleted = 0;
+
+    let notesCleaned = 0;
+    
+    // Prevenir spam en nuevas sincronizaciones
+    for (const tarea of localTasks) {
+      const tituloOriginal = tarea.titulo;
+      const tituloNormalizado = googleTasksService.normalizeTitle(tarea.titulo);
+      
+      // Normalizar y guardar si cambió
+      if (tituloNormalizado !== tituloOriginal) {
+        tarea.titulo = tituloNormalizado;
+        await tarea.save();
+        localFixed++;
+        console.log(`🔧 Normalizado: "${tituloOriginal}" -> "${tituloNormalizado}"`);
+      }
+
+      // Limpiar notas duplicadas si la tarea está vinculada a Google
+      if (tarea.googleTasksSync?.googleTaskId && tarea.descripcion) {
+        const notasLimpias = googleTasksService.cleanDuplicatedNotes(tarea.descripcion);
+        if (notasLimpias !== tarea.descripcion) {
+          tarea.descripcion = notasLimpias;
+          await tarea.save();
+          notesCleaned++;
+          console.log(`🧹 Notas limpiadas para: "${tarea.titulo}"`);
+        }
+      }
+
+      // Mark spam for deletion
+      if (googleTasksService.isSpamTitle(tarea.titulo)) {
+        console.log(`🚨 SPAM DETECTADO - Eliminando: "${tarea.titulo}"`);
+        
+        // Remove from Google if linked
+        if (tarea.googleTasksSync?.googleTaskId) {
+          try {
+            await googleTasksService.deleteGoogleTask(userId, tarea.googleTasksSync.googleTaskListId, tarea.googleTasksSync.googleTaskId);
+          } catch (e) {
+            console.warn('No se pudo borrar en Google:', e.message);
+          }
+        }
+        
+        await Tareas.deleteOne({ _id: tarea._id });
+        localSpamDeleted++;
+      }
+    }
+
+    const results = {
+      success: true,
+      message: 'Limpieza completada exitosamente',
+      data: {
+        localFixed,
+        localSpamDeleted,
+        notesCleaned,
+        totalProcessed: localTasks.length,
+        duplicatesFixed: true
+      }
+    };
+
+    console.log(`✅ Limpieza completada:`, results.data);
+    res.json(results);
+
+  } catch (error) {
+    console.error('Error en limpieza de duplicados:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error al limpiar duplicados'
+    });
+  }
+};
+
+/**
  * Sincronización manual
  */
 export const manualSync = async (req, res) => {
