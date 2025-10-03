@@ -1,61 +1,15 @@
 {
-  "name": "pulso-app",
-  "version": 2,
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
+  "buildCommand": "cd ../.. && npm run build:pulso",
+  "outputDirectory": "../../apps/pulso/dist",
+  "installCommand": "cd ../.. && npm install",
   "framework": "vite",
-  "installCommand": "npm install",
-  "devCommand": "npm run dev -- --port $PORT",
-  "env": {
-    "VITE_APP_NAME": "Pulso",
-    "VITE_API_URL": "@vite_api_url",
-    "VITE_FRONTEND_URL": "@vite_frontend_url_pulso"
-  },
-  "build": {
-    "env": {
-      "VITE_APP_NAME": "Pulso"
-    }
-  },
-  "routes": [
-    {
-      "src": "/assets/(.*)",
-      "dest": "/assets/$1"
-    },
-    {
-      "src": "/logos/(.*)",
-      "dest": "/logos/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
-  ],
-  "headers": [
+  "rewrites": [
     {
       "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        }
-      ]
-    },
-    {
-      "source": "/assets/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
+      "destination": "/index.html"
     }
-  ]
+  ],
+  "env": {
+    "VITE_API_URL": "https://api.attadia.com"
+  }
 }

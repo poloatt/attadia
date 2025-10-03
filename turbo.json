@@ -10,6 +10,18 @@
       "dependsOn": [],
       "outputs": ["dist/**"]
     },
+    "build:atta": {
+      "dependsOn": ["build:shared"],
+      "outputs": ["dist/**"]
+    },
+    "build:foco": {
+      "dependsOn": ["build:shared"],
+      "outputs": ["dist/**"]
+    },
+    "build:pulso": {
+      "dependsOn": ["build:shared"],
+      "outputs": ["dist/**"]
+    },
     "dev": {
       "cache": false,
       "persistent": true
