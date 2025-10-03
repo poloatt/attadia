@@ -32,6 +32,15 @@ export default defineConfig(({ mode }) => {
       watch: {
         usePolling: false, // Usar file watching nativo (más rápido)
         interval: 1000,
+        // Solo observar cambios en la app actual y shared
+        ignored: [
+          '**/node_modules/**',
+          '**/dist/**',
+          '**/.git/**',
+          '**/apps/atta/**',
+          '**/apps/pulso/**',
+          '**/apps/backend/**'
+        ]
       },
       proxy: {
         '/api': {
