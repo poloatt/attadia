@@ -87,7 +87,6 @@ export default defineConfig(({ mode }) => {
       port: 5175
     },
     define: {
-      'process.env': {},
       'import.meta.env.VITE_ENVIRONMENT': JSON.stringify(mode),
       'import.meta.env.MODE': JSON.stringify(mode),
       'import.meta.env.VITE_APP_NAME': JSON.stringify('Pulso'),

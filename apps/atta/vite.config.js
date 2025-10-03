@@ -87,7 +87,6 @@ export default defineConfig(({ mode }) => {
       port: 5174
     },
     define: {
-      'process.env': {},
       'import.meta.env.VITE_ENVIRONMENT': JSON.stringify(mode),
       'import.meta.env.MODE': JSON.stringify(mode),
       'import.meta.env.VITE_APP_NAME': JSON.stringify('Atta'),

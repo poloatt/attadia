@@ -45,7 +45,7 @@ export default defineConfig(({ mode }) => {
       },
       proxy: {
         '/api': {
-          target: process.env.VITE_API_URL || 'http://localhost:5000',
+          target: process.env.VITE_API_URL || 'https://api.attadia.com',
           changeOrigin: true,
           secure: false,
           ws: true
@@ -87,7 +87,6 @@ export default defineConfig(({ mode }) => {
       port: 5173
     },
     define: {
-      'process.env': {},
       'import.meta.env.VITE_ENVIRONMENT': JSON.stringify(mode),
       'import.meta.env.MODE': JSON.stringify(mode),
       'import.meta.env.VITE_APP_NAME': JSON.stringify('Foco'),
