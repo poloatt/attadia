@@ -1,6 +1,6 @@
 {
   "buildCommand": "cd ../.. && npm run build:foco",
-  "outputDirectory": "../../apps/foco/dist",
+  "outputDirectory": "apps/foco/dist",
   "installCommand": "cd ../.. && npm install",
   "framework": "vite",
   "rewrites": [
