@@ -4,7 +4,8 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  const isProd = mode === 'production';
+  // Forzar modo producción si VITE_API_URL está definido
+  const isProd = mode === 'production' || process.env.VITE_API_URL;
   
   // Cargar variables de entorno compartidas y específicas de la app
   const sharedEnv = loadEnv(mode, path.resolve(__dirname, '../shared'), '')
