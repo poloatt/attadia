@@ -13,8 +13,8 @@ const getBaseUrl = () => {
 
   const isLocalHost = ['localhost', '127.0.0.1', '::1'].includes(hostname);
 
-  // En localhost, usar configuración de desarrollo solo si no hay VITE_API_URL
-  if (isLocalHost && !apiUrl) {
+  // En localhost, nunca forzar producción ni staging
+  if (isLocalHost) {
     return 'http://localhost:5000';
   }
 
@@ -25,8 +25,8 @@ const getBaseUrl = () => {
     return 'https://api.attadia.com';
   }
 
-  // Fallback a desarrollo solo si no hay VITE_API_URL
-  return apiUrl || 'http://localhost:5000';
+  // Fallback a desarrollo
+  return 'http://localhost:5000';
 };
 
 const baseURL = getBaseUrl();

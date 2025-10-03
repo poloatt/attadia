@@ -7,8 +7,7 @@ export default defineConfig(({ mode }) => {
   // Forzar modo producción si VITE_API_URL está definido
   const isProd = mode === 'production' || process.env.VITE_API_URL;
   
-  // Cargar variables de entorno compartidas y específicas de la app
-  const sharedEnv = loadEnv(mode, path.resolve(__dirname, '../shared'), '')
+  // Cargar variables de entorno específicas de la app
   const appEnv = loadEnv(mode, __dirname, '')
   
   return {
@@ -96,11 +95,7 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_FRONTEND_URL': JSON.stringify(
         process.env.VITE_FRONTEND_URL || 'https://foco.attadia.com'
       ),
-      // Combinar variables de entorno compartidas y específicas
-      ...Object.keys(sharedEnv).reduce((prev, key) => {
-        prev[`process.env.${key}`] = JSON.stringify(sharedEnv[key])
-        return prev
-      }, {}),
+      // Combinar variables de entorno específicas de la app
       ...Object.keys(appEnv).reduce((prev, key) => {
         prev[`process.env.${key}`] = JSON.stringify(appEnv[key])
         return prev
