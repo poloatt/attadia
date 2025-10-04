@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "description": "Atta - Property Management",
-  "type": "module",
+  "type": "module", 
   "scripts": {
     "dev": "vite --port 5174",
     "build": "vite build",
