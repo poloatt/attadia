@@ -1,5 +1,0 @@
-# Ignore everything except the specific app being deployed
-apps/backend/**
-apps/shared/node_modules/**
-node_modules/**
-
