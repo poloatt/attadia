@@ -5,7 +5,7 @@ import { useAppConfig } from '../hooks/useAppDetection.js';
 
 const AuthContext = createContext();
 
-// Hook personalizado para usar el contexto de autenticación
+// Hook personalizado para usar el contexto de autenticación.
 const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

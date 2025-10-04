@@ -1,6 +1,6 @@
 // Punto de entrada principal para la librería shared 
 // Exportar todo lo que necesitan las aplicaciones
-// Test: Cambio para verificar rebuilds en Vercel
+// 
 
 // Componentes
 export * from './components/auth/index.js';
