@@ -13,6 +13,7 @@ import { modulos } from '../../navigation/menuStructure';
 import { getIconByKey } from '../../navigation/menuIcons';
 import { FORM_HEIGHTS } from '../../config/uiConstants';
 import { DynamicIcon } from './DynamicIcon';
+import { config } from '../../config/envConfig.js';
 
 // Diálogo de confirmación para eliminar
 const DeleteConfirmDialog = memo(({ open, onClose, onConfirm, itemName }) => (
@@ -520,21 +521,41 @@ function HeaderAppsButton({ iconSx }) {
   const handleNavigateToModule = (modulo) => {
     handleCloseAppsMenu();
     
-    // Mapear módulos a puertos de desarrollo
-    const modulePorts = {
-      'assets': '5174', // Atta
-      'salud': '5175',  // Pulso
-      'tiempo': '5173'  // Foco
-    };
+    // Detectar si estamos en desarrollo o producción
+    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     
-    const port = modulePorts[modulo.id];
-    if (port) {
-      // En desarrollo, redirigir a la app correspondiente
-      window.location.href = `http://localhost:${port}${modulo.path}`;
+    if (isDevelopment) {
+      // Mapear módulos a puertos de desarrollo
+      const modulePorts = {
+        'assets': '5174', // Atta
+        'salud': '5175',  // Pulso
+        'tiempo': '5173'  // Foco
+      };
+      
+      const port = modulePorts[modulo.id];
+      if (port) {
+        // En desarrollo, redirigir a la app correspondiente
+        window.location.href = `http://localhost:${port}${modulo.path}`;
+        return;
+      }
     } else {
-      // Fallback: navegación interna
-      navigate(modulo.path);
+      // En producción, usar las URLs de la configuración centralizada
+      const productionUrls = {
+        'assets': config.frontendUrls.atta,   // Atta
+        'salud': config.frontendUrls.pulso,  // Pulso
+        'tiempo': config.frontendUrls.foco   // Foco
+      };
+      
+      const url = productionUrls[modulo.id];
+      if (url) {
+        // En producción, redirigir a la app correspondiente
+        window.location.href = `${url}${modulo.path}`;
+        return;
+      }
     }
+    
+    // Fallback: navegación interna
+    navigate(modulo.path);
   };
 
   return (
