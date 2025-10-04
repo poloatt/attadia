@@ -44,9 +44,9 @@ export default defineConfig(({ mode }) => {
       },
       proxy: {
         '/api': {
-          target: process.env.VITE_API_URL || 'http://localhost:5000',
+          target: process.env.VITE_API_URL || 'https://api.attadia.com',
           changeOrigin: true,
-          secure: false,
+          secure: true,
           ws: true
         }
       }

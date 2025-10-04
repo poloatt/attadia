@@ -6,11 +6,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Determinar el ambiente
-const environment = process.env.NODE_ENV || 'development';
+const environment = process.env.NODE_ENV || process.env.ENVIRONMENT || 'development';
 console.log('Ambiente detectado:', environment);
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('ENVIRONMENT:', process.env.ENVIRONMENT);
 
 // Cargar el archivo .env correspondiente
-const envPath = path.resolve(__dirname, '../../.env');
+let envPath;
+if (environment === 'production') {
+  envPath = path.resolve(__dirname, '../../.env.production');
+} else {
+  envPath = path.resolve(__dirname, '../../.env');
+}
 console.log('Cargando configuración desde:', envPath);
 dotenv.config({ path: envPath });
 
