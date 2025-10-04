@@ -1,3 +1,2 @@
-foco readme
-
-Test de deploy específico para foco - verificar configuración de Vercel
+foco readme2
+  foco - verificar configuración de Vercel
