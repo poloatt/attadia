@@ -15,8 +15,8 @@ const getBaseUrl = () => {
 
   // En localhost, usar producción por defecto (no desarrollo local)
   if (isLocalHost) {
-    return 'https://api.attadia.com';
-  }
+    return 'http://localhost:5000';
+  } 
 
   // Detección por hostname únicamente (evita confusiones por variables de entorno)
   if (hostname === 'atta.attadia.com' || 

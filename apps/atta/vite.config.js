@@ -44,9 +44,9 @@ export default defineConfig(({ mode }) => {
       },
       proxy: {
         '/api': {
-          target: process.env.VITE_API_URL || 'https://api.attadia.com',
+          target: appEnv.VITE_API_URL || (mode === 'development' ? 'http://localhost:5000' : 'https://api.attadia.com'),
           changeOrigin: true,
-          secure: true,
+          secure: mode !== 'development',
           ws: true
         }
       }
@@ -89,9 +89,7 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_ENVIRONMENT': JSON.stringify(mode),
       'import.meta.env.MODE': JSON.stringify(mode),
       'import.meta.env.VITE_APP_NAME': JSON.stringify('Atta'),
-      'import.meta.env.VITE_API_URL': JSON.stringify(
-        process.env.VITE_API_URL || 'https://api.attadia.com'
-      ),
+      'import.meta.env.VITE_API_URL': JSON.stringify(appEnv.VITE_API_URL || ''),
       'import.meta.env.VITE_FRONTEND_URL': JSON.stringify(
         process.env.VITE_FRONTEND_URL || 'https://atta.attadia.com'
       ),
