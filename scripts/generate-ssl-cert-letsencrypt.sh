@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script para generar certificado SSL con Let's Encrypt
-# Incluye admin.attadia.com y api.admin.attadia.com
+# Incluye foco.attadia.com, atta.attadia.com, pulso.attadia.com y api.attadia.com
 
 set -e
 
@@ -77,9 +77,9 @@ get_certificate_for_domain() {
 
 # Función para obtener certificado conjunto
 get_multi_domain_certificate() {
-    log_info "Intentando obtener certificado conjunto para admin.attadia.com y api.admin.attadia.com..."
+    log_info "Intentando obtener certificado conjunto para foco.attadia.com, atta.attadia.com, pulso.attadia.com y api.attadia.com..."
     
-    if certbot --nginx -d admin.attadia.com -d api.admin.attadia.com --non-interactive --agree-tos --email "$EMAIL"; then
+    if certbot --nginx -d foco.attadia.com -d atta.attadia.com -d pulso.attadia.com -d api.attadia.com --non-interactive --agree-tos --email "$EMAIL"; then
         log_info "✅ Certificado conjunto obtenido exitosamente"
         return 0
     else
@@ -110,7 +110,7 @@ verify_certificates() {
     certbot certificates
     
     # Verificar que los dominios responden con SSL
-    for domain in "admin.attadia.com" "api.admin.attadia.com"; do
+    for domain in "foco.attadia.com" "atta.attadia.com" "pulso.attadia.com" "api.attadia.com"; do
         log_info "Verificando conectividad SSL para $domain..."
         if curl -I -s -k "https://$domain" | head -n 1 | grep -q "HTTP"; then
             log_info "✅ $domain responde correctamente"
@@ -135,14 +135,24 @@ main() {
         # Si falla, intentar dominio por dominio
         log_info "Obteniendo certificados por separado..."
         
-        # Obtener para admin.attadia.com
-        if ! get_certificate_for_domain "admin.attadia.com"; then
-            log_error "No se pudo obtener certificado para admin.attadia.com"
+        # Obtener para foco.attadia.com
+        if ! get_certificate_for_domain "foco.attadia.com"; then
+            log_error "No se pudo obtener certificado para foco.attadia.com"
         fi
         
-        # Obtener para api.admin.attadia.com
-        if ! get_certificate_for_domain "api.admin.attadia.com"; then
-            log_error "No se pudo obtener certificado para api.admin.attadia.com"
+        # Obtener para atta.attadia.com
+        if ! get_certificate_for_domain "atta.attadia.com"; then
+            log_error "No se pudo obtener certificado para atta.attadia.com"
+        fi
+        
+        # Obtener para pulso.attadia.com
+        if ! get_certificate_for_domain "pulso.attadia.com"; then
+            log_error "No se pudo obtener certificado para pulso.attadia.com"
+        fi
+        
+        # Obtener para api.attadia.com
+        if ! get_certificate_for_domain "api.attadia.com"; then
+            log_error "No se pudo obtener certificado para api.attadia.com"
         fi
     fi
     
@@ -156,8 +166,10 @@ main() {
     echo -e "${GREEN}🎉 Configuración de SSL completada!${NC}"
     echo "=================================================="
     echo -e "${BLUE}Dominios configurados:${NC}"
-    echo "- admin.attadia.com"
-    echo "- api.admin.attadia.com"
+    echo "- foco.attadia.com"
+    echo "- atta.attadia.com"
+    echo "- pulso.attadia.com"
+    echo "- api.attadia.com"
     echo
     echo -e "${BLUE}Certificados ubicados en:${NC}"
     echo "/etc/letsencrypt/live/"
@@ -184,7 +196,7 @@ check_internet() {
 check_dns() {
     log_info "Verificando resolución DNS..."
     
-    for domain in "admin.attadia.com" "api.admin.attadia.com"; do
+    for domain in "foco.attadia.com" "atta.attadia.com" "pulso.attadia.com" "api.attadia.com"; do
         if nslookup "$domain" &> /dev/null; then
             log_info "✅ DNS resuelve correctamente para $domain"
         else

@@ -13,13 +13,15 @@ const config = {
   apiUrl: process.env.BACKEND_URL,
   frontendUrl: process.env.FRONTEND_URL,
   corsOrigins: [
-    'https://admin.attadia.com'
+    'https://foco.attadia.com',
+    'https://atta.attadia.com',
+    'https://pulso.attadia.com'
   ],
   sessionSecret: process.env.SESSION_SECRET,
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackUrl: 'https://api.admin.attadia.com/api/auth/google/callback'
+    callbackUrl: 'https://api.attadia.com/api/auth/google/callback'
   },
   isDev: false,
   isStaging

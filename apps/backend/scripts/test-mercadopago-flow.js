@@ -20,7 +20,7 @@ const environment = process.env.NODE_ENV || 'production';
 const envPath = path.resolve(__dirname, '../.env.' + environment);
 dotenv.config({ path: envPath });
 
-const BASE_URL = process.env.BACKEND_URL || 'https://api.admin.attadia.com';
+const BASE_URL = process.env.BACKEND_URL || 'https://api.attadia.com';
 const ACCESS_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN;
 
 async function testMercadoPagoFlow() {
@@ -78,7 +78,7 @@ async function testMercadoPagoFlow() {
 
     // 3. Probar URL de autorización
     console.log('3. Probando generación de URL de autorización...');
-    const authUrlRes = await fetch(`${BASE_URL}/api/bankconnections/mercadopago/auth-url?redirect_uri=https://admin.attadia.com/mercadopago/callback`, {
+    const authUrlRes = await fetch(`${BASE_URL}/api/bankconnections/mercadopago/auth-url?redirect_uri=https://foco.attadia.com/mercadopago/callback`, {
       method: 'GET',
       headers: {
         'Authorization': 'Bearer test-token'

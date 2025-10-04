@@ -20,7 +20,7 @@ const environment = process.env.NODE_ENV || 'production';
 const envPath = path.resolve(__dirname, environment === 'production' ? '../.env.prod' : '../.env.' + environment);
 dotenv.config({ path: envPath });
 
-const BASE_URL = process.env.BACKEND_URL || 'https://api.admin.attadia.com';
+const BASE_URL = process.env.BACKEND_URL || 'https://api.attadia.com';
 const ACCESS_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN;
 
 async function testMercadoPagoSync() {

@@ -15,11 +15,11 @@ try {
   console.error('Error al cargar la configuración en authRoutes, usando configuración básica:', error.message);
   // Configuración básica por defecto
   const defaultFrontendUrl = process.env.NODE_ENV === 'production' 
-    ? 'https://present.attadia.com'
+    ? 'https://foco.attadia.com'
     : 'https://staging.present.attadia.com';
   
   const defaultBackendUrl = process.env.NODE_ENV === 'production'
-    ? 'https://api.admin.attadia.com'
+    ? 'https://api.attadia.com'
     : 'https://api.staging.present.attadia.com';
 
   config = {

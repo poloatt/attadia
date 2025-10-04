@@ -18,11 +18,11 @@ try {
     env: process.env.NODE_ENV || 'development',
     jwtSecret: process.env.JWT_SECRET || 'fallback_jwt_secret',
     refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET || 'fallback_refresh_secret',
-    frontendUrl: process.env.FRONTEND_URL || 'https://staging.present.attadia.com',
+    frontendUrl: process.env.FRONTEND_URL || 'https://foco.attadia.com',
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'https://api.admin.attadia.com/api/auth/google/callback'
+      callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'https://api.attadia.com/api/auth/google/callback'
     }
   };
 }

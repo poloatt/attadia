@@ -48,13 +48,13 @@ const configs = {
     ...baseConfig,
     env: 'production',
     mongoUrl: 'mongodb://admin:MiContraseñaSegura123@mongodb:27017/present?authSource=admin',
-    frontendUrl: 'https://admin.attadia.com',
-    backendUrl: 'https://api.admin.attadia.com',
-    corsOrigins: ['https://admin.attadia.com'],
+    frontendUrl: 'https://foco.attadia.com',
+    backendUrl: 'https://api.attadia.com',
+    corsOrigins: ['https://foco.attadia.com'],
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackUrl: 'https://api.admin.attadia.com/api/auth/google/callback'
+      callbackUrl: 'https://api.attadia.com/api/auth/google/callback'
     }
   }
 };
