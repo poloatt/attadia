@@ -3,8 +3,3 @@ apps/backend/**
 apps/shared/node_modules/**
 node_modules/**
 
-# Keep only the app being deployed and shared
-!apps/shared/**
-!apps/atta/**
-!apps/foco/**
-!apps/pulso/**
