@@ -215,13 +215,25 @@ router.get('/google/url', (req, res) => {
     'email'
   ];
   
+  // Incluir parámetro state con el origin para soportar múltiples frontends
+  // Guardamos también en sesión por retrocompatibilidad
+  const statePayload = Buffer.from(JSON.stringify({
+    origin,
+    ts: Date.now()
+  })).toString('base64');
+  try {
+    if (!req.session) req.session = {};
+    req.session.googleOAuthState = statePayload;
+  } catch (_) {}
+
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
     `client_id=${encodeURIComponent(config.google.clientId)}&` +
     `redirect_uri=${encodeURIComponent(callbackUrl)}&` +
     `response_type=code&` +
     `scope=${encodeURIComponent(scopes.join(' '))}&` +
     `access_type=offline&` +
-    `prompt=consent`;
+    `prompt=consent&` +
+    `state=${encodeURIComponent(statePayload)}`;
   
   // Cachear la URL generada
   cachedGoogleUrl = authUrl;

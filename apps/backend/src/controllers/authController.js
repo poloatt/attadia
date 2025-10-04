@@ -349,8 +349,21 @@ export const authController = {
       // Generar tokens
       const { token, refreshToken } = generateTokens(req.user);
 
-      // Detección automática del origen - prioridad: sesión > referer > configuración
+      // Detección automática del origen - prioridad: state > sesión > referer > configuración
       let callbackOrigin = null;
+
+      // 0. Prioridad máxima: parámetro state (contiene origin codificado)
+      if (req.query?.state) {
+        try {
+          const decoded = JSON.parse(Buffer.from(req.query.state, 'base64').toString('utf8'));
+          if (decoded?.origin) {
+            callbackOrigin = decoded.origin;
+            console.log(`🔍 Usando origen desde state: ${callbackOrigin}`);
+          }
+        } catch (e) {
+          console.warn('State inválido en callback de Google:', e.message);
+        }
+      }
       
       // 1. Prioridad: origen guardado en sesión
       if (req.session?.googleCallbackOrigin) {
