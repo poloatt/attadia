@@ -1,6 +1,5 @@
 // Punto de entrada principal para la librería shared 
 // Exportar todo lo que necesitan las aplicaciones
-// 
 
 // Componentes
 export * from './components/auth/index.js';

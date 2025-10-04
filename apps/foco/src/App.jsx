@@ -2,7 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { Toaster } from 'react-hot-toast';
-
+ 
 // Importaciones compartidas
 import { PrivateRoute } from '@shared/navigation';
 import { Layout } from '@shared/layouts/Layout';
