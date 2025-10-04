@@ -1,4 +1,4 @@
-// Punto de entrada principal para la librería shared
+// Punto de entrada principal para la librería shared 
 // Exportar todo lo que necesitan las aplicaciones
 
 // Componentes
