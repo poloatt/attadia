@@ -181,7 +181,7 @@ router.get('/google/url', (req, res) => {
   }
 
   // Determinar la URL de callback correcta según el origen
-  const origin = req.headers.origin;
+  const requestOrigin = req.headers.origin;
   let callbackUrl = config.google.callbackUrl;
   
   // Si hay múltiples URLs separadas por comas, seleccionar la correcta
@@ -195,7 +195,7 @@ router.get('/google/url', (req, res) => {
       'https://pulso.attadia.com': 'https://api.attadia.com/api/auth/google/callback'
     };
     
-    callbackUrl = originToCallback[origin] || callbackUrls[0];
+    callbackUrl = originToCallback[requestOrigin] || callbackUrls[0];
   }
 
   // Solo loggear en staging/producción
@@ -205,7 +205,7 @@ router.get('/google/url', (req, res) => {
       clientId: config.google.clientId ? 'configurado' : 'no configurado',
       callbackUrl: callbackUrl,
       frontendUrl: config.frontendUrl,
-      origin: origin
+      origin: requestOrigin
     });
   }
 
