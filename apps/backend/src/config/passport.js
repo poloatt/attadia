@@ -119,16 +119,21 @@ passport.use(new LocalStrategy({
 
 // Configuración de la estrategia Google OAuth2
 if (config.google.clientId && config.google.clientSecret) {
+  // Usar solo la URL principal para Passport (la primera URL si hay múltiples)
+  const callbackUrl = config.google.callbackUrl.includes(',') 
+    ? config.google.callbackUrl.split(',')[0].trim()
+    : config.google.callbackUrl;
+    
   console.log('Configurando estrategia de Google OAuth2 para ambiente:', {
     env: config.env,
-    callbackURL: config.google.callbackUrl,
+    callbackURL: callbackUrl,
     proxy: true
   });
 
   passport.use(new GoogleStrategy({
     clientID: config.google.clientId,
     clientSecret: config.google.clientSecret,
-    callbackURL: config.google.callbackUrl,
+    callbackURL: callbackUrl,
     passReqToCallback: true,
     scope: ['profile', 'email', 'openid'],
     proxy: true

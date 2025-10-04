@@ -180,13 +180,32 @@ router.get('/google/url', (req, res) => {
     return res.json({ url: cachedGoogleUrl });
   }
 
+  // Determinar la URL de callback correcta según el origen
+  const origin = req.headers.origin;
+  let callbackUrl = config.google.callbackUrl;
+  
+  // Si hay múltiples URLs separadas por comas, seleccionar la correcta
+  if (callbackUrl.includes(',')) {
+    const callbackUrls = callbackUrl.split(',').map(url => url.trim());
+    
+    // Mapear orígenes a URLs de callback
+    const originToCallback = {
+      'https://foco.attadia.com': 'https://api.attadia.com/api/auth/google/callback',
+      'https://atta.attadia.com': 'https://api.attadia.com/api/auth/google/callback',
+      'https://pulso.attadia.com': 'https://api.attadia.com/api/auth/google/callback'
+    };
+    
+    callbackUrl = originToCallback[origin] || callbackUrls[0];
+  }
+
   // Solo loggear en staging/producción
   if (config.env !== 'development') {
     console.log('Generando nueva URL de Google OAuth para ambiente:', {
       env: config.env,
       clientId: config.google.clientId ? 'configurado' : 'no configurado',
-      callbackUrl: config.google.callbackUrl,
-      frontendUrl: config.frontendUrl
+      callbackUrl: callbackUrl,
+      frontendUrl: config.frontendUrl,
+      origin: origin
     });
   }
 
@@ -198,7 +217,7 @@ router.get('/google/url', (req, res) => {
   
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
     `client_id=${encodeURIComponent(config.google.clientId)}&` +
-    `redirect_uri=${encodeURIComponent(config.google.callbackUrl)}&` +
+    `redirect_uri=${encodeURIComponent(callbackUrl)}&` +
     `response_type=code&` +
     `scope=${encodeURIComponent(scopes.join(' '))}&` +
     `access_type=offline&` +
