@@ -3,7 +3,7 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "framework": "vite",
-  "ignoreCommand": "git diff --name-only HEAD^ HEAD | grep -E \"^(apps/pulso/|apps/shared/)\"",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- apps/pulso apps/shared",
   "rewrites": [
     {
       "source": "/(.*)",
