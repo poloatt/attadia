@@ -4,7 +4,7 @@ import { getRedirectURI } from '../config/mercadopago';
 /**
  * Servicio para la integración con MercadoPago
  * Maneja todas las comunicaciones OAuth y sincronización de datos
-
+ * Actualizado: Test de deploy para verificar configuración de Vercel 2
  */
 class MercadoPagoService {
   constructor() {
