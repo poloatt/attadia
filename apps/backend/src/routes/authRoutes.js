@@ -109,9 +109,9 @@ router.post('/refresh-token', [
   validateFields
 ], authController.refreshToken);
 
-// Cache para URL de Google (evitar regenerar constantemente)
-let cachedGoogleUrl = null;
-let cacheTimestamp = 0;
+// Cache para URL de Google por ORIGIN (evitar regenerar constantemente y mezclar apps)
+// Estructura: Map<string origin, { url: string, ts: number }>
+const googleUrlCache = new Map();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
 // Rutas de autenticación con Google
@@ -174,10 +174,11 @@ router.get('/google/url', (req, res) => {
 
   console.log(`🚀 Google Auth iniciado desde: ${origin}`);
 
-  // Usar URL cacheada si está disponible y no ha expirado
+  // Usar URL cacheada POR ORIGIN si está disponible y no ha expirado
   const now = Date.now();
-  if (cachedGoogleUrl && (now - cacheTimestamp) < CACHE_DURATION) {
-    return res.json({ url: cachedGoogleUrl });
+  const cached = googleUrlCache.get(origin);
+  if (cached && (now - cached.ts) < CACHE_DURATION) {
+    return res.json({ url: cached.url });
   }
 
   // Determinar la URL de callback correcta según el origen
@@ -235,9 +236,8 @@ router.get('/google/url', (req, res) => {
     `prompt=consent&` +
     `state=${encodeURIComponent(statePayload)}`;
   
-  // Cachear la URL generada
-  cachedGoogleUrl = authUrl;
-  cacheTimestamp = now;
+  // Cachear la URL generada por origin
+  googleUrlCache.set(origin, { url: authUrl, ts: now });
   
   res.json({ url: authUrl });
 });
