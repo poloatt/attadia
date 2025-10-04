@@ -3,6 +3,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { Toaster } from 'react-hot-toast';
 
+// Test de deploy específico para pulso - verificar configuración de Vercel
+
 // Importaciones compartidas
 import { PrivateRoute } from '@shared/navigation';
 import { Layout } from '@shared/layouts/Layout';
