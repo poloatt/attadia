@@ -1,5 +1,9 @@
-# Ignore everything except the specific app being deployed
-apps/backend/**
-apps/shared/node_modules/**
+# Ignore node_modules globally
 node_modules/**
+
+# Ignore backend for frontend apps
+apps/backend/**
+
+# Ignore shared node_modules but keep shared source code
+apps/shared/node_modules/**
 
