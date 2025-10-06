@@ -1,5 +1,5 @@
 // Service Worker para Vite - Atta
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_PREFIX = 'atta-cache-';
 const CACHE_NAME = `${CACHE_PREFIX}${CACHE_VERSION}`;
 

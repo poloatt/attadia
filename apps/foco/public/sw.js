@@ -1,5 +1,5 @@
 // Service Worker para Vite - Foco
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE_PREFIX = 'foco-cache-';
 const CACHE_NAME = `${CACHE_PREFIX}${CACHE_VERSION}`;
 
