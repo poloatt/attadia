@@ -1,7 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="96" ry="96" fill="#181818"/>
-  <!-- Ícono estilo Material: cruz médica -->
-  <rect x="224" y="120" width="64" height="272" rx="12" fill="#ffffff"/>
-  <rect x="120" y="224" width="272" height="64" rx="12" fill="#ffffff"/>
+  <!-- Aro para igualar estilo visual con otros iconos -->
+  <circle cx="256" cy="256" r="148" fill="none" stroke="#ffffff" stroke-width="28"/>
+  <!-- Cruz médica centrada -->
+  <g transform="translate(256 256) scale(0.88) translate(-256 -256)">
+    <rect x="224" y="120" width="64" height="272" rx="12" fill="#ffffff"/>
+    <rect x="120" y="224" width="272" height="64" rx="12" fill="#ffffff"/>
+  </g>
 </svg>
 
