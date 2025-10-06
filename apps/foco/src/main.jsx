@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.jsx'
 import '@shared/index.css'
 import { AuthProvider } from '@shared/context/AuthContext'
+import { ActionHistoryProvider } from '@shared/context/ActionHistoryContext'
 
 // Configure React Router future flags to suppress warnings
 const routerConfig = {
@@ -28,7 +29,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter {...routerConfig}>
       <AuthProvider>
-        <App />
+        <ActionHistoryProvider>
+          <App />
+        </ActionHistoryProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>,
