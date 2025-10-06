@@ -106,3 +106,4 @@ Desktop.ini
 # Specific to apps (si necesitas excepciones específicas)
 # apps/frontend/specific-ignore-pattern
 # apps/backend/specific-ignore-pattern
+.turbo/
