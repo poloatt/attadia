@@ -19,7 +19,7 @@ import { getIconByKey, icons } from './menuIcons';
 import { modulos } from './menuStructure';
 import { Breadcrumbs } from '../utils/materialImports';
 import useResponsive from '../hooks/useResponsive';
-import { useNavigationState } from '../utils/navigationUtils';
+import { useNavigationState, navigateToAppPath } from '../utils/navigationUtils';
 import { HEADER_CONFIG } from '../config/uiConstants';
 import { DynamicIcon } from '../components/common/DynamicIcon';
   import { SystemButtons, SYSTEM_ICONS, MenuButton } from '../components/common/SystemButtons';
@@ -177,7 +177,7 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                   {/* Settings */}
                   <IconButton 
                     size="small" 
-                    onClick={() => navigate('/configuracion')} 
+                    onClick={() => navigateToAppPath(navigate, '/configuracion')} 
                     aria-label="Configuración"
                     sx={{ color: 'inherit', '&:hover': { color: 'text.primary' } }}
                   >

@@ -10,6 +10,7 @@ import {
   CalendarMonthOutlined as CalendarIcon
 } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { navigateToAppPath } from '../utils/navigationUtils';
 
 const StyledAppBar = styled(AppBar)(({ theme }) => ({
   backgroundColor: '#000000',
@@ -62,21 +63,9 @@ export const FooterNavigation = () => {
   const location = useLocation();
 
   const navigationItems = [
-    {
-              path: '/assets/finanzas',
-      icon: <WalletIcon />,
-      label: 'Assets'
-    },
-    {
-      path: '/salud',
-      icon: <CalendarIcon />,
-      label: 'Salud'
-    },
-    {
-      path: '/tiempo/rutinas',
-      icon: <TareasIcon />,
-      label: 'Tiempo'
-    }
+    { path: '/finanzas', icon: <WalletIcon />, label: 'Assets' },
+    { path: '/datacorporal', icon: <CalendarIcon />, label: 'Salud' },
+    { path: '/rutinas', icon: <TareasIcon />, label: 'Tiempo' }
   ];
 
   return (
@@ -122,7 +111,7 @@ export const FooterNavigation = () => {
           <BottomNavigationAction
             key={item.path}
             icon={item.icon}
-            onClick={() => navigate(item.path)}
+            onClick={() => navigateToAppPath(navigate, item.path)}
             sx={{
               minWidth: 'auto',
               padding: 1.15,

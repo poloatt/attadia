@@ -79,6 +79,7 @@ export const modulos = [
 export const bottomNavigationItems = [
   {
     id: 'assets',
+    appKey: 'atta',
     title: 'Atta',
     icon: 'dollarSign',
     path: '/finanzas',
@@ -87,6 +88,7 @@ export const bottomNavigationItems = [
   },
   {
     id: 'salud',
+    appKey: 'pulso',
     title: 'Pulso',
     icon: 'health',
     path: '/datacorporal',
@@ -95,6 +97,7 @@ export const bottomNavigationItems = [
   },
   {
     id: 'tiempo',
+    appKey: 'foco',
     title: 'Foco',
     icon: 'accessTime',
     path: '/rutinas',

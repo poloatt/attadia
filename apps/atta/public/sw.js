@@ -22,17 +22,14 @@ self.addEventListener('fetch', event => {
   }
   
   // Solo cachear recursos estáticos
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        if (response) {
-          return response;
-        }
+  try {
+    event.respondWith(
+      caches.match(event.request).then((response) => {
+        if (response) return response;
         return fetch(event.request);
       })
-      .catch(() => {
-        // Si falla el fetch, no hacer nada
-        return;
-      })
-  );
+    );
+  } catch (e) {
+    // Evitar lanzar errores del SW en consola
+  }
 });

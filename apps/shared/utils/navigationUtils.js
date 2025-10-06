@@ -1,4 +1,5 @@
 import { modulos } from '../navigation/menuStructure';
+import currentConfig from '../config/envConfig';
 
 /**
  * Utilidades centralizadas para lógica de navegación
@@ -128,3 +129,62 @@ export function getBreadcrumbInfo(currentPath) {
     pathParts
   };
 } 
+
+// --- Helpers para navegación entre apps (subdominios) ---
+
+const ATTA_PATHS = ['/finanzas', '/propiedades'];
+const PULSO_PATHS = ['/datacorporal', '/dieta', '/lab'];
+const FOCO_PATHS = ['/rutinas', '/proyectos', '/tareas', '/archivo', '/configuracion'];
+
+const PORT_APP_MAPPING = {
+  '5174': 'atta',
+  '5175': 'pulso',
+  '5173': 'foco'
+};
+
+export function getAppKeyFromPath(pathname) {
+  if (!pathname) return 'foco';
+  if (ATTA_PATHS.some(p => pathname.startsWith(p))) return 'atta';
+  if (PULSO_PATHS.some(p => pathname.startsWith(p))) return 'pulso';
+  if (FOCO_PATHS.some(p => pathname.startsWith(p))) return 'foco';
+  return 'foco';
+}
+
+export function getCurrentAppKey() {
+  if (typeof window === 'undefined') return 'foco';
+  const { hostname, port, pathname } = window.location;
+  if (hostname === 'atta.attadia.com') return 'atta';
+  if (hostname === 'pulso.attadia.com') return 'pulso';
+  if (hostname === 'foco.attadia.com') return 'foco';
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return PORT_APP_MAPPING[port] || getAppKeyFromPath(pathname);
+  }
+  return getAppKeyFromPath(pathname);
+}
+
+export function buildAppUrl(appKey, path) {
+  const base = currentConfig?.frontendUrls?.[appKey];
+  const cleanPath = path?.startsWith('/') ? path : `/${path || ''}`;
+  return `${base}${cleanPath}`;
+}
+
+export function navigateToAppPath(navigate, targetPath) {
+  const targetApp = getAppKeyFromPath(targetPath);
+  const currentApp = getCurrentAppKey();
+  if (targetApp === currentApp) {
+    return navigate(targetPath);
+  }
+  // Pasar tokens para SSO entre subdominios
+  try {
+    const token = localStorage.getItem('token');
+    const refreshToken = localStorage.getItem('refreshToken');
+    const redirectParam = encodeURIComponent(targetPath);
+    if (token) {
+      const url = buildAppUrl(targetApp, `/auth/callback?token=${encodeURIComponent(token)}${refreshToken ? `&refreshToken=${encodeURIComponent(refreshToken)}` : ''}&redirect=${redirectParam}`);
+      return window.location.assign(url);
+    }
+  } catch (_) {
+    // ignorar errores de storage
+  }
+  window.location.assign(buildAppUrl(targetApp, targetPath));
+}

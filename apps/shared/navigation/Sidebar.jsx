@@ -11,6 +11,7 @@ import {
   IconButton,
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { navigateToAppPath } from '../utils/navigationUtils';
 import { useSidebar } from '../context/SidebarContext';
 import { useUISettings } from '../context/UISettingsContext';
 import SidebarResizer from './SidebarResizer';
@@ -80,9 +81,8 @@ export default function Sidebar({ moduloActivo, nivel1Activo }) {
           <ListItemButton
             onClick={() => {
               if (item.path && !item.isUnderConstruction) {
-                navigate(item.path);
+                navigateToAppPath(navigate, item.path);
               }
-              // La navegación se maneja solo por la ruta - elimina estado duplicado
             }}
             selected={isActive}
             disabled={item.isUnderConstruction}

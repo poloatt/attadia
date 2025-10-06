@@ -52,6 +52,7 @@ const extractUrlParams = (location) => {
   let token = null;
   let refreshToken = null;
   let error = null;
+  let redirect = null;
   
   // Extraer parámetros de la URL completa usando regex
   const fullUrl = window.location.href;
@@ -60,6 +61,7 @@ const extractUrlParams = (location) => {
   token = urlParams.get('token');
   refreshToken = urlParams.get('refreshToken');
   error = urlParams.get('error');
+  redirect = urlParams.get('redirect');
   
   // Si no se encuentran, intentar extraer del hash también
   if (!token && !error && window.location.hash) {
@@ -67,9 +69,10 @@ const extractUrlParams = (location) => {
     token = token || hashParams.get('token');
     refreshToken = refreshToken || hashParams.get('refreshToken');
     error = error || hashParams.get('error');
+    redirect = redirect || hashParams.get('redirect');
   }
   
-  return { token, refreshToken, error };
+  return { token, refreshToken, error, redirect };
 };
 
 // Función para validar token JWT
@@ -141,7 +144,7 @@ function AuthCallback() {
       log('Iniciando manejo de callback de Google');
       
       // Extraer parámetros de URL
-      const { token, refreshToken, error } = extractUrlParams(location);
+      const { token, refreshToken, error, redirect } = extractUrlParams(location);
       
   log('Parámetros encontrados:', {
     token: token ? 'presente' : 'ausente',
@@ -197,7 +200,9 @@ function AuthCallback() {
         toast.success(`¡Bienvenido a ${appTitle}!`, { id: 'welcome-message' });
       }, WELCOME_DELAY);
       
-      navigate(appPath, { replace: true }); // Redirigir a la página principal de la app detectada
+      // Si viene redirect, respetarlo; si no, ir a la home de la app detectada
+      const target = redirect && redirect.startsWith('/') ? redirect : appPath;
+      navigate(target, { replace: true });
       
     } catch (error) {
       handleError('Error en el callback', error);
