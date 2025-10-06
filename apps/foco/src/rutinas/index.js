@@ -4,5 +4,4 @@ export { default as ChecklistSection } from './ChecklistSection.jsx';
 export { default as InlineItemConfigImproved } from './InlineItemConfigImproved.jsx';
 export { default as RutinaCard } from './RutinaCard.jsx';
 export { default as RutinaForm } from './RutinaForm.jsx';
-export { default as RutinaNavigation } from './RutinaNavigation.jsx';
 export { default as RutinaTable } from './RutinaTable.jsx';

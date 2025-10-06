@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<<<<<<< HEAD
   <rect width="512" height="512" rx="96" ry="96" fill="#181818"/>
   <!-- Ícono: círculo + símbolo de pesos estilo Material -->
   <circle cx="256" cy="256" r="144" fill="none" stroke="#ffffff" stroke-width="22"/>
@@ -7,6 +8,13 @@
     <path d="M256 168v176" stroke-width="22"/>
     <!-- Trazo en S suavizado -->
     <path d="M218 204c0-20 17-36 38-36s38 16 38 36-17 30-38 36-38 16-38 36 17 36 38 36 38-16 38-36" stroke-width="22"/>
+=======
+  <!-- Ícono estilo Material: símbolo de dólar dentro de un círculo -->
+  <circle cx="256" cy="256" r="148" fill="none" stroke="#ffffff" stroke-width="28"/>
+  <g transform="translate(256 256) scale(1.12) translate(-256 -256)">
+    <path d="M256 152v208" fill="none" stroke="#ffffff" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M216 192c0-22 18-40 40-40s40 18 40 40-18 36-40 44-40 22-40 44 18 40 40 40 40-18 40-40" fill="none" stroke="#ffffff" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+>>>>>>> dev
   </g>
 </svg>
 

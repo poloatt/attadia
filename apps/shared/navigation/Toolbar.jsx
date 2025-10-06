@@ -3,7 +3,8 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { Box, IconButton, Tooltip, Typography } from '../utils/materialImports';
-import { FORM_HEIGHTS } from '../config/uiConstants';
+import { FORM_HEIGHTS, TOOLBAR_CONFIG } from '../config/uiConstants';
+import { getCenteredSectionSx } from './alignmentUtils';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getIconByKey, icons } from './menuIcons';
 import { SystemButtons } from '../components/common/SystemButtons';
@@ -13,7 +14,7 @@ import { useSidebar } from '../context/SidebarContext';
 import useResponsive from '../hooks/useResponsive';
 import { getMainModules, reorderModulesWithActiveFirst, findActiveModule, navigateToAppPath } from '../utils/navigationUtils';
 import { DynamicIcon, ClickableIcon, IconWithText } from '../components/common/DynamicIcon';
-// import { RutinaNavigation } from '../../../foco/src/rutinas/RutinaNavigation'; // Comentado: import cruzado
+import RutinaNavigation from './RutinaNavigation.jsx';
 import { useRutinas } from '../context/RutinasContext';
 import { useRutinasStatistics } from '../context/RutinasStatisticsContext';
 
@@ -63,15 +64,10 @@ export default function Toolbar({
     return specificNavigationRoutes.some(route => currentPath.startsWith(route));
   };
   
-  // Componente de navegación específica
+  // Componente de navegación específica (rutinas)
   const SpecificNavigationComponent = () => {
     if (!shouldShowSpecificNavigation()) return null;
-    
-    // if (currentPath.startsWith('/tiempo/rutinas')) {
-    //   return <RutinaNavigationWrapper />;
-    // }
-    
-    return null;
+    return <RutinaNavigationWrapper />;
   };
   
   // Wrapper para RutinaNavigation que proporciona los datos necesarios desde el contexto
@@ -117,26 +113,14 @@ export default function Toolbar({
     // Siempre renderizar RutinaNavigation, incluso si no hay rutina
     // El componente RutinaNavigation maneja internamente los casos de rutina null
     return (
-      <Box sx={{ 
-        width: '100%', 
-        height: '100%', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center' 
-      }}>
-        {/* RutinaNavigation está comentado por importación cruzada */}
-        {/* <RutinaNavigation 
-          rutina={rutina}
-          loading={loading}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onEdit={handleEdit}
-          onAdd={handleAdd}
-        /> */}
-        <Typography variant="body2" color="text.secondary">
-          Navegación de rutinas (en desarrollo)
-        </Typography>
-      </Box>
+      <RutinaNavigation 
+        rutina={rutina}
+        loading={loading}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onEdit={handleEdit}
+        onAdd={handleAdd}
+      />
     );
   };
   
@@ -218,7 +202,7 @@ export default function Toolbar({
           left: 0,
           top: 0,
           width: baseMainMargin,
-          height: FORM_HEIGHTS.toolbar,
+          height: TOOLBAR_CONFIG.height,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -266,7 +250,7 @@ export default function Toolbar({
       {/* Sección principal - posicionada en el área del main content */}
       <Box sx={{
         width: '100%',
-        height: FORM_HEIGHTS.toolbar,
+        height: TOOLBAR_CONFIG.height,
         display: 'flex',
         alignItems: 'center',
         px: { xs: 1, sm: 2, md: 3 },
@@ -285,7 +269,7 @@ export default function Toolbar({
             left: { xs: 1, sm: 2, md: 3 }
           }}
         >
-          {shouldShowBack ? (
+          {showEntityToolbarNavigation && shouldShowBack ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Tooltip title={parentInfo.title || 'Volver'}>
                 <IconButton onClick={onBack} size="small">
@@ -335,15 +319,17 @@ export default function Toolbar({
           alignItems: 'center',
           justifyContent: 'center',
           width: '100%',
-          height: FORM_HEIGHTS.toolbar,
-          position: 'absolute',
-          left: isMobileOrTablet ? 0 : `${baseMainMargin}px`,
-          right: 0,
-          top: 0
+          height: TOOLBAR_CONFIG.height,
+          ...getCenteredSectionSx({
+            isMobileOrTablet,
+            mainMargin: baseMainMargin,
+            leftSectionWidth,
+            rightSectionWidth
+          })
         }}>
           {shouldShowSpecificNavigation() ? (
             // Usar navegación específica si está disponible
-            <RutinaNavigationWrapper />
+            <SpecificNavigationComponent />
           ) : customMainSection ? (
             // Usar navegación específica pasada como prop si está disponible
             customMainSection
@@ -421,7 +407,7 @@ export default function Toolbar({
             justifyContent: 'flex-end',
             flexShrink: 0,
             minWidth: 48,
-            height: FORM_HEIGHTS.toolbar,
+            height: TOOLBAR_CONFIG.height,
             position: 'absolute',
             right: { xs: 1, sm: 2, md: 3 }
           }}
@@ -440,9 +426,11 @@ export default function Toolbar({
           {/* Botón de agregar inteligente */}
           {(() => {
             // Para páginas de proyectos, usar botón inteligente
-            if (currentPath.startsWith('/tiempo/proyectos') || 
-                currentPath.startsWith('/tiempo/tareas') || 
-                currentPath.startsWith('/tiempo/archivo')) {
+            if (
+              (currentPath.startsWith('/tiempo/proyectos') || 
+               currentPath.startsWith('/tiempo/tareas') || 
+               currentPath.startsWith('/tiempo/archivo')) && isMobileOrTablet
+            ) {
               
               const getSmartAddButton = () => {
                 const handleSmartAdd = () => {
@@ -591,7 +579,7 @@ export default function Toolbar({
             }
             
             // Para otras páginas, usar la lógica original
-            if (!shouldShowSpecificNavigation() && showAddButton && entityConfig) {
+            if (isMobileOrTablet && !shouldShowSpecificNavigation() && showAddButton && entityConfig) {
               return <SystemButtons.AddButton entityConfig={entityConfig} buttonSx={{ ml: 1 }} />;
             }
             

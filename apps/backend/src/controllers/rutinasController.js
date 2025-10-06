@@ -229,7 +229,8 @@ class RutinasController extends BaseController {
       // Crear nueva rutina con la configuración inicial
       const nuevaRutina = new this.Model({
         nombre: nombre || 'Mi Rutina',
-        fecha: fechaRutina,
+        // Guardar SIEMPRE la fecha normalizada al inicio del día del usuario
+        fecha: fechaNormalizada,
         usuario: req.user.id,
         config: configInicial || {}
       });
