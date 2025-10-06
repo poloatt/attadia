@@ -1,148 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useActionHistoryManager, useCRUDWithHistory } from './useActionHistory';
-import clienteAxios from '../config/axios';
-
-// Mapeo de rutas a entidades y servicios de API
-const ROUTE_ENTITY_MAP = {
-  '/tiempo/proyectos': {
-    entity: 'proyecto',
-    apiService: {
-      create: (data) => clienteAxios.post('/api/proyectos', data).then(res => res.data),
-      update: (id, data) => clienteAxios.put(`/api/proyectos/${id}`, data).then(res => res.data),
-      delete: (id) => clienteAxios.delete(`/api/proyectos/${id}`).then(res => res.data),
-      getById: (id) => clienteAxios.get(`/api/proyectos/${id}`).then(res => res.data)
-    }
-  },
-  '/tiempo/tareas': {
-    entity: 'tarea',
-    apiService: {
-      create: (data) => clienteAxios.post('/api/tareas', data).then(res => res.data),
-      update: (id, data) => clienteAxios.put(`/api/tareas/${id}`, data).then(res => res.data),
-      delete: (id) => clienteAxios.delete(`/api/tareas/${id}`).then(res => res.data),
-      getById: (id) => clienteAxios.get(`/api/tareas/${id}`).then(res => res.data)
-    }
-  },
-  '/tiempo/archivo': {
-    entity: 'tarea',
-    apiService: {
-      create: (data) => clienteAxios.post('/api/tareas', data).then(res => res.data),
-      update: (id, data) => clienteAxios.put(`/api/tareas/${id}`, data).then(res => res.data),
-      delete: (id) => clienteAxios.delete(`/api/tareas/${id}`).then(res => res.data),
-      getById: (id) => clienteAxios.get(`/api/tareas/${id}`).then(res => res.data)
-    }
-  },
-  '/proyectos': {
-    entity: 'proyecto',
-    apiService: {
-      create: (data) => clienteAxios.post('/api/proyectos', data).then(res => res.data),
-      update: (id, data) => clienteAxios.put(`/api/proyectos/${id}`, data).then(res => res.data),
-      delete: (id) => clienteAxios.delete(`/api/proyectos/${id}`).then(res => res.data),
-      getById: (id) => clienteAxios.get(`/api/proyectos/${id}`).then(res => res.data)
-    }
-  },
-  '/tareas': {
-    entity: 'tarea',
-    apiService: {
-      create: (data) => clienteAxios.post('/api/tareas', data).then(res => res.data),
-      update: (id, data) => clienteAxios.put(`/api/tareas/${id}`, data).then(res => res.data),
-      delete: (id) => clienteAxios.delete(`/api/tareas/${id}`).then(res => res.data),
-      getById: (id) => clienteAxios.get(`/api/tareas/${id}`).then(res => res.data)
-    }
-  },
-  '/propiedades': {
-    entity: 'propiedad',
-    apiService: {
-      create: (data) => clienteAxios.post('/api/propiedades', data).then(res => res.data),
-      update: (id, data) => clienteAxios.put(`/api/propiedades/${id}`, data).then(res => res.data),
-      delete: (id) => clienteAxios.delete(`/api/propiedades/${id}`).then(res => res.data),
-      getById: (id) => clienteAxios.get(`/api/propiedades/${id}`).then(res => res.data)
-    }
-  },
-  '/transacciones': {
-    entity: 'transaccion',
-    apiService: {
-      create: (data) => clienteAxios.post('/api/transacciones', data).then(res => res.data),
-      update: (id, data) => clienteAxios.put(`/api/transacciones/${id}`, data).then(res => res.data),
-      delete: (id) => clienteAxios.delete(`/api/transacciones/${id}`).then(res => res.data),
-      getById: (id) => clienteAxios.get(`/api/transacciones/${id}`).then(res => res.data)
-    }
-  },
-  '/cuentas': {
-    entity: 'cuenta',
-    apiService: {
-      create: (data) => clienteAxios.post('/api/cuentas', data).then(res => res.data),
-      update: (id, data) => clienteAxios.put(`/api/cuentas/${id}`, data).then(res => res.data),
-      delete: (id) => clienteAxios.delete(`/api/cuentas/${id}`).then(res => res.data),
-      getById: (id) => clienteAxios.get(`/api/cuentas/${id}`).then(res => res.data)
-    }
-  },
-  '/monedas': {
-    entity: 'moneda',
-    apiService: {
-      create: (data) => clienteAxios.post('/api/monedas', data).then(res => res.data),
-      update: (id, data) => clienteAxios.put(`/api/monedas/${id}`, data).then(res => res.data),
-      delete: (id) => clienteAxios.delete(`/api/monedas/${id}`).then(res => res.data),
-      getById: (id) => clienteAxios.get(`/api/monedas/${id}`).then(res => res.data)
-    }
-  },
-  '/rutinas': {
-    entity: 'rutina',
-    apiService: {
-      create: (data) => clienteAxios.post('/api/rutinas', data).then(res => res.data),
-      update: (id, data) => clienteAxios.put(`/api/rutinas/${id}`, data).then(res => res.data),
-      delete: (id) => clienteAxios.delete(`/api/rutinas/${id}`).then(res => res.data),
-      getById: (id) => clienteAxios.get(`/api/rutinas/${id}`).then(res => res.data)
-    }
-  },
-  '/inquilinos': {
-    entity: 'inquilino',
-    apiService: {
-      create: (data) => clienteAxios.post('/api/inquilinos', data).then(res => res.data),
-      update: (id, data) => clienteAxios.put(`/api/inquilinos/${id}`, data).then(res => res.data),
-      delete: (id) => clienteAxios.delete(`/api/inquilinos/${id}`).then(res => res.data),
-      getById: (id) => clienteAxios.get(`/api/inquilinos/${id}`).then(res => res.data)
-    }
-  },
-  '/contratos': {
-    entity: 'contrato',
-    apiService: {
-      create: (data) => clienteAxios.post('/api/contratos', data).then(res => res.data),
-      update: (id, data) => clienteAxios.put(`/api/contratos/${id}`, data).then(res => res.data),
-      delete: (id) => clienteAxios.delete(`/api/contratos/${id}`).then(res => res.data),
-      getById: (id) => clienteAxios.get(`/api/contratos/${id}`).then(res => res.data)
-    }
-  },
-  '/habitaciones': {
-    entity: 'habitacion',
-    apiService: {
-      create: (data) => clienteAxios.post('/api/habitaciones', data).then(res => res.data),
-      update: (id, data) => clienteAxios.put(`/api/habitaciones/${id}`, data).then(res => res.data),
-      delete: (id) => clienteAxios.delete(`/api/habitaciones/${id}`).then(res => res.data),
-      getById: (id) => clienteAxios.get(`/api/habitaciones/${id}`).then(res => res.data)
-    }
-  },
-  '/inventario': {
-    entity: 'inventario',
-    apiService: {
-      create: (data) => clienteAxios.post('/api/inventarios', data).then(res => res.data),
-      update: (id, data) => clienteAxios.put(`/api/inventarios/${id}`, data).then(res => res.data),
-      delete: (id) => clienteAxios.delete(`/api/inventarios/${id}`).then(res => res.data),
-      getById: (id) => clienteAxios.get(`/api/inventarios/${id}`).then(res => res.data)
-    }
-  },
-  '/recurrente': {
-    entity: 'transaccion_recurrente',
-    apiService: {
-      create: (data) => clienteAxios.post('/api/transaccion-recurrente', data).then(res => res.data),
-      update: (id, data) => clienteAxios.put(`/api/transaccion-recurrente/${id}`, data).then(res => res.data),
-      delete: (id) => clienteAxios.delete(`/api/transaccion-recurrente/${id}`).then(res => res.data),
-      getById: (id) => clienteAxios.get(`/api/transaccion-recurrente/${id}`).then(res => res.data)
-    }
-  }
-};
-
-export const SUPPORTED_ROUTES = Object.keys(ROUTE_ENTITY_MAP);
+import { useActionHistoryRoutes } from '../context/ActionHistoryRoutesContext.jsx';
 
 /**
  * Hook global que detecta automáticamente la entidad basada en la ruta
@@ -154,11 +13,18 @@ export const SUPPORTED_ROUTES = Object.keys(ROUTE_ENTITY_MAP);
 export function useGlobalActionHistory(fetchData, onError, forcedPath) {
   const location = useLocation();
   const currentPath = forcedPath || location.pathname;
+  const { routesMap } = useActionHistoryRoutes();
   
   // Memoizar la configuración de la entidad para evitar re-creaciones
   const entityConfig = useMemo(() => {
-    return ROUTE_ENTITY_MAP[currentPath];
-  }, [currentPath]);
+    if (!routesMap) return undefined;
+    // Búsqueda por prefijo más largo que coincida con currentPath
+    const candidates = Object.keys(routesMap || {})
+      .filter(base => currentPath.startsWith(base))
+      .sort((a, b) => b.length - a.length);
+    if (candidates.length > 0) return routesMap[candidates[0]];
+    return undefined;
+  }, [currentPath, routesMap]);
   
   if (!entityConfig) {
     // Si no hay configuración para esta ruta, retornar funciones vacías
@@ -209,7 +75,15 @@ export function useGlobalActionHistory(fetchData, onError, forcedPath) {
 export function useAutoUndoHandler(fetchData, onError = console.error) {
   const location = useLocation();
   const currentPath = location.pathname;
-  const entityConfig = ROUTE_ENTITY_MAP[currentPath];
+  const { routesMap } = useActionHistoryRoutes();
+  const entityConfig = useMemo(() => {
+    if (!routesMap) return undefined;
+    const candidates = Object.keys(routesMap || {})
+      .filter(base => currentPath.startsWith(base))
+      .sort((a, b) => b.length - a.length);
+    if (candidates.length > 0) return routesMap[candidates[0]];
+    return undefined;
+  }, [currentPath, routesMap]);
   const listenerRef = useRef(null);
   const processedActionsRef = useRef(new Set());
 

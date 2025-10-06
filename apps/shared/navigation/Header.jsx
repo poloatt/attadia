@@ -174,6 +174,8 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                   {showAddButton && entityConfig ? (
                     <SystemButtons.AddButton entityConfig={entityConfig} />
                   ) : null}
+                  {/* Undo / Historial */}
+                  <SystemButtons.UndoMenu />
                   {/* Settings */}
                   <IconButton 
                     size="small" 
@@ -278,7 +280,10 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
 
             {/* En móvil/tablet con toolbar habilitada, mantener Apps toggle alineado a la derecha */}
             {(isMobile || isTablet) && showEntityToolbarNavigation && (
-              <Box sx={{ position: 'absolute', right: { xs: 1, sm: 2, md: 3 }, display: 'flex', alignItems: 'center', height: HEADER_CONFIG.height }}>
+              <Box sx={{ position: 'absolute', right: { xs: 1, sm: 2, md: 3 }, display: 'flex', alignItems: 'center', height: HEADER_CONFIG.height, gap: 0.25 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: HEADER_CONFIG.height, height: HEADER_CONFIG.height }}>
+                  <SystemButtons.UndoMenu />
+                </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: HEADER_CONFIG.height, height: HEADER_CONFIG.height }}>
                   <SystemButtons.AppsButton />
                 </Box>
@@ -292,6 +297,13 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
              {(!isMobile && !isTablet) && (
                <SystemButtons
                  actions={[
+                  {
+                    key: 'undo',
+                    icon: <SystemButtons.UndoMenu />, // Solo visual, menú de undo
+                    label: 'Deshacer',
+                    tooltip: 'Deshacer / Historial',
+                    disabled: false
+                  },
                    !showEntityToolbarNavigation && showAddButton && entityConfig ? {
                      key: 'add',
                      icon: <SystemButtons.AddButton entityConfig={entityConfig} />, // Solo visual, sin lógica local

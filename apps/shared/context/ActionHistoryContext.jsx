@@ -31,11 +31,21 @@ export const ENTITY_TYPES = {
 export function ActionHistoryProvider({ children }) {
   const [actionHistory, setActionHistory] = useState([]);
   const [maxHistorySize] = useState(50); // Máximo 50 acciones en el historial
+  const storageKey = (() => {
+    try {
+      const appName = typeof window !== 'undefined' && window && window.APP_CONFIG && window.APP_CONFIG.name
+        ? window.APP_CONFIG.name
+        : 'app';
+      return `${appName}:actionHistory`;
+    } catch (_) {
+      return 'app:actionHistory';
+    }
+  })();
 
   // Cargar historial desde localStorage al inicializar
   useEffect(() => {
     try {
-      const savedHistory = localStorage.getItem('actionHistory');
+      const savedHistory = localStorage.getItem(storageKey);
       // console.log('ActionHistoryContext - Loading from localStorage:', savedHistory);
       if (savedHistory) {
         const parsed = JSON.parse(savedHistory);
@@ -45,16 +55,16 @@ export function ActionHistoryProvider({ children }) {
     } catch (error) {
       console.warn('Error loading action history from localStorage:', error);
     }
-  }, []);
+  }, [storageKey]);
 
   // Guardar historial en localStorage cuando cambie
   useEffect(() => {
     try {
-      localStorage.setItem('actionHistory', JSON.stringify(actionHistory));
+      localStorage.setItem(storageKey, JSON.stringify(actionHistory));
     } catch (error) {
       console.warn('Error saving action history to localStorage:', error);
     }
-  }, [actionHistory]);
+  }, [actionHistory, storageKey]);
 
   // Agregar una acción al historial
   const addAction = useCallback((action) => {

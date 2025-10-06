@@ -28,7 +28,7 @@ export default function Toolbar({
   customMainSection,
 }) {
   // 1. HOOKS Y CÁLCULOS PRINCIPALES
-  const { showEntityToolbarNavigation } = useUISettings();
+  const { showEntityToolbarNavigation, showSidebarCollapsed } = useUISettings();
   const { isOpen: sidebarIsOpen, getMainMargin } = useSidebar();
   const { isMobile, isTablet, isMobileOrTablet } = useResponsive();
   const { getEntityConfig, showAddButton } = useEntityActions();
@@ -46,7 +46,7 @@ export default function Toolbar({
   const [rightSectionWidth, setRightSectionWidth] = useState(0);
   
   // Usar función centralizada para calcular mainMargin base
-  const baseMainMargin = getMainMargin(isMobileOrTablet);
+  const baseMainMargin = getMainMargin(isMobileOrTablet, showSidebarCollapsed);
 
   // 2. LÓGICA DE NAVEGACIÓN
   // Siblings: los hijos de nivel1
@@ -337,7 +337,7 @@ export default function Toolbar({
           width: '100%',
           height: FORM_HEIGHTS.toolbar,
           position: 'absolute',
-          left: 0,
+          left: isMobileOrTablet ? 0 : `${baseMainMargin}px`,
           right: 0,
           top: 0
         }}>

@@ -127,33 +127,25 @@ function findMenuItemByPath(path, items = modulos, parent = null) {
 export function useEntityActions() {
   const location = useLocation();
   const currentPath = location.pathname;
-  const pathParts = currentPath.split('/').filter(Boolean);
   let entityConfig = null;
   let showAddButton = false;
 
-  if (pathParts.length === 2) {
-    // Nivel 2: buscar el item y sus hijos agregables
-    const { item } = findMenuItemByPath(currentPath);
-    if (item) {
-      const canAddSelf = item.canAdd;
-      const addableChildren = item.subItems ? item.subItems.filter(sub => sub.canAdd) : [];
-      if (canAddSelf || addableChildren.length > 0) {
-        showAddButton = true;
-        entityConfig = {
-          ...item,
-          subItems: addableChildren
-        };
-      }
-    }
-  } else if (pathParts.length === 3) {
-    // Nivel 3: solo mostrar el modelo propio si canAdd
-    const { item } = findMenuItemByPath(currentPath);
-    if (item && item.canAdd) {
+  // Nueva lógica: determinar entidad por coincidencia en menuStructure (profundidad real),
+  // sin depender del número de segmentos en la URL. Esto permite casos como '/propiedades'.
+  const { item } = findMenuItemByPath(currentPath);
+  if (item) {
+    const canAddSelf = !!item.canAdd;
+    const addableChildren = Array.isArray(item.subItems)
+      ? item.subItems.filter(sub => sub.canAdd)
+      : [];
+    if (canAddSelf || addableChildren.length > 0) {
       showAddButton = true;
-      entityConfig = { ...item, subItems: [] };
+      entityConfig = {
+        ...item,
+        subItems: addableChildren
+      };
     }
   }
-  // Nivel 1 o rutas no reconocidas: no mostrar AddButton
 
   return {
     getRouteTitle: () => entityConfig?.title || '',

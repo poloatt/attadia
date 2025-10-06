@@ -4,6 +4,9 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.jsx'
 import '@shared/index.css'
 import { AuthProvider } from '@shared/context/AuthContext'
+import { ActionHistoryProvider } from '@shared/context/ActionHistoryContext'
+import { ActionHistoryRoutesProvider } from '@shared/context/ActionHistoryRoutesContext.jsx'
+import clienteAxios from '@shared/config/axios'
 
 // Configure React Router future flags to suppress warnings
 const routerConfig = {
@@ -24,11 +27,29 @@ const AppConfig = {
 // Inyectar configuración global
 window.APP_CONFIG = AppConfig
 
+// Definir mapa de rutas para Pulso (vacío por ahora, se puede ampliar)
+const pulsoRoutesMap = {
+  // Ejemplo si luego se habilita historial en Salud:
+  // '/salud': {
+  //   entity: 'medicion',
+  //   apiService: {
+  //     create: (data) => clienteAxios.post('/api/mediciones', data).then(res => res.data),
+  //     update: (id, data) => clienteAxios.put(`/api/mediciones/${id}`, data).then(res => res.data),
+  //     delete: (id) => clienteAxios.delete(`/api/mediciones/${id}`).then(res => res.data),
+  //     getById: (id) => clienteAxios.get(`/api/mediciones/${id}`).then(res => res.data)
+  //   }
+  // },
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter {...routerConfig}>
       <AuthProvider>
-        <App />
+        <ActionHistoryProvider>
+          <ActionHistoryRoutesProvider routesMap={pulsoRoutesMap}>
+            <App />
+          </ActionHistoryRoutesProvider>
+        </ActionHistoryProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>,
