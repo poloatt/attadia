@@ -10,16 +10,16 @@
   "theme_color": "#181818",
   "icons": [
     {
-      "src": "/icons/atta-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "https://attadia.com/logos/images/attaimg.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/atta-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
+      "src": "https://attadia.com/logos/images/attaimg.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
