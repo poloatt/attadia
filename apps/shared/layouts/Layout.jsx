@@ -48,7 +48,8 @@ export function Layout() {
   }
 
   // Usar constantes centralizadas para dimensiones
-  const showToolbar = showEntityToolbarNavigation;
+  // Mostrar siempre la Toolbar en desktop; respetar preferencia solo en móvil/tablet
+  const showToolbar = isMobileOrTablet ? showEntityToolbarNavigation : true;
   const totalTopPadding = calculateTopPadding(showToolbar);
   
   // Padding superior para el main

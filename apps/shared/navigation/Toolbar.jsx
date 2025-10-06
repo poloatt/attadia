@@ -58,9 +58,8 @@ export default function Toolbar({
   const shouldShowSpecificNavigation = () => {
     const specificNavigationRoutes = [
       '/tiempo/rutinas',
-      // Aquí se pueden agregar más rutas que necesiten navegación específica
+      '/rutinas'
     ];
-    
     return specificNavigationRoutes.some(route => currentPath.startsWith(route));
   };
   
@@ -78,7 +77,7 @@ export default function Toolbar({
   // Wrapper para RutinaNavigation que proporciona los datos necesarios desde el contexto
   const RutinaNavigationWrapper = () => {
     // Solo usar useRutinas si estamos en una ruta de rutinas
-    if (!currentPath.startsWith('/rutinas')) {
+    if (!(currentPath.startsWith('/rutinas') || currentPath.startsWith('/tiempo/rutinas'))) {
       return null;
     }
     
@@ -199,7 +198,8 @@ export default function Toolbar({
   }, [shouldShowBack, parentInfo, additionalActions, children, showAddButton, entityConfig, isMobile]);
 
   // 3. RENDER
-  if (!showEntityToolbarNavigation) return null;
+  // Mostrar siempre la Toolbar en desktop; respetar preferencia solo en móvil/tablet
+  if (isMobileOrTablet && !showEntityToolbarNavigation) return null;
 
   return (
     <Box sx={{

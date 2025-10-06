@@ -130,6 +130,47 @@ export function Configuracion() {
           </Box>
         </Paper>
 
+        {/* Restablecer interfaz */}
+        <Paper
+          sx={{
+            p: 2,
+            mb: 3,
+            border: '1px solid',
+            borderColor: 'divider',
+            backgroundColor: 'background.default'
+          }}
+        >
+          <Typography
+            variant="h6"
+            sx={{
+              mb: 2,
+              fontWeight: 500,
+              color: theme.palette.text.primary
+            }}
+          >
+            Restablecer interfaz
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Esto limpiará las preferencias guardadas (toolbar, sidebar, etc.) y recargará la app.
+          </Typography>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              try {
+                localStorage.removeItem('uiSettings');
+                localStorage.removeItem('sidebarOpen');
+                localStorage.removeItem('sidebarWidth');
+              } catch (e) {
+                // noop
+              }
+              window.location.reload();
+            }}
+            sx={{ borderRadius: 0 }}
+          >
+            Restablecer interfaz
+          </Button>
+        </Paper>
+
 
 
         {/* Sección de Cuenta de Usuario */}
