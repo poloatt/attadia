@@ -339,7 +339,10 @@ export default function Toolbar({
           position: 'absolute',
           left: isMobileOrTablet ? 0 : `${baseMainMargin}px`,
           right: 0,
-          top: 0
+          top: 0,
+          // Reservar espacio real ocupado por las secciones izquierda/derecha para centrar visualmente
+          pl: isMobileOrTablet ? `${leftSectionWidth}px` : 0 ,
+          pr: `${rightSectionWidth}px`
         }}>
           {shouldShowSpecificNavigation() ? (
             // Usar navegación específica si está disponible
