@@ -93,35 +93,27 @@ export const timezoneUtils = {
     if (!date) return null;
     
     try {
-      let year, month, day;
-      
-      // Manejar diferentes tipos de entrada
-      if (typeof date === 'string') {
-        // Si es formato YYYY-MM-DD, usar directamente los componentes
-        if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-          [year, month, day] = date.split('-').map(Number);
-        } else {
-          // Para otros formatos, parsear y extraer componentes
-          const inputDate = new Date(date);
-          if (isNaN(inputDate.getTime())) return null;
-          
-          year = inputDate.getFullYear();
-          month = inputDate.getMonth() + 1; // Convertir a 1-12
-          day = inputDate.getDate();
-        }
-      } else if (date instanceof Date) {
-        if (isNaN(date.getTime())) return null;
-        
-        year = date.getFullYear();
-        month = date.getMonth() + 1; // Convertir a 1-12
-        day = date.getDate();
-      } else {
-        return null;
+      // Si ya recibimos 'YYYY-MM-DD' lo usamos directo como día lógico
+      if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return new Date(`${date}T00:00:00.000Z`);
       }
-      
-      // Crear fecha que representa el inicio del día en el timezone especificado
-      // Usamos el método que funciona consistentemente con timezones
-      const normalizedDate = new Date(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T00:00:00.000Z`);
+
+      const input = (typeof date === 'string') ? new Date(date) : date;
+      if (!(input instanceof Date) || isNaN(input.getTime())) return null;
+
+      // Extraer componentes del día en el timezone del usuario con Intl
+      const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      const parts = formatter.formatToParts(input);
+      const year = parts.find(p => p.type === 'year').value;
+      const month = parts.find(p => p.type === 'month').value;
+      const day = parts.find(p => p.type === 'day').value;
+
+      const normalizedDate = new Date(`${year}-${month}-${day}T00:00:00.000Z`);
       
       console.log('[timezoneUtils] normalizeToStartOfDay:', {
         input: date,

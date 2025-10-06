@@ -93,7 +93,11 @@ export const SystemButtons = memo(({
           pointerEvents: disabled ? 'none' : 'auto'
         }}
       >
-        {actions.filter(Boolean).filter(a => a.show !== false).map((action, idx) => {
+        {actions
+          .filter(Boolean)
+          .filter(a => a.show !== false)
+          .filter(a => !!a.icon)
+          .map((action, idx) => {
           // Si el icono ya es un botón (ej: un IconButton) o un subcomponente con isButtonComponent, renderizarlo directamente
           const isButton = (isValidElement(action.icon) && (
             action.icon.type && (action.icon.type.displayName === 'IconButton' || action.icon.type.muiName === 'IconButton' || action.icon.type.isButtonComponent)
@@ -369,6 +373,10 @@ function HeaderUndoMenu({ iconSx }) {
   } = useActionHistory();
   const [undoMenuAnchor, setUndoMenuAnchor] = useState(null);
   const location = useLocation();
+  // Ocultar completamente si no hay historial
+  if (!canUndo() || getUndoCount() === 0) {
+    return null;
+  }
   const getActionIcon = (actionType) => {
     switch (actionType) {
       case ACTION_TYPES.CREATE:

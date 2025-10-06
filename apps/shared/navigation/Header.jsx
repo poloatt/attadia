@@ -21,6 +21,7 @@ import { Breadcrumbs } from '../utils/materialImports';
 import useResponsive from '../hooks/useResponsive';
 import { useNavigationState, navigateToAppPath } from '../utils/navigationUtils';
 import { HEADER_CONFIG } from '../config/uiConstants';
+import { getCenteredSectionSx } from './alignmentUtils';
 import { DynamicIcon } from '../components/common/DynamicIcon';
   import { SystemButtons, SYSTEM_ICONS, MenuButton } from '../components/common/SystemButtons';
   import { Refresh as RefreshIcon } from '@mui/icons-material';
@@ -232,15 +233,13 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
               return (
                 <Box
                   sx={{
-                    position: 'absolute',
-                    left: `${mainMargin}px`,
-                    right: 0,
                     height: HEADER_CONFIG.height,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     pointerEvents: 'none',
-                    zIndex: 1
+                    zIndex: 1,
+                    ...getCenteredSectionSx({ isMobileOrTablet: false, mainMargin, leftSectionWidth: 0, rightSectionWidth: 0 })
                   }}
                 >
                   {last?.icon && (

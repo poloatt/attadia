@@ -78,7 +78,7 @@ export function Layout() {
           <Header />
         </Box>
         {/* Toolbar + Sidebar + Main: envueltos por RutinasProvider cuando corresponde */}
-        {currentPath.startsWith('/tiempo/rutinas') ? (
+        {(currentPath.startsWith('/tiempo/rutinas') || currentPath.startsWith('/rutinas')) ? (
           <RutinasProvider>
             {/* Toolbar siempre se renderiza */}
             {showToolbar && (

@@ -103,9 +103,11 @@ export const RutinasProvider = ({ children }) => {
         return;
       }
       
-      // Ordenar rutinas por fecha (más reciente primero)
+      // Ordenar rutinas por fecha (más reciente primero) usando parseo seguro (evitar TZ)
       const rutinasOrdenadas = [...rutinaList].sort((a, b) => {
-        return new Date(b.fecha) - new Date(a.fecha);
+        const da = parseAPIDate(a.fecha);
+        const db = parseAPIDate(b.fecha);
+        return db - da;
       });
       
       // Log eliminado para mejor rendimiento
@@ -135,7 +137,7 @@ export const RutinasProvider = ({ children }) => {
         const todayStr = toISODateString(getNormalizedToday());
         const indexToday = rutinasConCambiosLocales.findIndex(r => {
           try {
-            return new Date(r.fecha).toISOString().split('T')[0] === todayStr;
+            return toISODateString(parseAPIDate(r.fecha)) === todayStr;
           } catch {
             return false;
           }
