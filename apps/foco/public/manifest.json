@@ -10,16 +10,16 @@
   "theme_color": "#181818",
   "icons": [
     {
-      "src": "/icons/foco-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "https://attadia.com/logos/images/focoimg.png?v=2",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/foco-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
+      "src": "https://attadia.com/logos/images/focoimg.png?v=2",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
