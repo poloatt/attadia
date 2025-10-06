@@ -163,8 +163,10 @@ export function getCurrentAppKey() {
 }
 
 export function buildAppUrl(appKey, path) {
-  const base = currentConfig?.frontendUrls?.[appKey];
   const cleanPath = path?.startsWith('/') ? path : `/${path || ''}`;
+  // Usar URLs explícitas de envConfig, que ya contemplan dev/prod por import.meta.env
+  const base = currentConfig?.frontendUrls?.[appKey];
+  if (!base) return cleanPath;
   return `${base}${cleanPath}`;
 }
 

@@ -11,7 +11,7 @@ import { useEntityActions } from '../components/common/CommonActions';
 import { useUISettings } from '../context/UISettingsContext';
 import { useSidebar } from '../context/SidebarContext';
 import useResponsive from '../hooks/useResponsive';
-import { getMainModules, reorderModulesWithActiveFirst, findActiveModule } from '../utils/navigationUtils';
+import { getMainModules, reorderModulesWithActiveFirst, findActiveModule, navigateToAppPath } from '../utils/navigationUtils';
 import { DynamicIcon, ClickableIcon, IconWithText } from '../components/common/DynamicIcon';
 // import { RutinaNavigation } from '../../../foco/src/rutinas/RutinaNavigation'; // Comentado: import cruzado
 import { useRutinas } from '../context/RutinasContext';
@@ -233,7 +233,7 @@ export default function Toolbar({
                 <IconWithText 
                   iconKey={moduloActivo.icon}
                   text={moduloActivo.title}
-                  onClick={() => navigate(moduloActivo.path)}
+                  onClick={() => navigateToAppPath(navigate, moduloActivo.path)}
                   sx={{
                     color: 'text.primary',
                   }}
@@ -252,7 +252,7 @@ export default function Toolbar({
                 key={modulo.id}
                 iconKey={modulo.icon}
                 title={modulo.title}
-                onClick={() => navigate(modulo.path)}
+                onClick={() => navigateToAppPath(navigate, modulo.path)}
                 size="small"
                 sx={{
                   fontSize: 18
