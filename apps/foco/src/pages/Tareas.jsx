@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { 
   Container,
   Box,
@@ -139,7 +139,7 @@ export function Tareas() {
     }
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setTitle('Tareas');
     
     // Solo mostrar iconos en desktop
@@ -199,20 +199,6 @@ export function Tareas() {
             />
           ),
           onClick: handleDeactivateMultiSelect
-        });
-      } else if (tareas.length > 0) {
-        // Si no hay selecciones pero hay tareas, mostrar botón para seleccionar todas
-        actions.push({
-          component: (
-            <Button
-              variant="outlined"
-              onClick={handleSelectAll}
-              sx={{ borderRadius: 0 }}
-            >
-              Seleccionar Todas
-            </Button>
-          ),
-          onClick: handleSelectAll
         });
       }
       

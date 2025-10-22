@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback } from 'react';
 import { 
   Container,
   Box,
@@ -61,7 +61,7 @@ export function Archivo() {
     }
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setTitle('Archivo de Tareas');
     
     // Solo mostrar iconos en desktop

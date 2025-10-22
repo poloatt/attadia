@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { 
   Container,
   Box,
@@ -207,7 +207,7 @@ export function Proyectos() {
     }
   }, [selectedProyectos, deleteWithHistory, enqueueSnackbar, fetchProyectos]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setTitle('Proyectos');
     
     // Solo mostrar iconos en desktop
@@ -267,20 +267,6 @@ export function Proyectos() {
             />
           ),
           onClick: handleDeactivateMultiSelect
-        });
-      } else if (proyectos.length > 0) {
-        // Si no hay selecciones pero hay proyectos, mostrar botón para seleccionar todas
-        actions.push({
-          component: (
-            <Button
-              variant="outlined"
-              onClick={handleSelectAllProyectos}
-              sx={{ borderRadius: 0 }}
-            >
-              Seleccionar Todas
-            </Button>
-          ),
-          onClick: handleSelectAllProyectos
         });
       }
       

@@ -600,7 +600,7 @@ const ProyectoItem = ({
     }
     
     // Si hay proyectos seleccionados, manejar como selección múltiple
-    if (selectedProyectos && selectedProyectos.length > 0) {
+    if (isSelected) {
       event.preventDefault();
       onSelect(proyectoId);
       return;
