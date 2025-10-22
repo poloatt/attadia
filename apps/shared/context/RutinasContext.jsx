@@ -167,7 +167,7 @@ export const RutinasProvider = ({ children }) => {
       fetchingRef.current = false;
       setLoading(false);
     }
-  }, [enqueueSnackbar, pendingLocalChanges]);
+  }, []);
 
   // Función para recargar la rutina actual - definirla antes de usarla
   const reloadCurrentRutina = useCallback(async () => {
@@ -343,7 +343,7 @@ export const RutinasProvider = ({ children }) => {
     return () => {
       window.removeEventListener('navigate', handleNavigateEvent);
     };
-  }, [rutinas, getRutinaById, enqueueSnackbar]);
+  }, []);
   
   // Escuchar eventos de actualización de rutinas (crear/editar)
   useEffect(() => {
@@ -398,7 +398,7 @@ export const RutinasProvider = ({ children }) => {
     return () => {
       window.removeEventListener('rutina-updated', handleRutinaUpdated);
     };
-  }, [rutina, fetchRutinas, getRutinaById]);
+  }, []);
   
   // Navegación entre rutinas mejorada
   const handlePrevious = useCallback(async () => {
@@ -825,7 +825,7 @@ export const RutinasProvider = ({ children }) => {
       console.log("Inicializando rutina después de cargar rutinas");
       getRutinaById(rutinas[0]._id);
     }
-  }, [rutinas.length, rutina, getRutinaById]);
+  }, []);
   
   // Escuchar eventos personalizados para el estado de expansión
   useEffect(() => {

@@ -429,27 +429,22 @@ export default function Toolbar({
             if (
               (currentPath.startsWith('/tiempo/proyectos') || 
                currentPath.startsWith('/tiempo/tareas') || 
-               currentPath.startsWith('/tiempo/archivo')) && isMobileOrTablet
+               currentPath.startsWith('/proyectos') || 
+               currentPath.startsWith('/tareas'))
             ) {
               
               const getSmartAddButton = () => {
                 const handleSmartAdd = () => {
-                  if (currentPath === '/tiempo/proyectos') {
+                  if (currentPath === '/tiempo/proyectos' || currentPath === '/proyectos') {
                     window.dispatchEvent(new CustomEvent('addProject'));
-                  } else if (currentPath === '/tiempo/tareas') {
+                  } else if (currentPath === '/tiempo/tareas' || currentPath === '/tareas') {
                     window.dispatchEvent(new CustomEvent('addTask'));
-                  } else if (currentPath === '/tiempo/archivo') {
-                    navigate('/tiempo/tareas');
-                    setTimeout(() => {
-                      window.dispatchEvent(new CustomEvent('addTask'));
-                    }, 100);
                   }
                 };
 
                 const getTooltip = () => {
-                  if (currentPath === '/tiempo/proyectos') return 'Nuevo Proyecto';
-                  if (currentPath === '/tiempo/tareas') return 'Nueva Tarea';
-                  if (currentPath === '/tiempo/archivo') return 'Nueva Tarea';
+                  if (currentPath === '/tiempo/proyectos' || currentPath === '/proyectos') return 'Nuevo Proyecto';
+                  if (currentPath === '/tiempo/tareas' || currentPath === '/tareas') return 'Nueva Tarea';
                   return 'Agregar';
                 };
 
@@ -478,7 +473,8 @@ export default function Toolbar({
               return (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   {/* Botón de Google Tasks solo para /tiempo/tareas */}
-                  {(currentPath === '/tiempo/tareas' || currentPath.startsWith('/tiempo/tareas/')) && (
+                  {(currentPath === '/tiempo/tareas' || currentPath.startsWith('/tiempo/tareas/') || 
+                    currentPath === '/tareas' || currentPath.startsWith('/tareas/')) && (
                     <Tooltip title="Configurar Google Tasks">
                       <IconButton
                         size="small"
@@ -509,57 +505,63 @@ export default function Toolbar({
                     </Tooltip>
                   )}
                   
-                  {/* Botón de eliminar múltiple para /tiempo/archivo y /tiempo/tareas - solo cuando hay selecciones */}
-                  {(currentPath === '/tiempo/archivo' || currentPath === '/tiempo/tareas') && (
+                  {/* Botón de eliminar múltiple para /tiempo/archivo, /tiempo/tareas y /tiempo/proyectos - solo cuando hay selecciones */}
+                  {(currentPath === '/tiempo/archivo' || currentPath === '/tiempo/tareas' || currentPath === '/tiempo/proyectos' ||
+                    currentPath === '/archivo' || currentPath === '/tareas' || currentPath === '/proyectos') && (
                     <Tooltip title={hasSelectedItems ? "Eliminar seleccionadas" : "Selecciona elementos para eliminar"}>
-                      <IconButton
-                        size="small"
-                        onClick={() => {
-                          if (hasSelectedItems) {
-                            // Disparar evento para eliminar tareas seleccionadas
-                            window.dispatchEvent(new CustomEvent('deleteSelectedTasks'));
-                          }
-                        }}
-                        sx={{
-                          mr: 0.5,
-                          color: 'error.main',
-                          opacity: hasSelectedItems ? 1 : 0.3,
-                          '&:hover': {
-                            backgroundColor: hasSelectedItems ? 'error.main' : 'transparent',
-                            color: hasSelectedItems ? 'white' : 'error.main',
-                            transform: hasSelectedItems ? 'scale(1.05)' : 'none',
-                            opacity: 1,
-                          },
-                          transition: 'all 0.2s ease-in-out'
-                        }}
-                        disabled={!hasSelectedItems}
-                      >
-                        {React.createElement(icons.delete || (() => (
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-                          </svg>
-                        )), { sx: { fontSize: 18 } })}
-                      </IconButton>
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            if (hasSelectedItems) {
+                              // Disparar evento para eliminar elementos seleccionados
+                              if (currentPath === '/tiempo/proyectos' || currentPath === '/proyectos') {
+                                window.dispatchEvent(new CustomEvent('deleteSelectedProyectos'));
+                              } else {
+                                window.dispatchEvent(new CustomEvent('deleteSelectedTasks'));
+                              }
+                            }
+                          }}
+                          sx={{
+                            mr: 0.5,
+                            color: 'error.main',
+                            opacity: hasSelectedItems ? 1 : 0.3,
+                            '&:hover': {
+                              backgroundColor: hasSelectedItems ? 'error.main' : 'transparent',
+                              color: hasSelectedItems ? 'white' : 'error.main',
+                              transform: hasSelectedItems ? 'scale(1.05)' : 'none',
+                              opacity: 1,
+                            },
+                            transition: 'all 0.2s ease-in-out'
+                          }}
+                          disabled={!hasSelectedItems}
+                        >
+                          {React.createElement(icons.delete || (() => (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                            </svg>
+                          )), { sx: { fontSize: 18 } })}
+                        </IconButton>
+                      </span>
                     </Tooltip>
                   )}
                   
-                  {/* Botón de selección múltiple para /tiempo/archivo y /tiempo/tareas - solo desktop */}
-                  {(currentPath === '/tiempo/archivo' || currentPath === '/tiempo/tareas') && (
-                    <Tooltip title="Activar selección múltiple">
+                  {/* Botón de seleccionar todas para /tiempo/proyectos - solo cuando hay proyectos */}
+                  {(currentPath === '/tiempo/proyectos' || currentPath === '/proyectos') && (
+                    <Tooltip title="Seleccionar todos los proyectos">
                       <IconButton
                         size="small"
                         onClick={() => {
-                          console.log('🔍 Botón de selección múltiple clickeado');
-                          // Disparar evento para activar selección múltiple
-                          window.dispatchEvent(new CustomEvent('activateMultiSelect'));
+                          // Disparar evento para seleccionar todos los proyectos
+                          window.dispatchEvent(new CustomEvent('selectAllProyectos'));
                         }}
                         sx={{
                           mr: 0.5,
-                          color: hasSelectedItems ? 'primary.main' : 'text.secondary',
-                          opacity: hasSelectedItems ? 1 : 0.7,
+                          color: 'text.secondary',
+                          opacity: 0.7,
                           '&:hover': {
-                            backgroundColor: hasSelectedItems ? 'primary.main' : 'action.hover',
-                            color: hasSelectedItems ? 'white' : 'primary.main',
+                            backgroundColor: 'action.hover',
+                            color: 'primary.main',
                             transform: 'scale(1.05)',
                             opacity: 1,
                           },

@@ -11,6 +11,12 @@ const ERROR_MESSAGES = {
   'no_user_info': 'No se pudo obtener la información del usuario',
   'server_error': 'Error en el servidor',
   'token_missing': 'No se recibió el token de autenticación',
+  'access_denied': 'El usuario canceló la autenticación',
+  'invalid_request': 'Solicitud de autenticación inválida',
+  'unauthorized_client': 'Cliente no autorizado',
+  'unsupported_response_type': 'Tipo de respuesta no soportado',
+  'invalid_scope': 'Alcance inválido',
+  'no_auth_code': 'No se recibió código de autorización',
   'default': 'Error desconocido en la autenticación'
 };
 
@@ -46,33 +52,17 @@ const setAuthTokens = (token, refreshToken) => {
   clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 };
 
-// Función para extraer parámetros de URL
+// Función simplificada para extraer parámetros de URL
 const extractUrlParams = (location) => {
-  // Buscar parámetros en la URL completa (antes del hash)
-  let token = null;
-  let refreshToken = null;
-  let error = null;
-  let redirect = null;
-  
-  // Extraer parámetros de la URL completa usando regex
-  const fullUrl = window.location.href;
   const urlParams = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
   
-  token = urlParams.get('token');
-  refreshToken = urlParams.get('refreshToken');
-  error = urlParams.get('error');
-  redirect = urlParams.get('redirect');
-  
-  // Si no se encuentran, intentar extraer del hash también
-  if (!token && !error && window.location.hash) {
-    const hashParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
-    token = token || hashParams.get('token');
-    refreshToken = refreshToken || hashParams.get('refreshToken');
-    error = error || hashParams.get('error');
-    redirect = redirect || hashParams.get('redirect');
-  }
-  
-  return { token, refreshToken, error, redirect };
+  return {
+    token: urlParams.get('token') || hashParams.get('token'),
+    refreshToken: urlParams.get('refreshToken') || hashParams.get('refreshToken'),
+    error: urlParams.get('error') || hashParams.get('error'),
+    redirect: urlParams.get('redirect') || hashParams.get('redirect')
+  };
 };
 
 // Función para validar token JWT
@@ -137,7 +127,7 @@ function AuthCallback() {
     }
   };
 
-  // Función principal para manejar el callback
+  // Función principal simplificada para manejar el callback
   const handleCallback = async () => {
     try {
       hasProcessed.current = true;
@@ -146,15 +136,10 @@ function AuthCallback() {
       // Extraer parámetros de URL
       const { token, refreshToken, error, redirect } = extractUrlParams(location);
       
-  log('Parámetros encontrados:', {
-    token: token ? 'presente' : 'ausente',
-    refreshToken: refreshToken ? 'presente' : 'ausente',
-    error: error || 'ninguno',
-    locationSearch: location.search,
-    windowLocationSearch: window.location.search,
-    windowLocationHref: window.location.href,
-    windowLocationHash: window.location.hash
-  });
+      log('Parámetros encontrados:', {
+        token: token ? 'presente' : 'ausente',
+        error: error || 'ninguno'
+      });
 
       // Manejar errores de callback
       if (error) {
@@ -166,23 +151,15 @@ function AuthCallback() {
       // Verificar que se recibió el token
       if (!token) {
         logError('No se recibió token de autenticación');
-        logError('Redirigiendo a login porque no hay token en el callback');
         handleError('Sesión de autenticación inválida. Por favor, inicia sesión nuevamente.', null, false);
         return;
       }
 
-      log('Token recibido:', {
-        tokenLength: token.length,
-        tokenStart: token.substring(0, 20) + '...',
-        refreshTokenPresent: !!refreshToken
-      });
-
       // Validar el token JWT
       let tokenPayload;
       try {
-        log('Token recibido exitosamente, validando...');
         tokenPayload = validateJWTToken(token);
-        log('Token decodificado:', tokenPayload);
+        log('Token validado exitosamente');
       } catch (tokenError) {
         handleError('Token de autenticación inválido', tokenError);
         return;

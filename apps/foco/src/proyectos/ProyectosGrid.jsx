@@ -536,9 +536,23 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory })
   );
 };
 
-const ProyectoItem = ({ proyecto, onEdit, onDelete, onUpdateTarea, onAddTarea, showValues, updateWithHistory, updateTareaWithHistory }) => {
+const ProyectoItem = ({ 
+  proyecto, 
+  onEdit, 
+  onDelete, 
+  onUpdateTarea, 
+  onAddTarea, 
+  showValues, 
+  updateWithHistory, 
+  updateTareaWithHistory,
+  isMultiSelectMode,
+  isSelected,
+  onSelect
+}) => {
   const [expanded, setExpanded] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [longPressTimer, setLongPressTimer] = useState(null);
+  const [longPressActivated, setLongPressActivated] = useState(false);
   const proyectoId = proyecto._id || proyecto.id;
 
   const handleMenuClick = (event) => {
@@ -549,6 +563,57 @@ const ProyectoItem = ({ proyecto, onEdit, onDelete, onUpdateTarea, onAddTarea, s
   const handleMenuClose = (event) => {
     event?.stopPropagation();
     setAnchorEl(null);
+  };
+
+  // Handlers para selección múltiple
+  const handleLongPressStart = (event) => {
+    event.preventDefault();
+    setLongPressActivated(false);
+    const timer = setTimeout(() => {
+      if (onSelect) {
+        onSelect(proyectoId);
+        setLongPressActivated(true);
+      }
+    }, 500); // 500ms para presión larga
+    setLongPressTimer(timer);
+  };
+
+  const handleLongPressEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    setLongPressActivated(false);
+  };
+
+  const handleClick = (event) => {
+    // Si el click viene del checkbox, no hacer nada adicional
+    if (event.target.closest('.MuiCheckbox-root')) {
+      return;
+    }
+    
+    // Si estamos en modo selección múltiple, manejar selección
+    if (isMultiSelectMode && onSelect) {
+      event.preventDefault();
+      onSelect(proyectoId);
+      return;
+    }
+    
+    // Si hay proyectos seleccionados, manejar como selección múltiple
+    if (selectedProyectos && selectedProyectos.length > 0) {
+      event.preventDefault();
+      onSelect(proyectoId);
+      return;
+    }
+    
+    // Si la presión larga ya se activó, no hacer nada más
+    if (longPressActivated) {
+      event.preventDefault();
+      return;
+    }
+    
+    // Comportamiento normal: expandir/contraer
+    setExpanded(!expanded);
   };
 
   const handleEdit = (event) => {
@@ -581,6 +646,13 @@ const ProyectoItem = ({ proyecto, onEdit, onDelete, onUpdateTarea, onAddTarea, s
         width: '100%',
         backgroundColor: 'background.paper',
         position: 'relative',
+        border: isSelected ? '2px solid' : '1px solid',
+        borderColor: isSelected ? 'primary.main' : 'transparent',
+        borderRadius: 1,
+        // Animación sutil cuando hay selecciones activas pero este proyecto no está seleccionado
+        ...(isMultiSelectMode && !isSelected && {
+          animation: 'subtlePulse 3s infinite'
+        }),
         '&::before': {
           content: '""',
           position: 'absolute',
@@ -603,8 +675,29 @@ const ProyectoItem = ({ proyecto, onEdit, onDelete, onUpdateTarea, onAddTarea, s
             backgroundColor: 'action.hover'
           }
         }}
-        onClick={() => setExpanded(!expanded)}
+        onClick={handleClick}
+        onMouseDown={handleLongPressStart}
+        onMouseUp={handleLongPressEnd}
+        onMouseLeave={handleLongPressEnd}
+        onTouchStart={handleLongPressStart}
+        onTouchEnd={handleLongPressEnd}
       >
+        {/* Checkbox para selección múltiple */}
+        {isMultiSelectMode && (
+          <Checkbox
+            checked={isSelected}
+            onChange={() => onSelect && onSelect(proyectoId)}
+            size="small"
+            sx={{
+              padding: 0.5,
+              color: 'text.secondary',
+              '&.Mui-checked': {
+                color: 'primary.main'
+              }
+            }}
+          />
+        )}
+        
         <IconButton
           size="small"
           sx={{ color: 'text.secondary' }}
@@ -743,7 +836,20 @@ const ProyectoItem = ({ proyecto, onEdit, onDelete, onUpdateTarea, onAddTarea, s
   );
 };
 
-const ProyectosGrid = ({ proyectos, onEdit, onDelete, onAdd, onUpdateTarea, onAddTarea, showValues, updateWithHistory, updateTareaWithHistory }) => {
+const ProyectosGrid = ({ 
+  proyectos, 
+  onEdit, 
+  onDelete, 
+  onAdd, 
+  onUpdateTarea, 
+  onAddTarea, 
+  showValues, 
+  updateWithHistory, 
+  updateTareaWithHistory,
+  isMultiSelectMode,
+  selectedProyectos,
+  onSelectProyecto
+}) => {
   const { maskText } = useValuesVisibility();
 
   if (proyectos.length === 0) {
@@ -767,10 +873,47 @@ const ProyectosGrid = ({ proyectos, onEdit, onDelete, onAdd, onUpdateTarea, onAd
           showValues={showValues}
           updateWithHistory={updateWithHistory}
           updateTareaWithHistory={updateTareaWithHistory}
+          isMultiSelectMode={isMultiSelectMode}
+          isSelected={selectedProyectos?.includes(proyecto._id || proyecto.id) || false}
+          onSelect={onSelectProyecto}
         />
       ))}
     </Stack>
   );
 };
 
-export default ProyectosGrid; 
+export default ProyectosGrid;
+
+// Definiciones de animaciones CSS para selección múltiple
+const styles = `
+  @keyframes pulse {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes subtlePulse {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.9;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+`;
+
+// Inyectar estilos en el documento
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement('style');
+  styleSheet.textContent = styles;
+  document.head.appendChild(styleSheet);
+} 

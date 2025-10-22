@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { google } from 'googleapis';
 import { Users, Tareas } from '../models/index.js';
 import config from '../config/config.js';
+import logger from '../utils/logger.js';
 
 class GoogleTasksService {
   constructor() {
@@ -63,7 +64,7 @@ class GoogleTasksService {
         
         // Verificar si es un error que vale la pena reintentar
         if (this.shouldRetry(error, attempt)) {
-          console.warn(`⚠️ Intento ${attempt}/${this.maxRetries} falló para ${context}:`, error.message);
+          logger.warn(`⚠️ Intento ${attempt}/${this.maxRetries} falló para ${context}:`, error.message);
           await this.delay(this.retryDelay * attempt);
           continue;
         } else {
@@ -220,14 +221,14 @@ class GoogleTasksService {
     
     // Si el título cambió, actualizarlo automáticamente
     if (tituloNormalizado !== tituloOriginal) {
-      console.log(`🔧 Auto-corrigiendo título: "${tituloOriginal}" -> "${tituloNormalizado}"`);
+      logger.dev(`🔧 Auto-corrigiendo título: "${tituloOriginal}" -> "${tituloNormalizado}"`);
       tarea.titulo = tituloNormalizado;
       await tarea.save();
     }
 
     // Protección básica: evitar sincronizaciones concurrentes
     if (tarea.googleTasksSync?.syncStatus === 'syncing') {
-      console.log(`⚠️ Tarea "${tarea.titulo}" ya está siendo sincronizada, saltando...`);
+      logger.dev(`⚠️ Tarea "${tarea.titulo}" ya está siendo sincronizada, saltando...`);
       return;
     }
 
@@ -241,16 +242,12 @@ class GoogleTasksService {
       // Usar el método del modelo para obtener el formato de Google Tasks
       const googleTaskData = tarea.toGoogleTaskFormat();
       
-      // Asegurar que notes tenga el formato correcto con información del proyecto
-      googleTaskData.notes = this.buildTaskNotes(tarea);
+      // CORRECCIÓN: Limpiar notas antes de construir nuevas para evitar duplicados
+      const notasLimpias = this.buildTaskNotes(tarea);
+      googleTaskData.notes = notasLimpias;
       
-      // Agregar información del proyecto en el título si existe y no está ya presente
-      if (tarea.proyecto && tarea.proyecto.nombre) {
-        const proyectoPrefix = `[${tarea.proyecto.nombre}]`;
-        if (!googleTaskData.title.startsWith(proyectoPrefix)) {
-          googleTaskData.title = `${proyectoPrefix} ${googleTaskData.title}`;
-        }
-      }
+      // CORRECCIÓN: NO agregar proyecto al título - Attadia ya agrupa por proyecto
+      // El proyecto se maneja como campo separado, no en el título
       
       // Eliminar campos que Google Tasks maneja automáticamente en creación
       if (!tarea.googleTasksSync?.googleTaskId) {
@@ -353,7 +350,7 @@ class GoogleTasksService {
           `crear subtarea ${subtarea.titulo}`
         );
 
-        console.log(`📥 Subtarea sincronizada a Google: "${subtarea.titulo}" (parent: ${parentTaskId})`);
+        logger.sync(`📥 Subtarea sincronizada a Google: "${subtarea.titulo}" (parent: ${parentTaskId})`);
       }
     } catch (error) {
       console.error('Error al sincronizar subtareas a Google:', error);
@@ -392,14 +389,14 @@ class GoogleTasksService {
       const oneMonthAgo = new Date();
       oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
 
-      console.log(`📥 Importando ${googleTasks.length} tareas de Google Tasks desde TaskList: ${taskList.title}`);
+      logger.sync(`📥 Importando ${googleTasks.length} tareas de Google Tasks desde TaskList: ${taskList.title}`);
       
-      // Debug: mostrar las primeras 3 tareas para verificar su estructura
+      // Debug: mostrar las primeras 3 tareas para verificar su estructura (solo en desarrollo)
       if (googleTasks.length > 0) {
-        console.log('🔍 DEBUG - Primeras tareas de Google:', googleTasks.slice(0, 3).map(task => ({
+        logger.data('Primeras tareas de Google', googleTasks.slice(0, 3).map(task => ({
           id: task.id,
           title: task.title,
-          notes: task.notes,
+          notes: task.notes?.substring(0, 100) + '...', // Truncar notas largas
           status: task.status,
           parent: task.parent,
           hasParent: !!task.parent
@@ -414,7 +411,7 @@ class GoogleTasksService {
                          new Date();
           
           if (taskDate < oneMonthAgo) {
-            console.log(`⏭️ Saltando tarea antigua: "${googleTask.title}" (${taskDate.toISOString()})`);
+            logger.dev(`⏭️ Saltando tarea antigua: "${googleTask.title}" (${taskDate.toISOString()})`);
             syncResults.skipped++;
             continue;
           }
@@ -427,7 +424,7 @@ class GoogleTasksService {
 
           // Si no existe, crear nueva tarea automáticamente
           if (!tarea) {
-            console.log(`📥 Creando nueva tarea desde Google: "${googleTask.title}"`);
+            logger.sync(`📥 Creando nueva tarea desde Google: "${googleTask.title}"`);
           }
 
           if (tarea) {
@@ -436,7 +433,7 @@ class GoogleTasksService {
               const notasLimpias = this.cleanDuplicatedNotes(googleTask.notes);
               
               if (notasLimpias !== googleTask.notes) {
-                console.log(`🧹 Limpiando notas duplicadas para: "${googleTask.title}"`);
+                logger.dev(`🧹 Limpiando notas duplicadas para: "${googleTask.title}"`);
                 googleTask.notes = notasLimpias;
               }
             }
@@ -445,7 +442,7 @@ class GoogleTasksService {
             tarea.updateFromGoogleTask(googleTask);
             await tarea.save();
             syncResults.updated++;
-            console.log(`📝 Actualizada tarea desde Google: "${googleTask.title}"`);
+            logger.sync(`📝 Actualizada tarea desde Google: "${googleTask.title}"`);
           } else {
             // Verificar si es una subtarea (tiene parent)
             if (googleTask.parent) {
@@ -465,78 +462,46 @@ class GoogleTasksService {
                 tareaPadre.subtareas.push(nuevaSubtarea);
                 await tareaPadre.save();
                 syncResults.created++;
-                console.log(`📥 Creada subtarea desde Google: "${googleTask.title}" en tarea padre: "${tareaPadre.titulo}"`);
+                logger.sync(`📥 Creada subtarea desde Google: "${googleTask.title}" en tarea padre: "${tareaPadre.titulo}"`);
               } else {
-                console.warn(`⚠️  No se encontró tarea padre para subtarea: "${googleTask.title}"`);
+                logger.warn(`⚠️  No se encontró tarea padre para subtarea: "${googleTask.title}"`);
                 syncResults.errors.push(`${googleTask.title}: Tarea padre no encontrada`);
               }
             } else {
               // Es una tarea principal - crear automáticamente con normalización
               const { Proyectos } = await import('../models/index.js');
               
-              // Normalizar el título automáticamente
+              // Normalizar el título automáticamente (sin prefijos de proyecto)
               const tituloNormalizado = this.normalizeTitle(googleTask.title);
-              let proyecto = null;
               
-              // Extraer proyecto del título normalizado
-              const proyectoMatch = tituloNormalizado.match(/^\[([^\]]+)\]\s*(.+)$/);
-              if (proyectoMatch) {
-                const nombreProyecto = proyectoMatch[1];
-                const tituloLimpio = proyectoMatch[2];
-                
-                // Buscar o crear proyecto automáticamente
-                proyecto = await Proyectos.findOne({ 
-                  usuario: userId, 
-                  nombre: nombreProyecto 
-                });
-                
-                if (!proyecto) {
-                  proyecto = new Proyectos({
-                    nombre: nombreProyecto,
-                    usuario: userId,
-                    descripcion: `Proyecto creado automáticamente desde Google Tasks`
-                  });
-                  await proyecto.save();
-                  console.log(`📁 Creado proyecto automáticamente: "${nombreProyecto}"`);
-                }
-                
-                const nuevaTarea = new Tareas({
-                  titulo: tituloLimpio, // Sin prefijo de proyecto
-                  descripcion: googleTask.notes || '',
+              // Buscar proyecto por defecto o crear uno genérico
+              let proyecto = await Proyectos.findOne({ usuario: userId });
+              if (!proyecto) {
+                proyecto = new Proyectos({
+                  nombre: 'Tareas Generales',
                   usuario: userId,
-                  fechaInicio: new Date(),
-                  prioridad: 'BAJA',
-                  proyecto: proyecto._id
+                  descripcion: 'Proyecto por defecto para tareas sin proyecto específico'
                 });
-                
-                // Configurar Google Tasks
-                nuevaTarea.updateFromGoogleTask(googleTask);
-                nuevaTarea.googleTasksSync.googleTaskListId = taskList.id;
-                
-                console.log(`📥 Creando nueva tarea desde Google: "${tituloLimpio}" en proyecto: "${nombreProyecto}"`);
-                await nuevaTarea.save();
-                syncResults.created++;
-              } else {
-                // Tarea sin proyecto - usar proyecto por defecto
-                proyecto = await Proyectos.findOne({ usuario: userId });
-                
-                const nuevaTarea = new Tareas({
-                  titulo: tituloNormalizado,
-                  descripcion: googleTask.notes || '',
-                  usuario: userId,
-                  fechaInicio: new Date(),
-                  prioridad: 'BAJA',
-                  proyecto: proyecto?._id || null
-                });
-                
-                // Configurar Google Tasks
-                nuevaTarea.updateFromGoogleTask(googleTask);
-                nuevaTarea.googleTasksSync.googleTaskListId = taskList.id;
-                
-                console.log(`📥 Creando nueva tarea desde Google: "${tituloNormalizado}"`);
-                await nuevaTarea.save();
-                syncResults.created++;
+                await proyecto.save();
+                logger.sync(`📁 Creado proyecto por defecto: "Tareas Generales"`);
               }
+              
+              const nuevaTarea = new Tareas({
+                titulo: tituloNormalizado, // Título limpio sin prefijos
+                descripcion: googleTask.notes || '',
+                usuario: userId,
+                fechaInicio: new Date(),
+                prioridad: 'BAJA',
+                proyecto: proyecto._id
+              });
+              
+              // Configurar Google Tasks
+              nuevaTarea.updateFromGoogleTask(googleTask);
+              nuevaTarea.googleTasksSync.googleTaskListId = taskList.id;
+              
+              logger.sync(`📥 Creando nueva tarea desde Google: "${tituloNormalizado}"`);
+              await nuevaTarea.save();
+              syncResults.created++;
             }
           }
         } catch (error) {
@@ -550,7 +515,7 @@ class GoogleTasksService {
         'googleTasksConfig.lastSync': new Date()
       });
 
-      console.log(`📊 Resumen de sincronización desde Google: ${syncResults.created} creadas, ${syncResults.updated} actualizadas, ${syncResults.skipped} omitidas (antiguas)`);
+      logger.sync(`📊 Resumen de sincronización desde Google: ${syncResults.created} creadas, ${syncResults.updated} actualizadas, ${syncResults.skipped} omitidas (antiguas)`);  
       return syncResults;
     } catch (error) {
       console.error('Error al sincronizar desde Google Tasks:', error);
@@ -571,9 +536,9 @@ class GoogleTasksService {
   }
 
   /**
-   * Sincroniza proyectos con Google TaskLists
-   * NOTA: Los proyectos de Attadia se mapean conceptualmente a Google Tasks,
-   * no estructuralmente. Todos los proyectos se sincronizan a la misma TaskList.
+   * CORRECCIÓN: Los proyectos NO se sincronizan como TaskLists separadas
+   * Todos los proyectos de Attadia se mapean conceptualmente a UNA TaskList
+   * El proyecto se indica en el título de la tarea: [Proyecto] Tarea
    */
   async syncProyectosWithTaskLists(userId) {
     try {
@@ -585,19 +550,19 @@ class GoogleTasksService {
       // Obtener todos los proyectos del usuario
       const proyectos = await Proyectos.find({ usuario: userId });
       
-      // Obtener la TaskList por defecto
+      // Obtener la TaskList por defecto (UNA SOLA para todos los proyectos)
       const taskList = await this.getOrCreateDefaultTaskList(userId);
       
-      console.log(`🔄 Habilitando Google Tasks para ${proyectos.length} proyectos`);
-      console.log(`📋 Usando TaskList: "${taskList.title}" (${taskList.id})`);
+      logger.sync(`🔄 Configurando Google Tasks para ${proyectos.length} proyectos`);
+      logger.sync(`📋 Usando TaskList única: "${taskList.title}" (${taskList.id})`);
       
-      // Habilitar Google Tasks para proyectos existentes
+      // Habilitar Google Tasks para proyectos existentes (solo configuración, no sincronización)
       for (const proyecto of proyectos) {
         if (!proyecto.googleTasksSync?.enabled) {
           if (!proyecto.googleTasksSync) proyecto.googleTasksSync = {};
           proyecto.googleTasksSync.enabled = true;
-          proyecto.googleTasksSync.syncStatus = 'pending';
-          proyecto.googleTasksSync.needsSync = true;
+          proyecto.googleTasksSync.syncStatus = 'synced'; // No necesita sincronización como TaskList
+          proyecto.googleTasksSync.needsSync = false; // Los proyectos no se sincronizan como TaskLists
           proyecto.googleTasksSync.googleTaskListId = taskList.id;
           await proyecto.save();
         }
@@ -605,7 +570,7 @@ class GoogleTasksService {
       
       return { proyectos: proyectos.length, taskList: taskList.title };
     } catch (error) {
-      console.error('Error al sincronizar proyectos con TaskLists:', error);
+      logger.error('Error al configurar proyectos con Google Tasks:', error);
       throw error;
     }
   }
@@ -633,7 +598,7 @@ class GoogleTasksService {
         }
       );
       
-      console.log(`✅ Habilitadas ${result.modifiedCount} tareas para sincronización con Google Tasks`);
+      logger.sync(`✅ Habilitadas ${result.modifiedCount} tareas para sincronización con Google Tasks`);
       return result;
     } catch (error) {
       console.error('Error al habilitar Google Tasks para tareas existentes:', error);
@@ -682,8 +647,7 @@ class GoogleTasksService {
         ]
       });
       
-      console.log(`🔄 Encontradas ${tareasLocales.length} tareas locales para sincronizar hacia Google:`, 
-        tareasLocales.map(t => ({ titulo: t.titulo, hasGoogleSync: !!t.googleTasksSync, enabled: t.googleTasksSync?.enabled })));
+      logger.sync(`🔄 Encontradas ${tareasLocales.length} tareas locales para sincronizar hacia Google`);
 
       for (const tarea of tareasLocales) {
         try {
@@ -787,7 +751,8 @@ class GoogleTasksService {
 
   // Métodos auxiliares
   buildTaskNotes(tarea) {
-    let notes = tarea.descripcion || '';
+    // Limpiar descripción existente de duplicados antes de procesar
+    let notes = this.cleanDuplicatedNotes(tarea.descripcion || '');
     
     if (tarea.subtareas && tarea.subtareas.length > 0) {
       notes += '\n\nSubtareas:\n';
@@ -828,18 +793,24 @@ class GoogleTasksService {
   }
 
   /**
-   * Limpia las notas duplicadas de sincronización
+   * Limpia las notas duplicadas de sincronización y repeticiones masivas
    */
   cleanDuplicatedNotes(notes) {
     if (!notes) return '';
     
-    // Dividir por "---" para separar secciones
-    const sections = notes.split('---');
+    // Primero limpiar repeticiones masivas de "Proyecto: Salud"
+    let cleanedNotes = notes.replace(/(Proyecto: Salud\n)+/g, 'Proyecto: Salud\n');
     
-    if (sections.length < 2) return notes;
+    // Limpiar múltiples saltos de línea
+    cleanedNotes = cleanedNotes.replace(/\n{3,}/g, '\n\n');
+    
+    // Dividir por "---" para separar secciones
+    const sections = cleanedNotes.split('---');
+    
+    if (sections.length < 2) return cleanedNotes.trim();
     
     // Tomar solo la primera sección (contenido útil) y limpiar espacios
-    let cleanedNotes = sections[0].trim();
+    let result = sections[0].trim();
     
     // Si había contenido útil después de las secciones de sincronización,
     // también incluirlo
@@ -850,13 +821,13 @@ class GoogleTasksService {
       // Buscar la primera sección que contenga información útil (Subtareas o Proyecto)
       for (let i = 1; i < sections.length; i++) {
         if (sections[i].includes('Subtareas:') || sections[i].includes('Proyecto:')) {
-          cleanedNotes += '\n---' + sections[i].trim();
+          result += '\n---' + sections[i].trim();
           break;
         }
       }
     }
     
-    return cleanedNotes;
+    return result;
   }
 
   mapEstadoToGoogleStatus(estado) {
@@ -907,8 +878,8 @@ class GoogleTasksService {
   }
 
   /**
-   * Normaliza un título eliminando prefijos duplicados pero PRESERVANDO el prefijo de proyecto
-   * NOTA: Los prefijos [Proyecto] son válidos y deben mantenerse
+   * Normaliza un título eliminando prefijos duplicados
+   * CORRECCIÓN: NO preservar prefijos de proyecto - Attadia maneja proyectos como campo separado
    */
   normalizeTitle(rawTitle) {
     if (!rawTitle) return '';
@@ -916,78 +887,62 @@ class GoogleTasksService {
     
     // Fase 1: Detectar y manejar títulos spam
     if (this.isSpamTitle(title)) {
-      console.log(`🚨 Detectado título spam: "${title}"`);
+      logger.dev(`🚨 Detectado título spam: "${title}"`);
       // Para títulos spam, tratamos de extraer solo el contenido útil
       const spamCleaned = this.cleanSpamTitle(title);
       if (spamCleaned) {
         return spamCleaned;
       }
       // Si no se puede limpiar, usar un título genérico
-      return '[Tarea importada]';
+      return 'Tarea importada';
     }
     
-    // Fase 2: Limpiar múltiples repeticiones de prefijos [X] PERO preservar el prefijo de proyecto
+    // Fase 2: Eliminar TODOS los prefijos [X] - los proyectos se manejan como campo separado
     const prefixRegex = /^((\[[^\]]+\]\s*)+)/;
-    const m = title.match(prefixRegex);
-    if (m) {
-      const allPrefixes = m[1].trim().match(/\[[^\]]+\]/g) || [];
-      
-      // Eliminar prefijos duplicados consecutivos, pero mantener al menos el primero (proyecto)
-      const uniquePrefixes = [];
-      for (const prefix of allPrefixes) {
-        if (uniquePrefixes[uniquePrefixes.length - 1] !== prefix) {
-          uniquePrefixes.push(prefix);
-        }
-      }
-      
-      // Si hay más de 2 prefijos únicos, considerar spam
-      if (uniquePrefixes.length > 2) {
-        console.log(`🚨 Detectado exceso de prefijos (${uniquePrefixes.length}): "${title}"`);
-        return this.cleanSpamTitle(title);
-      }
-      
-      // Reconstruir el título manteniendo el prefijo de proyecto y limpiando duplicados
-      title = `${uniquePrefixes.join(' ')} ${title.replace(prefixRegex, '').trim()}`.trim();
+    if (prefixRegex.test(title)) {
+      title = title.replace(prefixRegex, '').trim();
     }
     
     // Fase 3: Limpiar espacios y caracteres extraños
     title = title.replace(/\s{2,}/g, ' ').trim();
+    
+    // Si queda vacío después de limpiar, usar título genérico
+    if (!title) {
+      title = 'Tarea importada';
+    }
     
     return title;
   }
 
   /**
    * Detecta si un título es considerado spam
-   * NOTA: Los prefijos [Proyecto] son válidos y NO deben considerarse spam
+   * CORRECCIÓN: Ahora que no preservamos prefijos, detectamos spam de manera diferente
    */
   isSpamTitle(title) {
     if (!title) return false;
-    const t = String(title);
+    const t = String(title).trim();
     
-    // Patrón 1: Título que contiene solo números después de limpiar prefijos de proyecto
-    const cleanOfPrefixes = t.replace(/^(\[[^\]]+\]\s*)/, '').trim(); // Solo el primer prefijo de proyecto
-    if (/^(\d+\s*)+$/.test(cleanOfPrefixes)) {
+    // Patrón 1: Título que contiene solo números
+    if (/^(\d+\s*)+$/.test(t)) {
       return true;
     }
     
-    // Patrón 2: Múltiples prefijos de proyecto repetidos (esto SÍ es spam)
-    // Ejemplo: "[Salud] [Salud] [Salud] Tarea" - prefijos duplicados
+    // Patrón 2: Títulos muy cortos con solo números pequeños
+    if (/^[12]\s*$/.test(t)) {
+      return true;
+    }
+    
+    // Patrón 3: Títulos vacíos o solo espacios
+    if (!t || t.length < 2) {
+      return true;
+    }
+    
+    // Patrón 4: Múltiples prefijos duplicados (aunque los eliminemos, detectamos antes)
     const matches = t.match(/\[[^\]]+\]/g) || [];
     if (matches.length >= 3) {
-      // Verificar si son prefijos consecutivos duplicados
       const uniquePrefixes = [...new Set(matches)];
       if (uniquePrefixes.length < matches.length) {
         return true; // Hay prefijos duplicados consecutivos
-      }
-    }
-    
-    // Patrón 3: Títulos muy cortos con patrones como "[Salud] 1", "[Salud] 2"
-    // PERO solo si el contenido después del proyecto es solo un número
-    const proyectoMatch = t.match(/^(\[[^\]]+\])\s*(.+)$/);
-    if (proyectoMatch) {
-      const [, proyecto, contenido] = proyectoMatch;
-      if (/^[12]\s*$/.test(contenido.trim())) {
-        return true; // "[Salud] 1" o "[Salud] 2" es spam
       }
     }
     
@@ -995,29 +950,20 @@ class GoogleTasksService {
   }
 
   /**
-   * Intenta limpiar un título spam manteniendo información útil
-   * PRESERVA el prefijo de proyecto si existe
+   * Intenta limpiar un título spam
+   * CORRECCIÓN: Ya no preservamos prefijos de proyecto
    */
   cleanSpamTitle(spamTitle) {
-    // Extraer el primer prefijo de proyecto si existe
-    const proyectoMatch = spamTitle.match(/^\[([^\]]+)\]/);
-    if (proyectoMatch) {
-      const proyecto = `[${proyectoMatch[1]}]`;
-      
-      // Buscar contenido después del prefijo de proyecto
-      const restOfTitle = spamTitle.replace(/^(\[[^\]]+\]\s*)/, '').trim();
-      
-      // Si hay contenido útil después del proyecto, mantenerlo
-      if (restOfTitle && restOfTitle.length > 2 && !/^[12]\s*$/.test(restOfTitle)) {
-        return `${proyecto} ${restOfTitle}`;
-      }
-      
-      // Si no hay contenido útil, crear un título descriptivo pero mantener el proyecto
-      return `${proyecto} Tarea`;
+    // Extraer contenido después de cualquier prefijo
+    const cleanContent = spamTitle.replace(/^((\[[^\]]+\]\s*)+)/, '').trim();
+    
+    // Si hay contenido útil después de limpiar prefijos, mantenerlo
+    if (cleanContent && cleanContent.length > 2 && !/^[12]\s*$/.test(cleanContent)) {
+      return cleanContent;
     }
     
-    // Si no hay prefijo de proyecto, crear un título genérico
-    return '[Tarea importada]';
+    // Si no hay contenido útil, crear un título genérico
+    return 'Tarea importada';
   }
 }
 

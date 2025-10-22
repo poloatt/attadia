@@ -42,7 +42,6 @@ export function Tareas() {
   const [editingTarea, setEditingTarea] = useState(null);
   const [isGoogleTasksConfigOpen, setIsGoogleTasksConfigOpen] = useState(false);
   const [selectedTareas, setSelectedTareas] = useState([]);
-  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   const { isMobile } = useResponsive();
   const location = useLocation();
@@ -77,8 +76,16 @@ export function Tareas() {
   const handleSelectAll = () => {
     if (selectedTareas.length === tareas.length) {
       setSelectedTareas([]);
+      // Comunicar que no hay selecciones
+      window.dispatchEvent(new CustomEvent('selectionChanged', { 
+        detail: { hasSelections: false } 
+      }));
     } else {
       setSelectedTareas(tareas.map(tarea => tarea._id));
+      // Comunicar que hay selecciones
+      window.dispatchEvent(new CustomEvent('selectionChanged', { 
+        detail: { hasSelections: true } 
+      }));
     }
   };
 
@@ -157,8 +164,23 @@ export function Tareas() {
         onClick: () => {}
       });
       
-      // Si hay tareas seleccionadas, mostrar botón de delete
+      // Si hay tareas seleccionadas, mostrar botones de selección múltiple
       if (selectedTareas.length > 0) {
+        // Botón seleccionar todas/deseleccionar todas
+        actions.push({
+          component: (
+            <Button
+              variant="outlined"
+              onClick={handleSelectAll}
+              sx={{ borderRadius: 0 }}
+            >
+              {selectedTareas.length === tareas.length ? 'Deseleccionar Todas' : 'Seleccionar Todas'}
+            </Button>
+          ),
+          onClick: handleSelectAll
+        });
+        
+        // Botón de delete
         actions.push({
           component: (
             <SystemButtons.MultiSelectDeleteButton 
@@ -177,6 +199,20 @@ export function Tareas() {
             />
           ),
           onClick: handleDeactivateMultiSelect
+        });
+      } else if (tareas.length > 0) {
+        // Si no hay selecciones pero hay tareas, mostrar botón para seleccionar todas
+        actions.push({
+          component: (
+            <Button
+              variant="outlined"
+              onClick={handleSelectAll}
+              sx={{ borderRadius: 0 }}
+            >
+              Seleccionar Todas
+            </Button>
+          ),
+          onClick: handleSelectAll
         });
       }
       
@@ -202,7 +238,7 @@ export function Tareas() {
         }
       ]);
     }
-  }, [setTitle, setActions, isMobile, selectedTareas.length]);
+  }, [setTitle, setActions, isMobile, selectedTareas.length, tareas.length]);
 
   const fetchProyectosRef = useRef(null);
   const fetchProyectos = useCallback(async () => {
@@ -254,6 +290,17 @@ export function Tareas() {
     });
   }, [enqueueSnackbar]);
 
+  // Función estable para el historial
+  const fetchDataStable = useCallback(async () => {
+    try {
+      await fetchProyectos();
+      await fetchTareas();
+    } catch (error) {
+      console.error('Error al recargar datos:', error);
+      enqueueSnackbar('Error al recargar datos', { variant: 'error' });
+    }
+  }, []);
+
   // Usar el sistema automático de historial
   const { 
     isSupported,
@@ -261,12 +308,7 @@ export function Tareas() {
     updateWithHistory, 
     deleteWithHistory 
   } = usePageWithHistory(
-    // Función para recargar datos
-    async () => {
-      await fetchProyectos();
-      await fetchTareas();
-    },
-    // Función para manejar errores
+    fetchDataStable,
     (error) => {
       console.error('Error al revertir acción:', error);
       enqueueSnackbar('Error al revertir la acción', { variant: 'error' });
@@ -276,7 +318,7 @@ export function Tareas() {
   useEffect(() => {
     fetchTareas();
     fetchProyectos();
-  }, [fetchTareas, fetchProyectos]);
+  }, []);
 
   // Escuchar eventos del Header y navegación
   useEffect(() => {
@@ -333,22 +375,9 @@ export function Tareas() {
       handleDeleteSelected();
     };
 
-    // Manejar activación de selección múltiple desde el Toolbar
-    const handleActivateMultiSelect = () => {
-      console.log('🔍 Evento activateMultiSelect recibido en Tareas.jsx');
-      // Si no hay selecciones, activar modo selección múltiple
-      if (selectedTareas.length === 0) {
-        // Mostrar mensaje informativo
-        enqueueSnackbar('Modo selección múltiple activado. Haz presión larga o doble tap en las tareas para seleccionarlas.', { 
-          variant: 'info',
-          autoHideDuration: 3000
-        });
-        
-        // Disparar evento para activar visualmente la selección múltiple
-        window.dispatchEvent(new CustomEvent('showMultiSelectHint', { 
-          detail: { active: true } 
-        }));
-      }
+    // Manejar seleccionar todas desde el Toolbar
+    const handleSelectAllTasks = () => {
+      handleSelectAll();
     };
 
     window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);   
@@ -357,7 +386,7 @@ export function Tareas() {
     window.addEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
     window.addEventListener('googleTasksSyncCompleted', handleGoogleTasksSyncCompleted);
     window.addEventListener('deleteSelectedTasks', handleDeleteSelectedTasks);
-    window.addEventListener('activateMultiSelect', handleActivateMultiSelect);
+    window.addEventListener('selectAllTasks', handleSelectAllTasks);
 
     return () => {
       window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
@@ -366,7 +395,7 @@ export function Tareas() {
       window.removeEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
       window.removeEventListener('googleTasksSyncCompleted', handleGoogleTasksSyncCompleted);
       window.removeEventListener('deleteSelectedTasks', handleDeleteSelectedTasks);
-      window.removeEventListener('activateMultiSelect', handleActivateMultiSelect);
+      window.removeEventListener('selectAllTasks', handleSelectAllTasks);
     };
   }, [fetchTareas, fetchProyectos, handleDeleteSelected]);
 

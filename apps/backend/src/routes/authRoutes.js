@@ -189,11 +189,14 @@ router.get('/google/url', (req, res) => {
   if (callbackUrl.includes(',')) {
     const callbackUrls = callbackUrl.split(',').map(url => url.trim());
     
-    // Mapear orígenes a URLs de callback
+    // Mapear orígenes a URLs de callback - usar la misma URL para todas las apps
     const originToCallback = {
-      'https://foco.attadia.com': 'https://api.attadia.com/api/auth/google/callback',
-      'https://atta.attadia.com': 'https://api.attadia.com/api/auth/google/callback',
-      'https://pulso.attadia.com': 'https://api.attadia.com/api/auth/google/callback'
+      'https://foco.attadia.com': callbackUrls[0],
+      'https://atta.attadia.com': callbackUrls[0],
+      'https://pulso.attadia.com': callbackUrls[0],
+      'http://localhost:5173': callbackUrls[0],
+      'http://localhost:5174': callbackUrls[0],
+      'http://localhost:5175': callbackUrls[0]
     };
     
     callbackUrl = originToCallback[requestOrigin] || callbackUrls[0];
@@ -244,19 +247,14 @@ router.get('/google/url', (req, res) => {
 
 router.get('/google/callback',
   (req, res, next) => {
-    console.log('Callback de Google recibido en ambiente:', {
-      env: config.env,
-      error: req.query.error,
-      code: req.query.code ? 'presente' : 'ausente',
-      query: req.query,
-      headers: {
-        host: req.headers.host,
-        origin: req.headers.origin,
-        referer: req.headers.referer,
-        'user-agent': req.headers['user-agent'],
-        cookie: req.headers.cookie ? 'presente' : 'ausente'
-      }
-    });
+    // Solo loggear errores o en desarrollo
+    if (req.query.error || config.env === 'development') {
+      console.log('Callback de Google recibido:', {
+        env: config.env,
+        error: req.query.error,
+        code: req.query.code ? 'presente' : 'ausente'
+      });
+    }
 
     if (req.query.error) {
       console.error('Error en autenticación de Google:', {

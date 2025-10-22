@@ -179,7 +179,7 @@ export const RutinaTable = ({
       isMounted.current = false;
       clearTimeout(timerId);
     };
-  }, [enqueueSnackbar]);
+  }, []);
 
   // Lógica de visibilidad unificada: se delega a RutinaCard/ChecklistSection vía visibilityUtils
 

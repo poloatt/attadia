@@ -110,7 +110,6 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
   const [isUpdating, setIsUpdating] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState(null);
   const [isLongPressing, setIsLongPressing] = useState(false);
-  const [lastTapTime, setLastTapTime] = useState(0);
   const [longPressActivated, setLongPressActivated] = useState(false);
   const [showMultiSelectHint, setShowMultiSelectHint] = useState(false);
   const { isMobile, theme } = useResponsive();
@@ -176,10 +175,8 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
       setLongPressTimer(null);
     }
     setIsLongPressing(false);
-    // Solo resetear longPressActivated después de un delay para evitar conflictos
-    setTimeout(() => {
-      setLongPressActivated(false);
-    }, 100);
+    // Resetear longPressActivated inmediatamente para evitar conflictos con clicks
+    setLongPressActivated(false);
   };
 
   const handleMouseLeave = () => {
@@ -188,10 +185,8 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
       setLongPressTimer(null);
     }
     setIsLongPressing(false);
-    // Solo resetear longPressActivated después de un delay para evitar conflictos
-    setTimeout(() => {
-      setLongPressActivated(false);
-    }, 100);
+    // Resetear longPressActivated inmediatamente para evitar conflictos
+    setLongPressActivated(false);
   };
 
   // Funciones para touch events - Mobile/Tablet
@@ -218,10 +213,8 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
       setLongPressTimer(null);
     }
     setIsLongPressing(false);
-    // Solo resetear longPressActivated después de un delay para evitar conflictos
-    setTimeout(() => {
-      setLongPressActivated(false);
-    }, 100);
+    // Resetear longPressActivated inmediatamente para evitar conflictos
+    setLongPressActivated(false);
   };
 
   const handleTouchCancel = () => {
@@ -230,10 +223,8 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
       setLongPressTimer(null);
     }
     setIsLongPressing(false);
-    // Solo resetear longPressActivated después de un delay para evitar conflictos
-    setTimeout(() => {
-      setLongPressActivated(false);
-    }, 100);
+    // Resetear longPressActivated inmediatamente para evitar conflictos
+    setLongPressActivated(false);
   };
 
   const handleSubtareaToggle = async (subtareaId, completada) => {
@@ -475,6 +466,11 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
 
   // Función para manejar click normal (no presión larga)
   const handleRowClick = (e) => {
+    // Si el click viene del checkbox, no hacer nada adicional
+    if (e.target.closest('.MuiCheckbox-root')) {
+      return;
+    }
+    
     // Si estamos en modo selección múltiple, solo manejar selección
     if (isMultiSelectMode) {
       e.stopPropagation();
@@ -484,7 +480,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
       return;
     }
     
-    // Si hay tareas seleccionadas, manejar como selección múltiple
+    // Si hay tareas seleccionadas (incluso si es solo esta), manejar como selección múltiple
     if (selectedTareas.length > 0) {
       e.stopPropagation();
       if (onSelectTarea) {
@@ -499,31 +495,14 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
       return;
     }
     
-    // Solo hacer toggle del colapse si no hay selecciones activas y no fue presión larga
-    if (!longPressTimer && !isLongPressing && selectedTareas.length === 0) {
-      // En mobile, verificar si es doble tap para activar selección múltiple
-      if (isMobile) {
-        const currentTime = Date.now();
-        const timeDiff = currentTime - lastTapTime;
-        
-        if (timeDiff < 300 && timeDiff > 0) {
-          // Doble tap detectado - activar selección múltiple
-          e.stopPropagation();
-          if (onSelectTarea) {
-            onSelectTarea(tarea._id);
-          }
-          setLastTapTime(0); // Reset para evitar triple tap
-          return;
-        } else {
-          // Tap simple - hacer toggle del colapse
-          setLastTapTime(currentTime);
-          setOpen(!open);
-        }
-      } else {
-        // En desktop, hacer toggle del colapse normalmente
-        setOpen(!open);
-      }
+    // Si estamos en proceso de presión larga, no hacer nada
+    if (isLongPressing || longPressTimer) {
+      e.stopPropagation();
+      return;
     }
+    
+    // Solo hacer toggle del colapse si no hay selecciones activas y no fue presión larga
+    setOpen(!open);
   };
 
   return (
@@ -540,7 +519,7 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
           bgcolor: isLongPressing ? 'action.selected' : (selectedTareas.includes(tarea._id) ? 'action.selected' : 'background.paper'),
           transition: 'background-color 0.2s ease',
           ...(selectedTareas.length > 0 && {
-            border: '1px solid',
+            border: '2px solid',
             borderColor: selectedTareas.includes(tarea._id) ? 'primary.main' : 'transparent',
             borderRadius: 1
           }),
@@ -554,6 +533,10 @@ const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, 
               backgroundColor: 'rgba(25, 118, 210, 0.1)',
               borderColor: 'primary.dark'
             }
+          }),
+          // Animación sutil cuando hay selecciones activas pero esta tarea no está seleccionada
+          ...(selectedTareas.length > 0 && !selectedTareas.includes(tarea._id) && {
+            animation: 'subtlePulse 3s infinite'
           }),
           '&::before': {
             content: '""',
@@ -958,4 +941,38 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
   );
 };
 
-export default TareasTable; 
+export default TareasTable;
+
+// Definiciones de animaciones CSS para selección múltiple
+const styles = `
+  @keyframes pulse {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes subtlePulse {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.9;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+`;
+
+// Inyectar estilos en el documento
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement('style');
+  styleSheet.textContent = styles;
+  document.head.appendChild(styleSheet);
+} 

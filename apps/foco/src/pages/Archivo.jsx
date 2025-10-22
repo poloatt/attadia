@@ -124,7 +124,7 @@ export function Archivo() {
   useEffect(() => {
     fetchTareas();
     fetchProyectos();
-  }, [fetchTareas, fetchProyectos]);
+  }, []);
 
   const handleDeleteSelected = async () => {
     if (selectedTareas.length === 0) return;
@@ -167,34 +167,15 @@ export function Archivo() {
       handleDeleteSelected();
     };
 
-    // Manejar activación de selección múltiple desde el Toolbar
-    const handleActivateMultiSelect = () => {
-      console.log('🔍 Evento activateMultiSelect recibido en Archivo.jsx');
-      // Si no hay selecciones, activar modo selección múltiple
-      if (selectedTareas.length === 0) {
-        // Mostrar mensaje informativo
-        enqueueSnackbar('Modo selección múltiple activado. Haz presión larga o doble tap en las tareas para seleccionarlas.', { 
-          variant: 'info',
-          autoHideDuration: 3000
-        });
-        
-        // Disparar evento para activar visualmente la selección múltiple
-        window.dispatchEvent(new CustomEvent('showMultiSelectHint', { 
-          detail: { active: true } 
-        }));
-      }
-    };
 
     window.addEventListener('addProject', handleAddProject);
     window.addEventListener('addTask', handleAddTask);
     window.addEventListener('deleteSelectedTasks', handleDeleteSelectedTasks);
-    window.addEventListener('activateMultiSelect', handleActivateMultiSelect);
     
     return () => {
       window.removeEventListener('addProject', handleAddProject);
       window.removeEventListener('addTask', handleAddTask);
       window.removeEventListener('deleteSelectedTasks', handleDeleteSelectedTasks);
-      window.removeEventListener('activateMultiSelect', handleActivateMultiSelect);
     };
   }, [navigate, handleDeleteSelected]);
 

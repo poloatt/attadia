@@ -6,6 +6,7 @@ import {
   IconButton,
   Tooltip,
   CircularProgress,
+  Chip,
 } from '@mui/material';
 import { useResponsive } from '@shared/hooks';
 import {
@@ -30,6 +31,7 @@ import TareaForm from '../proyectos/TareaForm';
 import { useValuesVisibility } from '@shared/context';
 import { usePageWithHistory, useGlobalActionHistory } from '@shared/hooks';
 import { useNavigate } from 'react-router-dom';
+import { SystemButtons } from '@shared/components/common/SystemButtons';
 
 export function Proyectos() {
   const [proyectos, setProyectos] = useState([]);
@@ -39,6 +41,7 @@ export function Proyectos() {
   const [viewMode, setViewMode] = useState('grid');
   const [isTareaFormOpen, setIsTareaFormOpen] = useState(false);
   const [selectedProyecto, setSelectedProyecto] = useState(null);
+  const [selectedProyectos, setSelectedProyectos] = useState([]);
   const { enqueueSnackbar } = useSnackbar();
   const { isMobile } = useResponsive();
   const { setTitle, setActions } = useNavigationBar();
@@ -72,6 +75,22 @@ export function Proyectos() {
     });
   }, [enqueueSnackbar]);
 
+  // Función estable para el historial
+  const fetchProyectosStable = useCallback(async () => {
+    try {
+      const response = await clienteAxios.get(`/api/proyectos?populate=tareas&_t=${Date.now()}`);
+      setProyectos(response.data.docs || []);
+      setLoading(false);
+      return response.data;
+    } catch (error) {
+      console.error('Error:', error);
+      enqueueSnackbar('Error al cargar proyectos', { variant: 'error' });
+      setProyectos([]);
+      setLoading(false);
+      throw error;
+    }
+  }, [enqueueSnackbar]);
+
   // 2. Historial de proyectos (ruta actual)
   const { 
     isSupported,
@@ -79,7 +98,7 @@ export function Proyectos() {
     updateWithHistory, 
     deleteWithHistory 
   } = usePageWithHistory(
-    fetchProyectos,
+    fetchProyectosStable,
     (error) => {
       console.error('Error al revertir acción:', error);
       enqueueSnackbar('Error al revertir la acción', { variant: 'error' });
@@ -99,10 +118,104 @@ export function Proyectos() {
             navigate('/tiempo/rutinas');
   };
 
+  // Funciones para selección múltiple
+  const handleSelectProyecto = useCallback((proyectoId) => {
+    setSelectedProyectos(prev => {
+      const newSelection = prev.includes(proyectoId) 
+        ? prev.filter(id => id !== proyectoId)
+        : [...prev, proyectoId];
+      
+      // Comunicar el estado de selección al Toolbar
+      window.dispatchEvent(new CustomEvent('selectionChanged', { 
+        detail: { hasSelections: newSelection.length > 0 } 
+      }));
+      
+      return newSelection;
+    });
+  }, []);
+
+  const handleSelectAllProyectos = useCallback(() => {
+    if (selectedProyectos.length === proyectos.length) {
+      setSelectedProyectos([]);
+      // Comunicar que no hay selecciones
+      window.dispatchEvent(new CustomEvent('selectionChanged', { 
+        detail: { hasSelections: false } 
+      }));
+    } else {
+      setSelectedProyectos(proyectos.map(proyecto => proyecto._id));
+      // Comunicar que hay selecciones
+      window.dispatchEvent(new CustomEvent('selectionChanged', { 
+        detail: { hasSelections: true } 
+      }));
+    }
+  }, [selectedProyectos.length, proyectos]);
+
+  const handleDeactivateMultiSelect = useCallback(() => {
+    setSelectedProyectos([]);
+    // Comunicar que no hay selecciones
+    window.dispatchEvent(new CustomEvent('selectionChanged', { 
+      detail: { hasSelections: false } 
+    }));
+  }, []);
+
+  const handleDeleteSelected = useCallback(async () => {
+    if (selectedProyectos.length === 0) return;
+    
+    try {
+      // Eliminar todas las tareas seleccionadas usando el sistema de historial
+      const results = await Promise.allSettled(
+        selectedProyectos.map(id => deleteWithHistory(id))
+      );
+      
+      // Contar eliminaciones exitosas y fallidas
+      const successful = results.filter(result => 
+        result.status === 'fulfilled' && 
+        (result.value?.success !== false)
+      ).length;
+      
+      const failed = results.length - successful;
+      
+      // Actualizar estado local inmediatamente removiendo los proyectos eliminados
+      setProyectos(prevProyectos => 
+        prevProyectos.filter(proyecto => !selectedProyectos.includes(proyecto._id))
+      );
+      
+      // Mostrar mensaje apropiado
+      if (successful > 0) {
+        enqueueSnackbar(`${successful} proyecto(s) eliminado(s) exitosamente`, { variant: 'success' });
+      }
+      
+      if (failed > 0) {
+        enqueueSnackbar(`${failed} proyecto(s) ya fueron eliminados`, { variant: 'warning' });
+      }
+      
+      setSelectedProyectos([]);
+      
+      // Comunicar que no hay selecciones
+      window.dispatchEvent(new CustomEvent('selectionChanged', { 
+        detail: { hasSelections: false } 
+      }));
+      
+      // Recargar datos después de un breve delay para asegurar sincronización
+      setTimeout(() => {
+        fetchProyectos();
+      }, 500);
+      
+    } catch (error) {
+      console.error('Error al eliminar proyectos:', error);
+      enqueueSnackbar('Error al eliminar los proyectos', { variant: 'error' });
+    }
+  }, [selectedProyectos, deleteWithHistory, enqueueSnackbar, fetchProyectos]);
+
   useEffect(() => {
     setTitle('Proyectos');
-    setActions([
-      {
+    
+    // Solo mostrar iconos en desktop
+    if (!isMobile) {
+      const actions = [];
+      
+      // Botón "Nuevo Proyecto" siempre visible
+      actions.push({
         component: (
           <Button
             variant="contained"
@@ -117,9 +230,83 @@ export function Proyectos() {
           </Button>
         ),
         onClick: () => {}
+      });
+      
+      // Si hay proyectos seleccionados, mostrar botones de selección múltiple
+      if (selectedProyectos.length > 0) {
+        // Botón seleccionar todas/deseleccionar todas
+        actions.push({
+          component: (
+            <Button
+              variant="outlined"
+              onClick={handleSelectAllProyectos}
+              sx={{ borderRadius: 0 }}
+            >
+              {selectedProyectos.length === proyectos.length ? 'Deseleccionar Todas' : 'Seleccionar Todas'}
+            </Button>
+          ),
+          onClick: handleSelectAllProyectos
+        });
+        
+        // Botón de delete
+        actions.push({
+          component: (
+            <SystemButtons.MultiSelectDeleteButton 
+              onDelete={handleDeleteSelected}
+              selectedCount={selectedProyectos.length}
+            />
+          ),
+          onClick: handleDeleteSelected
+        });
+        
+        // Botón para limpiar selección
+        actions.push({
+          component: (
+            <SystemButtons.MultiSelectCancelButton 
+              onCancel={handleDeactivateMultiSelect}
+            />
+          ),
+          onClick: handleDeactivateMultiSelect
+        });
+      } else if (proyectos.length > 0) {
+        // Si no hay selecciones pero hay proyectos, mostrar botón para seleccionar todas
+        actions.push({
+          component: (
+            <Button
+              variant="outlined"
+              onClick={handleSelectAllProyectos}
+              sx={{ borderRadius: 0 }}
+            >
+              Seleccionar Todas
+            </Button>
+          ),
+          onClick: handleSelectAllProyectos
+        });
       }
-    ]);
-  }, [setTitle, setActions]);
+      
+      setActions(actions);
+    } else {
+      // En móvil, solo mostrar el botón "Nuevo Proyecto"
+      setActions([
+        {
+          component: (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => {
+                setEditingProyecto(null);
+                setIsFormOpen(true);
+              }}
+              sx={{ borderRadius: 0 }}
+            >
+              Nuevo Proyecto
+            </Button>
+          ),
+          onClick: () => {}
+        }
+      ]);
+    }
+  }, [setTitle, setActions, isMobile, selectedProyectos.length, proyectos.length, handleSelectAllProyectos, handleDeleteSelected, handleDeactivateMultiSelect]);
 
   useEffect(() => {
     fetchProyectos();
@@ -165,11 +352,24 @@ export function Proyectos() {
       }, 500);
     };
 
+    // Manejar eliminación de proyectos seleccionados desde el Toolbar
+    const handleDeleteSelectedProyectos = () => {
+      handleDeleteSelected();
+    };
+
+
+    // Manejar seleccionar todas desde el Toolbar
+    const handleSelectAllProyectosFromToolbar = () => {
+      handleSelectAllProyectos();
+    };
+
     window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
     window.addEventListener('addProject', handleAddProject);
     window.addEventListener('addTask', handleAddTask);
     window.addEventListener('undoAction_proyecto', handleUndoAction);
     window.addEventListener('undoAction_tarea', handleUndoTareaAction);
+    window.addEventListener('deleteSelectedProyectos', handleDeleteSelectedProyectos);
+    window.addEventListener('selectAllProyectos', handleSelectAllProyectosFromToolbar);
     
     return () => {
       window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
@@ -177,8 +377,15 @@ export function Proyectos() {
       window.removeEventListener('addTask', handleAddTask);
       window.removeEventListener('undoAction_proyecto', handleUndoAction);
       window.removeEventListener('undoAction_tarea', handleUndoTareaAction);
+      window.removeEventListener('deleteSelectedProyectos', handleDeleteSelectedProyectos);
+      window.removeEventListener('selectAllProyectos', handleSelectAllProyectosFromToolbar);
     };
-  }, [fetchProyectos]);
+  }, []);
+
+  // Cargar datos iniciales
+  useEffect(() => {
+    fetchProyectos();
+  }, []);
 
   const handleFormSubmit = async (formData) => {
     try {
@@ -317,8 +524,11 @@ export function Proyectos() {
               onAddTarea={handleAddTarea}
               showValues={showValues}
               updateWithHistory={updateWithHistory}
-            updateTareaWithHistory={updateTareaWithHistory}
-          />
+              updateTareaWithHistory={updateTareaWithHistory}
+              isMultiSelectMode={selectedProyectos.length > 0}
+              selectedProyectos={selectedProyectos}
+              onSelectProyecto={handleSelectProyecto}
+            />
           )}
         </Box>
         <ProyectoForm
@@ -346,6 +556,63 @@ export function Proyectos() {
             proyectos={proyectos}
             onProyectosUpdate={fetchProyectos}
           />
+        )}
+        
+        {/* Barra flotante minimalista para selección múltiple */}
+        {selectedProyectos.length > 0 && (
+          <Box
+            sx={{
+              position: 'fixed',
+              bottom: isMobile ? 100 : 20,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              bgcolor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: isMobile ? 3 : 2,
+              px: isMobile ? 3 : 2,
+              py: isMobile ? 1.5 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: isMobile ? 2 : 1,
+              boxShadow: 3,
+              zIndex: 1000,
+              minWidth: isMobile ? 250 : 200,
+              justifyContent: 'center',
+              // En mobile, hacer la barra más grande y fácil de tocar
+              ...(isMobile && {
+                '& *': {
+                  fontSize: '1rem !important'
+                }
+              })
+            }}
+          >
+            <Chip
+              label={`${selectedProyectos.length} seleccionados`}
+              size={isMobile ? "medium" : "small"}
+              color="primary"
+              variant="outlined"
+              sx={{
+                fontSize: isMobile ? '0.9rem' : '0.75rem',
+                height: isMobile ? 32 : 24
+              }}
+            />
+            
+            <IconButton
+              size={isMobile ? "medium" : "small"}
+              onClick={handleDeactivateMultiSelect}
+              sx={{ 
+                color: 'text.secondary',
+                fontSize: isMobile ? '1.2rem' : '1rem',
+                padding: isMobile ? 1 : 0.5,
+                '&:hover': {
+                  backgroundColor: 'action.hover'
+                }
+              }}
+            >
+              ✕
+            </IconButton>
+          </Box>
         )}
       </Box>
     </Box>

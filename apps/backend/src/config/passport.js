@@ -139,15 +139,14 @@ if (config.google.clientId && config.google.clientSecret) {
     proxy: true
   }, async (req, accessToken, refreshToken, profile, done) => {
     try {
-      console.log('Google callback recibido en ambiente:', { 
-        env: config.env,
-        profileId: profile.id,
-        email: profile.emails?.[0]?.value,
-        displayName: profile.displayName,
-        accessToken: accessToken ? 'presente' : 'ausente',
-        refreshToken: refreshToken ? 'presente' : 'ausente',
-        code: req.query?.code
-      });
+      // Solo loggear en desarrollo o errores
+      if (config.env === 'development') {
+        console.log('Google callback recibido:', { 
+          env: config.env,
+          profileId: profile.id,
+          email: profile.emails?.[0]?.value
+        });
+      }
 
       if (!profile || !profile.emails || !profile.emails[0]?.value) {
         console.error('Perfil de Google incompleto en ambiente:', {

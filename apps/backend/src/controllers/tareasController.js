@@ -446,11 +446,11 @@ class TareasController extends BaseController {
         populate: [
           { 
             path: 'proyecto',
-            select: 'nombre descripcion estado googleTasksSync'
+            select: 'nombre estado' // Reducir campos innecesarios
           },
           {
             path: 'subtareas',
-            select: 'titulo descripcion estado completada orden'
+            select: 'titulo completada orden' // Reducir campos innecesarios
           }
         ],
         lean: true,
@@ -466,10 +466,10 @@ class TareasController extends BaseController {
           ...doc.proyecto,
           id: doc.proyecto._id.toString()
         } : null,
-        // Incluir información de sincronización con Google Tasks
+        // Solo incluir información esencial de sincronización
         isGoogleTasksEnabled: doc.googleTasksSync?.enabled || false,
-        googleTasksSyncStatus: doc.googleTasksSync?.syncStatus || null,
-        googleTaskId: doc.googleTasksSync?.googleTaskId || null
+        googleTasksSyncStatus: doc.googleTasksSync?.syncStatus || null
+        // Remover googleTaskId para reducir tamaño de respuesta
       }));
 
       res.json({

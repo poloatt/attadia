@@ -28,7 +28,8 @@ import Perfil from '@shared/pages/Perfil';
 import Configuracion from '@shared/pages/Configuracion';
 import Preferencias from '@shared/pages/Preferencias';
 
-function App() {
+// Componente wrapper para manejar el estado de autenticación
+function AppContent() {
   const { user, loading } = useAuth();
 
   // Debug del estado de autenticación (solo en desarrollo)
@@ -41,6 +42,41 @@ function App() {
   }
 
   return (
+    <Routes>
+      {/* Rutas públicas */}
+      <Route path="/login" element={user ? <Navigate to="/rutinas" replace /> : <Login />} />
+      <Route path="/registro" element={<Register />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/auth/callback/*" element={<AuthCallback />} />
+      <Route path="/auth/error" element={<AuthError />} />
+      
+      {/* Ruta raíz redirige a rutinas */}
+      <Route path="/" element={<Navigate to="/rutinas" replace />} />
+      
+      {/* Rutas protegidas */}
+      <Route element={<PrivateRoute />}>
+        <Route element={<Layout />}>
+          {/* Módulo principal - Foco */}
+          <Route path="/rutinas" element={<Rutinas />} />
+          <Route path="/proyectos" element={<Proyectos />} />
+          <Route path="/tareas" element={<Tareas />} />
+          <Route path="/archivo" element={<Archivo />} />
+          
+          {/* Configuración */}
+          <Route path="/configuracion" element={<Configuracion />} />
+          <Route path="/configuracion/perfil" element={<Perfil />} />
+          <Route path="/configuracion/preferencias" element={<Preferencias />} />
+        </Route>
+      </Route>
+
+      {/* Ruta 404 */}
+      <Route path="*" element={<Navigate to="/rutinas" replace />} />
+    </Routes>
+  );
+}
+
+function App() {
+  return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Toaster position="top-right" />
@@ -50,36 +86,7 @@ function App() {
             <UISettingsProvider>
               <RutinasProvider>
                 <ErrorBoundary>
-                <Routes>
-                  {/* Rutas públicas */}
-                  <Route path="/login" element={user ? <Navigate to="/rutinas" replace /> : <Login />} />
-                  <Route path="/registro" element={<Register />} />
-                  <Route path="/auth/callback" element={<AuthCallback />} />
-                  <Route path="/auth/callback/*" element={<AuthCallback />} />
-                  <Route path="/auth/error" element={<AuthError />} />
-                  
-                  {/* Ruta raíz redirige a rutinas */}
-                  <Route path="/" element={<Navigate to="/rutinas" replace />} />
-                  
-                  {/* Rutas protegidas */}
-                  <Route element={<PrivateRoute />}>
-                    <Route element={<Layout />}>
-                      {/* Módulo principal - Foco */}
-                      <Route path="/rutinas" element={<Rutinas />} />
-                      <Route path="/proyectos" element={<Proyectos />} />
-                      <Route path="/tareas" element={<Tareas />} />
-                      <Route path="/archivo" element={<Archivo />} />
-                      
-                      {/* Configuración */}
-                      <Route path="/configuracion" element={<Configuracion />} />
-                      <Route path="/configuracion/perfil" element={<Perfil />} />
-                      <Route path="/configuracion/preferencias" element={<Preferencias />} />
-                    </Route>
-                  </Route>
-
-                  {/* Ruta 404 */}
-                  <Route path="*" element={<Navigate to="/rutinas" replace />} />
-                </Routes>
+                  <AppContent />
                 </ErrorBoundary>
               </RutinasProvider>
             </UISettingsProvider>

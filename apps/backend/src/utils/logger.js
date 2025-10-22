@@ -1,99 +1,90 @@
-// Sistema de logging estructurado para la aplicación
+/**
+ * Utilidad de logging optimizada para reducir ruido en producción
+ */
+
+const isDevelopment = process.env.NODE_ENV === 'development';
+const isProduction = process.env.NODE_ENV === 'production';
+
 class Logger {
   constructor() {
-    this.isDevelopment = process.env.NODE_ENV === 'development';
+    this.logLevel = process.env.LOG_LEVEL || (isDevelopment ? 'debug' : 'info');
   }
 
-  // Log de información general
-  info(message, data = {}) {
-    this.log('INFO', message, data);
-  }
-
-  // Log de advertencias
-  warn(message, data = {}) {
-    this.log('WARN', message, data);
-  }
-
-  // Log de errores
-  error(message, error = null, data = {}) {
-    const logData = {
-      ...data,
-      error: error ? {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-        code: error.code
-      } : null
-    };
-    this.log('ERROR', message, logData);
-  }
-
-  // Log de debug (solo en desarrollo)
-  debug(message, data = {}) {
-    if (this.isDevelopment) {
-      this.log('DEBUG', message, data);
+  /**
+   * Log solo en desarrollo
+   */
+  dev(message, ...args) {
+    if (isDevelopment) {
+      console.log(`[DEV] ${message}`, ...args);
     }
   }
 
-  // Log específico para MercadoPago
-  mercadopago(action, message, data = {}) {
-    this.log('MERCADOPAGO', message, {
-      action,
-      timestamp: new Date().toISOString(),
-      ...data
-    });
+  /**
+   * Log de información (siempre visible)
+   */
+  info(message, ...args) {
+    console.log(`[INFO] ${message}`, ...args);
   }
 
-  // Log específico para sincronización
-  sync(connectionId, action, message, data = {}) {
-    this.log('SYNC', message, {
-      connectionId,
-      action,
-      timestamp: new Date().toISOString(),
-      ...data
-    });
+  /**
+   * Log de advertencias (siempre visible)
+   */
+  warn(message, ...args) {
+    console.warn(`[WARN] ${message}`, ...args);
   }
 
-  // Método principal de logging
-  log(level, message, data = {}) {
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      level,
-      message,
-      ...data
-    };
+  /**
+   * Log de errores (siempre visible)
+   */
+  error(message, ...args) {
+    console.error(`[ERROR] ${message}`, ...args);
+  }
 
-    // En desarrollo, mostrar logs más detallados
-    if (this.isDevelopment) {
-      console.log(`[${level}] ${message}`, data);
+  /**
+   * Log de debug (solo en desarrollo)
+   */
+  debug(message, ...args) {
+    if (isDevelopment) {
+      console.log(`[DEBUG] ${message}`, ...args);
+    }
+  }
+
+  /**
+   * Log de datos grandes truncados (para evitar logs masivos)
+   */
+  data(label, data, maxLength = 200) {
+    if (isDevelopment) {
+      const dataStr = JSON.stringify(data);
+      const truncated = dataStr.length > maxLength 
+        ? dataStr.substring(0, maxLength) + '...' 
+        : dataStr;
+      console.log(`[DATA] ${label}:`, truncated);
+    }
+  }
+
+  /**
+   * Log de performance (solo en desarrollo)
+   */
+  perf(label, startTime) {
+    if (isDevelopment) {
+      const duration = Date.now() - startTime;
+      console.log(`[PERF] ${label}: ${duration}ms`);
+    }
+  }
+
+  /**
+   * Log de sincronización (reducido en producción)
+   */
+  sync(message, ...args) {
+    if (isDevelopment) {
+      console.log(`[SYNC] ${message}`, ...args);
     } else {
-      // En producción, usar formato JSON para mejor parsing
-      console.log(JSON.stringify(logEntry));
+      // En producción solo log errores importantes
+      if (message.includes('Error') || message.includes('Failed')) {
+        console.log(`[SYNC] ${message}`, ...args);
+      }
     }
-  }
-
-  // Método para logging de performance
-  performance(operation, duration, data = {}) {
-    this.log('PERFORMANCE', `${operation} completado en ${duration}ms`, {
-      operation,
-      duration,
-      ...data
-    });
-  }
-
-  // Método para logging de seguridad
-  security(event, data = {}) {
-    this.log('SECURITY', event, {
-      event,
-      ip: data.ip,
-      userId: data.userId,
-      userAgent: data.userAgent,
-      ...data
-    });
   }
 }
 
-// Instancia singleton del logger
-const logger = new Logger();
-
-export default logger; 
+export default new Logger();

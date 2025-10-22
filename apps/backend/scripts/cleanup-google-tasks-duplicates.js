@@ -21,10 +21,18 @@ const logAction = (apply, message) => {
 
 async function connectMongo() {
   mongoose.set('strictQuery', false);
-  const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/present';
+  
+  // Usar la configuración del proyecto
+  const config = await import('../src/config/config.js');
+  const uri = config.default.mongoUrl;
+  
+  if (!uri) {
+    throw new Error('No se encontró URI de MongoDB en la configuración');
+  }
+  
+  console.log(`🔗 Conectando a MongoDB: ${uri.replace(/\/\/.*@/, '//***@')}`); // Ocultar credenciales
+  
   await mongoose.connect(uri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
     serverSelectionTimeoutMS: 10000,
   });
 }

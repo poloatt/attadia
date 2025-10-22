@@ -68,8 +68,8 @@ class ProyectosController extends BaseController {
           proyecto: proyecto._id,
           usuario: req.user.id
         })
-        .select('titulo descripcion estado fechaInicio fechaFin fechaVencimiento prioridad completada subtareas googleTasksSync')
-        .populate('subtareas', 'titulo completada orden')
+        .select('titulo estado fechaInicio prioridad completada') // Reducir campos innecesarios
+        // Remover populate de subtareas para reducir datos
         .lean();
 
         // Actualizar el array de tareas en el proyecto
@@ -84,11 +84,9 @@ class ProyectosController extends BaseController {
 
       const total = await this.Model.countDocuments(query);
       
-      console.log('Número de proyectos encontrados:', proyectos.length);
-      if (proyectos.length > 0) {
-        const primerProyecto = proyectos[0];
-        console.log('ID del primer proyecto:', primerProyecto._id);
-        console.log('Tareas sincronizadas en el primer proyecto:', primerProyecto.tareas);
+      // Solo log en desarrollo para reducir ruido
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Número de proyectos encontrados:', proyectos.length);
       }
       
       res.json({
