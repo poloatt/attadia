@@ -67,16 +67,18 @@ const focoRoutesMap = {
   }
 }
 
+const Root = (
+  <BrowserRouter {...routerConfig}>
+    <AuthProvider>
+      <ActionHistoryProvider>
+        <ActionHistoryRoutesProvider routesMap={focoRoutesMap}>
+          <App />
+        </ActionHistoryRoutesProvider>
+      </ActionHistoryProvider>
+    </AuthProvider>
+  </BrowserRouter>
+)
+
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <BrowserRouter {...routerConfig}>
-      <AuthProvider>
-        <ActionHistoryProvider>
-          <ActionHistoryRoutesProvider routesMap={focoRoutesMap}>
-            <App />
-          </ActionHistoryRoutesProvider>
-        </ActionHistoryProvider>
-      </AuthProvider>
-    </BrowserRouter>
-  </React.StrictMode>,
+  import.meta.env.DEV ? Root : <React.StrictMode>{Root}</React.StrictMode>,
 )

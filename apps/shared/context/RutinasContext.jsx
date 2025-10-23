@@ -373,12 +373,8 @@ export const RutinasProvider = ({ children }) => {
     }
   }, [enqueueSnackbar, rutina, getRutinaById]);
 
-  // Manejo inicial de la rutina cuando se cargan las rutinas
-  useEffect(() => {
-    if (rutinas.length > 0 && !rutina) {
-      getRutinaById(rutinas[0]._id);
-    }
-  }, [rutinas, rutina, getRutinaById]);
+  // La rutina inicial ya se establece en fetchRutinas; evitamos re-ejecuciones aquí para no duplicar llamadas
+  // y reducir renders redundantes en desarrollo con React.StrictMode
 
   // Valores a exponer en el contexto
   const contextValue = useMemo(() => ({

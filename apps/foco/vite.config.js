@@ -28,6 +28,7 @@ export default defineConfig(({ mode }) => {
       hmr: {
         clientPort: 5173,
         host: 'localhost',
+        overlay: false
       },
       watch: {
         usePolling: false, // Usar file watching nativo (más rápido)
@@ -39,7 +40,8 @@ export default defineConfig(({ mode }) => {
           '**/.git/**',
           '**/apps/atta/**',
           '**/apps/pulso/**',
-          '**/apps/backend/**'
+          '**/apps/backend/**',
+          '**/.vite/**'
         ]
       },
       proxy: {

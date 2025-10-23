@@ -33,6 +33,6 @@
   "devDependencies": {
     "concurrently": "^8.2.2",
     "sharp": "^0.34.4",
-    "turbo": "^1.10.0"
+    "turbo": "^2.5.8"
   }
 }

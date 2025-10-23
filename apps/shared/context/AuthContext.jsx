@@ -130,7 +130,7 @@ export function AuthProvider({ children }) {
     } finally {
       isChecking.current = false;
     }
-  }, [isAuthenticated]);
+  }, []);
 
   // Login simplificado con protección contra múltiples llamadas
   const login = useCallback(async (credentials) => {
