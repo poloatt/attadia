@@ -6,7 +6,6 @@ export * from './FormContext.jsx';
 export * from './GlobalFormEventListener.jsx';
 export * from './NavigationBarContext.jsx';
 export * from './RutinasContext.jsx';
-export * from './RutinasStatisticsContext.jsx';
 export * from './SidebarContext.jsx';
 export * from './ThemeContext.jsx';
 export * from './UISettingsContext.jsx';

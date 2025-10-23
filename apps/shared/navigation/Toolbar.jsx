@@ -16,7 +16,7 @@ import { getMainModules, reorderModulesWithActiveFirst, findActiveModule, naviga
 import { DynamicIcon, ClickableIcon, IconWithText } from '../components/common/DynamicIcon';
 import RutinaNavigation from './RutinaNavigation.jsx';
 import { useRutinas } from '../context/RutinasContext';
-import { useRutinasStatistics } from '../context/RutinasStatisticsContext';
+import { calculateCompletionPercentage } from '../utils/rutinaCalculations';
 
 export default function Toolbar({
   moduloActivo,
@@ -84,11 +84,9 @@ export default function Toolbar({
     
     try {
       const rutinasData = useRutinas();
-      const statisticsData = useRutinasStatistics();
       rutina = rutinasData.rutina;
       rutinas = rutinasData.rutinas;
       loading = rutinasData.loading;
-      calculateCompletionPercentage = statisticsData.calculateCompletionPercentage;
     } catch (error) {
       // Si no hay RutinasProvider, usar valores por defecto
       console.warn('RutinasProvider no disponible, usando valores por defecto');

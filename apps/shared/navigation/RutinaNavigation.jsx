@@ -13,7 +13,7 @@ import { parseAPIDate } from '../utils/dateUtils.js';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useRutinas } from '../context/RutinasContext.jsx';
-import { useRutinasStatistics } from '../context/RutinasStatisticsContext.jsx';
+import { calculateCompletionPercentage } from '../utils/rutinaCalculations';
 
 // Componente de navegación entre rutinas (compartido)
 const RutinaNavigation = ({
@@ -27,7 +27,6 @@ const RutinaNavigation = ({
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.down('sm'));
   const { handlePrevious, handleNext, deleteRutina } = useRutinas();
-  const { calculateCompletionPercentage } = useRutinasStatistics();
 
   const previousRutinaId = useRef(null);
   const logCount = useRef(0);
