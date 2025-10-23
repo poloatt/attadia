@@ -28,7 +28,7 @@ class GoogleTasksService {
   }
 
   /**
-   * Configura las credenciales OAuth2 para un usuario específico
+   * Configura las credenciales OAuth2 para un usuario específico con manejo automático de refresh
    */
   async setUserCredentials(userId) {
     const user = await Users.findById(userId);
@@ -36,9 +36,22 @@ class GoogleTasksService {
       throw new Error('Usuario no tiene configuración de Google Tasks');
     }
 
+    // Configurar credenciales con manejo automático de refresh
     this.oauth2Client.setCredentials({
       access_token: user.googleTasksConfig.accessToken,
       refresh_token: user.googleTasksConfig.refreshToken
+    });
+
+    // Configurar listener para actualizar tokens automáticamente
+    this.oauth2Client.on('tokens', async (tokens) => {
+      if (tokens.access_token) {
+        logger.sync(`🔄 Tokens actualizados automáticamente para usuario ${userId}`);
+        await Users.findByIdAndUpdate(userId, {
+          'googleTasksConfig.accessToken': tokens.access_token,
+          'googleTasksConfig.refreshToken': tokens.refresh_token || user.googleTasksConfig.refreshToken,
+          'googleTasksConfig.lastTokenRefresh': new Date()
+        });
+      }
     });
 
     return user;
@@ -47,7 +60,7 @@ class GoogleTasksService {
   /**
    * Ejecuta una operación con retry automático siguiendo las mejores prácticas de Google
    */
-  async executeWithRetry(operation, context = '') {
+  async executeWithRetry(operation, context = '', userId = null) {
     let lastError;
     
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
@@ -61,6 +74,13 @@ class GoogleTasksService {
         return result;
       } catch (error) {
         lastError = error;
+        
+        // Manejar errores específicos de OAuth2 primero
+        if (userId && (error.message?.includes('invalid_grant') || 
+                      error.response?.data?.error === 'invalid_grant')) {
+          await this.handleOAuthError(error, userId);
+          return; // No continuar con retry para errores de token
+        }
         
         // Verificar si es un error que vale la pena reintentar
         if (this.shouldRetry(error, attempt)) {
@@ -105,6 +125,43 @@ class GoogleTasksService {
       errorCode.includes(retryableError) || 
       errorMessage.includes(retryableError)
     ) || retryableHttpCodes.includes(httpStatus);
+  }
+
+  /**
+   * Maneja errores específicos de OAuth2 y tokens
+   */
+  async handleOAuthError(error, userId) {
+    const errorMessage = String(error.message || '');
+    const errorData = error.response?.data || {};
+    
+    // Detectar error de token inválido
+    if (errorMessage.includes('invalid_grant') || 
+        errorData.error === 'invalid_grant' ||
+        error.status === 400 && errorData.error === 'invalid_grant') {
+      
+      logger.warn(`🔑 Token inválido detectado para usuario ${userId}, limpiando credenciales`);
+      
+      // Limpiar tokens inválidos del usuario
+      await Users.findByIdAndUpdate(userId, {
+        'googleTasksConfig.enabled': false,
+        'googleTasksConfig.accessToken': null,
+        'googleTasksConfig.refreshToken': null,
+        'googleTasksConfig.lastSync': null,
+        'googleTasksConfig.tokenError': 'invalid_grant',
+        'googleTasksConfig.tokenErrorDate': new Date()
+      });
+      
+      throw new Error('TOKEN_INVALID: Los tokens de Google Tasks han expirado. Por favor, reconecta tu cuenta de Google.');
+    }
+    
+    // Detectar otros errores de autenticación
+    if (error.status === 401 || errorMessage.includes('unauthorized')) {
+      logger.warn(`🔐 Error de autorización para usuario ${userId}`);
+      throw new Error('AUTH_ERROR: Error de autorización con Google Tasks. Por favor, reconecta tu cuenta.');
+    }
+    
+    // Re-lanzar otros errores sin modificar
+    throw error;
   }
 
   /**
@@ -157,7 +214,8 @@ class GoogleTasksService {
       // Primero intentar obtener las listas existentes con retry
       const response = await this.executeWithRetry(
         () => this.tasks.tasklists.list(),
-        'obtener listas de tareas'
+        'obtener listas de tareas',
+        userId
       );
       const taskLists = response.data.items || [];
 
@@ -177,7 +235,8 @@ class GoogleTasksService {
               title: 'Attadia Tasks'
             }
           }),
-          'crear lista de tareas'
+          'crear lista de tareas',
+          userId
         );
         targetList = createResponse.data;
       }
@@ -286,7 +345,8 @@ class GoogleTasksService {
               requestBody: googleTaskData,
               fields: 'id,title,status,updated' // Solo campos necesarios
             }),
-            `actualizar tarea ${tarea.titulo}`
+            `actualizar tarea ${tarea.titulo}`,
+            userId
           );
         } catch (error) {
           // Si la tarea no existe en Google (404), crear una nueva
@@ -299,7 +359,8 @@ class GoogleTasksService {
                 requestBody: googleTaskData,
                 fields: 'id,title,status,updated'
               }),
-              `crear tarea ${tarea.titulo} (reemplazando inexistente)`
+              `crear tarea ${tarea.titulo} (reemplazando inexistente)`,
+              userId
             );
           } else {
             throw error; // Re-lanzar otros errores
@@ -313,7 +374,8 @@ class GoogleTasksService {
             requestBody: googleTaskData,
             fields: 'id,title,status,updated' // Solo campos necesarios
           }),
-          `crear tarea ${tarea.titulo}`
+          `crear tarea ${tarea.titulo}`,
+          userId
         );
 
         // Actualizar el documento local con el ID de Google
@@ -367,7 +429,8 @@ class GoogleTasksService {
           showHidden: true,
           fields: 'items(id,title,status,parent)'
         }),
-        `obtener subtareas existentes para tarea padre ${parentTaskId}`
+        `obtener subtareas existentes para tarea padre ${parentTaskId}`,
+        userId
       );
 
       const googleSubtasks = existingGoogleSubtasks.data.items?.filter(task => task.parent === parentTaskId) || [];
@@ -395,7 +458,8 @@ class GoogleTasksService {
                 requestBody: subtaskData,
                 fields: 'id,title,status'
               }),
-              `actualizar subtarea ${subtarea.titulo}`
+              `actualizar subtarea ${subtarea.titulo}`,
+              userId
             );
             
             logger.sync(`📝 Actualizada subtarea: "${subtarea.titulo}"`);
@@ -427,7 +491,8 @@ class GoogleTasksService {
               requestBody: subtaskData,
               fields: 'id,title,status,parent'
             }),
-            `crear subtarea ${subtarea.titulo}`
+            `crear subtarea ${subtarea.titulo}`,
+            userId
           );
           
           // Guardar el googleTaskId en la subtarea
@@ -449,7 +514,8 @@ class GoogleTasksService {
               tasklist: taskListId,
               task: subtaskToDelete.id
             }),
-            `eliminar subtarea ${subtaskToDelete.title}`
+            `eliminar subtarea ${subtaskToDelete.title}`,
+            userId
           );
           
           logger.sync(`🗑️ Eliminada subtarea de Google: "${subtaskToDelete.title}"`);
@@ -475,7 +541,8 @@ class GoogleTasksService {
       // Obtener TODAS las TaskLists del usuario
       const taskListsResponse = await this.executeWithRetry(
         () => this.tasks.tasklists.list(),
-        'obtener todas las TaskLists'
+        'obtener todas las TaskLists',
+        userId
       );
 
       const googleTaskLists = taskListsResponse.data.items || [];
@@ -535,7 +602,8 @@ class GoogleTasksService {
               maxResults: 100,
               fields: 'items(id,title,notes,status,updated,due,parent,position)'
             }),
-            `obtener tareas de TaskList ${taskList.title}`
+            `obtener tareas de TaskList ${taskList.title}`,
+            userId
           );
 
           const googleTasks = tasksResponse.data.items || [];
@@ -717,7 +785,8 @@ class GoogleTasksService {
               () => this.tasks.tasklists.insert({
                 requestBody: taskListData
               }),
-              `crear TaskList para proyecto ${proyecto.nombre}`
+              `crear TaskList para proyecto ${proyecto.nombre}`,
+              userId
             );
             
             // Actualizar proyecto con el ID de la TaskList
@@ -741,7 +810,8 @@ class GoogleTasksService {
               () => this.tasks.tasklists.get({
                 tasklist: proyecto.googleTasksSync.googleTaskListId
               }),
-              `obtener TaskList ${proyecto.googleTasksSync.googleTaskListId}`
+              `obtener TaskList ${proyecto.googleTasksSync.googleTaskListId}`,
+              userId
             );
             
             if (googleTaskList.data.title !== proyecto.nombre) {
@@ -754,7 +824,8 @@ class GoogleTasksService {
                     etag: googleTaskList.data.etag
                   }
                 }),
-                `actualizar TaskList ${proyecto.nombre}`
+                `actualizar TaskList ${proyecto.nombre}`,
+                userId
               );
               
               proyecto.googleTasksSync.lastSyncDate = new Date();
@@ -1038,7 +1109,8 @@ class GoogleTasksService {
     const taskList = taskListId || (await this.getOrCreateDefaultTaskList(userId)).id;
     await this.executeWithRetry(
       () => this.tasks.tasks.delete({ tasklist: taskList, task: taskId }),
-      `eliminar tarea ${taskId}`
+      `eliminar tarea ${taskId}`,
+      userId
     );
   }
 
@@ -1055,8 +1127,65 @@ class GoogleTasksService {
         requestBody: { title },
         fields: 'id,title,updated'
       }),
-      `actualizar título de tarea ${taskId}`
+      `actualizar título de tarea ${taskId}`,
+      userId
     );
+  }
+
+  /**
+   * Limpia tokens inválidos de todos los usuarios
+   */
+  async cleanupInvalidTokens() {
+    try {
+      logger.sync('🧹 Iniciando limpieza de tokens inválidos...');
+      
+      const users = await Users.find({
+        'googleTasksConfig.enabled': true,
+        'googleTasksConfig.accessToken': { $exists: true, $ne: null }
+      });
+
+      let cleanedCount = 0;
+      let validCount = 0;
+
+      for (const user of users) {
+        try {
+          // Intentar configurar credenciales y hacer una prueba
+          this.oauth2Client.setCredentials({
+            access_token: user.googleTasksConfig.accessToken,
+            refresh_token: user.googleTasksConfig.refreshToken
+          });
+
+          // Hacer una llamada de prueba
+          await this.tasks.tasklists.list();
+          validCount++;
+          
+        } catch (error) {
+          if (error.message?.includes('invalid_grant') || 
+              error.response?.data?.error === 'invalid_grant') {
+            
+            logger.warn(`🔑 Limpiando tokens inválidos para usuario ${user.email}`);
+            
+            await Users.findByIdAndUpdate(user._id, {
+              'googleTasksConfig.enabled': false,
+              'googleTasksConfig.accessToken': null,
+              'googleTasksConfig.refreshToken': null,
+              'googleTasksConfig.lastSync': null,
+              'googleTasksConfig.tokenError': 'invalid_grant',
+              'googleTasksConfig.tokenErrorDate': new Date()
+            });
+            
+            cleanedCount++;
+          }
+        }
+      }
+
+      logger.sync(`✅ Limpieza completada: ${validCount} tokens válidos, ${cleanedCount} tokens limpiados`);
+      return { validCount, cleanedCount };
+      
+    } catch (error) {
+      logger.error('Error en limpieza de tokens:', error);
+      throw error;
+    }
   }
 
   /**

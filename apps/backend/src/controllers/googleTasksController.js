@@ -407,6 +407,36 @@ export const getStats = async (req, res) => {
 };
 
 /**
+ * Limpia tokens inválidos de Google Tasks
+ */
+export const cleanupInvalidTokens = async (req, res) => {
+  try {
+    if (!isGoogleTasksEnabled() || !googleTasksService) {
+      return res.json({
+        success: false,
+        error: 'Google Tasks no está disponible'
+      });
+    }
+
+    console.log('🧹 Iniciando limpieza de tokens inválidos...');
+    const results = await googleTasksService.cleanupInvalidTokens();
+
+    res.json({
+      success: true,
+      message: `Limpieza completada: ${results.validCount} tokens válidos, ${results.cleanedCount} tokens limpiados`,
+      data: results
+    });
+
+  } catch (error) {
+    console.error('Error en limpieza de tokens:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error al limpiar tokens inválidos'
+    });
+  }
+};
+
+/**
  * Limpia duplicados de Google Tasks
  */
 export const cleanupDuplicates = async (req, res) => {

@@ -100,12 +100,15 @@ const userSchema = new mongoose.Schema({
     accessToken: String,
     refreshToken: String,
     lastSync: Date,
+    lastTokenRefresh: Date, // Última vez que se refrescaron los tokens
     defaultTaskList: String, // ID de la lista de tareas por defecto en Google
     syncDirection: {
       type: String,
       enum: ['bidirectional', 'to_google', 'from_google'],
       default: 'bidirectional'
-    }
+    },
+    tokenError: String, // Tipo de error de token (ej: 'invalid_grant')
+    tokenErrorDate: Date // Fecha del último error de token
   },
   // --- NUEVO: país del usuario (código ISO 2 letras, ej: 'AR', 'BR', 'US') ---
   pais: {
