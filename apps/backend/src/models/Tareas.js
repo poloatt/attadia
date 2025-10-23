@@ -11,6 +11,15 @@ const subtareaSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  // Campos para sincronización con Google Tasks
+  googleTaskId: {
+    type: String,
+    default: null
+  },
+  lastSyncDate: {
+    type: Date,
+    default: null
+  },
   ...commonFields
 });
 
@@ -109,9 +118,10 @@ const tareaSchema = createSchema({
     lastSyncDate: Date,
     syncStatus: {
       type: String,
-      enum: ['pending', 'synced', 'error'],
+      enum: ['pending', 'syncing', 'synced', 'error'],
       default: 'pending'
     },
+    syncingStartedAt: Date, // Timestamp cuando comenzó la sincronización
     syncErrors: [String], // Array de errores de sincronización
     
     // Metadatos adicionales
@@ -182,6 +192,26 @@ tareaSchema.methods.getSubtareasForGoogle = function() {
   }));
 };
 
+// Método para verificar si la sincronización está bloqueada por timeout
+tareaSchema.methods.isSyncTimedOut = function() {
+  if (this.googleTasksSync?.syncStatus !== 'syncing') return false;
+  
+  const syncingStartedAt = this.googleTasksSync?.syncingStartedAt;
+  if (!syncingStartedAt) return true; // Si no hay timestamp, considerar timeout
+  
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+  return syncingStartedAt < fiveMinutesAgo;
+};
+
+// Método para limpiar estado de sincronización bloqueado
+tareaSchema.methods.clearSyncTimeout = function() {
+  if (this.isSyncTimedOut()) {
+    this.googleTasksSync.syncStatus = 'pending';
+    this.googleTasksSync.syncingStartedAt = null;
+    this.googleTasksSync.syncErrors = [];
+  }
+};
+
 // Método para actualizar desde Google Tasks
 tareaSchema.methods.updateFromGoogleTask = function(googleTask) {
   this.titulo = googleTask.title || this.titulo;
@@ -207,6 +237,7 @@ tareaSchema.methods.updateFromGoogleTask = function(googleTask) {
   this.googleTasksSync.syncStatus = 'synced';
   this.googleTasksSync.needsSync = false;
   this.googleTasksSync.enabled = true;
+  this.googleTasksSync.syncingStartedAt = null; // Limpiar timestamp de sincronización
 };
 
 // Middleware para validar fechas
@@ -230,7 +261,10 @@ tareaSchema.pre('save', function(next) {
   }
 
   // Validar que la fecha de vencimiento sea posterior a la fecha de inicio
-  if (this.fechaVencimiento && this.fechaInicio > this.fechaVencimiento) {
+  // Solo validar si ambas fechas existen y no estamos en modo de sincronización
+  if (this.fechaVencimiento && this.fechaInicio && 
+      this.fechaInicio > this.fechaVencimiento && 
+      !this.isModified('googleTasksSync')) {
     next(new Error('La fecha de vencimiento debe ser posterior a la fecha de inicio'));
   }
 

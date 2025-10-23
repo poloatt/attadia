@@ -434,45 +434,17 @@ export const cleanupDuplicates = async (req, res) => {
 
     let notesCleaned = 0;
     
-    // Prevenir spam en nuevas sincronizaciones
+    // Limpiar títulos básicamente
     for (const tarea of localTasks) {
       const tituloOriginal = tarea.titulo;
-      const tituloNormalizado = googleTasksService.normalizeTitle(tarea.titulo);
+      const tituloLimpio = googleTasksService.cleanTitle(tarea.titulo);
       
-      // Normalizar y guardar si cambió
-      if (tituloNormalizado !== tituloOriginal) {
-        tarea.titulo = tituloNormalizado;
+      // Limpiar y guardar si cambió
+      if (tituloLimpio !== tituloOriginal) {
+        tarea.titulo = tituloLimpio;
         await tarea.save();
         localFixed++;
-        console.log(`🔧 Normalizado: "${tituloOriginal}" -> "${tituloNormalizado}"`);
-      }
-
-      // Limpiar notas duplicadas si la tarea está vinculada a Google
-      if (tarea.googleTasksSync?.googleTaskId && tarea.descripcion) {
-        const notasLimpias = googleTasksService.cleanDuplicatedNotes(tarea.descripcion);
-        if (notasLimpias !== tarea.descripcion) {
-          tarea.descripcion = notasLimpias;
-          await tarea.save();
-          notesCleaned++;
-          console.log(`🧹 Notas limpiadas para: "${tarea.titulo}"`);
-        }
-      }
-
-      // Mark spam for deletion
-      if (googleTasksService.isSpamTitle(tarea.titulo)) {
-        console.log(`🚨 SPAM DETECTADO - Eliminando: "${tarea.titulo}"`);
-        
-        // Remove from Google if linked
-        if (tarea.googleTasksSync?.googleTaskId) {
-          try {
-            await googleTasksService.deleteGoogleTask(userId, tarea.googleTasksSync.googleTaskListId, tarea.googleTasksSync.googleTaskId);
-          } catch (e) {
-            console.warn('No se pudo borrar en Google:', e.message);
-          }
-        }
-        
-        await Tareas.deleteOne({ _id: tarea._id });
-        localSpamDeleted++;
+        console.log(`🔧 Limpiado: "${tituloOriginal}" -> "${tituloLimpio}"`);
       }
     }
 
@@ -481,10 +453,8 @@ export const cleanupDuplicates = async (req, res) => {
       message: 'Limpieza completada exitosamente',
       data: {
         localFixed,
-        localSpamDeleted,
-        notesCleaned,
         totalProcessed: localTasks.length,
-        duplicatesFixed: true
+        titlesCleaned: true
       }
     };
 

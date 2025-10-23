@@ -15,7 +15,8 @@ import {
   Alert,
   Chip,
   CircularProgress,
-  Tooltip
+  Tooltip,
+  Collapse
 } from '@mui/material';
 import {
   Google as GoogleIcon,
@@ -26,7 +27,9 @@ import {
   Error as ErrorIcon,
   Info as InfoIcon,
   Warning as WarningIcon,
-  DeleteSweep as DeleteSweepIcon
+  DeleteSweep as DeleteSweepIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '@shared/config/axios';
@@ -48,6 +51,7 @@ const GoogleTasksConfig = ({ open, onClose }) => {
     message: ''
   });
   const [error, setError] = useState(null);
+  const [showInfo, setShowInfo] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
@@ -176,7 +180,7 @@ const GoogleTasksConfig = ({ open, onClose }) => {
       const { data } = response.data;
       
       enqueueSnackbar(
-        `✅ Limpieza completada: ${data.localFixed} normalizadas, ${data.localSpamDeleted} spam eliminadas, ${data.notesCleaned} notas limpiadas`,
+        `✅ Limpieza completada: ${data.localFixed} títulos limpiados de ${data.totalProcessed} procesadas`,
         { variant: 'success', autoHideDuration: 5000 }
       );
       
@@ -215,25 +219,43 @@ const GoogleTasksConfig = ({ open, onClose }) => {
       
       const { results } = response.data;
       
-      // Mostrar resultados con mejor formato
-      const successCount = (results.toGoogle?.success || 0) + (results.fromGoogle?.created || 0) + (results.fromGoogle?.updated || 0);
-      const errorCount = (results.toGoogle?.errors?.length || 0) + (results.fromGoogle?.errors?.length || 0);
+      // Mostrar resultados con el nuevo formato
+      const proyectosCreated = results.proyectos?.created || 0;
+      const proyectosUpdated = results.proyectos?.updated || 0;
+      const tareasToGoogle = results.tareas?.toGoogle?.success || 0;
+      const tareasFromGoogleCreated = results.tareas?.fromGoogle?.created || 0;
+      const tareasFromGoogleUpdated = results.tareas?.fromGoogle?.updated || 0;
       
-      if (successCount > 0) {
-        enqueueSnackbar(
-          `✅ Sincronización exitosa: ${successCount} operaciones completadas${errorCount > 0 ? `, ${errorCount} errores` : ''}`,
-          { variant: 'success', autoHideDuration: 6000 }
-        );
+      const totalSuccess = proyectosCreated + proyectosUpdated + tareasToGoogle + tareasFromGoogleCreated + tareasFromGoogleUpdated;
+      const totalErrors = (results.proyectos?.errors?.length || 0) + 
+                         (results.tareas?.toGoogle?.errors?.length || 0) + 
+                         (results.tareas?.fromGoogle?.errors?.length || 0);
+      
+      if (totalSuccess > 0) {
+        let message = `✅ Sincronización exitosa: `;
+        const parts = [];
+        
+        if (proyectosCreated > 0) parts.push(`${proyectosCreated} proyectos creados`);
+        if (proyectosUpdated > 0) parts.push(`${proyectosUpdated} proyectos actualizados`);
+        if (tareasToGoogle > 0) parts.push(`${tareasToGoogle} tareas enviadas a Google`);
+        if (tareasFromGoogleCreated > 0) parts.push(`${tareasFromGoogleCreated} tareas importadas`);
+        if (tareasFromGoogleUpdated > 0) parts.push(`${tareasFromGoogleUpdated} tareas actualizadas`);
+        
+        message += parts.join(', ');
+        if (totalErrors > 0) message += `, ${totalErrors} errores`;
+        
+        enqueueSnackbar(message, { variant: 'success', autoHideDuration: 6000 });
       }
       
-      if (errorCount > 0) {
+      if (totalErrors > 0) {
         setError({
           type: 'warning',
           title: 'Sincronización completada con errores',
-          message: `${errorCount} operaciones fallaron. Revisa los detalles.`,
+          message: `${totalErrors} operaciones fallaron. Revisa los detalles.`,
           details: [
-            ...(results.toGoogle?.errors || []),
-            ...(results.fromGoogle?.errors || [])
+            ...(results.proyectos?.errors || []),
+            ...(results.tareas?.toGoogle?.errors || []),
+            ...(results.tareas?.fromGoogle?.errors || [])
           ]
         });
       }
@@ -314,17 +336,33 @@ const GoogleTasksConfig = ({ open, onClose }) => {
         {loading && <LinearProgress sx={{ mb: 2 }} />}
         
         <Stack spacing={2}>
+          {/* Botón para mostrar información */}
+          {config.enabled && (
+            <Button
+              variant="text"
+              size="small"
+              startIcon={showInfo ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              onClick={() => setShowInfo(!showInfo)}
+              sx={{ 
+                color: 'text.secondary',
+                justifyContent: 'flex-start',
+                textTransform: 'none',
+                fontSize: '0.875rem'
+              }}
+            >
+              {showInfo ? 'Ocultar información' : 'Ver cómo funciona'}
+            </Button>
+          )}
+
           {/* Información explicativa */}
           {config.enabled && (
-            <Alert severity="info" sx={{ mb: 2 }}>
-              <Typography variant="body2">
-                <strong>ℹ️ Cómo funciona la sincronización:</strong><br/>
-                • Los proyectos de Attadia se sincronizan como tareas en Google Tasks<br/>
-                • Las tareas se marcan con el nombre del proyecto: [Proyecto] Tarea<br/>
-                • Las subtareas se mantienen como subtareas en Google Tasks<br/>
-                • Los cambios se sincronizan automáticamente en ambas direcciones
-              </Typography>
-            </Alert>
+            <Collapse in={showInfo} timeout="auto" unmountOnExit>
+              <Alert severity="info" sx={{ mb: 2 }}>
+                <Typography variant="body2">
+                  <strong>ℹ️ Sincronización:</strong> Proyectos → TaskLists, Tareas → Tasks, Subtareas → Tasks con parent
+                </Typography>
+              </Alert>
+            </Collapse>
           )}
 
           {/* Mostrar errores */}

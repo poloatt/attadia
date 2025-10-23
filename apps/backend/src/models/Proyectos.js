@@ -114,13 +114,18 @@ proyectoSchema.methods.toGoogleTaskListFormat = function() {
   return {
     id: this.googleTasksSync?.googleTaskListId,
     title: this.nombre,
-    updated: this.googleTasksSync?.lastSyncDate || this.updatedAt
+    updated: this.googleTasksSync?.lastSyncDate || this.updatedAt,
+    etag: this.googleTasksSync?.etag,
+    selfLink: this.googleTasksSync?.selfLink
   };
 };
 
 // Método para actualizar desde Google TaskList
 proyectoSchema.methods.updateFromGoogleTaskList = function(googleTaskList) {
-  this.nombre = googleTaskList.title || this.nombre;
+  // Solo actualizar el nombre si viene de Google y es diferente
+  if (googleTaskList.title && googleTaskList.title !== this.nombre) {
+    this.nombre = googleTaskList.title;
+  }
   
   // Actualizar campos de Google TaskLists
   if (!this.googleTasksSync) this.googleTasksSync = {};

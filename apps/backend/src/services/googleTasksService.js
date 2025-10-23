@@ -182,10 +182,14 @@ class GoogleTasksService {
         targetList = createResponse.data;
       }
 
-      // Actualizar la configuración del usuario
-      await Users.findByIdAndUpdate(userId, {
-        'googleTasksConfig.defaultTaskList': targetList.id
-      });
+      // Ya no usamos defaultTaskList, cada proyecto tiene su propia TaskList
+      // Solo actualizar si no existe ninguna configuración
+      const user = await Users.findById(userId);
+      if (!user.googleTasksConfig.defaultTaskList) {
+        await Users.findByIdAndUpdate(userId, {
+          'googleTasksConfig.defaultTaskList': targetList.id
+        });
+      }
 
       return targetList;
     } catch (error) {
@@ -215,14 +219,14 @@ class GoogleTasksService {
       throw new Error('Tarea no encontrada');
     }
 
-    // CORRECCIÓN AUTOMÁTICA: Normalizar y limpiar antes de sincronizar
+    // Limpiar título básicamente antes de sincronizar
     const tituloOriginal = tarea.titulo;
-    const tituloNormalizado = this.normalizeTitle(tarea.titulo);
+    const tituloLimpio = this.cleanTitle(tarea.titulo);
     
     // Si el título cambió, actualizarlo automáticamente
-    if (tituloNormalizado !== tituloOriginal) {
-      logger.dev(`🔧 Auto-corrigiendo título: "${tituloOriginal}" -> "${tituloNormalizado}"`);
-      tarea.titulo = tituloNormalizado;
+    if (tituloLimpio !== tituloOriginal) {
+      logger.dev(`🔧 Limpiando título: "${tituloOriginal}" -> "${tituloLimpio}"`);
+      tarea.titulo = tituloLimpio;
       await tarea.save();
     }
 
@@ -234,20 +238,19 @@ class GoogleTasksService {
 
     await this.setUserCredentials(userId);
     
-    // Siempre usar la TaskList por defecto para evitar confusión
-    // Los proyectos de Attadia se mapean conceptualmente, no estructuralmente
-    const taskList = await this.getOrCreateDefaultTaskList(userId);
+    // Usar la TaskList del proyecto específico
+    if (!tarea.proyecto || !tarea.proyecto.googleTasksSync?.googleTaskListId) {
+      throw new Error('La tarea debe tener un proyecto con TaskList configurada en Google Tasks');
+    }
+    
+    const taskListId = tarea.proyecto.googleTasksSync.googleTaskListId;
 
     try {
       // Usar el método del modelo para obtener el formato de Google Tasks
       const googleTaskData = tarea.toGoogleTaskFormat();
       
-      // CORRECCIÓN: Limpiar notas antes de construir nuevas para evitar duplicados
-      const notasLimpias = this.buildTaskNotes(tarea);
-      googleTaskData.notes = notasLimpias;
-      
-      // CORRECCIÓN: NO agregar proyecto al título - Attadia ya agrupa por proyecto
-      // El proyecto se maneja como campo separado, no en el título
+      // Construir notas con subtareas
+      googleTaskData.notes = this.buildTaskNotes(tarea);
       
       // Eliminar campos que Google Tasks maneja automáticamente en creación
       if (!tarea.googleTasksSync?.googleTaskId) {
@@ -269,25 +272,44 @@ class GoogleTasksService {
 
       // Marcar como "syncing" para evitar sincronizaciones concurrentes
       await Tareas.findByIdAndUpdate(tareaId, {
-        'googleTasksSync.syncStatus': 'syncing'
+        'googleTasksSync.syncStatus': 'syncing',
+        'googleTasksSync.syncingStartedAt': new Date()
       });
       
       if (tarea.googleTasksSync.googleTaskId) {
-        // Actualizar tarea existente con retry
-        googleTask = await this.executeWithRetry(
-          () => this.tasks.tasks.update({
-            tasklist: taskList.id,
-            task: tarea.googleTasksSync.googleTaskId,
-            requestBody: googleTaskData,
-            fields: 'id,title,status,updated' // Solo campos necesarios
-          }),
-          `actualizar tarea ${tarea.titulo}`
-        );
+        try {
+          // Actualizar tarea existente con retry
+          googleTask = await this.executeWithRetry(
+            () => this.tasks.tasks.update({
+              tasklist: taskListId,
+              task: tarea.googleTasksSync.googleTaskId,
+              requestBody: googleTaskData,
+              fields: 'id,title,status,updated' // Solo campos necesarios
+            }),
+            `actualizar tarea ${tarea.titulo}`
+          );
+        } catch (error) {
+          // Si la tarea no existe en Google (404), crear una nueva
+          if (error.status === 404) {
+            console.log(`[INFO] Tarea ${tarea.titulo} no existe en Google, creando nueva...`);
+            delete googleTaskData.id; // Eliminar ID para crear nueva
+            googleTask = await this.executeWithRetry(
+              () => this.tasks.tasks.insert({
+                tasklist: taskListId,
+                requestBody: googleTaskData,
+                fields: 'id,title,status,updated'
+              }),
+              `crear tarea ${tarea.titulo} (reemplazando inexistente)`
+            );
+          } else {
+            throw error; // Re-lanzar otros errores
+          }
+        }
       } else {
         // Crear nueva tarea con retry
         googleTask = await this.executeWithRetry(
           () => this.tasks.tasks.insert({
-            tasklist: taskList.id,
+            tasklist: taskListId,
             requestBody: googleTaskData,
             fields: 'id,title,status,updated' // Solo campos necesarios
           }),
@@ -297,20 +319,24 @@ class GoogleTasksService {
         // Actualizar el documento local con el ID de Google
         await Tareas.findByIdAndUpdate(tareaId, {
           'googleTasksSync.googleTaskId': googleTask.data.id,
-          'googleTasksSync.googleTaskListId': taskList.id
+          'googleTasksSync.googleTaskListId': taskListId
         });
       }
 
       // Sincronizar subtareas como tareas hijas en Google Tasks
       if (tarea.subtareas && tarea.subtareas.length > 0) {
-        await this.syncSubtasksToGoogle(tarea.subtareas, taskList.id, googleTask.data.id, userId);
+        await this.syncSubtasksToGoogle(tarea.subtareas, taskListId, googleTask.data.id, userId);
+        
+        // Guardar cambios en las subtareas (googleTaskId actualizado)
+        await tarea.save();
       }
 
       // Actualizar estado de sincronización
       await Tareas.findByIdAndUpdate(tareaId, {
         'googleTasksSync.lastSyncDate': new Date(),
         'googleTasksSync.syncStatus': 'synced',
-        'googleTasksSync.syncErrors': []
+        'googleTasksSync.syncErrors': [],
+        'googleTasksSync.syncingStartedAt': null // Limpiar timestamp
       });
 
       return googleTask.data;
@@ -320,7 +346,8 @@ class GoogleTasksService {
       // Registrar error
       await Tareas.findByIdAndUpdate(tareaId, {
         'googleTasksSync.syncStatus': 'error',
-        'googleTasksSync.syncErrors': [error.message]
+        'googleTasksSync.syncErrors': [error.message],
+        'googleTasksSync.syncingStartedAt': null // Limpiar timestamp
       });
       
       throw error;
@@ -328,30 +355,109 @@ class GoogleTasksService {
   }
 
   /**
-   * Sincroniza subtareas como tareas hijas en Google Tasks
+   * Sincroniza subtareas como tareas hijas en Google Tasks con detección de duplicados
    */
   async syncSubtasksToGoogle(subtareas, taskListId, parentTaskId, userId) {
     try {
+      // Obtener todas las subtareas existentes en Google para esta tarea padre
+      const existingGoogleSubtasks = await this.executeWithRetry(
+        () => this.tasks.tasks.list({
+          tasklist: taskListId,
+          showCompleted: true,
+          showHidden: true,
+          fields: 'items(id,title,status,parent)'
+        }),
+        `obtener subtareas existentes para tarea padre ${parentTaskId}`
+      );
+
+      const googleSubtasks = existingGoogleSubtasks.data.items?.filter(task => task.parent === parentTaskId) || [];
+      
+      logger.sync(`🔄 Sincronizando ${subtareas.length} subtareas locales con ${googleSubtasks.length} existentes en Google`);
+
+      // 1. Actualizar subtareas existentes y crear nuevas
       for (const [index, subtarea] of subtareas.entries()) {
-        const subtaskData = {
-          title: subtarea.titulo,
-          status: subtarea.completada ? 'completed' : 'needsAction',
-          parent: parentTaskId,
-          position: String(index).padStart(20, '0') // Mantener orden
-        };
+        let googleSubtask;
+        
+        if (subtarea.googleTaskId) {
+          try {
+            // Actualizar subtarea existente
+            const subtaskData = {
+              title: subtarea.titulo,
+              status: subtarea.completada ? 'completed' : 'needsAction',
+              parent: parentTaskId, // ¡IMPORTANTE! Incluir parent para subtareas
+              position: String(index).padStart(20, '0')
+            };
 
-        // Crear la subtarea en Google Tasks con retry
-        const googleSubtask = await this.executeWithRetry(
-          () => this.tasks.tasks.insert({
-            tasklist: taskListId,
-            requestBody: subtaskData,
-            fields: 'id,title,status,parent' // Solo campos necesarios
-          }),
-          `crear subtarea ${subtarea.titulo}`
-        );
+            googleSubtask = await this.executeWithRetry(
+              () => this.tasks.tasks.update({
+                tasklist: taskListId,
+                task: subtarea.googleTaskId,
+                requestBody: subtaskData,
+                fields: 'id,title,status'
+              }),
+              `actualizar subtarea ${subtarea.titulo}`
+            );
+            
+            logger.sync(`📝 Actualizada subtarea: "${subtarea.titulo}"`);
+            
+          } catch (error) {
+            // Si la subtarea no existe en Google (404), crear una nueva
+            if (error.status === 404) {
+              console.log(`[INFO] Subtarea "${subtarea.titulo}" no existe en Google, creando nueva...`);
+              subtarea.googleTaskId = null; // Limpiar ID inválido
+              // Continuar al bloque de creación
+            } else {
+              throw error; // Re-lanzar otros errores
+            }
+          }
+        }
+        
+        if (!subtarea.googleTaskId) {
+          // Crear nueva subtarea
+          const subtaskData = {
+            title: subtarea.titulo,
+            status: subtarea.completada ? 'completed' : 'needsAction',
+            parent: parentTaskId,
+            position: String(index).padStart(20, '0')
+          };
 
-        logger.sync(`📥 Subtarea sincronizada a Google: "${subtarea.titulo}" (parent: ${parentTaskId})`);
+          googleSubtask = await this.executeWithRetry(
+            () => this.tasks.tasks.insert({
+              tasklist: taskListId,
+              requestBody: subtaskData,
+              fields: 'id,title,status,parent'
+            }),
+            `crear subtarea ${subtarea.titulo}`
+          );
+          
+          // Guardar el googleTaskId en la subtarea
+          subtarea.googleTaskId = googleSubtask.data.id;
+          subtarea.lastSyncDate = new Date();
+          
+          logger.sync(`📥 Creada subtarea: "${subtarea.titulo}"`);
+        }
       }
+
+      // 2. Eliminar subtareas que ya no existen en Attadia
+      const localGoogleTaskIds = subtareas.map(st => st.googleTaskId).filter(Boolean);
+      const subtasksToDelete = googleSubtasks.filter(gt => !localGoogleTaskIds.includes(gt.id));
+      
+      for (const subtaskToDelete of subtasksToDelete) {
+        try {
+          await this.executeWithRetry(
+            () => this.tasks.tasks.delete({
+              tasklist: taskListId,
+              task: subtaskToDelete.id
+            }),
+            `eliminar subtarea ${subtaskToDelete.title}`
+          );
+          
+          logger.sync(`🗑️ Eliminada subtarea de Google: "${subtaskToDelete.title}"`);
+        } catch (error) {
+          logger.warn(`No se pudo eliminar subtarea "${subtaskToDelete.title}":`, error.message);
+        }
+      }
+
     } catch (error) {
       console.error('Error al sincronizar subtareas a Google:', error);
       throw error;
@@ -359,25 +465,20 @@ class GoogleTasksService {
   }
 
   /**
-   * Sincroniza desde Google Tasks hacia Attadia
+   * Sincroniza desde Google Tasks hacia Attadia - MAPEA TASKLISTS A PROYECTOS
    */
   async syncTasksFromGoogle(userId) {
     const user = await this.setUserCredentials(userId);
-    const taskList = await this.getOrCreateDefaultTaskList(userId);
+    const { Proyectos } = await import('../models/index.js');
 
     try {
-      const response = await this.executeWithRetry(
-        () => this.tasks.tasks.list({
-          tasklist: taskList.id,
-          showCompleted: true,
-          showHidden: true,
-          maxResults: 100, // Limitar resultados para mejor performance
-          fields: 'items(id,title,notes,status,updated,due,parent,position)' // Solo campos necesarios
-        }),
-        'obtener tareas de Google'
+      // Obtener TODAS las TaskLists del usuario
+      const taskListsResponse = await this.executeWithRetry(
+        () => this.tasks.tasklists.list(),
+        'obtener todas las TaskLists'
       );
 
-      const googleTasks = response.data.items || [];
+      const googleTaskLists = taskListsResponse.data.items || [];
       const syncResults = {
         created: 0,
         updated: 0,
@@ -385,128 +486,115 @@ class GoogleTasksService {
         skipped: 0
       };
 
-      // Filtro de fecha: solo sincronizar tareas de los últimos 30 días
-      const oneMonthAgo = new Date();
-      oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
-
-      logger.sync(`📥 Importando ${googleTasks.length} tareas de Google Tasks desde TaskList: ${taskList.title}`);
+      logger.sync(`📥 Importando desde ${googleTaskLists.length} TaskLists de Google Tasks`);
       
-      // Debug: mostrar las primeras 3 tareas para verificar su estructura (solo en desarrollo)
-      if (googleTasks.length > 0) {
-        logger.data('Primeras tareas de Google', googleTasks.slice(0, 3).map(task => ({
-          id: task.id,
-          title: task.title,
-          notes: task.notes?.substring(0, 100) + '...', // Truncar notas largas
-          status: task.status,
-          parent: task.parent,
-          hasParent: !!task.parent
-        })));
-      }
-
-      for (const googleTask of googleTasks) {
+      // Por cada TaskList, buscar o crear el proyecto correspondiente
+      for (const taskList of googleTaskLists) {
         try {
-          // Verificar si la tarea es anterior a un mes
-          const taskDate = googleTask.updated ? new Date(googleTask.updated) : 
-                         googleTask.due ? new Date(googleTask.due) : 
-                         new Date();
-          
-          if (taskDate < oneMonthAgo) {
-            logger.dev(`⏭️ Saltando tarea antigua: "${googleTask.title}" (${taskDate.toISOString()})`);
-            syncResults.skipped++;
-            continue;
-          }
-
-          // Buscar tarea existente por Google Task ID
-          let tarea = await Tareas.findOne({
-            'googleTasksSync.googleTaskId': googleTask.id,
+          // Buscar proyecto existente por googleTaskListId
+          let proyecto = await Proyectos.findOne({
+            'googleTasksSync.googleTaskListId': taskList.id,
             usuario: userId
           });
 
-          // Si no existe, crear nueva tarea automáticamente
-          if (!tarea) {
-            logger.sync(`📥 Creando nueva tarea desde Google: "${googleTask.title}"`);
+          if (!proyecto) {
+            // Crear nuevo proyecto desde TaskList
+            proyecto = new Proyectos({
+              nombre: taskList.title,
+              usuario: userId,
+              descripcion: `Proyecto importado desde Google Tasks: ${taskList.title}`,
+              googleTasksSync: {
+                enabled: true,
+                googleTaskListId: taskList.id,
+                syncStatus: 'synced',
+                needsSync: false,
+                lastSyncDate: new Date(),
+                etag: taskList.etag,
+                selfLink: taskList.selfLink
+              }
+            });
+            
+            await proyecto.save();
+            logger.sync(`📁 Creado proyecto desde TaskList: "${taskList.title}"`);
+          } else {
+            // Actualizar proyecto existente si el nombre cambió
+            if (proyecto.nombre !== taskList.title) {
+              proyecto.nombre = taskList.title;
+              proyecto.googleTasksSync.lastSyncDate = new Date();
+              await proyecto.save();
+              logger.sync(`📝 Actualizado proyecto desde TaskList: "${taskList.title}"`);
+            }
           }
 
-          if (tarea) {
-            // Limpiar notas duplicadas antes de actualizar
-            if (googleTask.notes) {
-              const notasLimpias = this.cleanDuplicatedNotes(googleTask.notes);
-              
-              if (notasLimpias !== googleTask.notes) {
-                logger.dev(`🧹 Limpiando notas duplicadas para: "${googleTask.title}"`);
-                googleTask.notes = notasLimpias;
-              }
-            }
-            
-            // Actualizar tarea existente usando el nuevo método del modelo
-            tarea.updateFromGoogleTask(googleTask);
-            await tarea.save();
-            syncResults.updated++;
-            logger.sync(`📝 Actualizada tarea desde Google: "${googleTask.title}"`);
-          } else {
-            // Verificar si es una subtarea (tiene parent)
-            if (googleTask.parent) {
-              // Es una subtarea, buscar la tarea padre
-              const tareaPadre = await Tareas.findOne({
-                'googleTasksSync.googleTaskId': googleTask.parent,
+          // Importar tareas de esta TaskList al proyecto
+          const tasksResponse = await this.executeWithRetry(
+            () => this.tasks.tasks.list({
+              tasklist: taskList.id,
+              showCompleted: true,
+              showHidden: true,
+              maxResults: 100,
+              fields: 'items(id,title,notes,status,updated,due,parent,position)'
+            }),
+            `obtener tareas de TaskList ${taskList.title}`
+          );
+
+          const googleTasks = tasksResponse.data.items || [];
+          
+          // Filtrar solo tareas principales (sin parent) - las subtareas se manejan por separado
+          const mainTasks = googleTasks.filter(task => !task.parent);
+          
+          logger.sync(`📋 Procesando ${mainTasks.length} tareas principales de "${taskList.title}"`);
+
+          for (const googleTask of mainTasks) {
+            try {
+              // Buscar tarea existente por Google Task ID
+              let tarea = await Tareas.findOne({
+                'googleTasksSync.googleTaskId': googleTask.id,
                 usuario: userId
               });
-              
-              if (tareaPadre) {
-                // Agregar como subtarea
-                const nuevaSubtarea = {
-                  titulo: googleTask.title,
-                  completada: googleTask.status === 'completed'
-                };
-                
-                tareaPadre.subtareas.push(nuevaSubtarea);
-                await tareaPadre.save();
-                syncResults.created++;
-                logger.sync(`📥 Creada subtarea desde Google: "${googleTask.title}" en tarea padre: "${tareaPadre.titulo}"`);
+
+              if (tarea) {
+                // Actualizar tarea existente
+                tarea.updateFromGoogleTask(googleTask);
+                await tarea.save();
+                syncResults.updated++;
+                logger.sync(`📝 Actualizada tarea: "${googleTask.title}"`);
               } else {
-                logger.warn(`⚠️  No se encontró tarea padre para subtarea: "${googleTask.title}"`);
-                syncResults.errors.push(`${googleTask.title}: Tarea padre no encontrada`);
-              }
-            } else {
-              // Es una tarea principal - crear automáticamente con normalización
-              const { Proyectos } = await import('../models/index.js');
-              
-              // Normalizar el título automáticamente (sin prefijos de proyecto)
-              const tituloNormalizado = this.normalizeTitle(googleTask.title);
-              
-              // Buscar proyecto por defecto o crear uno genérico
-              let proyecto = await Proyectos.findOne({ usuario: userId });
-              if (!proyecto) {
-                proyecto = new Proyectos({
-                  nombre: 'Tareas Generales',
+                // Crear nueva tarea
+                const tituloLimpio = this.cleanTitle(googleTask.title);
+                
+                const nuevaTarea = new Tareas({
+                  titulo: tituloLimpio,
+                  descripcion: googleTask.notes || '',
                   usuario: userId,
-                  descripcion: 'Proyecto por defecto para tareas sin proyecto específico'
+                  fechaInicio: new Date(),
+                  prioridad: 'BAJA',
+                  proyecto: proyecto._id
                 });
-                await proyecto.save();
-                logger.sync(`📁 Creado proyecto por defecto: "Tareas Generales"`);
+                
+                nuevaTarea.updateFromGoogleTask(googleTask);
+                nuevaTarea.googleTasksSync.googleTaskListId = taskList.id;
+                
+                await nuevaTarea.save();
+                syncResults.created++;
+                logger.sync(`📥 Creada tarea: "${tituloLimpio}"`);
               }
-              
-              const nuevaTarea = new Tareas({
-                titulo: tituloNormalizado, // Título limpio sin prefijos
-                descripcion: googleTask.notes || '',
-                usuario: userId,
-                fechaInicio: new Date(),
-                prioridad: 'BAJA',
-                proyecto: proyecto._id
-              });
-              
-              // Configurar Google Tasks
-              nuevaTarea.updateFromGoogleTask(googleTask);
-              nuevaTarea.googleTasksSync.googleTaskListId = taskList.id;
-              
-              logger.sync(`📥 Creando nueva tarea desde Google: "${tituloNormalizado}"`);
-              await nuevaTarea.save();
-              syncResults.created++;
+
+              // Procesar subtareas de esta tarea principal
+              const subtasks = googleTasks.filter(task => task.parent === googleTask.id);
+              if (subtasks.length > 0) {
+                await this.syncSubtasksFromGoogle(subtasks, googleTask.id, userId);
+              }
+
+            } catch (error) {
+              console.error(`Error al procesar tarea "${googleTask.title}":`, error);
+              syncResults.errors.push(`${googleTask.title}: ${error.message}`);
             }
           }
+
         } catch (error) {
-          console.error(`Error al procesar tarea de Google "${googleTask.title}":`, error);
-          syncResults.errors.push(`${googleTask.title}: ${error.message}`);
+          console.error(`Error al procesar TaskList "${taskList.title}":`, error);
+          syncResults.errors.push(`TaskList ${taskList.title}: ${error.message}`);
         }
       }
 
@@ -515,10 +603,72 @@ class GoogleTasksService {
         'googleTasksConfig.lastSync': new Date()
       });
 
-      logger.sync(`📊 Resumen de sincronización desde Google: ${syncResults.created} creadas, ${syncResults.updated} actualizadas, ${syncResults.skipped} omitidas (antiguas)`);  
+      logger.sync(`📊 Resumen de importación: ${syncResults.created} creadas, ${syncResults.updated} actualizadas`);
       return syncResults;
+      
     } catch (error) {
       console.error('Error al sincronizar desde Google Tasks:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Sincroniza subtareas desde Google hacia Attadia
+   */
+  async syncSubtasksFromGoogle(googleSubtasks, parentTaskId, userId) {
+    try {
+      // Buscar la tarea padre en Attadia
+      const tareaPadre = await Tareas.findOne({
+        'googleTasksSync.googleTaskId': parentTaskId,
+        usuario: userId
+      });
+
+      if (!tareaPadre) {
+        logger.warn(`No se encontró tarea padre para subtareas con parent: ${parentTaskId}`);
+        return;
+      }
+
+      logger.sync(`🔄 Sincronizando ${googleSubtasks.length} subtareas hacia "${tareaPadre.titulo}"`);
+
+      // Obtener subtareas existentes en Attadia
+      const subtareasExistentes = tareaPadre.subtareas || [];
+
+      // Procesar cada subtarea de Google
+      for (const googleSubtask of googleSubtasks) {
+        // Buscar subtarea existente por googleTaskId
+        const subtareaExistente = subtareasExistentes.find(st => st.googleTaskId === googleSubtask.id);
+
+        if (subtareaExistente) {
+          // Actualizar subtarea existente
+          subtareaExistente.titulo = googleSubtask.title;
+          subtareaExistente.completada = googleSubtask.status === 'completed';
+          subtareaExistente.lastSyncDate = new Date();
+          
+          logger.sync(`📝 Actualizada subtarea: "${googleSubtask.title}"`);
+        } else {
+          // Crear nueva subtarea
+          const nuevaSubtarea = {
+            titulo: googleSubtask.title,
+            completada: googleSubtask.status === 'completed',
+            googleTaskId: googleSubtask.id,
+            lastSyncDate: new Date()
+          };
+          
+          tareaPadre.subtareas.push(nuevaSubtarea);
+          logger.sync(`📥 Creada subtarea: "${googleSubtask.title}"`);
+        }
+      }
+
+      // Eliminar subtareas que ya no existen en Google
+      const googleSubtaskIds = googleSubtasks.map(gt => gt.id);
+      tareaPadre.subtareas = tareaPadre.subtareas.filter(st => 
+        !st.googleTaskId || googleSubtaskIds.includes(st.googleTaskId)
+      );
+
+      await tareaPadre.save();
+      
+    } catch (error) {
+      console.error('Error al sincronizar subtareas desde Google:', error);
       throw error;
     }
   }
@@ -536,41 +686,95 @@ class GoogleTasksService {
   }
 
   /**
-   * CORRECCIÓN: Los proyectos NO se sincronizan como TaskLists separadas
-   * Todos los proyectos de Attadia se mapean conceptualmente a UNA TaskList
-   * El proyecto se indica en el título de la tarea: [Proyecto] Tarea
+   * Sincroniza proyectos con TaskLists - UN PROYECTO = UNA TASKLIST
    */
   async syncProyectosWithTaskLists(userId) {
     try {
-      // IMPORTANTE: Configurar credenciales OAuth antes de hacer llamadas a la API
       await this.setUserCredentials(userId);
-      
       const { Proyectos } = await import('../models/index.js');
       
       // Obtener todos los proyectos del usuario
       const proyectos = await Proyectos.find({ usuario: userId });
       
-      // Obtener la TaskList por defecto (UNA SOLA para todos los proyectos)
-      const taskList = await this.getOrCreateDefaultTaskList(userId);
+      logger.sync(`🔄 Sincronizando ${proyectos.length} proyectos con Google TaskLists`);
       
-      logger.sync(`🔄 Configurando Google Tasks para ${proyectos.length} proyectos`);
-      logger.sync(`📋 Usando TaskList única: "${taskList.title}" (${taskList.id})`);
+      const results = {
+        created: 0,
+        updated: 0,
+        errors: []
+      };
       
-      // Habilitar Google Tasks para proyectos existentes (solo configuración, no sincronización)
+      // Por cada proyecto, crear o actualizar su TaskList correspondiente
       for (const proyecto of proyectos) {
-        if (!proyecto.googleTasksSync?.enabled) {
-          if (!proyecto.googleTasksSync) proyecto.googleTasksSync = {};
-          proyecto.googleTasksSync.enabled = true;
-          proyecto.googleTasksSync.syncStatus = 'synced'; // No necesita sincronización como TaskList
-          proyecto.googleTasksSync.needsSync = false; // Los proyectos no se sincronizan como TaskLists
-          proyecto.googleTasksSync.googleTaskListId = taskList.id;
-          await proyecto.save();
+        try {
+          if (!proyecto.googleTasksSync?.googleTaskListId) {
+            // Crear nueva TaskList en Google
+            const taskListData = {
+              title: proyecto.nombre
+            };
+            
+            const googleTaskList = await this.executeWithRetry(
+              () => this.tasks.tasklists.insert({
+                requestBody: taskListData
+              }),
+              `crear TaskList para proyecto ${proyecto.nombre}`
+            );
+            
+            // Actualizar proyecto con el ID de la TaskList
+            proyecto.googleTasksSync = {
+              enabled: true,
+              googleTaskListId: googleTaskList.data.id,
+              syncStatus: 'synced',
+              needsSync: false,
+              lastSyncDate: new Date(),
+              etag: googleTaskList.data.etag,
+              selfLink: googleTaskList.data.selfLink
+            };
+            
+            await proyecto.save();
+            results.created++;
+            logger.sync(`📁 Creada TaskList "${proyecto.nombre}" en Google`);
+            
+          } else {
+            // Actualizar TaskList existente si el nombre cambió
+            const googleTaskList = await this.executeWithRetry(
+              () => this.tasks.tasklists.get({
+                tasklist: proyecto.googleTasksSync.googleTaskListId
+              }),
+              `obtener TaskList ${proyecto.googleTasksSync.googleTaskListId}`
+            );
+            
+            if (googleTaskList.data.title !== proyecto.nombre) {
+              // Actualizar título de la TaskList
+              await this.executeWithRetry(
+                () => this.tasks.tasklists.update({
+                  tasklist: proyecto.googleTasksSync.googleTaskListId,
+                  requestBody: {
+                    title: proyecto.nombre,
+                    etag: googleTaskList.data.etag
+                  }
+                }),
+                `actualizar TaskList ${proyecto.nombre}`
+              );
+              
+              proyecto.googleTasksSync.lastSyncDate = new Date();
+              await proyecto.save();
+              results.updated++;
+              logger.sync(`📝 Actualizada TaskList "${proyecto.nombre}" en Google`);
+            }
+          }
+          
+        } catch (error) {
+          console.error(`Error al sincronizar proyecto "${proyecto.nombre}":`, error);
+          results.errors.push(`${proyecto.nombre}: ${error.message}`);
         }
       }
       
-      return { proyectos: proyectos.length, taskList: taskList.title };
+      logger.sync(`📊 Sincronización de proyectos completada: ${results.created} creadas, ${results.updated} actualizadas`);
+      return results;
+      
     } catch (error) {
-      logger.error('Error al configurar proyectos con Google Tasks:', error);
+      logger.error('Error al sincronizar proyectos con Google Tasks:', error);
       throw error;
     }
   }
@@ -607,7 +811,7 @@ class GoogleTasksService {
   }
 
   /**
-   * Sincronización bidireccional completa con usuario ya cargado
+   * Sincronización bidireccional completa con flujo correcto
    */
   async fullSyncWithUser(user) {
     if (!user || !user.googleTasksConfig?.enabled) {
@@ -616,18 +820,28 @@ class GoogleTasksService {
 
     const userId = user._id || user.id;
     const results = {
-      toGoogle: { success: 0, errors: [] },
-      fromGoogle: null
+      proyectos: { created: 0, updated: 0, errors: [] },
+      tareas: { toGoogle: { success: 0, errors: [] }, fromGoogle: null }
     };
 
     try {
-      // 1. Sincronizar proyectos con Google TaskLists
-      await this.syncProyectosWithTaskLists(userId);
+      logger.sync(`🔄 Iniciando sincronización completa para usuario ${userId}`);
 
-      // 2. Habilitar Google Tasks para todas las tareas existentes del usuario
+      // PASO 1: Sincronizar Proyectos ↔ TaskLists (bidireccional)
+      logger.sync(`📁 Paso 1: Sincronizando proyectos con TaskLists`);
+      results.proyectos = await this.syncProyectosWithTaskLists(userId);
+
+      // PASO 2: Importar desde Google Tasks hacia Attadia
+      logger.sync(`📥 Paso 2: Importando desde Google Tasks`);
+      results.tareas.fromGoogle = await this.syncTasksFromGoogle(userId);
+
+      // PASO 3: Sincronizar tareas locales pendientes hacia Google
+      logger.sync(`📤 Paso 3: Sincronizando tareas locales hacia Google`);
+      
+      // Habilitar Google Tasks para todas las tareas existentes del usuario
       await this.enableGoogleTasksForAllUserTasks(userId);
       
-      // 3. Sincronizar tareas locales pendientes hacia Google (con filtro más estricto)
+      // Obtener tareas que necesitan sincronización hacia Google
       const tareasLocales = await Tareas.find({
         usuario: userId,
         'googleTasksSync.enabled': true,
@@ -637,29 +851,44 @@ class GoogleTasksService {
           { 'googleTasksSync.needsSync': true },
           // Tareas que NO tienen googleTaskId (nunca se han sincronizado)
           { 'googleTasksSync.googleTaskId': { $exists: false } },
-          // Tareas modificadas recientemente (menos de 1 hora) que necesitan actualización
+          // Tareas con timeout de sincronización
           { 
-            'googleTasksSync.syncStatus': { $ne: 'synced' },
-            'googleTasksSync.lastSyncDate': { 
-              $lt: new Date(Date.now() - 60 * 60 * 1000) // Hace más de 1 hora
+            'googleTasksSync.syncStatus': 'syncing',
+            'googleTasksSync.syncingStartedAt': { 
+              $lt: new Date(Date.now() - 5 * 60 * 1000) // Hace más de 5 minutos
             }
           }
         ]
-      });
+      }).populate('proyecto');
       
       logger.sync(`🔄 Encontradas ${tareasLocales.length} tareas locales para sincronizar hacia Google`);
 
       for (const tarea of tareasLocales) {
         try {
+          // Verificar timeout antes de sincronizar
+          if (tarea.isSyncTimedOut && tarea.isSyncTimedOut()) {
+            logger.warn(`⏰ Limpiando timeout de sincronización para: "${tarea.titulo}"`);
+            tarea.clearSyncTimeout();
+            await tarea.save();
+          }
+
           await this.syncTaskToGoogle(tarea._id, userId);
-          results.toGoogle.success++;
+          results.tareas.toGoogle.success++;
         } catch (error) {
-          results.toGoogle.errors.push(`${tarea.titulo}: ${error.message}`);
+          results.tareas.toGoogle.errors.push(`${tarea.titulo}: ${error.message}`);
+          logger.error(`Error al sincronizar tarea "${tarea.titulo}":`, error);
         }
       }
 
-      // 2. Sincronizar desde Google hacia local
-      results.fromGoogle = await this.syncTasksFromGoogle(userId);
+      // Actualizar última sincronización del usuario
+      await Users.findByIdAndUpdate(userId, {
+        'googleTasksConfig.lastSync': new Date()
+      });
+
+      logger.sync(`✅ Sincronización completa finalizada:`);
+      logger.sync(`   📁 Proyectos: ${results.proyectos.created} creados, ${results.proyectos.updated} actualizados`);
+      logger.sync(`   📤 Tareas a Google: ${results.tareas.toGoogle.success} sincronizadas`);
+      logger.sync(`   📥 Tareas desde Google: ${results.tareas.fromGoogle.created} creadas, ${results.tareas.fromGoogle.updated} actualizadas`);
 
       return results;
     } catch (error) {
@@ -751,8 +980,7 @@ class GoogleTasksService {
 
   // Métodos auxiliares
   buildTaskNotes(tarea) {
-    // Limpiar descripción existente de duplicados antes de procesar
-    let notes = this.cleanDuplicatedNotes(tarea.descripcion || '');
+    let notes = tarea.descripcion || '';
     
     if (tarea.subtareas && tarea.subtareas.length > 0) {
       notes += '\n\nSubtareas:\n';
@@ -760,15 +988,6 @@ class GoogleTasksService {
         const status = subtarea.completada ? '✓' : '○';
         notes += `${status} ${subtarea.titulo}\n`;
       });
-    }
-
-    if (tarea.proyecto) {
-      notes += `\nProyecto: ${tarea.proyecto.nombre || 'Sin nombre'}`;
-    }
-
-    // SOLO agregar información de sincronización si es una tarea nueva que nunca se ha sincronizado
-    if (!tarea.googleTasksSync?.googleTaskId) {
-      notes += `\n\n---\nTarea creada desde Attadia el ${new Date().toLocaleString()}`;
     }
 
     return notes;
@@ -792,43 +1011,6 @@ class GoogleTasksService {
     return description.trim();
   }
 
-  /**
-   * Limpia las notas duplicadas de sincronización y repeticiones masivas
-   */
-  cleanDuplicatedNotes(notes) {
-    if (!notes) return '';
-    
-    // Primero limpiar repeticiones masivas de "Proyecto: Salud"
-    let cleanedNotes = notes.replace(/(Proyecto: Salud\n)+/g, 'Proyecto: Salud\n');
-    
-    // Limpiar múltiples saltos de línea
-    cleanedNotes = cleanedNotes.replace(/\n{3,}/g, '\n\n');
-    
-    // Dividir por "---" para separar secciones
-    const sections = cleanedNotes.split('---');
-    
-    if (sections.length < 2) return cleanedNotes.trim();
-    
-    // Tomar solo la primera sección (contenido útil) y limpiar espacios
-    let result = sections[0].trim();
-    
-    // Si había contenido útil después de las secciones de sincronización,
-    // también incluirlo
-    const hasSubtareas = sections.some(section => section.includes('Subtareas:'));
-    const hasProyecto = sections.some(section => section.includes('Proyecto:'));
-    
-    if (hasSubtareas || hasProyecto) {
-      // Buscar la primera sección que contenga información útil (Subtareas o Proyecto)
-      for (let i = 1; i < sections.length; i++) {
-        if (sections[i].includes('Subtareas:') || sections[i].includes('Proyecto:')) {
-          result += '\n---' + sections[i].trim();
-          break;
-        }
-      }
-    }
-    
-    return result;
-  }
 
   mapEstadoToGoogleStatus(estado) {
     switch (estado) {
@@ -878,92 +1060,21 @@ class GoogleTasksService {
   }
 
   /**
-   * Normaliza un título eliminando prefijos duplicados
-   * CORRECCIÓN: NO preservar prefijos de proyecto - Attadia maneja proyectos como campo separado
+   * Limpia un título básicamente - solo espacios y caracteres extraños
    */
-  normalizeTitle(rawTitle) {
-    if (!rawTitle) return '';
+  cleanTitle(rawTitle) {
+    if (!rawTitle) return 'Tarea importada';
     let title = String(rawTitle).trim();
     
-    // Fase 1: Detectar y manejar títulos spam
-    if (this.isSpamTitle(title)) {
-      logger.dev(`🚨 Detectado título spam: "${title}"`);
-      // Para títulos spam, tratamos de extraer solo el contenido útil
-      const spamCleaned = this.cleanSpamTitle(title);
-      if (spamCleaned) {
-        return spamCleaned;
-      }
-      // Si no se puede limpiar, usar un título genérico
-      return 'Tarea importada';
-    }
-    
-    // Fase 2: Eliminar TODOS los prefijos [X] - los proyectos se manejan como campo separado
-    const prefixRegex = /^((\[[^\]]+\]\s*)+)/;
-    if (prefixRegex.test(title)) {
-      title = title.replace(prefixRegex, '').trim();
-    }
-    
-    // Fase 3: Limpiar espacios y caracteres extraños
+    // Limpiar espacios múltiples
     title = title.replace(/\s{2,}/g, ' ').trim();
     
     // Si queda vacío después de limpiar, usar título genérico
-    if (!title) {
-      title = 'Tarea importada';
+    if (!title || title.length < 2) {
+      return 'Tarea importada';
     }
     
     return title;
-  }
-
-  /**
-   * Detecta si un título es considerado spam
-   * CORRECCIÓN: Ahora que no preservamos prefijos, detectamos spam de manera diferente
-   */
-  isSpamTitle(title) {
-    if (!title) return false;
-    const t = String(title).trim();
-    
-    // Patrón 1: Título que contiene solo números
-    if (/^(\d+\s*)+$/.test(t)) {
-      return true;
-    }
-    
-    // Patrón 2: Títulos muy cortos con solo números pequeños
-    if (/^[12]\s*$/.test(t)) {
-      return true;
-    }
-    
-    // Patrón 3: Títulos vacíos o solo espacios
-    if (!t || t.length < 2) {
-      return true;
-    }
-    
-    // Patrón 4: Múltiples prefijos duplicados (aunque los eliminemos, detectamos antes)
-    const matches = t.match(/\[[^\]]+\]/g) || [];
-    if (matches.length >= 3) {
-      const uniquePrefixes = [...new Set(matches)];
-      if (uniquePrefixes.length < matches.length) {
-        return true; // Hay prefijos duplicados consecutivos
-      }
-    }
-    
-    return false;
-  }
-
-  /**
-   * Intenta limpiar un título spam
-   * CORRECCIÓN: Ya no preservamos prefijos de proyecto
-   */
-  cleanSpamTitle(spamTitle) {
-    // Extraer contenido después de cualquier prefijo
-    const cleanContent = spamTitle.replace(/^((\[[^\]]+\]\s*)+)/, '').trim();
-    
-    // Si hay contenido útil después de limpiar prefijos, mantenerlo
-    if (cleanContent && cleanContent.length > 2 && !/^[12]\s*$/.test(cleanContent)) {
-      return cleanContent;
-    }
-    
-    // Si no hay contenido útil, crear un título genérico
-    return 'Tarea importada';
   }
 }
 

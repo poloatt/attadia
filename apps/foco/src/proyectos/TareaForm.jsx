@@ -320,21 +320,36 @@ const TareaForm = ({
 
     try {
       setSyncingToGoogle(true);
-      const response = await clienteAxios.post(`/api/google-tasks/sync/task/${formData._id}`);
       
-      // Actualizar el estado local con la información de sincronización
-      setFormData(prev => ({
-        ...prev,
-        googleTasksSync: {
-          ...prev.googleTasksSync,
-          enabled: true,
-          googleTaskId: response.data.googleTask.id,
-          syncStatus: 'synced',
-          lastSyncDate: new Date()
-        }
-      }));
-
-      enqueueSnackbar('Tarea sincronizada con Google Tasks exitosamente', { variant: 'success' });
+      // Usar el nuevo endpoint de sincronización completa
+      const response = await clienteAxios.post('/api/google-tasks/sync');
+      
+      // Buscar la tarea específica en los resultados
+      const results = response.data.results;
+      let taskSynced = false;
+      
+      // Verificar si nuestra tarea fue sincronizada
+      if (results.tareas?.toGoogle?.success > 0) {
+        // La tarea debería estar sincronizada ahora
+        taskSynced = true;
+      }
+      
+      if (taskSynced) {
+        // Actualizar el estado local con la información de sincronización
+        setFormData(prev => ({
+          ...prev,
+          googleTasksSync: {
+            ...prev.googleTasksSync,
+            enabled: true,
+            syncStatus: 'synced',
+            lastSyncDate: new Date()
+          }
+        }));
+        
+        enqueueSnackbar('Tarea sincronizada con Google Tasks exitosamente', { variant: 'success' });
+      } else {
+        enqueueSnackbar('La tarea no pudo ser sincronizada. Verifica la configuración.', { variant: 'warning' });
+      }
     } catch (error) {
       console.error('Error al sincronizar con Google Tasks:', error);
       const errorMessage = error.response?.data?.error || 'Error al sincronizar con Google Tasks';
