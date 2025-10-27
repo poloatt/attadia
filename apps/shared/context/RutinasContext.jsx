@@ -34,6 +34,12 @@ export const RutinasProvider = ({ children }) => {
   const uiContext = React.useContext(UISettingsContext);
   const autoUpdateHabitPreferences = uiContext?.autoUpdateHabitPreferences || (() => {});
 
+  // Mantener una referencia estable al array de rutinas para evitar dependencias reactivas
+  const rutinasRef = React.useRef([]);
+  useEffect(() => {
+    rutinasRef.current = rutinas;
+  }, [rutinas]);
+
   // Función para manejo de errores
   const handleError = useCallback((error, context, fallbackMessage) => {
     const message = error?.message || fallbackMessage;
@@ -111,8 +117,8 @@ export const RutinasProvider = ({ children }) => {
 
       setLoading(true);
       
-      // Verificar si ya tenemos esta rutina en nuestro array
-      const rutinaEnCache = rutinas.find(r => r._id === rutinaId);
+      // Verificar si ya tenemos esta rutina en nuestro array (usando ref estable)
+      const rutinaEnCache = rutinasRef.current.find(r => r._id === rutinaId);
       
       let rutinaData;
       if (rutinaEnCache) {
@@ -137,15 +143,15 @@ export const RutinasProvider = ({ children }) => {
         });
       }
       
-      // Encontrar índice para calcular la página
-      const index = rutinas.findIndex(r => r._id === rutinaId);
+      // Encontrar índice para calcular la página (usando ref estable)
+      const index = rutinasRef.current.findIndex(r => r._id === rutinaId);
       const page = index >= 0 ? index + 1 : 1;
       
       // Actualizar la rutina actual
       const rutinaActualizada = {
         ...rutinaData,
         _page: page,
-        _totalPages: rutinas.length || 1
+        _totalPages: (rutinasRef.current?.length || 1)
       };
       
       setRutina(rutinaActualizada);
@@ -159,7 +165,7 @@ export const RutinasProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [rutinas, enqueueSnackbar]);
+  }, [enqueueSnackbar]);
 
   // Navegación entre rutinas
   const handlePrevious = useCallback(() => {

@@ -20,6 +20,7 @@ export default defineConfig(({ mode }) => {
         '@shared': path.resolve(__dirname, '../shared'),
         '@': path.resolve(__dirname, './src'),
       },
+      dedupe: ['react', 'react-dom']
     },
     server: {
       host: 'localhost',
