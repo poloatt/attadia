@@ -64,7 +64,7 @@ Error: Cuentas validation failed: tipo: `DIGITAL` is not a valid enum value
 
 ---
 
-### 2. Enum Incompleto en Transacciones
+### 3. Enum Incompleto en Transacciones
 **Problema:**
 ```
 ValidationError: 'MERCADOPAGO_PAGO' is not a valid enum value
@@ -78,7 +78,7 @@ ValidationError: 'MERCADOPAGO_PAGO' is not a valid enum value
 
 ---
 
-### 3. Falta de Información de Comisiones
+### 4. Falta de Información de Comisiones
 **Problema:** No se capturaban las comisiones que cobra MercadoPago.
 
 **Solución:** ✅ Agregados campos:
@@ -90,7 +90,7 @@ ValidationError: 'MERCADOPAGO_PAGO' is not a valid enum value
 
 ---
 
-### 4. Redirect URI No Registrado
+### 5. Redirect URI No Registrado
 **Problema:** OAuth fallaba en la página de autorización de MercadoPago.
 
 **Causa:** Usuario configuró URL base en vez de URL de callback.
@@ -99,14 +99,14 @@ ValidationError: 'MERCADOPAGO_PAGO' is not a valid enum value
 
 ---
 
-### 5. Logs Insuficientes
+### 6. Logs Insuficientes
 **Problema:** Difícil debuggear el flujo OAuth.
 
 **Solución:** ✅ Logs detallados en frontend y backend en cada paso.
 
 ---
 
-### 6. Lógica de Sync Confusa
+### 7. Lógica de Sync Confusa
 **Problema:** Modal siempre iniciaba OAuth, incluso con conexiones existentes.
 
 **Solución:** ✅ Modal inteligente que detecta conexiones y muestra opciones apropiadas.
@@ -115,7 +115,70 @@ ValidationError: 'MERCADOPAGO_PAGO' is not a valid enum value
 
 ## 🔧 Cambios Implementados
 
-### 1. Modelos de Base de Datos
+### 1. Métodos de Encriptación (bankConnectionController.js)
+
+**Migración a Node.js Moderno**
+
+**ANTES (Deprecado):**
+```javascript
+encrypt(text) {
+  const cipher = crypto.createCipher('aes-256-cbc', this.encryptionKey);
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return encrypted;
+}
+```
+
+**AHORA (Seguro y Moderno):**
+```javascript
+encrypt(text) {
+  // Generar IV aleatorio de 16 bytes
+  const iv = crypto.randomBytes(16);
+  
+  // Crear hash de la encryption key para asegurar 32 bytes
+  const key = crypto.createHash('sha256').update(this.encryptionKey).digest();
+  
+  // Crear cipher con IV
+  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+  
+  // Encriptar
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  
+  // Retornar IV + encrypted (formato: IV:encrypted)
+  return iv.toString('hex') + ':' + encrypted;
+}
+
+decrypt(encryptedText) {
+  // Verificar formato nuevo (con IV)
+  if (encryptedText.includes(':')) {
+    const parts = encryptedText.split(':');
+    const iv = Buffer.from(parts[0], 'hex');
+    const encrypted = parts[1];
+    
+    const key = crypto.createHash('sha256').update(this.encryptionKey).digest();
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+    
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    
+    return decrypted;
+  } else {
+    // Formato antiguo no soportado
+    throw new Error('Formato de encriptación antiguo. Reconecta la cuenta.');
+  }
+}
+```
+
+**Beneficios:**
+- ✅ Compatible con Node.js 17+
+- ✅ IV aleatorio por cada encriptación (más seguro)
+- ✅ Key derivada con SHA-256 (32 bytes garantizados)
+- ✅ Retrocompatibilidad: detecta formato antiguo
+
+---
+
+### 2. Modelos de Base de Datos
 
 #### **Transacciones.js**
 
