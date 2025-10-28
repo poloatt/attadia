@@ -9,13 +9,25 @@
  * @param {number} params.rightSectionWidth - ancho ocupado por sección derecha (opcional)
  */
 export function getCenteredSectionSx({ isMobileOrTablet, mainMargin, leftSectionWidth = 0, rightSectionWidth = 0 }) {
+  // En desktop, el área centrada debe comenzar en el borde del main
+  // más lo que ocupa su sección izquierda; a la derecha debe descontar
+  // el ancho ocupado por la sección derecha.
+  if (!isMobileOrTablet) {
+    return {
+      position: 'absolute',
+      left: `${mainMargin + (leftSectionWidth || 0)}px`,
+      right: `${rightSectionWidth || 0}px`,
+      top: 0
+    };
+  }
+  // En mobile/tablet, ocupar todo el ancho y compensar con paddings
   return {
     position: 'absolute',
-    left: isMobileOrTablet ? 0 : `${mainMargin}px`,
+    left: 0,
     right: 0,
     top: 0,
-    pl: isMobileOrTablet ? `${leftSectionWidth}px` : 0,
-    pr: `${rightSectionWidth}px`
+    pl: `${leftSectionWidth || 0}px`,
+    pr: `${rightSectionWidth || 0}px`
   };
 }
 

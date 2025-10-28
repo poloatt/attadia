@@ -11,7 +11,7 @@ import {
   import { useEntityActions } from '../components/common/CommonActions';
   import { AutorenewOutlined, AddOutlined } from '@mui/icons-material';
   import { useLocation, Link, useNavigate } from 'react-router-dom';
-  import { useState } from 'react';
+import { useState } from 'react';
   import { Dialog } from '../utils/materialImports';
   // import { MercadoPagoConnectButton, BankConnectionForm } from '../../../atta/src/finance/bankconnections'; // Comentado: import cruzado
   import { getBreadcrumbs } from './breadcrumbUtils';
@@ -27,6 +27,8 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
   import { Refresh as RefreshIcon } from '@mui/icons-material';
   import theme from '../context/ThemeContext';
   import React from 'react';
+  import CenteredTrack from '../components/common/CenteredTrack.jsx';
+  import { useAnchorWidths } from '../hooks/useAnchorWidths';
   
   export default function Header() {
     const { toggleSidebar, isOpen: sidebarIsOpen, collapsedWidth, getMainMargin } = useSidebar();
@@ -43,6 +45,12 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
     const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
     const [isBankConnectionFormOpen, setIsBankConnectionFormOpen] = useState(false);
     const { isMobile, isTablet } = useResponsive();
+    // Hook de medición reutilizable (inicial izquierda = collapsedWidth por el MenuButton)
+    const { leftWidthRef, rightWidthRef, leftWidth, rightWidth } = useAnchorWidths(
+      collapsedWidth,
+      0,
+      [collapsedWidth, isMobile, isTablet, showEntityToolbarNavigation, location.pathname]
+    );
     const { moduloActivo } = useNavigationState(location.pathname);
     // Construir breadcrumbs incluyendo el módulo padre cuando estés dentro de un módulo
     let breadcrumbs = [];
@@ -88,6 +96,8 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
       return !parentPaths.has(path);
     })();
   
+    // Nota: el centrado real se realiza vía CenteredTrack
+
     return (
       <AppBar 
         position="fixed" 
@@ -205,7 +215,7 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                   alignItems: 'center',
                   justifyContent: 'center',
                   zIndex: 2
-                }}>
+                }} ref={leftWidthRef}>
                   <MenuButton />
                 </Box>
 
@@ -231,16 +241,12 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
             {!isMobile && !isTablet && (() => {
               const last = breadcrumbs[breadcrumbs.length - 1];
               return (
-                <Box
-                  sx={{
-                    height: HEADER_CONFIG.height,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    pointerEvents: 'none',
-                    zIndex: 1,
-                    ...getCenteredSectionSx({ isMobileOrTablet: false, mainMargin, leftSectionWidth: 0, rightSectionWidth: 0 })
-                  }}
+                <CenteredTrack
+                  isMobileOrTablet={false}
+                  mainMargin={mainMargin}
+                  leftWidth={leftWidth}
+                  rightWidth={rightWidth}
+                  height={HEADER_CONFIG.height}
                 >
                   {last?.icon && (
                     <DynamicIcon 
@@ -253,7 +259,7 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                   <Typography color="inherit" sx={{ fontWeight: 500 }}>
                     {last?.title}
                   </Typography>
-                </Box>
+                </CenteredTrack>
               );
             })()}
 
@@ -293,9 +299,10 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
 
                          {/* Migración: todos los botones de acción del header en SystemButtons */}
              {/* Acciones sólo en desktop; en móvil ya están controladas arriba */}
-             {(!isMobile && !isTablet) && (
-               <SystemButtons
-                 actions={[
+            {(!isMobile && !isTablet) && (
+              <Box ref={rightWidthRef} sx={{ display: 'flex', alignItems: 'center' }}>
+                <SystemButtons
+                  actions={[
                   {
                     key: 'undo',
                     icon: <SystemButtons.UndoMenu />, // Solo visual, menú de undo
@@ -326,10 +333,11 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                      onClick: () => setIsSyncModalOpen(true),
                      disabled: false
                    } : null,
-                 ]}
-                 direction="row"
-                 size="small"
-               />
+                  ]}
+                  direction="row"
+                  size="small"
+                />
+              </Box>
              )}
             {/* Diálogos modales para sincronizar y agregar cuenta */}
             <Dialog open={isSyncModalOpen} onClose={() => setIsSyncModalOpen(false)} maxWidth="xs" fullWidth>

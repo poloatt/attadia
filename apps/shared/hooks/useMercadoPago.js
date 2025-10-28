@@ -1,21 +1,22 @@
 import { useState, useCallback } from 'react';
 import { useSnackbar } from 'notistack';
 import mercadopagoService from '../services/mercadopagoService';
+import { isMercadoPagoEnabled } from '../config/mercadopago';
 
 export const useMercadoPago = () => {
-  if (!import.meta.env.PROD) {
-    // Mock para desarrollo: no hacer nada
+  if (!isMercadoPagoEnabled()) {
+    // Mock cuando MP está deshabilitado
     return {
       loading: false,
       connecting: false,
       processing: false,
       connectionStatus: 'disconnected',
-      connect: () => { throw new Error('Mercado Pago solo disponible en producción'); },
-      processCallback: () => { throw new Error('Mercado Pago solo disponible en producción'); },
-      syncConnection: () => { throw new Error('Mercado Pago solo disponible en producción'); },
-      verifyConnection: () => { throw new Error('Mercado Pago solo disponible en producción'); },
-      getCompleteData: () => { throw new Error('Mercado Pago solo disponible en producción'); },
-      processData: () => { throw new Error('Mercado Pago solo disponible en producción'); },
+      connect: () => { throw new Error('Mercado Pago deshabilitado'); },
+      processCallback: () => { throw new Error('Mercado Pago deshabilitado'); },
+      syncConnection: () => { throw new Error('Mercado Pago deshabilitado'); },
+      verifyConnection: () => { throw new Error('Mercado Pago deshabilitado'); },
+      getCompleteData: () => { throw new Error('Mercado Pago deshabilitado'); },
+      processData: () => { throw new Error('Mercado Pago deshabilitado'); },
       validateState: () => false,
       clearState: () => {},
       getConnectionStatus: () => 'disconnected'

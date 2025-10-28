@@ -57,6 +57,12 @@ export const getRedirectURI = () => {
   }
 };
 
+// Habilitar MercadoPago (producción o modo desarrollo forzado)
+export const isMercadoPagoEnabled = () => {
+  const devFlag = import.meta?.env?.VITE_MP_DEV;
+  return Boolean(import.meta.env.PROD || devFlag === '1' || devFlag === 'true');
+};
+
 // Función para mapear estado de MercadoPago a estado interno
 export const mapTransactionState = (mpState) => {
   return MERCADOPAGO_CONFIG.transactionStates[mpState] || 'PENDIENTE';

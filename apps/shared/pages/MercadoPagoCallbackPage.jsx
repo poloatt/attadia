@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Typography, CircularProgress, Alert } from '@mui/material';
 import { useMercadoPago } from '../hooks/useMercadoPago';
+import { isMercadoPagoEnabled } from '../config/mercadopago';
 
 export function MercadoPagoCallbackPage() {
   const navigate = useNavigate();
@@ -48,7 +49,7 @@ export function MercadoPagoCallbackPage() {
         
         // Redirigir después de un breve delay para mostrar el mensaje de éxito
         setTimeout(() => {
-          navigate('/assets/finanzas/cuentas');
+          navigate('/finanzas/cuentas');
         }, 2000);
       } catch (error) {
         console.error('Error al conectar con MercadoPago:', error);
@@ -106,7 +107,7 @@ export function MercadoPagoCallbackPage() {
             </Typography>
             <Typography variant="body2" color="text.secondary">
               <a 
-                href="/assets/finanzas/cuentas" 
+                href="/finanzas/cuentas" 
                 style={{ color: 'inherit', textDecoration: 'underline' }}
               >
                 Hacer clic aquí para ir ahora
@@ -124,19 +125,19 @@ export function MercadoPagoCallbackPage() {
   useEffect(() => {
     if (status === 'error') {
       const timer = setTimeout(() => {
-        navigate('/assets/finanzas/cuentas');
+        navigate('/finanzas/cuentas');
       }, 5000);
       
       return () => clearTimeout(timer);
     }
   }, [status, navigate]);
 
-  if (!import.meta.env.PROD) {
+  if (!isMercadoPagoEnabled()) {
     return (
       <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
         <Box sx={{ maxWidth: 400, width: '100%', mx: 2, bgcolor: 'background.paper', borderRadius: 0, boxShadow: 1, p: 3 }}>
           <Alert severity="info">
-            <Typography variant="h6">Mercado Pago solo está disponible en producción</Typography>
+            <Typography variant="h6">Mercado Pago está deshabilitado</Typography>
           </Alert>
         </Box>
       </Box>

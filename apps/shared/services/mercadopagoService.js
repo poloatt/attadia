@@ -132,7 +132,7 @@ class MercadoPagoService {
         throw new Error('ID de conexión requerido');
       }
       
-      const { data } = await clienteAxios.post(`/api/bankconnections/${connectionId}/sync`, options, {
+      const { data } = await clienteAxios.post(`/api/bankconnections/sync/${connectionId}`, options, {
         timeout: this.timeout * 2 // Doble timeout para sincronización
       });
       
@@ -167,7 +167,7 @@ class MercadoPagoService {
         throw new Error('ID de conexión requerido');
       }
       
-      const { data } = await clienteAxios.post(`/api/bankconnections/${connectionId}/verificar`, {}, {
+      const { data } = await clienteAxios.post(`/api/bankconnections/${connectionId}/verify`, {}, {
         timeout: this.timeout
       });
       

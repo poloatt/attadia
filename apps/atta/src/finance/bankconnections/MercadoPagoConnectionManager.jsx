@@ -26,8 +26,9 @@ import {
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon
 } from '@mui/icons-material';
-import { useMercadoPago } from '../../../hooks/useMercadoPago';
+import { useMercadoPago } from '@shared/hooks/useMercadoPago';
 import MercadoPagoConnectButton from './MercadoPagoConnectButton';
+import { isMercadoPagoEnabled } from '@shared/config/mercadopago';
 import MercadoPagoStatusIndicator from './MercadoPagoStatusIndicator';
 import MercadoPagoDataManager from './MercadoPagoDataManager';
 
@@ -139,12 +140,12 @@ export default function MercadoPagoConnectionManager({ connectionId, onConnectio
     return new Date(timestamp).toLocaleString('es-ES');
   };
 
-  if (!import.meta.env.PROD) {
+  if (!isMercadoPagoEnabled()) {
     return (
       <Card sx={{ mb: 2 }}>
         <CardContent>
           <Alert severity="info">
-            <Typography variant="h6">Mercado Pago solo está disponible en producción</Typography>
+            <Typography variant="h6">Mercado Pago está deshabilitado</Typography>
           </Alert>
         </CardContent>
       </Card>

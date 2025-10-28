@@ -152,4 +152,10 @@ router.post('/verify', (req, res) => {
   controller.verificarConexion(req, res);
 });
 
+// Verificación por ID de conexión (recomendada para MP)
+router.post('/:id/verify', (req, res) => {
+  const controller = new BankConnectionController();
+  controller.verificarConexionPorId(req, res);
+});
+
 export default router; 

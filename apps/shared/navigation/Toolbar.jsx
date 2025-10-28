@@ -1,10 +1,10 @@
 // Toolbar.jsx
 // Toolbar modular: ahora recibe 'moduloActivo', 'nivel1' y 'currentPath' como props. Solo navega entre los hijos de nivel1.
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, IconButton, Tooltip, Typography } from '../utils/materialImports';
 import { FORM_HEIGHTS, TOOLBAR_CONFIG } from '../config/uiConstants';
-import { getCenteredSectionSx } from './alignmentUtils';
+import CenteredTrack from '../components/common/CenteredTrack.jsx';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getIconByKey, icons } from './menuIcons';
 import { SystemButtons } from '../components/common/SystemButtons';
@@ -12,6 +12,7 @@ import { useEntityActions } from '../components/common/CommonActions';
 import { useUISettings } from '../context/UISettingsContext';
 import { useSidebar } from '../context/SidebarContext';
 import useResponsive from '../hooks/useResponsive';
+import { useAnchorWidths } from '../hooks/useAnchorWidths';
 import { getMainModules, reorderModulesWithActiveFirst, findActiveModule, navigateToAppPath } from '../utils/navigationUtils';
 import { DynamicIcon, ClickableIcon, IconWithText } from '../components/common/DynamicIcon';
 import RutinaNavigation from './RutinaNavigation.jsx';
@@ -40,11 +41,8 @@ export default function Toolbar({
   // Estado para controlar el botón de delete
   const [hasSelectedItems, setHasSelectedItems] = useState(false);
   
-  // Refs para medir el espacio de las secciones
-  const leftSectionRef = useRef(null);
-  const rightSectionRef = useRef(null);
-  const [leftSectionWidth, setLeftSectionWidth] = useState(0);
-  const [rightSectionWidth, setRightSectionWidth] = useState(0);
+  // Medición de anclajes izquierda/derecha
+  const { leftWidthRef, rightWidthRef, leftWidth, rightWidth } = useAnchorWidths(0, 0, [isMobileOrTablet, showEntityToolbarNavigation, location.pathname]);
   
   // Usar función centralizada para calcular mainMargin base
   const baseMainMargin = getMainMargin(isMobileOrTablet, showSidebarCollapsed);
@@ -147,37 +145,7 @@ export default function Toolbar({
     };
   }, []);
 
-  // Efecto para medir el ancho de las secciones
-  useEffect(() => {
-    const measureSections = () => {
-      if (leftSectionRef.current) {
-        setLeftSectionWidth(leftSectionRef.current.offsetWidth);
-      }
-      if (rightSectionRef.current) {
-        setRightSectionWidth(rightSectionRef.current.offsetWidth);
-      }
-    };
-
-    // Medir inmediatamente
-    measureSections();
-
-    // Medir después de que el DOM se actualice
-    const timeoutId = setTimeout(measureSections, 0);
-
-    // Observer para cambios en el DOM
-    const resizeObserver = new ResizeObserver(measureSections);
-    if (leftSectionRef.current) {
-      resizeObserver.observe(leftSectionRef.current);
-    }
-    if (rightSectionRef.current) {
-      resizeObserver.observe(rightSectionRef.current);
-    }
-
-    return () => {
-      clearTimeout(timeoutId);
-      resizeObserver.disconnect();
-    };
-  }, [shouldShowBack, parentInfo, additionalActions, children, showAddButton, entityConfig, isMobile]);
+  // (Las medidas ahora las gestiona useAnchorWidths)
 
   // 3. RENDER
   // Mostrar siempre la Toolbar en desktop; respetar preferencia solo en móvil/tablet
@@ -257,7 +225,7 @@ export default function Toolbar({
       }}>
         {/* Sección izquierda: Botón de atrás */}
         <Box 
-          ref={leftSectionRef}
+          ref={leftWidthRef}
           sx={{
             display: 'flex',
             alignItems: 'center',
@@ -312,19 +280,13 @@ export default function Toolbar({
         </Box>
 
         {/* Sección central: Hermanos (siblings) o navegación específica */}
-        <Box sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '100%',
-          height: TOOLBAR_CONFIG.height,
-          ...getCenteredSectionSx({
-            isMobileOrTablet,
-            mainMargin: baseMainMargin,
-            leftSectionWidth,
-            rightSectionWidth
-          })
-        }}>
+        <CenteredTrack
+          isMobileOrTablet={isMobileOrTablet}
+          mainMargin={baseMainMargin}
+          leftWidth={leftWidth}
+          rightWidth={isMobileOrTablet ? rightWidth : 0}
+          height={TOOLBAR_CONFIG.height}
+        >
           {shouldShowSpecificNavigation() ? (
             // Usar navegación específica si está disponible
             <SpecificNavigationComponent />
@@ -394,11 +356,11 @@ export default function Toolbar({
               </Box>
             ) : null
           )}
-        </Box>
+        </CenteredTrack>
 
         {/* Sección derecha: Acciones y herramientas */}
         <Box 
-          ref={rightSectionRef}
+          ref={rightWidthRef}
           sx={{
             display: 'flex',
             alignItems: 'center',
@@ -421,6 +383,32 @@ export default function Toolbar({
           })}
           {/* Children */}
           {!isMobile && children}
+          {/* Botón de conectar MercadoPago en Cuentas */}
+          {(currentPath === '/finanzas/cuentas') && (
+            <Tooltip title="Conectar MercadoPago">
+              <IconButton
+                size="small"
+                onClick={() => window.dispatchEvent(new CustomEvent('openMercadoPagoConnect'))}
+                sx={{
+                  mr: 0.5,
+                  color: 'primary.main',
+                  '&:hover': {
+                    backgroundColor: 'primary.main',
+                    color: 'white',
+                    transform: 'scale(1.05)',
+                  },
+                  transition: 'all 0.2s ease-in-out'
+                }}
+              >
+                {React.createElement(icons.wallet || icons.sync || (() => (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M21 7H3V5h18v2zm0 2H3c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2v-6c0-1.1-.9-2-2-2zm-3 5c-.83 0-1.5-.67-1.5-1.5S17.17 11 18 11s1.5.67 1.5 1.5S18.83 14 18 14z"/>
+                  </svg>
+                )), { sx: { fontSize: 18 } })}
+              </IconButton>
+            </Tooltip>
+          )}
+
           {/* Botón de agregar inteligente */}
           {(() => {
             // Para páginas de proyectos, usar botón inteligente
@@ -579,7 +567,7 @@ export default function Toolbar({
             }
             
             // Para otras páginas, usar la lógica original
-            if (isMobileOrTablet && !shouldShowSpecificNavigation() && showAddButton && entityConfig) {
+            if (!shouldShowSpecificNavigation() && showAddButton && entityConfig) {
               return <SystemButtons.AddButton entityConfig={entityConfig} buttonSx={{ ml: 1 }} />;
             }
             

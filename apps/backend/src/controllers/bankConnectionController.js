@@ -264,6 +264,42 @@ class BankConnectionController extends BaseController {
     }
   }
 
+  // POST /api/bankconnections/:id/verify
+  async verificarConexionPorId(req, res) {
+    try {
+      const { id } = req.params;
+
+      // Verificar que la conexión existe, pertenece al usuario y es de tipo MP
+      const conexion = await BankConnection.findOne({
+        _id: id,
+        usuario: req.user.id,
+        tipo: 'MERCADOPAGO'
+      });
+
+      if (!conexion) {
+        return res.status(404).json({ message: 'Conexión no encontrada' });
+      }
+
+      // Desencriptar credenciales
+      const accessToken = this.decrypt(conexion.credenciales.accessToken);
+
+      // Reutilizar verificación existente
+      const resultado = await this.verificarMercadoPago({ accessToken });
+
+      if (resultado.exito) {
+        return res.json({
+          message: 'Conexión verificada exitosamente',
+          datos: resultado.datos
+        });
+      }
+
+      return res.status(400).json({ message: resultado.mensaje });
+    } catch (error) {
+      console.error('Error verificando conexión por ID:', error);
+      return res.status(500).json({ message: 'Error interno del servidor' });
+    }
+  }
+
   // Sobrescribir el método create para encriptar credenciales
   async create(req, res) {
     try {

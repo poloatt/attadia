@@ -2,6 +2,7 @@ import React from 'react';
 import { Button, CircularProgress } from '@mui/material';
 import { FORM_HEIGHTS } from '@shared/config/uiConstants';
 import { useMercadoPago } from '@shared/hooks/useMercadoPago';
+import { isMercadoPagoEnabled } from '@shared/config/mercadopago';
 // import mercadopagoLogo from './logos/mercadopago.svg';
 
 export default function MercadoPagoConnectButton({ onSuccess, onError, fullWidth = false }) {
@@ -16,7 +17,7 @@ export default function MercadoPagoConnectButton({ onSuccess, onError, fullWidth
     }
   };
 
-  if (!import.meta.env.PROD) return null;
+  if (!isMercadoPagoEnabled()) return null;
 
   return (
     <Button
