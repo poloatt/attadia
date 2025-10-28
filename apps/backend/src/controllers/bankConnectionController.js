@@ -496,7 +496,8 @@ class BankConnectionController extends BaseController {
         delete req.session.mercadopagoState;
       }
 
-      logger.mercadopago('CONNECTION_CREATED', 'Conexión MercadoPago creada exitosamente', {
+      logger.info('Conexión MercadoPago creada exitosamente', {
+        event: 'CONNECTION_CREATED',
         userId: req.user.id,
         mercadopagoUserId: userId,
         cuentaId: cuenta._id,
