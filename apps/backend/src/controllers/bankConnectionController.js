@@ -406,9 +406,10 @@ class BankConnectionController extends BaseController {
       
       const { authUrl, state } = getAuthUrl(redirectUri);
       
-      // Guardar el state en la sesión para validarlo en el callback
+      // Guardar el state Y el redirect_uri en la sesión para validarlo en el callback
       if (req.session) {
         req.session.mercadopagoState = state;
+        req.session.mercadopagoRedirectUri = redirectUri; // Guardar el redirect_uri original
       }
       
       res.json({ authUrl, state });
@@ -424,13 +425,23 @@ class BankConnectionController extends BaseController {
   // POST /api/bankconnections/mercadopago/callback
   async mercadoPagoCallback(req, res) {
     try {
+      console.log('=== [MercadoPago] Procesando callback de OAuth ===');
       const { code, state } = req.body;
+      
+      console.log('📥 Code recibido:', code ? `${code.substring(0, 20)}...` : 'NO RECIBIDO');
+      console.log('📥 State recibido:', state ? `${state.substring(0, 20)}...` : 'NO RECIBIDO');
+      console.log('📥 Session state guardado:', req.session?.mercadopagoState ? `${req.session.mercadopagoState.substring(0, 20)}...` : 'NO HAY');
+      console.log('📥 Session redirect_uri guardado:', req.session?.mercadopagoRedirectUri || 'NO HAY');
+      console.log('📥 Usuario ID:', req.user?.id);
+      
       if (!code) {
+        console.error('❌ ERROR: Código de autorización no proporcionado');
         return res.status(400).json({ message: 'Código de autorización requerido' });
       }
 
       // Validar el parámetro state para prevenir CSRF (recomendado por MercadoPago)
       if (req.session && req.session.mercadopagoState && state !== req.session.mercadopagoState) {
+        console.error('❌ ERROR: Validación de state falló');
         logger.error('State validation failed', null, {
           receivedState: state,
           expectedState: req.session.mercadopagoState,
@@ -438,10 +449,20 @@ class BankConnectionController extends BaseController {
         });
         return res.status(400).json({ message: 'Parámetro state inválido' });
       }
+      
+      console.log('✅ State validado correctamente');
 
-      // Intercambiar código por token
-      const redirectUri = `${config.frontendUrl}/mercadopago/callback`;
+      // Usar el redirect_uri guardado en la sesión (debe ser el mismo que se usó para generar authUrl)
+      const redirectUri = req.session?.mercadopagoRedirectUri || `${config.frontendUrl}/mercadopago/callback`;
+      console.log('🔄 Intercambiando código por token...');
+      console.log('🔄 Redirect URI usado:', redirectUri);
+      console.log('🔄 Redirect URI de sesión:', req.session?.mercadopagoRedirectUri);
+      console.log('🔄 Frontend URL config:', config.frontendUrl);
+      
       const { accessToken, refreshToken, userId } = await exchangeCodeForToken({ code, redirectUri });
+      
+      console.log('✅ Tokens obtenidos exitosamente');
+      console.log('✅ User ID de MercadoPago:', userId);
 
       // Obtener información del usuario de MercadoPago
       const userInfo = await this.obtenerInformacionUsuarioMercadoPago(accessToken);
@@ -491,9 +512,10 @@ class BankConnectionController extends BaseController {
 
       await conexion.save();
 
-      // Limpiar el state de la sesión
+      // Limpiar el state y redirect_uri de la sesión
       if (req.session) {
         delete req.session.mercadopagoState;
+        delete req.session.mercadopagoRedirectUri;
       }
 
       logger.info('Conexión MercadoPago creada exitosamente', {
