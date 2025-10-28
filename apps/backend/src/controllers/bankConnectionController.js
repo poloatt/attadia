@@ -476,23 +476,35 @@ class BankConnectionController extends BaseController {
       console.log('🔄 Redirect URI de sesión:', req.session?.mercadopagoRedirectUri);
       console.log('🔄 Frontend URL config:', config.frontendUrl);
       
-      const { accessToken, refreshToken, userId } = await exchangeCodeForToken({ code, redirectUri });
+      const tokenData = await exchangeCodeForToken({ code, redirectUri });
+      const { access_token: accessToken, refresh_token: refreshToken, user_id: userId } = tokenData;
       
       console.log('✅ Tokens obtenidos exitosamente');
       console.log('✅ User ID de MercadoPago:', userId);
+      console.log('✅ Access Token:', accessToken ? accessToken.substring(0, 20) + '...' : 'NO RECIBIDO');
 
-      // Obtener información del usuario de MercadoPago
-      const userInfo = await this.obtenerInformacionUsuarioMercadoPago(accessToken);
-
-      // Obtener país del usuario (por defecto Argentina)
-      const pais = userInfo.country_id || 'AR';
+      // Intentar obtener información del usuario de MercadoPago
+      let userInfo = null;
+      let pais = 'AR'; // Por defecto Argentina
+      let nombreCuenta = `MercadoPago - Usuario ${userId}`;
+      
+      try {
+        userInfo = await this.obtenerInformacionUsuarioMercadoPago(accessToken);
+        pais = userInfo.country_id || 'AR';
+        nombreCuenta = `MercadoPago - ${userInfo.nickname || userInfo.email || `Usuario ${userId}`}`;
+        console.log('✅ Información del usuario obtenida exitosamente');
+      } catch (error) {
+        // Si falla /users/me (403), continuar con valores por defecto
+        console.warn('⚠️ No se pudo obtener info del usuario, usando valores por defecto:', error.message);
+        console.log('✅ Continuando con userId:', userId, 'y país por defecto:', pais);
+      }
       
       // Obtener moneda asociada al país
       const moneda = await this.obtenerMonedaPorPais(pais);
 
       // Crear cuenta para MercadoPago
       const cuenta = new Cuentas({
-        nombre: `MercadoPago - ${userInfo.nickname || userInfo.email}`,
+        nombre: nombreCuenta,
         tipo: 'DIGITAL',
         moneda: moneda._id,
         usuario: req.user.id,
@@ -508,7 +520,7 @@ class BankConnectionController extends BaseController {
 
       // Crear conexión bancaria
       const conexion = new BankConnection({
-        nombre: `MercadoPago - ${userInfo.nickname || userInfo.email}`,
+        nombre: nombreCuenta,
         tipo: 'MERCADOPAGO',
         usuario: req.user.id,
         cuenta: cuenta._id,
