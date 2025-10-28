@@ -5,23 +5,42 @@ export const validateMercadoPagoAuthUrl = [
   check('redirect_uri')
     .notEmpty()
     .withMessage('redirect_uri es requerido')
-    .isURL()
-    .withMessage('redirect_uri debe ser una URL válida')
     .custom((value) => {
-      // Validar que la URL sea HTTPS en producción
-      if (process.env.NODE_ENV === 'production' && !value.startsWith('https://')) {
-        throw new Error('redirect_uri debe usar HTTPS en producción');
+      // Validación custom más permisiva para localhost
+      try {
+        const url = new URL(value);
+        
+        // Permitir http en localhost/127.0.0.1
+        const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+        
+        // Validar protocolo
+        if (!['http:', 'https:'].includes(url.protocol)) {
+          throw new Error('redirect_uri debe usar protocolo http o https');
+        }
+        
+        // En producción, requerir HTTPS (excepto localhost)
+        if (process.env.NODE_ENV === 'production' && url.protocol === 'http:' && !isLocalhost) {
+          throw new Error('redirect_uri debe usar HTTPS en producción');
+        }
+        
+        return true;
+      } catch (error) {
+        throw new Error('redirect_uri debe ser una URL válida');
       }
-      return true;
     }),
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.error('❌ [MercadoPago] Validación fallida:', {
+        redirect_uri: req.query.redirect_uri,
+        errors: errors.array()
+      });
       return res.status(400).json({ 
         error: 'Parámetros inválidos',
         details: errors.array() 
       });
     }
+    console.log('✅ [MercadoPago] Validación exitosa - redirect_uri:', req.query.redirect_uri);
     next();
   }
 ];

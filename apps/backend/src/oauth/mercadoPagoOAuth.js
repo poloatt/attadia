@@ -22,7 +22,7 @@ export function getAuthUrl(redirectUri, state = null) {
   
   const authUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&redirect_uri=${encodeURIComponent(redirectUri)}&state=${stateParam}&scope=${encodeURIComponent(scopes)}&prompt=consent`;
   
-  logger.mercadopago('AUTH_URL_GENERATED', 'URL de autorización generada', {
+  logger.info('[MercadoPago] URL de autorización generada', {
     clientId: clientId ? 'configurado' : 'no configurado',
     redirectUri,
     hasState: !!stateParam,
@@ -48,7 +48,7 @@ export async function exchangeCodeForToken({ code, redirectUri }) {
     throw new Error('Configuración de MercadoPago incompleta. Verifica MERCADOPAGO_CLIENT_ID y MERCADOPAGO_CLIENT_SECRET');
   }
   
-  logger.mercadopago('TOKEN_EXCHANGE_START', 'Iniciando intercambio de código por token', {
+  logger.info('[MercadoPago] Iniciando intercambio de código por token', {
     clientId: clientId ? 'configurado' : 'no configurado',
     clientSecret: clientSecret ? 'configurado' : 'no configurado',
     code: code ? 'presente' : 'ausente',
@@ -73,7 +73,7 @@ export async function exchangeCodeForToken({ code, redirectUri }) {
   const data = await response.json();
     const duration = Date.now() - startTime;
     
-    logger.mercadopago('TOKEN_EXCHANGE_RESPONSE', 'Respuesta de intercambio de token recibida', {
+    logger.info('[MercadoPago] Respuesta de intercambio de token recibida', {
       status: response.status,
       hasAccessToken: !!data.access_token,
       hasRefreshToken: !!data.refresh_token,
@@ -101,7 +101,7 @@ export async function exchangeCodeForToken({ code, redirectUri }) {
       throw new Error(data.error_description || 'No se pudo obtener access token');
     }
     
-    logger.mercadopago('TOKEN_EXCHANGE_SUCCESS', 'Intercambio de token exitoso', {
+    logger.info('[MercadoPago] Intercambio de token exitoso', {
       userId: data.user_id,
       tokenType: data.token_type,
       expiresIn: data.expires_in,
@@ -158,7 +158,7 @@ export async function refreshAccessToken({ refreshToken }) {
     throw new Error('Configuración de MercadoPago incompleta. Verifica MERCADOPAGO_CLIENT_ID y MERCADOPAGO_CLIENT_SECRET');
   }
   
-  logger.mercadopago('TOKEN_REFRESH_START', 'Iniciando refresh de token', {
+  logger.info('[MercadoPago] Iniciando refresh de token', {
     hasRefreshToken: !!refreshToken
   });
   
@@ -197,7 +197,7 @@ export async function refreshAccessToken({ refreshToken }) {
       throw new Error(data.error_description || 'No se pudo refrescar access token');
     }
     
-    logger.mercadopago('TOKEN_REFRESH_SUCCESS', 'Refresh de token exitoso', {
+    logger.info('[MercadoPago] Refresh de token exitoso', {
       userId: data.user_id,
       tokenType: data.token_type,
       expiresIn: data.expires_in,

@@ -769,16 +769,24 @@ export function Cuentas() {
 
       {/* Modal de sincronización */}
       <Dialog open={isSyncModalOpen} onClose={() => setIsSyncModalOpen(false)} maxWidth="xs" fullWidth>
-        <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <Typography variant="h6" sx={{ mb: 2 }}>Sincronizar nueva cuenta</Typography>
-          <MercadoPagoConnectButton
-            onSuccess={() => {
-              setIsSyncModalOpen(false);
-              refetchCuentas();
-            }}
-            onError={() => setIsSyncModalOpen(false)}
-          />
-        </Box>
+        <DialogContent>
+          <Typography variant="h6" sx={{ mb: 2, textAlign: 'center' }}>
+            Sincronizar nueva cuenta
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <MercadoPagoConnectButton
+              onSuccess={() => {
+                setIsSyncModalOpen(false);
+                refetchCuentas();
+              }}
+              onError={(error) => {
+                console.error('Error en conexión MercadoPago:', error);
+                // NO cerramos el modal para que el usuario vea el error y pueda reintentar
+              }}
+              fullWidth
+            />
+          </Box>
+        </DialogContent>
       </Dialog>
     </Box>
   );

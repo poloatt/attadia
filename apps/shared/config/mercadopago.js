@@ -45,41 +45,74 @@ export const MERCADOPAGO_CONFIG = {
 // Función para obtener la URL de redirección según el ambiente
 export const getRedirectURI = () => {
   const hostname = window.location.hostname;
+  const port = window.location.port;
   
+  console.log('🔵 [MercadoPago] getRedirectURI - hostname:', hostname, 'port:', port);
+  
+  let redirectURI;
   if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
-    return MERCADOPAGO_CONFIG.redirectURIs.development;
+    // En desarrollo, usar el puerto actual dinámicamente
+    redirectURI = `http://localhost:${port}/mercadopago/callback`;
   } else if (hostname === 'atta.attadia.com' || 
              hostname === 'foco.attadia.com' || 
              hostname === 'pulso.attadia.com') {
-    return MERCADOPAGO_CONFIG.redirectURIs.production;
+    redirectURI = MERCADOPAGO_CONFIG.redirectURIs.production;
   } else {
-    return MERCADOPAGO_CONFIG.redirectURIs.development; // fallback
+    // Fallback: usar puerto actual o 5173 por defecto
+    redirectURI = `http://localhost:${port || '5173'}/mercadopago/callback`;
   }
+  
+  console.log('🔵 [MercadoPago] getRedirectURI - redirectURI:', redirectURI);
+  
+  return redirectURI;
 };
 
 // Habilitar MercadoPago (producción o modo desarrollo forzado)
 export const isMercadoPagoEnabled = () => {
   try {
     // Producción siempre habilitado
-    if (import.meta.env.PROD) return true;
+    if (import.meta.env.PROD) {
+      console.log('🔵 [MercadoPago] isMercadoPagoEnabled: PROD=true → enabled');
+      return true;
+    }
 
-    // 1) Bandera de Vite
+    // Desarrollo: detectar localhost
+    const isLocalhost = typeof window !== 'undefined' && 
+      (window.location.hostname === 'localhost' || 
+       window.location.hostname === '127.0.0.1' ||
+       window.location.hostname.includes('127.0.0.1'));
+    
+    if (isLocalhost) {
+      console.log('🔵 [MercadoPago] isMercadoPagoEnabled: localhost detected → enabled');
+      return true;
+    }
+
+    // 1) Bandera de Vite (por si alguien la configura)
     const devFlag = import.meta?.env?.VITE_MP_DEV;
-    if (devFlag === '1' || devFlag === 'true') return true;
+    if (devFlag === '1' || devFlag === 'true') {
+      console.log('🔵 [MercadoPago] isMercadoPagoEnabled: VITE_MP_DEV=true → enabled');
+      return true;
+    }
 
     // 2) Query param ?mpdev=1 para habilitar al vuelo
     const params = new URLSearchParams(window.location.search);
     if (params.get('mpdev') === '1' || params.get('mpdev') === 'true') {
       try { localStorage.setItem('MP_DEV', '1'); } catch {}
+      console.log('🔵 [MercadoPago] isMercadoPagoEnabled: query param=true → enabled');
       return true;
     }
 
     // 3) LocalStorage persistente
     const ls = (() => { try { return localStorage.getItem('MP_DEV'); } catch { return null; } })();
-    if (ls === '1' || ls === 'true') return true;
+    if (ls === '1' || ls === 'true') {
+      console.log('🔵 [MercadoPago] isMercadoPagoEnabled: localStorage=true → enabled');
+      return true;
+    }
 
+    console.warn('⚠️ [MercadoPago] isMercadoPagoEnabled: disabled (use ?mpdev=1 to enable)');
     return false;
-  } catch {
+  } catch (error) {
+    console.error('❌ [MercadoPago] isMercadoPagoEnabled: error', error);
     return false;
   }
 };

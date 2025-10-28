@@ -20,10 +20,15 @@ class MercadoPagoService {
    */
   async getAuthUrl() {
     try {
+      console.log('🔵 [MercadoPagoService] getAuthUrl - baseURL:', this.baseURL);
+      console.log('🔵 [MercadoPagoService] getAuthUrl - redirectURI:', this.redirectURI);
+      
       const { data } = await clienteAxios.get(`${this.baseURL}/auth-url`, {
         params: { redirect_uri: this.redirectURI },
         timeout: this.timeout
       });
+      
+      console.log('✅ [MercadoPagoService] getAuthUrl - response received:', { hasAuthUrl: !!data.authUrl, hasState: !!data.state });
       
       if (!data.authUrl || !data.state) {
         throw new Error('Respuesta inválida del servidor: faltan datos de autorización');
@@ -31,7 +36,13 @@ class MercadoPagoService {
       
       return { authUrl: data.authUrl, state: data.state };
     } catch (error) {
-      console.error('Error obteniendo URL de autorización:', error);
+      console.error('❌ [MercadoPagoService] Error obteniendo URL de autorización:', error);
+      console.error('❌ [MercadoPagoService] Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
       
       if (error.code === 'ECONNABORTED') {
         throw new Error('Timeout: El servidor no respondió en el tiempo esperado');
@@ -100,6 +111,9 @@ class MercadoPagoService {
     try {
       const { authUrl, state } = await this.getAuthUrl();
       
+      console.log('🔵 [MercadoPagoService] connect - authUrl:', authUrl);
+      console.log('🔵 [MercadoPagoService] connect - state:', state);
+      
       // Guardar el state en localStorage para validarlo en el callback
       if (state) {
         localStorage.setItem('mercadopago_state', state);
@@ -108,8 +122,10 @@ class MercadoPagoService {
       }
       
       // Redirigir al usuario a MercadoPago
+      console.log('✅ [MercadoPagoService] Redirigiendo a MercadoPago...');
       window.location.href = authUrl;
     } catch (error) {
+      console.error('❌ [MercadoPagoService] Error en connect:', error);
       // Limpiar state en caso de error
       localStorage.removeItem('mercadopago_state');
       localStorage.removeItem('mercadopago_state_timestamp');
