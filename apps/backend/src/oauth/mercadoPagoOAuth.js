@@ -119,7 +119,9 @@ export async function exchangeCodeForToken({ code, redirectUri }) {
     console.log('Expires in:', data.expires_in);
     console.log('================================');
     
-    logger.performance('mercadopago_token_exchange', duration, {
+    logger.info('MercadoPago token exchange completed', {
+      event: 'mercadopago_token_exchange',
+      duration,
       userId: data.user_id,
       success: true
     });
@@ -198,14 +200,11 @@ export async function refreshAccessToken({ refreshToken }) {
     }
     
     logger.info('[MercadoPago] Refresh de token exitoso', {
+      event: 'mercadopago_token_refresh',
       userId: data.user_id,
       tokenType: data.token_type,
       expiresIn: data.expires_in,
-      duration
-    });
-    
-    logger.performance('mercadopago_token_refresh', duration, {
-      userId: data.user_id,
+      duration,
       success: true
     });
     
