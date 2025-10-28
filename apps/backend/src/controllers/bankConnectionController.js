@@ -505,15 +505,11 @@ class BankConnectionController extends BaseController {
       // Crear cuenta para MercadoPago
       const cuenta = new Cuentas({
         nombre: nombreCuenta,
-        tipo: 'DIGITAL',
+        tipo: 'MERCADO_PAGO',
         moneda: moneda._id,
         usuario: req.user.id,
         saldo: 0,
-        activa: true,
-        configuracion: {
-          categorizacionAutomatica: true,
-          sincronizacionAutomatica: true
-        }
+        activo: true
       });
 
       await cuenta.save();
