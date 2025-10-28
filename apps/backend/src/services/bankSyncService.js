@@ -296,13 +296,6 @@ export class BankSyncService {
     try {
       console.log(`Sincronizando con MercadoPago para conexión: ${bankConnection.nombre}`);
       
-      // Usar el mismo patrón exitoso del controller: API REST directa
-      const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN || config.mercadopago.accessToken;
-      
-      if (!accessToken) {
-        throw new Error('MERCADOPAGO_ACCESS_TOKEN no está configurado');
-      }
-
       // Desencriptar credenciales de MercadoPago del usuario
       let userAccessToken = this.decrypt(bankConnection.credenciales.accessToken);
       let refreshToken = this.decrypt(bankConnection.credenciales.refreshToken);

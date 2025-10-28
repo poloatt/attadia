@@ -543,49 +543,88 @@ class BankConnectionController extends BaseController {
       // Obtener moneda asociada al país
       const moneda = await this.obtenerMonedaPorPais(pais);
 
-      // Crear cuenta para MercadoPago con información completa
-      const cuenta = new Cuentas({
-        nombre: nombreCuenta,
-        tipo: 'MERCADO_PAGO',
-        moneda: moneda._id,
+      // Verificar si ya existe una cuenta de MercadoPago para este usuario con el mismo userId
+      let cuenta = await Cuentas.findOne({
         usuario: req.user.id,
-        saldo: 0,
-        activo: true,
-        mercadopago: {
-          userId: userId,
-          email: userInfo?.email || null,
-          nickname: userInfo?.nickname || null,
-          countryId: userInfo?.country_id || pais,
-          siteId: userInfo?.site_id || null,
-          verificado: userInfo?.status?.verified || false
-        }
+        tipo: 'MERCADO_PAGO',
+        'mercadopago.userId': userId.toString()
       });
 
-      await cuenta.save();
-      console.log(`✅ Cuenta creada exitosamente: ${cuenta._id}`);
+      if (cuenta) {
+        console.log(`📌 Cuenta MercadoPago ya existe: ${cuenta._id}, actualizando información...`);
+        // Actualizar información de la cuenta existente
+        cuenta.nombre = nombreCuenta;
+        cuenta.mercadopago = {
+          userId: userId,
+          email: userInfo?.email || cuenta.mercadopago?.email,
+          nickname: userInfo?.nickname || cuenta.mercadopago?.nickname,
+          countryId: userInfo?.country_id || pais,
+          siteId: userInfo?.site_id || cuenta.mercadopago?.siteId,
+          verificado: userInfo?.status?.verified || cuenta.mercadopago?.verificado || false
+        };
+        await cuenta.save();
+      } else {
+        // Crear nueva cuenta para MercadoPago con información completa
+        cuenta = new Cuentas({
+          nombre: nombreCuenta,
+          tipo: 'MERCADO_PAGO',
+          moneda: moneda._id,
+          usuario: req.user.id,
+          saldo: 0,
+          activo: true,
+          mercadopago: {
+            userId: userId,
+            email: userInfo?.email || null,
+            nickname: userInfo?.nickname || null,
+            countryId: userInfo?.country_id || pais,
+            siteId: userInfo?.site_id || null,
+            verificado: userInfo?.status?.verified || false
+          }
+        });
+        await cuenta.save();
+        console.log(`✅ Cuenta creada exitosamente: ${cuenta._id}`);
+      }
 
-      // Crear conexión bancaria
-      const conexion = new BankConnection({
-        nombre: nombreCuenta,
-        tipo: 'MERCADOPAGO',
+      // Verificar si ya existe una conexión para esta cuenta
+      let conexion = await BankConnection.findOne({
         usuario: req.user.id,
-        cuenta: cuenta._id,
-        credenciales: {
+        tipo: 'MERCADOPAGO',
+        cuenta: cuenta._id
+      });
+
+      if (conexion) {
+        console.log(`📌 Conexión MercadoPago ya existe: ${conexion._id}, actualizando credenciales...`);
+        // Actualizar credenciales
+        conexion.credenciales = {
           accessToken: this.encrypt(accessToken),
           refreshToken: this.encrypt(refreshToken),
           userId: this.encrypt(userId.toString())
-        },
-        configuracion: {
-          categorizacionAutomatica: true,
-          sincronizacionAutomatica: true,
-          sincronizacionIntervalo: 3600 // 1 hora
-        },
-        estado: 'ACTIVA',
-        ultimaSincronizacion: new Date(),
-        proximaSincronizacion: new Date(Date.now() + 3600 * 1000)
-      });
-
-      await conexion.save();
+        };
+        conexion.estado = 'ACTIVA';
+        await conexion.save();
+      } else {
+        // Crear nueva conexión bancaria
+        conexion = new BankConnection({
+          nombre: nombreCuenta,
+          tipo: 'MERCADOPAGO',
+          usuario: req.user.id,
+          cuenta: cuenta._id,
+          credenciales: {
+            accessToken: this.encrypt(accessToken),
+            refreshToken: this.encrypt(refreshToken),
+            userId: this.encrypt(userId.toString())
+          },
+          configuracion: {
+            categorizacionAutomatica: true,
+            sincronizacionAutomatica: true,
+            sincronizacionIntervalo: 3600 // 1 hora
+          },
+          estado: 'ACTIVA',
+          ultimaSincronizacion: new Date(),
+          proximaSincronizacion: new Date(Date.now() + 3600 * 1000)
+        });
+        await conexion.save();
+      }
 
       logger.info('Conexión MercadoPago creada exitosamente', {
         event: 'CONNECTION_CREATED',
@@ -596,13 +635,18 @@ class BankConnectionController extends BaseController {
       });
 
       // Sincronizar transacciones automáticamente después de conectar
+      let syncResult = null;
       try {
         console.log('🔄 Iniciando sincronización automática post-OAuth...');
-        await this.bankSyncService.sincronizarConexion(conexion);
-        console.log('✅ Sincronización inicial completada');
+        syncResult = await this.bankSyncService.sincronizarConexion(conexion);
+        console.log('✅ Sincronización inicial completada:', {
+          nuevas: syncResult?.transaccionesNuevas || 0,
+          actualizadas: syncResult?.transaccionesActualizadas || 0
+        });
       } catch (syncError) {
-        console.error('⚠️ Error en sincronización inicial:', syncError);
-        // No fallar la conexión por esto
+        console.error('⚠️ Error en sincronización inicial:', syncError.message);
+        console.error('Stack:', syncError.stack);
+        // No fallar la conexión por esto, se puede sincronizar manualmente después
       }
 
       // Limpiar el state y redirect_uri de la sesión
