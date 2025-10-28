@@ -328,7 +328,7 @@ export class BankSyncService {
       
       try {
         console.log('🔍 [Pagos] Intentando obtener con /v1/payments/search (OAuth)');
-        const paymentsUrl = `https://api.mercadopago.com/v1/payments/search?range=date_created&begin_date=${fechaDesde.toISOString()}&limit=100&sort=date_created.desc`;
+        const paymentsUrl = `https://api.mercadopago.com/v1/payments/search?range=date_created&begin_date=${fechaDesde.toISOString()}&end_date=${new Date().toISOString()}&limit=100&sort=date_created.desc`;
         console.log('📡 URL:', paymentsUrl);
         
         const paymentsRes = await fetch(paymentsUrl, {
