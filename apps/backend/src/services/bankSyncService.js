@@ -322,72 +322,41 @@ export class BankSyncService {
       const userInfo = await userRes.json();
       console.log('Usuario MercadoPago verificado:', userInfo.nickname || userInfo.email);
 
-      // Omitir obtención de pagos como vendedor (solo para usuarios regulares)
-      // El endpoint /v1/payments/search requiere permisos de vendedor
+      // Obtener pagos recientes usando OAuth (cada usuario ve sus propios pagos)
       const fechaDesde = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      let pagos = []; // Array vacío - no obtenemos pagos como vendedor
+      let pagos = [];
       
-      console.log('ℹ️ Skipping /v1/payments/search (requiere permisos de vendedor)');
-
-      // Obtener movimientos de cuenta (para usuarios regulares)
-      let movimientos = [];
-      
-      // Intentar primero con /v1/account/movements/search (endpoint alternativo)
       try {
-        console.log('🔍 [Movimientos] Intentando obtener con /v1/account/movements/search');
-        const movimientosUrl = `https://api.mercadopago.com/v1/account/movements/search?date_created_from=${fechaDesde.toISOString()}&limit=100`;
-        console.log('📡 URL:', movimientosUrl);
+        console.log('🔍 [Pagos] Intentando obtener con /v1/payments/search (OAuth)');
+        const paymentsUrl = `https://api.mercadopago.com/v1/payments/search?range=date_created&begin_date=${fechaDesde.toISOString()}&limit=100&sort=date_created.desc`;
+        console.log('📡 URL:', paymentsUrl);
         
-        const movimientosRes = await fetch(movimientosUrl, {
+        const paymentsRes = await fetch(paymentsUrl, {
           headers: { 
             'Authorization': `Bearer ${userAccessToken}`,
             'Content-Type': 'application/json'
           }
         });
 
-        console.log('📡 Respuesta de movimientos - Status:', movimientosRes.status);
+        console.log('📡 Respuesta de payments - Status:', paymentsRes.status);
         
-        if (movimientosRes.ok) {
-          const movimientosData = await movimientosRes.json();
-          movimientos = movimientosData.results || [];
-          console.log('✅ Movimientos obtenidos con /v1/account/movements/search:', movimientos.length);
-          if (movimientos.length > 0) {
-            console.log('📋 Ejemplo de movimiento:', JSON.stringify(movimientos[0], null, 2));
+        if (paymentsRes.ok) {
+          const paymentsData = await paymentsRes.json();
+          pagos = paymentsData.results || [];
+          console.log('✅ Pagos obtenidos:', pagos.length);
+          if (pagos.length > 0) {
+            console.log('📋 Ejemplo de pago:', JSON.stringify(pagos[0], null, 2));
           }
         } else {
-          const errorText = await movimientosRes.text();
-          console.warn('⚠️ /v1/account/movements/search falló:', movimientosRes.status, errorText);
-          
-          // Intentar con el endpoint alternativo /v1/account/bank_report
-          console.log('🔄 [Movimientos] Intentando con /v1/account/bank_report (fallback)');
-          const bankReportUrl = `https://api.mercadopago.com/v1/account/bank_report?begin_date=${fechaDesde.toISOString()}&end_date=${new Date().toISOString()}`;
-          console.log('📡 URL fallback:', bankReportUrl);
-          
-          const bankReportRes = await fetch(bankReportUrl, {
-            headers: { 
-              'Authorization': `Bearer ${userAccessToken}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          console.log('📡 Respuesta de bank_report - Status:', bankReportRes.status);
-          
-          if (bankReportRes.ok) {
-            const bankReportData = await bankReportRes.json();
-            movimientos = bankReportData.results || [];
-            console.log('✅ Movimientos obtenidos con /v1/account/bank_report:', movimientos.length);
-            if (movimientos.length > 0) {
-              console.log('📋 Ejemplo de movimiento:', JSON.stringify(movimientos[0], null, 2));
-            }
-          } else {
-            const bankReportErrorText = await bankReportRes.text();
-            console.error('❌ /v1/account/bank_report también falló:', bankReportRes.status, bankReportErrorText);
-          }
+          const errorText = await paymentsRes.text();
+          console.warn('⚠️ /v1/payments/search falló:', paymentsRes.status, errorText);
         }
       } catch (error) {
-        console.error('❌ Error en request de movimientos:', error.message);
-        console.error('Stack:', error.stack);
+        console.error('❌ Error obteniendo pagos:', error.message);
       }
+
+      // Por ahora, no obtenemos movimientos (endpoints no disponibles sin acceso privado)
+      let movimientos = [];
 
       // Obtener balance de la cuenta
       let balance = { available: 0, unavailable: 0 };
