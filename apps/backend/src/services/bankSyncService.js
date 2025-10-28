@@ -300,6 +300,12 @@ export class BankSyncService {
       let userAccessToken = this.decrypt(bankConnection.credenciales.accessToken);
       let refreshToken = this.decrypt(bankConnection.credenciales.refreshToken);
       const userId = this.decrypt(bankConnection.credenciales.userId);
+
+      // Obtener información de la cuenta para acceder a la moneda
+      const cuenta = await Cuentas.findById(bankConnection.cuenta);
+      if (!cuenta) {
+        throw new Error('Cuenta no encontrada');
+      }
       
       // Obtener información del usuario usando la API REST directamente (como en el controller exitoso)
       const userRes = await fetch('https://api.mercadopago.com/users/me', {
@@ -316,28 +322,33 @@ export class BankSyncService {
       const userInfo = await userRes.json();
       console.log('Usuario MercadoPago verificado:', userInfo.nickname || userInfo.email);
 
-      // Obtener pagos recientes usando el endpoint de pagos (como en verificarMercadoPago)
+      // Obtener pagos recientes (solo para vendedores - opcional)
       const fechaDesde = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      const paymentsUrl = `https://api.mercadopago.com/v1/payments/search?range=date_created&begin_date=${fechaDesde.toISOString()}&limit=100&sort=date_created.desc`;
+      let pagos = [];
       
-      const paymentsRes = await fetch(paymentsUrl, {
-        headers: { 
-          'Authorization': `Bearer ${userAccessToken}`,
-          'Content-Type': 'application/json'
+      try {
+        const paymentsUrl = `https://api.mercadopago.com/v1/payments/search?range=date_created&begin_date=${fechaDesde.toISOString()}&limit=100&sort=date_created.desc`;
+        
+        const paymentsRes = await fetch(paymentsUrl, {
+          headers: { 
+            'Authorization': `Bearer ${userAccessToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (paymentsRes.ok) {
+          const paymentsData = await paymentsRes.json();
+          pagos = paymentsData.results || [];
+          console.log('✅ Pagos obtenidos de MercadoPago:', {
+            total: pagos.length,
+            usuario: userInfo.nickname || userInfo.email
+          });
+        } else {
+          console.warn('⚠️ No se pudieron obtener pagos (usuario no es vendedor):', paymentsRes.status);
         }
-      });
-
-      if (!paymentsRes.ok) {
-        throw new Error(`Error obteniendo pagos: ${paymentsRes.status}`);
+      } catch (error) {
+        console.warn('⚠️ Error obteniendo pagos, continuando con movimientos:', error.message);
       }
-
-      const paymentsData = await paymentsRes.json();
-      const pagos = paymentsData.results || [];
-
-      console.log('Pagos obtenidos de MercadoPago:', {
-        total: pagos.length,
-        usuario: userInfo.nickname || userInfo.email
-      });
 
       // Obtener movimientos de cuenta
       let movimientos = [];
@@ -411,6 +422,7 @@ export class BankSyncService {
               tipo: pago.transaction_amount > 0 ? 'INGRESO' : 'EGRESO',
               usuario: bankConnection.usuario,
               cuenta: bankConnection.cuenta,
+              moneda: cuenta.moneda, // Usar la moneda de la cuenta
               comisiones: comisiones,
               origen: {
                 tipo: 'MERCADOPAGO_PAGO',
@@ -456,12 +468,20 @@ export class BankSyncService {
             const transaccion = new Transacciones({
               descripcion: `MercadoPago - ${movimiento.type || 'Movimiento'}`,
               monto: Math.abs(movimiento.amount || 0),
+              montoNeto: Math.abs(movimiento.amount || 0), // Movimientos no tienen comisión adicional
               fecha: new Date(movimiento.date_created),
               categoria: 'Otro',
               estado: 'COMPLETADA',
               tipo: movimiento.amount > 0 ? 'INGRESO' : 'EGRESO',
               usuario: bankConnection.usuario,
               cuenta: bankConnection.cuenta,
+              moneda: cuenta.moneda, // Usar la moneda de la cuenta
+              comisiones: { // Inicializar comisiones en 0
+                mercadopago: 0,
+                financieras: 0,
+                envio: 0,
+                total: 0
+              },
               origen: {
                 tipo: 'MERCADOPAGO_MOVIMIENTO',
                 conexionId: bankConnection._id,
