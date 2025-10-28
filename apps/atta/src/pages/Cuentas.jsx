@@ -611,14 +611,6 @@ export function Cuentas() {
       />
       
       <Box sx={{ mt: 3 }}>
-        {/* Acción para conectar con MercadoPago */}
-        {import.meta.env.PROD && (
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
-            <Button variant="outlined" onClick={() => setIsSyncModalOpen(true)}>
-              Conectar MercadoPago
-            </Button>
-          </Box>
-        )}
         {isLoading ? (
           <Box sx={{ p: 2, bgcolor: 'background.default', borderRadius: 1, boxShadow: 1 }}>
             <EmptyState

@@ -383,9 +383,9 @@ export default function Toolbar({
           })}
           {/* Children */}
           {!isMobile && children}
-          {/* Botón de conectar MercadoPago en Cuentas */}
+          {/* Botón de sincronización de MercadoPago en Cuentas */}
           {(currentPath === '/finanzas/cuentas') && (
-            <Tooltip title="Conectar MercadoPago">
+            <Tooltip title="Sincronizar">
               <IconButton
                 size="small"
                 onClick={() => window.dispatchEvent(new CustomEvent('openMercadoPagoConnect'))}
@@ -400,9 +400,9 @@ export default function Toolbar({
                   transition: 'all 0.2s ease-in-out'
                 }}
               >
-                {React.createElement(icons.wallet || icons.sync || (() => (
+                {React.createElement(icons.sync || (() => (
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M21 7H3V5h18v2zm0 2H3c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2v-6c0-1.1-.9-2-2-2zm-3 5c-.83 0-1.5-.67-1.5-1.5S17.17 11 18 11s1.5.67 1.5 1.5S18.83 14 18 14z"/>
+                    <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.96-.69 2.79l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm-6.77.23L3.77 5.69C2.46 7.97 2 9.43 2 11c0 4.42 3.58 8 8 8v3l4-4-4-4v3c-3.31 0-6-2.69-6-6 0-1.01.25-1.96.69-2.79z"/>
                   </svg>
                 )), { sx: { fontSize: 18 } })}
               </IconButton>
