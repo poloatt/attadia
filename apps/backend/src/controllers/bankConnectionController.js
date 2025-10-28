@@ -19,11 +19,28 @@ class BankConnectionController extends BaseController {
     });
 
     this.bankSyncService = new BankSyncService();
+    this.encryptionKey = process.env.ENCRYPTION_KEY || 'default-key-change-in-production';
     
     // Bind de los métodos al contexto de la instancia
     this.verificarConexion = this.verificarConexion.bind(this);
     this.sincronizarConexion = this.sincronizarConexion.bind(this);
     this.sincronizarTodas = this.sincronizarTodas.bind(this);
+  }
+
+  // Encriptar credenciales sensibles
+  encrypt(text) {
+    const cipher = crypto.createCipher('aes-256-cbc', this.encryptionKey);
+    let encrypted = cipher.update(text, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    return encrypted;
+  }
+
+  // Desencriptar credenciales
+  decrypt(encryptedText) {
+    const decipher = crypto.createDecipher('aes-256-cbc', this.encryptionKey);
+    let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
   }
 
   // Sobrescribir getAll para filtrar por usuario
