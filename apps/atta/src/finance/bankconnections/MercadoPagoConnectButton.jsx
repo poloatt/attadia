@@ -3,7 +3,7 @@ import { Button, CircularProgress } from '@mui/material';
 import { FORM_HEIGHTS } from '@shared/config/uiConstants';
 import { useMercadoPago } from '@shared/hooks/useMercadoPago';
 import { isMercadoPagoEnabled } from '@shared/config/mercadopago';
-// import mercadopagoLogo from './logos/mercadopago.svg';
+import mercadopagoLogo from './logos/mercadopago.svg';
 
 export default function MercadoPagoConnectButton({ onSuccess, onError, fullWidth = false }) {
   const { connecting, connect } = useMercadoPago();
@@ -44,7 +44,7 @@ export default function MercadoPagoConnectButton({ onSuccess, onError, fullWidth
         <CircularProgress size={24} color="inherit" />
       ) : (
         <img 
-          src="/logos/mercadopago/MP_RGB_HANDSHAKE_color_horizontal.svg" 
+          src={mercadopagoLogo} 
           alt="MercadoPago" 
           style={{ 
             maxWidth: 120, 
