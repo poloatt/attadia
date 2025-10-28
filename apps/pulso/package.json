@@ -12,7 +12,7 @@
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview --port 5175",
     "preview:prod": "vite preview --mode production --port 5175",
-    "clean": "rm -rf node_modules/.vite"
+    "clean": "npx rimraf node_modules/.vite"
   },
   "dependencies": {
     "@emotion/react": "^11.11.3",

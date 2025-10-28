@@ -18,7 +18,7 @@
     "build:atta": "npm run build --workspace=apps/atta",
     "build:pulso": "npm run build --workspace=apps/pulso",
     "clean": "npm run clean --workspaces --if-present",
-    "clean:cache": "rm -rf apps/*/node_modules/.vite apps/*/dist",
+    "clean:cache": "npx rimraf \"apps/*/node_modules/.vite\" \"apps/*/dist\"",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "install:all": "npm install"
@@ -33,6 +33,7 @@
   "packageManager": "npm@10.9.3",
   "devDependencies": {
     "concurrently": "^8.2.2",
+    "rimraf": "^6.0.1",
     "sharp": "^0.34.4",
     "turbo": "^2.5.8"
   }

@@ -30,25 +30,34 @@
         e.preventDefault();
       });
 
-      // Registrar Service Worker para PWA (forzar actualización inmediata)
+      // Registrar Service Worker solo en producción; desregistrar en desarrollo
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/sw.js')
-            .then(function(registration) {
-              console.log('SW registered: ', registration);
-              // Forzar chequeo de nueva versión del SW
-              if (registration.update) {
-                registration.update();
-              }
-            })
-            .catch(function(registrationError) {
-              console.log('SW registration failed: ', registrationError);
-            });
+          var isLocalhost = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
+          if (!isLocalhost) {
+            navigator.serviceWorker.register('/sw.js')
+              .then(function(registration) {
+                console.log('SW registered: ', registration);
+                if (registration.update) {
+                  registration.update();
+                }
+              })
+              .catch(function(registrationError) {
+                console.log('SW registration failed: ', registrationError);
+              });
 
-          // Recargar cuando el nuevo SW tome control (evita index.html viejo)
-          navigator.serviceWorker.addEventListener('controllerchange', function() {
-            window.location.reload();
-          });
+            navigator.serviceWorker.addEventListener('controllerchange', function() {
+              window.location.reload();
+            });
+          } else {
+            // En desarrollo: desregistrar cualquier SW previo y limpiar caches
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+              registrations.forEach(function(reg) { reg.unregister(); });
+            });
+            if (window.caches && window.caches.keys) {
+              caches.keys().then(function(keys) { keys.forEach(function(k) { caches.delete(k); }); });
+            }
+          }
         });
       }
     </script>

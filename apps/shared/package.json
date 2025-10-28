@@ -22,7 +22,7 @@
   },
   "scripts": {
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
-    "clean": "rm -rf node_modules/.vite"
+    "clean": "npx rimraf node_modules/.vite"
   },
   "peerDependencies": {
     "react": "^18.2.0",
