@@ -502,17 +502,26 @@ class BankConnectionController extends BaseController {
       // Obtener moneda asociada al país
       const moneda = await this.obtenerMonedaPorPais(pais);
 
-      // Crear cuenta para MercadoPago
+      // Crear cuenta para MercadoPago con información completa
       const cuenta = new Cuentas({
         nombre: nombreCuenta,
         tipo: 'MERCADO_PAGO',
         moneda: moneda._id,
         usuario: req.user.id,
         saldo: 0,
-        activo: true
+        activo: true,
+        mercadopago: {
+          userId: userId,
+          email: userInfo?.email || null,
+          nickname: userInfo?.nickname || null,
+          countryId: userInfo?.country_id || pais,
+          siteId: userInfo?.site_id || null,
+          verificado: userInfo?.status?.verified || false
+        }
       });
 
       await cuenta.save();
+      console.log(`✅ Cuenta creada exitosamente: ${cuenta._id}`);
 
       // Crear conexión bancaria
       const conexion = new BankConnection({

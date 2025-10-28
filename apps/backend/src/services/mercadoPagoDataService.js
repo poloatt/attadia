@@ -192,10 +192,15 @@ export class MercadoPagoDataService {
       // Obtener o crear moneda
       const moneda = await this.obtenerOCrearMoneda(pago.currency_id || 'ARS');
 
+      // Calcular comisiones (MercadoPago devuelve estas en fee_details)
+      const comisiones = this.calcularComisiones(pago);
+      const montoNeto = monto - comisiones.total;
+
       // Crear nueva transacción
       const nuevaTransaccion = new Transacciones({
         descripcion: this.formatearDescripcionPago(pago),
         monto: monto,
+        montoNeto: montoNeto,
         fecha: new Date(pago.date_created),
         categoria: this.categorizarTransaccion(this.formatearDescripcionPago(pago)),
         estado: this.mapearEstadoPago(pago.status),
@@ -203,17 +208,23 @@ export class MercadoPagoDataService {
         usuario: this.usuarioId,
         cuenta: cuentaId,
         moneda: moneda._id,
+        comisiones: comisiones,
         origen: {
           tipo: 'MERCADOPAGO_PAGO',
           transaccionId: pago.id.toString(),
           metadata: {
             paymentId: pago.id,
             status: pago.status,
+            statusDetail: pago.status_detail,
             paymentMethod: pago.payment_method?.type,
+            paymentMethodId: pago.payment_method_id,
             installments: pago.installments,
             currencyId: pago.currency_id,
             collectorId: pago.collector_id,
-            payerId: pago.payer?.id
+            payerId: pago.payer?.id,
+            transactionAmount: pago.transaction_amount,
+            netReceivedAmount: pago.transaction_details?.net_received_amount,
+            totalPaidAmount: pago.transaction_details?.total_paid_amount
           }
         }
       });
@@ -242,10 +253,20 @@ export class MercadoPagoDataService {
       // Obtener o crear moneda
       const moneda = await this.obtenerOCrearMoneda(movimiento.currency_id || 'ARS');
 
+      // Los movimientos pueden tener comisiones también
+      const comisiones = {
+        mercadopago: 0,
+        financieras: 0,
+        envio: 0,
+        total: 0
+      };
+      const montoNeto = monto;
+
       // Crear nueva transacción
       const nuevaTransaccion = new Transacciones({
         descripcion: this.formatearDescripcionMovimiento(movimiento),
         monto: monto,
+        montoNeto: montoNeto,
         fecha: new Date(movimiento.date_created),
         categoria: this.categorizarTransaccion(this.formatearDescripcionMovimiento(movimiento)),
         estado: this.mapearEstadoMovimiento(movimiento.status),
@@ -253,6 +274,7 @@ export class MercadoPagoDataService {
         usuario: this.usuarioId,
         cuenta: cuentaId,
         moneda: moneda._id,
+        comisiones: comisiones,
         origen: {
           tipo: 'MERCADOPAGO_MOVIMIENTO',
           transaccionId: movimiento.id.toString(),
@@ -261,7 +283,8 @@ export class MercadoPagoDataService {
             status: movimiento.status,
             type: movimiento.type,
             currencyId: movimiento.currency_id,
-            reference: movimiento.reference
+            reference: movimiento.reference,
+            concept: movimiento.concept
           }
         }
       });
@@ -471,5 +494,42 @@ export class MercadoPagoDataService {
     };
     
     return paises[currencyId] || 'Desconocido';
+  }
+
+  // Calcular comisiones de MercadoPago
+  calcularComisiones(pago) {
+    const comisiones = {
+      mercadopago: 0,
+      financieras: 0,
+      envio: 0,
+      total: 0
+    };
+
+    // MercadoPago devuelve las comisiones en fee_details
+    if (pago.fee_details && Array.isArray(pago.fee_details)) {
+      for (const fee of pago.fee_details) {
+        const amount = Math.abs(fee.amount || 0);
+        
+        switch (fee.type) {
+          case 'mercadopago_fee':
+            comisiones.mercadopago += amount;
+            break;
+          case 'financing_fee':
+            comisiones.financieras += amount;
+            break;
+          case 'shipping_fee':
+            comisiones.envio += amount;
+            break;
+          default:
+            // Otros tipos de comisiones se suman a MercadoPago
+            comisiones.mercadopago += amount;
+        }
+      }
+    }
+
+    // Calcular total
+    comisiones.total = comisiones.mercadopago + comisiones.financieras + comisiones.envio;
+
+    return comisiones;
   }
 } 

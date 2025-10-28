@@ -40,10 +40,23 @@ const cuentaSchema = createSchema({
     type: Boolean,
     default: true
   },
+  // Metadata adicional para cuentas específicas (MercadoPago, bancos, etc.)
   metadata: {
     type: Map,
     of: mongoose.Schema.Types.Mixed,
     default: () => ({})
+  },
+  // Campos específicos para cuentas de MercadoPago
+  mercadopago: {
+    userId: String,                    // ID del usuario en MercadoPago
+    email: String,                     // Email de la cuenta MercadoPago
+    nickname: String,                  // Nickname del usuario
+    countryId: String,                 // País de la cuenta (AR, BR, etc.)
+    siteId: String,                    // Site ID de MercadoPago (MLA, MLB, etc.)
+    accountType: String,               // Tipo de cuenta (personal, vendedor, etc.)
+    verificado: Boolean,               // Si la cuenta está verificada
+    disponibleRetiro: Number,          // Dinero disponible para retiro
+    disponiblePendiente: Number        // Dinero pendiente de acreditación
   },
   ...commonFields
 });

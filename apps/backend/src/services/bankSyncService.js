@@ -339,10 +339,16 @@ export class BankSyncService {
           });
 
           if (!transaccionExistente) {
+            // Calcular comisiones
+            const comisiones = this.calcularComisionesMercadoPago(pago);
+            const monto = Math.abs(pago.transaction_amount || 0);
+            const montoNeto = monto - comisiones.total;
+
             // Crear nueva transacción
             const nuevaTransaccion = new Transacciones({
               descripcion: this.formatearDescripcionMercadoPago(pago),
-              monto: pago.transaction_amount || 0,
+              monto: monto,
+              montoNeto: montoNeto,
               fecha: new Date(pago.date_created),
               categoria: bankConnection.configuracion.categorizacionAutomatica ? 
                 this.categorizarTransaccion(this.formatearDescripcionMercadoPago(pago)) : 'Otro',
@@ -350,10 +356,18 @@ export class BankSyncService {
               tipo: pago.transaction_amount > 0 ? 'INGRESO' : 'EGRESO',
               usuario: bankConnection.usuario,
               cuenta: bankConnection.cuenta,
+              comisiones: comisiones,
               origen: {
                 tipo: 'MERCADOPAGO_PAGO',
                 conexionId: bankConnection._id,
-                transaccionId: pago.id.toString()
+                transaccionId: pago.id.toString(),
+                metadata: {
+                  paymentId: pago.id,
+                  status: pago.status,
+                  statusDetail: pago.status_detail,
+                  paymentMethod: pago.payment_method?.type,
+                  currencyId: pago.currency_id
+                }
               }
             });
 
@@ -565,5 +579,42 @@ export class BankSyncService {
     }
     
     return transacciones;
+  }
+
+  // Calcular comisiones de MercadoPago
+  calcularComisionesMercadoPago(pago) {
+    const comisiones = {
+      mercadopago: 0,
+      financieras: 0,
+      envio: 0,
+      total: 0
+    };
+
+    // MercadoPago devuelve las comisiones en fee_details
+    if (pago.fee_details && Array.isArray(pago.fee_details)) {
+      for (const fee of pago.fee_details) {
+        const amount = Math.abs(fee.amount || 0);
+        
+        switch (fee.type) {
+          case 'mercadopago_fee':
+            comisiones.mercadopago += amount;
+            break;
+          case 'financing_fee':
+            comisiones.financieras += amount;
+            break;
+          case 'shipping_fee':
+            comisiones.envio += amount;
+            break;
+          default:
+            // Otros tipos de comisiones se suman a MercadoPago
+            comisiones.mercadopago += amount;
+        }
+      }
+    }
+
+    // Calcular total
+    comisiones.total = comisiones.mercadopago + comisiones.financieras + comisiones.envio;
+
+    return comisiones;
   }
 } 

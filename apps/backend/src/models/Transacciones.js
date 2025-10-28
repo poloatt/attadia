@@ -64,7 +64,15 @@ const transaccionSchema = createSchema({
   origen: {
     tipo: {
       type: String,
-      enum: ['MANUAL', 'MERCADOPAGO', 'PLAID', 'OPEN_BANKING', 'API_DIRECTA'],
+      enum: [
+        'MANUAL',
+        'MERCADOPAGO',              // MercadoPago genérico
+        'MERCADOPAGO_PAGO',         // Pagos específicos de MercadoPago
+        'MERCADOPAGO_MOVIMIENTO',   // Movimientos de cuenta de MercadoPago
+        'PLAID',
+        'OPEN_BANKING',
+        'API_DIRECTA'
+      ],
       default: 'MANUAL'
     },
     conexionId: {
@@ -77,6 +85,29 @@ const transaccionSchema = createSchema({
       of: mongoose.Schema.Types.Mixed,
       default: () => ({})
     }
+  },
+  // Campos adicionales para transacciones de MercadoPago
+  comisiones: {
+    mercadopago: {
+      type: Number,
+      default: 0
+    },
+    financieras: {
+      type: Number,
+      default: 0
+    },
+    envio: {
+      type: Number,
+      default: 0
+    },
+    total: {
+      type: Number,
+      default: 0
+    }
+  },
+  // Monto neto después de comisiones (útil para MercadoPago)
+  montoNeto: {
+    type: Number
   },
   ...commonFields
 });
