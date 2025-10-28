@@ -322,38 +322,22 @@ export class BankSyncService {
       const userInfo = await userRes.json();
       console.log('Usuario MercadoPago verificado:', userInfo.nickname || userInfo.email);
 
-      // Obtener pagos recientes (solo para vendedores - opcional)
+      // Omitir obtención de pagos como vendedor (solo para usuarios regulares)
+      // El endpoint /v1/payments/search requiere permisos de vendedor
       const fechaDesde = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      let pagos = [];
+      let pagos = []; // Array vacío - no obtenemos pagos como vendedor
       
-      try {
-        const paymentsUrl = `https://api.mercadopago.com/v1/payments/search?range=date_created&begin_date=${fechaDesde.toISOString()}&limit=100&sort=date_created.desc`;
-        
-        const paymentsRes = await fetch(paymentsUrl, {
-          headers: { 
-            'Authorization': `Bearer ${userAccessToken}`,
-            'Content-Type': 'application/json'
-          }
-        });
+      console.log('ℹ️ Skipping /v1/payments/search (requiere permisos de vendedor)');
 
-        if (paymentsRes.ok) {
-          const paymentsData = await paymentsRes.json();
-          pagos = paymentsData.results || [];
-          console.log('✅ Pagos obtenidos de MercadoPago:', {
-            total: pagos.length,
-            usuario: userInfo.nickname || userInfo.email
-          });
-        } else {
-          console.warn('⚠️ No se pudieron obtener pagos (usuario no es vendedor):', paymentsRes.status);
-        }
-      } catch (error) {
-        console.warn('⚠️ Error obteniendo pagos, continuando con movimientos:', error.message);
-      }
-
-      // Obtener movimientos de cuenta
+      // Obtener movimientos de cuenta (para usuarios regulares)
       let movimientos = [];
+      
+      // Intentar primero con /v1/account/movements/search (endpoint alternativo)
       try {
-        const movimientosUrl = `https://api.mercadopago.com/v1/account/bank_report?begin_date=${fechaDesde.toISOString()}&end_date=${new Date().toISOString()}`;
+        console.log('🔍 [Movimientos] Intentando obtener con /v1/account/movements/search');
+        const movimientosUrl = `https://api.mercadopago.com/v1/account/movements/search?date_created_from=${fechaDesde.toISOString()}&limit=100`;
+        console.log('📡 URL:', movimientosUrl);
+        
         const movimientosRes = await fetch(movimientosUrl, {
           headers: { 
             'Authorization': `Bearer ${userAccessToken}`,
@@ -361,19 +345,56 @@ export class BankSyncService {
           }
         });
 
+        console.log('📡 Respuesta de movimientos - Status:', movimientosRes.status);
+        
         if (movimientosRes.ok) {
           const movimientosData = await movimientosRes.json();
           movimientos = movimientosData.results || [];
-          console.log('Movimientos de cuenta obtenidos:', movimientos.length);
+          console.log('✅ Movimientos obtenidos con /v1/account/movements/search:', movimientos.length);
+          if (movimientos.length > 0) {
+            console.log('📋 Ejemplo de movimiento:', JSON.stringify(movimientos[0], null, 2));
+          }
+        } else {
+          const errorText = await movimientosRes.text();
+          console.warn('⚠️ /v1/account/movements/search falló:', movimientosRes.status, errorText);
+          
+          // Intentar con el endpoint alternativo /v1/account/bank_report
+          console.log('🔄 [Movimientos] Intentando con /v1/account/bank_report (fallback)');
+          const bankReportUrl = `https://api.mercadopago.com/v1/account/bank_report?begin_date=${fechaDesde.toISOString()}&end_date=${new Date().toISOString()}`;
+          console.log('📡 URL fallback:', bankReportUrl);
+          
+          const bankReportRes = await fetch(bankReportUrl, {
+            headers: { 
+              'Authorization': `Bearer ${userAccessToken}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          console.log('📡 Respuesta de bank_report - Status:', bankReportRes.status);
+          
+          if (bankReportRes.ok) {
+            const bankReportData = await bankReportRes.json();
+            movimientos = bankReportData.results || [];
+            console.log('✅ Movimientos obtenidos con /v1/account/bank_report:', movimientos.length);
+            if (movimientos.length > 0) {
+              console.log('📋 Ejemplo de movimiento:', JSON.stringify(movimientos[0], null, 2));
+            }
+          } else {
+            const bankReportErrorText = await bankReportRes.text();
+            console.error('❌ /v1/account/bank_report también falló:', bankReportRes.status, bankReportErrorText);
+          }
         }
       } catch (error) {
-        console.warn('No se pudieron obtener movimientos de cuenta:', error.message);
+        console.error('❌ Error en request de movimientos:', error.message);
+        console.error('Stack:', error.stack);
       }
 
       // Obtener balance de la cuenta
       let balance = { available: 0, unavailable: 0 };
       try {
         const balanceUrl = `https://api.mercadopago.com/users/${userId}/mercadopago_account/balance`;
+        console.log('💰 Consultando balance:', balanceUrl);
+        
         const balanceRes = await fetch(balanceUrl, {
           headers: { 
             'Authorization': `Bearer ${userAccessToken}`,
@@ -381,14 +402,19 @@ export class BankSyncService {
           }
         });
 
+        console.log('📡 Respuesta de balance - Status:', balanceRes.status);
+        
         if (balanceRes.ok) {
           const balanceData = await balanceRes.json();
           balance.available = balanceData.available_balance || 0;
           balance.unavailable = balanceData.unavailable_balance || 0;
-          console.log('Balance obtenido:', balance);
+          console.log('✅ Balance obtenido:', balance);
+        } else {
+          const errorText = await balanceRes.text();
+          console.warn('⚠️ Error obteniendo balance:', balanceRes.status, errorText);
         }
       } catch (error) {
-        console.warn('No se pudo obtener balance:', error.message);
+        console.error('❌ Error en request de balance:', error.message);
       }
 
       // Procesar pagos como transacciones
@@ -456,8 +482,28 @@ export class BankSyncService {
       }
 
       // Procesar movimientos de cuenta como transacciones
+      console.log(`🔄 Procesando ${movimientos.length} movimientos de cuenta...`);
+      console.log(`📊 Balance de la cuenta MercadoPago: Disponible: ${balance.available}, Pendiente: ${balance.unavailable}`);
+      
+      if (movimientos.length === 0) {
+        console.warn('⚠️ No se obtuvieron movimientos de la API de MercadoPago');
+        console.log('💡 Esto puede deberse a:');
+        console.log('   - La cuenta no tiene movimientos en el período solicitado');
+        console.log('   - Los endpoints de movimientos no están disponibles para esta cuenta');
+        console.log('   - Los permisos del token no incluyen acceso a movimientos');
+      } else {
+        console.log('✅ Movimientos obtenidos, comenzando procesamiento...');
+      }
+      
       for (const movimiento of movimientos) {
         try {
+          console.log(`📝 Procesando movimiento:`, {
+            id: movimiento.id,
+            type: movimiento.type,
+            amount: movimiento.amount,
+            date: movimiento.date_created
+          });
+          
           const transaccionExistente = await Transacciones.findOne({
             cuenta: bankConnection.cuenta,
             'origen.transaccionId': movimiento.id?.toString(),
@@ -465,6 +511,7 @@ export class BankSyncService {
           });
 
           if (!transaccionExistente && movimiento.id) {
+            console.log(`📝 Creando transacción de movimiento: ${movimiento.type} - ${movimiento.amount}`);
             const transaccion = new Transacciones({
               descripcion: `MercadoPago - ${movimiento.type || 'Movimiento'}`,
               monto: Math.abs(movimiento.amount || 0),
@@ -494,10 +541,16 @@ export class BankSyncService {
               }
             });
             await transaccion.save();
+            console.log(`✅ Transacción de movimiento creada: ${transaccion._id}`);
             transaccionesNuevas++;
+          } else if (transaccionExistente) {
+            console.log(`⏭️ Movimiento ya existe: ${movimiento.id}`);
+          } else {
+            console.log(`⚠️ Movimiento sin ID válido, omitiendo`);
           }
         } catch (error) {
-          console.error(`Error procesando movimiento:`, error);
+          console.error(`❌ Error procesando movimiento ${movimiento.id}:`, error.message);
+          console.error('Stack:', error.stack);
         }
       }
 
@@ -519,6 +572,29 @@ export class BankSyncService {
         transaccionesNuevas,
         transaccionesActualizadas
       );
+
+      console.log('📊 Resumen de sincronización MercadoPago:', {
+        transaccionesNuevas,
+        transaccionesActualizadas,
+        totalPagos: pagos.length,
+        totalMovimientos: movimientos.length,
+        balance: {
+          disponible: balance.available,
+          pendiente: balance.unavailable
+        },
+        cuenta: {
+          id: cuenta._id,
+          nombre: cuenta.nombre
+        }
+      });
+      
+      if (transaccionesNuevas === 0 && transaccionesActualizadas === 0) {
+        console.warn('⚠️ No se crearon transacciones nuevas');
+        console.log('💡 Posibles razones:');
+        console.log('   - No hay movimientos en el período solicitado (últimos 30 días)');
+        console.log('   - Todos los movimientos ya estaban sincronizados');
+        console.log('   - Los endpoints de MercadoPago no están disponibles para esta cuenta');
+      }
 
       return {
         exito: true,
