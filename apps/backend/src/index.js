@@ -248,13 +248,16 @@ const startServer = async () => {
     await initializeMonedas();
     console.log('Datos iniciales cargados');
     
-    // Iniciar scheduler de sincronización bancaria SOLO en producción
-    if (config.env === 'production') {
+    // Iniciar scheduler de sincronización bancaria
+    // Producción: siempre activado. Desarrollo: activable con BANK_SYNC_DEV=1
+    const enableBankSyncDev = process.env.BANK_SYNC_DEV === '1' || process.env.BANK_SYNC_DEV === 'true' ||
+                              process.env.MP_DEV === '1' || process.env.MP_DEV === 'true';
+    if (config.env === 'production' || enableBankSyncDev) {
       const bankSyncScheduler = new BankSyncScheduler();
       bankSyncScheduler.start();
-      console.log('Scheduler de sincronización bancaria iniciado');
+      console.log(`Scheduler de sincronización bancaria iniciado${config.env !== 'production' ? ' (DEV)' : ''}`);
     } else {
-      console.log('⚠️ Bank Sync DESACTIVADO en desarrollo para reducir logs');
+      console.log('⚠️ Bank Sync DESACTIVADO en desarrollo (setea BANK_SYNC_DEV=1 para habilitar)');
     }
     
     // Iniciar servicio de sincronización automática de Google Tasks SOLO en producción

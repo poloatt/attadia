@@ -59,8 +59,29 @@ export const getRedirectURI = () => {
 
 // Habilitar MercadoPago (producción o modo desarrollo forzado)
 export const isMercadoPagoEnabled = () => {
-  const devFlag = import.meta?.env?.VITE_MP_DEV;
-  return Boolean(import.meta.env.PROD || devFlag === '1' || devFlag === 'true');
+  try {
+    // Producción siempre habilitado
+    if (import.meta.env.PROD) return true;
+
+    // 1) Bandera de Vite
+    const devFlag = import.meta?.env?.VITE_MP_DEV;
+    if (devFlag === '1' || devFlag === 'true') return true;
+
+    // 2) Query param ?mpdev=1 para habilitar al vuelo
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('mpdev') === '1' || params.get('mpdev') === 'true') {
+      try { localStorage.setItem('MP_DEV', '1'); } catch {}
+      return true;
+    }
+
+    // 3) LocalStorage persistente
+    const ls = (() => { try { return localStorage.getItem('MP_DEV'); } catch { return null; } })();
+    if (ls === '1' || ls === 'true') return true;
+
+    return false;
+  } catch {
+    return false;
+  }
 };
 
 // Función para mapear estado de MercadoPago a estado interno
