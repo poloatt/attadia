@@ -27,20 +27,61 @@ class BankConnectionController extends BaseController {
     this.sincronizarTodas = this.sincronizarTodas.bind(this);
   }
 
-  // Encriptar credenciales sensibles
+  // Encriptar credenciales sensibles (Node.js moderno - usa createCipheriv)
   encrypt(text) {
-    const cipher = crypto.createCipher('aes-256-cbc', this.encryptionKey);
-    let encrypted = cipher.update(text, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    return encrypted;
+    try {
+      // Generar IV aleatorio de 16 bytes
+      const iv = crypto.randomBytes(16);
+      
+      // Crear hash de la encryption key para asegurar 32 bytes
+      const key = crypto.createHash('sha256').update(this.encryptionKey).digest();
+      
+      // Crear cipher con IV
+      const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+      
+      // Encriptar
+      let encrypted = cipher.update(text, 'utf8', 'hex');
+      encrypted += cipher.final('hex');
+      
+      // Retornar IV + encrypted (IV en los primeros 32 caracteres hex)
+      return iv.toString('hex') + ':' + encrypted;
+    } catch (error) {
+      console.error('Error encriptando:', error);
+      throw new Error('Error al encriptar credenciales');
+    }
   }
 
-  // Desencriptar credenciales
+  // Desencriptar credenciales (Node.js moderno - usa createDecipheriv)
   decrypt(encryptedText) {
-    const decipher = crypto.createDecipher('aes-256-cbc', this.encryptionKey);
-    let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
+    try {
+      // Verificar si tiene el formato nuevo (con IV)
+      if (encryptedText.includes(':')) {
+        // Método nuevo: separar IV y texto encriptado
+        const parts = encryptedText.split(':');
+        const iv = Buffer.from(parts[0], 'hex');
+        const encrypted = parts[1];
+        
+        // Crear hash de la encryption key para asegurar 32 bytes
+        const key = crypto.createHash('sha256').update(this.encryptionKey).digest();
+        
+        // Crear decipher con IV
+        const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+        
+        // Desencriptar
+        let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        
+        return decrypted;
+      } else {
+        // Formato antiguo (sin IV) - solo para retrocompatibilidad
+        // Este código nunca debería ejecutarse en producción nueva
+        console.warn('⚠️ Detectado formato de encriptación antiguo, considera re-encriptar');
+        throw new Error('Formato de encriptación antiguo no soportado. Por favor, reconecta la cuenta.');
+      }
+    } catch (error) {
+      console.error('Error desencriptando:', error);
+      throw new Error('Error al desencriptar credenciales');
+    }
   }
 
   // Sobrescribir getAll para filtrar por usuario
