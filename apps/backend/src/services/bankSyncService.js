@@ -11,20 +11,41 @@ export class BankSyncService {
     this.encryptionKey = process.env.ENCRYPTION_KEY || 'default-key-change-in-production';
   }
 
-  // Encriptar credenciales sensibles
+  // Encriptar credenciales sensibles (Node.js moderno - usa createCipheriv)
   encrypt(text) {
-    const cipher = crypto.createCipher('aes-256-cbc', this.encryptionKey);
-    let encrypted = cipher.update(text, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    return encrypted;
+    try {
+      const iv = crypto.randomBytes(16);
+      const key = crypto.createHash('sha256').update(this.encryptionKey).digest();
+      const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+      let encrypted = cipher.update(text, 'utf8', 'hex');
+      encrypted += cipher.final('hex');
+      return iv.toString('hex') + ':' + encrypted;
+    } catch (error) {
+      console.error('Error encriptando:', error);
+      throw new Error('Error al encriptar credenciales');
+    }
   }
 
-  // Desencriptar credenciales
+  // Desencriptar credenciales (Node.js moderno - usa createDecipheriv)
   decrypt(encryptedText) {
-    const decipher = crypto.createDecipher('aes-256-cbc', this.encryptionKey);
-    let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
+    try {
+      if (encryptedText.includes(':')) {
+        const parts = encryptedText.split(':');
+        const iv = Buffer.from(parts[0], 'hex');
+        const encrypted = parts[1];
+        const key = crypto.createHash('sha256').update(this.encryptionKey).digest();
+        const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+        let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        return decrypted;
+      } else {
+        console.warn('⚠️ Detectado formato de encriptación antiguo');
+        throw new Error('Formato de encriptación antiguo no soportado. Por favor, reconecta la cuenta.');
+      }
+    } catch (error) {
+      console.error('Error desencriptando:', error);
+      throw new Error('Error al desencriptar credenciales');
+    }
   }
 
   // Categorizar transacción automáticamente basado en descripción
@@ -325,6 +346,47 @@ export class BankSyncService {
         usuario: userInfo.nickname || userInfo.email
       });
 
+      // Obtener movimientos de cuenta
+      let movimientos = [];
+      try {
+        const movimientosUrl = `https://api.mercadopago.com/v1/account/bank_report?begin_date=${fechaDesde.toISOString()}&end_date=${new Date().toISOString()}`;
+        const movimientosRes = await fetch(movimientosUrl, {
+          headers: { 
+            'Authorization': `Bearer ${userAccessToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (movimientosRes.ok) {
+          const movimientosData = await movimientosRes.json();
+          movimientos = movimientosData.results || [];
+          console.log('Movimientos de cuenta obtenidos:', movimientos.length);
+        }
+      } catch (error) {
+        console.warn('No se pudieron obtener movimientos de cuenta:', error.message);
+      }
+
+      // Obtener balance de la cuenta
+      let balance = { available: 0, unavailable: 0 };
+      try {
+        const balanceUrl = `https://api.mercadopago.com/users/${userId}/mercadopago_account/balance`;
+        const balanceRes = await fetch(balanceUrl, {
+          headers: { 
+            'Authorization': `Bearer ${userAccessToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (balanceRes.ok) {
+          const balanceData = await balanceRes.json();
+          balance.available = balanceData.available_balance || 0;
+          balance.unavailable = balanceData.unavailable_balance || 0;
+          console.log('Balance obtenido:', balance);
+        }
+      } catch (error) {
+        console.warn('No se pudo obtener balance:', error.message);
+      }
+
       // Procesar pagos como transacciones
       let transaccionesNuevas = 0;
       let transaccionesActualizadas = 0;
@@ -344,7 +406,7 @@ export class BankSyncService {
             const monto = Math.abs(pago.transaction_amount || 0);
             const montoNeto = monto - comisiones.total;
 
-            // Crear nueva transacción
+            // Crear nueva transacción con metadata enriquecida
             const nuevaTransaccion = new Transacciones({
               descripcion: this.formatearDescripcionMercadoPago(pago),
               monto: monto,
@@ -366,7 +428,16 @@ export class BankSyncService {
                   status: pago.status,
                   statusDetail: pago.status_detail,
                   paymentMethod: pago.payment_method?.type,
-                  currencyId: pago.currency_id
+                  paymentMethodId: pago.payment_method_id,
+                  issuer: pago.issuer_id,
+                  cardInfo: pago.card ? {
+                    firstSix: pago.card.first_six_digits,
+                    lastFour: pago.card.last_four_digits,
+                    cardholderName: pago.card.cardholder?.name
+                  } : null,
+                  currencyId: pago.currency_id,
+                  installments: pago.installments,
+                  description: pago.description
                 }
               }
             });
@@ -377,6 +448,56 @@ export class BankSyncService {
         } catch (error) {
           console.error(`Error procesando pago ${pago.id}:`, error);
         }
+      }
+
+      // Procesar movimientos de cuenta como transacciones
+      for (const movimiento of movimientos) {
+        try {
+          const transaccionExistente = await Transacciones.findOne({
+            cuenta: bankConnection.cuenta,
+            'origen.transaccionId': movimiento.id?.toString(),
+            'origen.tipo': 'MERCADOPAGO_MOVIMIENTO'
+          });
+
+          if (!transaccionExistente && movimiento.id) {
+            const transaccion = new Transacciones({
+              descripcion: `MercadoPago - ${movimiento.type || 'Movimiento'}`,
+              monto: Math.abs(movimiento.amount || 0),
+              fecha: new Date(movimiento.date_created),
+              categoria: 'Otro',
+              estado: 'COMPLETADA',
+              tipo: movimiento.amount > 0 ? 'INGRESO' : 'EGRESO',
+              usuario: bankConnection.usuario,
+              cuenta: bankConnection.cuenta,
+              origen: {
+                tipo: 'MERCADOPAGO_MOVIMIENTO',
+                conexionId: bankConnection._id,
+                transaccionId: movimiento.id.toString(),
+                metadata: {
+                  movementType: movimiento.type,
+                  concept: movimiento.concept,
+                  reference: movimiento.reference
+                }
+              }
+            });
+            await transaccion.save();
+            transaccionesNuevas++;
+          }
+        } catch (error) {
+          console.error(`Error procesando movimiento:`, error);
+        }
+      }
+
+      // Actualizar balances en la cuenta
+      try {
+        await Cuentas.findByIdAndUpdate(bankConnection.cuenta, {
+          saldo: balance.available,
+          'mercadopago.disponibleRetiro': balance.available,
+          'mercadopago.disponiblePendiente': balance.unavailable
+        });
+        console.log('Balances actualizados en cuenta');
+      } catch (error) {
+        console.error('Error actualizando balances:', error);
       }
 
       // Actualizar estado de la conexión
@@ -393,6 +514,8 @@ export class BankSyncService {
         detalles: {
           usuario: userInfo.nickname || userInfo.email,
           totalPagos: pagos.length,
+          totalMovimientos: movimientos.length,
+          balance: balance,
           errores: []
         }
       };

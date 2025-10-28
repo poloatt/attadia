@@ -587,12 +587,6 @@ class BankConnectionController extends BaseController {
 
       await conexion.save();
 
-      // Limpiar el state y redirect_uri de la sesión
-      if (req.session) {
-        delete req.session.mercadopagoState;
-        delete req.session.mercadopagoRedirectUri;
-      }
-
       logger.info('Conexión MercadoPago creada exitosamente', {
         event: 'CONNECTION_CREATED',
         userId: req.user.id,
@@ -600,6 +594,22 @@ class BankConnectionController extends BaseController {
         cuentaId: cuenta._id,
         conexionId: conexion._id
       });
+
+      // Sincronizar transacciones automáticamente después de conectar
+      try {
+        console.log('🔄 Iniciando sincronización automática post-OAuth...');
+        await this.bankSyncService.sincronizarConexion(conexion);
+        console.log('✅ Sincronización inicial completada');
+      } catch (syncError) {
+        console.error('⚠️ Error en sincronización inicial:', syncError);
+        // No fallar la conexión por esto
+      }
+
+      // Limpiar el state y redirect_uri de la sesión
+      if (req.session) {
+        delete req.session.mercadopagoState;
+        delete req.session.mercadopagoRedirectUri;
+      }
 
       res.json({
         message: 'Conexión con MercadoPago establecida exitosamente',
