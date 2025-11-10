@@ -229,6 +229,19 @@ rutinaSchema.methods.shouldShowItem = function(section, item) {
 rutinaSchema.pre('save', async function(next) {
   if (this.isModified('fecha')) {
     try {
+      // Si ya está en 00:00:00.000Z (UTC), asumir normalizada y no repetir
+      if (this.fecha instanceof Date) {
+        const d = this.fecha;
+        if (
+          d.getUTCHours() === 0 &&
+          d.getUTCMinutes() === 0 &&
+          d.getUTCSeconds() === 0 &&
+          d.getUTCMilliseconds() === 0
+        ) {
+          return next();
+        }
+      }
+
       // Obtener el timezone del usuario
       const Users = mongoose.model('Users');
       const user = await Users.findById(this.usuario).select('preferences.timezone');

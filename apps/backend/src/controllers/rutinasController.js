@@ -2,6 +2,7 @@ import { BaseController } from './BaseController.js';
 import { Rutinas } from '../models/Rutinas.js';
 import { Users } from '../models/index.js';
 import { timezoneUtils } from '../models/BaseSchema.js';
+import logger from '../utils/logger.js';
 import mongoose from 'mongoose';
 
 class RutinasController extends BaseController {
@@ -37,30 +38,11 @@ class RutinasController extends BaseController {
         lean: true
       };
 
-      console.log('Query params:', {
-        page: req.query.page,
-        limit: req.query.limit,
-        sort: req.query.sort
-      });
+      logger.dev('Rutinas getAll params', { page: req.query.page, limit: req.query.limit, sort: req.query.sort });
 
       const result = await this.Model.paginate(query, options);
       
-      console.log('Resultados de paginación:', {
-        totalDocs: result.totalDocs,
-        limit: result.limit,
-        totalPages: result.totalPages,
-        page: result.page,
-        pagingCounter: result.pagingCounter,
-        hasPrevPage: result.hasPrevPage,
-        hasNextPage: result.hasNextPage,
-        prevPage: result.prevPage,
-        nextPage: result.nextPage,
-        docs: result.docs.map(doc => ({
-          _id: doc._id,
-          fecha: doc.fecha,
-          completitud: doc.completitud
-        }))
-      });
+      logger.info(`Rutinas getAll: total=${result.totalDocs} page=${result.page}/${result.totalPages} limit=${result.limit}`);
 
       // Asegurarnos de que cada documento tenga su _id y sea un objeto plano
       result.docs = result.docs.map(doc => {
@@ -98,10 +80,13 @@ class RutinasController extends BaseController {
       const timezone = timezoneUtils.getUserTimezone(user);
       
       // Obtener y normalizar la fecha de la rutina
-      const fechaRutina = req.body.fecha ? new Date(req.body.fecha) : new Date();
+      // Si viene como 'YYYY-MM-DD', NO la convertimos a Date aún (evita doble normalización)
+      const fechaInput = req.body.fecha;
+      const isYMD = typeof fechaInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fechaInput);
+      const fechaRutina = fechaInput ? (isYMD ? fechaInput : new Date(fechaInput)) : new Date();
       
       // Verificar si la fecha es válida
-      if (isNaN(fechaRutina.getTime())) {
+      if (!isYMD && isNaN(fechaRutina.getTime())) {
         console.error('[rutinasController] Fecha inválida al crear rutina:', req.body.fecha);
         return res.status(400).json({
           error: 'Fecha inválida',
@@ -122,9 +107,9 @@ class RutinasController extends BaseController {
       // Verificar duplicados antes de crear
       const fechaFin = timezoneUtils.normalizeToEndOfDay(fechaNormalizada, timezone);
       
-      console.log('[rutinasController] Verificando duplicados al crear:', {
+      logger.dev('[rutinasController] Verificando duplicados al crear', {
         fecha: fechaNormalizada.toISOString(),
-        timezone: timezone,
+        timezone,
         usuario: req.user.id
       });
       
@@ -135,10 +120,7 @@ class RutinasController extends BaseController {
       });
       
       if (existingRutina) {
-        console.log('[rutinasController] Se encontró rutina duplicada:', {
-          id: existingRutina._id,
-          fecha: existingRutina.fecha
-        });
+        logger.info('[rutinasController] Rutina duplicada', { id: existingRutina._id, fecha: existingRutina.fecha });
         return res.status(409).json({
           error: 'Ya existe una rutina para esta fecha',
           rutinaId: existingRutina._id,
@@ -150,7 +132,7 @@ class RutinasController extends BaseController {
       
       // Si se solicita usar la configuración global, obtenerla del usuario
       if (useGlobalConfig) {
-        console.log('[rutinasController] Usando configuración global del usuario para nueva rutina');
+        logger.dev('[rutinasController] Usando configuración global del usuario para nueva rutina');
         
         try {
           const usuario = await Users.findById(req.user.id)
@@ -158,13 +140,13 @@ class RutinasController extends BaseController {
             .lean();
             
           if (usuario && usuario.preferences && usuario.preferences.rutinasConfig) {
-            console.log('[rutinasController] Configuración global encontrada');
+            logger.dev('[rutinasController] Configuración global encontrada');
             
             // Transformar la configuración global al formato de config de la rutina
             const globalConfig = usuario.preferences.rutinasConfig;
             const configVersion = globalConfig._metadata?.version || 1;
             
-            console.log(`[rutinasController] Aplicando configuración global versión ${configVersion}`);
+            logger.dev(`[rutinasController] Aplicando configuración global versión ${configVersion}`);
             
             // Inicializar las secciones de config
             configInicial = {
@@ -207,20 +189,20 @@ class RutinasController extends BaseController {
                       _source: 'GLOBAL' // Marcar este ítem como heredado de configuración global
                     };
                     
-                    console.log(`[rutinasController] Configuración global aplicada para ${seccion}.${item}`);
+                    // Evitar spam de logs por cada ítem
                   }
                 });
               }
             });
           } else {
-            console.log('[rutinasController] No se encontró configuración global, usando valores predeterminados');
+            logger.dev('[rutinasController] No se encontró configuración global, usando valores predeterminados');
           }
         } catch (error) {
-          console.error('[rutinasController] Error al obtener configuración global:', error);
+          logger.warn('[rutinasController] Error al obtener configuración global', error);
           // Continuar con configuración por defecto en caso de error
         }
       } else {
-        console.log('[rutinasController] No se solicitó usar configuración global, usando valores predeterminados');
+        logger.dev('[rutinasController] No se solicitó usar configuración global, usando valores predeterminados');
       }
       
       // Crear nueva rutina con la configuración inicial
@@ -234,7 +216,7 @@ class RutinasController extends BaseController {
 
       await nuevaRutina.save();
       
-      console.log(`[rutinasController] Nueva rutina creada con ID: ${nuevaRutina._id}`);
+      logger.info(`[rutinasController] Rutina creada`, { id: nuevaRutina._id, fecha: fechaNormalizada.toISOString() });
       
       // Convertir el objeto a un objeto plano y asegurar que el _id sea un string
       const rutinaResponse = nuevaRutina.toObject();
@@ -243,7 +225,7 @@ class RutinasController extends BaseController {
       // Añadir el id como propiedad adicional para compatibilidad
       rutinaResponse.id = rutinaResponse._id;
       
-      console.log(`[rutinasController] Enviando respuesta con ID: ${rutinaResponse._id} y id: ${rutinaResponse.id}`);
+      logger.dev(`[rutinasController] Respuesta rutina creada`, { id: rutinaResponse._id });
       
       res.status(201).json(rutinaResponse);
     } catch (error) {

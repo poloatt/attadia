@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import mongoosePaginate from 'mongoose-paginate-v2';
+import logger from '../utils/logger.js';
 
 const baseOptions = {
   timestamps: true,
@@ -114,15 +115,12 @@ export const timezoneUtils = {
       const day = parts.find(p => p.type === 'day').value;
 
       const normalizedDate = new Date(`${year}-${month}-${day}T00:00:00.000Z`);
-      
-      console.log('[timezoneUtils] normalizeToStartOfDay:', {
-        input: date,
-        inputType: typeof date,
-        components: { year, month, day },
-        result: normalizedDate.toISOString(),
-        timezone: timezone
-      });
-      
+      if (process.env.NODE_ENV === 'development') {
+        logger.debug('timezone.normalizeToStartOfDay', {
+          result: normalizedDate.toISOString(),
+          timezone
+        });
+      }
       return normalizedDate;
     } catch (error) {
       console.error('Error al normalizar fecha:', error);
@@ -144,22 +142,24 @@ export const timezoneUtils = {
     if (date instanceof Date) {
       if (isNaN(date.getTime())) return null;
       const end = new Date(date.getTime() + (24 * 60 * 60 * 1000) - 1);
-      console.log('[timezoneUtils] normalizeToEndOfDay (desde inicio de día):', {
-        input: date.toISOString(),
-        timezone: timezone,
-        endOfDay: end.toISOString()
-      });
+      if (process.env.NODE_ENV === 'development') {
+        logger.debug('timezone.normalizeToEndOfDay:start', {
+          endOfDay: end.toISOString(),
+          timezone
+        });
+      }
       return end;
     }
 
     // Si recibimos 'YYYY-MM-DD', construir directamente las 23:59:59.999Z
     if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
       const end = new Date(`${date}T23:59:59.999Z`);
-      console.log('[timezoneUtils] normalizeToEndOfDay (YYYY-MM-DD):', {
-        input: date,
-        timezone: timezone,
-        endOfDay: end.toISOString()
-      });
+      if (process.env.NODE_ENV === 'development') {
+        logger.debug('timezone.normalizeToEndOfDay:ymd', {
+          endOfDay: end.toISOString(),
+          timezone
+        });
+      }
       return end;
     }
 
@@ -167,12 +167,12 @@ export const timezoneUtils = {
     const startOfDay = timezoneUtils.normalizeToStartOfDay(date, timezone);
     if (!startOfDay) return null;
     const end = new Date(startOfDay.getTime() + (24 * 60 * 60 * 1000) - 1);
-    console.log('[timezoneUtils] normalizeToEndOfDay (normalizado):', {
-      input: date,
-      timezone: timezone,
-      startOfDay: startOfDay.toISOString(),
-      endOfDay: end.toISOString()
-    });
+    if (process.env.NODE_ENV === 'development') {
+      logger.debug('timezone.normalizeToEndOfDay:normalized', {
+        endOfDay: end.toISOString(),
+        timezone
+      });
+    }
     return end;
   },
 
