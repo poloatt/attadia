@@ -54,7 +54,10 @@ class GoogleTasksService {
         await Users.findByIdAndUpdate(userId, {
           'googleTasksConfig.accessToken': tokens.access_token,
           'googleTasksConfig.refreshToken': tokens.refresh_token || user.googleTasksConfig.refreshToken,
-          'googleTasksConfig.lastTokenRefresh': new Date()
+          'googleTasksConfig.lastTokenRefresh': new Date(),
+          // Limpiar errores previos de token si existían
+          'googleTasksConfig.tokenError': null,
+          'googleTasksConfig.tokenErrorDate': null
         });
       }
     });
@@ -994,12 +997,12 @@ class GoogleTasksService {
 
       // PASO 3: Sincronizar tareas locales pendientes hacia Google
       logger.sync(`📤 Paso 3: Sincronizando tareas locales hacia Google`);
-      
-      // Habilitar Google Tasks para todas las tareas existentes del usuario
-      await this.enableGoogleTasksForAllUserTasks(userId);
-      
-      // Obtener tareas que necesitan sincronización hacia Google
-      const tareasLocales = await Tareas.find({
+
+      // Obtener tareas que necesitan sincronización hacia Google (paginado y limitado)
+      const maxTasksPerSync = parseInt(process.env.GTASKS_MAX_TASKS_PER_SYNC || '100', 10);
+      const concurrency = parseInt(process.env.GTASKS_CONCURRENCY || '10', 10);
+
+      const tareasQuery = {
         usuario: userId,
         'googleTasksSync.enabled': true,
         $or: [
@@ -1016,25 +1019,38 @@ class GoogleTasksService {
             }
           }
         ]
-      }).populate('proyecto');
-      
-      logger.sync(`🔄 Encontradas ${tareasLocales.length} tareas locales para sincronizar hacia Google`);
+      };
 
-      for (const tarea of tareasLocales) {
-        try {
-          // Verificar timeout antes de sincronizar
-          if (tarea.isSyncTimedOut && tarea.isSyncTimedOut()) {
-            logger.warn(`⏰ Limpiando timeout de sincronización para: "${tarea.titulo}"`);
-            tarea.clearSyncTimeout();
-            await tarea.save();
+      const tareasLocales = await Tareas.find(tareasQuery)
+        .populate('proyecto')
+        .limit(maxTasksPerSync);
+
+      logger.sync(`🔄 Procesando hasta ${maxTasksPerSync} tareas (encontradas=${tareasLocales.length}), concurrencia=${concurrency}`);
+
+      // Procesar en lotes con concurrencia limitada
+      for (let i = 0; i < tareasLocales.length; i += concurrency) {
+        const batch = tareasLocales.slice(i, i + concurrency);
+        logger.sync(`▶️ Lote ${Math.floor(i / concurrency) + 1}: ${batch.length} tareas`);
+
+        const promises = batch.map(async (tarea) => {
+          try {
+            // Verificar timeout antes de sincronizar
+            if (tarea.isSyncTimedOut && tarea.isSyncTimedOut()) {
+              logger.warn(`⏰ Limpiando timeout de sincronización para: "${tarea.titulo}"`);
+              tarea.clearSyncTimeout();
+              await tarea.save();
+            }
+
+            await this.syncTaskToGoogle(tarea._id, userId);
+            results.tareas.toGoogle.success++;
+          } catch (error) {
+            results.tareas.toGoogle.errors.push(`${tarea.titulo}: ${error.message}`);
+            logger.error(`Error al sincronizar tarea "${tarea.titulo}":`, error);
           }
+        });
 
-          await this.syncTaskToGoogle(tarea._id, userId);
-          results.tareas.toGoogle.success++;
-        } catch (error) {
-          results.tareas.toGoogle.errors.push(`${tarea.titulo}: ${error.message}`);
-          logger.error(`Error al sincronizar tarea "${tarea.titulo}":`, error);
-        }
+        await Promise.allSettled(promises);
+        logger.sync(`✅ Lote ${Math.floor(i / concurrency) + 1} completado. Progreso: ${Math.min(i + concurrency, tareasLocales.length)}/${tareasLocales.length}`);
       }
 
       // Actualizar última sincronización del usuario
