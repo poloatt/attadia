@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import clienteAxios from '../config/axios';
+import { formatDateForAPI, getNormalizedToday } from '../utils/dateUtils';
 
 /**
  * Hook para operaciones básicas CRUD de rutinas
@@ -12,7 +13,15 @@ export const useRutinasCRUD = () => {
   const createRutina = async (rutinaData) => {
     try {
       setLoading(true);
-      const response = await clienteAxios.post('/api/rutinas', rutinaData);
+      // Normalizar fecha a YYYY-MM-DD
+      const payload = { ...rutinaData };
+      if (payload.fecha) {
+        const ymd = formatDateForAPI(payload.fecha);
+        if (ymd) payload.fecha = ymd;
+      } else {
+        payload.fecha = formatDateForAPI(getNormalizedToday());
+      }
+      const response = await clienteAxios.post('/api/rutinas', payload);
       return response.data;
     } catch (error) {
       console.error('Error al crear rutina:', error);
@@ -25,7 +34,12 @@ export const useRutinasCRUD = () => {
   const updateRutina = async (id, rutinaData) => {
     try {
       setLoading(true);
-      const response = await clienteAxios.put(`/api/rutinas/${id}`, rutinaData);
+      const payload = { ...rutinaData };
+      if (payload.fecha) {
+        const ymd = formatDateForAPI(payload.fecha);
+        if (ymd) payload.fecha = ymd;
+      }
+      const response = await clienteAxios.put(`/api/rutinas/${id}`, payload);
       return response.data;
     } catch (error) {
       console.error('Error al actualizar rutina:', error);
@@ -50,8 +64,9 @@ export const useRutinasCRUD = () => {
 
   const verifyDate = async (fecha) => {
     try {
+      const ymd = formatDateForAPI(fecha || getNormalizedToday());
       const response = await clienteAxios.get('/api/rutinas/verify', {
-        params: { fecha }
+        params: { fecha: ymd }
       });
       return response.data.exists;
     } catch (error) {

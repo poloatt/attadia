@@ -124,16 +124,13 @@ class RutinasController extends BaseController {
       
       console.log('[rutinasController] Verificando duplicados al crear:', {
         fecha: fechaNormalizada.toISOString(),
-        fechaFin: fechaFin.toISOString(),
         timezone: timezone,
         usuario: req.user.id
       });
       
+      // Simplificación: verificar por igualdad exacta contra la fecha normalizada
       const existingRutina = await this.Model.findOne({
-        fecha: {
-          $gte: fechaNormalizada,
-          $lte: fechaFin
-        },
+        fecha: fechaNormalizada,
         usuario: req.user.id
       });
       
@@ -251,7 +248,15 @@ class RutinasController extends BaseController {
       res.status(201).json(rutinaResponse);
     } catch (error) {
       console.error('[rutinasController] Error al crear rutina:', error);
-      res.status(500).json({ 
+      // Manejo específico de duplicados por índice único (race condition)
+      if (error && (error.code === 11000 || error.name === 'MongoServerError' && error.message?.includes('E11000'))) {
+        return res.status(409).json({
+          error: 'Ya existe una rutina para esta fecha',
+          code: 'RUTINA_DUPLICADA'
+        });
+      }
+
+      res.status(500).json({
         error: 'Error al crear la rutina',
         details: error.message,
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined

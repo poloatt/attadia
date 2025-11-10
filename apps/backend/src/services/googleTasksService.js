@@ -11,6 +11,10 @@ class GoogleTasksService {
       config.google.clientSecret,
       `${config.backendUrl}/api/google-tasks/callback`
     );
+    // Evitar warnings por múltiples listeners en procesos de sincronización
+    if (typeof this.oauth2Client.setMaxListeners === 'function') {
+      this.oauth2Client.setMaxListeners(50);
+    }
     
     this.tasks = google.tasks({ 
       version: 'v1', 
@@ -447,9 +451,7 @@ class GoogleTasksService {
             // Actualizar subtarea existente
             const subtaskData = {
               title: subtarea.titulo,
-              status: subtarea.completada ? 'completed' : 'needsAction',
-              parent: parentTaskId, // ¡IMPORTANTE! Incluir parent para subtareas
-              position: String(index).padStart(20, '0')
+              status: subtarea.completada ? 'completed' : 'needsAction'
             };
 
             googleSubtask = await this.executeWithRetry(
@@ -460,6 +462,18 @@ class GoogleTasksService {
                 fields: 'id,title,status'
               }),
               `actualizar subtarea ${subtarea.titulo}`,
+              userId
+            );
+
+            // Ajustar jerarquía/orden usando tasks.move (no soportado vía patch body)
+            await this.executeWithRetry(
+              () => this.tasks.tasks.move({
+                tasklist: taskListId,
+                task: subtarea.googleTaskId,
+                parent: parentTaskId,
+                previous: index > 0 && subtareas[index - 1]?.googleTaskId ? subtareas[index - 1].googleTaskId : undefined
+              }),
+              `mover subtarea ${subtarea.titulo}`,
               userId
             );
             
@@ -481,15 +495,15 @@ class GoogleTasksService {
           // Crear nueva subtarea
           const subtaskData = {
             title: subtarea.titulo,
-            status: subtarea.completada ? 'completed' : 'needsAction',
-            parent: parentTaskId,
-            position: String(index).padStart(20, '0')
+            status: subtarea.completada ? 'completed' : 'needsAction'
           };
 
           googleSubtask = await this.executeWithRetry(
             () => this.tasks.tasks.insert({
               tasklist: taskListId,
               requestBody: subtaskData,
+              parent: parentTaskId,
+              previous: index > 0 && subtareas[index - 1]?.googleTaskId ? subtareas[index - 1].googleTaskId : undefined,
               fields: 'id,title,status,parent'
             }),
             `crear subtarea ${subtarea.titulo}`,

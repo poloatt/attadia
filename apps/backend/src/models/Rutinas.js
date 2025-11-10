@@ -260,21 +260,18 @@ rutinaSchema.pre('save', async function(next) {
       const timezone = timezoneUtils.getUserTimezone(user);
       
       // Normalizar el rango de fechas usando el timezone del usuario
-      const fechaInicio = timezoneUtils.normalizeToStartOfDay(this.fecha, timezone);
-      const fechaFin = timezoneUtils.normalizeToEndOfDay(this.fecha, timezone);
+  const fechaInicio = timezoneUtils.normalizeToStartOfDay(this.fecha, timezone);
       
-      if (!fechaInicio || !fechaFin) {
+  if (!fechaInicio) {
         return next(new Error('Fecha inválida para validación'));
       }
 
-      const existingRutina = await this.constructor.findOne({
-        _id: { $ne: this._id },
-        usuario: this.usuario,
-        fecha: {
-          $gte: fechaInicio,
-          $lte: fechaFin
-        }
-      });
+  // Simplificación: comparar por igualdad exacta de la fecha normalizada
+  const existingRutina = await this.constructor.findOne({
+    _id: { $ne: this._id },
+    usuario: this.usuario,
+    fecha: fechaInicio
+  });
 
       if (existingRutina) {
         return next(new Error('Ya existe una rutina para esta fecha'));

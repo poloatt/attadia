@@ -110,7 +110,18 @@ class RutinasService {
    */
   async createRutina(rutina) {
     try {
-      const response = await clienteAxios.post('/api/rutinas', rutina);
+      // Normalizar fecha a YYYY-MM-DD para consistencia con el backend
+      const payload = { ...rutina };
+      if (payload.fecha) {
+        const ymd = formatDateForAPI(payload.fecha);
+        if (ymd) payload.fecha = ymd;
+      } else {
+        // Si no se envía fecha, usar el día actual del usuario (evita ambigüedades)
+        const today = getNormalizedToday();
+        payload.fecha = formatDateForAPI(today);
+      }
+
+      const response = await clienteAxios.post('/api/rutinas', payload);
       return response.data;
     } catch (error) {
       console.error('Error al crear rutina:', error);
@@ -126,7 +137,14 @@ class RutinasService {
    */
   async updateRutina(id, rutina) {
     try {
-      const response = await clienteAxios.put(`/api/rutinas/${id}`, rutina);
+      // Normalizar fecha si viene en el payload
+      const payload = { ...rutina };
+      if (payload.fecha) {
+        const ymd = formatDateForAPI(payload.fecha);
+        if (ymd) payload.fecha = ymd;
+      }
+
+      const response = await clienteAxios.put(`/api/rutinas/${id}`, payload);
       return response.data;
     } catch (error) {
       console.error(`Error al actualizar rutina ${id}:`, error);

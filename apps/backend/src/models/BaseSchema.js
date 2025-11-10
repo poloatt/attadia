@@ -137,20 +137,43 @@ export const timezoneUtils = {
    * @returns {Date} Fecha al final del día
    */
   normalizeToEndOfDay: (date, timezone = 'America/Santiago') => {
+    if (!date) return null;
+
+    // Si recibimos un objeto Date asumimos que ya es el inicio del día lógico del usuario
+    // y simplemente calculamos el final del día a partir de ese inicio.
+    if (date instanceof Date) {
+      if (isNaN(date.getTime())) return null;
+      const end = new Date(date.getTime() + (24 * 60 * 60 * 1000) - 1);
+      console.log('[timezoneUtils] normalizeToEndOfDay (desde inicio de día):', {
+        input: date.toISOString(),
+        timezone: timezone,
+        endOfDay: end.toISOString()
+      });
+      return end;
+    }
+
+    // Si recibimos 'YYYY-MM-DD', construir directamente las 23:59:59.999Z
+    if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const end = new Date(`${date}T23:59:59.999Z`);
+      console.log('[timezoneUtils] normalizeToEndOfDay (YYYY-MM-DD):', {
+        input: date,
+        timezone: timezone,
+        endOfDay: end.toISOString()
+      });
+      return end;
+    }
+
+    // Para otros casos (string ISO, etc.), normalizar al inicio y sumar 24h - 1ms
     const startOfDay = timezoneUtils.normalizeToStartOfDay(date, timezone);
     if (!startOfDay) return null;
-    
-    // Crear fecha al final del día usando UTC
-    const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1); // Agregar 24 horas menos 1ms
-    
-    console.log('[timezoneUtils] normalizeToEndOfDay:', {
+    const end = new Date(startOfDay.getTime() + (24 * 60 * 60 * 1000) - 1);
+    console.log('[timezoneUtils] normalizeToEndOfDay (normalizado):', {
       input: date,
       timezone: timezone,
       startOfDay: startOfDay.toISOString(),
-      endOfDay: endOfDay.toISOString()
+      endOfDay: end.toISOString()
     });
-    
-    return endOfDay;
+    return end;
   },
 
   /**
