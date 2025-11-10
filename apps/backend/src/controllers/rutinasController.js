@@ -250,12 +250,12 @@ class RutinasController extends BaseController {
     try {
       const { id } = req.params;
       
-      console.log('Iniciando actualización de rutina. ID:', id);
-      console.log('Datos recibidos en la solicitud:', JSON.stringify(req.body, null, 2));
+      logger.info('Rutina update start', { id });
+      logger.data('rutina.update.request', req.body);
       
       // Verificar si se debe preservar cambios locales
       const preserveLocalChanges = req.body._preserve_local_changes === true;
-      console.log(`¿Preservar cambios locales? ${preserveLocalChanges ? 'SÍ' : 'NO'}`);
+      logger.dev('Preserve local changes', { preserveLocalChanges });
       
       // Obtener la rutina actual
       const currentRutina = await this.Model.findOne({ 
@@ -315,8 +315,7 @@ class RutinasController extends BaseController {
 
       // Manejar actualizaciones de configuración con mayor detalle
       if (req.body.config) {
-        console.log('[rutinasController] Actualizando configuración:', 
-          JSON.stringify(req.body.config));
+        logger.data('rutina.update.config.in', req.body.config);
         
         // Si no existía config, inicializarla
         if (!updateData.config) {
@@ -334,8 +333,7 @@ class RutinasController extends BaseController {
           Object.keys(req.body.config[seccion]).forEach(item => {
             const newItemConfig = req.body.config[seccion][item];
             // Logs detallados para depuración
-            console.log(`[rutinasController] Config recibida para ${seccion}.${item}:`, 
-              JSON.stringify(newItemConfig));
+            logger.dev(`Config recibida ${seccion}.${item}`, newItemConfig);
             // Preservar la configuración existente no mencionada en la solicitud
             updateData.config[seccion][item] = {
               ...updateData.config[seccion][item],
@@ -343,8 +341,7 @@ class RutinasController extends BaseController {
               // Asegurar que la frecuencia se guarde como número
               frecuencia: Number(newItemConfig.frecuencia || 1)
             };
-            console.log(`[rutinasController] Config actualizada para ${seccion}.${item}:`, 
-              JSON.stringify(updateData.config[seccion][item]));
+            logger.dev(`Config actualizada ${seccion}.${item}`, updateData.config[seccion][item]);
           });
         });
       }
@@ -355,13 +352,13 @@ class RutinasController extends BaseController {
           Object.entries(req.body[section]).forEach(([key, value]) => {
             // Verificar que existe la sección y el ítem en config
             if (!updateData.config[section]) {
-              console.log(`Inicializando config[${section}] que no existía`);
+              logger.dev(`Inicializando config[${section}]`);
               updateData.config[section] = {};
             }
             
             // Verificar que existe el ítem en la sección
             if (!updateData.config[section][key]) {
-              console.log(`Inicializando config[${section}][${key}] que no existía`);
+              logger.dev(`Inicializando config[${section}][${key}]`);
               updateData.config[section][key] = {
                 tipo: 'DIARIO',
                 diasSemana: [],
@@ -373,7 +370,7 @@ class RutinasController extends BaseController {
             
             if (value === true && (!currentRutina[section][key] || currentRutina[section][key] === false)) {
               updateData.config[section][key].ultimaCompletacion = new Date();
-              console.log(`Actualizada última completación para ${section}.${key}`);
+              logger.dev(`UltimaCompletacion actualizada`, { item: `${section}.${key}` });
             }
           });
         }
@@ -386,11 +383,7 @@ class RutinasController extends BaseController {
       delete updateData.createdAt;
       delete updateData.updatedAt;
 
-      console.log('Datos preparados para actualizar en MongoDB:', JSON.stringify({
-        ...updateData,
-        // Mostrar solo las configuraciones para no sobrecargar el log
-        config: updateData.config
-      }, null, 2));
+      logger.data('rutina.update.mongo.payload', { config: updateData.config, fecha: updateData.fecha });
 
       const updatedRutina = await this.Model.findOneAndUpdate(
         { _id: id, usuario: req.user.id },
@@ -402,11 +395,7 @@ class RutinasController extends BaseController {
         return res.status(404).json({ error: 'Rutina no encontrada' });
       }
 
-      console.log('Rutina actualizada exitosamente. Datos de retorno:', JSON.stringify({
-        _id: updatedRutina._id,
-        // Mostrar solo las configuraciones para no sobrecargar el log
-        config: updatedRutina.config
-      }, null, 2));
+      logger.info('Rutina actualizada', { id: updatedRutina._id });
 
       // Verificar si hay alguna configuración que debería haberse actualizado
       if (req.body.config) {
@@ -417,23 +406,23 @@ class RutinasController extends BaseController {
               if (itemConfig && typeof itemConfig === 'object') {
                 const savedConfig = updatedRutina.config?.[section]?.[itemId];
                 if (savedConfig) {
-                  console.log(`Comparando configuración para ${section}.${itemId}:`);
+                  logger.dev(`Comparando configuración para ${section}.${itemId}`);
                   if (itemConfig.frecuencia !== undefined) {
                     // Convertir a número ambos valores para comparación justa
                     const sentFreq = Number(itemConfig.frecuencia);
                     const savedFreq = Number(savedConfig.frecuencia);
-                    console.log(` - Frecuencia enviada: ${sentFreq} (${typeof sentFreq}), guardada: ${savedFreq} (${typeof savedFreq}), ¿iguales? ${sentFreq === savedFreq}`);
+                    logger.dev('Freq comparada', { section, itemId, sentFreq, savedFreq, iguales: sentFreq === savedFreq });
                   }
                   if (itemConfig.tipo !== undefined) {
                     const sentTipo = (itemConfig.tipo || '').toUpperCase();
                     const savedTipo = (savedConfig.tipo || '').toUpperCase();
-                    console.log(` - Tipo enviado: ${sentTipo}, guardado: ${savedTipo}, ¿iguales? ${sentTipo === savedTipo}`);
+                    logger.dev('Tipo comparado', { section, itemId, sentTipo, savedTipo, iguales: sentTipo === savedTipo });
                   }
                   if (itemConfig.periodo !== undefined) {
-                    console.log(` - Periodo enviado: ${itemConfig.periodo}, guardado: ${savedConfig.periodo}, ¿iguales? ${itemConfig.periodo === savedConfig.periodo}`);
+                    logger.dev('Periodo comparado', { section, itemId, enviado: itemConfig.periodo, guardado: savedConfig.periodo, iguales: itemConfig.periodo === savedConfig.periodo });
                   }
                 } else {
-                  console.warn(`No se encontró configuración guardada para ${section}.${itemId}`);
+                  logger.dev(`No se encontró configuración guardada`, { section, itemId });
                 }
               }
             }
@@ -441,42 +430,13 @@ class RutinasController extends BaseController {
         }
       }
 
-      console.log('Verificación final - Guardado en base de datos:', {
-        'bodyCare.bath': updatedRutina.bodyCare?.bath,
-        'nutricion.cocinar': updatedRutina.nutricion?.cocinar,
-        'config.bodyCare.bath.frecuencia': updatedRutina.config?.bodyCare?.bath?.frecuencia,
-        'config.nutricion.cocinar.tipo': updatedRutina.config?.nutricion?.cocinar?.tipo
-      });
-
-      // Verificar valores finales antes de enviar al cliente
-      if (updatedRutina) {
-        console.log('------------------------ RESULTADO FINAL ------------------------');
-        for (const section of ['bodyCare', 'nutricion', 'ejercicio', 'cleaning']) {
-          if (updatedRutina.config && updatedRutina.config[section]) {
-            for (const [itemId, itemConfig] of Object.entries(updatedRutina.config[section])) {
-              console.log(`${section}.${itemId}: tipo=${itemConfig.tipo}, frecuencia=${itemConfig.frecuencia}, periodo=${itemConfig.periodo}`);
-            }
-          }
-        }
-        console.log('----------------------------------------------------------------');
-      }
+      logger.dev('Verificación final OK', { id: updatedRutina._id });
 
       // Convertir cualquier ObjectId a string para garantizar compatibilidad
       const responseObj = updatedRutina.toObject();
       responseObj._id = responseObj._id.toString();
       
-      // Verificar tipos de datos para depuración
-      if (responseObj.config) {
-        for (const section of ['bodyCare', 'nutricion', 'ejercicio', 'cleaning']) {
-          if (responseObj.config[section]) {
-            for (const [itemId, itemConfig] of Object.entries(responseObj.config[section])) {
-              if (itemConfig) {
-                console.log(`Tipo de frecuencia en respuesta para ${section}.${itemId}: ${typeof itemConfig.frecuencia}`);
-              }
-            }
-          }
-        }
-      }
+      // Logs de tipos de datos eliminados para producción
 
       res.json(responseObj);
     } catch (error) {
@@ -565,7 +525,7 @@ class RutinasController extends BaseController {
       
       // Comprobar si la fecha es válida
       if (isNaN(fechaInput.getTime())) {
-        console.log('[rutinasController] Fecha inválida recibida:', fecha);
+        logger.dev('[rutinasController] Fecha inválida recibida', { fecha });
         return res.status(400).json({ 
           error: 'Formato de fecha inválido', 
           fecha,
@@ -584,7 +544,7 @@ class RutinasController extends BaseController {
         });
       }
       
-      console.log('[rutinasController] Verificando rutina existente:', {
+      logger.dev('[rutinasController] Verificando rutina existente', {
         fechaInicio: fechaInicio.toISOString(),
         fechaFin: fechaFin.toISOString(),
         timezone: timezone,
@@ -601,7 +561,7 @@ class RutinasController extends BaseController {
       }).lean();
       
       if (existingRutina) {
-        console.log('[rutinasController] Rutina existente encontrada:', {
+        logger.dev('[rutinasController] Rutina existente encontrada', {
           id: existingRutina._id,
           fecha: existingRutina.fecha,
           fechaISO: existingRutina.fecha.toISOString()
