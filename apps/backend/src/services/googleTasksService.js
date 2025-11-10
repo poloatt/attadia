@@ -314,13 +314,25 @@ class GoogleTasksService {
       const googleTaskData = tarea.toGoogleTaskFormat();
       
       // Construir notas con subtareas
-      googleTaskData.notes = this.buildTaskNotes(tarea);
-      
-      // Eliminar campos que Google Tasks maneja automáticamente en creación
-      if (!tarea.googleTasksSync?.googleTaskId) {
+        googleTaskData.notes = this.buildTaskNotes(tarea);
+
+        // Sanitizar requestBody para Google
+        // - No enviar id/updated/parent/position
         delete googleTaskData.id;
         delete googleTaskData.updated;
-      }
+        delete googleTaskData.parent;
+        delete googleTaskData.position;
+        // - Quitar completed si es null/undefined (Google lo calcula con status)
+        if (googleTaskData.completed == null) {
+          delete googleTaskData.completed;
+        }
+        // - Truncar notas por seguridad
+        if (googleTaskData.notes && googleTaskData.notes.length > 7000) {
+          googleTaskData.notes = googleTaskData.notes.slice(0, 7000);
+        }
+      
+      // Eliminar campos que Google Tasks maneja automáticamente en creación
+        // (ya eliminados arriba, mantenemos lógica por claridad)
 
       let googleTask;
       
@@ -357,7 +369,7 @@ class GoogleTasksService {
           // Si la tarea no existe en Google (404), crear una nueva
           if (error.status === 404) {
             console.log(`[INFO] Tarea ${tarea.titulo} no existe en Google, creando nueva...`);
-            delete googleTaskData.id; // Eliminar ID para crear nueva
+            delete googleTaskData.id; // redundante por sanitización, pero seguro
             googleTask = await this.executeWithRetry(
               () => this.tasks.tasks.insert({
                 tasklist: taskListId,
@@ -1125,7 +1137,9 @@ class GoogleTasksService {
 
   // Métodos auxiliares
   buildTaskNotes(tarea) {
-    let notes = tarea.descripcion || '';
+    // Limpiar descripción previa para evitar duplicar bloques "Subtareas:"
+    let baseDescription = this.extractDescriptionFromNotes(tarea.descripcion || '');
+    let notes = baseDescription || '';
     
     if (tarea.subtareas && tarea.subtareas.length > 0) {
       notes += '\n\nSubtareas:\n';
@@ -1133,6 +1147,11 @@ class GoogleTasksService {
         const status = subtarea.completada ? '✓' : '○';
         notes += `${status} ${subtarea.titulo}\n`;
       });
+    }
+
+    // Truncar notas para evitar exceder límites de Google (aprox 8-10KB). Usamos 7000 chars como umbral seguro
+    if (notes.length > 7000) {
+      notes = notes.slice(0, 7000);
     }
 
     return notes;
