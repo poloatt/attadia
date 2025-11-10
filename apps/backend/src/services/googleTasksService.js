@@ -439,16 +439,41 @@ class GoogleTasksService {
       );
 
       const googleSubtasks = existingGoogleSubtasks.data.items?.filter(task => task.parent === parentTaskId) || [];
+
+      // Índices para reconciliación por id y por título
+      const normalizeTitle = (t) => this.cleanTitle(t || '').toLowerCase();
+      const googleById = new Map(googleSubtasks.map(st => [st.id, st]));
+      const googleByNormTitle = new Map(googleSubtasks.map(st => [normalizeTitle(st.title), st]));
       
       logger.sync(`🔄 Sincronizando ${subtareas.length} subtareas locales con ${googleSubtasks.length} existentes en Google`);
 
-      // 1. Actualizar subtareas existentes y crear nuevas
+      // 1. Actualizar/crear subtareas y asegurar jerarquía/orden con tasks.move
+      let previousSubtaskId = null;
       for (const [index, subtarea] of subtareas.entries()) {
         let googleSubtask;
-        
+        const localNormTitle = normalizeTitle(subtarea.titulo);
+
+        // Prevalidar: si el id no está bajo este parent en Google, resetear para recrear/revincular
+        if (subtarea.googleTaskId && !googleById.has(subtarea.googleTaskId)) {
+          logger.warn(`⚠️ ID de subtarea no pertenece al parent actual, se recreará`, {
+            taskListId,
+            parentTaskId,
+            googleTaskId: subtarea.googleTaskId,
+            titulo: subtarea.titulo
+          });
+          subtarea.googleTaskId = null;
+        }
+
+        // Si no tenemos id, intentar vincular por título normalizado
+        if (!subtarea.googleTaskId && googleByNormTitle.has(localNormTitle)) {
+          const claimed = googleByNormTitle.get(localNormTitle);
+          logger.sync(`🔎 Vinculada por título: "${subtarea.titulo}" → ${claimed.id}`);
+          subtarea.googleTaskId = claimed.id;
+        }
+
         if (subtarea.googleTaskId) {
           try {
-            // Actualizar subtarea existente
+            // Actualizar subtarea existente (sin parent/position en body)
             const subtaskData = {
               title: subtarea.titulo,
               status: subtarea.completada ? 'completed' : 'needsAction'
@@ -465,13 +490,13 @@ class GoogleTasksService {
               userId
             );
 
-            // Ajustar jerarquía/orden usando tasks.move (no soportado vía patch body)
+            // Asegurar jerarquía/orden con tasks.move
             await this.executeWithRetry(
               () => this.tasks.tasks.move({
                 tasklist: taskListId,
                 task: subtarea.googleTaskId,
                 parent: parentTaskId,
-                previous: index > 0 && subtareas[index - 1]?.googleTaskId ? subtareas[index - 1].googleTaskId : undefined
+                previous: previousSubtaskId || undefined
               }),
               `mover subtarea ${subtarea.titulo}`,
               userId
@@ -480,9 +505,16 @@ class GoogleTasksService {
             logger.sync(`📝 Actualizada subtarea: "${subtarea.titulo}"`);
             
           } catch (error) {
-            // Si la subtarea no existe en Google (404), crear una nueva
-            if (error.status === 404) {
-              console.log(`[INFO] Subtarea "${subtarea.titulo}" no existe en Google, creando nueva...`);
+            const isMissingOrInvalid =
+              error?.status === 404 ||
+              (error?.status === 400 && (
+                String(error?.message || '').includes('Missing task ID') ||
+                String(error?.errors?.[0]?.message || '').includes('Missing task ID') ||
+                String(error?.response?.data?.error?.errors?.[0]?.message || '').includes('Missing task ID') ||
+                String(error?.response?.data?.error?.reason || '').includes('invalid')
+              ));
+            if (isMissingOrInvalid) {
+              console.log(`[INFO] Subtarea "${subtarea.titulo}" no existe/ID inválido, creando nueva...`);
               subtarea.googleTaskId = null; // Limpiar ID inválido
               // Continuar al bloque de creación
             } else {
@@ -492,7 +524,7 @@ class GoogleTasksService {
         }
         
         if (!subtarea.googleTaskId) {
-          // Crear nueva subtarea
+          // Crear nueva subtarea (solo datos propios; jerarquía se fija con move)
           const subtaskData = {
             title: subtarea.titulo,
             status: subtarea.completada ? 'completed' : 'needsAction'
@@ -502,9 +534,7 @@ class GoogleTasksService {
             () => this.tasks.tasks.insert({
               tasklist: taskListId,
               requestBody: subtaskData,
-              parent: parentTaskId,
-              previous: index > 0 && subtareas[index - 1]?.googleTaskId ? subtareas[index - 1].googleTaskId : undefined,
-              fields: 'id,title,status,parent'
+              fields: 'id,title,status'
             }),
             `crear subtarea ${subtarea.titulo}`,
             userId
@@ -514,8 +544,26 @@ class GoogleTasksService {
           subtarea.googleTaskId = googleSubtask.data.id;
           subtarea.lastSyncDate = new Date();
           
+          // Mover para establecer parent y orden
+          try {
+            await this.executeWithRetry(
+              () => this.tasks.tasks.move({
+                tasklist: taskListId,
+                task: subtarea.googleTaskId,
+                parent: parentTaskId,
+                previous: previousSubtaskId || undefined
+              }),
+              `mover subtarea ${subtarea.titulo}`,
+              userId
+            );
+          } catch (moveErr) {
+            logger.warn(`No se pudo mover nueva subtarea "${subtarea.titulo}": ${moveErr.message}`);
+          }
+
           logger.sync(`📥 Creada subtarea: "${subtarea.titulo}"`);
         }
+
+        previousSubtaskId = subtarea.googleTaskId;
       }
 
       // 2. Eliminar subtareas que ya no existen en Attadia
@@ -715,11 +763,22 @@ class GoogleTasksService {
 
       // Obtener subtareas existentes en Attadia
       const subtareasExistentes = tareaPadre.subtareas || [];
+      const normalizeTitle = (t) => this.cleanTitle(t || '').toLowerCase();
 
       // Procesar cada subtarea de Google
       for (const googleSubtask of googleSubtasks) {
         // Buscar subtarea existente por googleTaskId
-        const subtareaExistente = subtareasExistentes.find(st => st.googleTaskId === googleSubtask.id);
+        let subtareaExistente = subtareasExistentes.find(st => st.googleTaskId === googleSubtask.id);
+
+        // Fallback: enlazar por título normalizado si no hay id
+        if (!subtareaExistente) {
+          const normTitle = normalizeTitle(googleSubtask.title);
+          subtareaExistente = subtareasExistentes.find(st => !st.googleTaskId && normalizeTitle(st.titulo) === normTitle);
+          if (subtareaExistente) {
+            logger.sync(`🔎 Vinculada subtarea local por título: "${subtareaExistente.titulo}" → ${googleSubtask.id}`);
+            subtareaExistente.googleTaskId = googleSubtask.id;
+          }
+        }
 
         if (subtareaExistente) {
           // Actualizar subtarea existente

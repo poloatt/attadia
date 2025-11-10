@@ -798,6 +798,7 @@ const ProyectoItem = ({
           {Array.isArray(proyecto.tareas) && proyecto.tareas.length > 0 ? (
             <Stack spacing={1}>
               {[...proyecto.tareas]
+                .filter(t => !t.completada)
                 .sort((a, b) => {
                   // Primero ordenar por estado
                   const estadoOrden = {
