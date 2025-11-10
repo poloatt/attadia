@@ -42,7 +42,8 @@ class GoogleTasksService {
       refresh_token: user.googleTasksConfig.refreshToken
     });
 
-    // Configurar listener para actualizar tokens automáticamente
+    // Configurar listener para actualizar tokens automáticamente (evitar múltiples listeners)
+    this.oauth2Client.removeAllListeners('tokens');
     this.oauth2Client.on('tokens', async (tokens) => {
       if (tokens.access_token) {
         logger.sync(`🔄 Tokens actualizados automáticamente para usuario ${userId}`);
@@ -339,7 +340,7 @@ class GoogleTasksService {
         try {
           // Actualizar tarea existente con retry
           googleTask = await this.executeWithRetry(
-            () => this.tasks.tasks.update({
+            () => this.tasks.tasks.patch({
               tasklist: taskListId,
               task: tarea.googleTasksSync.googleTaskId,
               requestBody: googleTaskData,
@@ -452,7 +453,7 @@ class GoogleTasksService {
             };
 
             googleSubtask = await this.executeWithRetry(
-              () => this.tasks.tasks.update({
+              () => this.tasks.tasks.patch({
                 tasklist: taskListId,
                 task: subtarea.googleTaskId,
                 requestBody: subtaskData,
