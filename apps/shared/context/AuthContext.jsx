@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import clienteAxios from '../config/axios';
-import currentConfig from '../config/envConfig';
+import currentConfig, { getCurrentAppUrl } from '../config/envConfig';
 import { useAppConfig } from '../hooks/useAppDetection.js';
 
 const AuthContext = createContext();
@@ -198,7 +198,12 @@ export function AuthProvider({ children }) {
         setTimeout(() => reject(new Error('Timeout: La petición tardó demasiado')), 20000)
       );
       
-      const requestPromise = clienteAxios.get(`${currentConfig.authPrefix}/google/url?origin=${window.location.origin}`);
+      // Usar un origin web válido para apps (foco/atta/pulso) incluso en contenedores nativos
+      const appOrigin = getCurrentAppUrl() || window.location.origin;
+      const requestPromise = clienteAxios.get(
+        `${currentConfig.authPrefix}/google/url?origin=${encodeURIComponent(appOrigin)}`,
+        { withCredentials: false }
+      );
       
       const { data } = await Promise.race([requestPromise, timeoutPromise]);
       
