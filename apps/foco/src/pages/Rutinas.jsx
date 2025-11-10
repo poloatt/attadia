@@ -6,6 +6,7 @@ import { RutinaForm } from '../rutinas/RutinaForm';
 
 import { RutinasProvider, useRutinas } from '@shared/context';
 import { useParams, useNavigate } from 'react-router-dom';
+import { formatDateForAPI, getNormalizedToday, parseAPIDate } from '@shared/utils/dateUtils';
 import { 
   CalendarMonthOutlined as DateIcon,
   Info as InfoIcon,
@@ -128,6 +129,50 @@ const RutinasWithContext = () => {
     setEditMode(false);
     setRutinaToEdit(null);
   };
+
+  // Navegación desde toolbar (prev/next/today)
+  useEffect(() => {
+    const handleNavigateEvent = async (event) => {
+      const { direction, date } = event.detail || {};
+      if (!rutinas || rutinas.length === 0) return;
+      try {
+        if (direction === 'today') {
+          const todayStr = date || formatDateForAPI(getNormalizedToday());
+          const target = rutinas.find(r => {
+            try {
+              return formatDateForAPI(parseAPIDate(r.fecha)) === todayStr;
+            } catch {
+              return false;
+            }
+          });
+          if (target?._id) {
+            await getRutinaById(target._id);
+          } else {
+            // Si no existe rutina de hoy, abrir formulario de creación
+            setRutinaToEdit(null);
+            setEditMode(true);
+          }
+          // Asegurar ruta correcta
+          navigate('/rutinas', { replace: false });
+        } else if (direction === 'prev' || direction === 'next') {
+          const idx = rutina?._id ? rutinas.findIndex(r => r._id === rutina._id) : -1;
+          if (idx >= 0) {
+            const newIndex = direction === 'prev' ? Math.max(0, idx - 1) : Math.min(rutinas.length - 1, idx + 1);
+            const target = rutinas[newIndex];
+            if (target?._id) {
+              await getRutinaById(target._id);
+            }
+          }
+        }
+      } catch (e) {
+        // noop: navegación silenciosa
+      }
+    };
+    window.addEventListener('navigate', handleNavigateEvent);
+    return () => {
+      window.removeEventListener('navigate', handleNavigateEvent);
+    };
+  }, [rutinas, rutina?._id, getRutinaById, navigate]);
 
   // Esta parte del código es nueva o modificada
   const EmptyStateMessage = () => {
