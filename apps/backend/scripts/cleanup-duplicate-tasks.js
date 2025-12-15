@@ -49,12 +49,19 @@ const args = parseArgs(process.argv.slice(2));
 const DRY_RUN = args['dry-run'] !== false && args['dry-run'] !== 'false'; // default true
 const GOOGLE_PARENTS = !!args['google-parents'];
 const USER_FILTER = args.user || null;
+const PROJECT_FILTER = args.project || null;
 
 function normalizeTitle(title) {
-  return String(title || '')
-    .trim()
+  const raw = String(title || '')
+    // quitar prefijos tipo "[Salud] " o "[Mis tareas] "
+    .replace(/^\s*\[[^\]]+\]\s*/g, '')
+    .trim();
+  const noDiacritics = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return noDiacritics
+    .toLowerCase()
+    .replace(/[._-]+/g, ' ')
     .replace(/\s{2,}/g, ' ')
-    .toLowerCase();
+    .trim();
 }
 
 function dedupeSubtareas(subtareas) {
@@ -191,8 +198,25 @@ async function cleanupDuplicateTasks() {
         }
       }
 
-      // Todas las tareas del usuario
-      const tareas = await Tareas.find({ usuario: user._id }).lean(false);
+      // Todas las tareas del usuario (opcionalmente filtradas por proyecto)
+      const tareaQuery = { usuario: user._id };
+      if (PROJECT_FILTER) {
+        const { Proyectos } = await import('../src/models/index.js');
+        let proyecto = null;
+        try {
+          const asId = new mongoose.Types.ObjectId(PROJECT_FILTER);
+          proyecto = await Proyectos.findOne({ _id: asId, usuario: user._id });
+        } catch {
+          proyecto = await Proyectos.findOne({ nombre: PROJECT_FILTER, usuario: user._id });
+        }
+        if (!proyecto) {
+          console.warn(`⚠️ Proyecto no encontrado para filtro "${PROJECT_FILTER}", se procesarán todas las tareas del usuario.`);
+        } else {
+          tareaQuery.proyecto = proyecto._id;
+          console.log(`📁 Limitando a proyecto: ${proyecto.nombre} (${proyecto._id})`);
+        }
+      }
+      const tareas = await Tareas.find(tareaQuery).lean(false);
       console.log(`📋 Tareas totales: ${tareas.length}`);
 
       // 1) Dedupe por googleTaskId
@@ -282,6 +306,61 @@ async function cleanupDuplicateTasks() {
         removedByTitle += toRemove.length;
       }
 
+      // 2.b) Dedupe por título normalizado dentro del mismo proyecto (aunque tengan googleTaskId)
+      const byProjectAndTitle = new Map();
+      for (const t of tareas) {
+        const proj = t.proyecto ? String(t.proyecto) : 'no-proj';
+        const key = `${proj}::${normalizeTitle(t.titulo)}`;
+        if (!byProjectAndTitle.has(key)) byProjectAndTitle.set(key, []);
+        byProjectAndTitle.get(key).push(t);
+      }
+      let removedByProjectTitle = 0;
+      for (const [key, group] of byProjectAndTitle.entries()) {
+        if (group.length <= 1) continue;
+        // Orden: preferir con googleTaskId, luego más subtareas, luego updatedAt más reciente
+        group.sort((a, b) => {
+          if (!!a.googleTasksSync?.googleTaskId !== !!b.googleTasksSync?.googleTaskId) {
+            return b.googleTasksSync?.googleTaskId ? 1 : -1;
+          }
+          const sa = a.subtareas?.length || 0;
+          const sb = b.subtareas?.length || 0;
+          if (sa !== sb) return sb - sa;
+          const ua = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+          const ub = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+          return ub - ua;
+        });
+        const keep = group[0];
+        const toRemove = group.slice(1);
+        if (toRemove.length === 0) continue;
+
+        // Fusionar subtareas/estado
+        const mergedSubtareasAny = dedupeSubtareas(
+          (keep.subtareas || []).concat(...toRemove.map(t => t.subtareas || []))
+        );
+        const completadaAny = mergedSubtareasAny.length > 0
+          ? mergedSubtareasAny.every(st => st.completada)
+          : (keep.completada || toRemove.some(t => t.completada));
+        keep.subtareas = mergedSubtareasAny;
+        keep.completada = !!completadaAny;
+        keep.estado = keep.completada ? 'COMPLETADA' : (keep.subtareas.some(st => st.completada) ? 'EN_PROGRESO' : 'PENDIENTE');
+
+        if (DRY_RUN) {
+          console.log(`DRY-RUN: Mantener "${keep.titulo}" [${key}], eliminar ${toRemove.length} duplicado(s) por título/proyecto`);
+        } else {
+          await keep.save();
+          for (const d of toRemove) {
+            // Si corresponde, borrar también en Google
+            const gId = d.googleTasksSync?.googleTaskId;
+            const gList = d.googleTasksSync?.googleTaskListId;
+            if (GOOGLE_PARENTS && tasksClient && gId && gList) {
+              try { await tasksClient.tasks.delete({ tasklist: gList, task: gId }); } catch {}
+            }
+            await Tareas.findByIdAndDelete(d._id);
+          }
+        }
+        removedByProjectTitle += toRemove.length;
+      }
+
       // 3) Google: dedupe padres por título normalizado (opcional)
       let googleDeleted = 0;
       if (GOOGLE_PARENTS && tasksClient) {
@@ -302,7 +381,7 @@ async function cleanupDuplicateTasks() {
       }
 
       console.log('\n📊 Resumen usuario:');
-      console.log(`   BD - eliminados por googleTaskId: ${removedById}, por título/lista: ${removedByTitle}`);
+      console.log(`   BD - eliminados por googleTaskId: ${removedById}, por título/lista: ${removedByTitle}, por título/proyecto: ${removedByProjectTitle}`);
       if (GOOGLE_PARENTS) {
         console.log(`   Google - tareas padres eliminadas: ${googleDeleted}`);
       }

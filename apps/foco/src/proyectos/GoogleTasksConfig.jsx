@@ -51,6 +51,7 @@ const GoogleTasksConfig = ({ open, onClose }) => {
     message: ''
   });
   const [error, setError] = useState(null);
+  const [summary, setSummary] = useState(null);
   const [showInfo, setShowInfo] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
 
@@ -201,6 +202,7 @@ const GoogleTasksConfig = ({ open, onClose }) => {
     try {
       setSyncing(true);
       setError(null);
+      setSummary(null);
       setSyncProgress({ current: 0, total: 0, message: 'Iniciando sincronización...' });
       
       // Simular progreso para mejor UX
@@ -230,6 +232,22 @@ const GoogleTasksConfig = ({ open, onClose }) => {
       const totalErrors = (results.proyectos?.errors?.length || 0) + 
                          (results.tareas?.toGoogle?.errors?.length || 0) + 
                          (results.tareas?.fromGoogle?.errors?.length || 0);
+      const totalOps = totalSuccess + totalErrors;
+      const percent = totalOps > 0 ? Math.round((totalSuccess / totalOps) * 100) : 100;
+
+      setSummary({
+        percent,
+        totalOps,
+        totalSuccess,
+        totalErrors,
+        breakdown: {
+          proyectosCreated,
+          proyectosUpdated,
+          tareasToGoogle,
+          tareasFromGoogleCreated,
+          tareasFromGoogleUpdated
+        }
+      });
       
       if (totalSuccess > 0) {
         let message = `✅ Sincronización exitosa: `;
@@ -424,6 +442,40 @@ const GoogleTasksConfig = ({ open, onClose }) => {
                   sx={{ height: 6, borderRadius: 3 }}
                 />
               )}
+            </Box>
+          )}
+          
+          {/* Resumen de completitud al finalizar */}
+          {!syncing && summary && (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                Completitud
+              </Typography>
+              <LinearProgress 
+                variant="determinate" 
+                value={summary.percent}
+                sx={{ height: 8, borderRadius: 3, mb: 1 }}
+              />
+              <Stack direction="row" spacing={1} flexWrap="wrap">
+                <Chip size="small" color="success" variant="outlined" label={`${summary.totalSuccess} OK`} />
+                <Chip size="small" color={summary.totalErrors ? 'warning' : 'success'} variant="outlined" label={`${summary.totalErrors} errores`} />
+                <Chip size="small" variant="outlined" label={`${summary.percent}%`} />
+                {summary.breakdown.proyectosCreated > 0 && (
+                  <Chip size="small" variant="outlined" label={`${summary.breakdown.proyectosCreated} proyectos creados`} />
+                )}
+                {summary.breakdown.proyectosUpdated > 0 && (
+                  <Chip size="small" variant="outlined" label={`${summary.breakdown.proyectosUpdated} proyectos actualizados`} />
+                )}
+                {summary.breakdown.tareasToGoogle > 0 && (
+                  <Chip size="small" variant="outlined" label={`${summary.breakdown.tareasToGoogle} a Google`} />
+                )}
+                {summary.breakdown.tareasFromGoogleCreated > 0 && (
+                  <Chip size="small" variant="outlined" label={`${summary.breakdown.tareasFromGoogleCreated} importadas`} />
+                )}
+                {summary.breakdown.tareasFromGoogleUpdated > 0 && (
+                  <Chip size="small" variant="outlined" label={`${summary.breakdown.tareasFromGoogleUpdated} actualizadas`} />
+                )}
+              </Stack>
             </Box>
           )}
           
