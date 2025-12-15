@@ -10,6 +10,7 @@ import {
   Fab,
   Typography,
 } from '@mui/material';
+import { Switch, FormControlLabel } from '@mui/material';
 import { useResponsive } from '@shared/hooks';
 import {
   Add as AddIcon,
@@ -38,6 +39,7 @@ export function Tareas() {
   const [tareas, setTareas] = useState([]);
   const [proyectos, setProyectos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showCompleted, setShowCompleted] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTarea, setEditingTarea] = useState(null);
   const [isGoogleTasksConfigOpen, setIsGoogleTasksConfigOpen] = useState(false);
@@ -260,11 +262,23 @@ export function Tareas() {
     return new Promise((resolve, reject) => {
       fetchTareasRef.current = setTimeout(async () => {
         try {
-          // Agregar timestamp para evitar cache
-          const response = await clienteAxios.get(`/api/tareas?_t=${Date.now()}`);
-          setTareas(response.data.docs || []);
+          // Agregar timestamp para evitar cache y pedir gran cantidad por página
+          const ts = Date.now();
+          const first = await clienteAxios.get(`/api/tareas?limit=1000&sort=fechaInicio&_t=${ts}`);
+          let allDocs = first.data.docs || [];
+          const totalPages = first.data.totalPages || 1;
+
+          // Si hay más páginas, traerlas y concatenar
+          if (totalPages > 1) {
+            for (let p = 2; p <= totalPages; p++) {
+              const resp = await clienteAxios.get(`/api/tareas?page=${p}&limit=1000&sort=fechaInicio&_t=${ts}`);
+              allDocs = allDocs.concat(resp.data.docs || []);
+            }
+          }
+
+          setTareas(allDocs);
           setLoading(false);
-          resolve(response.data);
+          resolve({ docs: allDocs, totalPages });
         } catch (error) {
           console.error('Error:', error);
           enqueueSnackbar('Error al cargar tareas', { variant: 'error' });  
@@ -499,6 +513,25 @@ export function Tareas() {
             },
           }}
         >
+          {/* Filtros rápidos */}
+          {!loading && (
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mb: 1 }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    size="small"
+                    checked={showCompleted}
+                    onChange={(e) => setShowCompleted(e.target.checked)}
+                  />
+                }
+                label={
+                  <Typography variant="caption" color="text.secondary">
+                    Mostrar completadas
+                  </Typography>
+                }
+              />
+            </Box>
+          )}
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
               <CircularProgress />
@@ -509,7 +542,7 @@ export function Tareas() {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onUpdateEstado={handleUpdateEstado}
-              isArchive={false}
+              isArchive={showCompleted}
               showValues={showValues}
               updateWithHistory={updateWithHistory}
               isMultiSelectMode={selectedTareas.length > 0}
