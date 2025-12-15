@@ -797,33 +797,33 @@ const ProyectoItem = ({
             <TableContainer component={Box} sx={{ width: '100%' }}>
               <Table sx={{ width: '100%' }} size="small">
                 <TableBody>
-                  {[...proyecto.tareas]
+              {[...proyecto.tareas]
                     .filter(t => !t.completada)
-                    .sort((a, b) => {
+                .sort((a, b) => {
                       const estadoOrden = { 'EN_PROGRESO': 0, 'PENDIENTE': 1, 'COMPLETADA': 2 };
-                      if (estadoOrden[a.estado] !== estadoOrden[b.estado]) {
-                        return estadoOrden[a.estado] - estadoOrden[b.estado];
-                      }
-                      const fechaA = a.fechaVencimiento ? new Date(a.fechaVencimiento) : new Date(a.fechaInicio);
-                      const fechaB = b.fechaVencimiento ? new Date(b.fechaVencimiento) : new Date(b.fechaInicio);
-                      return fechaA - fechaB;
-                    })
-                    .map((tarea) => (
+                  if (estadoOrden[a.estado] !== estadoOrden[b.estado]) {
+                    return estadoOrden[a.estado] - estadoOrden[b.estado];
+                  }
+                  const fechaA = a.fechaVencimiento ? new Date(a.fechaVencimiento) : new Date(a.fechaInicio);
+                  const fechaB = b.fechaVencimiento ? new Date(b.fechaVencimiento) : new Date(b.fechaInicio);
+                  return fechaA - fechaB;
+                })
+                .map((tarea) => (
                       <TareaRow
-                        key={tarea._id || tarea.id}
-                        tarea={tarea}
+                    key={tarea._id || tarea.id}
+                    tarea={tarea}
                         onEdit={() => {}}
                         onDelete={() => {}}
                         onUpdateEstado={onUpdateTarea}
                         isArchive={false}
-                        showValues={showValues}
+                    showValues={showValues}
                         updateWithHistory={updateTareaWithHistory}
                         isMultiSelectMode={false}
                         selectedTareas={[]}
                         onSelectTarea={() => {}}
                         onActivateMultiSelect={() => {}}
-                      />
-                    ))}
+                  />
+                ))}
                 </TableBody>
               </Table>
             </TableContainer>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from 'react';
 import { 
   Container,
   Box,
@@ -9,6 +9,8 @@ import {
   Chip,
   Fab,
   Typography,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material';
 import { Switch, FormControlLabel } from '@mui/material';
 import { useResponsive } from '@shared/hooks';
@@ -44,12 +46,37 @@ export function Tareas() {
   const [editingTarea, setEditingTarea] = useState(null);
   const [isGoogleTasksConfigOpen, setIsGoogleTasksConfigOpen] = useState(false);
   const [selectedTareas, setSelectedTareas] = useState([]);
+  const [agendaView, setAgendaView] = useState('ahora'); // ahora | luego | todas
   const { enqueueSnackbar } = useSnackbar();
   const { isMobile } = useResponsive();
   const location = useLocation();
   const { setTitle, setActions } = useNavigationBar();
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
   const navigate = useNavigate();
+
+  // Tareas filtradas según la vista de Agenda
+  const tareasAgenda = useMemo(() => {
+    if (!Array.isArray(tareas)) return [];
+    const parseDate = (value) => {
+      if (!value) return null;
+      const d = new Date(value);
+      return isNaN(d.getTime()) ? null : d;
+      };
+    const now = new Date();
+    return tareas.filter((t) => {
+      const isCompleted = t?.estado === 'completada' || t?.completada === true;
+      if (!showCompleted && isCompleted) return false;
+      const start = parseDate(t?.fechaInicio || t?.fecha || t?.inicio);
+      if (agendaView === 'ahora') {
+        // Incluye sin fecha (para no perderlas) y con fecha hasta ahora
+        return !start || start <= now;
+      }
+      if (agendaView === 'luego') {
+        return !!start && start > now;
+      }
+      return true; // 'todas'
+    });
+  }, [tareas, agendaView, showCompleted]);
 
   // Funciones para selección múltiple
   const handleDeactivateMultiSelect = () => {
@@ -142,7 +169,7 @@ export function Tareas() {
   };
 
   useLayoutEffect(() => {
-    setTitle('Tareas');
+    setTitle('Agenda');
     
     // Solo mostrar iconos en desktop
     if (!isMobile) {
@@ -320,7 +347,7 @@ export function Tareas() {
     fetchProyectos();
   }, []);
 
-  // Escuchar eventos del Header y navegación
+  // Escuchar eventos del Header, navegación y Toolbar (agendaView)
   useEffect(() => {
     const handleHeaderAddButton = (event) => {
       if (event.detail.type === 'tarea') {
@@ -333,6 +360,22 @@ export function Tareas() {
     const handleAddTask = () => {
       setEditingTarea(null);
       setIsFormOpen(true);
+    };
+
+    // Escuchar cambios de vista de Agenda desde Toolbar
+    const handleAgendaViewChanged = (event) => {
+      const { view } = event.detail || {};
+      if (view) {
+        setAgendaView(view);
+      }
+    };
+    
+    // Escuchar toggle de mostrar completadas desde Toolbar
+    const handleSetShowCompleted = (event) => {
+      const { value } = event.detail || {};
+      if (typeof value === 'boolean') {
+        setShowCompleted(value);
+      }
     };
 
     // Escuchar eventos de deshacer específicos para tareas
@@ -382,6 +425,8 @@ export function Tareas() {
 
     window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);   
     window.addEventListener('addTask', handleAddTask);
+    window.addEventListener('agendaViewChanged', handleAgendaViewChanged);
+    window.addEventListener('setShowCompleted', handleSetShowCompleted);
     window.addEventListener('undoAction_tarea', handleUndoTareaAction);
     window.addEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
     window.addEventListener('googleTasksSyncCompleted', handleGoogleTasksSyncCompleted);
@@ -391,6 +436,8 @@ export function Tareas() {
     return () => {
       window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
       window.removeEventListener('addTask', handleAddTask);
+      window.removeEventListener('agendaViewChanged', handleAgendaViewChanged);
+      window.removeEventListener('setShowCompleted', handleSetShowCompleted);
       window.removeEventListener('undoAction_tarea', handleUndoTareaAction);    
       window.removeEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
       window.removeEventListener('googleTasksSyncCompleted', handleGoogleTasksSyncCompleted);
@@ -513,32 +560,14 @@ export function Tareas() {
             },
           }}
         >
-          {/* Filtros rápidos */}
-          {!loading && (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mb: 1 }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    size="small"
-                    checked={showCompleted}
-                    onChange={(e) => setShowCompleted(e.target.checked)}
-                  />
-                }
-                label={
-                  <Typography variant="caption" color="text.secondary">
-                    Mostrar completadas
-                  </Typography>
-                }
-              />
-            </Box>
-          )}
+          {/* El filtro de Agenda y el toggle de completadas viven en la Toolbar */}
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
               <CircularProgress />
             </Box>
           ) : (
             <TareasTable
-              tareas={tareas}
+              tareas={tareasAgenda}
               onEdit={handleEdit}
               onDelete={handleDelete}
               onUpdateEstado={handleUpdateEstado}

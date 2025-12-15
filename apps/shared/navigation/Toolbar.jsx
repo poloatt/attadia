@@ -18,6 +18,8 @@ import { DynamicIcon, ClickableIcon, IconWithText } from '../components/common/D
 import RutinaNavigation from './RutinaNavigation.jsx';
 import { useRutinas } from '../context/RutinasContext';
 import { calculateCompletionPercentage } from '../utils/rutinaCalculations';
+import { ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { CheckCircle, CheckCircleOutline } from '@mui/icons-material';
 
 export default function Toolbar({
   moduloActivo,
@@ -40,6 +42,10 @@ export default function Toolbar({
   
   // Estado para controlar el botón de delete
   const [hasSelectedItems, setHasSelectedItems] = useState(false);
+  // Estado del filtro de Agenda para Tareas
+  const [agendaView, setAgendaView] = useState('ahora');
+  // Estado para mostrar/ocultar completadas (Tareas)
+  const [showCompletedToolbar, setShowCompletedToolbar] = useState(false);
   
   // Medición de anclajes izquierda/derecha
   const { leftWidthRef, rightWidthRef, leftWidth, rightWidth } = useAnchorWidths(0, 0, [isMobileOrTablet, showEntityToolbarNavigation, location.pathname]);
@@ -284,7 +290,7 @@ export default function Toolbar({
           isMobileOrTablet={isMobileOrTablet}
           mainMargin={baseMainMargin}
           leftWidth={leftWidth}
-          rightWidth={isMobileOrTablet ? rightWidth : 0}
+          rightWidth={rightWidth}
           height={TOOLBAR_CONFIG.height}
         >
           {shouldShowSpecificNavigation() ? (
@@ -294,67 +300,86 @@ export default function Toolbar({
             // Usar navegación específica pasada como prop si está disponible
             customMainSection
           ) : (
-            // Usar navegación estándar de siblings
-            siblings.length > 1 ? (
-              <Box sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: { xs: 0.125, sm: 0.5 }
-              }}>
-                {siblings.map(item => {
-                  const isActive = currentPath === item.path || currentPath.startsWith(item.path + '/');
-                  return isMobile ? (
-                    // Versión simplificada para móvil
-                    <Tooltip key={item.path} title={item.title}>
-                      <IconButton
+            // Si estamos en Tareas, centrar el filtro de Agenda; si no, mostrar navegación estándar
+            (currentPath === '/tiempo/tareas' || currentPath.startsWith('/tiempo/tareas/') ||
+             currentPath === '/tareas' || currentPath.startsWith('/tareas/')) ? (
+              <ToggleButtonGroup
+                size="small"
+                color="primary"
+                value={agendaView}
+                exclusive
+                onChange={(_, v) => {
+                  if (!v) return;
+                  setAgendaView(v);
+                  window.dispatchEvent(new CustomEvent('agendaViewChanged', { detail: { view: v } }));
+                }}
+              >
+                <ToggleButton value="ahora">Ahora</ToggleButton>
+                <ToggleButton value="luego">Luego</ToggleButton>
+                <ToggleButton value="todas">Todas</ToggleButton>
+              </ToggleButtonGroup>
+            ) : (
+              siblings.length > 1 ? (
+                <Box sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: { xs: 0.125, sm: 0.5 }
+                }}>
+                  {siblings.map(item => {
+                    const isActive = currentPath === item.path || currentPath.startsWith(item.path + '/');
+                    return isMobile ? (
+                      // Versión simplificada para móvil
+                      <Tooltip key={item.path} title={item.title}>
+                        <IconButton
+                          onClick={() => navigate(item.path)}
+                          size="small"
+                          sx={{
+                            bgcolor: 'transparent',
+                            color: isActive ? 'primary.main' : 'text.secondary',
+                            borderRadius: '50%',
+                            padding: 0.25,
+                            minWidth: 32,
+                            height: 32,
+                            position: 'relative',
+                            '&::after': isActive ? {
+                              content: '""',
+                              position: 'absolute',
+                              top: '50%',
+                              left: '50%',
+                              transform: 'translate(-50%, -50%)',
+                              width: 23,
+                              height: 23,
+                              borderRadius: '50%',
+                              bgcolor: 'action.selected',
+                              zIndex: -1
+                            } : {},
+                            '&:hover': {
+                              color: 'primary.main',
+                              bgcolor: isActive ? 'transparent' : 'action.hover',
+                            }
+                          }}
+                        >
+                          {React.createElement(getIconByKey(item.icon), { sx: { fontSize: 14 } })}
+                        </IconButton>
+                      </Tooltip>
+                    ) : (
+                      <ClickableIcon
+                        key={item.path}
+                        iconKey={item.icon}
+                        title={item.title}
                         onClick={() => navigate(item.path)}
+                        isActive={isActive}
                         size="small"
                         sx={{
-                          bgcolor: 'transparent',
-                          color: isActive ? 'primary.main' : 'text.secondary',
-                          borderRadius: '50%',
-                          padding: 0.25,
-                          minWidth: 32,
-                          height: 32,
-                          position: 'relative',
-                          '&::after': isActive ? {
-                            content: '""',
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            width: 23,
-                            height: 23,
-                            borderRadius: '50%',
-                            bgcolor: 'action.selected',
-                            zIndex: -1
-                          } : {},
-                          '&:hover': {
-                            color: 'primary.main',
-                            bgcolor: isActive ? 'transparent' : 'action.hover',
-                          }
+                          fontSize: 18,
+                          flexShrink: 0
                         }}
-                      >
-                        {React.createElement(getIconByKey(item.icon), { sx: { fontSize: 14 } })}
-                      </IconButton>
-                    </Tooltip>
-                  ) : (
-                    <ClickableIcon
-                      key={item.path}
-                      iconKey={item.icon}
-                      title={item.title}
-                      onClick={() => navigate(item.path)}
-                      isActive={isActive}
-                      size="small"
-                      sx={{
-                        fontSize: 18,
-                        flexShrink: 0
-                      }}
-                    />
-                  );
-                })}
-              </Box>
-            ) : null
+                      />
+                    );
+                  })}
+                </Box>
+              ) : null
+            )
           )}
         </CenteredTrack>
 
@@ -383,6 +408,7 @@ export default function Toolbar({
           })}
           {/* Children */}
           {!isMobile && children}
+
           {/* Botón de sincronización de MercadoPago en Cuentas */}
           {(currentPath === '/finanzas/cuentas') && (
             <Tooltip title="Sincronizar">
@@ -405,6 +431,34 @@ export default function Toolbar({
                     <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.96-.69 2.79l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm-6.77.23L3.77 5.69C2.46 7.97 2 9.43 2 11c0 4.42 3.58 8 8 8v3l4-4-4-4v3c-3.31 0-6-2.69-6-6 0-1.01.25-1.96.69-2.79z"/>
                   </svg>
                 )), { sx: { fontSize: 18 } })}
+              </IconButton>
+            </Tooltip>
+          )}
+
+          {/* Toggle Mostrar Completadas (sin texto) para /tareas */}
+          {(currentPath === '/tiempo/tareas' || currentPath.startsWith('/tiempo/tareas/') ||
+            currentPath === '/tareas' || currentPath.startsWith('/tareas/')) && (
+            <Tooltip title={showCompletedToolbar ? "Ocultar completadas" : "Mostrar completadas"}>
+              <IconButton
+                size="small"
+                onClick={() => {
+                  const v = !showCompletedToolbar;
+                  setShowCompletedToolbar(v);
+                  window.dispatchEvent(new CustomEvent('setShowCompleted', { detail: { value: v } }));
+                }}
+                sx={{
+                  ml: 0.5,
+                  color: showCompletedToolbar ? 'primary.main' : 'text.secondary',
+                  opacity: showCompletedToolbar ? 1 : 0.75,
+                  '&:hover': {
+                    backgroundColor: 'action.hover',
+                    color: 'primary.main',
+                    opacity: 1
+                  },
+                  transition: 'all 0.2s ease-in-out'
+                }}
+              >
+                {showCompletedToolbar ? <CheckCircle sx={{ fontSize: 18 }} /> : <CheckCircleOutline sx={{ fontSize: 18 }} />}
               </IconButton>
             </Tooltip>
           )}
