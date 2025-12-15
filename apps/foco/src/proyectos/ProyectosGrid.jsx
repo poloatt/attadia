@@ -25,12 +25,14 @@ import {
   MoreVert as MoreVertIcon,
   Add as AddIcon,
 } from '@mui/icons-material';
+ import { TableContainer, Table, TableBody } from '@mui/material';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { EmptyState } from '@shared/components/common';
 import clienteAxios from '@shared/config/axios';
 import { useSnackbar } from 'notistack';
 import TareaActions from './TareaActions';
+import { TareaRow } from './TareasTable';
 import { addDays, addWeeks, addMonths, isWeekend, startOfMonth } from 'date-fns';
 import { useResponsive } from '@shared/hooks';
 import { useValuesVisibility } from '@shared/context';
@@ -404,15 +406,11 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory })
         </Box>
         <Typography 
           variant="caption" 
-          sx={{ 
-            color: getEstadoColor(tareaLocal.estado, 'TAREA')
-          }}
+          sx={{ color: 'text.secondary', minWidth: 80, textAlign: 'right' }}
         >
-          {tareaLocal.estado === 'COMPLETADA' 
-            ? 'Completada' 
-            : tareaLocal.estado === 'EN_PROGRESO' 
-              ? 'En Progreso' 
-              : 'Pendiente'}
+          {tareaLocal.fechaVencimiento
+            ? format(new Date(tareaLocal.fechaVencimiento), 'dd MMM yyyy', { locale: es })
+            : '—'}
         </Typography>
       </Box>
 
@@ -796,36 +794,39 @@ const ProyectoItem = ({
           },
         }}>
           {Array.isArray(proyecto.tareas) && proyecto.tareas.length > 0 ? (
-            <Stack spacing={1}>
-              {[...proyecto.tareas]
-                .filter(t => !t.completada)
-                .sort((a, b) => {
-                  // Primero ordenar por estado
-                  const estadoOrden = {
-                    'EN_PROGRESO': 0,
-                    'PENDIENTE': 1,
-                    'COMPLETADA': 2
-                  };
-                  
-                  if (estadoOrden[a.estado] !== estadoOrden[b.estado]) {
-                    return estadoOrden[a.estado] - estadoOrden[b.estado];
-                  }
-
-                  // Si tienen el mismo estado, ordenar por fecha
-                  const fechaA = a.fechaVencimiento ? new Date(a.fechaVencimiento) : new Date(a.fechaInicio);
-                  const fechaB = b.fechaVencimiento ? new Date(b.fechaVencimiento) : new Date(b.fechaInicio);
-                  return fechaA - fechaB;
-                })
-                .map((tarea) => (
-                  <TareaItem
-                    key={tarea._id || tarea.id}
-                    tarea={tarea}
-                    onUpdateTarea={onUpdateTarea}
-                    showValues={showValues}
-                    updateTareaWithHistory={updateTareaWithHistory}
-                  />
-                ))}
-            </Stack>
+            <TableContainer component={Box} sx={{ width: '100%' }}>
+              <Table sx={{ width: '100%' }} size="small">
+                <TableBody>
+                  {[...proyecto.tareas]
+                    .filter(t => !t.completada)
+                    .sort((a, b) => {
+                      const estadoOrden = { 'EN_PROGRESO': 0, 'PENDIENTE': 1, 'COMPLETADA': 2 };
+                      if (estadoOrden[a.estado] !== estadoOrden[b.estado]) {
+                        return estadoOrden[a.estado] - estadoOrden[b.estado];
+                      }
+                      const fechaA = a.fechaVencimiento ? new Date(a.fechaVencimiento) : new Date(a.fechaInicio);
+                      const fechaB = b.fechaVencimiento ? new Date(b.fechaVencimiento) : new Date(b.fechaInicio);
+                      return fechaA - fechaB;
+                    })
+                    .map((tarea) => (
+                      <TareaRow
+                        key={tarea._id || tarea.id}
+                        tarea={tarea}
+                        onEdit={() => {}}
+                        onDelete={() => {}}
+                        onUpdateEstado={onUpdateTarea}
+                        isArchive={false}
+                        showValues={showValues}
+                        updateWithHistory={updateTareaWithHistory}
+                        isMultiSelectMode={false}
+                        selectedTareas={[]}
+                        onSelectTarea={() => {}}
+                        onActivateMultiSelect={() => {}}
+                      />
+                    ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           ) : (
             <Typography variant="body2" color="text.secondary" align="center">
               No hay tareas asignadas a este proyecto

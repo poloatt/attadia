@@ -68,7 +68,7 @@ class ProyectosController extends BaseController {
           proyecto: proyecto._id,
           usuario: req.user.id
         })
-        .select('titulo estado fechaInicio prioridad completada') // Reducir campos innecesarios
+        .select('titulo estado fechaInicio fechaVencimiento fechaFin prioridad completada') // Incluir fechas para UI
         // Remover populate de subtareas para reducir datos
         .lean();
 
