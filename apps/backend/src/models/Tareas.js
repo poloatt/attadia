@@ -214,7 +214,13 @@ tareaSchema.methods.clearSyncTimeout = function() {
 
 // Método para actualizar desde Google Tasks
 tareaSchema.methods.updateFromGoogleTask = function(googleTask) {
-  this.titulo = googleTask.title || this.titulo;
+  // Limpiar título: remover prefijos entre corchetes y espacios extra
+  const cleanedTitle = String(googleTask.title || this.titulo || 'Tarea importada')
+    .replace(/^\s*(\[[^\]]+\]\s*)+/g, '')
+    .replace(/\s+(\[[^\]]+\])\s+/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  this.titulo = cleanedTitle || 'Tarea importada';
   this.descripcion = googleTask.notes || this.descripcion;
   this.completada = googleTask.status === 'completed';
   this.estado = googleTask.status === 'completed' ? 'COMPLETADA' : 'PENDIENTE';
