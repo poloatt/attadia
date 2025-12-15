@@ -194,6 +194,24 @@ class GoogleTasksService {
   }
 
   /**
+   * Formatea un error para logs/resultado de forma segura
+   */
+  formatErrorForLog(error) {
+    try {
+      const status = error?.status || error?.code || null;
+      const reason = error?.response?.data?.error?.errors?.[0]?.reason || error?.errors?.[0]?.reason || null;
+      const message = error?.message || error?.response?.data?.error?.message || String(error || '');
+      const details = [];
+      if (status) details.push(`status=${status}`);
+      if (reason) details.push(`reason=${reason}`);
+      details.push(`msg=${message}`);
+      return details.join(' | ');
+    } catch (e) {
+      return String(error?.message || error || 'unknown error');
+    }
+  }
+
+  /**
    * Verifica acceso a TaskList del proyecto; crea una nueva si es inaccesible
    */
   async ensureTaskListAccessible(proyecto, userId) {
@@ -441,6 +459,7 @@ class GoogleTasksService {
         // (ya eliminados arriba, mantenemos lógica por claridad)
 
       let googleTask;
+      let parentGoogleTaskId = tarea.googleTasksSync?.googleTaskId || null;
       
       // Inicializar googleTasksSync si no existe
       if (!tarea.googleTasksSync) {
@@ -482,19 +501,23 @@ class GoogleTasksService {
 
           // Actualizar tarea existente con retry
           if (shouldPatch) {
-          googleTask = await this.executeWithRetry(
-            () => this.tasks.tasks.patch({
-              tasklist: taskListId,
-              task: tarea.googleTasksSync.googleTaskId,
-              requestBody: googleTaskData,
-              fields: 'id,title,status,updated' // Solo campos necesarios
-            }),
-            `actualizar tarea ${tarea.titulo}`,
-            userId
-          );
+            googleTask = await this.executeWithRetry(
+              () => this.tasks.tasks.patch({
+                tasklist: taskListId,
+                task: tarea.googleTasksSync.googleTaskId,
+                requestBody: googleTaskData,
+                fields: 'id,title,status,updated' // Solo campos necesarios
+              }),
+              `actualizar tarea ${tarea.titulo}`,
+              userId
+            );
+            parentGoogleTaskId = googleTask?.data?.id || tarea.googleTasksSync.googleTaskId;
             try {
-              logger.sync?.(`📝 Actualizada tarea: "${tarea.titulo}" ctx=${JSON.stringify({ taskListId, taskId: tarea.googleTasksSync.googleTaskId })}`);
+              logger.sync?.(`📝 Actualizada tarea: "${tarea.titulo}" ctx=${JSON.stringify({ taskListId, taskId: parentGoogleTaskId })}`);
             } catch {}
+          } else {
+            // No hay cambios: asegurar que tenemos el id para subtareas
+            parentGoogleTaskId = tarea.googleTasksSync.googleTaskId;
           }
         } catch (error) {
           // Si la tarea no existe o el ID es inválido/inaccesible, crear una nueva
@@ -525,6 +548,7 @@ class GoogleTasksService {
               'googleTasksSync.googleTaskId': googleTask.data.id,
               'googleTasksSync.googleTaskListId': taskListId
             });
+            parentGoogleTaskId = googleTask.data.id;
           } else {
             throw error; // Re-lanzar otros errores
           }
@@ -546,11 +570,17 @@ class GoogleTasksService {
           'googleTasksSync.googleTaskId': googleTask.data.id,
           'googleTasksSync.googleTaskListId': taskListId
         });
+        parentGoogleTaskId = googleTask.data.id;
       }
 
       // Sincronizar subtareas como tareas hijas en Google Tasks
       if (tarea.subtareas && tarea.subtareas.length > 0) {
-        await this.syncSubtasksToGoogle(tarea.subtareas, taskListId, googleTask.data.id, userId);
+        const parentIdForSubtasks = parentGoogleTaskId || googleTask?.data?.id;
+        if (parentIdForSubtasks) {
+          await this.syncSubtasksToGoogle(tarea.subtareas, taskListId, parentIdForSubtasks, userId);
+        } else {
+          logger.warn(`No se pudo determinar parentGoogleTaskId para subtareas de "${tarea.titulo}"`);
+        }
         
         // Guardar cambios en las subtareas (googleTaskId actualizado)
         await tarea.save();
@@ -564,7 +594,13 @@ class GoogleTasksService {
         'googleTasksSync.syncingStartedAt': null // Limpiar timestamp
       });
 
-      return googleTask.data;
+      // Devolver datos consistentes aun cuando no hubo PATCH/INSERT
+      const resultData = googleTask?.data || {
+        id: parentGoogleTaskId || tarea.googleTasksSync?.googleTaskId || null,
+        title: tarea.titulo,
+        status: tarea.completada ? 'completed' : 'needsAction'
+      };
+      return resultData;
     } catch (error) {
       console.error('Error al sincronizar tarea a Google:', error);
       
@@ -791,7 +827,11 @@ class GoogleTasksService {
         created: 0,
         updated: 0,
         errors: [],
-        skipped: 0
+        skipped: 0,
+        // métricas de limpieza post-import
+        deletedLocalNotInGoogle: 0,
+        dedupLocalGroups: 0,
+        dedupLocalRemoved: 0
       };
 
       logger.sync(`📥 Importando desde ${googleTaskLists.length} TaskLists de Google Tasks`);
@@ -922,6 +962,7 @@ class GoogleTasksService {
             if (toDelete.length > 0) {
               logger.sync(`🧹 Eliminando ${toDelete.length} tareas locales que no existen más en Google`);
               await Promise.allSettled(toDelete.map(t => Tareas.findByIdAndDelete(t._id)));
+              syncResults.deletedLocalNotInGoogle += toDelete.length;
             }
           } catch (cleanupErr) {
             logger.warn?.(`No se pudo limpiar tareas locales inexistentes en Google para "${taskList.title}": ${cleanupErr.message}`);
@@ -960,6 +1001,8 @@ class GoogleTasksService {
               if (remove.length > 0) {
                 logger.sync(`🧹 Dedupe local por título: mantener "${keep.titulo}", eliminar ${remove.length}`);
                 await Promise.allSettled(remove.map(r => Tareas.findByIdAndDelete(r._id)));
+                syncResults.dedupLocalGroups += 1;
+                syncResults.dedupLocalRemoved += remove.length;
               }
             }
           } catch (dedupeErr) {
@@ -1331,7 +1374,8 @@ class GoogleTasksService {
           await this.syncTaskToGoogle(tarea._id, userId);
           results.tareas.toGoogle.success++;
         } catch (error) {
-          results.tareas.toGoogle.errors.push(`${tarea.titulo}: ${error.message}`);
+          const errText = this.formatErrorForLog(error);
+          results.tareas.toGoogle.errors.push(`${tarea.titulo}: ${errText}`);
           logger.error(`Error al sincronizar tarea "${tarea.titulo}":`, error);
             if (this.isQuotaError(error)) {
               results.quotaHit = true;

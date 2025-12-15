@@ -197,6 +197,58 @@ const GoogleTasksConfig = ({ open, onClose }) => {
     }
   };
 
+  // Acciones de auditoría/limpieza por proyecto
+  const [projectName, setProjectName] = useState('');
+  const [applyCleanup, setApplyCleanup] = useState(false);
+
+  const handleAuditProject = async () => {
+    try {
+      if (!projectName) {
+        enqueueSnackbar('Ingresa un nombre de proyecto', { variant: 'warning' });
+        return;
+      }
+      setSyncing(true);
+      const resp = await clienteAxios.post('/api/google-tasks/audit-project', { projectName });
+      enqueueSnackbar('Auditoría completada', { variant: 'info' });
+      setError({
+        type: resp.data.success ? 'info' : 'warning',
+        title: `Auditoría ${resp.data.success ? 'exitosa' : 'con advertencias'}`,
+        message: 'Revisa la salida (consola).',
+        details: (resp.data.output || '').split('\n').filter(Boolean).slice(-5)
+      });
+      // eslint-disable-next-line no-console
+      console.log('[AUDIT OUTPUT]', resp.data.output);
+    } catch (e) {
+      enqueueSnackbar('Error al auditar proyecto', { variant: 'error' });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleCleanupProject = async () => {
+    try {
+      if (!projectName) {
+        enqueueSnackbar('Ingresa un nombre de proyecto', { variant: 'warning' });
+        return;
+      }
+      setSyncing(true);
+      const resp = await clienteAxios.post('/api/google-tasks/cleanup-project', { projectName, apply: applyCleanup });
+      enqueueSnackbar(applyCleanup ? 'Limpieza aplicada' : 'Simulación de limpieza ejecutada', { variant: 'success' });
+      setError({
+        type: resp.data.success ? 'info' : 'warning',
+        title: `Limpieza ${resp.data.success ? 'completada' : 'con advertencias'}`,
+        message: 'Revisa la salida (consola).',
+        details: (resp.data.output || '').split('\n').filter(Boolean).slice(-5)
+      });
+      // eslint-disable-next-line no-console
+      console.log('[CLEANUP OUTPUT]', resp.data.output);
+    } catch (e) {
+      enqueueSnackbar('Error al limpiar proyecto', { variant: 'error' });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleSyncNow = async () => {
     try {
       setSyncing(true);
@@ -519,6 +571,52 @@ const GoogleTasksConfig = ({ open, onClose }) => {
                   {syncing ? 'Limpiando...' : 'Limpiar Duplicados'}
                 </Button>
               </Tooltip>
+
+              {/* Auditoría/Limpieza por proyecto */}
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Auditoría/Limpieza por proyecto
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                  <input
+                    type="text"
+                    placeholder="Nombre del proyecto (ej: Salud)"
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                    style={{ flex: 1, padding: '8px', borderRadius: 6, border: '1px solid #ccc' }}
+                  />
+                </Box>
+                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={handleAuditProject}
+                    disabled={syncing || !projectName}
+                  >
+                    Auditar proyecto
+                  </Button>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        size="small"
+                        checked={applyCleanup}
+                        onChange={(e) => setApplyCleanup(e.target.checked)}
+                      />
+                    }
+                    label={<Typography variant="caption">Aplicar cambios</Typography>}
+                    sx={{ ml: 1 }}
+                  />
+                  <Button
+                    variant="contained"
+                    color="warning"
+                    size="small"
+                    onClick={handleCleanupProject}
+                    disabled={syncing || !projectName}
+                  >
+                    {applyCleanup ? 'Limpiar proyecto' : 'Simular limpieza'}
+                  </Button>
+                </Box>
+              </Box>
             </>
           ) : (
             <Button
