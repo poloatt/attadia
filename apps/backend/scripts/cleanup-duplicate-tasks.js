@@ -19,7 +19,7 @@
 
 import mongoose from 'mongoose';
 import { google } from 'googleapis';
-import { Users, Tareas } from '../src/models/index.js';
+import { Users, Tareas, Proyectos } from '../src/models/index.js';
 import config from '../src/config/config.js';
 
 function parseArgs(argv) {
@@ -49,6 +49,7 @@ const args = parseArgs(process.argv.slice(2));
 const DRY_RUN = args['dry-run'] !== false && args['dry-run'] !== 'false'; // default true
 const GOOGLE_PARENTS = !!args['google-parents'];
 const USER_FILTER = args.user || null;
+<<<<<<< HEAD
 const PROJECT_FILTER = args.project || null;
 
 function normalizeTitle(title) {
@@ -60,6 +61,16 @@ function normalizeTitle(title) {
   return noDiacritics
     .toLowerCase()
     .replace(/[._-]+/g, ' ')
+=======
+const PROJECT_ID = args.project || null;
+const PROJECT_NAME = args['project-name'] || null; // "Salud,Trámites"
+
+function normalizeTitle(title) {
+  return String(title || '')
+    .replace(/^\s*(\[[^\]]+\]\s*)+/g, '') // quitar prefijos [xxx]
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quitar tildes
+    .trim()
+>>>>>>> dev
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
@@ -198,6 +209,7 @@ async function cleanupDuplicateTasks() {
         }
       }
 
+<<<<<<< HEAD
       // Todas las tareas del usuario (opcionalmente filtradas por proyecto)
       const tareaQuery = { usuario: user._id };
       if (PROJECT_FILTER) {
@@ -217,6 +229,26 @@ async function cleanupDuplicateTasks() {
         }
       }
       const tareas = await Tareas.find(tareaQuery).lean(false);
+=======
+      // Proyectos objetivo (opcional)
+      let proyectoIds = null;
+      if (PROJECT_ID || PROJECT_NAME) {
+        const pjQuery = { usuario: user._id };
+        if (PROJECT_ID) pjQuery._id = PROJECT_ID;
+        if (PROJECT_NAME) {
+          const names = PROJECT_NAME.split(',').map(s => s.trim()).filter(Boolean);
+          pjQuery.nombre = { $in: names.map(n => new RegExp(`^${n}$`, 'i')) };
+        }
+        const proyectos = await Proyectos.find(pjQuery).select('_id nombre');
+        proyectoIds = proyectos.map(p => p._id);
+        console.log(`🎯 Proyectos objetivo: ${proyectos.map(p => p.nombre).join(', ') || '(ninguno encontrado)'}`);
+      }
+
+      // Tareas del usuario (limitadas al proyecto si corresponde)
+      const tareasQuery = { usuario: user._id };
+      if (proyectoIds && proyectoIds.length > 0) tareasQuery.proyecto = { $in: proyectoIds };
+      const tareas = await Tareas.find(tareasQuery).lean(false);
+>>>>>>> dev
       console.log(`📋 Tareas totales: ${tareas.length}`);
 
       // 1) Dedupe por googleTaskId
@@ -364,11 +396,9 @@ async function cleanupDuplicateTasks() {
       // 3) Google: dedupe padres por título normalizado (opcional)
       let googleDeleted = 0;
       if (GOOGLE_PARENTS && tasksClient) {
-        // Recoger TaskLists usadas por el usuario en sus tareas
+        // Recoger TaskLists utilizadas por las tareas consideradas
         const taskListIds = Array.from(new Set(
-          tareas
-            .map(t => t.googleTasksSync?.googleTaskListId)
-            .filter(Boolean)
+          tareas.map(t => t.googleTasksSync?.googleTaskListId).filter(Boolean)
         ));
         for (const listId of taskListIds) {
           try {

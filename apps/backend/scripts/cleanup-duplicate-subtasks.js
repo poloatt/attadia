@@ -18,7 +18,7 @@
 
 import mongoose from 'mongoose';
 import { google } from 'googleapis';
-import { Users, Tareas } from '../src/models/index.js';
+import { Users, Tareas, Proyectos } from '../src/models/index.js';
 import config from '../src/config/config.js';
 
 function parseArgs(argv) {
@@ -50,9 +50,13 @@ const args = parseArgs(process.argv.slice(2));
 const DRY_RUN = args['dry-run'] !== false && args['dry-run'] !== 'false'; // default true
 const INCLUDE_GOOGLE = !!args.google;
 const USER_FILTER = args.user || null;
+const PROJECT_ID = args.project || null;
+const PROJECT_NAME = args['project-name'] || null; // puede ser "Salud,Trámites"
 
 function normalizeTitle(title) {
   return String(title || '')
+    .replace(/^\s*(\[[^\]]+\]\s*)+/g, '') // quitar prefijos [xxx]
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quitar tildes
     .trim()
     .replace(/\s{2,}/g, ' ')
     .toLowerCase();
@@ -188,8 +192,29 @@ async function cleanupDuplicateSubtasks() {
         }
       }
 
-      // Buscar tareas del usuario con subtareas
-      const tareas = await Tareas.find({ usuario: user._id, 'subtareas.0': { $exists: true } });
+      // Obtener proyectos objetivo si se pidió filtro
+      let proyectoIds = null;
+      if (PROJECT_ID || PROJECT_NAME) {
+        const pjQuery = { usuario: user._id };
+        if (PROJECT_ID) {
+          pjQuery._id = PROJECT_ID;
+        }
+        if (PROJECT_NAME) {
+          const names = PROJECT_NAME.split(',').map(s => s.trim()).filter(Boolean);
+          // búsqueda case-insensitive
+          pjQuery.nombre = { $in: names.map(n => new RegExp(`^${n}$`, 'i')) };
+        }
+        const proyectos = await Proyectos.find(pjQuery).select('_id nombre');
+        proyectoIds = proyectos.map(p => p._id);
+        console.log(`🎯 Proyectos objetivo: ${proyectos.map(p => p.nombre).join(', ') || '(ninguno encontrado)'}`);
+      }
+
+      // Buscar tareas del usuario con subtareas (y opcionalmente por proyecto)
+      const tareasQuery = { usuario: user._id, 'subtareas.0': { $exists: true } };
+      if (proyectoIds && proyectoIds.length > 0) {
+        tareasQuery.proyecto = { $in: proyectoIds };
+      }
+      const tareas = await Tareas.find(tareasQuery);
       console.log(`📋 Tareas con subtareas: ${tareas.length}`);
 
       let totalRemovedLocal = 0;
