@@ -1,6 +1,8 @@
 import { Users } from '../models/index.js';
 import config from '../config/config.js';
 import autoSyncService from '../services/autoSyncService.js';
+import { spawn } from 'child_process';
+import path from 'path';
 
 // Intentar importar googleapis de forma condicional
 let google = null;
@@ -717,5 +719,85 @@ export const forceAutoSync = async (req, res) => {
       success: false,
       error: 'Error al forzar sincronización'
     });
+  }
+};
+
+/**
+ * Auditoría por proyecto (ejecuta script CLI) y devuelve salida
+ */
+export const auditProject = async (req, res) => {
+  try {
+    const { projectName } = req.body || {};
+    if (!projectName) {
+      return res.status(400).json({ success: false, error: 'projectName es requerido' });
+    }
+    if (!isGoogleTasksEnabled()) {
+      return res.status(503).json({ success: false, error: 'Google Tasks no está disponible' });
+    }
+    const user = req.user;
+    const scriptPath = path.resolve(process.cwd(), 'apps/backend/scripts/audit-google-tasks-consistency.js');
+    const args = [scriptPath, `--user=${user.email || user._id}`, `--project-name=${projectName}`];
+
+    const child = spawn(process.execPath, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    let output = '';
+    let errorOut = '';
+
+    child.stdout.on('data', (data) => { output += data.toString(); });
+    child.stderr.on('data', (data) => { errorOut += data.toString(); });
+
+    child.on('close', (code) => {
+      return res.json({
+        success: code === 0,
+        code,
+        output,
+        error: errorOut || null
+      });
+    });
+  } catch (error) {
+    console.error('Error al auditar proyecto:', error);
+    res.status(500).json({ success: false, error: 'Error al auditar proyecto' });
+  }
+};
+
+/**
+ * Limpieza por proyecto (ejecuta script CLI). Si apply=true, aplica cambios.
+ */
+export const cleanupProject = async (req, res) => {
+  try {
+    const { projectName, apply = false } = req.body || {};
+    if (!projectName) {
+      return res.status(400).json({ success: false, error: 'projectName es requerido' });
+    }
+    if (!isGoogleTasksEnabled()) {
+      return res.status(503).json({ success: false, error: 'Google Tasks no está disponible' });
+    }
+    const user = req.user;
+    const scriptPath = path.resolve(process.cwd(), 'apps/backend/scripts/fix-main-equals-subtasks.js');
+    const args = [
+      scriptPath,
+      `--user=${user.email || user._id}`,
+      `--project-name=${projectName}`,
+      '--google',
+      `--dry-run=${apply ? 'false' : 'true'}`
+    ];
+
+    const child = spawn(process.execPath, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    let output = '';
+    let errorOut = '';
+
+    child.stdout.on('data', (data) => { output += data.toString(); });
+    child.stderr.on('data', (data) => { errorOut += data.toString(); });
+
+    child.on('close', (code) => {
+      return res.json({
+        success: code === 0,
+        code,
+        output,
+        error: errorOut || null
+      });
+    });
+  } catch (error) {
+    console.error('Error al limpiar proyecto:', error);
+    res.status(500).json({ success: false, error: 'Error al limpiar proyecto' });
   }
 };
