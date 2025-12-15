@@ -332,7 +332,7 @@ export const authController = {
 
       if (!req.user) {
         console.error('No se recibió información del usuario');
-        return res.redirect(`${config.frontendUrl}/#/auth/callback?error=no_user_info`);
+        return res.redirect(`${config.frontendUrl}/auth/callback?error=no_user_info`);
       }
 
       // Obtener país del perfil de Google, sesión o body (si está disponible)
@@ -444,7 +444,7 @@ export const authController = {
     } catch (error) {
       console.error('Error en callback de Google:', error);
       const callbackOrigin = req.session?.googleCallbackOrigin || config.frontendUrl;
-      res.redirect(`${callbackOrigin}/#/auth/callback?error=server_error`);
+      res.redirect(`${callbackOrigin}/auth/callback?error=server_error`);
     }
   }
 };

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { clienteAxios } from '../../config/axios.js';
+import clienteAxios from '../../config/axios.js';
 
 function GoogleCallback() {
   const navigate = useNavigate();
@@ -29,8 +29,8 @@ function GoogleCallback() {
         // Configurar el token en axios
         clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-        // Redirigir inmediatamente - la verificación se hará en el contexto
-        navigate('/assets/finanzas');
+        // Redirigir a inicio (flujo legacy no usado)
+        navigate('/');
       } catch (error) {
         console.error('Error en el callback de Google:', error);
         navigate('/auth/error?message=auth_failed');

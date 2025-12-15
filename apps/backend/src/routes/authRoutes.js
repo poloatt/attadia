@@ -109,11 +109,6 @@ router.post('/refresh-token', [
   validateFields
 ], authController.refreshToken);
 
-// Cache para URL de Google por ORIGIN (evitar regenerar constantemente y mezclar apps)
-// Estructura: Map<string origin, { url: string, ts: number }>
-const googleUrlCache = new Map();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
-
 // Rutas de autenticación con Google
 router.get('/google/url', (req, res) => {
   if (!config.google.clientId || !config.google.clientSecret) {
@@ -174,32 +169,14 @@ router.get('/google/url', (req, res) => {
 
   console.log(`🚀 Google Auth iniciado desde: ${origin}`);
 
-  // Usar URL cacheada POR ORIGIN si está disponible y no ha expirado
-  const now = Date.now();
-  const cached = googleUrlCache.get(origin);
-  if (cached && (now - cached.ts) < CACHE_DURATION) {
-    return res.json({ url: cached.url });
-  }
-
   // Determinar la URL de callback correcta según el origen
-  const requestOrigin = req.headers.origin;
   let callbackUrl = config.google.callbackUrl;
   
   // Si hay múltiples URLs separadas por comas, seleccionar la correcta
   if (callbackUrl.includes(',')) {
     const callbackUrls = callbackUrl.split(',').map(url => url.trim());
-    
-    // Mapear orígenes a URLs de callback - usar la misma URL para todas las apps
-    const originToCallback = {
-      'https://foco.attadia.com': callbackUrls[0],
-      'https://atta.attadia.com': callbackUrls[0],
-      'https://pulso.attadia.com': callbackUrls[0],
-      'http://localhost:5173': callbackUrls[0],
-      'http://localhost:5174': callbackUrls[0],
-      'http://localhost:5175': callbackUrls[0]
-    };
-    
-    callbackUrl = originToCallback[requestOrigin] || callbackUrls[0];
+    // Usar la primera URL (mismo criterio que passport) para consistencia
+    callbackUrl = callbackUrls[0];
   }
 
   // Solo loggear en staging/producción
@@ -209,7 +186,7 @@ router.get('/google/url', (req, res) => {
       clientId: config.google.clientId ? 'configurado' : 'no configurado',
       callbackUrl: callbackUrl,
       frontendUrl: config.frontendUrl,
-      origin: requestOrigin
+      origin
     });
   }
 
@@ -238,10 +215,7 @@ router.get('/google/url', (req, res) => {
     `access_type=offline&` +
     `prompt=consent&` +
     `state=${encodeURIComponent(statePayload)}`;
-  
-  // Cachear la URL generada por origin
-  googleUrlCache.set(origin, { url: authUrl, ts: now });
-  
+
   res.json({ url: authUrl });
 });
 

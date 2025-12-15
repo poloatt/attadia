@@ -166,7 +166,7 @@ clienteAxios.interceptors.response.use(
             throw new Error('No refresh token available');
           }
 
-          const response = await clienteAxios.post('/api/auth/refresh', {
+          const response = await clienteAxios.post('/api/auth/refresh-token', {
             refreshToken
           });
           
@@ -184,9 +184,9 @@ clienteAxios.interceptors.response.use(
           delete clienteAxios.defaults.headers.common['Authorization'];
           
           // Redirigir a login solo si no estamos ya ahí
-          if (!window.location.pathname.includes('/login') && 
+          if (!window.location.pathname.includes('/login') &&
               !window.location.pathname.includes('/auth')) {
-            window.location.href = '/#/login';
+            window.location.href = '/login';
           }
         }
       }
