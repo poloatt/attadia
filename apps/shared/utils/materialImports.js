@@ -24,6 +24,7 @@ export {
 export { 
   TextField, 
   Button, 
+  ButtonBase,
   IconButton, 
   Checkbox, 
   Switch, 

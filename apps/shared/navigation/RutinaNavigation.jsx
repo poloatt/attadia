@@ -5,7 +5,6 @@ import {
   NavigateBefore,
   NavigateNext,
   TodayOutlined as TodayIcon,
-  EditOutlined as EditIcon,
   DeleteOutline as DeleteIcon,
   AddOutlined as AddIcon
 } from '@mui/icons-material';
@@ -18,7 +17,6 @@ import { NAV_TYPO } from '../config/uiConstants';
 
 // Componente de navegación entre rutinas (compartido)
 const RutinaNavigation = ({
-  onEdit,
   onAdd,
   rutina,
   loading = false,
@@ -69,6 +67,9 @@ const RutinaNavigation = ({
     if (currentPage >= totalPages || loading) return;
     handleNext();
   }, [currentPage, totalPages, loading, handleNext, limitedLog]);
+
+  const prevDisabled = currentPage <= 1 || loading;
+  const nextDisabled = currentPage >= totalPages || loading;
 
   const goToToday = () => {
     window.dispatchEvent(new CustomEvent('navigate', {
@@ -137,12 +138,18 @@ const RutinaNavigation = ({
               <IconButton
                 size="small"
                 onClick={onPrevious}
-                disabled={currentPage <= 1 || loading}
+                disabled={prevDisabled}
                 sx={{ p: isXs ? '1px' : '2px' }}
                 aria-label="Ir a la rutina anterior"
                 data-testid="prev-button"
               >
-                <NavigateBefore sx={{ color: '#888 !important', fontSize: isXs ? '1rem' : '1.2rem', '&:hover': { color: '#fff !important' } }} />
+                <NavigateBefore
+                  sx={{
+                    color: prevDisabled ? 'rgba(136,136,136,0.3) !important' : '#888 !important',
+                    fontSize: isXs ? '1rem' : '1.2rem',
+                    ...(prevDisabled ? {} : { '&:hover': { color: '#fff !important' } })
+                  }}
+                />
               </IconButton>
             </span>
           </Tooltip>
@@ -179,13 +186,6 @@ const RutinaNavigation = ({
             <span>
               <IconButton size="small" onClick={onAdd} disabled={loading} sx={{ p: isXs ? '1px' : '2px' }} aria-label="Agregar nueva rutina">
                 <AddIcon fontSize="small" sx={{ color: loading ? 'rgba(136,136,136,0.3) !important' : '#888 !important', fontSize: isXs ? '1rem' : undefined, '&:hover': { color: '#fff !important' } }} />
-              </IconButton>
-            </span>
-          </Tooltip>
-          <Tooltip title="Editar">
-            <span>
-              <IconButton size="small" onClick={() => rutina && onEdit && onEdit(rutina)} disabled={loading || !rutina} sx={{ p: isXs ? '1px' : '2px' }} aria-label="Editar rutina">
-                <EditIcon fontSize="small" sx={{ color: (loading || !rutina) ? 'rgba(136,136,136,0.3) !important' : '#888 !important', fontSize: isXs ? '1rem' : undefined, '&:hover': { color: '#fff !important' } }} />
               </IconButton>
             </span>
           </Tooltip>
@@ -238,12 +238,18 @@ const RutinaNavigation = ({
               <IconButton
                 size="small"
                 onClick={onNext}
-                disabled={currentPage >= totalPages || loading}
+                disabled={nextDisabled}
                 sx={{ p: isXs ? '1px' : '2px' }}
                 aria-label="Ir a la rutina siguiente"
                 data-testid="next-button"
               >
-                <NavigateNext sx={{ color: '#888 !important', fontSize: isXs ? '1rem' : '1.2rem', '&:hover': { color: '#fff !important' } }} />
+                <NavigateNext
+                  sx={{
+                    color: nextDisabled ? 'rgba(136,136,136,0.3) !important' : '#888 !important',
+                    fontSize: isXs ? '1rem' : '1.2rem',
+                    ...(nextDisabled ? {} : { '&:hover': { color: '#fff !important' } })
+                  }}
+                />
               </IconButton>
             </span>
           </Tooltip>

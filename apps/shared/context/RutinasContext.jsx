@@ -291,6 +291,27 @@ export const RutinasProvider = ({ children }) => {
     }
   }, [currentPage, totalPages, loading, rutinas, enqueueSnackbar]);
 
+  // Parche local de sección (checkmarks) para que la navegación (% y contadores) se actualice sin refresh global
+  const patchRutinaSection = useCallback((rutinaId, section, nextSectionData) => {
+    if (!rutinaId || !section || !nextSectionData) return;
+
+    setRutinas(prevList => {
+      if (!Array.isArray(prevList)) return prevList;
+      const updated = prevList.map(r => {
+        if (!r || r._id !== rutinaId) return r;
+        return { ...r, [section]: { ...(nextSectionData || {}) } };
+      });
+      // Recalcular historial para PERSONALIZADO y coherencia de completion
+      const { rutinasWithHist } = attachHistorial(updated);
+      return rutinasWithHist;
+    });
+
+    setRutina(prev => {
+      if (!prev || prev._id !== rutinaId) return prev;
+      return { ...prev, [section]: { ...(nextSectionData || {}) } };
+    });
+  }, []);
+
   // Marcar un ítem como completado
   const markItemComplete = useCallback(async (rutinaId, section, data) => {
     if (!rutinaId || !section || !data) {
@@ -301,6 +322,9 @@ export const RutinasProvider = ({ children }) => {
     try {
       // Actualizar en el servidor
       const response = await rutinasService.markComplete(rutinaId, section, data);
+
+      // Reflejar el cambio de checkmarks localmente (para que RutinaNavigation recalcule %)
+      patchRutinaSection(rutinaId, section, data);
       
       // Actualizar completitud localmente
       const index = rutinas.findIndex(r => r._id === rutinaId);
@@ -333,7 +357,7 @@ export const RutinasProvider = ({ children }) => {
       enqueueSnackbar('Error al marcar ítem', { variant: 'error' });
       throw error;
     }
-  }, [rutinas, rutina, enqueueSnackbar]);
+  }, [rutinas, rutina, enqueueSnackbar, patchRutinaSection]);
 
   // Parche local de config para un ítem (refresca SOLO lo necesario sin recargar toda la página)
   const patchRutinaItemConfig = useCallback((rutinaId, section, itemId, nextConfig) => {
@@ -535,6 +559,7 @@ export const RutinasProvider = ({ children }) => {
     handleNext,
     updateItemConfiguration,
     patchRutinaItemConfig,
+    patchRutinaSection,
     deleteRutina,
     syncRutinaWithGlobal
   }), [
@@ -552,6 +577,7 @@ export const RutinasProvider = ({ children }) => {
     handleNext,
     updateItemConfiguration,
     patchRutinaItemConfig,
+    patchRutinaSection,
     deleteRutina,
     syncRutinaWithGlobal
   ]);

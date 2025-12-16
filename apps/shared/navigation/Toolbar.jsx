@@ -98,12 +98,6 @@ export default function Toolbar({
     const currentPage = rutina ? rutinas.findIndex(r => r._id === rutina._id) + 1 : 1;
     const totalPages = rutinas.length;
     
-    // Handlers para las acciones
-    const handleEdit = (rutina) => {
-      // Disparar evento para que la página maneje la edición
-      window.dispatchEvent(new CustomEvent('editRutina', { detail: { rutina } }));
-    };
-    
     const handleAdd = () => {
       // Disparar evento para que la página maneje la adición
       window.dispatchEvent(new CustomEvent('addRutina'));
@@ -117,7 +111,6 @@ export default function Toolbar({
         loading={loading}
         currentPage={currentPage}
         totalPages={totalPages}
-        onEdit={handleEdit}
         onAdd={handleAdd}
       />
     );
