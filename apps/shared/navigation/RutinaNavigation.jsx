@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useRutinas } from '../context/RutinasContext.jsx';
 import { calculateCompletionPercentage } from '../utils/rutinaCalculations';
+import { NAV_TYPO } from '../config/uiConstants';
 
 // Componente de navegación entre rutinas (compartido)
 const RutinaNavigation = ({
@@ -126,11 +127,13 @@ const RutinaNavigation = ({
             </span>
           </Tooltip>
           <Typography
-            variant="body2"
+            variant={isXs ? NAV_TYPO.captionVariant : NAV_TYPO.itemVariant}
             component="div"
             sx={{
               fontWeight: 700,
-              fontSize: isXs ? '0.75rem' : '0.8rem',
+              ...(isXs ? {} : NAV_TYPO.compactBodySx),
+              lineHeight: 1.2,
+              letterSpacing: '0.01em',
               color: '#aaa',
               minWidth: 0,
               maxWidth: { xs: 96, sm: 160, md: 240 },
@@ -187,7 +190,7 @@ const RutinaNavigation = ({
               fontWeight: 500,
               minWidth: { xs: 0, sm: 50 },
               height: 22,
-              '& .MuiChip-label': { px: 1, fontSize: '0.75rem' }
+              '& .MuiChip-label': { px: 1, ...NAV_TYPO.chipLabelSx }
             }}
           />
           <Tooltip title="Rutina siguiente">

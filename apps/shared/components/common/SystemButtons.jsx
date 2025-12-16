@@ -7,7 +7,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useValuesVisibility } from '../../context/ValuesVisibilityContext';
 import MenuIcon from '@mui/icons-material/MenuOutlined';
 import { Refresh as RefreshIcon, Undo as UndoIcon, AddOutlined as AddOutlinedIcon, VisibilityOff as HideValuesIcon, Apps as AppsIcon, ArchiveOutlined as ArchiveIcon } from '@mui/icons-material';
-import { Menu, MenuItem, ListItemText, ListItemIcon, Chip } from '../../utils/materialImports';
+import { Menu, MenuItem, ListItemText, ListItemIcon, Chip, Divider } from '../../utils/materialImports';
+import { SettingsOutlined as SettingsOutlinedIcon } from '@mui/icons-material';
 import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import { modulos } from '../../navigation/menuStructure';
 import { getIconByKey } from '../../navigation/menuIcons';
@@ -528,6 +529,28 @@ function HeaderAppsButton({ iconSx }) {
             </MenuItem>
           );
         })}
+        <Divider />
+        <MenuItem
+          onClick={() => {
+            handleCloseAppsMenu();
+            navigateToAppPath(navigate, '/configuracion');
+          }}
+          sx={{
+            bgcolor: location.pathname.startsWith('/configuracion') ? 'action.selected' : 'transparent',
+            '&:hover': { bgcolor: 'action.hover' }
+          }}
+        >
+          <ListItemIcon>
+            <SettingsOutlinedIcon fontSize="small" sx={{ color: 'white' }} />
+          </ListItemIcon>
+          <ListItemText
+            primary="Configuración"
+            primaryTypographyProps={{
+              fontWeight: location.pathname.startsWith('/configuracion') ? 600 : 400,
+              color: 'white'
+            }}
+          />
+        </MenuItem>
       </Menu>
     </Box>
   );
