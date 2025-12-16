@@ -7,6 +7,7 @@ import SignalWifiOffIcon from '@mui/icons-material/SignalWifiOff';
 import { useState, useEffect } from 'react';
 import clienteAxios from '../config/axios';
 import { useLocation } from 'react-router-dom';
+import { NAV_TYPO } from '../config/uiConstants';
 
 export default function Footer({ isDesktop = false, isSidebarOpen = false }) {
   const [connectionStatus, setConnectionStatus] = useState({
@@ -102,8 +103,8 @@ export default function Footer({ isDesktop = false, isSidebarOpen = false }) {
             color: 'rgba(255, 255, 255, 0.9)',
             border: '1px solid rgba(255, 255, 255, 0.1)',
             '& .MuiChip-label': {
-              fontSize: '0.75rem',
-              px: 1
+              px: 1,
+              ...NAV_TYPO.chipLabelSx
             }
           }}
         />
@@ -121,8 +122,8 @@ export default function Footer({ isDesktop = false, isSidebarOpen = false }) {
             color: 'rgba(255, 255, 255, 0.9)',
             border: '1px solid rgba(255, 255, 255, 0.1)',
             '& .MuiChip-label': {
-              fontSize: '0.75rem',
-              px: 1
+              px: 1,
+              ...NAV_TYPO.chipLabelSx
             }
           }}
         />

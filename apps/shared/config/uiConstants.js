@@ -146,11 +146,13 @@ export const NAV_TYPO = {
   captionVariant: 'caption', // ~0.75rem por defecto en MUI
   // Título principal en Header (ruta/página)
   headerTitleVariant: 'subtitle2',
-  headerTitleSx: { fontWeight: 600 },
+  headerTitleSx: { fontWeight: 600, lineHeight: 1.2, letterSpacing: '0.01em' },
   // Labels en Chips dentro de navegación (footer/rutinas)
-  chipLabelSx: { typography: 'caption' },
+  chipLabelSx: { typography: 'caption', lineHeight: 1.1, letterSpacing: '0.01em' },
   // Bottom navigation suele necesitar un poco más chico para evitar overflow
-  bottomNavLabelSx: { fontSize: '0.75rem' } // unifica y evita el 0.65rem disperso
+  bottomNavLabelSx: { fontSize: '0.75rem', lineHeight: 1.1, letterSpacing: '0.01em' },
+  // Usado en lugares donde body2 queda grande pero no queremos hardcodes sueltos
+  compactBodySx: { fontSize: '0.8rem', lineHeight: 1.2, letterSpacing: '0.01em' }
 };
 
 // ===== BORDER RADIUS =====

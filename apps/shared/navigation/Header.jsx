@@ -18,7 +18,7 @@ import { getIconByKey, icons } from './menuIcons';
 import { modulos } from './menuStructure';
 import { Breadcrumbs } from '../utils/materialImports';
 import useResponsive from '../hooks/useResponsive';
-import { useNavigationState, navigateToAppPath } from '../utils/navigationUtils';
+import { useNavigationState } from '../utils/navigationUtils';
 import { HEADER_CONFIG, NAV_TYPO } from '../config/uiConstants';
 import { getCenteredSectionSx } from './alignmentUtils';
 import { DynamicIcon } from '../components/common/DynamicIcon';
@@ -93,18 +93,16 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
 
     return (
       <AppBar 
-        position="fixed" 
+        position="static"
         color="default" // <-- Forzar uso del color de fondo definido en el theme
         elevation={0}    // <-- Quitar sombra
         sx={{ 
-          zIndex: (theme) => theme.zIndex.drawer + 1, // Header siempre por encima de sidebar
           backgroundColor: '#181818', // <-- Forzar color exacto
           boxShadow: 'none', // <-- Forzar sin sombra
           height: HEADER_CONFIG.height,
-          left: 0, // Header ocupa todo el ancho
           width: '100%', // Header siempre 100% del ancho
           transition: 'none', // Sin transiciones innecesarias
-          top: 0 // Header siempre arriba de todo
+          top: 0 // Header siempre arriba de todo (no-op en static, pero no molesta)
         }}
       >
         <Toolbar 
@@ -186,15 +184,6 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                   {/* Acciones adicionales futuras: colócalas aquí a la izquierda dentro de este grupo */}
                   {/* Undo / Historial */}
                   <SystemButtons.UndoMenu />
-                  {/* Settings */}
-                  <IconButton 
-                    size="small" 
-                    onClick={() => navigateToAppPath(navigate, '/configuracion')} 
-                    aria-label="Configuración"
-                    sx={{ color: 'inherit', '&:hover': { color: 'text.primary' } }}
-                  >
-                    {icons.settings ? <icons.settings sx={{ fontSize: 20 }} /> : <span>⚙️</span>}
-                  </IconButton>
                   {/* Espaciador para empujar Apps al extremo derecho */}
                   <Box sx={{ flexGrow: 1 }} />
                   {/* Apps toggle siempre último y alineado a la derecha */}
@@ -309,14 +298,6 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                     tooltip: 'Deshacer / Historial',
                     disabled: false
                   },
-                   !showEntityToolbarNavigation ? {
-                     key: 'config',
-                     icon: icons.settings ? <icons.settings sx={{ fontSize: 20 }} /> : <span>⚙️</span>,
-                     label: 'Configuración',
-                     tooltip: 'Configuración',
-                     onClick: () => navigate('/configuracion'),
-                     disabled: false
-                   } : null,
                    !showEntityToolbarNavigation && location.pathname.includes('/cuentas') ? {
                      key: 'sync',
                      icon: <AutorenewOutlined sx={{ fontSize: 20, color: 'white' }} />,
@@ -329,6 +310,8 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                   direction="row"
                   size="small"
                 />
+                {/* Apps: siempre visible (también en desktop) */}
+                <SystemButtons.AppsButton />
               </Box>
              )}
             {/* Diálogos modales para sincronizar y agregar cuenta */}
