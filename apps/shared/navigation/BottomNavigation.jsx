@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Paper, Typography } from '@mui/material';
+import { NAV_TYPO } from '../config/uiConstants';
 import { useLocation, Link } from 'react-router-dom';
 import { getIconByKey, isRouteActive } from './menuIcons';
 import { findActiveModule } from '../utils/navigationUtils';
@@ -112,7 +113,7 @@ export default function BottomNavigation() {
                   variant="caption"
                   sx={{
                     color: isActive ? 'primary.main' : 'text.secondary',
-                    fontSize: '0.65rem',
+                    ...NAV_TYPO.bottomNavLabelSx,
                     fontWeight: isActive ? 500 : 400,
                     mt: 0.2
                   }}

@@ -34,8 +34,7 @@ import {
   TuneOutlined,
   ConstructionOutlined, // icono de construcción
   HomeOutlined, // icono de casa para bienes
-  AddOutlined, // icono de agregar
-  EventNoteOutlined // icono de agenda/calendario con nota
+  AddOutlined // icono de agregar
 } from '@mui/icons-material';
 
 export const icons = {
@@ -74,8 +73,7 @@ export const icons = {
   bed: BedOutlined, // icono de cama para habitaciones
   construction: ConstructionOutlined, // icono de construcción
   bienes: HomeOutlined, // icono de casa para bienes
-  add: AddOutlined, // icono de agregar
-  agenda: EventNoteOutlined // icono para Agenda
+  add: AddOutlined // icono de agregar
 };
 
 // Función helper para obtener el icono por clave

@@ -16,7 +16,7 @@ import { useSidebar } from '../context/SidebarContext';
 import { useUISettings } from '../context/UISettingsContext';
 import SidebarResizer from './SidebarResizer';
 import { DynamicIcon } from '../components/common/DynamicIcon';
-import { SIDEBAR_CONFIG, TRANSITIONS, UI_COLORS, Z_INDEX, SPACING, getChildPadding } from '../config/uiConstants';
+import { SIDEBAR_CONFIG, TRANSITIONS, UI_COLORS, Z_INDEX, SPACING, getChildPadding, NAV_TYPO } from '../config/uiConstants';
 import { getIconByKey, icons } from './menuIcons';
 
 export default function Sidebar({ moduloActivo, nivel1Activo }) {
@@ -230,7 +230,7 @@ export default function Sidebar({ moduloActivo, nivel1Activo }) {
                 sx={{ mr: isOpen ? 1 : 0 }}
               />
               {isOpen && (
-                <Box component="span" sx={{ fontSize: '0.875rem' }}>
+                <Box component="span" sx={{ typography: NAV_TYPO.itemVariant }}>
                   Configuración
                 </Box>
               )}
