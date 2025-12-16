@@ -21,6 +21,7 @@ import { useNavigationBar } from '@shared/context';
 import { useValuesVisibility } from '@shared/context';
 import { usePageWithHistory } from '@shared/hooks';
 import { useAgendaFilter } from '../proyectos/useAgendaFilter';
+import RutinasPendientesHoy from '../rutinas/RutinasPendientesHoy';
 
 export function Tareas() {
   const [tareas, setTareas] = useState([]);
@@ -508,20 +509,24 @@ export function Tareas() {
               <CircularProgress />
             </Box>
           ) : (
-            <TareasTable
-              tareas={tareasAgenda}
-              groupingEnabled={true}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onUpdateEstado={handleUpdateEstado}
-              isArchive={false}
-              showValues={showValues}
-              updateWithHistory={updateWithHistory}
-              isMultiSelectMode={selectedTareas.length > 0}
-              selectedTareas={selectedTareas}
-              onSelectTarea={handleSelectTarea}
-              onActivateMultiSelect={() => {}} // Ya no necesitamos esta función
-            />
+            <>
+              {/* Rutinas pendientes de hoy (mutuo con página Rutinas via RutinasContext) */}
+              {agendaView === 'ahora' && <RutinasPendientesHoy />}
+              <TareasTable
+                tareas={tareasAgenda}
+                groupingEnabled={true}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onUpdateEstado={handleUpdateEstado}
+                isArchive={false}
+                showValues={showValues}
+                updateWithHistory={updateWithHistory}
+                isMultiSelectMode={selectedTareas.length > 0}
+                selectedTareas={selectedTareas}
+                onSelectTarea={handleSelectTarea}
+                onActivateMultiSelect={() => {}} // Ya no necesitamos esta función
+              />
+            </>
           )}
         </Box>
         {isFormOpen && (
