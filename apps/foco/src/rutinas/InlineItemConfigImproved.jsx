@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Box,
-  ButtonBase,
   Typography,
   TextField,
   Switch,
@@ -13,8 +12,9 @@ import {
 } from '@mui/material';
 import TuneIcon from '@mui/icons-material/Tune';
 import CheckIcon from '@mui/icons-material/Check';
-import { styled } from '@mui/material/styles';
+import { styled, alpha } from '@mui/material/styles';
 import './InlineItemConfigImproved.css';
+import { CancelarTabButton, GuardarTabButton } from '@shared/components/common/SystemButtons';
 
 // Función para normalizar la frecuencia
 const normalizeFrecuencia = (value) => {
@@ -57,7 +57,7 @@ const ConfigContainer = styled(Box)(({ theme }) => ({
   paddingBottom: 0.3,
   paddingLeft: 0,
   paddingRight: 0,
-  background: theme.palette.background.paper,
+  background: alpha(theme.palette.background.paper, 0.78),
   boxShadow: 'none',
   transition: 'border-color 0.2s',
 }));
@@ -163,36 +163,6 @@ const InlineItemConfigImproved = ({
   }, [originalConfig]);
 
   const cadenciaLabel = useMemo(() => getFrecuenciaLabel(configState), [configState]);
-
-  const actionTabSx = useMemo(() => ({
-    cursor: 'pointer',
-    px: 0.8,
-    py: 0.4,
-    fontWeight: 700,
-    fontSize: '0.78em',
-    color: '#fff',
-    background: 'rgba(255,255,255,0.06)',
-    borderLeft: '3px solid rgba(25, 118, 210, 0.6)',
-    borderRadius: 0,
-    transition: 'background 0.2s, color 0.2s',
-    '&:hover': {
-      background: 'rgba(255,255,255,0.12)',
-      color: '#fff'
-    },
-    '&.Mui-disabled': {
-      opacity: 0.5,
-      cursor: 'not-allowed'
-    }
-  }), []);
-
-  const actionPrimaryTabSx = useMemo(() => ({
-    ...actionTabSx,
-    background: 'rgba(25, 118, 210, 0.18)',
-    borderLeft: '3px solid #1976d2',
-    '&:hover': {
-      background: 'rgba(25, 118, 210, 0.28)'
-    }
-  }), [actionTabSx]);
 
   const handleConfigChange = (newConfig) => {
     console.log('[InlineItemConfigImproved] Aplicando cambio:', newConfig);
@@ -417,29 +387,33 @@ const InlineItemConfigImproved = ({
             )}
           </Box>
 
-          {/* Acciones mínimas dentro del recuadro (debajo de la frecuencia) */}
-          {hasChanges && (
-            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', mt: 0.6 }}>
-              <ButtonBase
-                onClick={handleCancel}
-                disabled={isSaving}
-                sx={actionTabSx}
-              >
-                Deshacer
-              </ButtonBase>
-              <ButtonBase
-                onClick={() => handleSave('today')}
-                disabled={isSaving}
-                sx={actionPrimaryTabSx}
-              >
-                {isSaving ? 'Guardando...' : 'Guardar'}
-              </ButtonBase>
-            </Box>
-          )}
-
-          {/* Indicador de éxito cuando se guarda (compacto, dentro del recuadro) */}
-          {!hasChanges && isSaving && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 0.6 }}>
+          {/* Footer reservado: evita que el contenido "salte" cuando aparecen botones / feedback */}
+          <Box
+            sx={{
+              mt: 0.6,
+              minHeight: 28, // reservar espacio para botones / feedback (sin mover el panel)
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}
+          >
+            {/* Acciones mínimas dentro del recuadro (debajo de la frecuencia) */}
+            {hasChanges ? (
+              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                <CancelarTabButton
+                  onClick={handleCancel}
+                  disabled={isSaving}
+                  sx={{ px: 0.8, py: 0.4, fontSize: '0.78em' }}
+                />
+                <GuardarTabButton
+                  onClick={() => handleSave('today')}
+                  disabled={isSaving}
+                  loading={isSaving}
+                  sx={{ px: 0.8, py: 0.4, fontSize: '0.78em' }}
+                />
+              </Box>
+            ) : isSaving ? (
+              /* Indicador de éxito cuando se guarda (compacto, dentro del recuadro) */
               <Typography
                 variant="caption"
                 sx={{
@@ -454,8 +428,8 @@ const InlineItemConfigImproved = ({
                 <CheckIcon sx={{ fontSize: '1rem' }} />
                 Configuración guardada
               </Typography>
-            </Box>
-          )}
+            ) : null}
+          </Box>
         </Box>
       </Box>
     </ConfigContainer>

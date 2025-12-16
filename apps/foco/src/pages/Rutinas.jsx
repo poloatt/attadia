@@ -90,10 +90,7 @@ const RutinasWithContext = () => {
   };
 
   // Handler para editar rutina existente
-  const handleEditRutina = (rutina) => {
-    setRutinaToEdit(rutina);
-    setEditMode(true);
-  };
+  // Nota UX: ya no se edita la rutina desde un formulario (la configuración se ajusta en la página principal)
 
   // Exponer el contexto de rutinas a nivel global para compatibilidad
   useEffect(() => {
@@ -106,20 +103,13 @@ const RutinasWithContext = () => {
 
   // Event listeners para manejar acciones desde la navegación específica
   useEffect(() => {
-    const handleEditRutinaEvent = (event) => {
-      const { rutina } = event.detail;
-      handleEditRutina(rutina);
-    };
-
     const handleAddRutinaEvent = () => {
       handleAddRutina();
     };
 
-    window.addEventListener('editRutina', handleEditRutinaEvent);
     window.addEventListener('addRutina', handleAddRutinaEvent);
 
     return () => {
-      window.removeEventListener('editRutina', handleEditRutinaEvent);
       window.removeEventListener('addRutina', handleAddRutinaEvent);
     };
   }, []); // Handlers son estables, no necesitan dependencias
@@ -289,7 +279,6 @@ const RutinasWithContext = () => {
                 _totalPages: totalPages
               }}
               rutinas={rutinas}
-              onEdit={handleEditRutina}
               loading={loading}
               currentPage={currentPage}
               totalPages={totalPages}

@@ -70,7 +70,7 @@ export const RutinaTable = ({
   }, [rutina?.fecha]);
 
   // Funciones del contexto para guardar y enviar configuración
-  const { updateItemConfiguration, patchRutinaItemConfig } = useRutinas();
+  const { updateItemConfiguration, patchRutinaItemConfig, patchRutinaSection } = useRutinas();
 
   // Sincronizar estados con props cuando cambian
   // Consolidar múltiples useEffect para evitar cascadas de re-renders
@@ -391,6 +391,8 @@ export const RutinaTable = ({
       if (typeof onRutinaChange === 'function') {
         onRutinaChange(updatedRutina);
       }
+      // Siempre parchear en el contexto para que la navegación (% completion) se actualice sin refresh
+      patchRutinaSection(rutinaId, seccionId, newData);
       
       // Log para depuración
       // Log eliminado - rutinasService ya muestra tick/cross
@@ -437,6 +439,10 @@ export const RutinaTable = ({
     } catch (error) {
       console.error('[RutinaTable] Error general al marcar como completado:', error);
       enqueueSnackbar('Error al actualizar el estado', { variant: 'error' });
+      // Revertir parche local en caso de error
+      if (rutina && rutina._id === rutinaId) {
+        try { patchRutinaSection(rutinaId, seccionId, rutina?.[seccionId] || {}); } catch {}
+      }
       throw error;
     }
   };

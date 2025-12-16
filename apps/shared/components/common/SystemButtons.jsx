@@ -1,12 +1,12 @@
 import React, { memo, useState, isValidElement } from 'react';
-import { IconButton, Tooltip, Box, Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography } from '../../utils/materialImports';
+import { IconButton, Tooltip, Box, Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, ButtonBase, CircularProgress } from '../../utils/materialImports';
 import { Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon, Add as AddIcon, CheckBoxOutlined as MultiSelectIcon } from '@mui/icons-material';
 import { useSidebar } from '../../context/SidebarContext';
 import { useActionHistory, ACTION_TYPES } from '../../context/ActionHistoryContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useValuesVisibility } from '../../context/ValuesVisibilityContext';
 import MenuIcon from '@mui/icons-material/MenuOutlined';
-import { Refresh as RefreshIcon, Undo as UndoIcon, AddOutlined as AddOutlinedIcon, VisibilityOff as HideValuesIcon, Apps as AppsIcon, ArchiveOutlined as ArchiveIcon } from '@mui/icons-material';
+import { Refresh as RefreshIcon, Undo as UndoIcon, AddOutlined as AddOutlinedIcon, VisibilityOff as HideValuesIcon, Apps as AppsIcon, ArchiveOutlined as ArchiveIcon, Sync as SyncIcon } from '@mui/icons-material';
 import { Menu, MenuItem, ListItemText, ListItemIcon, Chip, Divider } from '../../utils/materialImports';
 import { SettingsOutlined as SettingsOutlinedIcon } from '@mui/icons-material';
 import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
@@ -153,6 +153,79 @@ export const SYSTEM_ICONS = {
   visibility: <VisibilityIcon />,
   add: <AddIcon />
 }; 
+
+// --- Botones estilo "tab" reutilizables (para Rutinas UX) ---
+// Estilo minimalista (sin colores de marca): neutro para match con la UI general
+const baseTabSx = {
+  cursor: 'pointer',
+  px: 1.2,
+  py: 0.6,
+  fontWeight: 700,
+  fontSize: '0.9rem',
+  color: 'rgba(255,255,255,0.85)',
+  borderRadius: 0,
+  transition: 'background 0.2s, color 0.2s',
+  '&.Mui-disabled': { opacity: 0.5, cursor: 'not-allowed' }
+};
+
+export const TabActionButton = ({ children, sx = {}, disabled = false, onClick, ...props }) => (
+  <ButtonBase
+    onClick={onClick}
+    disabled={disabled}
+    sx={{
+      ...baseTabSx,
+      background: 'rgba(255,255,255,0.04)',
+      borderLeft: '2px solid rgba(255,255,255,0.12)',
+      '&:hover': { background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.95)' },
+      ...sx
+    }}
+    {...props}
+  >
+    {children}
+  </ButtonBase>
+);
+
+export const TabPrimaryButton = ({ children, sx = {}, disabled = false, onClick, ...props }) => (
+  <ButtonBase
+    onClick={onClick}
+    disabled={disabled}
+    sx={{
+      ...baseTabSx,
+      background: 'rgba(255,255,255,0.06)',
+      borderLeft: '2px solid rgba(255,255,255,0.22)',
+      '&:hover': { background: 'rgba(255,255,255,0.10)', color: '#fff' },
+      ...sx
+    }}
+    {...props}
+  >
+    {children}
+  </ButtonBase>
+);
+
+// Botones específicos solicitados: "Cancelar" y "Guardar"
+export const CancelarTabButton = ({ onClick, disabled = false, sx = {}, ...props }) => (
+  <TabActionButton
+    onClick={onClick}
+    disabled={disabled}
+    sx={{
+      fontWeight: 500, // Cancelar: acción secundaria, sin negrita
+      color: 'rgba(255,255,255,0.75)',
+      ...sx
+    }}
+    {...props}
+  >
+    Cancelar
+  </TabActionButton>
+);
+
+export const GuardarTabButton = ({ onClick, disabled = false, loading = false, sx = {}, ...props }) => (
+  <TabPrimaryButton onClick={onClick} disabled={disabled || loading} sx={sx} {...props}>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      {loading && <CircularProgress size={18} color="inherit" />}
+      <span>{loading ? 'Guardando...' : 'Guardar'}</span>
+    </Box>
+  </TabPrimaryButton>
+);
 
 // HeaderMenuButton
 function HeaderMenuButton({ sx, disabled = false }) {
@@ -453,6 +526,36 @@ function HeaderArchiveButton({ iconSx, buttonSx }) {
 
 HeaderArchiveButton.isButtonComponent = true;
 
+// HeaderSyncButton - botón reutilizable de sincronización (uso genérico)
+function HeaderSyncButton({ onClick, tooltip = 'Sincronizar', iconSx, buttonSx, disabled = false }) {
+  const btn = (
+    <Tooltip title={tooltip}>
+      <span style={{ display: 'inline-flex' }}>
+        <IconButton
+          size="small"
+          onClick={disabled ? undefined : onClick}
+          disabled={disabled}
+          sx={{
+            width: 32,
+            height: 32,
+            padding: 0.5,
+            color: 'primary.main',
+            '&:hover': { color: 'primary.main', background: 'action.hover' },
+            ...buttonSx
+          }}
+        >
+          <SyncIcon sx={iconSx || { fontSize: 18 }} />
+        </IconButton>
+      </span>
+    </Tooltip>
+  );
+  // Marcar como "botón" para que SystemButtons lo renderice directo (sin anidar IconButtons)
+  btn.type.isButtonComponent = true;
+  return btn;
+}
+
+HeaderSyncButton.isButtonComponent = true;
+
 // HeaderAppsButton - Menú de apps para móvil
 function HeaderAppsButton({ iconSx }) {
   const [appsMenuAnchor, setAppsMenuAnchor] = useState(null);
@@ -583,6 +686,7 @@ SystemButtons.RefreshButton = HeaderRefreshButton;
 SystemButtons.VisibilityButton = HeaderVisibilityButton;
 SystemButtons.UndoMenu = HeaderUndoMenu;
 SystemButtons.ArchiveButton = HeaderArchiveButton;
+SystemButtons.SyncButton = HeaderSyncButton;
 SystemButtons.AppsButton = HeaderAppsButton; 
 
 // Exportar MenuButton explícitamente para uso directo

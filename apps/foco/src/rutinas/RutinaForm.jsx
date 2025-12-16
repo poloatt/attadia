@@ -5,7 +5,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   Typography,
   Box,
   CircularProgress,
@@ -14,12 +13,12 @@ import {
 } from '@mui/material';
 import { useResponsive } from '@shared/hooks';
 import CloseIcon from '@mui/icons-material/Close';
-import SaveIcon from '@mui/icons-material/Save';
 import clienteAxios from '@shared/config/axios';
 import { snackbar } from '@shared/components/common';
 import { CommonDate } from '@shared/components/common';
 import { formatDateForAPI, getNormalizedToday, parseAPIDate } from '@shared/utils';
 import { useRutinas } from '@shared/context';
+import { CancelarTabButton, GuardarTabButton } from '@shared/components/common/SystemButtons';
 
 export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => {
   const { isMobile, theme } = useResponsive();
@@ -154,22 +153,9 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
           borderBottom: `1px solid ${theme.palette.divider}`
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            bgcolor: 'action.selected',
-            borderRadius: '50%',
-            width: 38,
-            height: 38,
-          }}>
-            {/* <EventIcon sx={{ fontSize: 24, color: 'primary.main' }} /> */}
-          </Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-            {isEditing ? 'Editar Rutina' : 'Nueva Rutina'}
-          </Typography>
-        </Box>
+        <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+          {isEditing ? 'Editar Rutina' : 'Nueva Rutina'}
+        </Typography>
         <IconButton
           size="small"
           onClick={onClose}
@@ -187,7 +173,6 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
       </DialogTitle>
       
       <DialogContent
-        dividers
         sx={{
           p: { xs: 1.5, sm: 2 },
           bgcolor: theme.palette.background.default
@@ -195,55 +180,19 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
       >
         <Grid container spacing={0}>
           <Grid item xs={12}>
-            <Box sx={{ mb: 0, width: '100%' }}>
-              <Typography variant="body1" gutterBottom fontWeight={500}>
-                Fecha
-              </Typography>
-              
-                             <CommonDate
-                 label="Selecciona una fecha"
-                 value={formData.fecha}
-                 onChange={handleDateChange}
-                 embedded
-               />
-            </Box>
+            <CommonDate
+              label="Selecciona una fecha"
+              value={formData.fecha}
+              onChange={handleDateChange}
+              embedded
+            />
           </Grid>
         </Grid>
       </DialogContent>
       
-      <DialogActions sx={{ p: 2, bgcolor: theme.palette.background.default, borderTop: `1px solid ${theme.palette.divider}` }}>
-        <Button 
-          onClick={onClose} 
-          color="inherit"
-          sx={{ 
-            borderRadius: 19.2, 
-            textTransform: 'none',
-            color: 'text.secondary',
-            '&:hover': {
-              bgcolor: 'action.hover',
-            }
-          }}
-        >
-          Cancelar
-        </Button>
-        <Button 
-          onClick={handleSubmit} 
-          color="primary" 
-          variant="outlined"
-                     disabled={isSubmitting}
-                     startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <SaveIcon sx={{ fontSize: 20 }} />}
-          sx={{ 
-            borderRadius: 19.2, 
-            textTransform: 'none',
-            borderColor: 'primary.main',
-            '&:hover': {
-              borderColor: 'primary.dark',
-              bgcolor: 'action.hover',
-            }
-          }}
-        >
-          {isEditing ? 'Guardar Cambios' : 'Crear Rutina'}
-        </Button>
+      <DialogActions sx={{ p: 2, bgcolor: theme.palette.background.default }}>
+        <CancelarTabButton onClick={onClose} disabled={isSubmitting} />
+        <GuardarTabButton onClick={handleSubmit} loading={isSubmitting} disabled={isSubmitting} />
       </DialogActions>
     </Dialog>
   );
