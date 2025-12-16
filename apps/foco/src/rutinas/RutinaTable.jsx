@@ -70,7 +70,7 @@ export const RutinaTable = ({
   }, [rutina?.fecha]);
 
   // Funciones del contexto para guardar y enviar configuración
-  const { updateItemConfiguration } = useRutinas();
+  const { updateItemConfiguration, patchRutinaItemConfig } = useRutinas();
 
   // Sincronizar estados con props cuando cambian
   // Consolidar múltiples useEffect para evitar cascadas de re-renders
@@ -183,20 +183,22 @@ export const RutinaTable = ({
 
   // Lógica de visibilidad unificada: se delega a RutinaCard/ChecklistSection vía visibilityUtils
 
-  const handleConfigChange = (seccionId, itemId, newConfig) => {
+  const handleConfigChange = (seccionId, itemId, newConfig, meta = {}) => {
     if (!rutina || !rutina._id) {
       console.error("[RutinaTable] No hay rutina activa para actualizar configuración");
       enqueueSnackbar('No hay rutina activa', { variant: 'error' });
       return;
     }
+
+    const scope = (meta?.scope || 'today').toString(); // 'today' | 'day'
     
     // Verificar si la rutina es de una fecha pasada usando dateUtils
     const rutinaDate = parseAPIDate(rutina.fecha);
     const today = getNormalizedToday();
     
-    if (rutinaDate < today) {
-      console.log(`[RutinaTable] ⚠️ Intento de modificar cadencia en rutina con fecha pasada: ${toISODateString(rutinaDate)}`);
-      enqueueSnackbar('La configuración de cadencia no se puede modificar en rutinas de fechas pasadas. Para cambiar la configuración de este hábito, actualiza tus preferencias globales.', { 
+    if (rutinaDate < today && scope === 'day') {
+      console.log(`[RutinaTable] ⚠️ Intento de modificar cadencia SOLO-ESTE-DÍA en fecha pasada: ${toISODateString(rutinaDate)}`);
+      enqueueSnackbar('No se puede modificar la cadencia en días pasados. Usa “Aplicar desde hoy”.', { 
         variant: 'warning',
         autoHideDuration: 5000
       });
@@ -213,21 +215,32 @@ export const RutinaTable = ({
       activo: newConfig.activo !== undefined ? newConfig.activo : true
     };
     
-    // Solo asignar periodo por defecto si no está definido
-    if (!normalizedConfig.periodo) {
-      console.log(`[RutinaTable] 🔧 Periodo no definido, asignando valor por defecto`);
-      if (normalizedConfig.tipo === 'DIARIO') {
-        normalizedConfig.periodo = 'CADA_DIA';
-      } else if (normalizedConfig.tipo === 'SEMANAL') {
-        normalizedConfig.periodo = 'CADA_SEMANA';
-      } else if (normalizedConfig.tipo === 'MENSUAL') {
-        normalizedConfig.periodo = 'CADA_MES';
-      } else {
-        normalizedConfig.periodo = 'CADA_DIA';
-      }
-    }
+    // Normalizar periodo SIEMPRE para DIARIO/SEMANAL/MENSUAL (evita casos tipo=SEMANAL + periodo=CADA_DIA)
+    if (normalizedConfig.tipo === 'DIARIO') normalizedConfig.periodo = 'CADA_DIA';
+    else if (normalizedConfig.tipo === 'SEMANAL') normalizedConfig.periodo = 'CADA_SEMANA';
+    else if (normalizedConfig.tipo === 'MENSUAL') normalizedConfig.periodo = 'CADA_MES';
+    else if (!normalizedConfig.periodo) normalizedConfig.periodo = 'CADA_DIA';
     
     console.log(`[RutinaTable] ✅ Configuración normalizada:`, JSON.stringify(normalizedConfig));
+
+    // Si estamos en una fecha pasada y el scope es "today", solo actualizamos la plantilla
+    // (y rutinas desde hoy) pero NO tocamos este día pasado.
+    if (rutinaDate < today && scope === 'today') {
+      clienteAxios.put('/api/users/preferences/habits', {
+        habits: { [seccionId]: { [itemId]: normalizedConfig } },
+        applyFrom: 'today'
+      }, { params: { applyFrom: 'today' } })
+        .then(() => {
+          // Refrescar solo este ítem en UI (sin recargar toda la página)
+          if (rutina?._id) patchRutinaItemConfig(rutina._id, seccionId, itemId, normalizedConfig);
+          enqueueSnackbar('Configuración aplicada desde hoy (el pasado no se modifica)', { variant: 'success' });
+        })
+        .catch((error) => {
+          console.error('[RutinaTable] ❌ Error al aplicar preferencia desde hoy:', error);
+          enqueueSnackbar('Error al aplicar desde hoy', { variant: 'error' });
+        });
+      return;
+    }
     
     // Registrar el cambio local a nivel de contexto
     try {
@@ -257,21 +270,40 @@ export const RutinaTable = ({
       });
     }
     
-    // Enviar actualización a través del contexto (gestiona recarga silenciosa)
-    updateItemConfiguration(seccionId, itemId, normalizedConfig)
-      .then((ok) => {
-        if (ok) enqueueSnackbar('Configuración guardada', { variant: 'success' });
-      })
-      .catch(error => {
-        console.error('[RutinaTable] ❌ Error al actualizar configuración:', error);
-        if (typeof onRutinaChange === 'function') {
-          onRutinaChange(rutina);
-        }
-        enqueueSnackbar('Error al actualizar configuración: ' + (error?.message || 'Error desconocido'), { 
-          variant: 'error',
-          autoHideDuration: 5000
+    // Persistencia según alcance:
+    // - day: solo esta rutina (PUT /api/rutinas/:id vía updateItemConfiguration)
+    // - today: actualizar plantilla del usuario y aplicar a rutinas desde hoy (incluye la de hoy)
+    if (scope === 'today') {
+      clienteAxios.put('/api/users/preferences/habits', {
+        habits: { [seccionId]: { [itemId]: normalizedConfig } },
+        applyFrom: 'today'
+      }, { params: { applyFrom: 'today' } })
+        .then(() => {
+          if (rutina?._id) patchRutinaItemConfig(rutina._id, seccionId, itemId, normalizedConfig);
+          enqueueSnackbar('Configuración aplicada desde hoy', { variant: 'success' });
+        })
+        .catch((error) => {
+          console.error('[RutinaTable] ❌ Error al aplicar preferencia desde hoy:', error);
+          enqueueSnackbar('Error al aplicar desde hoy', { variant: 'error' });
+          if (typeof onRutinaChange === 'function') onRutinaChange(rutina);
         });
-      });
+    } else {
+      // Enviar actualización a través del contexto (gestiona recarga silenciosa)
+      updateItemConfiguration(seccionId, itemId, normalizedConfig)
+        .then((ok) => {
+          if (ok) enqueueSnackbar('Configuración guardada', { variant: 'success' });
+        })
+        .catch(error => {
+          console.error('[RutinaTable] ❌ Error al actualizar configuración:', error);
+          if (typeof onRutinaChange === 'function') {
+            onRutinaChange(rutina);
+          }
+          enqueueSnackbar('Error al actualizar configuración: ' + (error?.message || 'Error desconocido'), { 
+            variant: 'error',
+            autoHideDuration: 5000
+          });
+        });
+    }
   };
 
   // Obtener la configuración por defecto para un nuevo ítem basado en el tipo
@@ -615,8 +647,8 @@ export const RutinaTable = ({
                     onChange={(newData) => 
                       handleMarkComplete(rutina._id, 'bodyCare', newData)
                     }
-                    onConfigChange={(itemId, newConfig) => 
-                      handleConfigChange('bodyCare', itemId, newConfig)
+                    onConfigChange={(itemId, newConfig, meta) => 
+                      handleConfigChange('bodyCare', itemId, newConfig, meta)
                     }
                     readOnly={false}
                   />
@@ -633,8 +665,8 @@ export const RutinaTable = ({
                     onChange={(newData) => 
                       handleMarkComplete(rutina._id, 'nutricion', newData)
                     }
-                    onConfigChange={(itemId, newConfig) => 
-                      handleConfigChange('nutricion', itemId, newConfig)
+                    onConfigChange={(itemId, newConfig, meta) => 
+                      handleConfigChange('nutricion', itemId, newConfig, meta)
                     }
                     readOnly={false}
                   />
@@ -651,8 +683,8 @@ export const RutinaTable = ({
                     onChange={(newData) => 
                       handleMarkComplete(rutina._id, 'ejercicio', newData)
                     }
-                    onConfigChange={(itemId, newConfig) => 
-                      handleConfigChange('ejercicio', itemId, newConfig)
+                    onConfigChange={(itemId, newConfig, meta) => 
+                      handleConfigChange('ejercicio', itemId, newConfig, meta)
                     }
                     readOnly={false}
                   />
@@ -669,8 +701,8 @@ export const RutinaTable = ({
                     onChange={(newData) => 
                       handleMarkComplete(rutina._id, 'cleaning', newData)
                     }
-                    onConfigChange={(itemId, newConfig) => 
-                      handleConfigChange('cleaning', itemId, newConfig)
+                    onConfigChange={(itemId, newConfig, meta) => 
+                      handleConfigChange('cleaning', itemId, newConfig, meta)
                     }
                     readOnly={false}
                   />
@@ -684,14 +716,16 @@ export const RutinaTable = ({
   );
 };
 
-// Memoizar RutinaTable para evitar re-renders innecesarios
+// Memoizar RutinaTable sin bloquear updates de configuración:
+// - El comparador anterior ignoraba cambios en `rutina.config` (y otros campos),
+//   dejando la UI “pegada” aunque el backend/estado se actualizara.
 const MemoizedRutinaTable = memo(RutinaTable, (prevProps, nextProps) => {
   return (
-    prevProps.rutina?._id === nextProps.rutina?._id &&
     prevProps.loading === nextProps.loading &&
     prevProps.currentPage === nextProps.currentPage &&
     prevProps.totalPages === nextProps.totalPages &&
-    JSON.stringify(prevProps.rutina?.fecha) === JSON.stringify(nextProps.rutina?.fecha)
+    prevProps.rutina === nextProps.rutina &&
+    prevProps.rutinas === nextProps.rutinas
   );
 });
 

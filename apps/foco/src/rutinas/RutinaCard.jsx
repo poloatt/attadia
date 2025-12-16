@@ -726,7 +726,7 @@ const RutinaCard = ({
           readOnly={readOnly}
           onItemClick={handleItemClick}
           config={config[itemId] || {}}
-          onConfigChange={(newConfig) => onConfigChange(itemId, newConfig)}
+          onConfigChange={(newConfig, meta) => onConfigChange(itemId, newConfig, meta)}
           isSetupOpen={openSetupItemId === itemId}
           onSetupToggle={() => setOpenSetupItemId(openSetupItemId === itemId ? null : itemId)}
         />

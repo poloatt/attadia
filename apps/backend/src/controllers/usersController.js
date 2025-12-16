@@ -1,5 +1,6 @@
-import { Users } from '../models/index.js';
+import { Users, Rutinas } from '../models/index.js';
 import bcrypt from 'bcryptjs';
+import { timezoneUtils } from '../models/BaseSchema.js';
 
 export const usersController = {
   getProfile: async (req, res) => {
@@ -603,13 +604,20 @@ export const usersController = {
           console.log(`[usersController] Actualizando configuración para ${section}.${itemId}:`, config);
           
           // Normalizar los valores de configuración
+          const tipoNorm = (config.tipo || 'DIARIO').toUpperCase();
+          // Para DIARIO/SEMANAL/MENSUAL el periodo debe ser coherente con el tipo.
+          // Para PERSONALIZADO respetamos el periodo enviado (con fallback).
+          const periodoNorm = (() => {
+            if (tipoNorm === 'DIARIO') return 'CADA_DIA';
+            if (tipoNorm === 'SEMANAL') return 'CADA_SEMANA';
+            if (tipoNorm === 'MENSUAL') return 'CADA_MES';
+            return config.periodo || 'CADA_DIA';
+          })();
+
           const normalizedConfig = {
-            tipo: (config.tipo || 'DIARIO').toUpperCase(),
+            tipo: tipoNorm,
             frecuencia: Number(config.frecuencia || 1),
-            periodo: config.periodo || (
-              config.tipo === 'SEMANAL' ? 'CADA_SEMANA' : 
-              config.tipo === 'MENSUAL' ? 'CADA_MES' : 'CADA_DIA'
-            ),
+            periodo: periodoNorm,
             activo: config.activo !== undefined ? config.activo : true,
             diasSemana: config.diasSemana || [],
             diasMes: config.diasMes || [],
@@ -631,10 +639,59 @@ export const usersController = {
       
       // Guardar los cambios
       await user.save();
+
+      // --- Aplicar cambios a rutinas existentes desde HOY (sin tocar el pasado) ---
+      // Se activa vía query (?applyFrom=today) o body (applyFrom: 'today')
+      const applyFrom = (req.query?.applyFrom || req.body?.applyFrom || '').toString().toLowerCase();
+      let appliedToRutinas = null;
+
+      if (applyFrom === 'today') {
+        try {
+          const timezone = timezoneUtils.getUserTimezone(user);
+          const todayStart = timezoneUtils.normalizeToStartOfDay(new Date(), timezone);
+
+          if (todayStart) {
+            const setOps = {};
+            // Setear solo campos de cadencia (preserva contadores/historial del item en Rutinas.config)
+            Object.entries(habits).forEach(([section, items]) => {
+              if (section === '_metadata' || !items || typeof items !== 'object') return;
+              Object.entries(items).forEach(([itemId, config]) => {
+                const normalizedConfig = user.preferences.rutinasConfig?.[section]?.[itemId];
+                if (!normalizedConfig) return;
+
+                setOps[`config.${section}.${itemId}.tipo`] = normalizedConfig.tipo;
+                setOps[`config.${section}.${itemId}.frecuencia`] = normalizedConfig.frecuencia;
+                setOps[`config.${section}.${itemId}.periodo`] = normalizedConfig.periodo;
+                setOps[`config.${section}.${itemId}.activo`] = normalizedConfig.activo;
+                setOps[`config.${section}.${itemId}.diasSemana`] = normalizedConfig.diasSemana || [];
+                setOps[`config.${section}.${itemId}.diasMes`] = normalizedConfig.diasMes || [];
+              });
+            });
+
+            if (Object.keys(setOps).length > 0) {
+              const result = await Rutinas.updateMany(
+                { usuario: req.user.id, fecha: { $gte: todayStart } },
+                { $set: setOps }
+              );
+              appliedToRutinas = {
+                from: todayStart.toISOString(),
+                matched: result.matchedCount ?? result.n ?? 0,
+                modified: result.modifiedCount ?? result.nModified ?? 0
+              };
+            } else {
+              appliedToRutinas = { from: todayStart.toISOString(), matched: 0, modified: 0 };
+            }
+          }
+        } catch (e) {
+          // No romper la respuesta principal si falla la propagación; devolvemos indicador
+          appliedToRutinas = { error: e?.message || 'Error aplicando cambios a rutinas desde hoy' };
+        }
+      }
       
       res.json({
         message: 'Preferencias de hábitos actualizadas correctamente',
         updated: true,
+        appliedToRutinas,
         // Devolver solo los hábitos actualizados
         updatedHabits: Object.entries(habits).reduce((acc, [section, items]) => {
           if (section === '_metadata') return acc;

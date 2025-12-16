@@ -6,6 +6,46 @@ import rutinasService from '../services/rutinasService';
 import { UISettingsContext } from './UISettingsContext';
 import { calculateCompletionPercentage } from '../utils/rutinaCalculations';
 
+// Construye historial de completaciones por sección/ítem a partir del logger por día
+// Forma: historial[section][itemId][YYYY-MM-DD] = true
+const buildHistorialFromRutinas = (rutinasList = []) => {
+  const historial = {
+    bodyCare: {},
+    nutricion: {},
+    ejercicio: {},
+    cleaning: {}
+  };
+
+  const sections = ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'];
+  rutinasList.forEach(r => {
+    let dateStr = null;
+    try {
+      dateStr = toISODateString(parseAPIDate(r.fecha));
+    } catch {
+      dateStr = null;
+    }
+    if (!dateStr) return;
+
+    sections.forEach(section => {
+      const sec = r?.[section];
+      if (!sec || typeof sec !== 'object') return;
+      Object.entries(sec).forEach(([itemId, completed]) => {
+        if (completed !== true) return;
+        if (!historial[section][itemId]) historial[section][itemId] = {};
+        historial[section][itemId][dateStr] = true;
+      });
+    });
+  });
+
+  return historial;
+};
+
+const attachHistorial = (rutinasList = []) => {
+  const historial = buildHistorialFromRutinas(rutinasList);
+  const rutinasWithHist = rutinasList.map(r => ({ ...r, historial }));
+  return { historial, rutinasWithHist };
+};
+
 // Crear el contexto
 const RutinasContext = createContext();
 
@@ -36,6 +76,7 @@ export const RutinasProvider = ({ children }) => {
 
   // Mantener una referencia estable al array de rutinas para evitar dependencias reactivas
   const rutinasRef = React.useRef([]);
+  const ensureTodayAttemptedRef = React.useRef(false);
   useEffect(() => {
     rutinasRef.current = rutinas;
   }, [rutinas]);
@@ -67,15 +108,55 @@ export const RutinasProvider = ({ children }) => {
         const db = parseAPIDate(b.fecha);
         return db - da;
       });
+
+      const { historial, rutinasWithHist } = attachHistorial(rutinasOrdenadas);
       
-      const totalRutinas = rutinasOrdenadas.length;
+      const totalRutinas = rutinasWithHist.length;
       setTotalPages(totalRutinas);
-      setRutinas(rutinasOrdenadas);
+      setRutinas(rutinasWithHist);
       
+      // Auto-crear rutina de hoy si no existe (una vez por sesión, para evitar loops)
+      const todayStr = toISODateString(getNormalizedToday());
+      const hasToday = rutinasWithHist.some(r => {
+        try {
+          return toISODateString(parseAPIDate(r.fecha)) === todayStr;
+        } catch {
+          return false;
+        }
+      });
+
+      if (!hasToday && !ensureTodayAttemptedRef.current) {
+        ensureTodayAttemptedRef.current = true;
+        try {
+          const created = await rutinasService.createRutina({ fecha: todayStr, useGlobalConfig: true });
+          // Refrescar lista y seleccionar la rutina creada
+          const merged = [created, ...rutinasWithHist];
+          const { historial: newHist, rutinasWithHist: mergedWithHist } = attachHistorial(merged);
+          setRutinas(mergedWithHist);
+          setTotalPages(mergedWithHist.length);
+          setRutina({
+            ...created,
+            historial: newHist,
+            _page: 1,
+            _totalPages: mergedWithHist.length
+          });
+          setCurrentPage(1);
+          return; // ya seleccionamos hoy
+        } catch (e) {
+          const status = e?.response?.status;
+          const rutinaId = e?.response?.data?.rutinaId;
+          if (status === 409 && rutinaId) {
+            // Ya existe: cargarla y seleccionarla
+            await getRutinaById(rutinaId);
+            return;
+          }
+          // Si falla, no bloquear UX: se seguirá comportando como antes (sin rutina de hoy)
+        }
+      }
+
       // Seleccionar rutina de hoy o la más reciente
-      if (rutinasOrdenadas.length > 0) {
-        const todayStr = toISODateString(getNormalizedToday());
-        const indexToday = rutinasOrdenadas.findIndex(r => {
+      if (rutinasWithHist.length > 0) {
+        const indexToday = rutinasWithHist.findIndex(r => {
           try {
             return toISODateString(parseAPIDate(r.fecha)) === todayStr;
           } catch {
@@ -83,9 +164,10 @@ export const RutinasProvider = ({ children }) => {
           }
         });
         const selectedIndex = indexToday >= 0 ? indexToday : 0;
-        const selected = rutinasOrdenadas[selectedIndex];
+        const selected = rutinasWithHist[selectedIndex];
         setRutina({
           ...selected,
+          historial,
           _page: selectedIndex + 1,
           _totalPages: totalRutinas
         });
@@ -127,24 +209,27 @@ export const RutinasProvider = ({ children }) => {
         // Si no está en caché, hacer petición al servidor
         const response = await rutinasService.getRutinaById(rutinaId);
         rutinaData = response;
-        
-        // Actualizar el array de rutinas si la rutina no estaba en caché
-        setRutinas(prevRutinas => {
-          const newRutinas = [...prevRutinas];
-          const existingIndex = newRutinas.findIndex(r => r._id === rutinaData._id);
-          
-          if (existingIndex >= 0) {
-            newRutinas[existingIndex] = rutinaData;
-          } else {
-            newRutinas.push(rutinaData);
-          }
-          
-          return newRutinas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+        // Actualizar el array de rutinas y recalcular historial
+        const base = Array.isArray(rutinasRef.current) ? rutinasRef.current : [];
+        const newRutinas = [...base];
+        const existingIndex = newRutinas.findIndex(r => r._id === rutinaData._id);
+        if (existingIndex >= 0) newRutinas[existingIndex] = rutinaData;
+        else newRutinas.push(rutinaData);
+
+        newRutinas.sort((a, b) => {
+          const da = parseAPIDate(a.fecha);
+          const db = parseAPIDate(b.fecha);
+          return db - da;
         });
+
+        const { historial, rutinasWithHist } = attachHistorial(newRutinas);
+        setRutinas(rutinasWithHist);
+        rutinaData = { ...rutinaData, historial };
       }
       
       // Encontrar índice para calcular la página (usando ref estable)
-      const index = rutinasRef.current.findIndex(r => r._id === rutinaId);
+      const index = (rutinasRef.current || []).findIndex(r => r._id === rutinaId);
       const page = index >= 0 ? index + 1 : 1;
       
       // Actualizar la rutina actual
@@ -230,7 +315,8 @@ export const RutinasProvider = ({ children }) => {
             ...nuevasRutinas[index],
             completitud: completitudDecimal
           };
-          return nuevasRutinas;
+          const { rutinasWithHist } = attachHistorial(nuevasRutinas);
+          return rutinasWithHist;
         });
         
         if (rutina && rutina._id === rutinaId) {
@@ -248,6 +334,54 @@ export const RutinasProvider = ({ children }) => {
       throw error;
     }
   }, [rutinas, rutina, enqueueSnackbar]);
+
+  // Parche local de config para un ítem (refresca SOLO lo necesario sin recargar toda la página)
+  const patchRutinaItemConfig = useCallback((rutinaId, section, itemId, nextConfig) => {
+    if (!rutinaId || !section || !itemId || !nextConfig) return;
+
+    // 1) Rutina seleccionada
+    setRutina(prev => {
+      if (!prev || prev._id !== rutinaId) return prev;
+      const prevConfig = prev.config || {};
+      const prevSection = prevConfig[section] || {};
+      return {
+        ...prev,
+        config: {
+          ...prevConfig,
+          [section]: {
+            ...prevSection,
+            [itemId]: {
+              ...(prevSection[itemId] || {}),
+              ...nextConfig
+            }
+          }
+        }
+      };
+    });
+
+    // 2) Lista de rutinas (para que navegación muestre el cambio sin fetch)
+    setRutinas(prevList => {
+      if (!Array.isArray(prevList) || prevList.length === 0) return prevList;
+      return prevList.map(r => {
+        if (!r || r._id !== rutinaId) return r;
+        const rConfig = r.config || {};
+        const rSection = rConfig[section] || {};
+        return {
+          ...r,
+          config: {
+            ...rConfig,
+            [section]: {
+              ...rSection,
+              [itemId]: {
+                ...(rSection[itemId] || {}),
+                ...nextConfig
+              }
+            }
+          }
+        };
+      });
+    });
+  }, []);
 
   // Actualizar configuración de ítems
   const updateItemConfiguration = useCallback(async (section, itemId, config, options = {}) => {
@@ -302,6 +436,8 @@ export const RutinasProvider = ({ children }) => {
       };
 
       await clienteAxios.put(`/api/rutinas/${targetRutinaId}`, updateData);
+      // Reflejar inmediatamente el cambio en UI (sin refresh completo)
+      patchRutinaItemConfig(targetRutinaId, section, itemId, normalizedConfig);
       enqueueSnackbar("Configuración guardada", { variant: "success" });
       return { updated: true, config: normalizedConfig };
         
@@ -309,7 +445,7 @@ export const RutinasProvider = ({ children }) => {
       handleError(error, 'updateItemConfiguration', 'Error inesperado al actualizar configuración');
       return { updated: false, error: error.message };
     }
-  }, [rutina, enqueueSnackbar, handleError, autoUpdateHabitPreferences]);
+  }, [rutina, enqueueSnackbar, handleError, autoUpdateHabitPreferences, patchRutinaItemConfig]);
 
   // Eliminar una rutina
   const deleteRutina = useCallback(async (rutinaId) => {
@@ -322,12 +458,13 @@ export const RutinasProvider = ({ children }) => {
       await rutinasService.deleteRutina(rutinaId);
       setRutinas(prevRutinas => {
         const newRutinas = prevRutinas.filter(r => r._id !== rutinaId);
+        const { rutinasWithHist } = attachHistorial(newRutinas);
         if (rutina && rutina._id === rutinaId) {
-          if (newRutinas.length > 0) {
+          if (rutinasWithHist.length > 0) {
             setRutina({
-              ...newRutinas[0],
+              ...rutinasWithHist[0],
               _page: 1,
-              _totalPages: newRutinas.length
+              _totalPages: rutinasWithHist.length
             });
             setCurrentPage(1);
           } else {
@@ -335,8 +472,8 @@ export const RutinasProvider = ({ children }) => {
             setCurrentPage(1);
           }
         }
-        setTotalPages(newRutinas.length);
-        return newRutinas;
+        setTotalPages(rutinasWithHist.length);
+        return rutinasWithHist;
       });
       enqueueSnackbar('Rutina eliminada correctamente', { variant: 'success' });
       return true;
@@ -397,6 +534,7 @@ export const RutinasProvider = ({ children }) => {
     handlePrevious,
     handleNext,
     updateItemConfiguration,
+    patchRutinaItemConfig,
     deleteRutina,
     syncRutinaWithGlobal
   }), [
@@ -413,6 +551,7 @@ export const RutinasProvider = ({ children }) => {
     handlePrevious,
     handleNext,
     updateItemConfiguration,
+    patchRutinaItemConfig,
     deleteRutina,
     syncRutinaWithGlobal
   ]);

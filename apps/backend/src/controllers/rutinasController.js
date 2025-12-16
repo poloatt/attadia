@@ -128,11 +128,79 @@ class RutinasController extends BaseController {
         });
       }
       
-      let configInicial = {};
+      // --- Construir configuración completa (evitar config vacío/incompleto) ---
+      const seccionesValidas = ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'];
+      const normalizeItemConfig = (cfg = {}, defaultTipo = 'DIARIO') => {
+        const tipo = String(cfg?.tipo || defaultTipo).toUpperCase();
+        const frecuencia = Number(cfg?.frecuencia || 1);
+        const activo = cfg?.activo !== false;
+        const diasSemana = Array.isArray(cfg?.diasSemana) ? cfg.diasSemana : [];
+        const diasMes = Array.isArray(cfg?.diasMes) ? cfg.diasMes : [];
+        // periodo por defecto según tipo
+        const periodo =
+          cfg?.periodo ||
+          (tipo === 'SEMANAL' ? 'CADA_SEMANA' : (tipo === 'MENSUAL' ? 'CADA_MES' : 'CADA_DIA'));
+
+        return {
+          tipo,
+          diasSemana,
+          diasMes,
+          frecuencia: Number.isFinite(frecuencia) ? Math.max(1, frecuencia) : 1,
+          periodo,
+          activo
+        };
+      };
+
+      const buildDefaultFullConfig = () => {
+        const full = {};
+        seccionesValidas.forEach(section => {
+          full[section] = {};
+          const items = Object.keys(this.Model.schema?.obj?.[section] || {});
+          items.forEach(itemId => {
+            full[section][itemId] = normalizeItemConfig({});
+          });
+        });
+        return full;
+      };
+
+      const mergeConfigInto = (target, source) => {
+        if (!source || typeof source !== 'object') return target;
+        seccionesValidas.forEach(section => {
+          if (!source[section] || typeof source[section] !== 'object') return;
+          if (!target[section]) target[section] = {};
+          Object.entries(source[section]).forEach(([itemId, cfg]) => {
+            if (!target[section][itemId]) {
+              // ignorar keys inesperadas que no existan en el schema base
+              // (evita introducir items desconocidos)
+              if (!(itemId in (this.Model.schema?.obj?.[section] || {}))) return;
+              target[section][itemId] = normalizeItemConfig(cfg);
+              return;
+            }
+            target[section][itemId] = {
+              ...target[section][itemId],
+              ...normalizeItemConfig(cfg, target[section][itemId]?.tipo || 'DIARIO')
+            };
+          });
+        });
+        return target;
+      };
+
+      // Base defaults
+      const configCompleta = buildDefaultFullConfig();
+
+      // 1) Si el frontend envía config explícita (RutinaForm), usarla como fuente principal
+      const reqConfig = req.body?.config;
+      const hasReqConfig = reqConfig && typeof reqConfig === 'object' && Object.keys(reqConfig).length > 0;
       
-      // Si se solicita usar la configuración global, obtenerla del usuario
+      // Fuente de config (prioridad): config enviada por cliente > plantilla usuario > defaults
+      if (hasReqConfig) {
+        logger.dev('[rutinasController] Usando config enviada por el cliente al crear rutina');
+        mergeConfigInto(configCompleta, reqConfig);
+      }
+
+      // Si se solicita usar la configuración del usuario, mergearla (sobre defaults y/o request)
       if (useGlobalConfig) {
-        logger.dev('[rutinasController] Usando configuración global del usuario para nueva rutina');
+        logger.dev('[rutinasController] Mergeando configuración de usuario (si existe) para nueva rutina');
         
         try {
           const usuario = await Users.findById(req.user.id)
@@ -148,52 +216,10 @@ class RutinasController extends BaseController {
             
             logger.dev(`[rutinasController] Aplicando configuración global versión ${configVersion}`);
             
-            // Inicializar las secciones de config
-            configInicial = {
-              bodyCare: {},
-              nutricion: {},
-              ejercicio: {},
-              cleaning: {},
-              _source: {
-                type: 'GLOBAL',
-                version: configVersion,
-                appliedAt: new Date()
-              }
-            };
-            
-            // Copiar cada configuración de ítem de la configuración global a la rutina
-            Object.keys(globalConfig).forEach(seccion => {
-              // Omitir secciones de metadatos
-              if (seccion === '_metadata' || seccion === '_id') return;
-              
-              if (!configInicial[seccion]) {
-                configInicial[seccion] = {};
-              }
-              
-              if (globalConfig[seccion]) {
-                Object.keys(globalConfig[seccion]).forEach(item => {
-                  // Omitir si el item es _id o buffer
-                  if (item === '_id' || item === 'buffer') return;
-                  
-                  if (globalConfig[seccion][item]) {
-                    // Asegurar que cada ítem de configuración tiene el formato correcto
-                    // y que la frecuencia siempre sea un número
-                    const frecuencia = globalConfig[seccion][item].frecuencia;
-                    configInicial[seccion][item] = {
-                      tipo: (globalConfig[seccion][item].tipo || 'DIARIO').toUpperCase(),
-                      frecuencia: Number(frecuencia || 1),
-                      periodo: globalConfig[seccion][item].periodo || 'CADA_DIA',
-                      diasSemana: globalConfig[seccion][item].diasSemana || [],
-                      diasMes: globalConfig[seccion][item].diasMes || [],
-                      activo: globalConfig[seccion][item].activo !== false,
-                      _source: 'GLOBAL' // Marcar este ítem como heredado de configuración global
-                    };
-                    
-                    // Evitar spam de logs por cada ítem
-                  }
-                });
-              }
-            });
+            // Merge de plantilla del usuario sobre defaults completos
+            mergeConfigInto(configCompleta, globalConfig);
+            // Nota: guardamos versión solo en logs (schema Rutinas.config no define _metadata)
+            logger.dev('[rutinasController] Config aplicada desde plantilla usuario', { version: configVersion });
           } else {
             logger.dev('[rutinasController] No se encontró configuración global, usando valores predeterminados');
           }
@@ -211,7 +237,7 @@ class RutinasController extends BaseController {
         // Guardar SIEMPRE la fecha normalizada al inicio del día del usuario
         fecha: fechaNormalizada,
         usuario: req.user.id,
-        config: configInicial || {}
+        config: configCompleta
       });
 
       await nuevaRutina.save();
@@ -230,12 +256,57 @@ class RutinasController extends BaseController {
       res.status(201).json(rutinaResponse);
     } catch (error) {
       console.error('[rutinasController] Error al crear rutina:', error);
+      // Manejo de error de validación de duplicado desde hooks del modelo
+      if (error?.message && String(error.message).includes('Ya existe una rutina para esta fecha')) {
+        try {
+          // Intentar recuperar el id existente para que el frontend pueda abrirlo
+          const user = await Users.findById(req.user.id).select('preferences.timezone');
+          const timezone = timezoneUtils.getUserTimezone(user);
+          const fechaInput = req.body.fecha;
+          const isYMD = typeof fechaInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fechaInput);
+          const fechaRutina = fechaInput ? (isYMD ? fechaInput : new Date(fechaInput)) : new Date();
+          const fechaNormalizada = timezoneUtils.normalizeToStartOfDay(fechaRutina, timezone);
+          const existingRutina = fechaNormalizada
+            ? await this.Model.findOne({ fecha: fechaNormalizada, usuario: req.user.id }).select('_id fecha')
+            : null;
+
+          return res.status(409).json({
+            error: 'Ya existe una rutina para esta fecha',
+            code: 'RUTINA_DUPLICADA',
+            rutinaId: existingRutina?._id,
+            fecha: existingRutina?.fecha
+          });
+        } catch (_) {
+          return res.status(409).json({
+            error: 'Ya existe una rutina para esta fecha',
+            code: 'RUTINA_DUPLICADA'
+          });
+        }
+      }
       // Manejo específico de duplicados por índice único (race condition)
       if (error && (error.code === 11000 || error.name === 'MongoServerError' && error.message?.includes('E11000'))) {
-        return res.status(409).json({
-          error: 'Ya existe una rutina para esta fecha',
-          code: 'RUTINA_DUPLICADA'
-        });
+        try {
+          const user = await Users.findById(req.user.id).select('preferences.timezone');
+          const timezone = timezoneUtils.getUserTimezone(user);
+          const fechaInput = req.body.fecha;
+          const isYMD = typeof fechaInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fechaInput);
+          const fechaRutina = fechaInput ? (isYMD ? fechaInput : new Date(fechaInput)) : new Date();
+          const fechaNormalizada = timezoneUtils.normalizeToStartOfDay(fechaRutina, timezone);
+          const existingRutina = fechaNormalizada
+            ? await this.Model.findOne({ fecha: fechaNormalizada, usuario: req.user.id }).select('_id fecha')
+            : null;
+          return res.status(409).json({
+            error: 'Ya existe una rutina para esta fecha',
+            code: 'RUTINA_DUPLICADA',
+            rutinaId: existingRutina?._id,
+            fecha: existingRutina?.fecha
+          });
+        } catch (_) {
+          return res.status(409).json({
+            error: 'Ya existe una rutina para esta fecha',
+            code: 'RUTINA_DUPLICADA'
+          });
+        }
       }
 
       res.status(500).json({

@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useRef, useCallback } from 'react';
+import React, { memo, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Box, IconButton, Typography, Chip, Tooltip, LinearProgress, useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import {
@@ -13,7 +13,7 @@ import { parseAPIDate } from '../utils/dateUtils.js';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useRutinas } from '../context/RutinasContext.jsx';
-import { calculateCompletionPercentage } from '../utils/rutinaCalculations';
+import { calculateCompletionPercentage, calculateVisibleItems } from '../utils/rutinaCalculations';
 import { NAV_TYPO } from '../config/uiConstants';
 
 // Componente de navegación entre rutinas (compartido)
@@ -82,12 +82,30 @@ const RutinaNavigation = ({
     }
   };
 
-  const completionPercentage = rutina ? calculateCompletionPercentage(rutina) : 0;
+  const { completionPercentage, totalVisible, totalCompleted } = useMemo(() => {
+    if (!rutina) return { completionPercentage: 0, totalVisible: 0, totalCompleted: 0 };
+    const completionPercentage = calculateCompletionPercentage(rutina);
+    const { visibleItems, completedItems } = calculateVisibleItems(rutina);
+    return {
+      completionPercentage,
+      totalVisible: visibleItems.length,
+      totalCompleted: completedItems.length
+    };
+  }, [rutina]);
+
   const progressColor = completionPercentage > 75
     ? 'success'
     : completionPercentage > 40
       ? 'primary'
       : 'warning';
+
+  const completionLabel = totalVisible > 0
+    ? `${completionPercentage}%`
+    : '—';
+
+  const completionTooltip = totalVisible > 0
+    ? `${totalCompleted}/${totalVisible} completados`
+    : 'Sin ítems activos';
 
   return (
     <Box sx={{ mb: 1 }}>
@@ -95,6 +113,7 @@ const RutinaNavigation = ({
         variant="determinate"
         value={completionPercentage}
         color={progressColor}
+        aria-label="Progreso de completitud de la rutina"
         sx={{ height: 2, borderRadius: 0, mb: 1 }}
       />
 
@@ -120,6 +139,7 @@ const RutinaNavigation = ({
                 onClick={onPrevious}
                 disabled={currentPage <= 1 || loading}
                 sx={{ p: isXs ? '1px' : '2px' }}
+                aria-label="Ir a la rutina anterior"
                 data-testid="prev-button"
               >
                 <NavigateBefore sx={{ color: '#888 !important', fontSize: isXs ? '1rem' : '1.2rem', '&:hover': { color: '#fff !important' } }} />
@@ -150,28 +170,28 @@ const RutinaNavigation = ({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: isXs ? 0.5 : 0.75, flex: 1, justifyContent: 'center', minWidth: 0 }}>
           <Tooltip title="Ir a hoy">
             <span>
-              <IconButton size="small" onClick={goToToday} disabled={loading} sx={{ p: isXs ? '1px' : '2px' }}>
+              <IconButton size="small" onClick={goToToday} disabled={loading} sx={{ p: isXs ? '1px' : '2px' }} aria-label="Ir a la rutina de hoy">
                 <TodayIcon sx={{ color: loading ? 'rgba(136,136,136,0.3) !important' : '#888 !important', fontSize: isXs ? '1rem' : undefined, '&:hover': { color: '#fff !important' } }} />
               </IconButton>
             </span>
           </Tooltip>
           <Tooltip title="Agregar nueva rutina">
             <span>
-              <IconButton size="small" onClick={onAdd} disabled={loading} sx={{ p: isXs ? '1px' : '2px' }}>
+              <IconButton size="small" onClick={onAdd} disabled={loading} sx={{ p: isXs ? '1px' : '2px' }} aria-label="Agregar nueva rutina">
                 <AddIcon fontSize="small" sx={{ color: loading ? 'rgba(136,136,136,0.3) !important' : '#888 !important', fontSize: isXs ? '1rem' : undefined, '&:hover': { color: '#fff !important' } }} />
               </IconButton>
             </span>
           </Tooltip>
           <Tooltip title="Editar">
             <span>
-              <IconButton size="small" onClick={() => rutina && onEdit && onEdit(rutina)} disabled={loading || !rutina} sx={{ p: isXs ? '1px' : '2px' }}>
+              <IconButton size="small" onClick={() => rutina && onEdit && onEdit(rutina)} disabled={loading || !rutina} sx={{ p: isXs ? '1px' : '2px' }} aria-label="Editar rutina">
                 <EditIcon fontSize="small" sx={{ color: (loading || !rutina) ? 'rgba(136,136,136,0.3) !important' : '#888 !important', fontSize: isXs ? '1rem' : undefined, '&:hover': { color: '#fff !important' } }} />
               </IconButton>
             </span>
           </Tooltip>
           <Tooltip title="Eliminar">
             <span>
-              <IconButton size="small" onClick={handleDelete} disabled={loading || !rutina} sx={{ p: isXs ? '1px' : '2px' }}>
+              <IconButton size="small" onClick={handleDelete} disabled={loading || !rutina} sx={{ p: isXs ? '1px' : '2px' }} aria-label="Eliminar rutina">
                 <DeleteIcon fontSize="small" sx={{ color: (loading || !rutina) ? 'rgba(136,136,136,0.3) !important' : '#888 !important', fontSize: isXs ? '1rem' : undefined, '&:hover': { color: '#fff !important' } }} />
               </IconButton>
             </span>
@@ -180,19 +200,39 @@ const RutinaNavigation = ({
 
         {/* Derecha: porcentaje + siguiente */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: isXs ? 0.5 : 0.75, minWidth: 0 }}>
-          <Chip
-            size="small"
-            label={`${completionPercentage}%`}
-            variant="outlined"
-            color={progressColor}
-            sx={{
-              display: { xs: 'none', sm: 'inline-flex' },
-              fontWeight: 500,
-              minWidth: { xs: 0, sm: 50 },
-              height: 22,
-              '& .MuiChip-label': { px: 1, ...NAV_TYPO.chipLabelSx }
-            }}
-          />
+          <Tooltip title={completionTooltip}>
+            <Chip
+              size="small"
+              label={completionLabel}
+              variant="outlined"
+              color={progressColor}
+              sx={{
+                display: { xs: 'none', sm: 'inline-flex' },
+                fontWeight: 500,
+                minWidth: { xs: 0, sm: 50 },
+                height: 22,
+                '& .MuiChip-label': { px: 1, ...NAV_TYPO.chipLabelSx }
+              }}
+            />
+          </Tooltip>
+
+          {/* En xs el Chip se ocultaba y el usuario se quedaba sin feedback de % */}
+          <Tooltip title={completionTooltip}>
+            <Typography
+              variant={NAV_TYPO.captionVariant}
+              sx={{
+                display: { xs: 'inline-flex', sm: 'none' },
+                color: '#aaa',
+                fontWeight: 600,
+                ...(isXs ? {} : NAV_TYPO.compactBodySx),
+                lineHeight: 1.2,
+                minWidth: 24,
+                justifyContent: 'flex-end'
+              }}
+            >
+              {completionLabel}
+            </Typography>
+          </Tooltip>
           <Tooltip title="Rutina siguiente">
             <span>
               <IconButton
@@ -200,6 +240,7 @@ const RutinaNavigation = ({
                 onClick={onNext}
                 disabled={currentPage >= totalPages || loading}
                 sx={{ p: isXs ? '1px' : '2px' }}
+                aria-label="Ir a la rutina siguiente"
                 data-testid="next-button"
               >
                 <NavigateNext sx={{ color: '#888 !important', fontSize: isXs ? '1rem' : '1.2rem', '&:hover': { color: '#fff !important' } }} />
