@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useContext, useEffect } from 'react';
 import { Box } from '@mui/material';
 import { useUISettings } from '../context/UISettingsContext';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
@@ -8,13 +8,19 @@ import { Header, Toolbar } from '../navigation';
 import { Footer } from '../navigation';
 import { Sidebar, BottomNavigation } from '../navigation';
 import { CustomSnackbarProvider } from '../components/common';
-import { useEffect } from 'react';
 import { FormManagerProvider } from '../context/FormContext';
 import { GlobalFormEventListener } from '../context/GlobalFormEventListener';
 import useResponsive from '../hooks/useResponsive';
 import { useNavigationState } from '../utils/navigationUtils';
 import { calculateTopPadding, HEADER_CONFIG, FOOTER_CONFIG, SPACING } from '../config/uiConstants.js';
-import { RutinasProvider } from '../context/RutinasContext';
+import RutinasContext, { RutinasProvider } from '../context/RutinasContext';
+
+// Evita doble provider (p.ej. cuando el host app ya envuelve con RutinasProvider, como `apps/foco/src/App.jsx`)
+function MaybeRutinasProvider({ children }) {
+  const existing = useContext(RutinasContext);
+  if (existing) return children;
+  return <RutinasProvider>{children}</RutinasProvider>;
+}
 
 export function Layout() {
   const { isMobile, isTablet, isMobileOrTablet } = useResponsive();
@@ -79,7 +85,7 @@ export function Layout() {
         </Box>
         {/* Toolbar + Sidebar + Main: envueltos por RutinasProvider cuando corresponde */}
         {(currentPath.startsWith('/tiempo/rutinas') || currentPath.startsWith('/rutinas')) ? (
-          <RutinasProvider>
+          <MaybeRutinasProvider>
             {/* Toolbar siempre se renderiza */}
             {showToolbar && (
               <Box sx={{ position: 'fixed', top: `${HEADER_CONFIG.height}px`, left: 0, width: '100vw', zIndex: 1399 }}>
@@ -158,7 +164,7 @@ export function Layout() {
               {(isMobile || isTablet) && <BottomNavigation />}
               <CustomSnackbarProvider />
             </Box>
-          </RutinasProvider>
+          </MaybeRutinasProvider>
         ) : (
           <>
             {/* Toolbar siempre se renderiza */}

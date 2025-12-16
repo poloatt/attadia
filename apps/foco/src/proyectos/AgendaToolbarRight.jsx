@@ -21,9 +21,9 @@ export default function AgendaToolbarRight({ hasSelectedItems }) {
   }, []);
 
   const commonButtonSx = useMemo(() => ({
-    width: 28,
-    height: 28,
-    padding: 0.25,
+    width: 26,
+    height: 26,
+    padding: 0.125,
     '&:hover': { backgroundColor: 'action.hover' }
   }), []);
 
@@ -84,7 +84,7 @@ export default function AgendaToolbarRight({ hasSelectedItems }) {
     }
   ]), [commonButtonSx, hasSelectedItems, showCompleted]);
 
-  return <SystemButtons actions={actions} gap={0.125} />;
+  return <SystemButtons actions={actions} gap={0.1} />;
 }
 
 
