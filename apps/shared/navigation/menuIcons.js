@@ -13,6 +13,7 @@ import {
   ScienceOutlined,
   RestaurantOutlined,
   AccessTimeOutlined,
+  EventNoteOutlined,
   FolderOutlined,
   TaskOutlined,
   ArchiveOutlined,
@@ -52,6 +53,7 @@ export const icons = {
   science: ScienceOutlined,
   restaurant: RestaurantOutlined,
   accessTime: AccessTimeOutlined,
+  agenda: EventNoteOutlined, // icono calendario/notas para Agenda
   folder: FolderOutlined,
   task: TaskOutlined,
   archive: ArchiveOutlined,

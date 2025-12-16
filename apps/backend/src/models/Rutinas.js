@@ -173,7 +173,9 @@ rutinaSchema.index({
 
 // Función auxiliar para verificar si un ítem debe mostrarse según su cadencia
 rutinaSchema.methods.shouldShowItem = function(section, item) {
-  const config = this.config[section][item];
+  const config = this.config?.[section]?.[item];
+  // Si falta configuración para el ítem, por seguridad mostrarlo (evita romper el save/render)
+  if (!config) return true;
   const now = new Date();
   const lastCompletion = config.ultimaCompletacion;
 
@@ -272,8 +274,25 @@ rutinaSchema.pre('save', async function(next) {
       const user = await Users.findById(this.usuario).select('preferences.timezone');
       const timezone = timezoneUtils.getUserTimezone(user);
       
-      // Normalizar el rango de fechas usando el timezone del usuario
-  const fechaInicio = timezoneUtils.normalizeToStartOfDay(this.fecha, timezone);
+      // Si ya está en 00:00:00.000Z (UTC), asumir que representa el "día lógico"
+      // y NO volver a normalizar con timezone (evita corrimientos de día y falsos duplicados).
+      let fechaInicio = null;
+      if (this.fecha instanceof Date && !isNaN(this.fecha.getTime())) {
+        const d = this.fecha;
+        if (
+          d.getUTCHours() === 0 &&
+          d.getUTCMinutes() === 0 &&
+          d.getUTCSeconds() === 0 &&
+          d.getUTCMilliseconds() === 0
+        ) {
+          fechaInicio = d;
+        }
+      }
+
+      // En otros casos, normalizar usando el timezone del usuario
+      if (!fechaInicio) {
+        fechaInicio = timezoneUtils.normalizeToStartOfDay(this.fecha, timezone);
+      }
       
   if (!fechaInicio) {
         return next(new Error('Fecha inválida para validación'));
@@ -308,6 +327,19 @@ rutinaSchema.pre('save', function(next) {
     let sectionCompleted = 0;
     
     sectionFields.forEach(field => {
+      // Asegurar que existe estructura mínima en config para evitar TypeError
+      if (!this.config) this.config = {};
+      if (!this.config[section]) this.config[section] = {};
+      if (!this.config[section][field]) {
+        this.config[section][field] = {
+          tipo: 'DIARIO',
+          diasSemana: [],
+          diasMes: [],
+          frecuencia: 1,
+          activo: true,
+          periodo: 'CADA_DIA'
+        };
+      }
       // Solo contar los campos que deben mostrarse según su cadencia
       if (this.shouldShowItem(section, field)) {
         sectionTotal++;

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Box,
+  ButtonBase,
   Typography,
-  Chip,
   TextField,
   Switch,
   Collapse,
@@ -10,7 +10,6 @@ import {
   Tooltip,
   Fade,
   Divider,
-  Button
 } from '@mui/material';
 import TuneIcon from '@mui/icons-material/Tune';
 import CheckIcon from '@mui/icons-material/Check';
@@ -22,27 +21,6 @@ const normalizeFrecuencia = (value) => {
   const parsed = parseInt(String(value || '1'), 10);
   return Number(isNaN(parsed) ? 1 : Math.max(1, parsed));
 };
-
-// Styled components para mejor UX
-const StyledChip = styled(Chip)(({ theme, selected }) => ({
-  fontSize: '0.75rem',
-  height: 24,
-  fontWeight: 500,
-  borderRadius: selected ? 0 : 12,
-  border: 'none',
-  backgroundColor: selected ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.04)',
-  color: selected ? '#fff' : 'rgba(255, 255, 255, 0.6)',
-  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-  '&:hover': {
-    backgroundColor: selected ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.08)',
-    transform: 'translateY(-1px)',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
-  },
-  '&:active': {
-    transform: 'translateY(0)',
-    transition: 'all 0.1s cubic-bezier(0.4, 0, 0.2, 1)'
-  }
-}));
 
 const StyledTextField = styled(TextField)(({ theme }) => ({
   '& .MuiOutlinedInput-root': {
@@ -136,9 +114,6 @@ const InlineItemConfigImproved = ({
     periodo: config?.periodo || 'CADA_DIA'
   });
 
-  // Estado de cambios pendientes para debugging
-  const [pendingChanges, setPendingChanges] = useState({});
-  
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedConfig, setLastSavedConfig] = useState(null);
@@ -176,55 +151,84 @@ const InlineItemConfigImproved = ({
 
   // Función para detectar cambios acumulativos comparando con la configuración original
   const detectChanges = useCallback((newConfig) => {
-    const changes = {};
     let hasAnyChanges = false;
 
     Object.keys(newConfig).forEach(key => {
       if (newConfig[key] !== originalConfig[key]) {
-        changes[key] = {
-          from: originalConfig[key],
-          to: newConfig[key]
-        };
         hasAnyChanges = true;
       }
     });
 
-    setPendingChanges(changes);
     setHasChanges(hasAnyChanges);
-    
-    if (hasAnyChanges) {
-      console.log('[InlineItemConfigImproved] Cambios detectados:', changes);
-    } else {
-      console.log('[InlineItemConfigImproved] No hay cambios pendientes');
-    }
   }, [originalConfig]);
 
   const cadenciaLabel = useMemo(() => getFrecuenciaLabel(configState), [configState]);
+
+  const actionTabSx = useMemo(() => ({
+    cursor: 'pointer',
+    px: 0.8,
+    py: 0.4,
+    fontWeight: 700,
+    fontSize: '0.78em',
+    color: '#fff',
+    background: 'rgba(255,255,255,0.06)',
+    borderLeft: '3px solid rgba(25, 118, 210, 0.6)',
+    borderRadius: 0,
+    transition: 'background 0.2s, color 0.2s',
+    '&:hover': {
+      background: 'rgba(255,255,255,0.12)',
+      color: '#fff'
+    },
+    '&.Mui-disabled': {
+      opacity: 0.5,
+      cursor: 'not-allowed'
+    }
+  }), []);
+
+  const actionPrimaryTabSx = useMemo(() => ({
+    ...actionTabSx,
+    background: 'rgba(25, 118, 210, 0.18)',
+    borderLeft: '3px solid #1976d2',
+    '&:hover': {
+      background: 'rgba(25, 118, 210, 0.28)'
+    }
+  }), [actionTabSx]);
 
   const handleConfigChange = (newConfig) => {
     console.log('[InlineItemConfigImproved] Aplicando cambio:', newConfig);
     
     // Aplicar cambios al estado actual (ACUMULATIVO)
     const updatedConfig = { ...configState, ...newConfig };
+
+    // Mantener coherencia tipo <-> periodo:
+    // - Para DIARIO/SEMANAL/MENSUAL el periodo queda fijo
+    // - Para PERSONALIZADO el usuario elige periodo
+    if (Object.prototype.hasOwnProperty.call(newConfig, 'tipo')) {
+      const tipo = String(newConfig.tipo || 'DIARIO').toUpperCase();
+      if (tipo === 'DIARIO') updatedConfig.periodo = 'CADA_DIA';
+      if (tipo === 'SEMANAL') updatedConfig.periodo = 'CADA_SEMANA';
+      if (tipo === 'MENSUAL') updatedConfig.periodo = 'CADA_MES';
+      if (tipo === 'PERSONALIZADO') {
+        updatedConfig.periodo = updatedConfig.periodo || 'CADA_DIA';
+      }
+    }
     setConfigState(updatedConfig);
     
     // Detectar todos los cambios acumulativos comparando con la configuración original
     detectChanges(updatedConfig);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (scope = 'today') => {
     if (typeof onConfigChange === 'function') {
       setIsSaving(true);
       try {
         console.log('[InlineItemConfigImproved] Guardando configuración completa:', configState);
-        console.log('[InlineItemConfigImproved] Cambios acumulativos:', pendingChanges);
         
-        await onConfigChange(configState);
+        await onConfigChange(configState, { scope, sectionId, itemId });
         
         // Marcar como guardado exitosamente
         setHasChanges(false);
         setLastSavedConfig(JSON.stringify(configState));
-        setPendingChanges({});
         
         // IMPORTANTE: Actualizar la configuración original para futuras comparaciones
         setOriginalConfig(configState);
@@ -247,22 +251,10 @@ const InlineItemConfigImproved = ({
     console.log('[InlineItemConfigImproved] Cancelando cambios, restaurando configuración original');
     setConfigState(originalConfig);
     setHasChanges(false);
-    setPendingChanges({});
     setLastSavedConfig(JSON.stringify(originalConfig));
   };
 
-  const handleResetToDefault = () => {
-    const defaultState = {
-      tipo: 'DIARIO',
-      frecuencia: 1,
-      activo: true,
-      periodo: 'CADA_DIA'
-    };
-    console.log('[InlineItemConfigImproved] Reseteando a configuración por defecto');
-    setConfigState(defaultState);
-    setPendingChanges({});
-    detectChanges(defaultState);
-  };
+  // Nota UX: se eliminó “Por defecto” para dejar solo Deshacer + Guardar
 
   // Función para verificar si hay cambios reales (comparando con original)
   const hasRealChanges = useMemo(() => {
@@ -401,143 +393,71 @@ const InlineItemConfigImproved = ({
             </Box>
             {/* Período personalizado */}
             {configState.tipo === 'PERSONALIZADO' && (
-              <Box sx={{ display: 'flex', gap: 0.18, mt: 0.12 }}>
+              <TextField
+                select
+                size="small"
+                value={configState.periodo}
+                onChange={(e) => handleConfigChange({ periodo: e.target.value })}
+                SelectProps={{ native: true }}
+                sx={{
+                  minWidth: 140,
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 0,
+                    height: 32
+                  },
+                  '& select': { color: '#fff' }
+                }}
+              >
                 {periodoOptions.map(option => (
-                  <StyledChip
-                    key={option.value}
-                    label={option.label}
-                    selected={configState.periodo === option.value}
-                    clickable
-                    onClick={() => handleConfigChange({ periodo: option.value })}
-                    size="small"
-                    sx={{ height: 22, fontSize: '0.7em', px: 0.7 }}
-                  />
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
                 ))}
-              </Box>
+              </TextField>
             )}
           </Box>
+
+          {/* Acciones mínimas dentro del recuadro (debajo de la frecuencia) */}
+          {hasChanges && (
+            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', mt: 0.6 }}>
+              <ButtonBase
+                onClick={handleCancel}
+                disabled={isSaving}
+                sx={actionTabSx}
+              >
+                Deshacer
+              </ButtonBase>
+              <ButtonBase
+                onClick={() => handleSave('today')}
+                disabled={isSaving}
+                sx={actionPrimaryTabSx}
+              >
+                {isSaving ? 'Guardando...' : 'Guardar'}
+              </ButtonBase>
+            </Box>
+          )}
+
+          {/* Indicador de éxito cuando se guarda (compacto, dentro del recuadro) */}
+          {!hasChanges && isSaving && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 0.6 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: '#4caf50',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5
+                }}
+              >
+                <CheckIcon sx={{ fontSize: '1rem' }} />
+                Configuración guardada
+              </Typography>
+            </Box>
+          )}
         </Box>
       </Box>
-
-      {/* Botones de acción - solo visibles cuando hay cambios */}
-      {hasChanges && (
-        <Box sx={{ 
-          display: 'flex', 
-          flexDirection: 'column',
-          gap: 1, 
-          justifyContent: 'center', 
-          mt: 1, 
-          pt: 0.5,
-          borderTop: '1px solid rgba(255, 255, 255, 0.06)'
-        }}>
-          {/* Indicador de cambios pendientes */}
-          <Box sx={{ 
-            display: 'flex', 
-            flexWrap: 'wrap', 
-            gap: 0.5, 
-            justifyContent: 'center',
-            mb: 0.5
-          }}>
-            {Object.entries(pendingChanges).map(([key, change]) => (
-              <Chip
-                key={key}
-                size="small"
-                label={`${key}: ${change.from} → ${change.to}`}
-                variant="outlined"
-                sx={{
-                  fontSize: '0.65rem',
-                  height: 20,
-                  color: '#ff9800',
-                  borderColor: '#ff9800',
-                  backgroundColor: 'rgba(255, 152, 0, 0.1)',
-                  '& .MuiChip-label': { px: 0.5 }
-                }}
-              />
-            ))}
-          </Box>
-          
-          {/* Botones de acción */}
-          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-            <Button 
-              size="small" 
-              variant="outlined" 
-              onClick={handleCancel}
-              disabled={isSaving}
-              sx={{
-                color: 'rgba(255, 255, 255, 0.7)',
-                borderColor: 'rgba(255, 255, 255, 0.2)',
-                '&:hover': {
-                  borderColor: 'rgba(255, 255, 255, 0.4)',
-                  backgroundColor: 'rgba(255, 255, 255, 0.04)'
-                }
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button 
-              size="small" 
-              variant="outlined" 
-              onClick={handleResetToDefault}
-              disabled={isSaving}
-              sx={{
-                color: 'rgba(255, 255, 255, 0.6)',
-                borderColor: 'rgba(255, 255, 255, 0.15)',
-                '&:hover': {
-                  borderColor: 'rgba(255, 255, 255, 0.3)',
-                  backgroundColor: 'rgba(255, 255, 255, 0.04)'
-                }
-              }}
-            >
-              Por defecto
-            </Button>
-            <Button 
-              size="small" 
-              variant="contained" 
-              onClick={handleSave}
-              disabled={isSaving}
-              sx={{
-                backgroundColor: isSaving ? '#4caf50' : '#1976d2',
-                color: '#fff',
-                '&:hover': {
-                  backgroundColor: isSaving ? '#4caf50' : '#1565c0'
-                },
-                '&:disabled': {
-                  backgroundColor: '#4caf50',
-                  color: '#fff'
-                }
-              }}
-            >
-              {isSaving ? 'Guardando...' : 'Guardar'}
-            </Button>
-          </Box>
-        </Box>
-      )}
-
-      {/* Indicador de éxito cuando se guarda */}
-      {!hasChanges && isSaving && (
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          mt: 1, 
-          pt: 0.5,
-          borderTop: '1px solid rgba(255, 255, 255, 0.06)'
-        }}>
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              color: '#4caf50',
-              fontSize: '0.75rem',
-              fontWeight: 500,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.5
-            }}
-          >
-            <CheckIcon sx={{ fontSize: '1rem' }} />
-            Configuración guardada
-          </Typography>
-        </Box>
-      )}
     </ConfigContainer>
   );
 };

@@ -1,12 +1,12 @@
-import shouldShowItem from './shouldShowItem.js';
-import { parseAPIDate } from './dateUtils.js';
+import { iconConfig } from './iconConfig.js';
 
 /**
  * Calcula los ítems visibles y completados para una rutina
  * @param {Object} rutina - Objeto de rutina completo
+ * @param {Object} localDataBySection - (opcional) estado local por sección para reflejar checks inmediatos
  * @returns {Object} - { visibleItems, completedItems, sectionStats }
  */
-export const calculateVisibleItems = (rutina) => {
+export const calculateVisibleItems = (rutina, localDataBySection = {}) => {
   if (!rutina) {
     return {
       visibleItems: [],
@@ -29,39 +29,39 @@ export const calculateVisibleItems = (rutina) => {
     cleaning: { visible: 0, completed: 0 }
   };
 
-  // Fecha de la rutina para los logs
-  const fechaRutina = new Date(rutina.fecha);
-  const esHoy = new Date().toISOString().split('T')[0] === fechaRutina.toISOString().split('T')[0];
-  const logPrefix = esHoy ? "[HOY]" : `[${fechaRutina.toISOString().split('T')[0]}]`;
-
   // Iterar por todas las secciones
   ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'].forEach(section => {
-    if (rutina[section]) {
-      // Obtener todos los items de la sección
-      Object.entries(rutina[section]).forEach(([itemId, isCompleted]) => {
-        try {
-          // Usar shouldShowItem para visibilidad coherente con UX (útiles)
-          const visible = shouldShowItem(section, itemId, {
-            ...rutina,
-            fecha: parseAPIDate(rutina.fecha)?.toISOString() || rutina.fecha
-          }, { historial: rutina?.historial || {} });
-          
-          if (visible) {
-            // Agregar a la lista de ítems visibles
-            visibleItems.push({ section, itemId, isCompleted });
-            sectionStats[section].visible++;
-            
-            // Si está completado, agregarlo a la lista de completados
-            if (isCompleted) {
-              completedItems.push({ section, itemId });
-              sectionStats[section].completed++;
-            }
-            // Debug eliminado para mejor rendimiento
-          }
-        } catch (error) {
-          console.error(`${logPrefix} Error evaluando visibilidad del ítem ${section}.${itemId}:`, error);
+    try {
+      // IMPORTANT: la UI renderiza ítems por `iconConfig`, no por las keys presentes en `rutina[section]`.
+      // Si usamos `Object.entries(rutina[section])` el % queda mal cuando faltan keys (p.ej. ítems no completados).
+      const sectionIcons = iconConfig?.[section] || {};
+      const sectionConfig = rutina?.config?.[section] || {};
+      const localData = localDataBySection?.[section] || {};
+
+      // Fuente de verdad de "qué se muestra" para el %:
+      // en la vista expandida (RutinaCard) se muestran TODOS los ítems activos (y si falta config, se muestran por defecto).
+      // No se ocultan por cadencia ni por estar ya completados hoy.
+      const visibleIds = Object.keys(sectionIcons).filter((itemId) => {
+        const cfg = sectionConfig?.[itemId];
+        if (!cfg) return true; // sin config, se muestra
+        if (cfg.activo === false) return false;
+        return true;
+      });
+      sectionStats[section].visible = visibleIds.length;
+
+      visibleIds.forEach((itemId) => {
+        const fromLocal = localData?.[itemId];
+        const fromRutina = rutina?.[section]?.[itemId];
+        const isCompleted = (fromLocal !== undefined ? fromLocal : fromRutina) === true;
+
+        visibleItems.push({ section, itemId, isCompleted });
+        if (isCompleted) {
+          completedItems.push({ section, itemId });
+          sectionStats[section].completed++;
         }
       });
+    } catch (error) {
+      console.error(`[rutinaCalculations] Error evaluando visibilidad/completitud en ${section}:`, error);
     }
   });
 
@@ -90,6 +90,9 @@ export const calculateCompletionPercentage = (rutina) => {
     // Si ya tenemos un valor de completitud del backend, lo usamos como referencia
     // pero recalculamos para asegurar consistencia
     let percentage = Math.round((totalCompleted / totalVisible) * 100);
+    if (!Number.isFinite(percentage)) percentage = 0;
+    // Clamp defensivo
+    percentage = Math.min(100, Math.max(0, percentage));
     
     // Logs eliminados para mejor rendimiento
     

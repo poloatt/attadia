@@ -11,7 +11,10 @@ export default function shouldShowItem(section, itemId, rutina, additionalData =
     if (!section || !itemId || !rutina) return false;
 
     const config = rutina?.config?.[section]?.[itemId];
-    if (!config || config.activo === false) return false;
+    // Alinear con el backend: si falta configuración, por seguridad mostramos el ítem
+    // (evita que migraciones/parciales rompan la UI y los cálculos de completitud).
+    if (!config) return true;
+    if (config.activo === false) return false;
 
     // Normalizar fecha de rutina
     const fechaRutina = parseAPIDate(rutina.fecha) || new Date();
