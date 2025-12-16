@@ -136,6 +136,23 @@ export const ICON_SIZES = {
   large: 'large'
 };
 
+// ===== NAVIGATION TYPOGRAPHY TOKENS =====
+// Best practice: evitar hardcodes repetidos en componentes de navegación.
+// Usamos variants de MUI y solo dejamos tamaños puntuales cuando el layout lo exige (ej: bottom nav).
+export const NAV_TYPO = {
+  // Texto en items de sidebar / navegación principal
+  itemVariant: 'body2',     // ~0.875rem por defecto en MUI
+  // Texto pequeño auxiliar (chips, captions)
+  captionVariant: 'caption', // ~0.75rem por defecto en MUI
+  // Título principal en Header (ruta/página)
+  headerTitleVariant: 'subtitle2',
+  headerTitleSx: { fontWeight: 600 },
+  // Labels en Chips dentro de navegación (footer/rutinas)
+  chipLabelSx: { typography: 'caption' },
+  // Bottom navigation suele necesitar un poco más chico para evitar overflow
+  bottomNavLabelSx: { fontSize: '0.75rem' } // unifica y evita el 0.65rem disperso
+};
+
 // ===== BORDER RADIUS =====
 export const BORDER_RADIUS = {
   button: '12px',

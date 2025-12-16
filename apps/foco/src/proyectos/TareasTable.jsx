@@ -835,35 +835,42 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
   );
 };
 
-const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea, onActivateMultiSelect }) => {
+const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea, onActivateMultiSelect, groupingEnabled = true }) => {
   const { isMobile, theme } = useResponsive();
   const { maskText } = useValuesVisibility();
-
-  // Debug temporal para ver qué está pasando
-  console.log('🔍 DEBUG TEMPORAL - Tareas recibidas:', {
-    total: tareas.length,
-    tareas: tareas.map(t => ({
-      titulo: t.titulo,
-      completada: t.completada,
-      estado: t.estado,
-      fechaInicio: t.fechaInicio
-    })),
-    isArchive
-  });
 
   // Filtrar tareas según si es archivo o no
   const tareasAMostrar = isArchive 
     ? tareas.filter(tarea => tarea.completada) 
     : tareas.filter(tarea => !tarea.completada);
-    
-  console.log('🔍 DEBUG TEMPORAL - Después del filtro:', {
-    mostradas: tareasAMostrar.length,
-    tareas: tareasAMostrar.map(t => ({
-      titulo: t.titulo,
-      completada: t.completada,
-      estado: t.estado
-    }))
-  });
+
+  // Render plano sin agrupación cuando groupingEnabled es false
+  if (!groupingEnabled) {
+    return (
+      <TableContainer>
+        <Table>
+          <TableBody>
+            {tareasAMostrar.map((tarea) => (
+              <TareaRow
+                key={tarea._id || tarea.id}
+                tarea={tarea}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onUpdateEstado={onUpdateEstado}
+                isArchive={isArchive}
+                showValues={showValues}
+                updateWithHistory={updateWithHistory}
+                isMultiSelectMode={isMultiSelectMode}
+                selectedTareas={selectedTareas}
+                onSelectTarea={onSelectTarea}
+                onActivateMultiSelect={onActivateMultiSelect}
+              />
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    );
+  }
 
   // Agrupar tareas por período
   const tareasAgrupadas = tareasAMostrar.reduce((grupos, tarea) => {

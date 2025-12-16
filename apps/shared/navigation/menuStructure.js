@@ -59,8 +59,7 @@ export const modulos = [
     subItems: [
       { id: 'rutinas', title: 'Rutinas', icon: 'fitnessCenter', path: '/rutinas', canAdd: true },
       { id: 'proyectos', title: 'Proyectos', icon: 'folder', path: '/proyectos', canAdd: true },
-      { id: 'tareas', title: 'Agenda', icon: 'agenda', path: '/tareas', canAdd: true },
-      { id: 'archivo', title: 'Archivo', icon: 'archive', path: '/archivo' }
+      { id: 'tareas', title: 'Agenda', icon: 'agenda', path: '/tareas', canAdd: true }
     ]
   },
   {

@@ -1,30 +1,14 @@
-import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { 
-  Container,
   Box,
   Button,
   IconButton,
-  Tooltip,
   CircularProgress,
   Chip,
-  Fab,
-  Typography,
-  ToggleButton,
-  ToggleButtonGroup,
 } from '@mui/material';
-import { Switch, FormControlLabel } from '@mui/material';
 import { useResponsive } from '@shared/hooks';
 import {
   Add as AddIcon,
-  FilterList as FilterListIcon,
-  TaskOutlined as TaskIcon,
-  FolderOutlined as ProjectIcon,
-  ArchiveOutlined as ArchiveIcon,
-  Visibility as ShowValuesIcon,
-  VisibilityOff as HideValuesIcon,
-  AccessTimeOutlined as TimeIcon,
-  Delete as DeleteIcon,
-  CheckBoxOutlined as MultiSelectIcon,
 } from '@mui/icons-material';
 import { Toolbar, SystemButtons } from '@shared/navigation';
 import TareasTable from '../proyectos/TareasTable';
@@ -36,17 +20,16 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useNavigationBar } from '@shared/context';
 import { useValuesVisibility } from '@shared/context';
 import { usePageWithHistory } from '@shared/hooks';
+import { useAgendaFilter } from '../proyectos/useAgendaFilter';
 
 export function Tareas() {
   const [tareas, setTareas] = useState([]);
   const [proyectos, setProyectos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showCompleted, setShowCompleted] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTarea, setEditingTarea] = useState(null);
   const [isGoogleTasksConfigOpen, setIsGoogleTasksConfigOpen] = useState(false);
   const [selectedTareas, setSelectedTareas] = useState([]);
-  const [agendaView, setAgendaView] = useState('ahora'); // ahora | luego | todas
   const { enqueueSnackbar } = useSnackbar();
   const { isMobile } = useResponsive();
   const location = useLocation();
@@ -54,29 +37,8 @@ export function Tareas() {
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
   const navigate = useNavigate();
 
-  // Tareas filtradas según la vista de Agenda
-  const tareasAgenda = useMemo(() => {
-    if (!Array.isArray(tareas)) return [];
-    const parseDate = (value) => {
-      if (!value) return null;
-      const d = new Date(value);
-      return isNaN(d.getTime()) ? null : d;
-      };
-    const now = new Date();
-    return tareas.filter((t) => {
-      const isCompleted = t?.estado === 'completada' || t?.completada === true;
-      if (!showCompleted && isCompleted) return false;
-      const start = parseDate(t?.fechaInicio || t?.fecha || t?.inicio);
-      if (agendaView === 'ahora') {
-        // Incluye sin fecha (para no perderlas) y con fecha hasta ahora
-        return !start || start <= now;
-      }
-      if (agendaView === 'luego') {
-        return !!start && start > now;
-      }
-      return true; // 'todas'
-    });
-  }, [tareas, agendaView, showCompleted]);
+  // Filtrado unificado vía hook
+  const { filteredTasks: tareasAgenda, showCompleted, agendaView } = useAgendaFilter(tareas);
 
   // Funciones para selección múltiple
   const handleDeactivateMultiSelect = () => {
@@ -347,7 +309,7 @@ export function Tareas() {
     fetchProyectos();
   }, []);
 
-  // Escuchar eventos del Header, navegación y Toolbar (agendaView)
+  // Escuchar eventos del Header y navegación
   useEffect(() => {
     const handleHeaderAddButton = (event) => {
       if (event.detail.type === 'tarea') {
@@ -360,22 +322,6 @@ export function Tareas() {
     const handleAddTask = () => {
       setEditingTarea(null);
       setIsFormOpen(true);
-    };
-
-    // Escuchar cambios de vista de Agenda desde Toolbar
-    const handleAgendaViewChanged = (event) => {
-      const { view } = event.detail || {};
-      if (view) {
-        setAgendaView(view);
-      }
-    };
-    
-    // Escuchar toggle de mostrar completadas desde Toolbar
-    const handleSetShowCompleted = (event) => {
-      const { value } = event.detail || {};
-      if (typeof value === 'boolean') {
-        setShowCompleted(value);
-      }
     };
 
     // Escuchar eventos de deshacer específicos para tareas
@@ -425,8 +371,6 @@ export function Tareas() {
 
     window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);   
     window.addEventListener('addTask', handleAddTask);
-    window.addEventListener('agendaViewChanged', handleAgendaViewChanged);
-    window.addEventListener('setShowCompleted', handleSetShowCompleted);
     window.addEventListener('undoAction_tarea', handleUndoTareaAction);
     window.addEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
     window.addEventListener('googleTasksSyncCompleted', handleGoogleTasksSyncCompleted);
@@ -436,8 +380,6 @@ export function Tareas() {
     return () => {
       window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
       window.removeEventListener('addTask', handleAddTask);
-      window.removeEventListener('agendaViewChanged', handleAgendaViewChanged);
-      window.removeEventListener('setShowCompleted', handleSetShowCompleted);
       window.removeEventListener('undoAction_tarea', handleUndoTareaAction);    
       window.removeEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
       window.removeEventListener('googleTasksSyncCompleted', handleGoogleTasksSyncCompleted);
@@ -568,10 +510,11 @@ export function Tareas() {
           ) : (
             <TareasTable
               tareas={tareasAgenda}
+              groupingEnabled={true}
               onEdit={handleEdit}
               onDelete={handleDelete}
               onUpdateEstado={handleUpdateEstado}
-              isArchive={showCompleted}
+              isArchive={false}
               showValues={showValues}
               updateWithHistory={updateWithHistory}
               isMultiSelectMode={selectedTareas.length > 0}

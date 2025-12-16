@@ -6,8 +6,8 @@ import { useActionHistory, ACTION_TYPES } from '../../context/ActionHistoryConte
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useValuesVisibility } from '../../context/ValuesVisibilityContext';
 import MenuIcon from '@mui/icons-material/MenuOutlined';
-import { Refresh as RefreshIcon, Undo as UndoIcon, History as HistoryIcon, AddOutlined as AddOutlinedIcon, VisibilityOff as HideValuesIcon, Apps as AppsIcon } from '@mui/icons-material';
-import { Badge, Menu, MenuItem, ListItemText, ListItemIcon, Chip } from '../../utils/materialImports';
+import { Refresh as RefreshIcon, Undo as UndoIcon, AddOutlined as AddOutlinedIcon, VisibilityOff as HideValuesIcon, Apps as AppsIcon, ArchiveOutlined as ArchiveIcon } from '@mui/icons-material';
+import { Menu, MenuItem, ListItemText, ListItemIcon, Chip } from '../../utils/materialImports';
 import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import { modulos } from '../../navigation/menuStructure';
 import { getIconByKey } from '../../navigation/menuIcons';
@@ -123,7 +123,8 @@ export const SystemButtons = memo(({
                   },
                   '& .MuiSvgIcon-root': {
                     fontSize: '1.25rem'
-                  }
+                  },
+                  ...(action.buttonSx || {})
                 }}
                 disabled={disabled || action.disabled}
               >
@@ -367,30 +368,12 @@ function HeaderUndoMenu({ iconSx }) {
   const { 
     canUndo, 
     undoLastAction, 
-    getUndoCount, 
-    getLastActions,
-    getActionsByEntity
+    getUndoCount
   } = useActionHistory();
-  const [undoMenuAnchor, setUndoMenuAnchor] = useState(null);
-  const location = useLocation();
   // Ocultar completamente si no hay historial
   if (!canUndo() || getUndoCount() === 0) {
     return null;
   }
-  const getActionIcon = (actionType) => {
-    switch (actionType) {
-      case ACTION_TYPES.CREATE:
-        return <AddIcon sx={iconSx || { fontSize: 16 }} />;
-      case ACTION_TYPES.UPDATE:
-        return <EditIcon sx={iconSx || { fontSize: 16 }} />;
-      case ACTION_TYPES.DELETE:
-        return <DeleteIcon sx={iconSx || { fontSize: 16 }} />;
-      case ACTION_TYPES.MOVE:
-        return <MenuIcon sx={iconSx || { fontSize: 16 }} />;
-      default:
-        return <HistoryIcon sx={iconSx || { fontSize: 16 }} />;
-    }
-  };
   const handleUndoLastAction = () => {
     const lastAction = undoLastAction();
     if (lastAction) {
@@ -399,29 +382,17 @@ function HeaderUndoMenu({ iconSx }) {
       }));
     }
   };
-  const handleUndoSpecificAction = (action) => {
-    setUndoMenuAnchor(null);
-    window.dispatchEvent(new CustomEvent('undoAction', {
-      detail: action
-    }));
-  };
-  let combinedActions = [];
-  if (location.pathname.startsWith('/proyectos')) {
-    const proyectosActions = getActionsByEntity('proyecto');
-    const tareasActions = getActionsByEntity('tarea');
-    combinedActions = [...proyectosActions, ...tareasActions]
-      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  } else {
-    combinedActions = getLastActions(10);
-  }
   return (
-    <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+    <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
       <Tooltip title={canUndo() ? `Deshacer última acción (${getUndoCount()} disponible${getUndoCount() > 1 ? 's' : ''})` : 'No hay acciones para deshacer'}>
         <span>
           <IconButton
             size="small"
             onClick={canUndo() ? handleUndoLastAction : undefined}
             sx={{
+              width: 32,
+              height: 32,
+              padding: 0.5,
               color: canUndo() ? 'inherit' : 'grey.500',
               '&:hover': { color: canUndo() ? 'text.primary' : 'grey.500' },
               position: 'relative'
@@ -447,68 +418,39 @@ function HeaderUndoMenu({ iconSx }) {
           </IconButton>
         </span>
       </Tooltip>
-      <Tooltip title="Ver historial de acciones">
-        <IconButton 
-          size="small"
-          onClick={(e) => setUndoMenuAnchor(e.currentTarget)}
-          sx={{ 
-            color: 'inherit',
-            '&:hover': { color: 'text.primary' }
-          }}
-        >
-          <HistoryIcon sx={iconSx || { fontSize: 20 }} />
-        </IconButton>
-      </Tooltip>
-      <Menu
-        anchorEl={undoMenuAnchor}
-        open={Boolean(undoMenuAnchor)}
-        onClose={() => setUndoMenuAnchor(null)}
-        PaperProps={{
-          sx: {
-            maxHeight: 400,
-            width: 350
-          }
-        }}
-      >
-        {combinedActions.length > 0 ? combinedActions.slice(0, 10).map((action) => (
-          <MenuItem 
-            key={action.id}
-            onClick={() => handleUndoSpecificAction(action)}
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center',
-              gap: 1,
-              py: 1
-            }}
-          >
-            <ListItemIcon sx={{ minWidth: 32 }}>
-              {getActionIcon(action.type)}
-            </ListItemIcon>
-            <ListItemText 
-              primary={action.description}
-              secondary={new Date(action.timestamp).toLocaleString('es-ES')}
-              primaryTypographyProps={{ fontSize: '0.875rem' }}
-              secondaryTypographyProps={{ fontSize: '0.75rem' }}
-            />
-            <Chip 
-              label={action.entity} 
-              size="small" 
-              variant="outlined"
-              sx={{ fontSize: '0.7rem' }}
-            />
-          </MenuItem>
-        )) : (
-          <MenuItem disabled>
-            <ListItemText primary="No hay acciones para deshacer" />
-          </MenuItem>
-        )}
-      </Menu>
     </Box>
   );
 }
 
 // Marcar el componente como botón
 HeaderUndoMenu.isButtonComponent = true;
+
+// HeaderArchiveButton - acceso rápido a /archivo
+function HeaderArchiveButton({ iconSx, buttonSx }) {
+  const navigate = useNavigate();
+  const btn = (
+    <Tooltip title="Archivo">
+      <IconButton
+        size="small"
+        onClick={() => navigate('/archivo')}
+        sx={{
+          width: 32,
+          height: 32,
+          padding: 0.5,
+          color: 'text.secondary',
+          '&:hover': { color: 'primary.main', background: 'action.hover' },
+          ...buttonSx
+        }}
+      >
+        <ArchiveIcon sx={iconSx || { fontSize: 18 }} />
+      </IconButton>
+    </Tooltip>
+  );
+  btn.type.isButtonComponent = true;
+  return btn;
+}
+
+HeaderArchiveButton.isButtonComponent = true;
 
 // HeaderAppsButton - Menú de apps para móvil
 function HeaderAppsButton({ iconSx }) {
@@ -617,6 +559,7 @@ SystemButtons.AddButton = HeaderAddButton;
 SystemButtons.RefreshButton = HeaderRefreshButton;
 SystemButtons.VisibilityButton = HeaderVisibilityButton;
 SystemButtons.UndoMenu = HeaderUndoMenu;
+SystemButtons.ArchiveButton = HeaderArchiveButton;
 SystemButtons.AppsButton = HeaderAppsButton; 
 
 // Exportar MenuButton explícitamente para uso directo

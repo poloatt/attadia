@@ -8,9 +8,8 @@ import {
   } from '../utils/materialImports';
   import { useSidebar } from '../context/SidebarContext';
   import { useUISettings } from '../context/UISettingsContext';
-  import { useEntityActions } from '../components/common/CommonActions';
-  import { AutorenewOutlined, AddOutlined } from '@mui/icons-material';
-  import { useLocation, Link, useNavigate } from 'react-router-dom';
+  import { AutorenewOutlined } from '@mui/icons-material';
+  import { useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
   import { Dialog } from '../utils/materialImports';
   // import { MercadoPagoConnectButton, BankConnectionForm } from '../../../atta/src/finance/bankconnections'; // Comentado: import cruzado
@@ -20,7 +19,7 @@ import { modulos } from './menuStructure';
 import { Breadcrumbs } from '../utils/materialImports';
 import useResponsive from '../hooks/useResponsive';
 import { useNavigationState, navigateToAppPath } from '../utils/navigationUtils';
-import { HEADER_CONFIG } from '../config/uiConstants';
+import { HEADER_CONFIG, NAV_TYPO } from '../config/uiConstants';
 import { getCenteredSectionSx } from './alignmentUtils';
 import { DynamicIcon } from '../components/common/DynamicIcon';
   import { SystemButtons, SYSTEM_ICONS, MenuButton } from '../components/common/SystemButtons';
@@ -33,13 +32,7 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
   export default function Header() {
     const { toggleSidebar, isOpen: sidebarIsOpen, collapsedWidth, getMainMargin } = useSidebar();
     const { showEntityToolbarNavigation, showSidebarCollapsed } = useUISettings();
-    const { 
-      getRouteTitle, 
-      getEntityConfig, 
-      showAddButton 
-    } = useEntityActions();
   
-    const entityConfig = getEntityConfig();
     const location = useLocation();
     const navigate = useNavigate();
     const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
@@ -172,19 +165,25 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                           sx={{ marginRight: 0.5 }} 
                         />
                       )}
-                      <Typography color="inherit" sx={{ fontWeight: 500, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <Typography
+                        color="inherit"
+                        variant={NAV_TYPO.headerTitleVariant}
+                        sx={{
+                          ...NAV_TYPO.headerTitleSx,
+                          textAlign: 'center',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}
+                      >
                         {last?.title}
                       </Typography>
                     </Box>
                   );
                 })()}
-                {/* Derecha: [acciones extra, + opcional, settings] ... [espaciador] ... [apps al extremo derecho] */}
+                {/* Derecha: [acciones extra, settings] ... [espaciador] ... [apps al extremo derecho] */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, width: '100%' }}>
                   {/* Acciones adicionales futuras: colócalas aquí a la izquierda dentro de este grupo */}
-                  {/* Botón + (si se puede agregar) */}
-                  {showAddButton && entityConfig ? (
-                    <SystemButtons.AddButton entityConfig={entityConfig} />
-                  ) : null}
                   {/* Undo / Historial */}
                   <SystemButtons.UndoMenu />
                   {/* Settings */}
@@ -256,7 +255,7 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                       sx={{ marginRight: 0.5 }} 
                     />
                   )}
-                  <Typography color="inherit" sx={{ fontWeight: 500 }}>
+                  <Typography color="inherit" variant={NAV_TYPO.headerTitleVariant} sx={NAV_TYPO.headerTitleSx}>
                     {last?.title}
                   </Typography>
                 </CenteredTrack>
@@ -276,7 +275,7 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                       sx={{ marginRight: 0.5 }} 
                     />
                   )}
-                  <Typography color="inherit" sx={{ fontWeight: 500 }}>
+                  <Typography color="inherit" variant={NAV_TYPO.headerTitleVariant} sx={NAV_TYPO.headerTitleSx}>
                     {last?.title}
                   </Typography>
                 </Box>
@@ -310,13 +309,6 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                     tooltip: 'Deshacer / Historial',
                     disabled: false
                   },
-                   !showEntityToolbarNavigation && showAddButton && entityConfig ? {
-                     key: 'add',
-                     icon: <SystemButtons.AddButton entityConfig={entityConfig} />, // Solo visual, sin lógica local
-                     label: 'Agregar',
-                     tooltip: 'Agregar',
-                     disabled: false
-                   } : null,
                    !showEntityToolbarNavigation ? {
                      key: 'config',
                      icon: icons.settings ? <icons.settings sx={{ fontSize: 20 }} /> : <span>⚙️</span>,
