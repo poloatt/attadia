@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from 'react';
 import { 
   Box,
   Button,
   IconButton,
   CircularProgress,
   Chip,
+  Typography,
 } from '@mui/material';
 import { useResponsive } from '@shared/hooks';
 import {
@@ -21,6 +22,7 @@ import { useNavigationBar } from '@shared/context';
 import { useValuesVisibility } from '@shared/context';
 import { usePageWithHistory } from '@shared/hooks';
 import { useAgendaFilter } from '../proyectos/useAgendaFilter';
+import { isInAhora, isInLuego, isTaskCompleted } from '@shared/utils';
 
 export function Tareas() {
   const [tareas, setTareas] = useState([]);
@@ -37,8 +39,31 @@ export function Tareas() {
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
   const navigate = useNavigate();
 
-  // Filtrado unificado vía hook
+  // Filtrado unificado vía hook (para móvil)
   const { filteredTasks: tareasAgenda, showCompleted, agendaView } = useAgendaFilter(tareas);
+
+  // Para desktop: filtrar tareas para AHORA y Luego por separado
+  const tareasAhora = useMemo(() => {
+    if (isMobile) return [];
+    const tasksArray = Array.isArray(tareas) ? tareas : [];
+    const now = new Date();
+    return tasksArray.filter((t) => {
+      const isCompleted = isTaskCompleted(t);
+      if (!showCompleted && isCompleted) return false;
+      return isInAhora(t, now);
+    });
+  }, [tareas, showCompleted, isMobile]);
+
+  const tareasLuego = useMemo(() => {
+    if (isMobile) return [];
+    const tasksArray = Array.isArray(tareas) ? tareas : [];
+    const now = new Date();
+    return tasksArray.filter((t) => {
+      const isCompleted = isTaskCompleted(t);
+      if (!showCompleted && isCompleted) return false;
+      return isInLuego(t, now);
+    });
+  }, [tareas, showCompleted, isMobile]);
 
   // Funciones para selección múltiple
   const handleDeactivateMultiSelect = () => {
@@ -577,7 +602,8 @@ export function Tareas() {
             py: isMobile ? 1 : 2,
             px: isMobile ? 0 : 1,
             height: isMobile ? 'calc(100vh - 180px)' : 'calc(100vh - 190px)',
-            overflowY: 'auto',
+            overflowY: isMobile ? 'auto' : 'hidden',
+            overflowX: 'hidden',
             '&::-webkit-scrollbar': {
               width: isMobile ? '4px' : '8px',
             },
@@ -598,25 +624,130 @@ export function Tareas() {
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
               <CircularProgress />
             </Box>
+          ) : isMobile ? (
+            // Vista móvil: una columna según agendaView
+            <TareasTable
+              tareas={tareasAgenda}
+              agendaView={agendaView}
+              groupingEnabled={true}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onUpdateEstado={handleUpdateEstado}
+              isArchive={false}
+              showValues={showValues}
+              updateWithHistory={updateWithHistory}
+              isMultiSelectMode={selectedTareas.length > 0}
+              selectedTareas={selectedTareas}
+              onSelectTarea={handleSelectTarea}
+              onActivateMultiSelect={() => {}} // Ya no necesitamos esta función
+              onRefreshData={fetchDataStable}
+            />
           ) : (
-            <>
-              <TareasTable
-                tareas={tareasAgenda}
-                agendaView={agendaView}
-                groupingEnabled={true}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onUpdateEstado={handleUpdateEstado}
-                isArchive={false}
-                showValues={showValues}
-                updateWithHistory={updateWithHistory}
-                isMultiSelectMode={selectedTareas.length > 0}
-                selectedTareas={selectedTareas}
-                onSelectTarea={handleSelectTarea}
-                onActivateMultiSelect={() => {}} // Ya no necesitamos esta función
-                onRefreshData={fetchDataStable}
+            // Vista desktop: dos columnas (AHORA y Luego)
+            <Box sx={{ display: 'flex', gap: 2, height: '100%', overflow: 'hidden' }}>
+              {/* Columna AHORA */}
+              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+                <Box sx={{ mb: 1, px: 1, flexShrink: 0 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    AHORA
+                  </Typography>
+                </Box>
+                <Box 
+                  sx={{ 
+                    flex: 1, 
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    minHeight: 0,
+                    '&::-webkit-scrollbar': {
+                      width: '8px',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                      backgroundColor: 'rgba(0,0,0,0.1)',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                      backgroundColor: 'rgba(0,0,0,0.2)',
+                      borderRadius: '4px',
+                    },
+                    '&::-webkit-scrollbar-thumb:hover': {
+                      backgroundColor: 'rgba(0,0,0,0.3)',
+                    },
+                  }}
+                >
+                  <TareasTable
+                    tareas={tareasAhora}
+                    agendaView="ahora"
+                    groupingEnabled={true}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onUpdateEstado={handleUpdateEstado}
+                    isArchive={false}
+                    showValues={showValues}
+                    updateWithHistory={updateWithHistory}
+                    isMultiSelectMode={selectedTareas.length > 0}
+                    selectedTareas={selectedTareas}
+                    onSelectTarea={handleSelectTarea}
+                    onActivateMultiSelect={() => {}}
+                    onRefreshData={fetchDataStable}
+                  />
+                </Box>
+              </Box>
+
+              {/* Divider vertical */}
+              <Box
+                sx={{
+                  width: '1px',
+                  bgcolor: 'divider',
+                  flexShrink: 0
+                }}
               />
-            </>
+
+              {/* Columna Luego */}
+              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+                <Box sx={{ mb: 1, px: 1, flexShrink: 0 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Luego
+                  </Typography>
+                </Box>
+                <Box 
+                  sx={{ 
+                    flex: 1, 
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    minHeight: 0,
+                    '&::-webkit-scrollbar': {
+                      width: '8px',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                      backgroundColor: 'rgba(0,0,0,0.1)',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                      backgroundColor: 'rgba(0,0,0,0.2)',
+                      borderRadius: '4px',
+                    },
+                    '&::-webkit-scrollbar-thumb:hover': {
+                      backgroundColor: 'rgba(0,0,0,0.3)',
+                    },
+                  }}
+                >
+                  <TareasTable
+                    tareas={tareasLuego}
+                    agendaView="luego"
+                    groupingEnabled={true}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onUpdateEstado={handleUpdateEstado}
+                    isArchive={false}
+                    showValues={showValues}
+                    updateWithHistory={updateWithHistory}
+                    isMultiSelectMode={selectedTareas.length > 0}
+                    selectedTareas={selectedTareas}
+                    onSelectTarea={handleSelectTarea}
+                    onActivateMultiSelect={() => {}}
+                    onRefreshData={fetchDataStable}
+                  />
+                </Box>
+              </Box>
+            </Box>
           )}
         </Box>
         {isFormOpen && (

@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { SystemButtons, SYSTEM_ICONS } from '../common/SystemButtons';
+import { SystemButtons, SYSTEM_ICONS } from './SystemButtons';
 import { useLocation } from 'react-router-dom';
 import { modulos } from '../../navigation/menuStructure';
 import DescriptionIcon from '@mui/icons-material/Description';
@@ -82,7 +82,7 @@ export const EntityActions = memo(({
 export const ACTIONS = {
   edit: ({ onClick, disabled = false }) => ({
     key: 'edit',
-    icon: SYSTEM_ICONS.edit,
+    icon: SYSTEM_ICONS.edit, // Ahora es un componente, se renderiza en SystemButtons
     label: 'Editar',
     onClick,
     disabled,
@@ -90,7 +90,7 @@ export const ACTIONS = {
   }),
   delete: ({ onClick, disabled = false, itemName = 'este registro' }) => ({
     key: 'delete',
-    icon: SYSTEM_ICONS.delete,
+    icon: SYSTEM_ICONS.delete, // Ahora es un componente, se renderiza en SystemButtons
     label: 'Eliminar',
     onClick,
     disabled,
