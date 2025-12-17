@@ -374,9 +374,12 @@ export default function Toolbar({
             height: TOOLBAR_CONFIG.height,
             position: 'absolute',
             right: { xs: 1, sm: 2, md: 3 },
-            gap: 0
+            gap: 0.25
           }}
         >
+          {/* Botón Undo - siempre visible cuando hay historial */}
+          <SystemButtons.UndoMenu />
+          
           {/* Acciones adicionales */}
           {!isMobile && additionalActions && additionalActions.map((action, idx) => {
             const isButton = action.icon && action.icon.type && (action.icon.type.displayName === 'IconButton' || action.icon.type.muiName === 'IconButton' || action.icon.type.isButtonComponent);

@@ -202,8 +202,6 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                 {/* Derecha: [acciones extra, settings] ... [espaciador] ... [apps al extremo derecho] */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, width: '100%' }}>
                   {/* Acciones adicionales futuras: colócalas aquí a la izquierda dentro de este grupo */}
-                  {/* Undo / Historial */}
-                  <SystemButtons.UndoMenu />
                   {/* Espaciador para empujar Apps al extremo derecho */}
                   <Box sx={{ flexGrow: 1 }} />
                   {/* Apps toggle siempre último y alineado a la derecha */}
@@ -299,9 +297,6 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
             {(isMobile || isTablet) && showEntityToolbarNavigation && (
               <Box sx={{ position: 'absolute', right: { xs: 1, sm: 2, md: 3 }, display: 'flex', alignItems: 'center', height: HEADER_CONFIG.height, gap: 0.25 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: HEADER_CONFIG.height, height: HEADER_CONFIG.height }}>
-                  <SystemButtons.UndoMenu />
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: HEADER_CONFIG.height, height: HEADER_CONFIG.height }}>
                   <SystemButtons.AppsButton />
                 </Box>
               </Box>
@@ -315,13 +310,6 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
               <Box ref={rightWidthRef} sx={{ display: 'flex', alignItems: 'center' }}>
                 <SystemButtons
                   actions={[
-                  {
-                    key: 'undo',
-                    icon: <SystemButtons.UndoMenu />, // Solo visual, menú de undo
-                    label: 'Deshacer',
-                    tooltip: 'Deshacer / Historial',
-                    disabled: false
-                  },
                    !showEntityToolbarNavigation && location.pathname.includes('/cuentas') ? {
                      key: 'sync',
                      icon: <AutorenewOutlined sx={{ fontSize: 20, color: 'white' }} />,

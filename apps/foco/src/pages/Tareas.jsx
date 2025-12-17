@@ -97,11 +97,6 @@ export function Tareas() {
       
       const failed = results.length - successful;
       
-      // Actualizar estado local inmediatamente removiendo las tareas eliminadas
-      setTareas(prevTareas => 
-        prevTareas.filter(tarea => !selectedTareas.includes(tarea._id))
-      );
-      
       // Mostrar mensaje apropiado
       if (successful > 0) {
         enqueueSnackbar(`${successful} tarea(s) eliminada(s) exitosamente`, { variant: 'success' });
@@ -118,11 +113,9 @@ export function Tareas() {
         detail: { hasSelections: false } 
       }));
       
-      // Recargar datos después de un breve delay para asegurar sincronización
-      setTimeout(() => {
-        fetchTareas();
-        fetchProyectos();
-      }, 500);
+      // Recargar datos del servidor para mantener consistencia
+      await fetchTareas();
+      await fetchProyectos();
       
     } catch (error) {
       console.error('Error al eliminar tareas:', error);
@@ -288,7 +281,7 @@ export function Tareas() {
       console.error('Error al recargar datos:', error);
       enqueueSnackbar('Error al recargar datos', { variant: 'error' });
     }
-  }, []);
+  }, [fetchProyectos, fetchTareas, enqueueSnackbar]);
 
   // Usar el sistema automático de historial
   const { 
@@ -325,14 +318,35 @@ export function Tareas() {
     };
 
     // Escuchar eventos de deshacer específicos para tareas
-    const handleUndoTareaAction = (event) => {
+    // Este handler se ejecuta después de que useAutoUndoHandler procesa el undo
+    const handleUndoTareaAction = async (event) => {
       const action = event.detail;
-      console.log('Undo de tarea detectado en página de Tareas:', action);
-      // Refrescar tareas después del undo
-      setTimeout(() => {
-        fetchTareas();
-        fetchProyectos();
-      }, 500);
+      console.log('🔄 Undo de tarea detectado en página de Tareas:', action);
+      // El useAutoUndoHandler ya debería haber revertido la acción,
+      // solo necesitamos recargar los datos para reflejar los cambios
+      try {
+        await fetchTareas();
+        await fetchProyectos();
+        console.log('✅ Datos recargados después del undo');
+      } catch (error) {
+        console.error('❌ Error al recargar datos después del undo:', error);
+      }
+    };
+    
+    // También escuchar el evento undoAction directamente como fallback
+    const handleUndoAction = async (event) => {
+      const action = event.detail;
+      // Solo procesar si es una acción de tarea
+      if (action.entity === 'tarea') {
+        console.log('🔄 UndoAction directo detectado para tarea:', action);
+        // useAutoUndoHandler debería manejar esto, pero como fallback recargamos
+        try {
+          await fetchTareas();
+          await fetchProyectos();
+        } catch (error) {
+          console.error('❌ Error al recargar datos después del undo (fallback):', error);
+        }
+      }
     };
 
     const handleOpenGoogleTasksConfig = () => {
@@ -340,14 +354,12 @@ export function Tareas() {
     };
 
     // Manejar la sincronización completada de Google Tasks
-    const handleGoogleTasksSyncCompleted = (event) => {
+    const handleGoogleTasksSyncCompleted = async (event) => {
       console.log('🔄 Sincronización de Google Tasks completada, recargando tareas...', event.detail);
       
       // Recargar tareas y proyectos después de la sincronización
-      setTimeout(() => {
-        fetchTareas();
-        fetchProyectos();
-      }, 500);
+      await fetchTareas();
+      await fetchProyectos();
       
       // Mostrar notificación adicional
       const { results } = event.detail;
@@ -371,6 +383,7 @@ export function Tareas() {
 
     window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);   
     window.addEventListener('addTask', handleAddTask);
+    window.addEventListener('undoAction', handleUndoAction);
     window.addEventListener('undoAction_tarea', handleUndoTareaAction);
     window.addEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
     window.addEventListener('googleTasksSyncCompleted', handleGoogleTasksSyncCompleted);
@@ -380,6 +393,7 @@ export function Tareas() {
     return () => {
       window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
       window.removeEventListener('addTask', handleAddTask);
+      window.removeEventListener('undoAction', handleUndoAction);
       window.removeEventListener('undoAction_tarea', handleUndoTareaAction);    
       window.removeEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
       window.removeEventListener('googleTasksSyncCompleted', handleGoogleTasksSyncCompleted);
@@ -390,41 +404,118 @@ export function Tareas() {
 
   const handleFormSubmit = async (formData) => {
     try {
-      const datosAEnviar = {
-        ...formData,
-        proyecto: formData.proyecto?._id || formData.proyecto
+      // Función helper para convertir fecha a ISO string de forma segura
+      const toISOString = (dateValue, fallback = null) => {
+        if (!dateValue) return fallback;
+        try {
+          // Si ya es un string ISO válido, verificar que sea válido
+          if (typeof dateValue === 'string') {
+            const date = new Date(dateValue);
+            if (!isNaN(date.getTime())) {
+              return date.toISOString();
+            }
+          }
+          // Si es un objeto Date
+          if (dateValue instanceof Date) {
+            if (!isNaN(dateValue.getTime())) {
+              return dateValue.toISOString();
+            }
+          }
+          return fallback;
+        } catch (e) {
+          return fallback;
+        }
       };
+      
+      // Asegurar que fechaInicio siempre esté presente y sea válida (requerida para filtros de agenda)
+      const fechaInicio = toISOString(
+        formData.fechaInicio, 
+        editingTarea?.fechaInicio 
+          ? toISOString(editingTarea.fechaInicio, new Date().toISOString())
+          : new Date().toISOString()
+      );
+      
+      // Preservar fechaVencimiento si existe
+      const fechaVencimiento = toISOString(
+        formData.fechaVencimiento,
+        editingTarea?.fechaVencimiento ? toISOString(editingTarea.fechaVencimiento, null) : null
+      );
+      
+      // Preservar fechaFin si existe
+      const fechaFin = toISOString(
+        formData.fechaFin,
+        editingTarea?.fechaFin ? toISOString(editingTarea.fechaFin, null) : null
+      );
+      
+      // Calcular completada correctamente basándose en estado y subtareas
+      const subtareas = formData.subtareas || [];
+      let completadaCalculada = false;
+      
+      // Si hay subtareas, calcular basándose en ellas
+      if (subtareas.length > 0) {
+        const todasCompletadas = subtareas.every(st => st.completada);
+        completadaCalculada = todasCompletadas;
+      } else {
+        // Si no hay subtareas, basarse en el estado
+        const estado = formData.estado || editingTarea?.estado || 'PENDIENTE';
+        completadaCalculada = estado === 'COMPLETADA';
+      }
+      
+      // Usar el valor calculado o el explícito del formulario
+      const completada = formData.completada !== undefined 
+        ? formData.completada 
+        : (editingTarea?.completada !== undefined 
+          ? editingTarea.completada 
+          : completadaCalculada);
+      
+      // Construir objeto preservando todos los campos de la tarea original
+      // Esto asegura que campos como googleTasksSync, usuario, etc. no se pierdan
+      const datosAEnviar = {
+        // Campos del formulario (siempre presentes)
+        titulo: formData.titulo,
+        descripcion: formData.descripcion || '',
+        estado: formData.estado || 'PENDIENTE',
+        fechaInicio: fechaInicio,
+        fechaVencimiento: fechaVencimiento,
+        fechaFin: fechaFin,
+        prioridad: formData.prioridad || 'BAJA',
+        proyecto: formData.proyecto?._id || formData.proyecto || null,
+        completada: completada,
+        subtareas: subtareas,
+        archivos: formData.archivos || [],
+        // Preservar campos que no están en el formulario pero son importantes
+        ...(editingTarea && {
+          usuario: editingTarea.usuario,
+          googleTasksSync: editingTarea.googleTasksSync,
+          orden: editingTarea.orden,
+          pushCount: editingTarea.pushCount
+        })
+      };
+      
+      console.log('📝 Datos a enviar al actualizar:', { 
+        ...datosAEnviar, 
+        subtareas: `[${datosAEnviar.subtareas.length} subtareas]`,
+        fechaInicio,
+        fechaVencimiento,
+        fechaFin
+      });
 
       if (editingTarea) {
         // Usar la función con historial automático
-        const updatedTarea = await updateWithHistory(editingTarea._id, datosAEnviar, editingTarea);
-        
-        // Actualizar estado local inmediatamente
-        setTareas(prevTareas => 
-          prevTareas.map(tarea => 
-            tarea._id === editingTarea._id ? updatedTarea : tarea
-          )
-        );
-        
+        await updateWithHistory(editingTarea._id, datosAEnviar, editingTarea);
         enqueueSnackbar('Tarea actualizada exitosamente', { variant: 'success' });
       } else {
         // Usar la función con historial automático
-        const newTarea = await createWithHistory(datosAEnviar);
-        
-        // Agregar la nueva tarea al estado local
-        setTareas(prevTareas => [newTarea, ...prevTareas]);
-        
+        await createWithHistory(datosAEnviar);
         enqueueSnackbar('Tarea creada exitosamente', { variant: 'success' });
       }
 
       setIsFormOpen(false);
       setEditingTarea(null);
       
-      // Recargar datos después de un breve delay para asegurar sincronización
-      setTimeout(() => {
-        fetchTareas();
-        fetchProyectos();
-      }, 500);
+      // Recargar datos del servidor para mantener consistencia
+      await fetchTareas();
+      await fetchProyectos();
     } catch (error) {
       console.error('Error al guardar tarea:', error.response?.data || error.message);
       enqueueSnackbar(

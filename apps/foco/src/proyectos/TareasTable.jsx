@@ -269,9 +269,20 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
 
       console.log('📝 Enviando actualización:', { subtareas: nuevasSubtareas });
       
-      const response = await updateWithHistory(tarea._id, {
-        subtareas: nuevasSubtareas
-      }, tareaOriginal);
+      // Preparar actualización incluyendo estado y completada cuando corresponda
+      const updateData = {
+        subtareas: nuevasSubtareas,
+        estado: nuevoEstado
+      };
+      
+      // Si todas las subtareas están completadas, marcar la tarea como completada
+      if (todasCompletadas) {
+        updateData.completada = true;
+      } else {
+        updateData.completada = false;
+      }
+      
+      const response = await updateWithHistory(tarea._id, updateData, tareaOriginal);
       
       console.log('✅ Respuesta recibida:', response);
       
@@ -300,17 +311,25 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
     const currentIndex = estados.indexOf(estadoLocal);
     const nuevoEstado = estados[(currentIndex + 1) % estados.length];
     
+    // Guardar el estado original para revertir en caso de error
+    const estadoOriginal = estadoLocal;
+    
     try {
+      // Actualizar estado local optimísticamente
+      setEstadoLocal(nuevoEstado);
+      
       // Guardar el estado original ANTES de cualquier cambio
       const tareaOriginal = { ...tarea };
       
       const response = await updateWithHistory(tarea._id, { estado: nuevoEstado }, tareaOriginal);
-      setEstadoLocal(nuevoEstado);
+      
       if (onUpdateEstado) {
         onUpdateEstado(response);
       }
       enqueueSnackbar('Estado actualizado exitosamente', { variant: 'success' });
     } catch (error) {
+      // Revertir cambio local en caso de error
+      setEstadoLocal(estadoOriginal);
       console.error('Error al actualizar estado:', error);
       enqueueSnackbar('Error al actualizar estado', { variant: 'error' });
     }
@@ -408,20 +427,38 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
 
   const handleComplete = async (tarea) => {
     try {
-      // Marcar todas las subtareas como completadas
-      const nuevasSubtareas = tarea.subtareas.map(st => ({
+      // Guardar el estado original ANTES de cualquier cambio
+      const tareaOriginal = { ...tarea };
+      
+      // Marcar todas las subtareas como completadas (si existen)
+      const nuevasSubtareas = (tarea.subtareas || []).map(st => ({
         ...st,
         completada: true
       }));
 
-      // Guardar el estado original ANTES de cualquier cambio
-      const tareaOriginal = { ...tarea };
+      // Preparar los datos de actualización
+      const updateData = {
+        estado: 'COMPLETADA',
+        completada: true
+      };
       
-      const response = await updateWithHistory(tarea._id, { subtareas: nuevasSubtareas }, tareaOriginal);
+      // Solo incluir subtareas si existen
+      if (tarea.subtareas && tarea.subtareas.length > 0) {
+        updateData.subtareas = nuevasSubtareas;
+      }
+      
+      const response = await updateWithHistory(tarea._id, updateData, tareaOriginal);
       
       if (onUpdateEstado) {
         onUpdateEstado(response);
       }
+      
+      // Actualizar estado local inmediatamente
+      setEstadoLocal('COMPLETADA');
+      if (tarea.subtareas && tarea.subtareas.length > 0) {
+        setSubtareasLocal(nuevasSubtareas);
+      }
+      
       enqueueSnackbar('Tarea completada exitosamente', { variant: 'success' });
     } catch (error) {
       console.error('Error al completar tarea:', error);
@@ -431,20 +468,41 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
 
   const handleReactivate = async (tarea) => {
     try {
-      // Marcar todas las subtareas como no completadas
-      const nuevasSubtareas = tarea.subtareas.map(st => ({
-        ...st,
-        completada: false
-      }));
-
       // Guardar el estado original ANTES de cualquier cambio
       const tareaOriginal = { ...tarea };
       
-      const response = await updateWithHistory(tarea._id, { subtareas: nuevasSubtareas }, tareaOriginal);
+      // Marcar todas las subtareas como no completadas (si existen)
+      const nuevasSubtareas = (tarea.subtareas || []).map(st => ({
+        ...st,
+        completada: false
+      }));
+      
+      // Determinar el estado inicial basado en si hay subtareas
+      const nuevoEstado = 'PENDIENTE';
+      
+      // Preparar los datos de actualización
+      const updateData = {
+        estado: nuevoEstado,
+        completada: false
+      };
+      
+      // Solo incluir subtareas si existen
+      if (tarea.subtareas && tarea.subtareas.length > 0) {
+        updateData.subtareas = nuevasSubtareas;
+      }
+      
+      const response = await updateWithHistory(tarea._id, updateData, tareaOriginal);
       
       if (onUpdateEstado) {
         onUpdateEstado(response);
       }
+      
+      // Actualizar estado local inmediatamente
+      setEstadoLocal(nuevoEstado);
+      if (tarea.subtareas && tarea.subtareas.length > 0) {
+        setSubtareasLocal(nuevasSubtareas);
+      }
+      
       enqueueSnackbar('Tarea reactivada exitosamente', { variant: 'success' });
     } catch (error) {
       console.error('Error al reactivar tarea:', error);

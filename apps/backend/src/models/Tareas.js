@@ -315,15 +315,41 @@ tareaSchema.pre('findOneAndUpdate', async function() {
   }
 
   // Asegurar que el estado se actualice correctamente
-  if (update.subtareas || update.completada !== undefined) {
-    const allSubtareas = update.subtareas || docToUpdate.subtareas;
-    const todasCompletadas = allSubtareas.every(st => st.completada);
-    const algunaCompletada = allSubtareas.some(st => st.completada);
+  // Solo actualizar automáticamente si hay subtareas o si completada fue explícitamente establecido
+  if (update.subtareas !== undefined || update.completada !== undefined) {
+    const allSubtareas = update.subtareas !== undefined ? update.subtareas : docToUpdate.subtareas;
+    
+    // Solo calcular estado basado en subtareas si hay subtareas
+    if (allSubtareas && allSubtareas.length > 0) {
+      const todasCompletadas = allSubtareas.every(st => st.completada);
+      const algunaCompletada = allSubtareas.some(st => st.completada);
 
-    update.estado = todasCompletadas ? 'COMPLETADA' : 
-                    algunaCompletada ? 'EN_PROGRESO' : 
-                    'PENDIENTE';
-    update.completada = todasCompletadas;
+      // Solo sobrescribir estado si no fue establecido explícitamente
+      if (update.estado === undefined) {
+        update.estado = todasCompletadas ? 'COMPLETADA' : 
+                        algunaCompletada ? 'EN_PROGRESO' : 
+                        'PENDIENTE';
+      }
+      // Solo sobrescribir completada si no fue establecido explícitamente
+      if (update.completada === undefined) {
+        update.completada = todasCompletadas;
+      }
+    } else if (update.completada !== undefined) {
+      // Si no hay subtareas pero se establece completada explícitamente, respetar el estado enviado
+      // No sobrescribir estado si ya fue establecido
+      if (update.estado === undefined) {
+        update.estado = update.completada ? 'COMPLETADA' : 'PENDIENTE';
+      }
+    } else if (update.subtareas !== undefined && (!allSubtareas || allSubtareas.length === 0)) {
+      // Si se envía un array vacío de subtareas, no marcar como completada
+      // Solo actualizar estado si no fue establecido explícitamente
+      if (update.estado === undefined) {
+        update.estado = 'PENDIENTE';
+      }
+      if (update.completada === undefined) {
+        update.completada = false;
+      }
+    }
   }
 });
 
@@ -350,24 +376,40 @@ tareaSchema.pre('save', async function(next) {
 
 // Middleware para actualizar el estado basado en subtareas
 tareaSchema.pre('save', function(next) {
+  // Solo actualizar automáticamente si las subtareas fueron modificadas o es nueva
+  // Y solo si el estado no fue establecido explícitamente
   if (this.isModified('subtareas') || this.isNew) {
     if (this.subtareas && this.subtareas.length > 0) {
       const todasCompletadas = this.subtareas.every(st => st.completada);
       const algunaCompletada = this.subtareas.some(st => st.completada);
 
-      if (todasCompletadas) {
-        this.estado = 'COMPLETADA';
-        this.completada = true;
-      } else if (algunaCompletada) {
-        this.estado = 'EN_PROGRESO';
-        this.completada = false;
+      // Solo actualizar estado si no fue modificado explícitamente
+      if (!this.isModified('estado')) {
+        if (todasCompletadas) {
+          this.estado = 'COMPLETADA';
+          this.completada = true;
+        } else if (algunaCompletada) {
+          this.estado = 'EN_PROGRESO';
+          this.completada = false;
+        } else {
+          this.estado = 'PENDIENTE';
+          this.completada = false;
+        }
       } else {
-        this.estado = 'PENDIENTE';
-        this.completada = false;
+        // Si el estado fue modificado explícitamente, solo actualizar completada basándose en subtareas
+        // pero respetar el estado establecido
+        if (!this.isModified('completada')) {
+          this.completada = todasCompletadas;
+        }
       }
     } else {
-      this.estado = 'PENDIENTE';
-      this.completada = false;
+      // Si no hay subtareas, solo actualizar si no fue establecido explícitamente
+      if (!this.isModified('estado')) {
+        this.estado = 'PENDIENTE';
+      }
+      if (!this.isModified('completada')) {
+        this.completada = false;
+      }
     }
   }
   next();

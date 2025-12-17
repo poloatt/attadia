@@ -41,6 +41,21 @@ import ProyectoForm from './ProyectoForm';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '@shared/config/axios';
 
+/**
+ * Componente de formulario para crear/editar tareas
+ * 
+ * @param {boolean} open - Controla si el diálogo está abierto
+ * @param {Function} onClose - Función para cerrar el diálogo
+ * @param {Function} onSubmit - Función que se llama al enviar el formulario (requerida)
+ * @param {Object} initialData - Datos iniciales para edición (opcional)
+ * @param {boolean} isEditing - Indica si se está editando una tarea existente
+ * @param {string} proyectoId - ID del proyecto si se está creando desde un proyecto específico (opcional)
+ * @param {Array} proyectos - Lista de proyectos disponibles (opcional)
+ * @param {Function} onProyectosUpdate - Función para actualizar la lista de proyectos (opcional)
+ * @param {Function} updateWithHistory - Función para actualizar tareas con historial (opcional)
+ *   Solo se usa para actualizar subtareas dentro del formulario cuando la tarea ya está guardada.
+ *   Si no se proporciona, las actualizaciones de subtareas solo funcionarán para subtareas nuevas (sin _id).
+ */
 const TareaForm = ({ 
   open, 
   onClose, 
@@ -141,8 +156,9 @@ const TareaForm = ({
   const handleToggleSubtarea = async (index) => {
     try {
       const subtarea = formData.subtareas[index];
+      
+      // Si la subtarea es nueva (no tiene _id), solo actualizamos el estado local
       if (!subtarea._id) {
-        // Si la subtarea es nueva (no tiene _id), solo actualizamos el estado local
         setFormData(prev => ({
           ...prev,
           subtareas: prev.subtareas.map((st, i) => 
@@ -152,55 +168,67 @@ const TareaForm = ({
         return;
       }
 
+      // Validar que la tarea esté guardada y que updateWithHistory esté disponible
+      if (!formData._id) {
+        enqueueSnackbar('Guarda la tarea primero antes de actualizar subtareas', { variant: 'warning' });
+        return;
+      }
+
+      if (!updateWithHistory) {
+        enqueueSnackbar('Función de actualización no disponible', { variant: 'error' });
+        return;
+      }
+
       console.log('Actualizando subtarea:', {
         tareaId: formData._id,
         subtareaId: subtarea._id,
         completada: !subtarea.completada
       });
 
-      // Si la subtarea ya existe, usar la función de historial
-      if (updateWithHistory && formData._id) {
-        // Guardar el estado original
-        const tareaOriginal = { ...formData };
-        
-        // Preparar las subtareas actualizadas
-        const subtareasActualizadas = formData.subtareas.map((st, i) => 
-          i === index ? { ...st, completada: !st.completada } : st
-        );
-        
-        const response = await updateWithHistory(formData._id, {
-          subtareas: subtareasActualizadas
-        }, tareaOriginal);
-        
-        console.log('Respuesta del servidor:', response);
-
-        // Actualizamos el estado local con los datos del servidor
-        if (response) {
-          setFormData(prev => ({
-            ...prev,
-            subtareas: response.subtareas || subtareasActualizadas
-          }));
-          enqueueSnackbar('Subtarea actualizada exitosamente', { variant: 'success' });
-        }
+      // Guardar el estado original
+      const tareaOriginal = { ...formData };
+      
+      // Preparar las subtareas actualizadas
+      const subtareasActualizadas = formData.subtareas.map((st, i) => 
+        i === index ? { ...st, completada: !st.completada } : st
+      );
+      
+      // Determinar nuevo estado basado en subtareas
+      const todasCompletadas = subtareasActualizadas.every(st => st.completada);
+      const algunaCompletada = subtareasActualizadas.some(st => st.completada);
+      let nuevoEstado = 'PENDIENTE';
+      if (todasCompletadas) {
+        nuevoEstado = 'COMPLETADA';
+      } else if (algunaCompletada) {
+        nuevoEstado = 'EN_PROGRESO';
+      }
+      
+      // Preparar actualización incluyendo estado y completada cuando corresponda
+      const updateData = {
+        subtareas: subtareasActualizadas,
+        estado: nuevoEstado
+      };
+      
+      // Si todas las subtareas están completadas, marcar la tarea como completada
+      if (todasCompletadas) {
+        updateData.completada = true;
       } else {
-        // Fallback: usar el endpoint directo si no hay función de historial
-        const response = await clienteAxios.patch(`/api/tareas/${formData._id}/subtareas`, {
-          subtareaId: subtarea._id,
-          completada: !subtarea.completada
-        });
-        
-        console.log('Respuesta del servidor:', response.data);
+        updateData.completada = false;
+      }
+      
+      const response = await updateWithHistory(formData._id, updateData, tareaOriginal);
+      
+      console.log('Respuesta del servidor:', response);
 
-        // Actualizamos el estado local con los datos del servidor
-        if (response.data) {
-          setFormData(prev => ({
-            ...prev,
-            subtareas: response.data.subtareas || prev.subtareas.map(st => 
-              st._id === subtarea._id ? { ...st, completada: !st.completada } : st
-            )
-          }));
-          enqueueSnackbar('Subtarea actualizada exitosamente', { variant: 'success' });
-        }
+      // Actualizamos el estado local con los datos del servidor
+      if (response) {
+        setFormData(prev => ({
+          ...prev,
+          subtareas: response.subtareas || subtareasActualizadas,
+          estado: response.estado || nuevoEstado,
+          completada: response.completada !== undefined ? response.completada : (todasCompletadas ? true : false)
+        }));
+        enqueueSnackbar('Subtarea actualizada exitosamente', { variant: 'success' });
       }
     } catch (error) {
       console.error('Error al actualizar subtarea:', error);
@@ -239,9 +267,9 @@ const TareaForm = ({
 
         const formDataToSubmit = {
           ...formData,
-          fechaInicio: formData.fechaInicio.toISOString(),
-          fechaVencimiento: formData.fechaVencimiento ? formData.fechaVencimiento.toISOString() : null,
-          fechaFin: formData.fechaFin ? formData.fechaFin.toISOString() : null,
+          fechaInicio: formData.fechaInicio ? (formData.fechaInicio instanceof Date ? formData.fechaInicio.toISOString() : formData.fechaInicio) : new Date().toISOString(),
+          fechaVencimiento: formData.fechaVencimiento ? (formData.fechaVencimiento instanceof Date ? formData.fechaVencimiento.toISOString() : formData.fechaVencimiento) : null,
+          fechaFin: formData.fechaFin ? (formData.fechaFin instanceof Date ? formData.fechaFin.toISOString() : formData.fechaFin) : null,
           proyecto: proyectoId || formData.proyecto
         };
 
