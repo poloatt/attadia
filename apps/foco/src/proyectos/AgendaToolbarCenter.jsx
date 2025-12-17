@@ -37,9 +37,8 @@ export default function AgendaToolbarCenter() {
         value={agendaView}
         exclusive
         sx={{
-          width: '100%',
+          width: 'auto',
           justifyContent: 'flex-start',
-          gap: 0.75,
           '& .MuiToggleButtonGroup-grouped': {
             margin: 0,
             border: 'none',
@@ -90,16 +89,16 @@ export default function AgendaToolbarCenter() {
             textTransform: 'none',
             borderRadius: 0,
             color: 'text.secondary',
-            background: baseBg,
+            background: 'transparent',
             borderLeft: '2px solid',
             borderLeftColor: rail,
-            '&:hover': { background: hoverBg, color: 'text.primary' },
+            '&:hover': { background: 'transparent', color: 'text.primary' },
             '&.Mui-selected': {
               color: 'text.primary',
-              background: selectedBg,
+              background: 'transparent',
               borderLeftColor: alpha(theme.palette.text.primary, 0.32)
             },
-            '&.Mui-selected:hover': { background: selectedHoverBg }
+            '&.Mui-selected:hover': { background: 'transparent' }
           }}
         >
           Luego

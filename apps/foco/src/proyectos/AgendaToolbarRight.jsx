@@ -45,10 +45,10 @@ export default function AgendaToolbarRight({ hasSelectedItems }) {
       label: 'Sincronizar'
     },
     {
-      key: 'archivo',
-      icon: <SystemButtons.ArchiveButton buttonSx={{ ...commonButtonSx, color: 'primary.main' }} />,
-      label: 'Archivo',
-      tooltip: 'Archivo',
+      key: 'rutinas',
+      icon: <SystemButtons.RutinasButton buttonSx={{ ...commonButtonSx, color: 'primary.main' }} />,
+      label: 'Rutinas',
+      tooltip: 'Rutinas',
       // Ya es un IconButton (isButtonComponent), no necesita onClick aquí
     },
     {

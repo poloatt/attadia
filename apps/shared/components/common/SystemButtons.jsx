@@ -6,7 +6,7 @@ import { useActionHistory, ACTION_TYPES } from '../../context/ActionHistoryConte
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useValuesVisibility } from '../../context/ValuesVisibilityContext';
 import MenuIcon from '@mui/icons-material/MenuOutlined';
-import { Refresh as RefreshIcon, Undo as UndoIcon, AddOutlined as AddOutlinedIcon, VisibilityOff as HideValuesIcon, Apps as AppsIcon, ArchiveOutlined as ArchiveIcon, Sync as SyncIcon } from '@mui/icons-material';
+import { Refresh as RefreshIcon, Undo as UndoIcon, AddOutlined as AddOutlinedIcon, VisibilityOff as HideValuesIcon, Apps as AppsIcon, ArchiveOutlined as ArchiveIcon, Sync as SyncIcon, FitnessCenterOutlined as FitnessCenterIcon } from '@mui/icons-material';
 import { Menu, MenuItem, ListItemText, ListItemIcon, Chip, Divider } from '../../utils/materialImports';
 import { SettingsOutlined as SettingsOutlinedIcon } from '@mui/icons-material';
 import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
@@ -599,6 +599,68 @@ function HeaderArchiveButton({ iconSx, buttonSx }) {
 
 HeaderArchiveButton.isButtonComponent = true;
 
+// HeaderRutinasButton - acceso rápido a /rutinas
+function HeaderRutinasButton({ iconSx, buttonSx }) {
+  const navigate = useNavigate();
+  const { isMobile: isMobileFromHook } = useResponsive();
+  
+  // Fallback robusto: usar window.innerWidth si useMediaQuery falla
+  const isMobile = typeof window !== 'undefined' 
+    ? (isMobileFromHook || window.innerWidth < 600)
+    : isMobileFromHook;
+  
+  // Extraer valores responsive de buttonSx si existen y convertirlos a valores directos
+  const getButtonSxValue = (key) => {
+    if (!buttonSx || !buttonSx[key]) return null;
+    const value = buttonSx[key];
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      // Si es responsive, extraer el valor según isMobile
+      return isMobile ? (value.xs || value.sm || value) : (value.sm || value.md || value.xs || value);
+    }
+    return value;
+  };
+  
+  // Separar propiedades que ya procesamos del resto de buttonSx
+  // IMPORTANTE: excluir width, height, padding para evitar conflictos
+  const { width, height, padding, '&:hover': hoverStyles, ...restButtonSx } = buttonSx || {};
+  
+  // Calcular valores finales: si buttonSx tiene valores responsive, usarlos; si no, usar defaults
+  const finalWidth = getButtonSxValue('width') ?? (isMobile ? 32 : 32);
+  const finalHeight = getButtonSxValue('height') ?? (isMobile ? 32 : 32);
+  const finalPadding = getButtonSxValue('padding') ?? (isMobile ? 0.25 : 0.5);
+  
+  const btn = (
+    <IconButton
+      size="small"
+      aria-label="Rutinas"
+      onClick={() => navigate('/rutinas')}
+      sx={{
+        width: finalWidth,
+        height: finalHeight,
+        padding: finalPadding,
+        minWidth: finalWidth,
+        minHeight: finalHeight,
+        color: 'primary.main', // Mismo color que sync para armonía visual
+        '& .MuiSvgIcon-root': {
+          fontSize: isMobile ? '0.9rem' : (iconSx?.fontSize || 18)
+        },
+        '&:hover': { 
+          color: 'primary.main', 
+          background: 'action.hover',
+          ...(hoverStyles || {})
+        },
+        ...restButtonSx
+      }}
+    >
+      <FitnessCenterIcon sx={iconSx || { fontSize: isMobile ? 14 : 18 }} />
+    </IconButton>
+  );
+  btn.type.isButtonComponent = true;
+  return btn;
+}
+
+HeaderRutinasButton.isButtonComponent = true;
+
 // HeaderSyncButton - botón reutilizable de sincronización (uso genérico)
 function HeaderSyncButton({ onClick, tooltip = 'Sincronizar', iconSx, buttonSx, disabled = false }) {
   const { isMobile: isMobileFromHook } = useResponsive();
@@ -798,6 +860,7 @@ SystemButtons.RefreshButton = HeaderRefreshButton;
 SystemButtons.VisibilityButton = HeaderVisibilityButton;
 SystemButtons.UndoMenu = HeaderUndoMenu;
 SystemButtons.ArchiveButton = HeaderArchiveButton;
+SystemButtons.RutinasButton = HeaderRutinasButton;
 SystemButtons.SyncButton = HeaderSyncButton;
 SystemButtons.AppsButton = HeaderAppsButton; 
 
@@ -905,3 +968,4 @@ SystemButtons.MultiSelectDeleteButton = HeaderMultiSelectDeleteButton;
 SystemButtons.MultiSelectCancelButton = HeaderMultiSelectCancelButton;
 
 export default SystemButtons; 
+
