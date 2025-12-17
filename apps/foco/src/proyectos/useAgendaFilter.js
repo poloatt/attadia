@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { parseAPIDate } from '@shared/utils/dateUtils';
 
 /**
  * Hook para centralizar el filtrado de la Agenda (Ahora / Luego / Todas)
@@ -35,32 +36,42 @@ export function useAgendaFilter(tasks) {
     const tasksArray = Array.isArray(tasks) ? tasks : [];
     const parseDate = (value) => {
       if (!value) return null;
-      const d = new Date(value);
-      return isNaN(d.getTime()) ? null : d;
+      // Unificar parseo (evita colados por fechas en formatos no ISO / TZ shifts)
+      const d = parseAPIDate(value);
+      return d && !isNaN(d.getTime()) ? d : null;
     };
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
     const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const endOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 23, 59, 59, 999);
 
     return tasksArray.filter((t) => {
-      const isCompleted = t?.estado === 'completada' || t?.completada === true;
+      const estado = String(t?.estado || '').toLowerCase();
+      const isCompleted = estado === 'completada' || t?.completada === true;
       if (!showCompleted && isCompleted) return false;
       const start = parseDate(t?.fechaInicio || t?.inicio || t?.start);
       const due = parseDate(t?.fechaVencimiento || t?.fechaFin || t?.vencimiento || t?.dueDate || t?.fecha);
       // Seleccionar ancla priorizando la próxima fecha futura disponible
       const anchor = (() => {
-        if (start && start > endOfToday) return start;
-        if (due && due > endOfToday) return due;
+        // Usar el mismo horizonte que AHORA (fin de mañana) para decidir qué es “futuro”.
+        // IMPORTANTe: elegir la fecha futura MÁS CERCANA (min) entre start/due.
+        const candidates = [start, due].filter(d => d && d > endOfTomorrow);
+        if (candidates.length > 0) {
+          return candidates.reduce((min, d) => (d < min ? d : min), candidates[0]);
+        }
         return start || due;
       })();
       if (agendaView === 'ahora') {
         if (!start && !due) return true;
-        if (start) return start <= endOfToday;
-        return !!due && due <= endOfToday;
+        // Regla: si hay vencimiento y es posterior al horizonte, NO es "AHORA"
+        // aunque la tarea tenga fechaInicio "hoy" por defecto (evita colar próximo mes en HOY).
+        if (due && due > endOfTomorrow) return false;
+        if (start) return start <= endOfTomorrow;
+        return !!due && due <= endOfTomorrow;
       }
       if (agendaView === 'luego') {
         if (!anchor) return false;
-        return anchor > endOfToday;
+        return anchor > endOfTomorrow;
       }
       return false;
     });

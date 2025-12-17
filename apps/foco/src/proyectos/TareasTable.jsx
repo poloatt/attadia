@@ -21,6 +21,7 @@ import {
   Chip,
   TableHead,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { useResponsive } from '@shared/hooks';
 import {
   EditOutlined as EditIcon,
@@ -30,24 +31,84 @@ import {
   PlayCircle as InProgressIcon,
   ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
-import { format, isToday, isThisWeek, isThisMonth, isThisYear, addMonths, isBefore, addDays, addWeeks, isWeekend, startOfMonth } from 'date-fns';
+import { format, isToday, isTomorrow, isThisWeek, isThisMonth, isThisYear, addMonths, isBefore, addDays, addWeeks, isWeekend, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import clienteAxios from '@shared/config/axios';
 import { useSnackbar } from 'notistack';
 import TareaActions from './TareaActions';
 import { useValuesVisibility } from '@shared/context/ValuesVisibilityContext';
+import RutinasPendientesHoy from '../rutinas/RutinasPendientesHoy';
+import { parseAPIDate } from '@shared/utils/dateUtils';
 
-const getPeriodo = (tarea, isArchive = false) => {
-  // Si no hay fecha de inicio, categorizar como "Sin Fecha"
-  if (!tarea.fechaInicio) {
-    console.log(`📅 "${tarea.titulo}" → "Sin Fecha" (no tiene fechaInicio)`);
-    return 'Sin Fecha';
+const normalizeEstado = (estado) => String(estado || '').toUpperCase();
+
+// Escala de grises unificada (match con RutinasPendientesHoy)
+const getGreySurfaceTokens = (theme) => {
+  const layoutBg = theme.palette.background.default;
+  // Un tono más oscuro que el background del layout (para que el divider "aparezca" pero siga siendo sutil)
+  const layoutDividerColor = theme.palette.mode === 'dark'
+    ? alpha(theme.palette.common.black, 0.35)
+    : alpha(theme.palette.common.black, 0.12);
+  const surfaceBg = theme.palette.mode === 'dark'
+    ? alpha(theme.palette.common.white, 0.035)
+    : alpha(theme.palette.common.black, 0.03);
+  // Divider "de sección" (dentro del bloque). Útil para headers/bandas.
+  const sectionDividerColor = theme.palette.mode === 'dark'
+    ? alpha(theme.palette.common.white, 0.10)
+    : alpha(theme.palette.common.black, 0.10);
+  const hoverBg = theme.palette.mode === 'dark'
+    ? alpha(theme.palette.common.white, 0.055)
+    : alpha(theme.palette.common.black, 0.045);
+  return { layoutBg, layoutDividerColor, surfaceBg, sectionDividerColor, hoverBg };
+};
+
+const getEstadoTokens = (theme, estado) => {
+  const e = normalizeEstado(estado);
+  const main = (() => {
+    if (e === 'COMPLETADA') return theme.palette.success.main;
+    if (e === 'EN_PROGRESO') return theme.palette.info.main;
+    if (e === 'CANCELADA') return theme.palette.error.main;
+    return theme.palette.warning.main; // PENDIENTE/default
+  })();
+
+  return {
+    main,
+    softBg: theme.palette.mode === 'dark' ? alpha(main, 0.10) : alpha(main, 0.08),
+    softBorder: theme.palette.mode === 'dark' ? alpha(main, 0.35) : alpha(main, 0.28),
+  };
+};
+
+// Unificar criterio de "completada" (debe ser consistente con useAgendaFilter)
+const isTaskCompleted = (t) => {
+  const estado = String(t?.estado || '').toLowerCase();
+  return estado === 'completada' || t?.completada === true;
+};
+
+// Helpers de fecha para evitar inconsistencias entre filtro y agrupación
+const parseDateSafe = (value) => {
+  if (!value) return null;
+  const d = parseAPIDate(value);
+  return d && !isNaN(d.getTime()) ? d : null;
+};
+
+const getTaskStart = (t) => parseDateSafe(t?.fechaInicio || t?.inicio || t?.start);
+const getTaskDue = (t) => parseDateSafe(t?.fechaVencimiento || t?.fechaFin || t?.vencimiento || t?.dueDate || t?.fecha);
+
+const getPeriodo = (tarea, isArchive = false, agendaView = 'ahora') => {
+  const fechaInicio = getTaskStart(tarea);
+  const fechaFin = getTaskDue(tarea);
+
+  // Si no hay fecha de inicio NI vencimiento, categorizar como SIN FECHA
+  if (!fechaInicio && !fechaFin) {
+    console.log(`📅 "${tarea?.titulo}" → "SIN FECHA" (no tiene fechaInicio ni fechaVencimiento)`);
+    return 'SIN FECHA';
   }
-  
-  const fechaInicio = new Date(tarea.fechaInicio);
-  const fechaFin = tarea.fechaVencimiento ? new Date(tarea.fechaVencimiento) : null;
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const endOfTomorrow = new Date(today);
+  endOfTomorrow.setDate(today.getDate() + 1);
+  endOfTomorrow.setHours(23, 59, 59, 999);
   
   // Debug eliminado - enfocándonos en la sincronización
 
@@ -55,51 +116,72 @@ const getPeriodo = (tarea, isArchive = false) => {
     // Lógica para archivo (tareas completadas)
     const fechaReferencia = fechaFin || fechaInicio;
     
-    if (isToday(fechaReferencia)) return 'Hoy';
-    if (isBefore(fechaReferencia, today) && isThisWeek(fechaReferencia)) return 'Esta Semana';
-    if (isBefore(fechaReferencia, today) && isThisMonth(fechaReferencia)) return 'Este Mes';
-    if (isBefore(fechaReferencia, addMonths(today, -3))) return 'Último Trimestre';
-    if (isBefore(fechaReferencia, addMonths(today, -12))) return 'Último Año';
-    return 'Más Antiguo';
+    if (isToday(fechaReferencia)) return 'HOY';
+    if (isBefore(fechaReferencia, today) && isThisWeek(fechaReferencia)) return 'ESTA SEMANA';
+    if (isBefore(fechaReferencia, today) && isThisMonth(fechaReferencia)) return 'ESTE MES';
+    if (isBefore(fechaReferencia, addMonths(today, -3))) return 'ÚLTIMO TRIMESTRE';
+    if (isBefore(fechaReferencia, addMonths(today, -12))) return 'ÚLTIMO AÑO';
+    return 'MÁS ANTIGUO';
   } else {
-    // Lógica para tareas activas (no completadas)
-    
-    // Tareas sin fecha de vencimiento que empezaron antes de hoy → van a "Hoy"
-    if (!tarea.completada && fechaInicio < today && !fechaFin) {
-      return 'Hoy';
+    // Vista "LUEGO": agrupar solo por horizonte futuro (sin HOY/MAÑANA),
+    // usando una fecha ancla coherente con el filtro (próxima fecha futura más cercana).
+    if (agendaView === 'luego') {
+      const candidates = [fechaInicio, fechaFin].filter(d => d && d > endOfTomorrow);
+      const anchor = candidates.length > 0
+        ? candidates.reduce((min, d) => (d < min ? d : min), candidates[0])
+        : (fechaFin || fechaInicio);
+
+      if (!anchor) return 'SIN FECHA';
+      if (isThisWeek(anchor)) return 'ESTA SEMANA';
+      if (isThisMonth(anchor)) return 'ESTE MES';
+      if (isBefore(anchor, addMonths(new Date(), 3))) return 'PRÓXIMO TRIMESTRE';
+      if (isThisYear(anchor)) return 'ESTE AÑO';
+      return 'MÁS ADELANTE';
     }
-    
-    // Tareas sin fecha de vencimiento que empezaron hoy → van a "Hoy"  
-    if (!tarea.completada && isToday(fechaInicio) && !fechaFin) {
-      return 'Hoy';
+
+    // Lógica para tareas activas (no completadas)
+    // Regla UX: si la tarea ya está activa (empezó antes/HOY/MAÑANA), se agrupa por INICIO
+    // para evitar que “PRÓXIMO TRIMESTRE” aparezca en AHORA cuando el vencimiento está lejano.
+    // Ajuste: solo forzar bucket por INICIO cuando NO hay vencimiento lejano.
+    // Si hay fechaFin/fechaVencimiento y está más allá de mañana, usamos referencia (fechaFin)
+    // para que no caiga en "HOY" cuando en realidad es del próximo mes.
+    const dueIsLejano = !!(fechaFin && fechaFin > endOfTomorrow);
+    if (!dueIsLejano && !isTaskCompleted(tarea) && fechaInicio) {
+      if (isBefore(fechaInicio, today)) return 'HOY';
+      if (isToday(fechaInicio)) return 'HOY';
+      if (isTomorrow(fechaInicio)) return 'MAÑANA';
+      // Si fechaInicio está dentro del horizonte (<= fin de mañana) también cae en HOY/MAÑANA
+      if (fechaInicio <= endOfTomorrow) return 'HOY';
     }
 
     const fechaReferencia = fechaFin || fechaInicio;
 
-    if (isToday(fechaReferencia)) {
-      return 'Hoy';
+    // Si por alguna razón la referencia ya es pasada, mantener en HOY (sin bucket separado)
+    if (isBefore(fechaReferencia, today)) return 'HOY';
+
+    // Si no hay fechaInicio pero hay fechaFin cerca, permitir MAÑANA para coherencia
+    if (!fechaInicio && fechaFin) {
+      if (isToday(fechaFin)) return 'HOY';
+      if (isTomorrow(fechaFin)) return 'MAÑANA';
     }
-    if (isThisWeek(fechaReferencia)) {
-      return 'Esta Semana';
-    }
-    if (isThisMonth(fechaReferencia)) {
-      return 'Este Mes';
-    }
-    if (isBefore(fechaReferencia, addMonths(new Date(), 3))) {
-      return 'Próximo Trimestre';
-    }
-    if (isThisYear(fechaReferencia)) {
-      return 'Este Año';
-    }
-    return 'Más Adelante';
+
+    if (isThisWeek(fechaReferencia)) return 'ESTA SEMANA';
+    if (isThisMonth(fechaReferencia)) return 'ESTE MES';
+    if (isBefore(fechaReferencia, addMonths(new Date(), 3))) return 'PRÓXIMO TRIMESTRE';
+    if (isThisYear(fechaReferencia)) return 'ESTE AÑO';
+    return 'MÁS ADELANTE';
   }
 };
 
 const ordenarTareas = (tareas) => {
   return tareas.sort((a, b) => {
-    const fechaA = a.fechaVencimiento ? new Date(a.fechaVencimiento) : new Date(a.fechaInicio);
-    const fechaB = b.fechaVencimiento ? new Date(b.fechaVencimiento) : new Date(b.fechaInicio);
-    return fechaA - fechaB;
+    const aRef = getTaskDue(a) || getTaskStart(a);
+    const bRef = getTaskDue(b) || getTaskStart(b);
+    // SIN FECHA al final
+    if (!aRef && !bRef) return 0;
+    if (!aRef) return 1;
+    if (!bRef) return -1;
+    return aRef - bRef;
   });
 };
 
@@ -304,29 +386,19 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
     }
   };
 
-  const getEstadoColor = (estado) => {
-    switch (estado) {
-      case 'COMPLETADA':
-        return '#2D5C2E';
-      case 'EN_PROGRESO':
-        return '#1B4A75';
-      case 'PENDIENTE':
-        return '#8F7F3D';
-      default:
-        return '#8F7F3D';
-    }
-  };
-
   const getEstadoIcon = (estado) => {
-    switch (estado) {
+    const { main } = getEstadoTokens(theme, estado);
+    switch (normalizeEstado(estado)) {
       case 'COMPLETADA':
-        return <CompletedIcon sx={{ color: '#2D5C2E' }} />;
+        return <CompletedIcon sx={{ color: main }} />;
       case 'EN_PROGRESO':
-        return <InProgressIcon sx={{ color: '#1B4A75' }} />;
+        return <InProgressIcon sx={{ color: main }} />;
       case 'PENDIENTE':
-        return <PendingIcon sx={{ color: '#8C4E0B' }} />;
+        return <PendingIcon sx={{ color: main }} />;
+      case 'CANCELADA':
+        return <PendingIcon sx={{ color: main }} />;
       default:
-        return <PendingIcon sx={{ color: '#8C4E0B' }} />;
+        return <PendingIcon sx={{ color: main }} />;
     }
   };
 
@@ -505,33 +577,63 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
     setOpen(!open);
   };
 
+  const estadoTokens = getEstadoTokens(theme, estadoLocal);
+  const selectionAccent = theme.palette.info.main;
+  const { hoverBg: rowHoverBg, layoutDividerColor, surfaceBg } = getGreySurfaceTokens(theme);
+
   return (
     <>
       <TableRow 
         sx={{ 
-          '& > *': { borderBottom: 'unset' },
+          // Divider minimal entre rows (controlado y consistente)
+          // Usar el background del layout para que "se difumine" con el resto de la app
+          '& > *': { borderBottom: `1px solid ${layoutDividerColor}` },
+          '& .MuiTableCell-root': { borderBottom: `1px solid ${layoutDividerColor} !important` },
           cursor: 'pointer',
           '&:hover': {
-            backgroundColor: 'action.hover'
+            backgroundColor: rowHoverBg
           },
           position: 'relative',
-          height: '38px',
-          bgcolor: isLongPressing ? 'action.selected' : (selectedTareas.includes(tarea._id) ? 'action.selected' : 'background.paper'),
+          // Compactación real: MUI suele imponer mínimos "táctiles" en IconButton/TableCell
+          '& .MuiIconButton-root': {
+            p: 0,
+            m: 0,
+            width: isMobile ? 22 : 18,
+            height: isMobile ? 22 : 18,
+            minWidth: 0,
+            minHeight: 0,
+          },
+          '& .MuiSvgIcon-root': {
+            fontSize: isMobile ? '1.1rem' : '1rem',
+          },
+          '& .MuiTableCell-root': {
+            // +20% aprox de alto (subiendo padding vertical)
+            py: isMobile ? 0.12 : 0.06,
+            px: isMobile ? 0.75 : 1,
+            lineHeight: 1,
+          },
+          // Fondo base: "surface" (para contrastar con layoutBg). Estados/selección encima.
+          bgcolor: isLongPressing
+            ? alpha(selectionAccent, 0.16)
+            : (selectedTareas.includes(tarea._id) ? alpha(selectionAccent, 0.12) : surfaceBg),
           transition: 'background-color 0.2s ease',
           ...(selectedTareas.length > 0 && {
-            border: '2px solid',
-            borderColor: selectedTareas.includes(tarea._id) ? 'primary.main' : 'transparent',
+            // Sin sombras: usar outline (no afecta layout)
+            outline: selectedTareas.includes(tarea._id) ? '2px solid' : 'none',
+            outlineColor: selectedTareas.includes(tarea._id) ? selectionAccent : 'transparent',
+            outlineOffset: '-2px',
             borderRadius: 1
           }),
           // Indicación visual cuando el modo selección múltiple está activo
           ...(showMultiSelectHint && selectedTareas.length === 0 && {
-            border: '2px dashed',
-            borderColor: 'primary.main',
+            outline: '2px dashed',
+            outlineColor: selectionAccent,
+            outlineOffset: '-2px',
             borderRadius: 1,
-            backgroundColor: 'rgba(25, 118, 210, 0.05)',
+            backgroundColor: alpha(selectionAccent, 0.06),
             '&:hover': {
-              backgroundColor: 'rgba(25, 118, 210, 0.1)',
-              borderColor: 'primary.dark'
+              backgroundColor: alpha(selectionAccent, 0.10),
+              outlineColor: alpha(selectionAccent, 0.9)
             }
           }),
           // Animación sutil cuando hay selecciones activas pero esta tarea no está seleccionada
@@ -543,9 +645,10 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
             position: 'absolute',
             left: 0,
             top: 0,
+            // Sin cortes para que no aparezcan “rayitas” en el borde inferior
             bottom: 0,
             width: 4,
-            backgroundColor: getEstadoColor(estadoLocal, 'TAREA')
+            backgroundColor: estadoTokens.main
           },
           ...(isLongPressing && {
             '&::after': {
@@ -555,9 +658,11 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: 'rgba(25, 118, 210, 0.1)',
-              border: '2px solid',
-              borderColor: 'primary.main',
+              backgroundColor: alpha(selectionAccent, 0.10),
+              // Sin bordes (evita líneas fuertes en algunos DPI/zoom)
+              outline: '2px solid',
+              outlineColor: selectionAccent,
+              outlineOffset: '-2px',
               borderRadius: 1,
               pointerEvents: 'none'
             }
@@ -571,8 +676,8 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchCancel}
       >
-        <TableCell sx={{ py: 0.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 0.5 : 1 }}>
+        <TableCell sx={{ py: 0.06 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 0.25 : 0.35, minHeight: 0 }}>
             {/* Checkbox de selección múltiple */}
             {selectedTareas.length > 0 && (
               <Checkbox
@@ -585,10 +690,10 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
                 onTouchStart={(e) => e.stopPropagation()}
                 size={isMobile ? "medium" : "small"}
                 sx={{
-                  padding: isMobile ? 0.5 : 0.25,
+                  padding: isMobile ? 0.25 : 0.125,
                   color: 'text.secondary',
                   '&.Mui-checked': {
-                    color: 'primary.main'
+                    color: selectionAccent
                   },
                   // En mobile, hacer el checkbox más visible
                   ...(isMobile && {
@@ -607,7 +712,6 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
                 setOpen(!open);
               }}
               sx={{
-                p: isMobile ? 0.125 : 0.25,
                 transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
                 transition: 'transform 0.2s',
                 color: 'text.secondary'
@@ -620,7 +724,7 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
                 color="error" 
                 sx={{ 
                   fontWeight: 'bold',
-                  fontSize: isMobile ? '0.8rem' : '1rem',
+                  fontSize: isMobile ? '0.7rem' : '0.85rem',
                   lineHeight: 1
                 }}
               >
@@ -640,7 +744,9 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
-                  fontSize: isMobile ? '0.8rem' : '0.875rem'
+                  // Un toque más grande (sin volver a inflar la altura de la row)
+                  fontSize: isMobile ? '0.76rem' : '0.82rem',
+                  lineHeight: 1.02
                 }}
               >
                 {showValues ? tarea.titulo : maskText(tarea.titulo)}
@@ -648,24 +754,35 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
             </Box>
           </Box>
         </TableCell>
-        <TableCell align="right" sx={{ width: isMobile ? 80 : 120, py: 0.5 }}>
+        <TableCell align="right" sx={{ width: isMobile ? 80 : 120, py: 0.06 }}>
           <Typography 
             variant="caption" 
             sx={{ 
               color: 'text.secondary',
-              fontSize: isMobile ? '0.65rem' : '0.75rem'
+              fontSize: isMobile ? '0.6rem' : '0.7rem',
+              lineHeight: 1.1
             }}
           >
             {tarea.fechaVencimiento ? format(new Date(tarea.fechaVencimiento), isMobile ? 'dd/MM' : 'dd MMM', { locale: es }).toUpperCase() : '---'}
           </Typography>
         </TableCell>
       </TableRow>
-      <TableRow>
-        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
+      <TableRow
+        sx={{
+          '& > *': { borderBottom: 'none !important' },
+        }}
+      >
+        <TableCell style={{ paddingBottom: 0, paddingTop: 0, borderBottom: 'none' }} colSpan={6}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ 
               p: isMobile ? 1 : 2, 
-              bgcolor: theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.02)',
+              // Nivel anidado (detalle colapsado): fondo sutil + rail de estado para clarificar pertenencia
+              bgcolor: theme.palette.mode === 'dark'
+                ? alpha(theme.palette.common.white, 0.03)
+                : alpha(theme.palette.common.black, 0.03),
+              borderLeft: `2px solid ${estadoTokens.softBorder}`,
+              ml: 0.5,
+              pl: isMobile ? 1 : 1.5,
               maxHeight: isMobile ? '250px' : '300px', 
               overflowY: 'auto',
               '&::-webkit-scrollbar': {
@@ -716,9 +833,9 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
                       height: 2,
                       borderRadius: 1,
                       mb: 0.5,
-                      backgroundColor: theme.palette.grey[800],
+                      backgroundColor: alpha(theme.palette.common.white, 0.14),
                       '& .MuiLinearProgress-bar': {
-                        backgroundColor: isArchive ? '#2D5C2E' : '#1B4A75'
+                        backgroundColor: isArchive ? theme.palette.success.main : theme.palette.info.main
                       }
                     }}
                   />
@@ -746,7 +863,7 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
                             padding: 0.25,
                             color: 'text.secondary',
                             '&.Mui-checked': {
-                              color: isArchive ? '#2D5C2E' : 'grey.800'
+                              color: isArchive ? theme.palette.success.main : theme.palette.info.main
                             },
                             '& .MuiSvgIcon-root': {
                               borderRadius: '50%'
@@ -759,17 +876,17 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
                           checkedIcon={<CompletedIcon sx={{ 
                             fontSize: '1.2rem', 
                             backgroundColor: 'background.default',
-                            color: isArchive ? '#2D5C2E' : 'grey.800',
+                            color: isArchive ? theme.palette.success.main : theme.palette.info.main,
                             borderRadius: '50%',
                             border: '2px solid', 
-                            borderColor: isArchive ? '#2D5C2E' : 'grey.800'
+                            borderColor: isArchive ? theme.palette.success.main : theme.palette.info.main
                           }} />}
                         />
                         <Typography
                           variant="body2"
                           sx={{
                             textDecoration: subtarea.completada ? 'line-through' : 'none',
-                            color: subtarea.completada ? (isArchive ? '#2D5C2E' : 'grey.800') : 'text.primary',
+                            color: subtarea.completada ? 'text.secondary' : 'text.primary',
                             flex: 1,
                             cursor: 'pointer'
                           }}
@@ -797,12 +914,14 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
                           display: 'flex',
                           alignItems: 'center',
                           gap: 1,
-                          bgcolor: 'grey.900',
+                          bgcolor: theme.palette.mode === 'dark'
+                            ? alpha(theme.palette.common.white, 0.03)
+                            : alpha(theme.palette.common.black, 0.03),
                           border: 1,
-                          borderColor: 'grey.800',
+                          borderColor: 'divider',
                           borderRadius: 1,
                           '&:hover': {
-                            borderColor: 'primary.main',
+                            borderColor: selectionAccent,
                             cursor: 'pointer'
                           }
                         }}
@@ -835,20 +954,37 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
   );
 };
 
-const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea, onActivateMultiSelect, groupingEnabled = true }) => {
+const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea, onActivateMultiSelect, groupingEnabled = true, agendaView = 'ahora' }) => {
   const { isMobile, theme } = useResponsive();
   const { maskText } = useValuesVisibility();
+  const { layoutBg, surfaceBg, sectionDividerColor } = getGreySurfaceTokens(theme);
+  const groupTitleBg = theme.palette.mode === 'dark'
+    ? alpha(theme.palette.common.white, 0.06)
+    : alpha(theme.palette.common.black, 0.06);
+  const groupSubBg = surfaceBg;
+  const groupDividerColor = sectionDividerColor;
 
-  // Filtrar tareas según si es archivo o no
-  const tareasAMostrar = isArchive 
-    ? tareas.filter(tarea => tarea.completada) 
-    : tareas.filter(tarea => !tarea.completada);
+  // Importante:
+  // - En la vista principal (Tareas.jsx) ya filtramos (AHORA/LUEGO + mostrar completadas) con `useAgendaFilter`.
+  // - Si aquí re-filtramos completadas, rompemos el toggle de "mostrar completadas".
+  // Por eso, solo filtramos en "Archivo" y, en caso normal, respetamos la lista entrante.
+  const tareasAMostrar = isArchive
+    ? (Array.isArray(tareas) ? tareas.filter(tarea => isTaskCompleted(tarea)) : [])
+    : (Array.isArray(tareas) ? tareas : []);
 
   // Render plano sin agrupación cuando groupingEnabled es false
   if (!groupingEnabled) {
     return (
-      <TableContainer>
-        <Table>
+      // Usar la misma "surface" que RutinasPendientesHoy para que no choque con el theme paper
+      // El contenedor usa el background del layout; las filas tienen su surfaceBg.
+      <TableContainer sx={{ bgcolor: layoutBg }}>
+        <Table
+          size="small"
+          sx={{
+            // Evitar borderBottom default (lo controlamos por-row)
+            '& .MuiTableCell-root': { borderBottom: 'none' },
+          }}
+        >
           <TableBody>
             {tareasAMostrar.map((tarea) => (
               <TareaRow
@@ -874,7 +1010,7 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
 
   // Agrupar tareas por período
   const tareasAgrupadas = tareasAMostrar.reduce((grupos, tarea) => {
-    const periodo = getPeriodo(tarea, isArchive);
+    const periodo = getPeriodo(tarea, isArchive, agendaView);
     if (!grupos[periodo]) grupos[periodo] = [];
     grupos[periodo].push(tarea);
     return grupos;
@@ -886,9 +1022,11 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
   });
 
   // Ordenar períodos según si es archivo o no
-  const ordenPeriodosArchivo = ['Hoy', 'Esta Semana', 'Este Mes', 'Último Trimestre', 'Último Año', 'Más Antiguo', 'Sin Fecha'];
-  const ordenPeriodosActivas = ['Hoy', 'Esta Semana', 'Este Mes', 'Próximo Trimestre', 'Este Año', 'Más Adelante', 'Sin Fecha'];
+  const ordenPeriodosArchivo = ['HOY', 'ESTA SEMANA', 'ESTE MES', 'ÚLTIMO TRIMESTRE', 'ÚLTIMO AÑO', 'MÁS ANTIGUO', 'SIN FECHA'];
+  const ordenPeriodosActivasAhora = ['HOY', 'MAÑANA', 'ESTA SEMANA', 'ESTE MES', 'PRÓXIMO TRIMESTRE', 'ESTE AÑO', 'MÁS ADELANTE', 'SIN FECHA'];
+  const ordenPeriodosActivasLuego = ['ESTA SEMANA', 'ESTE MES', 'PRÓXIMO TRIMESTRE', 'ESTE AÑO', 'MÁS ADELANTE', 'SIN FECHA'];
   
+  const ordenPeriodosActivas = agendaView === 'luego' ? ordenPeriodosActivasLuego : ordenPeriodosActivasAhora;
   const ordenPeriodos = isArchive ? ordenPeriodosArchivo : ordenPeriodosActivas;
   const periodosOrdenados = Object.keys(tareasAgrupadas).sort(
     (a, b) => ordenPeriodos.indexOf(a) - ordenPeriodos.indexOf(b)
@@ -899,29 +1037,62 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
       {periodosOrdenados.map((periodo) => (
         <Paper 
           key={periodo} 
+          elevation={0}
           sx={{ 
-            bgcolor: 'background.paper', 
+            // Igualar al background general del layout (para que los dividers sean “cortes” suaves)
+            bgcolor: layoutBg, 
             borderRadius: 1,
             overflow: 'hidden',
             mx: isMobile ? 0 : 'auto',
-            width: '100%'
+            width: '100%',
+            // Simplificar look: sin "recuadro" (borde/sombra). Nos quedamos con dividers internos.
+            border: 'none'
           }}
         >
-          <Box
-            sx={{
-              px: isMobile ? 1 : 2,
-              py: isMobile ? 0.5 : 1,
-              bgcolor: '#141414',
-              borderBottom: '1px solid',
-              borderColor: 'divider'
-            }}
-          >
-            <Typography variant={isMobile ? "body2" : "subtitle2"} sx={{ fontWeight: 500 }}>
-              {periodo} ({tareasAgrupadas[periodo].length})
-            </Typography>
+          <Box sx={{ borderBottom: '1px solid', borderColor: groupDividerColor }}>
+            {/* Banda 1: título del grupo (más oscura) */}
+            <Box
+              sx={{
+                px: isMobile ? 1 : 2,
+                py: isMobile ? 0.5 : 0.75,
+                bgcolor: groupTitleBg,
+                borderLeft: `3px solid ${alpha(theme.palette.text.primary, 0.18)}`
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                <Typography variant={isMobile ? "body2" : "subtitle2"} sx={{ fontWeight: 600 }}>
+                  {periodo}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>
+                  {tareasAgrupadas[periodo].length}
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Banda 2: sector Rutinas (no tintar el anidado; solo una base suave) */}
+            {!isArchive && agendaView === 'ahora' && periodo === 'HOY' && (
+              <Box
+                sx={{
+                  px: isMobile ? 1 : 2,
+                  py: 0.25,
+                  bgcolor: groupSubBg,
+                  borderTop: '1px solid',
+                  borderColor: groupDividerColor,
+                  borderLeft: `3px solid ${alpha(theme.palette.text.primary, 0.10)}`
+                }}
+              >
+                <RutinasPendientesHoy variant="iconsRow" showDividers={false} />
+              </Box>
+            )}
           </Box>
-          <TableContainer>
-            <Table>
+
+          <TableContainer sx={{ bgcolor: layoutBg }}>
+            <Table
+              size="small"
+              sx={{
+                '& .MuiTableCell-root': { borderBottom: 'none' },
+              }}
+            >
               <TableBody>
                 {tareasAgrupadas[periodo].map((tarea) => (
                   <TareaRow
@@ -979,7 +1150,11 @@ const styles = `
 
 // Inyectar estilos en el documento
 if (typeof document !== 'undefined') {
-  const styleSheet = document.createElement('style');
-  styleSheet.textContent = styles;
-  document.head.appendChild(styleSheet);
+  const existing = document.getElementById('tareas-table-animations');
+  if (!existing) {
+    const styleSheet = document.createElement('style');
+    styleSheet.id = 'tareas-table-animations';
+    styleSheet.textContent = styles;
+    document.head.appendChild(styleSheet);
+  }
 } 

@@ -1,173 +1,206 @@
-import React, { useEffect, useMemo, useRef, useCallback } from 'react';
-import { Box, Typography, IconButton, Tooltip, Divider, CircularProgress } from '@mui/material';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { Box, IconButton, Tooltip } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 import { useRutinas } from '@shared/context';
-import { iconConfig } from '@shared/utils';
-import shouldShowItem from '@shared/utils/shouldShowItem';
-import { contarCompletadosEnPeriodo } from '@shared/utils/cadenciaUtils';
+import { iconConfig, iconTooltips } from '@shared/utils/iconConfig';
 import { getNormalizedToday, parseAPIDate, toISODateString } from '@shared/utils/dateUtils';
+import { getVisibleItemIds } from '@shared/utils/visibilityUtils';
+import useHorizontalDragScroll from './hooks/useHorizontalDragScroll';
 
-const sections = ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'];
+/**
+ * RutinasPendientesHoy
+ * - Render compacto para “pendientes de hoy” en formato fila de íconos.
+ * - Se apoya en RutinasProvider (App.jsx) y dispara fetchRutinas() si aún no hay datos.
+ *
+ * Props:
+ * - variant: 'iconsRow' (por ahora único soporte)
+ * - dense: compacta más los íconos (true/false)
+ * - showDividers: añade separación sutil (true/false)
+ */
+export default function RutinasPendientesHoy({
+  variant = 'iconsRow',
+  dense = true,
+  showDividers = true,
+  enableDragScroll = true,
+  interactive = true,
+}) {
+  const theme = useTheme();
+  const { rutina, rutinas, loading, fetchRutinas, markItemComplete } = useRutinas();
+  const didFetchRef = useRef(false);
+  // Umbral un poco mayor para que un "tap" con leve movimiento no se considere drag (especialmente en mobile)
+  const { scrollRef, dragRef, isDragging, bind } = useHorizontalDragScroll({
+    enabled: enableDragScroll,
+    thresholdPx: 12,
+  });
 
-const getHistorialDates = (rutina, section, itemId) => {
-  // RutinasContext adjunta historial en forma: historial[section][itemId][YYYY-MM-DD] = true
-  const sectionHist = rutina?.historial?.[section];
-  const itemHist = sectionHist?.[itemId];
-  let historial = [];
-
-  if (Array.isArray(itemHist)) {
-    historial = itemHist.map(d => new Date(d));
-  } else if (itemHist && typeof itemHist === 'object') {
-    historial = Object.entries(itemHist)
-      .filter(([, completed]) => completed === true)
-      .map(([dateStr]) => new Date(dateStr));
-  } else if (sectionHist && typeof sectionHist === 'object') {
-    historial = Object.entries(sectionHist)
-      .filter(([, items]) => items && items[itemId] === true)
-      .map(([dateStr]) => new Date(dateStr));
-  }
-
-  // Incluir hoy si el logger diario marca completado
-  if (rutina?.[section]?.[itemId] === true) {
-    historial.push(parseAPIDate(rutina.fecha) || new Date());
-  }
-
-  return historial;
-};
-
-export default function RutinasPendientesHoy() {
-  const { rutinas, loading, fetchRutinas, markItemComplete } = useRutinas();
-  const attemptedFetchRef = useRef(false);
-
-  // Asegurar que haya datos (y que exista rutina de hoy vía auto-create en fetchRutinas)
-  useEffect(() => {
-    if (attemptedFetchRef.current) return;
-    if (loading) return;
-    if (Array.isArray(rutinas) && rutinas.length > 0) return;
-    attemptedFetchRef.current = true;
-    fetchRutinas();
-  }, [rutinas, loading, fetchRutinas]);
-
-  const todayKey = useMemo(() => toISODateString(getNormalizedToday()), []);
+  const todayStr = useMemo(() => toISODateString(getNormalizedToday()), []);
 
   const rutinaHoy = useMemo(() => {
-    const list = Array.isArray(rutinas) ? rutinas : [];
-    return list.find(r => {
+    const sameDay = (r) => {
       try {
-        return toISODateString(parseAPIDate(r.fecha)) === todayKey;
+        return toISODateString(parseAPIDate(r?.fecha)) === todayStr;
       } catch {
         return false;
       }
-    }) || null;
-  }, [rutinas, todayKey]);
+    };
 
-  const pendientes = useMemo(() => {
+    // 1) Si la rutina seleccionada en el contexto es hoy, úsala
+    if (rutina && sameDay(rutina)) return rutina;
+
+    // 2) Buscar en el listado
+    const list = Array.isArray(rutinas) ? rutinas : [];
+    const found = list.find(sameDay);
+    return found || null;
+  }, [rutina, rutinas, todayStr]);
+
+  useEffect(() => {
+    if (didFetchRef.current) return;
+    if (rutinaHoy) return;
+    if (typeof fetchRutinas !== 'function') return;
+    // Importante: no depender de `loading` aquí. En RutinasContext, `loading` puede iniciar en true
+    // aun cuando nadie disparó `fetchRutinas()`; si nos bloqueamos, nunca se carga y no se renderiza.
+    didFetchRef.current = true;
+    fetchRutinas();
+  }, [rutinaHoy, fetchRutinas]);
+
+  const itemsHoy = useMemo(() => {
     if (!rutinaHoy) return [];
+    const sections = Object.keys(iconConfig || {});
+    const items = [];
 
-    const out = [];
-    sections.forEach(section => {
+    sections.forEach((section) => {
       const sectionIcons = iconConfig?.[section] || {};
-      const sectionConfig = rutinaHoy?.config?.[section] || {};
+      const sectionCfg = rutinaHoy?.config?.[section] || {};
 
-      Object.entries(sectionIcons).forEach(([itemId, Icon]) => {
-        const cfg = sectionConfig?.[itemId];
-        if (cfg && cfg.activo === false) return;
+      // Reusar la lógica unificada de visibilidad (cadencia + activo)
+      const visibleItemIds = getVisibleItemIds(
+        sectionIcons,
+        section,
+        rutinaHoy,
+        sectionCfg,
+        rutinaHoy?.[section] || {}
+      );
 
-        // shouldShowItem ya contempla cuota cumplida (progresoActual/ultimoPeriodo o historial)
-        const visible = shouldShowItem(section, itemId, rutinaHoy, { historial: rutinaHoy?.historial || {} });
-        if (!visible) return;
-
-        const isCompletedToday = rutinaHoy?.[section]?.[itemId] === true;
-        const frecuencia = Number(cfg?.frecuencia || 1);
-        const tipo = String(cfg?.tipo || 'DIARIO').toUpperCase();
-        const periodo = cfg?.periodo || (tipo === 'SEMANAL' ? 'CADA_SEMANA' : tipo === 'MENSUAL' ? 'CADA_MES' : 'CADA_DIA');
-
-        const historial = getHistorialDates(rutinaHoy, section, itemId);
-        const completadosEnPeriodo = contarCompletadosEnPeriodo(getNormalizedToday(), tipo, periodo, historial);
-        const completadosDisplay = tipo === 'DIARIO' ? (isCompletedToday ? 1 : 0) : completadosEnPeriodo;
-
-        out.push({
-          section,
-          itemId,
-          Icon,
-          frecuencia,
-          completados: Math.min(frecuencia, Math.max(0, Number(completadosDisplay || 0))),
-          isCompletedToday
-        });
+      visibleItemIds.forEach((itemId) => {
+        const completed = rutinaHoy?.[section]?.[itemId] === true;
+        if (completed) return;
+        items.push({ section, itemId });
       });
     });
 
-    return out;
+    return items;
   }, [rutinaHoy]);
 
-  const handleToggle = useCallback(async (p) => {
+  // En Agenda “Hoy” queremos el comportamiento tipo TODO: solo pendientes.
+  const pendingItems = itemsHoy;
+
+  // Tamaños más compactos para encajar en headers de tabla
+  // Nota UX: 24px en desktop se percibe demasiado chico. Subimos el diámetro para
+  // mantener consistencia visual con el tamaño que se siente “correcto” en mobile.
+  const size = dense ? 28 : 32;
+  // Match del background usado en headers/grupos de TareasTable (look & feel consistente)
+  const surfaceBg = theme.palette.mode === 'dark'
+    ? alpha(theme.palette.common.white, 0.035)
+    : alpha(theme.palette.common.black, 0.03);
+  const dividerColor = theme.palette.mode === 'dark'
+    ? alpha(theme.palette.common.white, 0.10)
+    : alpha(theme.palette.common.black, 0.10);
+  const bg = surfaceBg;
+  const hoverBg = theme.palette.mode === 'dark'
+    ? alpha(theme.palette.common.white, 0.055)
+    : alpha(theme.palette.common.black, 0.045);
+  // Armonizar con el resto del bloque (mismo gris que dividers)
+  const rail = dividerColor;
+
+  const handleToggle = async (section, itemId) => {
+    if (!interactive) return;
+    if (dragRef.current.moved) return;
     if (!rutinaHoy?._id) return;
-    // Toggle simple del logger diario (1 check por día)
-    await markItemComplete(rutinaHoy._id, p.section, { [p.itemId]: !p.isCompletedToday });
-  }, [rutinaHoy?._id, markItemComplete]);
+    try {
+      const prevSection = rutinaHoy?.[section] || {};
+      const prev = prevSection?.[itemId] === true;
+      // El API espera un payload mínimo: { [itemId]: boolean }
+      const itemData = { [itemId]: !prev };
+      // Esto actualiza backend + parchea contexto (rutina + rutinas), por lo que Rutinas.jsx queda sincronizado.
+      await markItemComplete(rutinaHoy._id, section, itemData);
+    } catch {
+      // Dejar traza para depurar si el backend/contexto no responde
+      console.warn('[RutinasPendientesHoy] No se pudo togglear', { section, itemId });
+    }
+  };
 
-  // UI minimalista
-  if (loading && (!Array.isArray(rutinas) || rutinas.length === 0)) {
-    return (
-      <Box sx={{ mb: 2, px: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1 }}>
-          <CircularProgress size={18} />
-          <Typography variant="body2" sx={{ opacity: 0.8 }}>Cargando rutinas…</Typography>
-        </Box>
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
-      </Box>
-    );
-  }
-
-  if (!rutinaHoy || pendientes.length === 0) {
-    return (
-      <Box sx={{ mb: 2, px: 1 }}>
-        <Typography variant="caption" sx={{ opacity: 0.6 }}>
-          Rutinas: sin pendientes para hoy
-        </Typography>
-        <Divider sx={{ mt: 1, borderColor: 'rgba(255,255,255,0.06)' }} />
-      </Box>
-    );
-  }
+  // IMPORTANTE: a partir de aquí recién retornamos condicionalmente
+  // para no romper el orden de Hooks (Rules of Hooks).
+  if (variant !== 'iconsRow') return null;
+  if (!rutinaHoy) return null;
+  if (pendingItems.length === 0) return null;
 
   return (
-    <Box sx={{ mb: 2 }}>
-      <Box
-        sx={{
-          mt: 0.5,
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 0.75,
-          px: 1,
-          justifyContent: 'center',
-          alignItems: 'center'
-        }}
-      >
-        {pendientes.map((p) => (
-          <Tooltip key={`${p.section}:${p.itemId}`} title={`${p.itemId} • ${p.completados}/${p.frecuencia}`} arrow placement="top">
-            <IconButton
-              size="small"
-              onClick={() => handleToggle(p)}
-              sx={{
-                width: 38,
-                height: 38,
-                borderRadius: '50%', // match look&feel de Rutinas (iconos circulares)
-                bgcolor: 'transparent',
-                color: 'rgba(255,255,255,0.5)',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  color: 'white',
-                  bgcolor: 'rgba(255,255,255,0.1)'
-                }
-              }}
-            >
-              {p.Icon ? <p.Icon fontSize="small" /> : <span />}
-            </IconButton>
+    <Box
+      sx={{
+        display: 'flex',
+        flexWrap: 'nowrap',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: dense ? 0.25 : 0.5,
+        pt: dense ? 0.25 : 0.5,
+        pb: dense ? 0.25 : 0,
+        overflowX: 'auto',
+        overflowY: 'hidden',
+        touchAction: 'pan-x',
+        cursor: enableDragScroll ? (isDragging ? 'grabbing' : 'grab') : 'auto',
+        userSelect: enableDragScroll ? 'none' : 'auto',
+        // Scrollbar oculto (minimalista) manteniendo scroll/drag
+        scrollbarWidth: 'none', // Firefox
+        msOverflowStyle: 'none', // IE/Edge legacy
+        '&::-webkit-scrollbar': { display: 'none' }, // WebKit
+        ...(showDividers && {
+          borderTop: '1px solid',
+          borderColor: dividerColor
+        })
+      }}
+      ref={scrollRef}
+      {...bind}
+    >
+      {pendingItems.map(({ section, itemId }) => {
+        const Icon = iconConfig?.[section]?.[itemId];
+        const label = iconTooltips?.[section]?.[itemId] || itemId;
+        if (!Icon) return null;
+
+        return (
+          <Tooltip key={`${section}.${itemId}`} title={label} arrow placement="top">
+            {/* Wrapper requerido por MUI: Tooltip no puede escuchar eventos en un button disabled */}
+            <span style={{ display: 'inline-flex' }}>
+              <IconButton
+                size="small"
+                disabled={!interactive}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleToggle(section, itemId);
+                }}
+                sx={{
+                  width: size,
+                  height: size,
+                  p: 0,
+                  borderRadius: '50%',
+                  bgcolor: bg,
+                  color: 'text.secondary',
+                  border: '1px solid',
+                  borderColor: rail,
+                  flex: '0 0 auto',
+                  '&:hover': {
+                    bgcolor: hoverBg,
+                    color: 'text.primary'
+                  }
+                }}
+              >
+                <Icon sx={{ fontSize: dense ? '1.1rem' : '1.2rem' }} />
+              </IconButton>
+            </span>
           </Tooltip>
-        ))}
-      </Box>
-      <Divider sx={{ mt: 1.25, borderColor: 'rgba(255,255,255,0.06)' }} />
+        );
+      })}
     </Box>
   );
 }
-
 

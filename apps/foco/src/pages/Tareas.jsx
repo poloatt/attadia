@@ -21,7 +21,6 @@ import { useNavigationBar } from '@shared/context';
 import { useValuesVisibility } from '@shared/context';
 import { usePageWithHistory } from '@shared/hooks';
 import { useAgendaFilter } from '../proyectos/useAgendaFilter';
-import RutinasPendientesHoy from '../rutinas/RutinasPendientesHoy';
 
 export function Tareas() {
   const [tareas, setTareas] = useState([]);
@@ -510,10 +509,9 @@ export function Tareas() {
             </Box>
           ) : (
             <>
-              {/* Rutinas pendientes de hoy (mutuo con página Rutinas via RutinasContext) */}
-              {agendaView === 'ahora' && <RutinasPendientesHoy />}
               <TareasTable
                 tareas={tareasAgenda}
+                agendaView={agendaView}
                 groupingEnabled={true}
                 onEdit={handleEdit}
                 onDelete={handleDelete}

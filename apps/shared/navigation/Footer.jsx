@@ -32,7 +32,12 @@ export default function Footer({ isDesktop = false, isSidebarOpen = false }) {
 
     // Sólo iniciar el health-check si el footer está visible en alguna de las rutas objetivo
     const shouldRun = (path) => {
-      return path === '/' || path.startsWith('/assets') || path.startsWith('/tiempo');
+      return (
+        path === '/' ||
+        path.startsWith('/assets') ||
+        path.startsWith('/tiempo') ||
+        path.startsWith('/tareas')
+      );
     };
 
     if (shouldRun(location.pathname)) {
@@ -43,8 +48,15 @@ export default function Footer({ isDesktop = false, isSidebarOpen = false }) {
   }, [location.pathname]);
 
   useEffect(() => {
-    // Mostrar el footer solo en la ruta principal o assets
-            if (location.pathname === '/' || location.pathname === '/assets' || location.pathname === '/assets/finanzas' || location.pathname === '/tiempo/rutinas') {
+    // Mostrar el footer solo en la ruta principal, assets, o tiempo (incl. Agenda)
+    if (
+      location.pathname === '/' ||
+      location.pathname === '/assets' ||
+      location.pathname === '/assets/finanzas' ||
+      location.pathname === '/tiempo/rutinas' ||
+      location.pathname === '/tiempo/tareas' ||
+      location.pathname === '/tareas'
+    ) {
       setVisible(true);
       const timer = setTimeout(() => {
         setVisible(false);

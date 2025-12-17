@@ -21,7 +21,6 @@ import {
   VisibilityOff as HideValuesIcon,
   AccessTimeOutlined as TimeIcon,
 } from '@mui/icons-material';
-import { Toolbar } from '@shared/navigation';
 import clienteAxios from '@shared/config/axios';
 import { useSnackbar } from 'notistack';
 import ProyectosGrid from '../proyectos/ProyectosGrid';

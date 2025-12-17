@@ -55,7 +55,9 @@ export function Layout() {
 
   // Usar constantes centralizadas para dimensiones
   // Mostrar siempre la Toolbar en desktop; respetar preferencia solo en móvil/tablet
-  const showToolbar = isMobileOrTablet ? showEntityToolbarNavigation : true;
+  // Nota UX: el setting "showEntityToolbarNavigation" está pensado SOLO para móvil.
+  // En tablet/desktop la Toolbar siempre debe mostrarse (evita que quede "oculta" en pantallas medianas).
+  const showToolbar = isMobile ? showEntityToolbarNavigation : true;
   const totalTopPadding = calculateTopPadding(showToolbar);
   
   // Padding superior para el main
