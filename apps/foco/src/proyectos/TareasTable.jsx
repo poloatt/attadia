@@ -588,7 +588,6 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
           // Divider minimal entre rows (controlado y consistente)
           // Usar el background del layout para que "se difumine" con el resto de la app
           '& > *': { borderBottom: `1px solid ${layoutDividerColor}` },
-          '& .MuiTableCell-root': { borderBottom: `1px solid ${layoutDividerColor} !important` },
           cursor: 'pointer',
           '&:hover': {
             backgroundColor: rowHoverBg
@@ -607,8 +606,9 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
             fontSize: isMobile ? '1.1rem' : '1rem',
           },
           '& .MuiTableCell-root': {
+            borderBottom: `1px solid ${layoutDividerColor} !important`,
             // +20% aprox de alto (subiendo padding vertical)
-            py: isMobile ? 0.12 : 0.06,
+            py: isMobile ? 0.14 : 0.07,
             px: isMobile ? 0.75 : 1,
             lineHeight: 1,
           },
