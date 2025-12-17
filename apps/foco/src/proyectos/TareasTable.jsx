@@ -115,7 +115,7 @@ const ordenarTareas = (tareas) => {
   });
 };
 
-export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea, onActivateMultiSelect }) => {
+export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea, onActivateMultiSelect, onRefreshData }) => {
   const [open, setOpen] = useState(false);
   const [estadoLocal, setEstadoLocal] = useState(tarea.estado);
   const [subtareasLocal, setSubtareasLocal] = useState(tarea.subtareas || []);
@@ -459,6 +459,11 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
         setSubtareasLocal(nuevasSubtareas);
       }
       
+      // Recargar datos del servidor para mantener consistencia y actualizar la ubicación de la tarea
+      if (onRefreshData) {
+        await onRefreshData();
+      }
+      
       enqueueSnackbar('Tarea completada exitosamente', { variant: 'success' });
     } catch (error) {
       console.error('Error al completar tarea:', error);
@@ -501,6 +506,11 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
       setEstadoLocal(nuevoEstado);
       if (tarea.subtareas && tarea.subtareas.length > 0) {
         setSubtareasLocal(nuevasSubtareas);
+      }
+      
+      // Recargar datos del servidor para mantener consistencia y actualizar la ubicación de la tarea
+      if (onRefreshData) {
+        await onRefreshData();
       }
       
       enqueueSnackbar('Tarea reactivada exitosamente', { variant: 'success' });
@@ -942,7 +952,7 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
   );
 };
 
-const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea, onActivateMultiSelect, groupingEnabled = true, agendaView = 'ahora' }) => {
+const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea, onActivateMultiSelect, groupingEnabled = true, agendaView = 'ahora', onRefreshData }) => {
   const { isMobile, theme } = useResponsive();
   const { maskText } = useValuesVisibility();
   const { layoutBg, surfaceBg, sectionDividerColor } = getGreySurfaceTokens(theme);
@@ -1017,6 +1027,7 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
                   selectedTareas={selectedTareas}
                   onSelectTarea={onSelectTarea}
                   onActivateMultiSelect={onActivateMultiSelect}
+                  onRefreshData={onRefreshData}
                 />
               ))}
             </TableBody>
@@ -1155,6 +1166,7 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
                     selectedTareas={selectedTareas}
                     onSelectTarea={onSelectTarea}
                     onActivateMultiSelect={onActivateMultiSelect}
+                    onRefreshData={onRefreshData}
                   />
                 ))}
               </TableBody>

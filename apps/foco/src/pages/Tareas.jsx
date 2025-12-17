@@ -614,6 +614,7 @@ export function Tareas() {
                 selectedTareas={selectedTareas}
                 onSelectTarea={handleSelectTarea}
                 onActivateMultiSelect={() => {}} // Ya no necesitamos esta función
+                onRefreshData={fetchDataStable}
               />
             </>
           )}

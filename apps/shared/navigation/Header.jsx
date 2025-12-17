@@ -213,7 +213,7 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                 {/* MenuButton fijo - solo en desktop */}
                 <Box sx={{ 
                   position: 'absolute',
-                  left: 0,
+                  left: { xs: -1, sm: -2, md: -3 }, // Compensar padding del Box padre
                   top: 0,
                   width: collapsedWidth,
                   height: HEADER_CONFIG.height,
@@ -307,24 +307,39 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                          {/* Migración: todos los botones de acción del header en SystemButtons */}
              {/* Acciones sólo en desktop; en móvil ya están controladas arriba */}
             {(!isMobile && !isTablet) && (
-              <Box ref={rightWidthRef} sx={{ display: 'flex', alignItems: 'center' }}>
-                <SystemButtons
-                  actions={[
-                   !showEntityToolbarNavigation && location.pathname.includes('/cuentas') ? {
-                     key: 'sync',
-                     icon: <AutorenewOutlined sx={{ fontSize: 20, color: 'white' }} />,
-                     label: 'Sincronizar',
-                     tooltip: 'Sincronizar nueva cuenta',
-                     onClick: () => setIsSyncModalOpen(true),
-                     disabled: false
-                   } : null,
-                  ]}
-                  direction="row"
-                  size="small"
-                />
-                {/* Apps: siempre visible (también en desktop) */}
-                <SystemButtons.AppsButton />
-              </Box>
+              <>
+                {/* Botones de acción (sync, etc.) - antes del AppsButton */}
+                <Box sx={{ display: 'flex', alignItems: 'center', marginRight: `${collapsedWidth}px` }}>
+                  <SystemButtons
+                    actions={[
+                     !showEntityToolbarNavigation && location.pathname.includes('/cuentas') ? {
+                       key: 'sync',
+                       icon: <AutorenewOutlined sx={{ fontSize: 20, color: 'white' }} />,
+                       label: 'Sincronizar',
+                       tooltip: 'Sincronizar nueva cuenta',
+                       onClick: () => setIsSyncModalOpen(true),
+                       disabled: false
+                     } : null,
+                    ]}
+                    direction="row"
+                    size="small"
+                  />
+                </Box>
+                {/* AppsButton fijo - simétrico con MenuButton */}
+                <Box sx={{ 
+                  position: 'absolute',
+                  right: { xs: -1, sm: -2, md: -3 }, // Compensar padding del Box padre
+                  top: 0,
+                  width: collapsedWidth,
+                  height: HEADER_CONFIG.height,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 2
+                }} ref={rightWidthRef}>
+                  <SystemButtons.AppsButton />
+                </Box>
+              </>
              )}
             {/* Diálogos modales para sincronizar y agregar cuenta */}
             <Dialog open={isSyncModalOpen} onClose={() => setIsSyncModalOpen(false)} maxWidth="xs" fullWidth>

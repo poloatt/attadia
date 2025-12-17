@@ -691,11 +691,17 @@ function HeaderAppsButton({ iconSx }) {
           size="small"
           onClick={handleOpenAppsMenu}
           sx={{ 
+            minWidth: 0,
+            minHeight: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 1,
             color: 'inherit',
-            '&:hover': { color: 'text.primary' }
+            '&:hover': { color: 'text.primary', background: 'action.hover' }
           }}
         >
-          <AppsIcon sx={iconSx || { fontSize: 18 }} />
+          <AppsIcon sx={iconSx || { fontSize: 18, color: 'text.secondary' }} />
         </IconButton>
       </Tooltip>
       <Menu
