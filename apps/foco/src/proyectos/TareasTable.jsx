@@ -38,7 +38,7 @@ import { useSnackbar } from 'notistack';
 import TareaActions from './TareaActions';
 import { useValuesVisibility } from '@shared/context/ValuesVisibilityContext';
 import RutinasPendientesHoy from '../rutinas/RutinasPendientesHoy';
-import { parseAPIDate } from '@shared/utils/dateUtils';
+import { getAgendaBucket, getAgendaSortKey, isTaskCompleted, parseTaskDate } from '@shared/utils';
 
 const normalizeEstado = (estado) => String(estado || '').toUpperCase();
 
@@ -78,105 +78,35 @@ const getEstadoTokens = (theme, estado) => {
   };
 };
 
-// Unificar criterio de "completada" (debe ser consistente con useAgendaFilter)
-const isTaskCompleted = (t) => {
-  const estado = String(t?.estado || '').toLowerCase();
-  return estado === 'completada' || t?.completada === true;
-};
-
-// Helpers de fecha para evitar inconsistencias entre filtro y agrupación
-const parseDateSafe = (value) => {
-  if (!value) return null;
-  const d = parseAPIDate(value);
-  return d && !isNaN(d.getTime()) ? d : null;
-};
-
-const getTaskStart = (t) => parseDateSafe(t?.fechaInicio || t?.inicio || t?.start);
-const getTaskDue = (t) => parseDateSafe(t?.fechaVencimiento || t?.fechaFin || t?.vencimiento || t?.dueDate || t?.fecha);
-
 const getPeriodo = (tarea, isArchive = false, agendaView = 'ahora') => {
-  const fechaInicio = getTaskStart(tarea);
-  const fechaFin = getTaskDue(tarea);
-
-  // Si no hay fecha de inicio NI vencimiento, categorizar como SIN FECHA
-  if (!fechaInicio && !fechaFin) {
-    console.log(`📅 "${tarea?.titulo}" → "SIN FECHA" (no tiene fechaInicio ni fechaVencimiento)`);
-    return 'SIN FECHA';
-  }
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const endOfTomorrow = new Date(today);
-  endOfTomorrow.setDate(today.getDate() + 1);
-  endOfTomorrow.setHours(23, 59, 59, 999);
-  
-  // Debug eliminado - enfocándonos en la sincronización
-
   if (isArchive) {
     // Lógica para archivo (tareas completadas)
-    const fechaReferencia = fechaFin || fechaInicio;
+    const fechaReferencia = parseTaskDate(
+      tarea?.fechaVencimiento || tarea?.fechaFin || tarea?.vencimiento || tarea?.dueDate || tarea?.fecha ||
+      tarea?.fechaInicio || tarea?.inicio || tarea?.start
+    );
     
+    if (!fechaReferencia) return 'SIN FECHA';
     if (isToday(fechaReferencia)) return 'HOY';
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     if (isBefore(fechaReferencia, today) && isThisWeek(fechaReferencia)) return 'ESTA SEMANA';
     if (isBefore(fechaReferencia, today) && isThisMonth(fechaReferencia)) return 'ESTE MES';
     if (isBefore(fechaReferencia, addMonths(today, -3))) return 'ÚLTIMO TRIMESTRE';
     if (isBefore(fechaReferencia, addMonths(today, -12))) return 'ÚLTIMO AÑO';
     return 'MÁS ANTIGUO';
   } else {
-    // Vista "LUEGO": agrupar solo por horizonte futuro (sin HOY/MAÑANA),
-    // usando una fecha ancla coherente con el filtro (próxima fecha futura más cercana).
-    if (agendaView === 'luego') {
-      const candidates = [fechaInicio, fechaFin].filter(d => d && d > endOfTomorrow);
-      const anchor = candidates.length > 0
-        ? candidates.reduce((min, d) => (d < min ? d : min), candidates[0])
-        : (fechaFin || fechaInicio);
-
-      if (!anchor) return 'SIN FECHA';
-      if (isThisWeek(anchor)) return 'ESTA SEMANA';
-      if (isThisMonth(anchor)) return 'ESTE MES';
-      if (isBefore(anchor, addMonths(new Date(), 3))) return 'PRÓXIMO TRIMESTRE';
-      if (isThisYear(anchor)) return 'ESTE AÑO';
-      return 'MÁS ADELANTE';
-    }
-
-    // Lógica para tareas activas (no completadas)
-    // Regla UX: si la tarea ya está activa (empezó antes/HOY/MAÑANA), se agrupa por INICIO
-    // para evitar que “PRÓXIMO TRIMESTRE” aparezca en AHORA cuando el vencimiento está lejano.
-    // Ajuste: solo forzar bucket por INICIO cuando NO hay vencimiento lejano.
-    // Si hay fechaFin/fechaVencimiento y está más allá de mañana, usamos referencia (fechaFin)
-    // para que no caiga en "HOY" cuando en realidad es del próximo mes.
-    const dueIsLejano = !!(fechaFin && fechaFin > endOfTomorrow);
-    if (!dueIsLejano && !isTaskCompleted(tarea) && fechaInicio) {
-      if (isBefore(fechaInicio, today)) return 'HOY';
-      if (isToday(fechaInicio)) return 'HOY';
-      if (isTomorrow(fechaInicio)) return 'MAÑANA';
-      // Si fechaInicio está dentro del horizonte (<= fin de mañana) también cae en HOY/MAÑANA
-      if (fechaInicio <= endOfTomorrow) return 'HOY';
-    }
-
-    const fechaReferencia = fechaFin || fechaInicio;
-
-    // Si por alguna razón la referencia ya es pasada, mantener en HOY (sin bucket separado)
-    if (isBefore(fechaReferencia, today)) return 'HOY';
-
-    // Si no hay fechaInicio pero hay fechaFin cerca, permitir MAÑANA para coherencia
-    if (!fechaInicio && fechaFin) {
-      if (isToday(fechaFin)) return 'HOY';
-      if (isTomorrow(fechaFin)) return 'MAÑANA';
-    }
-
-    if (isThisWeek(fechaReferencia)) return 'ESTA SEMANA';
-    if (isThisMonth(fechaReferencia)) return 'ESTE MES';
-    if (isBefore(fechaReferencia, addMonths(new Date(), 3))) return 'PRÓXIMO TRIMESTRE';
-    if (isThisYear(fechaReferencia)) return 'ESTE AÑO';
-    return 'MÁS ADELANTE';
+    // Regla unificada: bucket depende de la ancla (due si existe, si no start) y de la vista (AHORA/LUEGO).
+    return getAgendaBucket(tarea, agendaView);
   }
 };
 
 const ordenarTareas = (tareas) => {
   return tareas.sort((a, b) => {
-    const aRef = getTaskDue(a) || getTaskStart(a);
-    const bRef = getTaskDue(b) || getTaskStart(b);
+    const aRef = getAgendaSortKey(a);
+    const bRef = getAgendaSortKey(b);
     // SIN FECHA al final
     if (!aRef && !bRef) return 0;
     if (!aRef) return 1;
@@ -1054,7 +984,7 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
   // Ordenar períodos según si es archivo o no
   const ordenPeriodosArchivo = ['HOY', 'ESTA SEMANA', 'ESTE MES', 'ÚLTIMO TRIMESTRE', 'ÚLTIMO AÑO', 'MÁS ANTIGUO', 'SIN FECHA'];
   const ordenPeriodosActivasAhora = ['HOY', 'MAÑANA', 'ESTA SEMANA', 'ESTE MES', 'PRÓXIMO TRIMESTRE', 'ESTE AÑO', 'MÁS ADELANTE', 'SIN FECHA'];
-  const ordenPeriodosActivasLuego = ['ESTA SEMANA', 'ESTE MES', 'PRÓXIMO TRIMESTRE', 'ESTE AÑO', 'MÁS ADELANTE', 'SIN FECHA'];
+  const ordenPeriodosActivasLuego = ['ESTA SEMANA', 'ESTE MES', 'PRÓXIMO MES', 'PRÓXIMO TRIMESTRE', 'ESTE AÑO', 'MÁS ADELANTE', 'SIN FECHA'];
   
   const ordenPeriodosActivas = agendaView === 'luego' ? ordenPeriodosActivasLuego : ordenPeriodosActivasAhora;
   const ordenPeriodos = isArchive ? ordenPeriodosArchivo : ordenPeriodosActivas;

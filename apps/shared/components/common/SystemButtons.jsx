@@ -16,6 +16,7 @@ import { FORM_HEIGHTS } from '../../config/uiConstants';
 import { DynamicIcon } from './DynamicIcon';
 import { config } from '../../config/envConfig.js';
 import { navigateToAppPath } from '../../utils/navigationUtils';
+import useResponsive from '../../hooks/useResponsive';
 
 // Diálogo de confirmación para eliminar
 const DeleteConfirmDialog = memo(({ open, onClose, onConfirm, itemName }) => (
@@ -65,8 +66,10 @@ export const SystemButtons = memo(({
   direction = 'row',
   size = 'small',
   disabled = false,
-  gap = 0.5
+  gap = 0.25,
+  sx: containerSx = {}
 }) => {
+  const { isMobile } = useResponsive();
   const [confirmDialog, setConfirmDialog] = useState({ open: false, action: null });
 
   const handleAction = (action, e) => {
@@ -89,9 +92,10 @@ export const SystemButtons = memo(({
         sx={{ 
           display: 'flex', 
           flexDirection: direction,
-          gap,
+          gap: typeof gap === 'number' ? (isMobile ? gap * 0.5 : gap) : gap,
           opacity: disabled ? 0.5 : 1,
-          pointerEvents: disabled ? 'none' : 'auto'
+          pointerEvents: disabled ? 'none' : 'auto',
+          ...containerSx
         }}
       >
         {actions
@@ -105,9 +109,43 @@ export const SystemButtons = memo(({
           ));
           if (isButton) {
             // Si ya es un IconButton, no envolver en Tooltip para evitar nesting
+            // Aplicar buttonSx si existe, mergeando con los props existentes del elemento
+            const existingSx = action.icon.props?.sx || {};
+            // Merge simple: buttonSx sobrescribe existingSx, pero preservamos valores responsive
+            // si buttonSx tiene valores simples y existingSx tiene responsive, no sobrescribir
+            let mergedSx = { ...existingSx };
+            if (action.buttonSx) {
+              Object.keys(action.buttonSx).forEach(key => {
+                const buttonValue = action.buttonSx[key];
+                const existingValue = existingSx[key];
+                const isExistingResponsive = existingValue && typeof existingValue === 'object' && !Array.isArray(existingValue) && 
+                    (existingValue.xs !== undefined || existingValue.sm !== undefined);
+                const isButtonResponsive = buttonValue && typeof buttonValue === 'object' && !Array.isArray(buttonValue) && 
+                    (buttonValue.xs !== undefined || buttonValue.sm !== undefined);
+                
+                // Si ambos son responsive, mergear breakpoints
+                if (isExistingResponsive && isButtonResponsive) {
+                  mergedSx[key] = { ...existingValue, ...buttonValue };
+                }
+                // Si solo buttonValue es responsive, usar buttonValue
+                else if (isButtonResponsive) {
+                  mergedSx[key] = { ...(existingValue || {}), ...buttonValue };
+                }
+                // Si existingValue es responsive y buttonValue es simple, preservar responsive (no sobrescribir)
+                else if (isExistingResponsive) {
+                  // No hacer nada, preservar existingValue
+                  return;
+                }
+                // Ambos son simples, sobrescribir
+                else {
+                  mergedSx[key] = buttonValue;
+                }
+              });
+            }
             return React.cloneElement(action.icon, {
               key: action.key || action.label || idx,
-              disabled: disabled || action.disabled
+              disabled: disabled || action.disabled,
+              sx: mergedSx
             });
           }
           return (
@@ -117,13 +155,13 @@ export const SystemButtons = memo(({
                 size={action.size || size}
                 sx={{
                   color: action.color || 'text.secondary',
-                  p: 0.5,
+                  p: isMobile ? 0.25 : 0.5,
                   '&:hover': {
                     color: action.hoverColor || 'primary.main',
                     backgroundColor: 'transparent'
                   },
                   '& .MuiSvgIcon-root': {
-                    fontSize: '1.25rem'
+                    fontSize: isMobile ? '0.9rem' : '1.25rem'
                   },
                   ...(action.buttonSx || {})
                 }}
@@ -502,23 +540,58 @@ HeaderUndoMenu.isButtonComponent = true;
 // HeaderArchiveButton - acceso rápido a /archivo
 function HeaderArchiveButton({ iconSx, buttonSx }) {
   const navigate = useNavigate();
+  const { isMobile: isMobileFromHook } = useResponsive();
+  
+  // Fallback robusto: usar window.innerWidth si useMediaQuery falla
+  const isMobile = typeof window !== 'undefined' 
+    ? (isMobileFromHook || window.innerWidth < 600)
+    : isMobileFromHook;
+  
+  // Extraer valores responsive de buttonSx si existen y convertirlos a valores directos
+  const getButtonSxValue = (key) => {
+    if (!buttonSx || !buttonSx[key]) return null;
+    const value = buttonSx[key];
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      // Si es responsive, extraer el valor según isMobile
+      return isMobile ? (value.xs || value.sm || value) : (value.sm || value.md || value.xs || value);
+    }
+    return value;
+  };
+  
+  // Separar propiedades que ya procesamos del resto de buttonSx
+  // IMPORTANTE: excluir width, height, padding para evitar conflictos
+  const { width, height, padding, '&:hover': hoverStyles, ...restButtonSx } = buttonSx || {};
+  
+  // Calcular valores finales: si buttonSx tiene valores responsive, usarlos; si no, usar defaults
+  const finalWidth = getButtonSxValue('width') ?? (isMobile ? 32 : 32);
+  const finalHeight = getButtonSxValue('height') ?? (isMobile ? 32 : 32);
+  const finalPadding = getButtonSxValue('padding') ?? (isMobile ? 0.25 : 0.5);
+  
   const btn = (
-    <Tooltip title="Archivo">
-      <IconButton
-        size="small"
-        onClick={() => navigate('/archivo')}
-        sx={{
-          width: 32,
-          height: 32,
-          padding: 0.5,
-          color: 'text.secondary',
-          '&:hover': { color: 'primary.main', background: 'action.hover' },
-          ...buttonSx
-        }}
-      >
-        <ArchiveIcon sx={iconSx || { fontSize: 18 }} />
-      </IconButton>
-    </Tooltip>
+    <IconButton
+      size="small"
+      aria-label="Archivo"
+      onClick={() => navigate('/archivo')}
+      sx={{
+        width: finalWidth,
+        height: finalHeight,
+        padding: finalPadding,
+        minWidth: finalWidth,
+        minHeight: finalHeight,
+        color: 'primary.main', // Mismo color que sync para armonía visual
+        '& .MuiSvgIcon-root': {
+          fontSize: isMobile ? '0.9rem' : (iconSx?.fontSize || 18)
+        },
+        '&:hover': { 
+          color: 'primary.main', 
+          background: 'action.hover',
+          ...(hoverStyles || {})
+        },
+        ...restButtonSx
+      }}
+    >
+      <ArchiveIcon sx={iconSx || { fontSize: isMobile ? 14 : 18 }} />
+    </IconButton>
   );
   btn.type.isButtonComponent = true;
   return btn;
@@ -528,28 +601,61 @@ HeaderArchiveButton.isButtonComponent = true;
 
 // HeaderSyncButton - botón reutilizable de sincronización (uso genérico)
 function HeaderSyncButton({ onClick, tooltip = 'Sincronizar', iconSx, buttonSx, disabled = false }) {
+  const { isMobile: isMobileFromHook } = useResponsive();
+  
+  // Fallback robusto: usar window.innerWidth si useMediaQuery falla
+  const isMobile = typeof window !== 'undefined' 
+    ? (isMobileFromHook || window.innerWidth < 600)
+    : isMobileFromHook;
+  
+  // Extraer valores responsive de buttonSx si existen y convertirlos a valores directos
+  const getButtonSxValue = (key) => {
+    if (!buttonSx || !buttonSx[key]) return null;
+    const value = buttonSx[key];
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      // Si es responsive, extraer el valor según isMobile
+      return isMobile ? (value.xs || value.sm || value) : (value.sm || value.md || value.xs || value);
+    }
+    return value;
+  };
+  
+  // Separar propiedades que ya procesamos del resto de buttonSx
+  // IMPORTANTE: excluir width, height, padding para evitar conflictos
+  const { width, height, padding, '&:hover': hoverStyles, ...restButtonSx } = buttonSx || {};
+  
+  // Calcular valores finales: si buttonSx tiene valores responsive, usarlos; si no, usar defaults
+  const finalWidth = getButtonSxValue('width') ?? (isMobile ? 32 : 32);
+  const finalHeight = getButtonSxValue('height') ?? (isMobile ? 32 : 32);
+  const finalPadding = getButtonSxValue('padding') ?? (isMobile ? 0.25 : 0.5);
+  
   const btn = (
-    <Tooltip title={tooltip}>
-      <span style={{ display: 'inline-flex' }}>
-        <IconButton
-          size="small"
-          onClick={disabled ? undefined : onClick}
-          disabled={disabled}
-          sx={{
-            width: 32,
-            height: 32,
-            padding: 0.5,
-            color: 'primary.main',
-            '&:hover': { color: 'primary.main', background: 'action.hover' },
-            ...buttonSx
-          }}
-        >
-          <SyncIcon sx={iconSx || { fontSize: 18 }} />
-        </IconButton>
-      </span>
-    </Tooltip>
+    <IconButton
+      size="small"
+      aria-label={tooltip}
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      sx={{
+        width: finalWidth,
+        height: finalHeight,
+        padding: finalPadding,
+        minWidth: finalWidth,
+        minHeight: finalHeight,
+        color: 'primary.main',
+        '& .MuiSvgIcon-root': {
+          fontSize: isMobile ? '0.9rem' : (iconSx?.fontSize || 18)
+        },
+        '&:hover': { 
+          color: 'primary.main', 
+          background: 'action.hover',
+          ...(hoverStyles || {})
+        },
+        ...restButtonSx
+      }}
+    >
+      <SyncIcon sx={iconSx || { fontSize: isMobile ? 14 : 18 }} />
+    </IconButton>
   );
-  // Marcar como "botón" para que SystemButtons lo renderice directo (sin anidar IconButtons)
+  // Marcar como "botón" para que SystemButtons lo renderice directo
   btn.type.isButtonComponent = true;
   return btn;
 }

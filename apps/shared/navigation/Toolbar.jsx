@@ -370,10 +370,11 @@ export default function Toolbar({
             alignItems: 'center',
             justifyContent: 'flex-end',
             flexShrink: 0,
-            minWidth: 48,
+            minWidth: { xs: 'auto', sm: 48 },
             height: TOOLBAR_CONFIG.height,
             position: 'absolute',
-            right: { xs: 1, sm: 2, md: 3 }
+            right: { xs: 1, sm: 2, md: 3 },
+            gap: 0
           }}
         >
           {/* Acciones adicionales */}

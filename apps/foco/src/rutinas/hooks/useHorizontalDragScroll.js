@@ -15,6 +15,15 @@ export default function useHorizontalDragScroll({
 
   const onPointerDownCapture = useCallback((e) => {
     if (!enabled) return;
+    // Si el pointerdown ocurre sobre un elemento interactivo, evitamos `setPointerCapture`
+    // (puede impedir que se dispare el onClick del botón), pero igual permitimos iniciar el drag
+    // para poder arrastrar horizontalmente "sobre" los íconos.
+    const target = e?.target;
+    const isInteractiveTarget = Boolean(
+      target &&
+      typeof target.closest === 'function' &&
+      target.closest('button,[role="button"],a,input,textarea,select,label,[data-drag-scroll-ignore="true"]')
+    );
     const el = scrollRef.current;
     if (!el) return;
 
@@ -24,7 +33,8 @@ export default function useHorizontalDragScroll({
     dragRef.current.moved = false;
 
     try {
-      el.setPointerCapture?.(e.pointerId);
+      // Solo capturar puntero si NO arrancamos sobre un control interactivo.
+      if (!isInteractiveTarget) el.setPointerCapture?.(e.pointerId);
     } catch {
       // noop
     }

@@ -15,7 +15,8 @@ function getInitialSettings(isMobile) {
   }
   // Valores por defecto - solo configuraciones de UI móvil
   return {
-    showEntityToolbarNavigation: !isMobile,
+    // En móvil debe estar habilitada por defecto (y en general también)
+    showEntityToolbarNavigation: true,
     showSidebarCollapsed: true, // Por defecto visible en móvil
     autoUpdateHabitPreferences: true // Nuevo: actualizar preferencias al editar inline
   };
@@ -25,7 +26,7 @@ export function UISettingsProvider({ children }) {
   const { isMobile } = useResponsive();
   const initial = getInitialSettings(isMobile);
   const [showEntityToolbarNavigation, setShowEntityToolbarNavigation] = useState(
-    typeof initial.showEntityToolbarNavigation === 'boolean' ? initial.showEntityToolbarNavigation : false
+    typeof initial.showEntityToolbarNavigation === 'boolean' ? initial.showEntityToolbarNavigation : true
   );
   const [showSidebarCollapsed, setShowSidebarCollapsed] = useState(
     typeof initial.showSidebarCollapsed === 'boolean' ? initial.showSidebarCollapsed : false
