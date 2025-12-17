@@ -647,9 +647,23 @@ export function Tareas() {
             <Box sx={{ display: 'flex', gap: 2, height: '100%', overflow: 'hidden' }}>
               {/* Columna AHORA */}
               <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-                <Box sx={{ mb: 1, px: 1, flexShrink: 0 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    AHORA
+                <Box sx={{ mb: 1, px: 1, flexShrink: 0, display: 'flex', justifyContent: 'flex-start' }}>
+                  <Typography 
+                    sx={{ 
+                      fontWeight: 600,
+                      fontSize: '0.75rem',
+                      textTransform: 'capitalize',
+                      display: 'inline-block',
+                      px: 1,
+                      py: 0.5,
+                      bgcolor: 'background.paper',
+                      borderRadius: 1,
+                      boxShadow: 1,
+                      position: 'relative',
+                      zIndex: 1
+                    }}
+                  >
+                    Ahora
                   </Typography>
                 </Box>
                 <Box 
@@ -703,8 +717,22 @@ export function Tareas() {
 
               {/* Columna Luego */}
               <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-                <Box sx={{ mb: 1, px: 1, flexShrink: 0 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                <Box sx={{ mb: 1, px: 1, flexShrink: 0, display: 'flex', justifyContent: 'flex-start' }}>
+                  <Typography 
+                    sx={{ 
+                      fontWeight: 600,
+                      fontSize: '0.75rem',
+                      textTransform: 'capitalize',
+                      display: 'inline-block',
+                      px: 1,
+                      py: 0.5,
+                      bgcolor: 'background.paper',
+                      borderRadius: 1,
+                      boxShadow: 1,
+                      position: 'relative',
+                      zIndex: 1
+                    }}
+                  >
                     Luego
                   </Typography>
                 </Box>

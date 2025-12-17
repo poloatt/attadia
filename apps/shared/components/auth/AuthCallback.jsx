@@ -168,6 +168,24 @@ function AuthCallback() {
       // Configurar tokens en el estado de la aplicación
       setAuthTokens(token, refreshToken);
 
+      // Guardar información del último usuario de Google para mostrar en el botón de login
+      if (tokenPayload.user?.googleId) {
+        try {
+          const lastGoogleUser = {
+            nombre: tokenPayload.user.nombre,
+            email: tokenPayload.user.email,
+            googleId: tokenPayload.user.googleId,
+            timestamp: Date.now()
+          };
+          localStorage.setItem('lastGoogleUser', JSON.stringify(lastGoogleUser));
+        } catch (error) {
+          // Silenciar errores al guardar
+          if (isDevelopment) {
+            console.log('Error al guardar último usuario de Google:', error);
+          }
+        }
+      }
+
       // Actualizar contexto de autenticación
       await updateAuthContext(tokenPayload);
       

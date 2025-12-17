@@ -293,7 +293,8 @@ export default function Toolbar({
             // Resolver componente central modular por ruta
             (() => {
               const CenterComp = resolveToolbarCenterByPath(currentPath);
-              if (CenterComp) {
+              // Solo mostrar componentes centrales modulares en móvil/tablet, no en desktop
+              if (CenterComp && isMobileOrTablet) {
                 return <CenterComp />;
               }
               return (
@@ -373,7 +374,8 @@ export default function Toolbar({
             minWidth: { xs: 'auto', sm: 48 },
             height: TOOLBAR_CONFIG.height,
             position: 'absolute',
-            right: { xs: 1, sm: 2, md: 3 },
+            right: 0, // El contenedor principal ya tiene px, así que right: 0 alinea con el padding
+            pr: { xs: 1, sm: 2, md: 3 }, // Padding derecho para alineación con la página principal
             gap: 0.25
           }}
         >

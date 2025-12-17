@@ -158,6 +158,24 @@ export function AuthProvider({ children }) {
         localStorage.setItem('refreshToken', refreshToken);
       }
       
+      // Guardar información del último usuario de Google si tiene googleId
+      if (userData?.googleId) {
+        try {
+          const lastGoogleUser = {
+            nombre: userData.nombre,
+            email: userData.email,
+            googleId: userData.googleId,
+            timestamp: Date.now()
+          };
+          localStorage.setItem('lastGoogleUser', JSON.stringify(lastGoogleUser));
+        } catch (error) {
+          // Silenciar errores al guardar
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Error al guardar último usuario de Google:', error);
+          }
+        }
+      }
+      
       // Configurar axios
       clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
@@ -235,6 +253,24 @@ export function AuthProvider({ children }) {
           localStorage.setItem('refreshToken', data.refreshToken);
         }
         
+        // Guardar información del último usuario de Google si tiene googleId
+        if (data.user?.googleId) {
+          try {
+            const lastGoogleUser = {
+              nombre: data.user.nombre,
+              email: data.user.email,
+              googleId: data.user.googleId,
+              timestamp: Date.now()
+            };
+            localStorage.setItem('lastGoogleUser', JSON.stringify(lastGoogleUser));
+          } catch (error) {
+            // Silenciar errores al guardar
+            if (process.env.NODE_ENV === 'development') {
+              console.log('Error al guardar último usuario de Google:', error);
+            }
+          }
+        }
+        
         clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
         
         setUser(data.user || null);
@@ -268,6 +304,7 @@ export function AuthProvider({ children }) {
       // Limpiar todo
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
+      // No limpiar lastGoogleUser para mantener la información del perfil
       delete clienteAxios.defaults.headers.common['Authorization'];
       
       setUser(null);
@@ -356,6 +393,85 @@ export function AuthProvider({ children }) {
       }
     }
   }, []); // Sin dependencias para evitar re-ejecuciones
+
+  // Listeners para eventos de ciclo de vida (importante para webapps en smartphones)
+  useEffect(() => {
+    // Función helper para verificar tokens de forma segura
+    const verifyTokensOnResume = async () => {
+      // Evitar verificación si ya hay una en progreso
+      if (isChecking.current) {
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          return;
+        }
+
+        // Solo verificar si el usuario está autenticado pero puede haber expirado el token
+        if (isAuthenticated && user) {
+          // Verificar token de forma silenciosa (sin cambiar loading state)
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout')), 5000)
+          );
+          
+          clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          const requestPromise = clienteAxios.get(`${currentConfig.authPrefix}/check`);
+          
+          try {
+            const { data } = await Promise.race([requestPromise, timeoutPromise]);
+            if (!data.authenticated || !data.user) {
+              // Token inválido, intentar refresh
+              await checkAuth();
+            }
+          } catch (error) {
+            // Si falla, intentar refresh token
+            if (error.response?.status === 401) {
+              await checkAuth();
+            }
+          }
+        }
+      } catch (error) {
+        // Silenciar errores en verificación de fondo
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Error en verificación de tokens al reanudar:', error.message);
+        }
+      }
+    };
+
+    // Listener para cuando la app vuelve a primer plano (visibilitychange)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Pequeño delay para asegurar que localStorage esté disponible
+        setTimeout(() => {
+          verifyTokensOnResume();
+        }, 100);
+      }
+    };
+
+    // Listener para cuando la página se restaura desde cache (pageshow)
+    // Esto es crítico para PWAs en smartphones
+    const handlePageShow = (event) => {
+      // event.persisted indica que la página se cargó desde cache
+      if (event.persisted) {
+        // Delay para asegurar que localStorage esté disponible
+        setTimeout(() => {
+          verifyTokensOnResume();
+        }, 200);
+      }
+    };
+
+    // Agregar listeners
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pageshow', handlePageShow);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pageshow', handlePageShow);
+    };
+  }, [isAuthenticated, user, checkAuth]); // Dependencias necesarias para la verificación
 
   const value = {
     user,

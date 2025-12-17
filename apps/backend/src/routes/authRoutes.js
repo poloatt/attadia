@@ -213,7 +213,7 @@ router.get('/google/url', (req, res) => {
     `response_type=code&` +
     `scope=${encodeURIComponent(scopes.join(' '))}&` +
     `access_type=offline&` +
-    `prompt=consent&` +
+    `prompt=select_account&` +
     `state=${encodeURIComponent(statePayload)}`;
 
   res.json({ url: authUrl });

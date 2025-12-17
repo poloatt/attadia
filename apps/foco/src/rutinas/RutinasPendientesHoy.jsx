@@ -27,6 +27,8 @@ export default function RutinasPendientesHoy({
   const theme = useTheme();
   const { rutina, rutinas, loading, fetchRutinas, markItemComplete } = useRutinas();
   const didFetchRef = useRef(false);
+  const carouselRef = useRef(null);
+  const isScrollingRef = useRef(false);
   // Umbral un poco mayor para que un "tap" con leve movimiento no se considere drag (especialmente en mobile)
   const { scrollRef, dragRef, isDragging, bind } = useHorizontalDragScroll({
     enabled: enableDragScroll,
@@ -91,8 +93,15 @@ export default function RutinasPendientesHoy({
     return items;
   }, [rutinaHoy]);
 
-  // En Agenda “Hoy” queremos el comportamiento tipo TODO: solo pendientes.
+  // En Agenda "Hoy" queremos el comportamiento tipo TODO: solo pendientes.
   const pendingItems = itemsHoy;
+
+  // Para carrusel infinito: duplicar items al inicio y final
+  // Solo activar si hay suficientes items para que tenga sentido
+  const shouldUseInfiniteCarousel = pendingItems.length > 8;
+  const carouselItems = shouldUseInfiniteCarousel
+    ? [...pendingItems, ...pendingItems, ...pendingItems] // [duplicado][original][duplicado]
+    : pendingItems;
 
   // Tamaños más compactos para encajar en headers de tabla
   // Nota UX: 24px en desktop se percibe demasiado chico. Subimos el diámetro para
@@ -133,6 +142,56 @@ export default function RutinasPendientesHoy({
     }
   };
 
+  // Efecto para inicializar y manejar el carrusel infinito
+  useEffect(() => {
+    if (!shouldUseInfiniteCarousel || !carouselRef.current) return;
+    
+    const container = carouselRef.current;
+    
+    // Esperar a que el DOM se renderice para obtener el ancho real
+    const initCarousel = () => {
+      const scrollWidth = container.scrollWidth;
+      const setWidth = scrollWidth / 3; // Dividir por 3 sets
+      const startPosition = setWidth; // Iniciar en el set del medio (original)
+      
+      // Inicializar en la posición del medio
+      container.scrollLeft = startPosition;
+    };
+    
+    // Usar requestAnimationFrame para asegurar que el DOM esté listo
+    requestAnimationFrame(() => {
+      setTimeout(initCarousel, 100);
+    });
+
+    const handleScroll = () => {
+      if (isScrollingRef.current) return;
+      
+      const scrollLeft = container.scrollLeft;
+      const scrollWidth = container.scrollWidth;
+      const setWidth = scrollWidth / 3;
+      const startPosition = setWidth; // Inicio del set original
+      const endPosition = setWidth * 2; // Fin del set original
+      
+      // Si llegamos al final (tercer set), saltar al inicio del segundo set (original)
+      if (scrollLeft >= endPosition - 50) {
+        isScrollingRef.current = true;
+        container.scrollLeft = startPosition + (scrollLeft - endPosition);
+        setTimeout(() => { isScrollingRef.current = false; }, 50);
+      }
+      // Si llegamos al inicio (primer set), saltar al final del segundo set (original)
+      else if (scrollLeft <= 50) {
+        isScrollingRef.current = true;
+        container.scrollLeft = endPosition - (50 - scrollLeft);
+        setTimeout(() => { isScrollingRef.current = false; }, 50);
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+    };
+  }, [shouldUseInfiniteCarousel, pendingItems.length]);
+
   // IMPORTANTE: a partir de aquí recién retornamos condicionalmente
   // para no romper el orden de Hooks (Rules of Hooks).
   if (variant !== 'iconsRow') return null;
@@ -163,16 +222,19 @@ export default function RutinasPendientesHoy({
           borderColor: dividerColor
         })
       }}
-      ref={scrollRef}
+      ref={(node) => {
+        scrollRef.current = node;
+        carouselRef.current = node;
+      }}
       {...bind}
     >
-      {pendingItems.map(({ section, itemId }) => {
+      {carouselItems.map(({ section, itemId }, index) => {
         const Icon = iconConfig?.[section]?.[itemId];
         const label = iconTooltips?.[section]?.[itemId] || itemId;
         if (!Icon) return null;
 
         return (
-          <Tooltip key={`${section}.${itemId}`} title={label} arrow placement="top">
+          <Tooltip key={`${section}.${itemId}.${index}`} title={label} arrow placement="top">
             {/* Wrapper requerido por MUI: Tooltip no puede escuchar eventos en un button disabled */}
             <span style={{ display: 'inline-flex' }}>
               <IconButton

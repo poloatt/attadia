@@ -1,4 +1,4 @@
-  import React, { useState } from 'react';
+  import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -8,7 +8,8 @@ import {
   Typography, 
   Paper,
   IconButton,
-  Tooltip
+  Tooltip,
+  Avatar
 } from '@mui/material';
 import { 
   Google as GoogleIcon,
@@ -24,6 +25,7 @@ export function Login() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [lastGoogleUser, setLastGoogleUser] = useState(null);
 
   // Estilos comunes para los campos de texto
   const textFieldStyles = {
@@ -86,6 +88,29 @@ export function Login() {
       setLoading(false);
     }
   };
+
+  // Cargar información del último usuario de Google al montar el componente
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('lastGoogleUser');
+      if (stored) {
+        const userData = JSON.parse(stored);
+        // Verificar que la información no sea muy antigua (máximo 90 días)
+        const maxAge = 90 * 24 * 60 * 60 * 1000; // 90 días en milisegundos
+        if (Date.now() - userData.timestamp < maxAge) {
+          setLastGoogleUser(userData);
+        } else {
+          // Limpiar información antigua
+          localStorage.removeItem('lastGoogleUser');
+        }
+      }
+    } catch (error) {
+      // Silenciar errores al leer localStorage
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Error al leer último usuario de Google:', error);
+      }
+    }
+  }, []);
 
   const handleGoogleLogin = async () => {
     // Prevenir múltiples clics
@@ -188,8 +213,14 @@ export function Login() {
               py: 1,
               bgcolor: '#000',
               color: '#fff',
+              border: '1px solid',
+              borderColor: 'rgba(255, 255, 255, 0.1)',
               '&:hover': {
-                bgcolor: '#333'
+                bgcolor: '#333',
+                borderColor: 'rgba(255, 255, 255, 0.2)'
+              },
+              '&:disabled': {
+                borderColor: 'rgba(255, 255, 255, 0.05)'
               }
             }}
           >
@@ -199,14 +230,36 @@ export function Login() {
           <Button
             fullWidth
             variant="outlined"
-            startIcon={<GoogleIcon sx={{ fontSize: 18 }} />}
+            startIcon={
+              lastGoogleUser ? (
+                <Avatar 
+                  sx={{ 
+                    width: 24, 
+                    height: 24, 
+                    bgcolor: 'rgba(255, 255, 255, 0.2)',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    color: 'rgba(255, 255, 255, 0.9)'
+                  }}
+                >
+                  {lastGoogleUser.nombre?.charAt(0)?.toUpperCase() || lastGoogleUser.email?.charAt(0)?.toUpperCase() || 'G'}
+                </Avatar>
+              ) : (
+                <GoogleIcon sx={{ fontSize: 18 }} />
+              )
+            }
             onClick={handleGoogleLogin}
             disabled={loading}
             sx={{ 
               textTransform: 'none',
-              py: 1,
+              py: lastGoogleUser ? 1.5 : 1,
               color: 'rgba(255, 255, 255, 0.9)',
+              border: '1px solid',
               borderColor: 'rgba(255, 255, 255, 0.1)',
+              justifyContent: 'flex-start',
+              '& .MuiButton-startIcon': {
+                marginRight: lastGoogleUser ? 1.5 : 1
+              },
               '&:hover': {
                 borderColor: 'rgba(255, 255, 255, 0.3)',
                 bgcolor: 'transparent'
@@ -217,7 +270,22 @@ export function Login() {
               }
             }}
           >
-            {loading ? 'Conectando...' : 'Continuar con Google'}
+            {loading ? (
+              'Conectando...'
+            ) : lastGoogleUser ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1, textAlign: 'left' }}>
+                <Typography variant="body2" sx={{ fontSize: '0.875rem', lineHeight: 1.2, fontWeight: 500 }}>
+                  Continuar como {lastGoogleUser.nombre || lastGoogleUser.email?.split('@')[0]}
+                </Typography>
+                {lastGoogleUser.email && (
+                  <Typography variant="caption" sx={{ fontSize: '0.7rem', opacity: 0.6, lineHeight: 1, mt: 0.25 }}>
+                    {lastGoogleUser.email}
+                  </Typography>
+                )}
+              </Box>
+            ) : (
+              'Continuar con Google'
+            )}
           </Button>
         </Box>
       </Paper>

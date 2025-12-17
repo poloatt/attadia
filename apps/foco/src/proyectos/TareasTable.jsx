@@ -1079,12 +1079,10 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
         >
           <Box
             sx={{
-              px: isMobile ? 1 : 2,
               py: 0.25,
               bgcolor: groupSubBg,
               borderTop: '1px solid',
-              borderColor: groupDividerColor,
-              borderLeft: `3px solid ${alpha(theme.palette.text.primary, 0.10)}`
+              borderColor: groupDividerColor
             }}
           >
             <RutinasPendientesHoy variant="iconsRow" showDividers={false} />
@@ -1113,8 +1111,7 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
               sx={{
                 px: isMobile ? 1 : 2,
                 py: isMobile ? 0.5 : 0.75,
-                bgcolor: groupTitleBg,
-                borderLeft: `3px solid ${alpha(theme.palette.text.primary, 0.18)}`
+                bgcolor: groupTitleBg
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
@@ -1131,12 +1128,10 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
             {shouldShowRutinas && periodo === 'HOY' && (
               <Box
                 sx={{
-                  px: isMobile ? 1 : 2,
                   py: 0.25,
                   bgcolor: groupSubBg,
                   borderTop: '1px solid',
-                  borderColor: groupDividerColor,
-                  borderLeft: `3px solid ${alpha(theme.palette.text.primary, 0.10)}`
+                  borderColor: groupDividerColor
                 }}
               >
                 <RutinasPendientesHoy variant="iconsRow" showDividers={false} />

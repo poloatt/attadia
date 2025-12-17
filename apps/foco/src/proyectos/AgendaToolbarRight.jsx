@@ -92,7 +92,8 @@ export default function AgendaToolbarRight({ hasSelectedItems }) {
     <SystemButtons 
       actions={actions} 
       gap={{ xs: 0.02, sm: 0.1 }}
-      sx={{ marginRight: { xs: 0.75, sm: 1 } }}
+      // No agregar marginRight aquí porque el contenedor padre (Toolbar) ya tiene right: { xs: 1, sm: 2, md: 3 }
+      // que alinea correctamente con el padding de la página principal
     />
   );
 }
