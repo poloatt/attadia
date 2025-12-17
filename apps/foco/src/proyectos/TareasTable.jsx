@@ -676,7 +676,7 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchCancel}
       >
-        <TableCell sx={{ py: 0.06 }}>
+        <TableCell sx={{ py: 0.3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 0.25 : 0.35, minHeight: 0 }}>
             {/* Checkbox de selección múltiple */}
             {selectedTareas.length > 0 && (
@@ -754,7 +754,7 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
             </Box>
           </Box>
         </TableCell>
-        <TableCell align="right" sx={{ width: isMobile ? 80 : 120, py: 0.06 }}>
+        <TableCell align="right" sx={{ width: isMobile ? 80 : 120, py: 0.3 }}>
           <Typography 
             variant="caption" 
             sx={{ 
@@ -963,6 +963,7 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
     : alpha(theme.palette.common.black, 0.06);
   const groupSubBg = surfaceBg;
   const groupDividerColor = sectionDividerColor;
+  const shouldShowRutinas = !isArchive && agendaView === 'ahora';
 
   // Importante:
   // - En la vista principal (Tareas.jsx) ya filtramos (AHORA/LUEGO + mostrar completadas) con `useAgendaFilter`.
@@ -977,34 +978,63 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
     return (
       // Usar la misma "surface" que RutinasPendientesHoy para que no choque con el theme paper
       // El contenedor usa el background del layout; las filas tienen su surfaceBg.
-      <TableContainer sx={{ bgcolor: layoutBg }}>
-        <Table
-          size="small"
-          sx={{
-            // Evitar borderBottom default (lo controlamos por-row)
-            '& .MuiTableCell-root': { borderBottom: 'none' },
-          }}
-        >
-          <TableBody>
-            {tareasAMostrar.map((tarea) => (
-              <TareaRow
-                key={tarea._id || tarea.id}
-                tarea={tarea}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onUpdateEstado={onUpdateEstado}
-                isArchive={isArchive}
-                showValues={showValues}
-                updateWithHistory={updateWithHistory}
-                isMultiSelectMode={isMultiSelectMode}
-                selectedTareas={selectedTareas}
-                onSelectTarea={onSelectTarea}
-                onActivateMultiSelect={onActivateMultiSelect}
-              />
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      <Stack spacing={isMobile ? 1 : 2}>
+        {shouldShowRutinas && (
+          <Paper
+            elevation={0}
+            sx={{
+              bgcolor: layoutBg,
+              borderRadius: 1,
+              overflow: 'hidden',
+              mx: isMobile ? 0 : 'auto',
+              width: '100%',
+              border: 'none'
+            }}
+          >
+            <Box
+              sx={{
+                px: isMobile ? 1 : 2,
+                py: 0.25,
+                bgcolor: groupSubBg,
+                borderTop: '1px solid',
+                borderColor: groupDividerColor,
+                borderLeft: `3px solid ${alpha(theme.palette.text.primary, 0.10)}`
+              }}
+            >
+              <RutinasPendientesHoy variant="iconsRow" showDividers={false} />
+            </Box>
+          </Paper>
+        )}
+
+        <TableContainer sx={{ bgcolor: layoutBg }}>
+          <Table
+            size="small"
+            sx={{
+              // Evitar borderBottom default (lo controlamos por-row)
+              '& .MuiTableCell-root': { borderBottom: 'none' },
+            }}
+          >
+            <TableBody>
+              {tareasAMostrar.map((tarea) => (
+                <TareaRow
+                  key={tarea._id || tarea.id}
+                  tarea={tarea}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  onUpdateEstado={onUpdateEstado}
+                  isArchive={isArchive}
+                  showValues={showValues}
+                  updateWithHistory={updateWithHistory}
+                  isMultiSelectMode={isMultiSelectMode}
+                  selectedTareas={selectedTareas}
+                  onSelectTarea={onSelectTarea}
+                  onActivateMultiSelect={onActivateMultiSelect}
+                />
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Stack>
     );
   }
 
@@ -1031,9 +1061,38 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
   const periodosOrdenados = Object.keys(tareasAgrupadas).sort(
     (a, b) => ordenPeriodos.indexOf(a) - ordenPeriodos.indexOf(b)
   );
+  const hasHoyPeriodo = Object.prototype.hasOwnProperty.call(tareasAgrupadas, 'HOY');
 
   return (
     <Stack spacing={isMobile ? 1 : 2}>
+      {/* Rutinas (independiente de si existen tareas HOY) */}
+      {shouldShowRutinas && !hasHoyPeriodo && (
+        <Paper
+          elevation={0}
+          sx={{
+            bgcolor: layoutBg,
+            borderRadius: 1,
+            overflow: 'hidden',
+            mx: isMobile ? 0 : 'auto',
+            width: '100%',
+            border: 'none'
+          }}
+        >
+          <Box
+            sx={{
+              px: isMobile ? 1 : 2,
+              py: 0.25,
+              bgcolor: groupSubBg,
+              borderTop: '1px solid',
+              borderColor: groupDividerColor,
+              borderLeft: `3px solid ${alpha(theme.palette.text.primary, 0.10)}`
+            }}
+          >
+            <RutinasPendientesHoy variant="iconsRow" showDividers={false} />
+          </Box>
+        </Paper>
+      )}
+
       {periodosOrdenados.map((periodo) => (
         <Paper 
           key={periodo} 
@@ -1070,7 +1129,7 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
             </Box>
 
             {/* Banda 2: sector Rutinas (no tintar el anidado; solo una base suave) */}
-            {!isArchive && agendaView === 'ahora' && periodo === 'HOY' && (
+            {shouldShowRutinas && periodo === 'HOY' && (
               <Box
                 sx={{
                   px: isMobile ? 1 : 2,
