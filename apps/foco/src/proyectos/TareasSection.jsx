@@ -147,10 +147,12 @@ const TareasSection = ({ tareas = [], onChange }) => {
       </Stack>
 
       {/* Lista de tareas */}
-      <List sx={{ width: '100%' }}>
+      <List dense disablePadding sx={{ width: '100%' }}>
         {tareas.map((tarea, tareaIndex) => (
           <Box key={tarea.id} sx={{ mb: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
             <ListItem
+              dense
+              disableGutters
               secondaryAction={
                 <IconButton edge="end" onClick={() => handleDeleteTarea(tarea.id)} size="small">
                   <DeleteIcon />
@@ -159,6 +161,9 @@ const TareasSection = ({ tareas = [], onChange }) => {
               sx={{ 
                 borderLeft: 3, 
                 borderColor: getEstadoColor(tarea.estado, 'TAREA'),
+                px: 1,
+                py: 0.5,
+                minHeight: 40,
                 '&:hover': {
                   backgroundColor: 'action.hover'
                 }
@@ -167,12 +172,15 @@ const TareasSection = ({ tareas = [], onChange }) => {
               <ListItemText
                 primary={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="subtitle2">{tarea.titulo}</Typography>
+                    <Typography variant="subtitle2" sx={{ lineHeight: 1.1 }}>
+                      {tarea.titulo}
+                    </Typography>
                     <Chip 
                       label={`${calcularProgresoTarea(tarea)}%`}
                       size="small"
                       sx={{ 
-                        height: 20,
+                        height: 18,
+                        fontSize: '0.72rem',
                                         backgroundColor: `${getEstadoColor(tarea.estado, 'TAREA')}20`,
                 color: getEstadoColor(tarea.estado, 'TAREA'),
                         borderRadius: 1
@@ -181,6 +189,10 @@ const TareasSection = ({ tareas = [], onChange }) => {
                   </Box>
                 }
                 secondary={tarea.descripcion}
+                secondaryTypographyProps={{
+                  sx: { lineHeight: 1.1, mt: 0.25, fontSize: '0.78rem' }
+                }}
+                sx={{ mr: 1 }}
               />
               <TextField
                 select
@@ -190,6 +202,7 @@ const TareasSection = ({ tareas = [], onChange }) => {
                 sx={{ 
                   width: 130,
                   mr: 1,
+                  '& .MuiInputBase-root': { height: 34 },
                   '& .MuiOutlinedInput-root': {
                     '& fieldset': {
                       borderColor: getEstadoColor(tarea.estado, 'TAREA')
@@ -214,13 +227,14 @@ const TareasSection = ({ tareas = [], onChange }) => {
             </ListItem>
 
             <Collapse in={expandedTarea === tarea.id}>
-              <Box sx={{ pl: 2, pr: 2, pb: 2 }}>
+              <Box sx={{ pl: 1, pr: 1, pb: 1.5 }}>
                 {/* Lista de subtareas */}
-                <List dense>
+                <List dense disablePadding>
                   {tarea.subtareas.map((subtarea, subtareaIndex) => (
                     <ListItem
                       key={subtarea.id}
                       dense
+                      disableGutters
                       secondaryAction={
                         <IconButton 
                           edge="end" 
@@ -230,6 +244,7 @@ const TareasSection = ({ tareas = [], onChange }) => {
                           <DeleteIcon />
                         </IconButton>
                       }
+                      sx={{ px: 1, py: 0.25 }}
                     >
                       <Checkbox
                         edge="start"
@@ -237,6 +252,7 @@ const TareasSection = ({ tareas = [], onChange }) => {
                         onChange={() => handleToggleSubtarea(tareaIndex, subtareaIndex)}
                         icon={<RadioButtonUncheckedIcon />}
                         checkedIcon={<CheckCircleOutlineIcon />}
+                        sx={{ py: 0, my: 0 }}
                       />
                       <ListItemText 
                         primary={subtarea.titulo}
@@ -244,6 +260,7 @@ const TareasSection = ({ tareas = [], onChange }) => {
                           textDecoration: subtarea.completada ? 'line-through' : 'none',
                           color: subtarea.completada ? 'text.disabled' : 'text.primary'
                         }}
+                        primaryTypographyProps={{ sx: { lineHeight: 1.1, fontSize: '0.85rem' } }}
                       />
                     </ListItem>
                   ))}
@@ -258,6 +275,7 @@ const TareasSection = ({ tareas = [], onChange }) => {
                     placeholder="Nueva subtarea"
                     onKeyPress={(e) => e.key === 'Enter' && handleAddSubtarea(tareaIndex)}
                     fullWidth
+                    sx={{ '& .MuiInputBase-root': { height: 34 } }}
                   />
                   <Button
                     variant="outlined"

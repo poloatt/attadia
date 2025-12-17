@@ -6,6 +6,7 @@ import {
     IconButton,
     Tooltip
   } from '../utils/materialImports';
+import { alpha } from '@mui/material/styles';
   import { useSidebar } from '../context/SidebarContext';
   import { useUISettings } from '../context/UISettingsContext';
   import { AutorenewOutlined } from '@mui/icons-material';
@@ -91,6 +92,23 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
   
     // Nota: el centrado real se realiza vía CenteredTrack
 
+    const titlePillSx = (muiTheme) => ({
+      display: 'inline-flex',
+      alignItems: 'center',
+      // ~20% menos alto: bajar lineHeight y evitar padding vertical extra
+      py: 0,
+      px: 1,
+      borderRadius: 1,
+      backgroundColor: muiTheme.palette.mode === 'dark'
+        ? alpha(muiTheme.palette.common.black, 0.28)
+        : alpha(muiTheme.palette.common.black, 0.06),
+    });
+
+    const titleTextSx = {
+      ...NAV_TYPO.headerTitleSx,
+      lineHeight: 1.0,
+    };
+
     return (
       <AppBar 
         position="static"
@@ -163,19 +181,21 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                           sx={{ marginRight: 0.5 }} 
                         />
                       )}
-                      <Typography
-                        color="inherit"
-                        variant={NAV_TYPO.headerTitleVariant}
-                        sx={{
-                          ...NAV_TYPO.headerTitleSx,
-                          textAlign: 'center',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis'
-                        }}
-                      >
-                        {last?.title}
-                      </Typography>
+                      <Box sx={titlePillSx}>
+                        <Typography
+                          color="inherit"
+                          variant={NAV_TYPO.headerTitleVariant}
+                          sx={{
+                            ...titleTextSx,
+                            textAlign: 'center',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}
+                        >
+                          {last?.title}
+                        </Typography>
+                      </Box>
                     </Box>
                   );
                 })()}
@@ -244,9 +264,11 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                       sx={{ marginRight: 0.5 }} 
                     />
                   )}
-                  <Typography color="inherit" variant={NAV_TYPO.headerTitleVariant} sx={NAV_TYPO.headerTitleSx}>
-                    {last?.title}
-                  </Typography>
+                  <Box sx={titlePillSx}>
+                    <Typography color="inherit" variant={NAV_TYPO.headerTitleVariant} sx={titleTextSx}>
+                      {last?.title}
+                    </Typography>
+                  </Box>
                 </CenteredTrack>
               );
             })()}
@@ -264,9 +286,11 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                       sx={{ marginRight: 0.5 }} 
                     />
                   )}
-                  <Typography color="inherit" variant={NAV_TYPO.headerTitleVariant} sx={NAV_TYPO.headerTitleSx}>
-                    {last?.title}
-                  </Typography>
+                  <Box sx={titlePillSx}>
+                    <Typography color="inherit" variant={NAV_TYPO.headerTitleVariant} sx={titleTextSx}>
+                      {last?.title}
+                    </Typography>
+                  </Box>
                 </Box>
               );
             })()}

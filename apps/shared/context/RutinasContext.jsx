@@ -299,7 +299,10 @@ export const RutinasProvider = ({ children }) => {
       if (!Array.isArray(prevList)) return prevList;
       const updated = prevList.map(r => {
         if (!r || r._id !== rutinaId) return r;
-        return { ...r, [section]: { ...(nextSectionData || {}) } };
+        // Importante: merge para soportar updates parciales (ej. { [itemId]: true/false })
+        // sin pisar el resto de ítems ya marcados en esa sección.
+        const prevSection = (r && r[section] && typeof r[section] === 'object') ? r[section] : {};
+        return { ...r, [section]: { ...prevSection, ...(nextSectionData || {}) } };
       });
       // Recalcular historial para PERSONALIZADO y coherencia de completion
       const { rutinasWithHist } = attachHistorial(updated);
@@ -308,7 +311,8 @@ export const RutinasProvider = ({ children }) => {
 
     setRutina(prev => {
       if (!prev || prev._id !== rutinaId) return prev;
-      return { ...prev, [section]: { ...(nextSectionData || {}) } };
+      const prevSection = (prev && prev[section] && typeof prev[section] === 'object') ? prev[section] : {};
+      return { ...prev, [section]: { ...prevSection, ...(nextSectionData || {}) } };
     });
   }, []);
 
@@ -323,8 +327,31 @@ export const RutinasProvider = ({ children }) => {
       // Actualizar en el servidor
       const response = await rutinasService.markComplete(rutinaId, section, data);
 
-      // Reflejar el cambio de checkmarks localmente (para que RutinaNavigation recalcule %)
-      patchRutinaSection(rutinaId, section, data);
+      // Importante: el backend puede actualizar MÁS cosas que el checkmark (ej. contadores de progreso en config).
+      // Si solo parcheamos `{ [itemId]: boolean }`, la lógica de visibilidad (cadencia) puede quedar desincronizada
+      // hasta el próximo fetch. Por eso, integramos `response` en rutina + lista y recalculamos historial.
+      if (response && typeof response === 'object') {
+        setRutinas(prevList => {
+          if (!Array.isArray(prevList)) return prevList;
+          const updated = prevList.map(r => (r && r._id === rutinaId ? { ...r, ...response } : r));
+          const { rutinasWithHist } = attachHistorial(updated);
+          return rutinasWithHist;
+        });
+
+        setRutina(prev => {
+          if (!prev || prev._id !== rutinaId) return prev;
+          // Mantener paginación si existía
+          const next = { ...prev, ...response };
+          if (prev._page !== undefined) next._page = prev._page;
+          if (prev._totalPages !== undefined) next._totalPages = prev._totalPages;
+          // Mantener historial existente si no vino en response (attachHistorial lo recalcula en la lista)
+          if (!next.historial && prev.historial) next.historial = prev.historial;
+          return next;
+        });
+      } else {
+        // Fallback: al menos reflejar el cambio de checkmarks localmente
+        patchRutinaSection(rutinaId, section, data);
+      }
       
       // Actualizar completitud localmente
       const index = rutinas.findIndex(r => r._id === rutinaId);

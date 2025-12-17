@@ -144,8 +144,8 @@ export default function Toolbar({
   // (Las medidas ahora las gestiona useAnchorWidths)
 
   // 3. RENDER
-  // Mostrar siempre la Toolbar en desktop; respetar preferencia solo en móvil/tablet
-  if (isMobileOrTablet && !showEntityToolbarNavigation) return null;
+  // Mostrar siempre la Toolbar en tablet/desktop; respetar preferencia solo en móvil
+  if (isMobile && !showEntityToolbarNavigation) return null;
 
   return (
     <Box sx={{

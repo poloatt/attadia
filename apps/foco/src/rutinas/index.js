@@ -5,3 +5,4 @@ export { default as InlineItemConfigImproved } from './InlineItemConfigImproved.
 export { default as RutinaCard } from './RutinaCard.jsx';
 export { default as RutinaForm } from './RutinaForm.jsx';
 export { default as RutinaTable } from './RutinaTable.jsx';
+export { default as RutinasPendientesHoy } from './RutinasPendientesHoy.jsx';

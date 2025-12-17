@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Box, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 
 /**
  * Controles centrales para la Agenda en la Toolbar.
@@ -9,44 +10,23 @@ import { Box, ToggleButton, ToggleButtonGroup } from '@mui/material';
  */
 export default function AgendaToolbarCenter() {
   const [agendaView, setAgendaView] = useState('ahora');
+  const theme = useTheme();
 
-  const groupSx = {
-    width: 'fit-content',
-    display: 'inline-flex',
-    borderRadius: 0,
-    overflow: 'hidden',
-    border: '1px solid #2a2a2a',
-    background: '#1c1c1c',
-    boxShadow: 'none',
-    '& .MuiToggleButtonGroup-grouped': {
-      margin: 0,
-      border: 'none',
-      borderRadius: 0
-    }
-  };
-
-  const baseBtnSx = {
-    minHeight: 28,
-    py: 0.25,
-    px: 1.4,
-    lineHeight: 1,
-    fontSize: '0.75rem',
-    textTransform: 'none',
-    letterSpacing: 0.2,
-    // Sin "faded": texto siempre pleno
-    color: '#fff',
-    background: '#1c1c1c',
-    fontWeight: 500,
-    transition: 'background 0.18s ease, color 0.18s ease',
-    '&:hover': { background: '#232323' },
-    '&:not(:first-of-type)': { borderLeft: '1px solid #2a2a2a' },
-    '&.Mui-selected': {
-      background: '#262626',
-      fontWeight: 700,
-      boxShadow: 'inset 0 0 0 1px #3a3a3a'
-    },
-    '&.Mui-selected:hover': { background: '#2b2b2b' }
-  };
+  const baseBg = theme.palette.mode === 'dark'
+    ? alpha(theme.palette.common.white, 0.04)
+    : alpha(theme.palette.common.black, 0.04);
+  const hoverBg = theme.palette.mode === 'dark'
+    ? alpha(theme.palette.common.white, 0.08)
+    : alpha(theme.palette.common.black, 0.06);
+  const selectedBg = theme.palette.mode === 'dark'
+    ? alpha(theme.palette.common.white, 0.10)
+    : alpha(theme.palette.common.black, 0.08);
+  const selectedHoverBg = theme.palette.mode === 'dark'
+    ? alpha(theme.palette.common.white, 0.12)
+    : alpha(theme.palette.common.black, 0.10);
+  const rail = theme.palette.mode === 'dark'
+    ? alpha(theme.palette.text.primary, 0.22)
+    : alpha(theme.palette.text.primary, 0.18);
 
   return (
     // Nota: el CenteredTrack (Toolbar) centra su child. Para alinear a la izquierda,
@@ -56,7 +36,16 @@ export default function AgendaToolbarCenter() {
         size="small"
         value={agendaView}
         exclusive
-        sx={groupSx}
+        sx={{
+          width: '100%',
+          justifyContent: 'flex-start',
+          gap: 0.75,
+          '& .MuiToggleButtonGroup-grouped': {
+            margin: 0,
+            border: 'none',
+            borderRadius: 0
+          }
+        }}
         onChange={(_, v) => {
           if (!v) return;
           // Solo soportamos ahora/luego (sin subfiltros)
@@ -67,13 +56,51 @@ export default function AgendaToolbarCenter() {
       >
         <ToggleButton
           value="ahora"
-          sx={baseBtnSx}
+          sx={{
+            minHeight: 28,
+            py: 0.25,
+            px: 1.25,
+            lineHeight: 1,
+            fontSize: '0.75rem',
+            textTransform: 'none',
+            borderRadius: 0,
+            color: 'text.secondary',
+            background: baseBg,
+            borderLeft: '2px solid',
+            borderLeftColor: rail,
+            '&:hover': { background: hoverBg, color: 'text.primary' },
+            '&.Mui-selected': {
+              color: 'text.primary',
+              background: selectedBg,
+              borderLeftColor: alpha(theme.palette.text.primary, 0.32)
+            },
+            '&.Mui-selected:hover': { background: selectedHoverBg }
+          }}
         >
           Ahora
         </ToggleButton>
         <ToggleButton
           value="luego"
-          sx={baseBtnSx}
+          sx={{
+            minHeight: 28,
+            py: 0.25,
+            px: 1.25,
+            lineHeight: 1,
+            fontSize: '0.75rem',
+            textTransform: 'none',
+            borderRadius: 0,
+            color: 'text.secondary',
+            background: baseBg,
+            borderLeft: '2px solid',
+            borderLeftColor: rail,
+            '&:hover': { background: hoverBg, color: 'text.primary' },
+            '&.Mui-selected': {
+              color: 'text.primary',
+              background: selectedBg,
+              borderLeftColor: alpha(theme.palette.text.primary, 0.32)
+            },
+            '&.Mui-selected:hover': { background: selectedHoverBg }
+          }}
         >
           Luego
         </ToggleButton>

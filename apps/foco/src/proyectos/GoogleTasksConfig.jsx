@@ -16,7 +16,8 @@ import {
   Chip,
   CircularProgress,
   Tooltip,
-  Collapse
+  Collapse,
+  TextField
 } from '@mui/material';
 import {
   Google as GoogleIcon,
@@ -630,12 +631,12 @@ const GoogleTasksConfig = ({ open, onClose }) => {
                   Auditoría/Limpieza por proyecto
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                  <input
-                    type="text"
+                  <TextField
+                    size="small"
+                    fullWidth
                     placeholder="Nombre del proyecto (ej: Salud)"
                     value={projectName}
                     onChange={(e) => setProjectName(e.target.value)}
-                    style={{ flex: 1, padding: '8px', borderRadius: 6, border: '1px solid #ccc' }}
                   />
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
