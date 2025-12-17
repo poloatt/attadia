@@ -116,6 +116,10 @@ export default function RutinasPendientesHoy({
     if (!interactive) return;
     if (dragRef.current.moved) return;
     if (!rutinaHoy?._id) return;
+    if (!markItemComplete || typeof markItemComplete !== 'function') {
+      console.warn('[RutinasPendientesHoy] markItemComplete no disponible en contexto');
+      return;
+    }
     try {
       const prevSection = rutinaHoy?.[section] || {};
       const prev = prevSection?.[itemId] === true;
@@ -188,6 +192,8 @@ export default function RutinasPendientesHoy({
                   border: '1px solid',
                   borderColor: rail,
                   flex: '0 0 auto',
+                  // Permitir que un drag horizontal comience encima del botón (mobile/desktop)
+                  touchAction: 'pan-x',
                   '&:hover': {
                     bgcolor: hoverBg,
                     color: 'text.primary'

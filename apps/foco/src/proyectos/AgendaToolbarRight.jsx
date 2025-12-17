@@ -21,9 +21,14 @@ export default function AgendaToolbarRight({ hasSelectedItems }) {
   }, []);
 
   const commonButtonSx = useMemo(() => ({
-    width: 26,
-    height: 26,
-    padding: 0.125,
+    width: { xs: 32, sm: 26 },
+    height: { xs: 32, sm: 26 },
+    padding: { xs: 0.25, sm: 0.125 },
+    minWidth: { xs: 32, sm: 26 },
+    minHeight: { xs: 32, sm: 26 },
+    '& .MuiSvgIcon-root': {
+      fontSize: { xs: '1.1rem', sm: '1.1rem' }
+    },
     '&:hover': { backgroundColor: 'action.hover' }
   }), []);
 
@@ -41,21 +46,20 @@ export default function AgendaToolbarRight({ hasSelectedItems }) {
     },
     {
       key: 'archivo',
-      icon: <SystemButtons.ArchiveButton />,
+      icon: <SystemButtons.ArchiveButton buttonSx={{ ...commonButtonSx, color: 'primary.main' }} />,
       label: 'Archivo',
       tooltip: 'Archivo',
       // Ya es un IconButton (isButtonComponent), no necesita onClick aquí
-      buttonSx: commonButtonSx
     },
     {
       key: 'deleteSelected',
       icon: <DeleteOutlined />,
       label: 'Eliminar',
-      tooltip: hasSelectedItems ? 'Eliminar seleccionadas' : 'Selecciona elementos para eliminar',
+      tooltip: 'Eliminar seleccionadas',
       color: 'error.main',
       hoverColor: 'error.main',
-      buttonSx: { ...commonButtonSx, opacity: hasSelectedItems ? 1 : 0.3 },
-      disabled: !hasSelectedItems,
+      buttonSx: commonButtonSx,
+      show: hasSelectedItems, // Solo mostrar si hay selección activa
       onClick: () => window.dispatchEvent(new CustomEvent('deleteSelectedTasks'))
     },
     {
@@ -63,7 +67,7 @@ export default function AgendaToolbarRight({ hasSelectedItems }) {
       icon: showCompleted ? <CheckCircle /> : <CheckCircleOutline />,
       label: showCompleted ? 'Ocultar completadas' : 'Mostrar completadas',
       tooltip: showCompleted ? 'Ocultar completadas' : 'Mostrar completadas',
-      color: showCompleted ? 'primary.main' : 'text.secondary',
+      color: 'primary.main', // Mismo color que sync para armonía visual
       hoverColor: 'primary.main',
       buttonSx: commonButtonSx,
       onClick: () => {
@@ -77,14 +81,20 @@ export default function AgendaToolbarRight({ hasSelectedItems }) {
       icon: <AddOutlined />,
       label: 'Nueva Tarea',
       tooltip: 'Nueva Tarea',
-      color: 'text.secondary',
+      color: 'primary.main', // Mismo color que sync para armonía visual
       hoverColor: 'primary.main',
       buttonSx: commonButtonSx,
       onClick: () => window.dispatchEvent(new CustomEvent('addTask'))
     }
   ]), [commonButtonSx, hasSelectedItems, showCompleted]);
 
-  return <SystemButtons actions={actions} gap={0.1} />;
+  return (
+    <SystemButtons 
+      actions={actions} 
+      gap={{ xs: 0.02, sm: 0.1 }}
+      sx={{ marginRight: { xs: 0.75, sm: 1 } }}
+    />
+  );
 }
 
 
