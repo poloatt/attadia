@@ -605,8 +605,8 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
           },
           '& .MuiTableCell-root': {
             borderBottom: `1px solid ${layoutDividerColor} !important`,
-            // +20% aprox de alto (subiendo padding vertical)
-            py: isMobile ? 0.14 : 0.07,
+            // +40% de alto (aumentado desde valores anteriores)
+            py: isMobile ? 0.2 : 0.1,
             px: isMobile ? 0.75 : 1,
             lineHeight: 1,
           },
@@ -674,7 +674,7 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchCancel}
       >
-        <TableCell sx={{ py: 0.3 }}>
+        <TableCell sx={{ py: 0.42 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 0.25 : 0.35, minHeight: 0 }}>
             {/* Checkbox de selección múltiple */}
             {selectedTareas.length > 0 && (
@@ -752,7 +752,7 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
             </Box>
           </Box>
         </TableCell>
-        <TableCell align="right" sx={{ width: isMobile ? 80 : 120, py: 0.3 }}>
+        <TableCell align="right" sx={{ width: isMobile ? 80 : 120, py: 0.42 }}>
           <Typography 
             variant="caption" 
             sx={{ 

@@ -19,7 +19,7 @@ const routerConfig = {
 // Configuración específica para Foco
 const AppConfig = {
   name: 'Foco',
-  title: 'Foco - Hábitos y Rutinas',
+  title: 'Foco',
   theme: 'blue',
   primaryColor: '#1976d2'
 }

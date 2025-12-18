@@ -1,7 +1,7 @@
 // Configuración específica para Foco
 export const focoConfig = {
   name: 'Foco',
-  title: 'Foco - Hábitos y Rutinas',
+  title: 'Foco',
   description: 'Aplicación para gestión de hábitos, rutinas y productividad',
   
   // Puerto de desarrollo
@@ -21,7 +21,7 @@ export const focoConfig = {
   },
   
   // Rutas principales de la app
-  defaultRoute: '/rutinas',
+  defaultRoute: '/tareas',
   routes: {
     rutinas: '/rutinas',
     proyectos: '/proyectos', 

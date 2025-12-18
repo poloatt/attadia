@@ -1,7 +1,7 @@
 // Configuración específica para Pulso
 export const pulsoConfig = {
   name: 'Pulso',
-  title: 'Pulso - Bienestar y Salud',
+  title: 'Pulso',
   description: 'Aplicación para monitoreo de salud y bienestar',
   
   // Puerto de desarrollo

@@ -379,8 +379,8 @@ export default function Toolbar({
             gap: 0.25
           }}
         >
-          {/* Botón Undo - siempre visible cuando hay historial */}
-          <SystemButtons.UndoMenu />
+          {/* Botón Undo - ocultar en rutas de rutinas ya que está en RutinaNavigation */}
+          {!shouldShowSpecificNavigation() && <SystemButtons.UndoMenu />}
           
           {/* Acciones adicionales */}
           {!isMobile && additionalActions && additionalActions.map((action, idx) => {

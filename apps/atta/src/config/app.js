@@ -1,7 +1,7 @@
 // Configuración específica para Atta
 export const attaConfig = {
   name: 'Atta',
-  title: 'Atta - Property Management',
+  title: 'Atta',
   description: 'Aplicación para gestión de propiedades y finanzas',
   
   // Puerto de desarrollo

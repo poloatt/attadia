@@ -19,8 +19,10 @@ export default function BottomNavigation() {
   // Usar utilidad centralizada para encontrar el módulo activo
   const moduloActivo = findActiveModule(currentPath);
 
-  // Obtener los menús de nivel 1 del módulo activo
-  const navItems = moduloActivo?.subItems || [];
+  // Obtener los menús de nivel 1 del módulo activo, excluyendo rutinas
+  const navItems = (moduloActivo?.subItems || []).filter(
+    item => !item.path.includes('/rutinas') && !item.path.includes('rutinas')
+  );
 
   if (!moduloActivo || navItems.length === 0) return null;
 

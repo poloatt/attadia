@@ -53,7 +53,6 @@ export default function Footer({ isDesktop = false, isSidebarOpen = false }) {
       location.pathname === '/' ||
       location.pathname === '/assets' ||
       location.pathname === '/assets/finanzas' ||
-      location.pathname === '/tiempo/rutinas' ||
       location.pathname === '/tiempo/tareas' ||
       location.pathname === '/tareas'
     ) {

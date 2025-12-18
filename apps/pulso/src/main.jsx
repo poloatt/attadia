@@ -19,7 +19,7 @@ const routerConfig = {
 // Configuración específica para Pulso
 const AppConfig = {
   name: 'Pulso',
-  title: 'Pulso - Bienestar y Salud',
+  title: 'Pulso',
   theme: 'orange',
   primaryColor: '#ff9800'
 }

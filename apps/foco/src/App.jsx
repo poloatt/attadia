@@ -44,14 +44,14 @@ function AppContent() {
   return (
     <Routes>
       {/* Rutas públicas */}
-      <Route path="/login" element={user ? <Navigate to="/rutinas" replace /> : <Login />} />
+      <Route path="/login" element={user ? <Navigate to="/tareas" replace /> : <Login />} />
       <Route path="/registro" element={<Register />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/auth/callback/*" element={<AuthCallback />} />
       <Route path="/auth/error" element={<AuthError />} />
       
-      {/* Ruta raíz redirige a rutinas */}
-      <Route path="/" element={<Navigate to="/rutinas" replace />} />
+      {/* Ruta raíz redirige a tareas */}
+      <Route path="/" element={<Navigate to="/tareas" replace />} />
       
       {/* Rutas protegidas */}
       <Route element={<PrivateRoute />}>
@@ -70,7 +70,7 @@ function AppContent() {
       </Route>
 
       {/* Ruta 404 */}
-      <Route path="*" element={<Navigate to="/rutinas" replace />} />
+      <Route path="*" element={<Navigate to="/tareas" replace />} />
     </Routes>
   );
 }

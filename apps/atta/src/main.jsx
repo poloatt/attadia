@@ -19,7 +19,7 @@ const routerConfig = {
 // Configuración específica para Atta
 const AppConfig = {
   name: 'Atta',
-  title: 'Atta - Property Management',
+  title: 'Atta',
   theme: 'green',
   primaryColor: '#4caf50'
 }
