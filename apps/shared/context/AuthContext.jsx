@@ -27,6 +27,7 @@ export function AuthProvider({ children }) {
   // Refs para control de estado
   const isInitialized = useRef(false);
   const isChecking = useRef(false);
+  const lastCheckStart = useRef(null); // Para evitar quedarnos colgados en loading
 
   // Función simplificada para verificar autenticación
   const checkAuth = useCallback(async () => {
@@ -36,6 +37,7 @@ export function AuthProvider({ children }) {
 
     try {
       isChecking.current = true;
+      lastCheckStart.current = Date.now();
       const token = localStorage.getItem('token');
       
       if (!token) {
@@ -142,6 +144,7 @@ export function AuthProvider({ children }) {
     
     try {
       isChecking.current = true;
+      lastCheckStart.current = Date.now();
       setLoading(true);
       setError(null);
       
@@ -398,12 +401,31 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     // Función helper para verificar tokens de forma segura
     const verifyTokensOnResume = async () => {
-      // Evitar verificación si ya hay una en progreso
-      if (isChecking.current) {
-        return;
-      }
-
       try {
+        // Watchdog: si hay un check en progreso demasiado tiempo, forzar reset
+        if (isChecking.current && lastCheckStart.current) {
+          const elapsed = Date.now() - lastCheckStart.current;
+          if (elapsed > 15000) { // 15 segundos
+            if (process.env.NODE_ENV === 'development') {
+              console.log('Watchdog de auth: check en progreso demasiado tiempo, reseteando estado');
+            }
+            isChecking.current = false;
+            lastCheckStart.current = null;
+            // Limpiar tokens locales para evitar loops infinitos
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+            delete clienteAxios.defaults.headers.common['Authorization'];
+            setUser(null);
+            setIsAuthenticated(false);
+            setLoading(false);
+          }
+        }
+
+        // Si después de aplicar el watchdog seguimos en un check activo, no lanzar otro
+        if (isChecking.current) {
+          return;
+        }
+
         const token = localStorage.getItem('token');
         if (!token) {
           return;
