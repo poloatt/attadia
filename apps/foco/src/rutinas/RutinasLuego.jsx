@@ -4,8 +4,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 import { useRutinas } from '@shared/context';
 import { iconConfig, iconTooltips } from '@shared/utils/iconConfig';
 import { getNormalizedToday, parseAPIDate, toISODateString } from '@shared/utils/dateUtils';
-import { getVisibleItemIds } from '@shared/utils/visibilityUtils';
-import { isSameWeek, isSameMonth, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays } from 'date-fns';
+import { isSameWeek, isSameMonth, startOfMonth, endOfMonth, endOfWeek, differenceInDays, startOfWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import useHorizontalDragScroll from './hooks/useHorizontalDragScroll';
 
@@ -26,12 +25,10 @@ const obtenerHistorialCompletados = (itemId, section, rutina) => {
 };
 
 /**
- * RutinasPendientesHoy
- * - Render compacto para "pendientes de hoy" en formato fila de íconos.
- * - Muestra items DIARIOS o PERSONALIZADO con periodo CADA_DIA.
- * - También muestra items SEMANALES/MENSUALES cuando faltan completados y los días restantes
- *   no alcanzan para cumplir la cuota (necesita hacer al menos 1 por día).
- * - Los items semanales/mensuales que no requieren acción diaria se muestran solo en RutinasLuego.
+ * RutinasLuego
+ * - Render compacto para items no diarios pendientes de la rutina de hoy en formato fila de íconos.
+ * - Muestra items SEMANALES, MENSUALES y PERSONALIZADO (con periodo CADA_SEMANA o CADA_MES) que aún no han cumplido su cuota.
+ * - Los items diarios se muestran en RutinasPendientesHoy para evitar duplicación.
  * - Se apoya en RutinasProvider (App.jsx) y dispara fetchRutinas() si aún no hay datos.
  *
  * Props:
@@ -39,7 +36,7 @@ const obtenerHistorialCompletados = (itemId, section, rutina) => {
  * - dense: compacta más los íconos (true/false)
  * - showDividers: añade separación sutil (true/false)
  */
-export default function RutinasPendientesHoy({
+export default function RutinasLuego({
   variant = 'iconsRow',
   dense = true,
   showDividers = true,
@@ -87,7 +84,7 @@ export default function RutinasPendientesHoy({
     fetchRutinas();
   }, [rutinaHoy, fetchRutinas]);
 
-  const itemsHoy = useMemo(() => {
+  const itemsLuego = useMemo(() => {
     if (!rutinaHoy) return [];
     const sections = Object.keys(iconConfig || {});
     const items = [];
@@ -96,90 +93,66 @@ export default function RutinasPendientesHoy({
       const sectionIcons = iconConfig?.[section] || {};
       const sectionCfg = rutinaHoy?.config?.[section] || {};
 
-      // Reusar la lógica unificada de visibilidad (cadencia + activo)
-      const visibleItemIds = getVisibleItemIds(
-        sectionIcons,
-        section,
-        rutinaHoy,
-        sectionCfg,
-        rutinaHoy?.[section] || {}
-      );
-
-      visibleItemIds.forEach((itemId) => {
+      Object.keys(sectionIcons).forEach((itemId) => {
+        const config = sectionCfg[itemId];
+        if (!config || config.activo === false) return;
+        
+        const tipo = (config.tipo || 'DIARIO').toUpperCase();
+        const periodo = config?.periodo ? (config.periodo).toUpperCase() : 'CADA_DIA';
+        
+        // Excluir items diarios: estos se muestran en "Hoy"
+        if (tipo === 'DIARIO') return;
+        if (tipo === 'PERSONALIZADO' && periodo === 'CADA_DIA') return;
+        
+        // Incluir: SEMANAL, MENSUAL, y PERSONALIZADO con periodo CADA_SEMANA o CADA_MES
         const completadoHoy = rutinaHoy?.[section]?.[itemId] === true;
-        if (completadoHoy) return;
+        const frecuencia = Number(config.frecuencia || 1);
         
-        const itemConfig = sectionCfg[itemId];
-        const tipo = itemConfig?.tipo ? (itemConfig.tipo).toUpperCase() : 'DIARIO';
-        const periodo = itemConfig?.periodo ? (itemConfig.periodo).toUpperCase() : 'CADA_DIA';
-        const frecuencia = Number(itemConfig?.frecuencia || 1);
+        // Calcular completados según el tipo de cadencia
+        const historial = obtenerHistorialCompletados(itemId, section, rutinaHoy);
+        const hoy = new Date();
+        const fechasUnicas = new Set();
+        let completadosEnPeriodo = 0;
         
-        // Incluir items diarios siempre
-        if (tipo === 'DIARIO' || (tipo === 'PERSONALIZADO' && periodo === 'CADA_DIA')) {
-          items.push({ section, itemId });
-          return;
+        if (tipo === 'SEMANAL' || (tipo === 'PERSONALIZADO' && periodo === 'CADA_SEMANA')) {
+          // Para semanal: contar días únicos completados en la semana actual
+          historial.filter(fecha => 
+            isSameWeek(fecha, hoy, { locale: es })
+          ).forEach(fecha => {
+            fechasUnicas.add(fecha.toISOString().split('T')[0]);
+          });
+          
+          const fechaHoyStr = hoy.toISOString().split('T')[0];
+          if (completadoHoy && !fechasUnicas.has(fechaHoyStr)) {
+            fechasUnicas.add(fechaHoyStr);
+          }
+          
+          completadosEnPeriodo = fechasUnicas.size;
+        } else if (tipo === 'MENSUAL' || (tipo === 'PERSONALIZADO' && periodo === 'CADA_MES')) {
+          // Para mensual: contar días únicos completados en el mes actual
+          const inicioMes = startOfMonth(hoy);
+          const finMes = endOfMonth(hoy);
+          
+          historial.filter(fecha => 
+            isSameMonth(fecha, hoy)
+          ).forEach(fecha => {
+            fechasUnicas.add(fecha.toISOString().split('T')[0]);
+          });
+          
+          const fechaHoyStr = hoy.toISOString().split('T')[0];
+          if (completadoHoy && !fechasUnicas.has(fechaHoyStr)) {
+            fechasUnicas.add(fechaHoyStr);
+          }
+          
+          completadosEnPeriodo = fechasUnicas.size;
         }
         
-        // Para items semanales/mensuales: verificar si es necesario mostrarlos en "Hoy"
-        // Si faltan completados y los días restantes no alcanzan para cumplir la cuota,
-        // entonces debe aparecer también en "Hoy" (además de "Luego")
-        if (tipo === 'SEMANAL' || tipo === 'MENSUAL' || 
-            (tipo === 'PERSONALIZADO' && (periodo === 'CADA_SEMANA' || periodo === 'CADA_MES'))) {
-          
-          const historial = obtenerHistorialCompletados(itemId, section, rutinaHoy);
-          const hoy = new Date();
-          const fechasUnicas = new Set();
-          let completadosEnPeriodo = 0;
-          let diasRestantes = 0;
-          
-          if (tipo === 'SEMANAL' || (tipo === 'PERSONALIZADO' && periodo === 'CADA_SEMANA')) {
-            // Calcular completados en semana actual
-            historial.filter(fecha => 
-              isSameWeek(fecha, hoy, { locale: es })
-            ).forEach(fecha => {
-              fechasUnicas.add(fecha.toISOString().split('T')[0]);
-            });
-            
-            const fechaHoyStr = hoy.toISOString().split('T')[0];
-            if (completadoHoy && !fechasUnicas.has(fechaHoyStr)) {
-              fechasUnicas.add(fechaHoyStr);
-            }
-            
-            completadosEnPeriodo = fechasUnicas.size;
-            
-            // Calcular días restantes en la semana
-            const finSemana = endOfWeek(hoy, { locale: es });
-            diasRestantes = Math.max(0, differenceInDays(finSemana, hoy) + 1); // +1 para incluir hoy
-          } else if (tipo === 'MENSUAL' || (tipo === 'PERSONALIZADO' && periodo === 'CADA_MES')) {
-            // Calcular completados en mes actual
-            historial.filter(fecha => 
-              isSameMonth(fecha, hoy)
-            ).forEach(fecha => {
-              fechasUnicas.add(fecha.toISOString().split('T')[0]);
-            });
-            
-            const fechaHoyStr = hoy.toISOString().split('T')[0];
-            if (completadoHoy && !fechasUnicas.has(fechaHoyStr)) {
-              fechasUnicas.add(fechaHoyStr);
-            }
-            
-            completadosEnPeriodo = fechasUnicas.size;
-            
-            // Calcular días restantes en el mes
-            const finMes = endOfMonth(hoy);
-            diasRestantes = Math.max(0, differenceInDays(finMes, hoy) + 1); // +1 para incluir hoy
-          }
-          
-          // Si faltan completados y los días restantes no alcanzan para cumplir la cuota,
-          // entonces debe aparecer en "Hoy" también (necesita hacer al menos 1 por día)
-          const completadosFaltantes = frecuencia - completadosEnPeriodo;
-          if (completadosFaltantes > 0 && diasRestantes > 0) {
-            const completadosPorDiaNecesarios = completadosFaltantes / diasRestantes;
-            if (completadosPorDiaNecesarios >= 1) {
-              // Necesita hacer al menos 1 por día, mostrar en "Hoy"
-              items.push({ section, itemId });
-            }
-          }
+        // Mostrar si no se cumplió la cuota máxima
+        // Esto incluye:
+        // - completadoHoy === true && completadosEnPeriodo < frecuencia (ya cumplió hoy pero no la cuota del período)
+        // - completadoHoy === false && completadosEnPeriodo < frecuencia (no cumplió hoy pero tampoco la cuota del período)
+        if (completadosEnPeriodo < frecuencia) {
+          items.push({ section, itemId });
         }
       });
     });
@@ -187,8 +160,8 @@ export default function RutinasPendientesHoy({
     return items;
   }, [rutinaHoy]);
 
-  // En Agenda "Hoy" queremos el comportamiento tipo TODO: solo pendientes.
-  const pendingItems = itemsHoy;
+  // En Agenda "Luego" queremos items semanales pendientes de cuota.
+  const pendingItems = itemsLuego;
 
   // Para carrusel infinito: duplicar items al inicio y final
   // Solo activar si hay suficientes items para que tenga sentido
@@ -199,7 +172,7 @@ export default function RutinasPendientesHoy({
 
   // Tamaños más compactos para encajar en headers de tabla
   // Nota UX: 24px en desktop se percibe demasiado chico. Subimos el diámetro para
-  // mantener consistencia visual con el tamaño que se siente “correcto” en mobile.
+  // mantener consistencia visual con el tamaño que se siente "correcto" en mobile.
   const size = dense ? 28 : 32;
   // Match del background usado en headers/grupos de TareasTable (look & feel consistente)
   const surfaceBg = theme.palette.mode === 'dark'
@@ -220,7 +193,7 @@ export default function RutinasPendientesHoy({
     if (dragRef.current.moved) return;
     if (!rutinaHoy?._id) return;
     if (!markItemComplete || typeof markItemComplete !== 'function') {
-      console.warn('[RutinasPendientesHoy] markItemComplete no disponible en contexto');
+      console.warn('[RutinasLuego] markItemComplete no disponible en contexto');
       return;
     }
     try {
@@ -232,7 +205,7 @@ export default function RutinasPendientesHoy({
       await markItemComplete(rutinaHoy._id, section, itemData);
     } catch {
       // Dejar traza para depurar si el backend/contexto no responde
-      console.warn('[RutinasPendientesHoy] No se pudo togglear', { section, itemId });
+      console.warn('[RutinasLuego] No se pudo togglear', { section, itemId });
     }
   };
 

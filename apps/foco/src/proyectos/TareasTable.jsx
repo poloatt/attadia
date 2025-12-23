@@ -38,6 +38,7 @@ import { useSnackbar } from 'notistack';
 import TareaActions from './TareaActions';
 import { useValuesVisibility } from '@shared/context/ValuesVisibilityContext';
 import RutinasPendientesHoy from '../rutinas/RutinasPendientesHoy';
+import RutinasLuego from '../rutinas/RutinasLuego';
 import { getAgendaBucket, getAgendaSortKey, isTaskCompleted, parseTaskDate } from '@shared/utils';
 import { getEstadoColor, TAREA_ESTADOS } from '@shared/components/common/StatusSystem';
 
@@ -1057,7 +1058,7 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
     : alpha(theme.palette.common.black, 0.06);
   const groupSubBg = surfaceBg;
   const groupDividerColor = sectionDividerColor;
-  const shouldShowRutinas = !isArchive && agendaView === 'ahora';
+  const shouldShowRutinas = !isArchive && (agendaView === 'ahora' || agendaView === 'luego');
 
   // Función para manejar el toggle de apertura de tareas (comportamiento de acordeón)
   const handleToggleTarea = (tareaId) => {
@@ -1095,12 +1096,14 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
                 px: isMobile ? 1 : 2,
                 py: 0.25,
                 bgcolor: groupSubBg,
-                borderTop: '1px solid',
-                borderColor: groupDividerColor,
                 borderLeft: `3px solid ${alpha(theme.palette.text.primary, 0.10)}`
               }}
             >
-              <RutinasPendientesHoy variant="iconsRow" showDividers={false} />
+              {agendaView === 'ahora' ? (
+                <RutinasPendientesHoy variant="iconsRow" showDividers={false} />
+              ) : (
+                <RutinasLuego variant="iconsRow" showDividers={false} />
+              )}
             </Box>
           </Paper>
         )}
@@ -1167,8 +1170,8 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
 
   return (
     <Stack spacing={isMobile ? 1 : 2}>
-      {/* Rutinas (independiente de si existen tareas HOY) */}
-      {shouldShowRutinas && !hasHoyPeriodo && (
+      {/* Rutinas: antes de la división en grupos, debajo de "Ahora" */}
+      {shouldShowRutinas && (
         <Paper
           elevation={0}
           sx={{
@@ -1183,12 +1186,14 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
           <Box
             sx={{
               py: 0.25,
-              bgcolor: groupSubBg,
-              borderTop: '1px solid',
-              borderColor: groupDividerColor
+              bgcolor: groupSubBg
             }}
           >
-            <RutinasPendientesHoy variant="iconsRow" showDividers={false} />
+            {agendaView === 'ahora' ? (
+              <RutinasPendientesHoy variant="iconsRow" showDividers={false} />
+            ) : (
+              <RutinasLuego variant="iconsRow" showDividers={false} />
+            )}
           </Box>
         </Paper>
       )}
@@ -1227,19 +1232,6 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
               </Box>
             </Box>
 
-            {/* Banda 2: sector Rutinas (no tintar el anidado; solo una base suave) */}
-            {shouldShowRutinas && periodo === 'HOY' && (
-              <Box
-                sx={{
-                  py: 0.25,
-                  bgcolor: groupSubBg,
-                  borderTop: '1px solid',
-                  borderColor: groupDividerColor
-                }}
-              >
-                <RutinasPendientesHoy variant="iconsRow" showDividers={false} />
-              </Box>
-            )}
           </Box>
 
           <TableContainer sx={{ bgcolor: layoutBg }}>
