@@ -209,7 +209,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   // Login con Google
-  const loginWithGoogle = useCallback(async () => {
+  const loginWithGoogle = useCallback(async (options = {}) => {
+    const { forceSelectAccount = false, loginHint } = options || {};
     try {
       setLoading(true);
       setError(null);
@@ -221,8 +222,18 @@ export function AuthProvider({ children }) {
       
       // Usar un origin web válido para apps (foco/atta/pulso) incluso en contenedores nativos
       const appOrigin = getCurrentAppUrl() || window.location.origin;
+
+      const params = new URLSearchParams();
+      params.set('origin', appOrigin);
+      if (forceSelectAccount) {
+        params.set('forceSelectAccount', 'true');
+      }
+      if (loginHint) {
+        params.set('loginHint', loginHint);
+      }
+
       const requestPromise = clienteAxios.get(
-        `${currentConfig.authPrefix}/google/url?origin=${encodeURIComponent(appOrigin)}`,
+        `${currentConfig.authPrefix}/google/url?${params.toString()}`,
         { withCredentials: false }
       );
       

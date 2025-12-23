@@ -27,6 +27,11 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [lastGoogleUser, setLastGoogleUser] = useState(null);
 
+  // Nombre amigable para el último usuario de Google (solo primer nombre o parte antes de @)
+  const friendlyLastGoogleName = lastGoogleUser
+    ? (lastGoogleUser.nombre?.trim().split(' ')[0] || lastGoogleUser.email?.split('@')[0] || '')
+    : '';
+
   // Estilos comunes para los campos de texto
   const textFieldStyles = {
     '& .MuiOutlinedInput-root': {
@@ -112,7 +117,7 @@ export function Login() {
     }
   }, []);
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = async (options = {}) => {
     // Prevenir múltiples clics
     if (loading) {
       return;
@@ -121,7 +126,7 @@ export function Login() {
     try {
       setLoading(true);
       toast.loading('Redirigiendo a Google...', { id: 'google-login' });
-      await loginWithGoogle();
+      await loginWithGoogle(options);
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.error('Error al iniciar sesión con Google:', error);
@@ -242,13 +247,18 @@ export function Login() {
                     color: 'rgba(255, 255, 255, 0.9)'
                   }}
                 >
-                  {lastGoogleUser.nombre?.charAt(0)?.toUpperCase() || lastGoogleUser.email?.charAt(0)?.toUpperCase() || 'G'}
+                  {(friendlyLastGoogleName || lastGoogleUser.email || 'G')
+                    .charAt(0)
+                    .toUpperCase()}
                 </Avatar>
               ) : (
                 <GoogleIcon sx={{ fontSize: 18 }} />
               )
             }
-            onClick={handleGoogleLogin}
+            onClick={() => handleGoogleLogin({
+              forceSelectAccount: false,
+              loginHint: lastGoogleUser?.email
+            })}
             disabled={loading}
             sx={{ 
               textTransform: 'none',
@@ -269,13 +279,13 @@ export function Login() {
                 borderColor: 'rgba(255, 255, 255, 0.05)'
               }
             }}
-          >
+            >
             {loading ? (
               'Conectando...'
             ) : lastGoogleUser ? (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1, textAlign: 'left' }}>
                 <Typography variant="body2" sx={{ fontSize: '0.875rem', lineHeight: 1.2, fontWeight: 500 }}>
-                  Continuar como {lastGoogleUser.nombre || lastGoogleUser.email?.split('@')[0]}
+                  Continuar como {friendlyLastGoogleName}
                 </Typography>
                 {lastGoogleUser.email && (
                   <Typography variant="caption" sx={{ fontSize: '0.7rem', opacity: 0.6, lineHeight: 1, mt: 0.25 }}>
@@ -287,6 +297,28 @@ export function Login() {
               'Continuar con Google'
             )}
           </Button>
+
+          {lastGoogleUser && (
+            <Box sx={{ mt: 1, textAlign: 'center' }}>
+              <Button
+                variant="text"
+                size="small"
+                disabled={loading}
+                onClick={() => handleGoogleLogin({ forceSelectAccount: true })}
+                sx={{
+                  textTransform: 'none',
+                  fontSize: '0.75rem',
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  '&:hover': {
+                    color: 'rgba(255, 255, 255, 0.9)',
+                    backgroundColor: 'transparent',
+                  },
+                }}
+              >
+                Iniciar sesión con otra cuenta de Google
+              </Button>
+            </Box>
+          )}
         </Box>
       </Paper>
     </Box>

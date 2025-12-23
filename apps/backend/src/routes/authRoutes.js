@@ -122,6 +122,8 @@ router.get('/google/url', (req, res) => {
 
   // Obtener origen del frontend para redirección correcta
   const origin = req.query.origin;
+  const forceSelectAccount = req.query.forceSelectAccount === 'true';
+  const loginHint = req.query.loginHint;
   
   if (!origin) {
     console.error('No se proporcionó origen en la petición Google Auth:', {
@@ -207,13 +209,16 @@ router.get('/google/url', (req, res) => {
     req.session.googleOAuthState = statePayload;
   } catch (_) {}
 
-  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+  let authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
     `client_id=${encodeURIComponent(config.google.clientId)}&` +
     `redirect_uri=${encodeURIComponent(callbackUrl)}&` +
     `response_type=code&` +
     `scope=${encodeURIComponent(scopes.join(' '))}&` +
     `access_type=offline&` +
-    `prompt=select_account&` +
+    // Solo forzar selector de cuenta cuando el frontend lo pide explícitamente
+    (forceSelectAccount ? `prompt=select_account&` : '') +
+    // Sugerir cuenta cuando el frontend tiene un usuario recordado
+    (loginHint ? `login_hint=${encodeURIComponent(loginHint)}&` : '') +
     `state=${encodeURIComponent(statePayload)}`;
 
   res.json({ url: authUrl });
