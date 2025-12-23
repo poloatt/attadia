@@ -132,6 +132,7 @@ const ordenarTareas = (tareas) => {
 export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea, onActivateMultiSelect, onRefreshData, isOpen = false, onToggleOpen }) => {
   const [estadoLocal, setEstadoLocal] = useState(tarea.estado);
   const [subtareasLocal, setSubtareasLocal] = useState(tarea.subtareas || []);
+  const [prioridadLocal, setPrioridadLocal] = useState(tarea.prioridad);
   const [isUpdating, setIsUpdating] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState(null);
   const [isLongPressing, setIsLongPressing] = useState(false);
@@ -144,6 +145,7 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
   useEffect(() => {
     setEstadoLocal(tarea.estado);
     setSubtareasLocal(tarea.subtareas || []);
+    setPrioridadLocal(tarea.prioridad);
   }, [tarea]);
 
   // Limpiar timer al desmontar
@@ -425,7 +427,10 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
 
   const handleTogglePriority = async (tarea) => {
     try {
-      const nuevaPrioridad = tarea.prioridad === 'ALTA' ? 'BAJA' : 'ALTA';
+      const nuevaPrioridad = prioridadLocal === 'ALTA' ? 'BAJA' : 'ALTA';
+      // Actualizar estado local inmediatamente para feedback visual instantáneo
+      setPrioridadLocal(nuevaPrioridad);
+      
       // Guardar el estado original ANTES de cualquier cambio
       const tareaOriginal = { ...tarea };
       
@@ -434,6 +439,8 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
       enqueueSnackbar('Prioridad actualizada exitosamente', { variant: 'success' });
     } catch (error) {
       console.error('Error al actualizar prioridad:', error);
+      // Revertir estado local en caso de error
+      setPrioridadLocal(tarea.prioridad);
       enqueueSnackbar('Error al actualizar prioridad', { variant: 'error' });
     }
   };
@@ -750,7 +757,7 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
             >
               <ExpandMoreIcon fontSize="small" />
             </IconButton>
-            {tarea.prioridad === 'ALTA' && (
+            {prioridadLocal === 'ALTA' && (
               <Typography 
                 color="error" 
                 sx={{ 
@@ -836,7 +843,7 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
             }}>
               {/* Acciones rápidas - al inicio para acceso rápido */}
               <TareaActions 
-                tarea={tarea}
+                tarea={{ ...tarea, prioridad: prioridadLocal }}
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onPush={handlePush}

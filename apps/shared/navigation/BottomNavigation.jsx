@@ -19,10 +19,21 @@ export default function BottomNavigation() {
   // Usar utilidad centralizada para encontrar el módulo activo
   const moduloActivo = findActiveModule(currentPath);
 
-  // Obtener los menús de nivel 1 del módulo activo, excluyendo rutinas
-  const navItems = (moduloActivo?.subItems || []).filter(
-    item => !item.path.includes('/rutinas') && !item.path.includes('rutinas')
-  );
+  // Obtener los menús de nivel 1 del módulo activo y ordenarlos según el orden especificado
+  const allItems = moduloActivo?.subItems || [];
+  
+  // Ordenar items: Rutinas, Agenda (tareas), Proyectos
+  const orderMap = {
+    'rutinas': 1,
+    'tareas': 2,
+    'proyectos': 3
+  };
+  
+  const navItems = allItems.sort((a, b) => {
+    const orderA = orderMap[a.id] || 999;
+    const orderB = orderMap[b.id] || 999;
+    return orderA - orderB;
+  });
 
   if (!moduloActivo || navItems.length === 0) return null;
 
