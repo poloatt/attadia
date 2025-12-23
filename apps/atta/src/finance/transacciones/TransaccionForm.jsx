@@ -42,6 +42,8 @@ import {
 } from '@mui/icons-material';
 import { TransaccionRecurrenteForm } from '../transaccionesrecurrentes';
 import clienteAxios from '@shared/config/axios';
+import { getEstadoColor } from '@shared/components/common/StatusSystem';
+import { alpha } from '@mui/material/styles';
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
@@ -62,6 +64,17 @@ const StyledDialog = styled(Dialog)(({ theme }) => ({
   }
 }));
 
+// Helper para obtener colores de estados desde StatusSystem
+const getEstadoColorForToggle = (estado) => {
+  if (estado === 'PAGADO') {
+    return getEstadoColor('COMPLETADA', 'TRANSACCION');
+  }
+  if (estado === 'PENDIENTE') {
+    return getEstadoColor('PENDIENTE', 'TRANSACCION');
+  }
+  return null;
+};
+
 const StyledToggleButton = styled(ToggleButton)(({ theme }) => ({
   borderRadius: 0,
   padding: theme.spacing(1),
@@ -81,23 +94,23 @@ const StyledToggleButton = styled(ToggleButton)(({ theme }) => ({
     backgroundColor: props => {
       if (props.value === 'INGRESO') return 'rgba(90, 155, 95, 0.15)';
       if (props.value === 'EGRESO') return 'rgba(177, 87, 87, 0.15)';
-      if (props.value === 'PAGADO') return 'rgba(90, 155, 95, 0.15)';
-      if (props.value === 'PENDIENTE') return 'rgba(255, 183, 77, 0.15)';
+      const estadoColor = getEstadoColorForToggle(props.value);
+      if (estadoColor) return alpha(estadoColor, 0.15);
       return 'inherit';
     },
     color: props => {
       if (props.value === 'INGRESO') return '#5a9b5f';
       if (props.value === 'EGRESO') return '#b15757';
-      if (props.value === 'PAGADO') return '#5a9b5f';
-      if (props.value === 'PENDIENTE') return '#ffb74d';
+      const estadoColor = getEstadoColorForToggle(props.value);
+      if (estadoColor) return estadoColor;
       return 'inherit';
     },
     '&:hover': {
       backgroundColor: props => {
         if (props.value === 'INGRESO') return 'rgba(90, 155, 95, 0.25)';
         if (props.value === 'EGRESO') return 'rgba(177, 87, 87, 0.25)';
-        if (props.value === 'PAGADO') return 'rgba(90, 155, 95, 0.25)';
-        if (props.value === 'PENDIENTE') return 'rgba(255, 183, 77, 0.25)';
+        const estadoColor = getEstadoColorForToggle(props.value);
+        if (estadoColor) return alpha(estadoColor, 0.25);
         return 'inherit';
       }
     }

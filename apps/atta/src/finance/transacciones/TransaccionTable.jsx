@@ -12,13 +12,11 @@ import {
   Typography
 } from '@mui/material';
 import { useResponsive } from '@shared/hooks';
+import { getEstadoColor, getStatusIconComponent } from '@shared/components/common/StatusSystem';
 import { 
   EditOutlined as EditIcon, 
   DeleteOutlined as DeleteIcon,
   AccountBalanceOutlined as AccountIcon,
-  CheckCircleOutline as CheckIcon,
-  PendingOutlined as PendingIcon,
-  CancelOutlined as CancelIcon,
   Receipt,
   Fastfood,
   HealthAndSafety,
@@ -54,16 +52,18 @@ const TransaccionTable = ({ transacciones, onEdit, onDelete, showValues = true }
   };
 
   const getEstadoIcon = (estado) => {
-    switch (estado) {
-      case 'PAGADO':
-        return <CheckIcon sx={{ fontSize: 16, color: '#5a9b5f' }} />;
-      case 'PENDIENTE':
-        return <PendingIcon sx={{ fontSize: 16, color: '#ffb74d' }} />;
-      case 'CANCELADO':
-        return <CancelIcon sx={{ fontSize: 16, color: '#b15757' }} />;
-      default:
-        return null;
-    }
+    // Normalizar estado: PAGADO -> COMPLETADA, CANCELADO -> CANCELADA
+    let estadoNormalizado = estado;
+    if (estado === 'PAGADO') estadoNormalizado = 'COMPLETADA';
+    if (estado === 'CANCELADO') estadoNormalizado = 'CANCELADA';
+    
+    const color = getEstadoColor(estadoNormalizado, 'TRANSACCION');
+    const iconElement = getStatusIconComponent(estadoNormalizado, 'TRANSACCION');
+    
+    // Clonar el elemento y aplicar el color
+    return React.cloneElement(iconElement, { 
+      sx: { fontSize: 16, color } 
+    });
   };
 
   const getCategoriaIcon = (categoria) => {

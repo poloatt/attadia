@@ -38,12 +38,12 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
     const navigate = useNavigate();
     const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
     const [isBankConnectionFormOpen, setIsBankConnectionFormOpen] = useState(false);
-    const { isMobile, isTablet } = useResponsive();
+    const { isMobile, isTablet, isMobileOrTablet, isDesktop } = useResponsive();
     // Hook de medición reutilizable (inicial izquierda = collapsedWidth por el MenuButton)
     const { leftWidthRef, rightWidthRef, leftWidth, rightWidth } = useAnchorWidths(
       collapsedWidth,
       0,
-      [collapsedWidth, isMobile, isTablet, showEntityToolbarNavigation, location.pathname]
+      [collapsedWidth, isMobileOrTablet, showEntityToolbarNavigation, location.pathname]
     );
     const { moduloActivo } = useNavigationState(location.pathname);
     // Construir breadcrumbs incluyendo el módulo padre cuando estés dentro de un módulo
@@ -57,7 +57,7 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
     }
     
     // Usar función centralizada para calcular mainMargin (pasando visibilidad colapsada en móvil)
-    const mainMargin = getMainMargin(isMobile || isTablet, showSidebarCollapsed);
+    const mainMargin = getMainMargin(isMobileOrTablet, showSidebarCollapsed);
   
     const handleBack = () => {
       // Encuentra el menú padre según la ruta
@@ -133,22 +133,16 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
               sm: 2,
               md: 3
             },
-            boxShadow: 'none' // <-- Forzar sin sombra en Toolbar
+            boxShadow: 'none', // <-- Forzar sin sombra en Toolbar
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            position: 'relative'
           }}
         >
-          <Box
-            sx={{
-              width: '100%',
-              px: { xs: 1, sm: 2, md: 3 },
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              flex: 1,
-              position: 'relative'
-            }}
-          >
-            {/* Layout específico para móvil/tablet cuando la toolbar está deshabilitada */}
-            {(isMobile || isTablet) && !showEntityToolbarNavigation ? (
+          {/* Layout específico para móvil/tablet cuando la toolbar está deshabilitada */}
+          {isMobileOrTablet && !showEntityToolbarNavigation ? (
               <Box sx={{
                 width: '100%',
                 height: HEADER_CONFIG.height,
@@ -208,12 +202,12 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                   <SystemButtons.AppsButton />
                 </Box>
               </Box>
-            ) : (
-              <>
-                {/* MenuButton fijo - solo en desktop */}
-                <Box sx={{ 
+          ) : (
+            <>
+              {/* MenuButton fijo - solo en desktop */}
+              <Box sx={{ 
                   position: 'absolute',
-                  left: { xs: -1, sm: -2, md: -3 }, // Compensar padding del Box padre
+                  left: { xs: -1, sm: -2, md: -3 }, // Compensar padding del Toolbar
                   top: 0,
                   width: collapsedWidth,
                   height: HEADER_CONFIG.height,
@@ -240,11 +234,11 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                     </IconButton>
                   )}
                 </Box>
-              </>
-            )}
+            </>
+          )}
 
-            {/* Título centrado - solo en desktop */}
-            {!isMobile && !isTablet && (() => {
+          {/* Título centrado - solo en desktop */}
+          {isDesktop && (() => {
               const last = breadcrumbs[breadcrumbs.length - 1];
               return (
                 <CenteredTrack
@@ -268,11 +262,11 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                     </Typography>
                   </Box>
                 </CenteredTrack>
-              );
-            })()}
+            );
+          })()}
 
-            {/* Título para móvil/tablet ahora lo maneja el layout específico cuando la toolbar está deshabilitada */}
-            {(isMobile || isTablet) && showEntityToolbarNavigation && (() => {
+          {/* Título para móvil/tablet ahora lo maneja el layout específico cuando la toolbar está deshabilitada */}
+          {isMobileOrTablet && showEntityToolbarNavigation && (() => {
               const last = breadcrumbs[breadcrumbs.length - 1];
               return (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -290,26 +284,14 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                     </Typography>
                   </Box>
                 </Box>
-              );
-            })()}
+            );
+          })()}
 
-            {/* En móvil/tablet con toolbar habilitada, mantener Apps toggle alineado a la derecha */}
-            {(isMobile || isTablet) && showEntityToolbarNavigation && (
-              <Box sx={{ position: 'absolute', right: { xs: 1, sm: 2, md: 3 }, display: 'flex', alignItems: 'center', height: HEADER_CONFIG.height, gap: 0.25 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: HEADER_CONFIG.height, height: HEADER_CONFIG.height }}>
-                  <SystemButtons.AppsButton />
-                </Box>
-              </Box>
-            )}
-  
-            <Box sx={{ flexGrow: 1 }} />
-
-                         {/* Migración: todos los botones de acción del header en SystemButtons */}
-             {/* Acciones sólo en desktop; en móvil ya están controladas arriba */}
-            {(!isMobile && !isTablet) && (
-              <>
-                {/* Botones de acción (sync, etc.) - antes del AppsButton */}
-                <Box sx={{ display: 'flex', alignItems: 'center', marginRight: `${collapsedWidth}px` }}>
+          {/* Acciones y botones del lado derecho - solo en desktop */}
+          {isDesktop && (
+            <>
+              {/* Botones de acción (sync, etc.) - antes del AppsButton */}
+              <Box sx={{ display: 'flex', alignItems: 'center', marginRight: `${collapsedWidth}px` }}>
                   <SystemButtons
                     actions={[
                      !showEntityToolbarNavigation && location.pathname.includes('/cuentas') ? {
@@ -324,11 +306,11 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                     direction="row"
                     size="small"
                   />
-                </Box>
-                {/* AppsButton fijo - simétrico con MenuButton */}
-                <Box sx={{ 
+              </Box>
+              {/* AppsButton fijo - simétrico con MenuButton */}
+              <Box sx={{ 
                   position: 'absolute',
-                  right: { xs: -1, sm: -2, md: -3 }, // Compensar padding del Box padre
+                  right: { xs: -1, sm: -2, md: -3 }, // Compensar padding del Toolbar
                   top: 0,
                   width: collapsedWidth,
                   height: HEADER_CONFIG.height,
@@ -338,23 +320,36 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                   zIndex: 2
                 }} ref={rightWidthRef}>
                   <SystemButtons.AppsButton />
-                </Box>
-              </>
-             )}
-            {/* Diálogos modales para sincronizar y agregar cuenta */}
-            <Dialog open={isSyncModalOpen} onClose={() => setIsSyncModalOpen(false)} maxWidth="xs" fullWidth>
-              <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <Typography variant="h6" sx={{ mb: 2 }}>Sincronizar nueva cuenta</Typography>
-                {/* <MercadoPagoConnectButton
-                  onSuccess={() => setIsSyncModalOpen(false)}
-                  onError={() => setIsSyncModalOpen(false)}
-                /> */}
               </Box>
-            </Dialog>
-            {/* <Dialog open={isBankConnectionFormOpen} onClose={() => setIsBankConnectionFormOpen(false)} maxWidth="xs" fullWidth>
-              <BankConnectionForm onClose={() => setIsBankConnectionFormOpen(false)} />
-            </Dialog> */}
-          </Box>
+            </>
+          )}
+
+          {/* En móvil/tablet con toolbar habilitada, mantener Apps toggle alineado a la derecha */}
+          {isMobileOrTablet && showEntityToolbarNavigation && (
+            <Box sx={{ 
+                position: 'absolute', 
+                right: { xs: 1, sm: 2, md: 3 }, 
+                display: 'flex', 
+                alignItems: 'center', 
+                height: HEADER_CONFIG.height, 
+                gap: 0.25 
+              }}>
+                <SystemButtons.AppsButton />
+              </Box>
+            )}
+          {/* Diálogos modales para sincronizar y agregar cuenta */}
+          <Dialog open={isSyncModalOpen} onClose={() => setIsSyncModalOpen(false)} maxWidth="xs" fullWidth>
+            <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>Sincronizar nueva cuenta</Typography>
+              {/* <MercadoPagoConnectButton
+                onSuccess={() => setIsSyncModalOpen(false)}
+                onError={() => setIsSyncModalOpen(false)}
+              /> */}
+            </Box>
+          </Dialog>
+          {/* <Dialog open={isBankConnectionFormOpen} onClose={() => setIsBankConnectionFormOpen(false)} maxWidth="xs" fullWidth>
+            <BankConnectionForm onClose={() => setIsBankConnectionFormOpen(false)} />
+          </Dialog> */}
         </Toolbar>
       </AppBar>
     );

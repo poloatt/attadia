@@ -163,7 +163,7 @@ export function Layout() {
               }}>
                 <Outlet />
               </Box>
-              {(isMobile || isTablet) && <BottomNavigation />}
+              {isMobileOrTablet && <BottomNavigation />}
               <CustomSnackbarProvider />
             </Box>
           </MaybeRutinasProvider>
@@ -244,7 +244,7 @@ export function Layout() {
               }}>
                 <Outlet />
               </Box>
-              {(isMobile || isTablet) && <BottomNavigation />}
+              {isMobileOrTablet && <BottomNavigation />}
               <CustomSnackbarProvider />
             </Box>
           </>

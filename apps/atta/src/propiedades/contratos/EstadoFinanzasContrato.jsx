@@ -23,6 +23,7 @@ import { StyledCuotasIconButton } from '@shared/components/common/CommonFormStyl
 import CuotaInlineEditor from './CuotaInlineEditor';
 import { useCuotasContext } from '@shared/context/CuotasContext';
 import { calcularEstadoCuotasContrato, formatMontoAbreviado } from '@shared/utils/contratoUtils';
+import { getEstadoColor } from '@shared/components/common/StatusSystem';
 
 // Subcomponente: Muestra mensaje cuando no hay cuotas configuradas
 const CuotasSinConfigurar = ({ contrato, compact, noBorder, sx, estadoContrato }) => {
@@ -40,7 +41,7 @@ const CuotasSinConfigurar = ({ contrato, compact, noBorder, sx, estadoContrato }
       }}>
         <Typography variant="caption" sx={{
           fontSize: compact ? '0.6rem' : '0.65rem',
-          color: '#ffb74d', // naranja pastel
+          color: getEstadoColor('MANTENIMIENTO', 'CONTRATO'),
           fontWeight: 600,
           fontStyle: 'italic',
           bgcolor: 'transparent',

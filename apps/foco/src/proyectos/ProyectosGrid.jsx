@@ -36,6 +36,8 @@ import { TareaRow } from './TareasTable';
 import { addDays, addWeeks, addMonths, isWeekend, startOfMonth } from 'date-fns';
 import { useResponsive } from '@shared/hooks';
 import { useValuesVisibility } from '@shared/context';
+import { getEstadoColor } from '@shared/components/common/StatusSystem';
+import { isTaskCompleted, parseTaskDate } from '@shared/utils';
 
 const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory }) => {
   const [open, setOpen] = useState(false);
@@ -327,18 +329,22 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory })
     }
   };
 
-  const getEstadoColor = (estado) => {
-    switch (estado) {
-      case 'COMPLETADA':
-        return '#2D5C2E';
-      case 'EN_PROGRESO':
-        return '#1B4A75';
-      case 'PENDIENTE':
-        return '#8C4E0B';
-      default:
-        return '#8C4E0B';
+  // Determinar si la tarea está retrasada para usar el color correcto
+  const isRetrasada = (() => {
+    if (isTaskCompleted(tareaLocal)) return false;
+    const fechaVencimiento = parseTaskDate(tareaLocal?.fechaVencimiento || tareaLocal?.fechaFin || tareaLocal?.vencimiento || tareaLocal?.dueDate);
+    if (fechaVencimiento) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const vencimiento = new Date(fechaVencimiento);
+      vencimiento.setHours(0, 0, 0, 0);
+      return vencimiento < today;
     }
-  };
+    return false;
+  })();
+  
+  // Usar estado 'RETRASADA' para el color si la tarea está retrasada, sino usar el estado real
+  const estadoParaColor = isRetrasada ? 'RETRASADA' : tareaLocal.estado;
 
   const getSubtareasProgress = () => {
     if (!tareaLocal.subtareas?.length) return 0;
@@ -359,7 +365,7 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory })
           top: 0,
           bottom: 0,
           width: 3,
-                          backgroundColor: getEstadoColor(tareaLocal.estado, 'TAREA')
+          backgroundColor: getEstadoColor(estadoParaColor, 'TAREA')
         }
       }}
     >
@@ -450,7 +456,11 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory })
                   mb: 1,
                   backgroundColor: 'grey.800',
                   '& .MuiLinearProgress-bar': {
-                    backgroundColor: tareaLocal.estado === 'EN_PROGRESO' ? '#1B4A75' : '#2D5C2E'
+                    backgroundColor: isRetrasada
+                      ? getEstadoColor('RETRASADA', 'TAREA')
+                      : (tareaLocal.estado === 'EN_PROGRESO' 
+                        ? getEstadoColor('EN_PROGRESO', 'TAREA')
+                        : getEstadoColor('COMPLETADA', 'TAREA'))
                   }
                 }}
               />

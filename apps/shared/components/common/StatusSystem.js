@@ -16,340 +16,307 @@ import PauseOutlinedIcon from '@mui/icons-material/PauseOutlined';
 import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
 import NewReleasesOutlinedIcon from '@mui/icons-material/NewReleasesOutlined';
 
-// Estados de Propiedades
-export const PROPIEDAD_ESTADOS = {
-  DISPONIBLE: {
-    icon: 'BookmarkBorderOutlined',
-    color: '#e57373', // Rojo - desocupado
-    text: 'Disponible'
+// ============================================================================
+// ESTADOS BASE CENTRALES
+// ============================================================================
+// Estados centrales definidos por significado, no por nombre
+// Estos son los estados base que se mapean a cada tipo de entidad
+const ESTADOS_BASE = {
+  PENDING: {
+    color: '#ffd54f', // Amarillo - pendiente/open/sin progreso/reservada/no asignada/no iniciada
+    icon: 'BookmarkBorderOutlined'
   },
-  OCUPADA: {
-    icon: 'BookmarkAdded', // Checked bookmark
-    color: '#81c784', // Verde - ocupado
-    text: 'Ocupada'
+  IN_PROGRESS: {
+    color: '#64b5f6', // Azul - en progreso/a tiempo/planeada
+    icon: 'BookmarkAdded'
   },
-  MANTENIMIENTO: {
-    icon: 'EngineeringOutlined',
-    color: '#ffb74d', // Naranja - mantenimiento
-    text: 'Mantenimiento'
+  COMPLETED: {
+    color: '#81c784', // Verde - completada/pagado/finalizado
+    icon: 'BookmarkAdded'
   },
-  RESERVADA: {
-    icon: 'BookmarkBorderOutlined',
-    color: '#64b5f6', // Azul - reservado
-    text: 'Reservada'
+  BLOCKED: {
+    color: '#ff9800', // Naranja - atrasada/retrasada/bloqueada/overbudget
+    icon: 'BookmarkBorderOutlined'
   },
-  ARCHIVADA: {
-    icon: 'BookmarkAdded',
-    color: '#bdbdbd', // Gris - finalizado
-    text: 'Archivada'
+  CANCELLED: {
+    color: '#9e9e9e', // Gris - cancelada
+    icon: 'BookmarkBorderOutlined'
+  },
+  ARCHIVED: {
+    color: '#bdbdbd', // Gris claro - archivada
+    icon: 'BookmarkAdded'
   }
 };
 
-// Estados de Contratos
-export const CONTRATO_ESTADOS = {
-  ACTIVO: {
-    icon: 'BookmarkAdded',
-    color: '#81c784', // Verde - activo
-    text: 'Activo'
+// ============================================================================
+// MAPEO DE ESTADOS POR TIPO DE ENTIDAD
+// ============================================================================
+// Mapea estados específicos de cada tipo de entidad a estados base
+const ESTADO_MAP = {
+  PROPIEDAD: {
+    DISPONIBLE: 'PENDING',
+    RESERVADA: 'IN_PROGRESS',
+    OCUPADA: 'IN_PROGRESS',
+    MANTENIMIENTO: 'BLOCKED',
+    ARCHIVADA: 'ARCHIVED'
   },
-  PLANEADO: {
-    icon: 'BookmarkBorderOutlined',
-    color: '#64b5f6', // Azul - planeado
-    text: 'Planeado'
+  CONTRATO: {
+    PENDIENTE: 'PENDING',
+    PLANEADO: 'IN_PROGRESS',
+    ACTIVO: 'IN_PROGRESS',
+    FINALIZADO: 'COMPLETED',
+    MANTENIMIENTO: 'BLOCKED',
+    CANCELADO: 'CANCELLED'
   },
-  FINALIZADO: {
-    icon: 'BookmarkAdded',
-    color: '#bdbdbd', // Gris - finalizado
-    text: 'Finalizado'
+  INQUILINO: {
+    PENDIENTE: 'PENDING',
+    RESERVADO: 'IN_PROGRESS',
+    ACTIVO: 'IN_PROGRESS',
+    INACTIVO: 'ARCHIVED',
+    SIN_CONTRATO: 'ARCHIVED',
+    CANCELADO: 'CANCELLED'
   },
-  MANTENIMIENTO: {
-    icon: 'EngineeringOutlined',
-    color: '#ffb74d', // Naranja - mantenimiento
-    text: 'Mantenimiento'
+  PROYECTO: {
+    PENDIENTE: 'PENDING',
+    PLANEADO: 'IN_PROGRESS',
+    EN_PROGRESO: 'IN_PROGRESS',
+    COMPLETADO: 'COMPLETED',
+    CANCELADO: 'CANCELLED'
   },
-  CANCELADO: {
-    icon: 'BookmarkBorderOutlined',
-    color: '#e57373', // Rojo - cancelado
-    text: 'Cancelado'
+  TAREA: {
+    PENDIENTE: 'PENDING',
+    PLANEADA: 'PENDING',
+    EN_PROGRESO: 'IN_PROGRESS',
+    COMPLETADA: 'COMPLETED',
+    BLOQUEADA: 'BLOCKED',
+    RETRASADA: 'BLOCKED',
+    CANCELADA: 'CANCELLED'
+  },
+  TRANSACCION: {
+    PENDIENTE: 'PENDING',
+    PLANEADO: 'IN_PROGRESS',
+    PAGADO: 'COMPLETED',
+    COMPLETADA: 'COMPLETED',
+    CANCELADA: 'CANCELLED'
+  },
+  TRANSACCION_RECURRENTE: {
+    PLANEADO: 'IN_PROGRESS',
+    ACTIVO: 'IN_PROGRESS',
+    PAUSADO: 'BLOCKED',
+    FINALIZADO: 'COMPLETED',
+    CANCELADO: 'CANCELLED'
+  },
+  BANK_CONNECTION: {
+    PLANEADA: 'IN_PROGRESS',
+    ACTIVA: 'IN_PROGRESS',
+    ERROR: 'BLOCKED',
+    INACTIVA: 'ARCHIVED'
+  },
+  INVENTARIO: {
+    NUEVO: 'PENDING',
+    REGULAR: 'BLOCKED',
+    MALO: 'BLOCKED',
+    REPARACION: 'BLOCKED',
+    BUEN_ESTADO: 'COMPLETED',
+    ARCHIVADO: 'ARCHIVED'
+  },
+  OBJETIVO: {
+    PENDIENTE: 'PENDING',
+    PLANEADO: 'IN_PROGRESS',
+    EN_PROGRESO: 'IN_PROGRESS',
+    COMPLETADO: 'COMPLETED',
+    CANCELADO: 'CANCELLED'
   }
 };
 
-// Estados de Inquilinos
-export const INQUILINO_ESTADOS = {
-  ACTIVO: {
-    icon: 'BookmarkAdded',
-    color: '#81c784', // Verde - activo
-    text: 'Activo'
+// ============================================================================
+// TEXTOS PERSONALIZADOS POR TIPO/ESTADO
+// ============================================================================
+// Textos específicos para cada estado de cada tipo de entidad
+const TEXT_MAP = {
+  PROPIEDAD: {
+    DISPONIBLE: 'Disponible',
+    RESERVADA: 'Reservada',
+    OCUPADA: 'Ocupada',
+    MANTENIMIENTO: 'Mantenimiento',
+    ARCHIVADA: 'Archivada'
   },
-  RESERVADO: {
-    icon: 'BookmarkBorderOutlined',
-    color: '#64b5f6', // Azul - reservado
-    text: 'Reservado'
+  CONTRATO: {
+    PENDIENTE: 'Pendiente',
+    PLANEADO: 'Planeado',
+    ACTIVO: 'Activo',
+    FINALIZADO: 'Finalizado',
+    MANTENIMIENTO: 'Mantenimiento',
+    CANCELADO: 'Cancelado'
   },
-  PENDIENTE: {
-    icon: 'BookmarkBorderOutlined',
-    color: '#ffb74d', // Naranja - pendiente
-    text: 'Pendiente'
+  INQUILINO: {
+    PENDIENTE: 'Pendiente',
+    RESERVADO: 'Reservado',
+    ACTIVO: 'Activo',
+    INACTIVO: 'Inactivo',
+    SIN_CONTRATO: 'Sin contrato',
+    CANCELADO: 'Cancelado'
   },
-  INACTIVO: {
-    icon: 'BookmarkAdded',
-    color: '#bdbdbd', // Gris - inactivo
-    text: 'Inactivo'
+  PROYECTO: {
+    PENDIENTE: 'Pendiente',
+    PLANEADO: 'Planeado',
+    EN_PROGRESO: 'En progreso',
+    COMPLETADO: 'Completado',
+    CANCELADO: 'Cancelado'
   },
-  SIN_CONTRATO: {
-    icon: 'BookmarkBorderOutlined',
-    color: '#bdbdbd', // Gris - sin contrato
-    text: 'Sin contrato'
+  TAREA: {
+    PENDIENTE: 'Pendiente',
+    PLANEADA: 'Planeada',
+    EN_PROGRESO: 'En progreso',
+    COMPLETADA: 'Completada',
+    BLOQUEADA: 'Bloqueada',
+    RETRASADA: 'Retrasada',
+    CANCELADA: 'Cancelada'
   },
-  CANCELADO: {
-    icon: 'BookmarkBorderOutlined',
-    color: '#e57373', // Rojo - cancelado
-    text: 'Cancelado'
+  TRANSACCION: {
+    PENDIENTE: 'Pendiente',
+    PLANEADO: 'Planeado',
+    PAGADO: 'Pagado',
+    COMPLETADA: 'Completada',
+    CANCELADA: 'Cancelada'
+  },
+  TRANSACCION_RECURRENTE: {
+    PLANEADO: 'Planeado',
+    ACTIVO: 'Activo',
+    PAUSADO: 'Pausado',
+    FINALIZADO: 'Finalizado',
+    CANCELADO: 'Cancelado'
+  },
+  BANK_CONNECTION: {
+    PLANEADA: 'Planeada',
+    ACTIVA: 'Activa',
+    ERROR: 'Error',
+    INACTIVA: 'Inactiva'
+  },
+  INVENTARIO: {
+    NUEVO: 'Nuevo',
+    REGULAR: 'Regular',
+    MALO: 'Malo',
+    REPARACION: 'En Reparación',
+    BUEN_ESTADO: 'Buen Estado',
+    ARCHIVADO: 'Archivado'
+  },
+  OBJETIVO: {
+    PENDIENTE: 'Pendiente',
+    PLANEADO: 'Planeado',
+    EN_PROGRESO: 'En Progreso',
+    COMPLETADO: 'Completado',
+    CANCELADO: 'Cancelado'
   }
 };
 
-// Estados de Proyectos
-export const PROYECTO_ESTADOS = {
-  EN_PROGRESO: {
-    icon: 'BookmarkAdded',
-    color: '#81c784', // Verde - en progreso
-    text: 'En progreso'
+// ============================================================================
+// ICONOS ESPECIALES POR TIPO/ESTADO
+// ============================================================================
+// Iconos personalizados que difieren del estado base
+const ICON_OVERRIDE_MAP = {
+  PROPIEDAD: {
+    MANTENIMIENTO: 'EngineeringOutlined'
   },
-  PLANEADO: {
-    icon: 'BookmarkBorderOutlined',
-    color: '#64b5f6', // Azul - planeado
-    text: 'Planeado'
+  CONTRATO: {
+    MANTENIMIENTO: 'EngineeringOutlined'
   },
-  PENDIENTE: {
-    icon: 'BookmarkBorderOutlined',
-    color: '#ffb74d', // Naranja - pendiente
-    text: 'Pendiente'
+  BANK_CONNECTION: {
+    ACTIVA: 'CheckCircle',
+    PLANEADA: 'PendingActions',
+    ERROR: 'Cancel',
+    INACTIVA: 'BookmarkAdded'
   },
-  COMPLETADO: {
-    icon: 'BookmarkAdded',
-    color: '#bdbdbd', // Gris - completado
-    text: 'Completado'
+  INVENTARIO: {
+    BUEN_ESTADO: 'CheckCircle',
+    NUEVO: 'PendingActions',
+    REGULAR: 'Engineering',
+    MALO: 'Cancel',
+    REPARACION: 'Engineering',
+    ARCHIVADO: 'BookmarkAdded'
   },
-  CANCELADO: {
-    icon: 'BookmarkBorderOutlined',
-    color: '#e57373', // Rojo - cancelado
-    text: 'Cancelado'
+  OBJETIVO: {
+    EN_PROGRESO: 'CheckCircle',
+    PLANEADO: 'PendingActions',
+    PENDIENTE: 'Engineering',
+    COMPLETADO: 'BookmarkAdded',
+    CANCELADO: 'Cancel'
   }
 };
 
-// Estados de Tareas
-export const TAREA_ESTADOS = {
-  EN_PROGRESO: {
-    icon: 'BookmarkAdded',
-    color: '#81c784', // Verde - en progreso
-    text: 'En progreso'
-  },
-  PLANEADA: {
-    icon: 'BookmarkBorderOutlined',
-    color: '#64b5f6', // Azul - planeada
-    text: 'Planeada'
-  },
-  PENDIENTE: {
-    icon: 'BookmarkBorderOutlined',
-    color: '#ffb74d', // Naranja - pendiente
-    text: 'Pendiente'
-  },
-  COMPLETADA: {
-    icon: 'BookmarkAdded',
-    color: '#bdbdbd', // Gris - completada
-    text: 'Completada'
-  },
-  CANCELADA: {
-    icon: 'BookmarkBorderOutlined',
-    color: '#e57373', // Rojo - cancelada
-    text: 'Cancelada'
-  }
-};
+// ============================================================================
+// FUNCIONES PRINCIPALES
+// ============================================================================
 
-// Estados de Transacciones
-export const TRANSACCION_ESTADOS = {
-  PAGADO: {
-    icon: 'BookmarkAdded',
-    color: '#81c784', // Verde - pagado
-    text: 'Pagado'
-  },
-  PLANEADO: {
-    icon: 'BookmarkBorderOutlined',
-    color: '#64b5f6', // Azul - planeado
-    text: 'Planeado'
-  },
-  PENDIENTE: {
-    icon: 'BookmarkBorderOutlined',
-    color: '#ffb74d', // Naranja - pendiente
-    text: 'Pendiente'
-  },
-  COMPLETADA: {
-    icon: 'BookmarkAdded',
-    color: '#bdbdbd', // Gris - completada
-    text: 'Completada'
-  },
-  CANCELADA: {
-    icon: 'BookmarkBorderOutlined',
-    color: '#e57373', // Rojo - cancelada
-    text: 'Cancelada'
-  }
-};
-
-// Estados de Transacciones Recurrentes
-export const TRANSACCION_RECURRENTE_ESTADOS = {
-  ACTIVO: {
-    icon: 'BookmarkAdded',
-    color: '#81c784', // Verde - activo
-    text: 'Activo'
-  },
-  PLANEADO: {
-    icon: 'BookmarkBorderOutlined',
-    color: '#64b5f6', // Azul - planeado
-    text: 'Planeado'
-  },
-  PAUSADO: {
-    icon: 'BookmarkBorderOutlined',
-    color: '#ffb74d', // Naranja - pausado
-    text: 'Pausado'
-  },
-  FINALIZADO: {
-    icon: 'BookmarkAdded',
-    color: '#bdbdbd', // Gris - finalizado
-    text: 'Finalizado'
-  },
-  CANCELADO: {
-    icon: 'BookmarkBorderOutlined',
-    color: '#e57373', // Rojo - cancelado
-    text: 'Cancelado'
-  }
-};
-
-// Estados de BankConnection
-export const BANK_CONNECTION_ESTADOS = {
-  ACTIVA: {
-    icon: 'CheckCircle',
-    color: '#81c784', // Verde - activa, actual
-    text: 'Activa'
-  },
-  PLANEADA: {
-    icon: 'PendingActions',
-    color: '#64b5f6', // Azul - planeada, futuro
-    text: 'Planeada'
-  },
-  ERROR: {
-    icon: 'Cancel',
-    color: '#e57373', // Rojo - error, vencido
-    text: 'Error'
-  },
-  INACTIVA: {
-    icon: 'BookmarkAdded',
-    color: '#bdbdbd', // Gris - inactiva, archivada
-    text: 'Inactiva'
-  }
-};
-
-// Estados de Inventarios
-export const INVENTARIO_ESTADOS = {
-  BUEN_ESTADO: {
-    icon: 'CheckCircle',
-    color: '#81c784', // Verde - buen estado, actual
-    text: 'Buen Estado'
-  },
-  NUEVO: {
-    icon: 'PendingActions',
-    color: '#64b5f6', // Azul - nuevo, futuro
-    text: 'Nuevo'
-  },
-  REGULAR: {
-    icon: 'Engineering',
-    color: '#ffb74d', // Naranja - regular, pendiente
-    text: 'Regular'
-  },
-  MALO: {
-    icon: 'Cancel',
-    color: '#e57373', // Rojo - malo, error
-    text: 'Malo'
-  },
-  REPARACION: {
-    icon: 'Engineering',
-    color: '#ffb74d', // Naranja - reparación, pendiente
-    text: 'En Reparación'
-  },
-  ARCHIVADO: {
-    icon: 'BookmarkAdded',
-    color: '#bdbdbd', // Gris - archivado, completado
-    text: 'Archivado'
-  }
-};
-
-// Estados de Objetivos
-export const OBJETIVO_ESTADOS = {
-  EN_PROGRESO: {
-    icon: 'CheckCircle',
-    color: '#81c784', // Verde - en progreso, actual
-    text: 'En Progreso'
-  },
-  PLANEADO: {
-    icon: 'PendingActions',
-    color: '#64b5f6', // Azul - planeado, futuro
-    text: 'Planeado'
-  },
-  PENDIENTE: {
-    icon: 'Engineering',
-    color: '#ffb74d', // Naranja - pendiente, on hold
-    text: 'Pendiente'
-  },
-  COMPLETADO: {
-    icon: 'BookmarkAdded',
-    color: '#bdbdbd', // Gris - completado, archivado
-    text: 'Completado'
-  },
-  CANCELADO: {
-    icon: 'Cancel',
-    color: '#e57373', // Rojo - cancelado, error
-    text: 'Cancelado'
-  }
-};
-
-// Función unificada para obtener información de estado
+/**
+ * Obtiene información completa de un estado (color, icono, texto)
+ * @param {string} estado - Nombre del estado (ej: 'PENDIENTE', 'ACTIVO')
+ * @param {string} tipo - Tipo de entidad (ej: 'TAREA', 'PROYECTO')
+ * @returns {Object} Objeto con color, icon y text
+ */
 export function getEstadoInfo(estado, tipo = 'PROPIEDAD') {
-  const estadosMap = {
-    PROPIEDAD: PROPIEDAD_ESTADOS,
-    CONTRATO: CONTRATO_ESTADOS,
-    INQUILINO: INQUILINO_ESTADOS,
-    PROYECTO: PROYECTO_ESTADOS,
-    TAREA: TAREA_ESTADOS,
-    TRANSACCION: TRANSACCION_ESTADOS,
-    TRANSACCION_RECURRENTE: TRANSACCION_RECURRENTE_ESTADOS,
-    BANK_CONNECTION: BANK_CONNECTION_ESTADOS,
-    INVENTARIO: INVENTARIO_ESTADOS,
-    OBJETIVO: OBJETIVO_ESTADOS
-  };
+  if (!estado) {
+    return {
+      icon: 'PendingActions',
+      color: '#bdbdbd',
+      text: 'Desconocido'
+    };
+  }
 
-  const estados = estadosMap[tipo];
-  return estados[estado] || {
-    icon: 'PendingActions',
-    color: '#bdbdbd', // Gris pastel
-    text: estado || 'Desconocido'
+  const tipoUpper = tipo.toUpperCase();
+  const estadoUpper = estado.toUpperCase();
+
+  // Obtener el estado base mapeado
+  const estadoBaseKey = ESTADO_MAP[tipoUpper]?.[estadoUpper];
+  const estadoBase = estadoBaseKey ? ESTADOS_BASE[estadoBaseKey] : null;
+
+  if (!estadoBase) {
+    // Fallback si no se encuentra el mapeo
+    return {
+      icon: 'PendingActions',
+      color: '#bdbdbd',
+      text: estado || 'Desconocido'
+    };
+  }
+
+  // Obtener icono (con override si existe)
+  const iconOverride = ICON_OVERRIDE_MAP[tipoUpper]?.[estadoUpper];
+  const icon = iconOverride || estadoBase.icon;
+
+  // Obtener texto personalizado
+  const text = TEXT_MAP[tipoUpper]?.[estadoUpper] || estado;
+
+  return {
+    icon,
+    color: estadoBase.color,
+    text
   };
 }
 
-// Función para obtener solo el icono
+/**
+ * Obtiene solo el icono del estado
+ */
 export function getEstadoIcon(estado, tipo = 'PROPIEDAD') {
   return getEstadoInfo(estado, tipo).icon;
 }
 
-// Función para obtener solo el color
+/**
+ * Obtiene solo el color del estado
+ */
 export function getEstadoColor(estado, tipo = 'PROPIEDAD') {
   return getEstadoInfo(estado, tipo).color;
 }
 
-// Función para obtener solo el texto
+/**
+ * Obtiene solo el texto del estado
+ */
 export function getEstadoText(estado, tipo = 'PROPIEDAD') {
   return getEstadoInfo(estado, tipo).text;
 }
 
-// Mapeo de iconos a componentes de Material-UI
+// ============================================================================
+// MAPEO DE ICONOS A COMPONENTES DE MATERIAL-UI
+// ============================================================================
 export const ICON_MAP = {
   'BookmarkAdded': CircleIcon,
   'BookmarkBorderOutlined': RadioButtonUncheckedIcon,
@@ -365,81 +332,49 @@ export const ICON_MAP = {
   'Description': DescriptionOutlinedIcon
 };
 
-// Exportar todos los estados para compatibilidad
-export const STATUS_COLORS = {
-  // Propiedades
-  DISPONIBLE: PROPIEDAD_ESTADOS.DISPONIBLE,
-  OCUPADA: PROPIEDAD_ESTADOS.OCUPADA,
-  MANTENIMIENTO: PROPIEDAD_ESTADOS.MANTENIMIENTO,
-  RESERVADA: PROPIEDAD_ESTADOS.RESERVADA,
-  ARCHIVADA: PROPIEDAD_ESTADOS.ARCHIVADA,
-  
-  // Contratos
-  ACTIVO: CONTRATO_ESTADOS.ACTIVO,
-  PLANEADO: CONTRATO_ESTADOS.PLANEADO,
-  FINALIZADO: CONTRATO_ESTADOS.FINALIZADO,
-  MANTENIMIENTO: CONTRATO_ESTADOS.MANTENIMIENTO,
-  CANCELADO: CONTRATO_ESTADOS.CANCELADO,
-  
-  // Inquilinos
-  ACTIVO: INQUILINO_ESTADOS.ACTIVO,
-  RESERVADO: INQUILINO_ESTADOS.RESERVADO,
-  PENDIENTE: INQUILINO_ESTADOS.PENDIENTE,
-  INACTIVO: INQUILINO_ESTADOS.INACTIVO,
-  SIN_CONTRATO: INQUILINO_ESTADOS.SIN_CONTRATO,
-  CANCELADO: INQUILINO_ESTADOS.CANCELADO,
-  
-  // Proyectos
-  EN_PROGRESO: PROYECTO_ESTADOS.EN_PROGRESO,
-  PLANEADO: PROYECTO_ESTADOS.PLANEADO,
-  PENDIENTE: PROYECTO_ESTADOS.PENDIENTE,
-  COMPLETADO: PROYECTO_ESTADOS.COMPLETADO,
-  CANCELADO: PROYECTO_ESTADOS.CANCELADO,
-  
-  // Tareas
-  EN_PROGRESO: TAREA_ESTADOS.EN_PROGRESO,
-  PLANEADA: TAREA_ESTADOS.PLANEADA,
-  PENDIENTE: TAREA_ESTADOS.PENDIENTE,
-  COMPLETADA: TAREA_ESTADOS.COMPLETADA,
-  CANCELADA: TAREA_ESTADOS.CANCELADA,
-  
-  // Transacciones
-  PAGADO: TRANSACCION_ESTADOS.PAGADO,
-  PLANEADO: TRANSACCION_ESTADOS.PLANEADO,
-  PENDIENTE: TRANSACCION_ESTADOS.PENDIENTE,
-  COMPLETADA: TRANSACCION_ESTADOS.COMPLETADA,
-  CANCELADA: TRANSACCION_ESTADOS.CANCELADA,
-  
-  // Transacciones Recurrentes
-  ACTIVO: TRANSACCION_RECURRENTE_ESTADOS.ACTIVO,
-  PLANEADO: TRANSACCION_RECURRENTE_ESTADOS.PLANEADO,
-  PAUSADO: TRANSACCION_RECURRENTE_ESTADOS.PAUSADO,
-  FINALIZADO: TRANSACCION_RECURRENTE_ESTADOS.FINALIZADO,
-  CANCELADO: TRANSACCION_RECURRENTE_ESTADOS.CANCELADO,
-  
-  // BankConnection
-  ACTIVA: BANK_CONNECTION_ESTADOS.ACTIVA,
-  PLANEADA: BANK_CONNECTION_ESTADOS.PLANEADA,
-  ERROR: BANK_CONNECTION_ESTADOS.ERROR,
-  INACTIVA: BANK_CONNECTION_ESTADOS.INACTIVA,
-  
-  // Inventarios
-  BUEN_ESTADO: INVENTARIO_ESTADOS.BUEN_ESTADO,
-  NUEVO: INVENTARIO_ESTADOS.NUEVO,
-  REGULAR: INVENTARIO_ESTADOS.REGULAR,
-  MALO: INVENTARIO_ESTADOS.MALO,
-  REPARACION: INVENTARIO_ESTADOS.REPARACION,
-  ARCHIVADO: INVENTARIO_ESTADOS.ARCHIVADO,
-  
-  // Objetivos
-  EN_PROGRESO: OBJETIVO_ESTADOS.EN_PROGRESO,
-  PLANEADO: OBJETIVO_ESTADOS.PLANEADO,
-  PENDIENTE: OBJETIVO_ESTADOS.PENDIENTE,
-  COMPLETADO: OBJETIVO_ESTADOS.COMPLETADO,
-  CANCELADO: OBJETIVO_ESTADOS.CANCELADO
-};
+// ============================================================================
+// EXPORTS DE COMPATIBILIDAD
+// ============================================================================
+// Generar los exports de compatibilidad desde los estados base
+// Esto mantiene la compatibilidad con código existente que importa TAREA_ESTADOS, etc.
 
-// Función para obtener el componente de icono del estado (con props predefinidas)
+function generateEstadoExport(tipo) {
+  const tipoUpper = tipo.toUpperCase();
+  const estadoMap = ESTADO_MAP[tipoUpper] || {};
+  const textMap = TEXT_MAP[tipoUpper] || {};
+  const iconOverrideMap = ICON_OVERRIDE_MAP[tipoUpper] || {};
+
+  const exportObj = {};
+  for (const [estado, estadoBaseKey] of Object.entries(estadoMap)) {
+    const estadoBase = ESTADOS_BASE[estadoBaseKey];
+    const iconOverride = iconOverrideMap[estado];
+    exportObj[estado] = {
+      icon: iconOverride || estadoBase.icon,
+      color: estadoBase.color,
+      text: textMap[estado] || estado
+    };
+  }
+  return exportObj;
+}
+
+export const PROPIEDAD_ESTADOS = generateEstadoExport('PROPIEDAD');
+export const CONTRATO_ESTADOS = generateEstadoExport('CONTRATO');
+export const INQUILINO_ESTADOS = generateEstadoExport('INQUILINO');
+export const PROYECTO_ESTADOS = generateEstadoExport('PROYECTO');
+export const TAREA_ESTADOS = generateEstadoExport('TAREA');
+export const TRANSACCION_ESTADOS = generateEstadoExport('TRANSACCION');
+export const TRANSACCION_RECURRENTE_ESTADOS = generateEstadoExport('TRANSACCION_RECURRENTE');
+export const BANK_CONNECTION_ESTADOS = generateEstadoExport('BANK_CONNECTION');
+export const INVENTARIO_ESTADOS = generateEstadoExport('INVENTARIO');
+export const OBJETIVO_ESTADOS = generateEstadoExport('OBJETIVO');
+
+// ============================================================================
+// FUNCIONES DE ICONOS
+// ============================================================================
+
+/**
+ * Obtiene el componente de icono del estado (con props predefinidas)
+ */
 export function getStatusIconComponent(estado, tipo = 'PROPIEDAD') {
   const iconName = getEstadoIcon(estado, tipo);
   const IconComponent = ICON_MAP[iconName];
@@ -452,7 +387,9 @@ export function getStatusIconComponent(estado, tipo = 'PROPIEDAD') {
   return React.createElement(IconComponent, { sx: { fontSize: '0.9rem' } });
 }
 
-// Función para obtener solo el componente de icono (sin props)
+/**
+ * Obtiene solo el componente de icono (sin props)
+ */
 export function getStatusIconComponentRaw(estado, tipo = 'PROPIEDAD') {
   const iconName = getEstadoIcon(estado, tipo);
   const IconComponent = ICON_MAP[iconName];
@@ -463,4 +400,4 @@ export function getStatusIconComponentRaw(estado, tipo = 'PROPIEDAD') {
   }
   
   return IconComponent;
-} 
+}

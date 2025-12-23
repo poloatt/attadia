@@ -36,6 +36,7 @@ import { es } from 'date-fns/locale';
 import TareasSection from './TareasSection';
 import TareaForm from './TareaForm';
 import { useRelationalData } from '@shared/hooks';
+import { getEstadoColor } from '@shared/components/common/StatusSystem';
 
 const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing, createWithHistory, updateWithHistory }) => {
   const { isMobile, theme } = useResponsive();
@@ -156,14 +157,7 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing, 
     }
   };
 
-  const getEstadoColor = (estado) => {
-    const colors = {
-      PENDIENTE: '#FFA726',
-      EN_PROGRESO: '#42A5F5',
-      COMPLETADO: '#66BB6A'
-    };
-    return colors[estado] || theme.palette.grey[500];
-  };
+  // Usar StatusSystem centralizado para obtener el color
 
   const getPrioridadColor = (prioridad) => {
     const colors = {
@@ -345,23 +339,26 @@ const ProyectoForm = ({ open, onClose, onSubmit, initialData = null, isEditing, 
                 }}
               >
                 {[
-                  { value: 'PENDIENTE', label: 'Pendiente', color: '#FFA726' },
-                  { value: 'EN_PROGRESO', label: 'En Progreso', color: '#42A5F5' },
-                  { value: 'COMPLETADO', label: 'Completado', color: '#66BB6A' }
-                ].map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    <Box
-                      sx={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        backgroundColor: option.color,
-                        mr: 1
-                      }}
-                    />
-                    {option.label}
-                  </MenuItem>
-                ))}
+                  { value: 'PENDIENTE', label: 'Pendiente' },
+                  { value: 'EN_PROGRESO', label: 'En Progreso' },
+                  { value: 'COMPLETADO', label: 'Completado' }
+                ].map((option) => {
+                  const color = getEstadoColor(option.value, 'PROYECTO');
+                  return (
+                    <MenuItem key={option.value} value={option.value}>
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          backgroundColor: color,
+                          mr: 1
+                        }}
+                      />
+                      {option.label}
+                    </MenuItem>
+                  );
+                })}
               </TextField>
             </Grid>
 

@@ -40,6 +40,7 @@ import { es } from 'date-fns/locale';
 import ProyectoForm from './ProyectoForm';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '@shared/config/axios';
+import { getEstadoColor } from '@shared/components/common/StatusSystem';
 
 /**
  * Componente de formulario para crear/editar tareas
@@ -395,19 +396,6 @@ const TareaForm = ({
         enabled: !prev.googleTasksSync.enabled
       }
     }));
-  };
-
-  const getEstadoColor = (estado) => {
-    switch (estado) {
-      case 'PENDIENTE':
-        return '#FFA726';
-      case 'EN_PROGRESO':
-        return '#42A5F5';
-      case 'COMPLETADA':
-        return '#66BB6A';
-      default:
-        return '#FFA726';
-    }
   };
 
   const getPrioridadColor = (prioridad) => {

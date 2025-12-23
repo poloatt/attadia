@@ -39,6 +39,7 @@ import TareaActions from './TareaActions';
 import { useValuesVisibility } from '@shared/context/ValuesVisibilityContext';
 import RutinasPendientesHoy from '../rutinas/RutinasPendientesHoy';
 import { getAgendaBucket, getAgendaSortKey, isTaskCompleted, parseTaskDate } from '@shared/utils';
+import { getEstadoColor, TAREA_ESTADOS } from '@shared/components/common/StatusSystem';
 
 const normalizeEstado = (estado) => String(estado || '').toUpperCase();
 
@@ -64,12 +65,8 @@ const getGreySurfaceTokens = (theme) => {
 
 const getEstadoTokens = (theme, estado) => {
   const e = normalizeEstado(estado);
-  const main = (() => {
-    if (e === 'COMPLETADA') return theme.palette.success.main;
-    if (e === 'EN_PROGRESO') return theme.palette.info.main;
-    if (e === 'CANCELADA') return theme.palette.error.main;
-    return theme.palette.warning.main; // PENDIENTE/default
-  })();
+  // Usar StatusSystem centralizado para obtener el color
+  const main = getEstadoColor(e, 'TAREA') || getEstadoColor('PENDIENTE', 'TAREA');
 
   return {
     main,
@@ -98,6 +95,22 @@ const getPeriodo = (tarea, isArchive = false, agendaView = 'ahora') => {
     if (isBefore(fechaReferencia, addMonths(today, -12))) return 'ÚLTIMO AÑO';
     return 'MÁS ANTIGUO';
   } else {
+    // Detectar tareas retrasadas (delayed): tienen fechaVencimiento pasada y no están completadas
+    const isCompleted = isTaskCompleted(tarea);
+    if (!isCompleted && agendaView === 'ahora') {
+      const fechaVencimiento = parseTaskDate(tarea?.fechaVencimiento || tarea?.fechaFin || tarea?.vencimiento || tarea?.dueDate);
+      if (fechaVencimiento) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const vencimiento = new Date(fechaVencimiento);
+        vencimiento.setHours(0, 0, 0, 0);
+        
+        if (vencimiento < today) {
+          return 'RETRASADAS';
+        }
+      }
+    }
+    
     // Regla unificada: bucket depende de la ancla (due si existe, si no start) y de la vista (AHORA/LUEGO).
     return getAgendaBucket(tarea, agendaView);
   }
@@ -576,7 +589,23 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
     }
   };
 
-  const estadoTokens = getEstadoTokens(theme, estadoLocal);
+  // Determinar si la tarea está retrasada para usar el color correcto
+  const isRetrasada = (() => {
+    if (isTaskCompleted(tarea)) return false;
+    const fechaVencimiento = parseTaskDate(tarea?.fechaVencimiento || tarea?.fechaFin || tarea?.vencimiento || tarea?.dueDate);
+    if (fechaVencimiento) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const vencimiento = new Date(fechaVencimiento);
+      vencimiento.setHours(0, 0, 0, 0);
+      return vencimiento < today;
+    }
+    return false;
+  })();
+  
+  // Usar estado 'RETRASADA' para el color si la tarea está retrasada, sino usar el estado real
+  const estadoParaColor = isRetrasada ? 'RETRASADA' : estadoLocal;
+  const estadoTokens = getEstadoTokens(theme, estadoParaColor);
   const selectionAccent = theme.palette.info.main;
   const { hoverBg: rowHoverBg, layoutDividerColor, surfaceBg } = getGreySurfaceTokens(theme);
 
@@ -804,11 +833,24 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
                 backgroundColor: 'rgba(0,0,0,0.3)',
               },
             }}>
+              {/* Acciones rápidas - al inicio para acceso rápido */}
+              <TareaActions 
+                tarea={tarea}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onPush={handlePush}
+                onDelegate={handleDelegate}
+                onTogglePriority={handleTogglePriority}
+                onComplete={handleComplete}
+                onReactivate={handleReactivate}
+                onCancel={handleCancel}
+              />
+
               {tarea.descripcion && (
                 <Typography 
                   variant="body2" 
                   color="text.secondary"
-                  sx={{ mb: isMobile ? 0.35 : 0.3, whiteSpace: 'pre-wrap', fontSize: isMobile ? '0.76rem' : '0.82rem', lineHeight: 1.02 }}
+                  sx={{ mb: isMobile ? 0.35 : 0.3, mt: isMobile ? 0.35 : 0.3, whiteSpace: 'pre-wrap', fontSize: isMobile ? '0.76rem' : '0.82rem', lineHeight: 1.02 }}
                 >
                   {showValues ? tarea.descripcion : maskText(tarea.descripcion)}
                 </Typography>
@@ -923,13 +965,21 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
                 </Box>
               )}
 
+              {/* Divider sutil antes de las fechas */}
+              <Divider 
+                sx={{ 
+                  my: isMobile ? 0.5 : 0.75,
+                  opacity: 0.3,
+                  borderColor: theme.palette.divider
+                }} 
+              />
+
               {/* Fechas de inicio y fin - alineadas a izquierda y derecha */}
               <Box sx={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 
                 alignItems: 'center',
-                mb: isMobile ? 0.35 : 0.3,
-                mt: tarea.subtareas?.length > 0 ? (isMobile ? 0.35 : 0.3) : 0
+                mb: isMobile ? 0.35 : 0.3
               }}>
                 <Typography 
                   variant="body2" 
@@ -989,18 +1039,6 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
                   </Box>
                 </Box>
               )}
-
-              <TareaActions 
-                tarea={tarea}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onPush={handlePush}
-                onDelegate={handleDelegate}
-                onTogglePriority={handleTogglePriority}
-                onComplete={handleComplete}
-                onReactivate={handleReactivate}
-                onCancel={handleCancel}
-              />
             </Box>
           </Collapse>
         </TableCell>
@@ -1117,7 +1155,7 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
 
   // Ordenar períodos según si es archivo o no
   const ordenPeriodosArchivo = ['HOY', 'ESTA SEMANA', 'ESTE MES', 'ÚLTIMO TRIMESTRE', 'ÚLTIMO AÑO', 'MÁS ANTIGUO', 'SIN FECHA'];
-  const ordenPeriodosActivasAhora = ['HOY', 'MAÑANA', 'ESTA SEMANA', 'ESTE MES', 'PRÓXIMO TRIMESTRE', 'ESTE AÑO', 'MÁS ADELANTE', 'SIN FECHA'];
+  const ordenPeriodosActivasAhora = ['RETRASADAS', 'HOY', 'MAÑANA', 'ESTA SEMANA', 'ESTE MES', 'PRÓXIMO TRIMESTRE', 'ESTE AÑO', 'MÁS ADELANTE', 'SIN FECHA'];
   const ordenPeriodosActivasLuego = ['ESTA SEMANA', 'ESTE MES', 'PRÓXIMO MES', 'PRÓXIMO TRIMESTRE', 'ESTE AÑO', 'MÁS ADELANTE', 'SIN FECHA'];
   
   const ordenPeriodosActivas = agendaView === 'luego' ? ordenPeriodosActivasLuego : ordenPeriodosActivasAhora;

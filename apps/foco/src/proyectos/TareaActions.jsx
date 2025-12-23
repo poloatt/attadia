@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Divider } from '@mui/material';
+import { Box } from '@mui/material';
 import {
   EditOutlined as EditIcon,
   DeleteOutlined as DeleteIcon,
@@ -92,7 +92,6 @@ const TareaActions = ({
 
   return (
     <Box>
-      <Divider sx={{ my: 1, borderColor: 'grey.800' }} />
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', px: 1 }}>
         <SystemButtons actions={actions} size="small" />
       </Box>

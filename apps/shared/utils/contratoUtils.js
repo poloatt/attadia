@@ -9,20 +9,6 @@ export const getEstadoLabel = (estado) => {
   }
 };
 
-
-
-// Función para obtener el color del estado (versión para tema)
-export const getEstadoColorTheme = (estado) => {
-  switch (estado) {
-    case 'ACTIVO': return 'success.main';
-    case 'PLANEADO': return 'info.main';
-    case 'FINALIZADO': return 'text.secondary';
-    case 'PENDIENTE': return 'error.main';
-    case 'MANTENIMIENTO': return 'warning.main';
-    default: return 'text.secondary';
-  }
-};
-
 // Función para determinar el estado del contrato
 export const getEstadoContrato = (contrato) => {
   // Usar estadoActual si está disponible

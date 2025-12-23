@@ -23,6 +23,8 @@ import {
   RadioButtonUnchecked as RadioButtonUncheckedIcon,
   Assignment as AssignmentIcon,
 } from '@mui/icons-material';
+import { getEstadoColor } from '@shared/components/common/StatusSystem';
+import { isTaskCompleted, parseTaskDate } from '@shared/utils';
 
 const TareasSection = ({ tareas = [], onChange }) => {
   const [nuevaTarea, setNuevaTarea] = useState({
@@ -82,19 +84,30 @@ const TareasSection = ({ tareas = [], onChange }) => {
     onChange(nuevasTareas);
   };
 
-  const getEstadoColor = (estado) => {
-    const colors = {
-      PENDIENTE: '#FFA726',
-      EN_PROGRESO: '#42A5F5',
-      COMPLETADA: '#66BB6A'
-    };
-    return colors[estado] || '#757575';
-  };
-
   const calcularProgresoTarea = (tarea) => {
     if (!tarea.subtareas.length) return 0;
     const completadas = tarea.subtareas.filter(st => st.completada).length;
     return Math.round((completadas / tarea.subtareas.length) * 100);
+  };
+
+  // Determinar si una tarea está retrasada para usar el color correcto
+  const getEstadoColorParaTarea = (tarea) => {
+    const isRetrasada = (() => {
+      if (isTaskCompleted(tarea)) return false;
+      const fechaVencimiento = parseTaskDate(tarea?.fechaVencimiento || tarea?.fechaFin || tarea?.vencimiento || tarea?.dueDate);
+      if (fechaVencimiento) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const vencimiento = new Date(fechaVencimiento);
+        vencimiento.setHours(0, 0, 0, 0);
+        return vencimiento < today;
+      }
+      return false;
+    })();
+    
+    // Usar estado 'RETRASADA' para el color si la tarea está retrasada, sino usar el estado real
+    const estadoParaColor = isRetrasada ? 'RETRASADA' : tarea.estado;
+    return getEstadoColor(estadoParaColor, 'TAREA');
   };
 
   return (
@@ -160,7 +173,7 @@ const TareasSection = ({ tareas = [], onChange }) => {
               }
               sx={{ 
                 borderLeft: 3, 
-                borderColor: getEstadoColor(tarea.estado, 'TAREA'),
+                borderColor: getEstadoColorParaTarea(tarea),
                 px: 1,
                 py: 0.5,
                 minHeight: 40,
@@ -181,8 +194,8 @@ const TareasSection = ({ tareas = [], onChange }) => {
                       sx={{ 
                         height: 18,
                         fontSize: '0.72rem',
-                                        backgroundColor: `${getEstadoColor(tarea.estado, 'TAREA')}20`,
-                color: getEstadoColor(tarea.estado, 'TAREA'),
+                        backgroundColor: `${getEstadoColorParaTarea(tarea)}20`,
+                        color: getEstadoColorParaTarea(tarea),
                         borderRadius: 1
                       }}
                     />
@@ -205,7 +218,7 @@ const TareasSection = ({ tareas = [], onChange }) => {
                   '& .MuiInputBase-root': { height: 34 },
                   '& .MuiOutlinedInput-root': {
                     '& fieldset': {
-                      borderColor: getEstadoColor(tarea.estado, 'TAREA')
+                      borderColor: getEstadoColorParaTarea(tarea)
                     }
                   }
                 }}
