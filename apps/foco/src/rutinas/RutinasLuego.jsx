@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Box, IconButton, Tooltip } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { useRutinas } from '@shared/context';
-import { iconConfig, iconTooltips } from '@shared/utils/iconConfig';
+import { useRutinas, useHabits } from '@shared/context';
+import { iconConfig, iconTooltips, getIconByName } from '@shared/utils/iconConfig';
 import { getNormalizedToday, parseAPIDate, toISODateString } from '@shared/utils/dateUtils';
+import { getVisibleItemIds } from '@shared/utils/visibilityUtils';
 import { isSameWeek, isSameMonth, startOfMonth, endOfMonth, endOfWeek, differenceInDays, startOfWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import useHorizontalDragScroll from './hooks/useHorizontalDragScroll';
@@ -45,7 +46,9 @@ export default function RutinasLuego({
 }) {
   const theme = useTheme();
   const { rutina, rutinas, loading, fetchRutinas, markItemComplete } = useRutinas();
+  const { habits, fetchHabits } = useHabits();
   const didFetchRef = useRef(false);
+  const didFetchHabitsRef = useRef(false);
   const carouselRef = useRef(null);
   const isScrollingRef = useRef(false);
   // Umbral un poco mayor para que un "tap" con leve movimiento no se considere drag (especialmente en mobile)
@@ -74,6 +77,14 @@ export default function RutinasLuego({
     return found || null;
   }, [rutina, rutinas, todayStr]);
 
+  // Cargar hábitos personalizados al montar
+  useEffect(() => {
+    if (didFetchHabitsRef.current) return;
+    if (typeof fetchHabits !== 'function') return;
+    didFetchHabitsRef.current = true;
+    fetchHabits();
+  }, [fetchHabits]);
+
   useEffect(() => {
     if (didFetchRef.current) return;
     if (rutinaHoy) return;
@@ -84,18 +95,70 @@ export default function RutinasLuego({
     fetchRutinas();
   }, [rutinaHoy, fetchRutinas]);
 
+  // Construir mapa de iconos y labels usando hábitos personalizados o fallback
+  const sectionIconsMap = useMemo(() => {
+    const iconsMap = {};
+    const labelsMap = {};
+    const sections = ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'];
+    
+    sections.forEach((section) => {
+      iconsMap[section] = {};
+      labelsMap[section] = {};
+      
+      // Obtener hábitos personalizados de la sección
+      const sectionHabits = habits[section] || [];
+      
+      if (sectionHabits.length > 0) {
+        // Usar hábitos personalizados
+        sectionHabits
+          .filter(h => h.activo !== false)
+          .sort((a, b) => (a.orden || 0) - (b.orden || 0))
+          .forEach(habit => {
+            const Icon = getIconByName(habit.icon);
+            if (Icon) {
+              iconsMap[section][habit.id] = Icon;
+              labelsMap[section][habit.id] = habit.label || habit.name || habit.id;
+            }
+          });
+      }
+      
+      // Si no hay hábitos personalizados, usar iconConfig como fallback
+      if (Object.keys(iconsMap[section]).length === 0 && iconConfig[section]) {
+        Object.keys(iconConfig[section]).forEach(itemId => {
+          iconsMap[section][itemId] = iconConfig[section][itemId];
+          labelsMap[section][itemId] = iconTooltips?.[section]?.[itemId] || itemId;
+        });
+      }
+    });
+    
+    return { iconsMap, labelsMap };
+  }, [habits]);
+
   const itemsLuego = useMemo(() => {
     if (!rutinaHoy) return [];
-    const sections = Object.keys(iconConfig || {});
+    const sections = Object.keys(sectionIconsMap.iconsMap || {});
     const items = [];
 
     sections.forEach((section) => {
-      const sectionIcons = iconConfig?.[section] || {};
+      const sectionIcons = sectionIconsMap.iconsMap[section] || {};
       const sectionCfg = rutinaHoy?.config?.[section] || {};
 
-      Object.keys(sectionIcons).forEach((itemId) => {
+      // Usar getVisibleItemIds para obtener items visibles según las reglas de cadencia
+      const visibleItemIds = getVisibleItemIds(
+        sectionIcons,
+        section,
+        rutinaHoy,
+        sectionCfg,
+        rutinaHoy?.[section] || {}
+      );
+
+      visibleItemIds.forEach((itemId) => {
         const config = sectionCfg[itemId];
         if (!config || config.activo === false) return;
+        
+        // Ocultar items completados hoy (solo mostrar pendientes)
+        const completadoHoy = rutinaHoy?.[section]?.[itemId] === true;
+        if (completadoHoy) return; // Ocultar completados
         
         const tipo = (config.tipo || 'DIARIO').toUpperCase();
         const periodo = config?.periodo ? (config.periodo).toUpperCase() : 'CADA_DIA';
@@ -105,7 +168,6 @@ export default function RutinasLuego({
         if (tipo === 'PERSONALIZADO' && periodo === 'CADA_DIA') return;
         
         // Incluir: SEMANAL, MENSUAL, y PERSONALIZADO con periodo CADA_SEMANA o CADA_MES
-        const completadoHoy = rutinaHoy?.[section]?.[itemId] === true;
         const frecuencia = Number(config.frecuencia || 1);
         
         // Calcular completados según el tipo de cadencia
@@ -158,7 +220,7 @@ export default function RutinasLuego({
     });
 
     return items;
-  }, [rutinaHoy]);
+  }, [rutinaHoy, sectionIconsMap]);
 
   // En Agenda "Luego" queremos items semanales pendientes de cuota.
   const pendingItems = itemsLuego;
@@ -296,8 +358,8 @@ export default function RutinasLuego({
       {...bind}
     >
       {carouselItems.map(({ section, itemId }, index) => {
-        const Icon = iconConfig?.[section]?.[itemId];
-        const label = iconTooltips?.[section]?.[itemId] || itemId;
+        const Icon = sectionIconsMap.iconsMap[section]?.[itemId];
+        const label = sectionIconsMap.labelsMap[section]?.[itemId] || itemId;
         if (!Icon) return null;
 
         return (

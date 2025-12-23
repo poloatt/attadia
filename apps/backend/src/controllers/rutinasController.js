@@ -363,23 +363,37 @@ class RutinasController extends BaseController {
       }
 
       // Preparar los datos actualizados preservando los campos existentes
+      // IMPORTANTE: Convertir secciones Mixed a objetos planos para merge correcto
+      const currentBodyCare = currentRutina.bodyCare && typeof currentRutina.bodyCare.toObject === 'function'
+        ? currentRutina.bodyCare.toObject()
+        : (currentRutina.bodyCare || {});
+      const currentNutricion = currentRutina.nutricion && typeof currentRutina.nutricion.toObject === 'function'
+        ? currentRutina.nutricion.toObject()
+        : (currentRutina.nutricion || {});
+      const currentEjercicio = currentRutina.ejercicio && typeof currentRutina.ejercicio.toObject === 'function'
+        ? currentRutina.ejercicio.toObject()
+        : (currentRutina.ejercicio || {});
+      const currentCleaning = currentRutina.cleaning && typeof currentRutina.cleaning.toObject === 'function'
+        ? currentRutina.cleaning.toObject()
+        : (currentRutina.cleaning || {});
+
       const updateData = {
         ...currentRutina.toObject(),
         ...req.body,
         bodyCare: {
-          ...currentRutina.bodyCare,
+          ...currentBodyCare,
           ...(req.body.bodyCare || {})
         },
         nutricion: {
-          ...currentRutina.nutricion,
+          ...currentNutricion,
           ...(req.body.nutricion || {})
         },
         ejercicio: {
-          ...currentRutina.ejercicio,
+          ...currentEjercicio,
           ...(req.body.ejercicio || {})
         },
         cleaning: {
-          ...currentRutina.cleaning,
+          ...currentCleaning,
           ...(req.body.cleaning || {})
         },
       };
@@ -456,15 +470,30 @@ class RutinasController extends BaseController {
 
       logger.data('rutina.update.mongo.payload', { config: updateData.config, fecha: updateData.fecha });
 
-      const updatedRutina = await this.Model.findOneAndUpdate(
-        { _id: id, usuario: req.user.id },
-        updateData,
-        { new: true, runValidators: true }
-      );
-
-      if (!updatedRutina) {
+      // CRÍTICO: Usar findOne + save en lugar de findOneAndUpdate para poder usar markModified
+      // Esto es necesario porque las secciones ahora son Schema.Types.Mixed y necesitan markModified
+      const rutinaToUpdate = await this.Model.findOne({ _id: id, usuario: req.user.id });
+      
+      if (!rutinaToUpdate) {
         return res.status(404).json({ error: 'Rutina no encontrada' });
       }
+
+      // Aplicar los cambios
+      Object.assign(rutinaToUpdate, updateData);
+      
+      // Marcar secciones como modificadas si tienen cambios (necesario para Schema.Types.Mixed)
+      ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'].forEach(section => {
+        if (updateData[section] && Object.keys(updateData[section]).length > 0) {
+          rutinaToUpdate.markModified(section);
+          // Marcar cada campo dentro de la sección para asegurar que se guarde
+          Object.keys(updateData[section]).forEach(field => {
+            rutinaToUpdate.markModified(`${section}.${field}`);
+          });
+        }
+      });
+      
+      // Guardar con validación
+      const updatedRutina = await rutinaToUpdate.save();
 
       logger.info('Rutina actualizada', { id: updatedRutina._id });
 
@@ -675,7 +704,7 @@ class RutinasController extends BaseController {
       }
       
       // Formatear el documento para mantener consistencia
-      const formattedDoc = {
+      let formattedDoc = {
         _id: doc._id.toString(),
         ...doc,
         bodyCare: { ...doc.bodyCare },
@@ -683,6 +712,45 @@ class RutinasController extends BaseController {
         ejercicio: { ...doc.ejercicio },
         cleaning: { ...doc.cleaning }
       };
+      
+      // Fusionar con preferencias globales del usuario si existen
+      try {
+        const usuario = await Users.findById(req.user.id)
+          .select('preferences.rutinasConfig')
+          .lean();
+          
+        if (usuario && usuario.preferences && usuario.preferences.rutinasConfig) {
+          logger.dev('[rutinasController] Fusionando configuración global al cargar rutina');
+          
+          // Función helper para fusionar configuración
+          const mergeConfigInto = (target, source) => {
+            if (!source || typeof source !== 'object') return target;
+            const seccionesValidas = ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'];
+            seccionesValidas.forEach(section => {
+              if (!source[section] || typeof source[section] !== 'object') return;
+              if (!target.config) target.config = {};
+              if (!target.config[section]) target.config[section] = {};
+              Object.entries(source[section]).forEach(([itemId, cfg]) => {
+                if (cfg && typeof cfg === 'object') {
+                  // Fusionar: preferencias globales sobre config de rutina
+                  target.config[section][itemId] = {
+                    ...(target.config[section][itemId] || {}),
+                    ...cfg
+                  };
+                }
+              });
+            });
+            return target;
+          };
+          
+          const globalConfig = usuario.preferences.rutinasConfig;
+          formattedDoc = mergeConfigInto(formattedDoc, globalConfig);
+          logger.dev('[rutinasController] Configuración global fusionada correctamente');
+        }
+      } catch (prefError) {
+        logger.warn('[rutinasController] Error al fusionar preferencias globales', prefError);
+        // Continuar sin fusionar en caso de error
+      }
       
       res.json(formattedDoc);
     } catch (error) {

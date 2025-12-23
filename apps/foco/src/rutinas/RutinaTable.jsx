@@ -232,7 +232,18 @@ export const RutinaTable = ({
       }, { params: { applyFrom: 'today' } })
         .then(() => {
           // Refrescar solo este ítem en UI (sin recargar toda la página)
-          if (rutina?._id) patchRutinaItemConfig(rutina._id, seccionId, itemId, normalizedConfig);
+          // IMPORTANTE: Actualizar el config de la rutina actual para reflejar cambios inmediatamente
+          if (rutina?._id) {
+            patchRutinaItemConfig(rutina._id, seccionId, itemId, normalizedConfig);
+            // También actualizar la rutina localmente para que se refleje en RutinaCard
+            if (typeof onRutinaChange === 'function') {
+              const updatedRutina = { ...rutina };
+              if (!updatedRutina.config) updatedRutina.config = {};
+              if (!updatedRutina.config[seccionId]) updatedRutina.config[seccionId] = {};
+              updatedRutina.config[seccionId][itemId] = normalizedConfig;
+              onRutinaChange(updatedRutina);
+            }
+          }
           enqueueSnackbar('Configuración aplicada desde hoy (el pasado no se modifica)', { variant: 'success' });
         })
         .catch((error) => {
@@ -279,7 +290,18 @@ export const RutinaTable = ({
         applyFrom: 'today'
       }, { params: { applyFrom: 'today' } })
         .then(() => {
-          if (rutina?._id) patchRutinaItemConfig(rutina._id, seccionId, itemId, normalizedConfig);
+          // IMPORTANTE: Actualizar el config de la rutina actual para reflejar cambios inmediatamente
+          if (rutina?._id) {
+            patchRutinaItemConfig(rutina._id, seccionId, itemId, normalizedConfig);
+            // También actualizar la rutina localmente para que se refleje en RutinaCard
+            if (typeof onRutinaChange === 'function') {
+              const updatedRutina = { ...rutina };
+              if (!updatedRutina.config) updatedRutina.config = {};
+              if (!updatedRutina.config[seccionId]) updatedRutina.config[seccionId] = {};
+              updatedRutina.config[seccionId][itemId] = normalizedConfig;
+              onRutinaChange(updatedRutina);
+            }
+          }
           enqueueSnackbar('Configuración aplicada desde hoy', { variant: 'success' });
         })
         .catch((error) => {
@@ -289,9 +311,19 @@ export const RutinaTable = ({
         });
     } else {
       // Enviar actualización a través del contexto (gestiona recarga silenciosa)
-      updateItemConfiguration(seccionId, itemId, normalizedConfig)
+      updateItemConfiguration(seccionId, itemId, normalizedConfig, { isGlobal: true })
         .then((ok) => {
-          if (ok) enqueueSnackbar('Configuración guardada', { variant: 'success' });
+          if (ok) {
+            // IMPORTANTE: Actualizar también la rutina localmente para reflejar cambios inmediatamente
+            if (rutina?._id && typeof onRutinaChange === 'function') {
+              const updatedRutina = { ...rutina };
+              if (!updatedRutina.config) updatedRutina.config = {};
+              if (!updatedRutina.config[seccionId]) updatedRutina.config[seccionId] = {};
+              updatedRutina.config[seccionId][itemId] = normalizedConfig;
+              onRutinaChange(updatedRutina);
+            }
+            enqueueSnackbar('Configuración guardada', { variant: 'success' });
+          }
         })
         .catch(error => {
           console.error('[RutinaTable] ❌ Error al actualizar configuración:', error);
@@ -723,14 +755,26 @@ export const RutinaTable = ({
 };
 
 // Memoizar RutinaTable sin bloquear updates de configuración:
-// - El comparador anterior ignoraba cambios en `rutina.config` (y otros campos),
-//   dejando la UI “pegada” aunque el backend/estado se actualizara.
+// - El comparador debe detectar cambios en rutina.config para sincronizar con HabitsManager
+// - Comparar rutina.config usando JSON.stringify para detectar cambios profundos
 const MemoizedRutinaTable = memo(RutinaTable, (prevProps, nextProps) => {
+  // Comparar config usando JSON.stringify para detectar cambios profundos
+  const prevConfig = JSON.stringify(prevProps.rutina?.config || {});
+  const nextConfig = JSON.stringify(nextProps.rutina?.config || {});
+  const configChanged = prevConfig !== nextConfig;
+  
+  // Si la config cambió, forzar re-render
+  if (configChanged) {
+    return false; // false = no son iguales, debe re-renderizar
+  }
+  
+  // Comparar otras props normalmente
   return (
     prevProps.loading === nextProps.loading &&
     prevProps.currentPage === nextProps.currentPage &&
     prevProps.totalPages === nextProps.totalPages &&
-    prevProps.rutina === nextProps.rutina &&
+    prevProps.rutina?._id === nextProps.rutina?._id &&
+    prevProps.rutina?.fecha === nextProps.rutina?.fecha &&
     prevProps.rutinas === nextProps.rutinas
   );
 });

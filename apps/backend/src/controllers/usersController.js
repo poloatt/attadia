@@ -525,6 +525,20 @@ export const usersController = {
         });
       }
       
+      // Log para debug: ver qué se está devolviendo
+      const configKeys = Object.keys(user.preferences.rutinasConfig).filter(k => k !== '_metadata');
+      const totalHabits = configKeys.reduce((acc, section) => {
+        const sectionConfig = user.preferences.rutinasConfig[section];
+        return acc + (sectionConfig ? Object.keys(sectionConfig).length : 0);
+      }, 0);
+      console.log(`[usersController] getHabitPreferences: returning ${totalHabits} habit configs across ${configKeys.length} sections`);
+      // Log detallado de cada sección
+      configKeys.forEach(section => {
+        const sectionConfig = user.preferences.rutinasConfig[section];
+        const habitIds = sectionConfig ? Object.keys(sectionConfig) : [];
+        console.log(`[usersController] getHabitPreferences - ${section}: ${habitIds.length} habits`, habitIds);
+      });
+      
       // Devolver las preferencias de rutinas
       res.json({
         habits: user.preferences.rutinasConfig,
@@ -626,7 +640,20 @@ export const usersController = {
           };
           
           // Actualizar la configuración del ítem
+          // IMPORTANTE: Asegurar que la sección existe como objeto
+          if (!user.preferences.rutinasConfig[section]) {
+            user.preferences.rutinasConfig[section] = {};
+          }
           user.preferences.rutinasConfig[section][itemId] = normalizedConfig;
+          
+          // CRÍTICO: Marcar como modificado para que Mongoose guarde campos dinámicos en Schema.Types.Mixed
+          user.markModified(`preferences.rutinasConfig.${section}.${itemId}`);
+          user.markModified(`preferences.rutinasConfig.${section}`);
+          user.markModified('preferences.rutinasConfig');
+          
+          console.log(`[usersController] Config saved for ${section}.${itemId}:`, JSON.stringify(normalizedConfig));
+          // Log para verificar que se guardó en el objeto
+          console.log(`[usersController] Verificando guardado - ${section}.${itemId} exists:`, !!user.preferences.rutinasConfig[section][itemId]);
         });
       });
       
@@ -637,8 +664,24 @@ export const usersController = {
         version: ((user.preferences.rutinasConfig._metadata?.version || 0) + 1)
       };
       
+      // CRÍTICO: Marcar rutinasConfig como modificado para que Mongoose guarde campos dinámicos
+      // Esto es necesario porque Schema.Types.Mixed requiere markModified para campos anidados
+      user.markModified('preferences.rutinasConfig');
+      
       // Guardar los cambios
       await user.save();
+      
+      // Verificar que los cambios se guardaron correctamente
+      const savedUser = await Users.findById(req.user.id)
+        .select('preferences.rutinasConfig')
+        .lean();
+      Object.entries(habits).forEach(([section, items]) => {
+        if (section === '_metadata') return;
+        Object.keys(items).forEach(itemId => {
+          const savedConfig = savedUser?.preferences?.rutinasConfig?.[section]?.[itemId];
+          console.log(`[usersController] Post-save verification - ${section}.${itemId}:`, savedConfig ? 'EXISTS' : 'MISSING', savedConfig ? JSON.stringify(savedConfig).substring(0, 100) : '');
+        });
+      });
 
       // --- Aplicar cambios a rutinas existentes desde HOY (sin tocar el pasado) ---
       // Se activa vía query (?applyFrom=today) o body (applyFrom: 'today')
@@ -708,6 +751,451 @@ export const usersController = {
       console.error('[usersController] Error al actualizar preferencias de hábitos:', error);
       res.status(500).json({ 
         error: 'Error al actualizar preferencias de hábitos',
+        message: error.message
+      });
+    }
+  },
+
+  // ========== ENDPOINTS PARA GESTIÓN DE HÁBITOS PERSONALIZADOS ==========
+  
+  /**
+   * Obtener hábitos personalizados del usuario
+   * GET /api/users/habits
+   */
+  getHabits: async (req, res) => {
+    try {
+      const user = await Users.findById(req.user.id);
+      if (!user) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+
+      // Asegurar que customHabits existe
+      if (!user.customHabits) {
+        // Inicializar con defaults si no existe
+        user.customHabits = {
+          bodyCare: [
+            { id: 'bath', label: 'Ducha', icon: 'Bathtub', activo: true, orden: 0 },
+            { id: 'skinCareDay', label: 'Cuidado facial día', icon: 'PersonOutline', activo: true, orden: 1 },
+            { id: 'skinCareNight', label: 'Cuidado facial noche', icon: 'Nightlight', activo: true, orden: 2 },
+            { id: 'bodyCream', label: 'Crema corporal', icon: 'Spa', activo: true, orden: 3 }
+          ],
+          nutricion: [
+            { id: 'cocinar', label: 'Cocinar', icon: 'Restaurant', activo: true, orden: 0 },
+            { id: 'agua', label: 'Beber agua', icon: 'WaterDrop', activo: true, orden: 1 },
+            { id: 'protein', label: 'Proteína', icon: 'SetMeal', activo: true, orden: 2 },
+            { id: 'meds', label: 'Medicamentos', icon: 'Medication', activo: true, orden: 3 }
+          ],
+          ejercicio: [
+            { id: 'meditate', label: 'Meditar', icon: 'SelfImprovement', activo: true, orden: 0 },
+            { id: 'stretching', label: 'Correr', icon: 'DirectionsRun', activo: true, orden: 1 },
+            { id: 'gym', label: 'Gimnasio', icon: 'FitnessCenter', activo: true, orden: 2 },
+            { id: 'cardio', label: 'Bicicleta', icon: 'DirectionsBike', activo: true, orden: 3 }
+          ],
+          cleaning: [
+            { id: 'bed', label: 'Hacer la cama', icon: 'Hotel', activo: true, orden: 0 },
+            { id: 'platos', label: 'Lavar platos', icon: 'Dining', activo: true, orden: 1 },
+            { id: 'piso', label: 'Limpiar piso', icon: 'CleaningServices', activo: true, orden: 2 },
+            { id: 'ropa', label: 'Lavar ropa', icon: 'LocalLaundryService', activo: true, orden: 3 }
+          ]
+        };
+        await user.save();
+      }
+
+      res.json(user.customHabits);
+    } catch (error) {
+      console.error('[usersController] Error al obtener hábitos:', error);
+      res.status(500).json({ 
+        error: 'Error al obtener hábitos',
+        message: error.message
+      });
+    }
+  },
+
+  /**
+   * Crear nuevo hábito personalizado
+   * POST /api/users/habits
+   * Body: { section, habit: { id, label, icon, activo, orden } }
+   */
+  addHabit: async (req, res) => {
+    try {
+      const { section, habit } = req.body;
+
+      if (!section || !['bodyCare', 'nutricion', 'ejercicio', 'cleaning'].includes(section)) {
+        return res.status(400).json({ error: 'Sección inválida' });
+      }
+
+      if (!habit || !habit.id || !habit.label || !habit.icon) {
+        return res.status(400).json({ error: 'Datos de hábito incompletos (requiere: id, label, icon)' });
+      }
+
+      const user = await Users.findById(req.user.id);
+      if (!user) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+
+      // Inicializar customHabits si no existe
+      if (!user.customHabits) {
+        user.customHabits = {
+          bodyCare: [],
+          nutricion: [],
+          ejercicio: [],
+          cleaning: []
+        };
+      }
+
+      // Verificar que el ID no exista ya en la sección
+      if (user.customHabits[section].some(h => h.id === habit.id)) {
+        return res.status(409).json({ error: 'Ya existe un hábito con ese ID en esta sección' });
+      }
+
+      // Agregar el nuevo hábito
+      const newHabit = {
+        id: habit.id,
+        label: habit.label,
+        icon: habit.icon,
+        activo: habit.activo !== undefined ? habit.activo : true,
+        orden: habit.orden !== undefined ? habit.orden : user.customHabits[section].length
+      };
+
+      user.customHabits[section].push(newHabit);
+      await user.save();
+
+      res.json({ message: 'Hábito creado correctamente', habit: newHabit });
+    } catch (error) {
+      console.error('[usersController] Error al crear hábito:', error);
+      res.status(500).json({ 
+        error: 'Error al crear hábito',
+        message: error.message
+      });
+    }
+  },
+
+  /**
+   * Actualizar hábito existente
+   * PUT /api/users/habits/:habitId
+   * Body: { section, habit: { label?, icon?, activo?, orden? } }
+   */
+  updateHabit: async (req, res) => {
+    try {
+      const { habitId } = req.params;
+      const { section, habit } = req.body;
+
+      if (!section || !['bodyCare', 'nutricion', 'ejercicio', 'cleaning'].includes(section)) {
+        return res.status(400).json({ error: 'Sección inválida' });
+      }
+
+      if (!habit || Object.keys(habit).length === 0) {
+        return res.status(400).json({ error: 'No se proporcionaron datos para actualizar' });
+      }
+
+      const user = await Users.findById(req.user.id);
+      if (!user) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+
+      if (!user.customHabits || !user.customHabits[section]) {
+        return res.status(404).json({ error: 'Sección no encontrada' });
+      }
+
+      const habitIndex = user.customHabits[section].findIndex(h => h.id === habitId);
+      if (habitIndex === -1) {
+        return res.status(404).json({ error: 'Hábito no encontrado' });
+      }
+
+      // Actualizar solo los campos proporcionados
+      if (habit.label !== undefined) user.customHabits[section][habitIndex].label = habit.label;
+      if (habit.icon !== undefined) user.customHabits[section][habitIndex].icon = habit.icon;
+      if (habit.activo !== undefined) user.customHabits[section][habitIndex].activo = habit.activo;
+      if (habit.orden !== undefined) user.customHabits[section][habitIndex].orden = habit.orden;
+
+      await user.save();
+
+      res.json({ 
+        message: 'Hábito actualizado correctamente', 
+        habit: user.customHabits[section][habitIndex] 
+      });
+    } catch (error) {
+      console.error('[usersController] Error al actualizar hábito:', error);
+      res.status(500).json({ 
+        error: 'Error al actualizar hábito',
+        message: error.message
+      });
+    }
+  },
+
+  /**
+   * Eliminar hábito
+   * DELETE /api/users/habits/:habitId
+   * Body: { section }
+   */
+  deleteHabit: async (req, res) => {
+    try {
+      const { habitId } = req.params;
+      const { section } = req.body;
+
+      if (!section || !['bodyCare', 'nutricion', 'ejercicio', 'cleaning'].includes(section)) {
+        return res.status(400).json({ error: 'Sección inválida' });
+      }
+
+      const user = await Users.findById(req.user.id);
+      if (!user) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+
+      if (!user.customHabits || !user.customHabits[section]) {
+        return res.status(404).json({ error: 'Sección no encontrada' });
+      }
+
+      // Validar que no se eliminen todos los hábitos de una sección
+      if (user.customHabits[section].length <= 1) {
+        return res.status(400).json({ error: 'No se puede eliminar el último hábito de la sección' });
+      }
+
+      const habitIndex = user.customHabits[section].findIndex(h => h.id === habitId);
+      if (habitIndex === -1) {
+        return res.status(404).json({ error: 'Hábito no encontrado' });
+      }
+
+      user.customHabits[section].splice(habitIndex, 1);
+      await user.save();
+
+      res.json({ message: 'Hábito eliminado correctamente' });
+    } catch (error) {
+      console.error('[usersController] Error al eliminar hábito:', error);
+      res.status(500).json({ 
+        error: 'Error al eliminar hábito',
+        message: error.message
+      });
+    }
+  },
+
+  /**
+   * Reordenar hábitos en una sección
+   * PUT /api/users/habits/reorder
+   * Body: { section, habitIds: [id1, id2, ...] }
+   */
+  reorderHabits: async (req, res) => {
+    try {
+      const { section, habitIds } = req.body;
+
+      console.log('[usersController.reorderHabits] Recibido:', { section, habitIds, bodyKeys: Object.keys(req.body), bodyType: typeof req.body });
+
+      // Validar sección
+      if (!section) {
+        console.error('[usersController.reorderHabits] Sección faltante');
+        return res.status(400).json({ error: 'Sección inválida', received: section });
+      }
+      
+      if (!['bodyCare', 'nutricion', 'ejercicio', 'cleaning'].includes(section)) {
+        console.error('[usersController.reorderHabits] Sección no válida:', section);
+        return res.status(400).json({ error: 'Sección inválida', received: section, validSections: ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'] });
+      }
+
+      // Validar habitIds
+      if (!habitIds) {
+        console.error('[usersController.reorderHabits] habitIds faltante');
+        return res.status(400).json({ error: 'Se requiere un array de IDs de hábitos', received: habitIds });
+      }
+      
+      if (!Array.isArray(habitIds)) {
+        console.error('[usersController.reorderHabits] habitIds no es un array:', typeof habitIds, habitIds);
+        return res.status(400).json({ error: 'Se requiere un array de IDs de hábitos', received: { type: typeof habitIds, value: habitIds } });
+      }
+      
+      if (habitIds.length === 0) {
+        console.error('[usersController.reorderHabits] habitIds está vacío');
+        return res.status(400).json({ error: 'Se requiere al menos un ID de hábito', received: habitIds });
+      }
+
+      const user = await Users.findById(req.user.id);
+      if (!user) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+
+      // Asegurar que customHabits existe y está inicializado
+      if (!user.customHabits) {
+        user.customHabits = {
+          bodyCare: [],
+          nutricion: [],
+          ejercicio: [],
+          cleaning: []
+        };
+      }
+
+      // Asegurar que la sección existe y es un array
+      if (!user.customHabits[section]) {
+        user.customHabits[section] = [];
+      }
+
+      // Convertir a array si no lo es (por si acaso)
+      if (!Array.isArray(user.customHabits[section])) {
+        console.warn('[usersController.reorderHabits] customHabits[section] no es un array, convirtiendo...');
+        user.customHabits[section] = Object.values(user.customHabits[section] || {});
+      }
+
+      // Verificar que todos los IDs existen
+      const existingIds = user.customHabits[section].map(h => {
+        const id = h.id || h._id?.toString() || h._id;
+        return id ? id.toString() : null;
+      }).filter(Boolean);
+      
+      // Normalizar habitIds a strings para comparación
+      const normalizedHabitIds = habitIds.map(id => {
+        if (id == null || id === '') return null;
+        return id.toString();
+      }).filter(Boolean);
+      
+      console.log('[usersController.reorderHabits] Comparando IDs:', {
+        existingIds,
+        receivedIds: normalizedHabitIds,
+        existingCount: existingIds.length,
+        receivedCount: normalizedHabitIds.length,
+        sectionHabits: user.customHabits[section].map(h => ({ id: h.id, _id: h._id, label: h.label }))
+      });
+      
+      // Verificar que todos los IDs recibidos existen en customHabits
+      const invalidIds = normalizedHabitIds.filter(id => !existingIds.includes(id));
+      
+      if (invalidIds.length > 0) {
+        const debugInfo = {
+          invalidIds, 
+          existingIds, 
+          received: normalizedHabitIds,
+          sectionHabits: user.customHabits[section].map(h => ({ 
+            id: h.id, 
+            _id: h._id?.toString(), 
+            label: h.label,
+            idType: typeof h.id,
+            _idType: typeof h._id
+          })),
+          receivedCount: normalizedHabitIds.length,
+          existingCount: existingIds.length
+        };
+        console.error('[usersController.reorderHabits] IDs inválidos:', debugInfo);
+        return res.status(400).json({ 
+          error: 'Algunos IDs no existen en customHabits', 
+          message: `Los siguientes IDs no se encontraron en customHabits: ${invalidIds.join(', ')}`,
+          invalidIds,
+          existingIds,
+          received: normalizedHabitIds,
+          sectionHabits: user.customHabits[section].map(h => ({ id: h.id, _id: h._id?.toString(), label: h.label })),
+          debug: debugInfo
+        });
+      }
+      
+      // Verificar que el número de IDs coincide (pero no fallar si hay diferencia, solo advertir)
+      if (normalizedHabitIds.length !== existingIds.length) {
+        console.warn('[usersController.reorderHabits] Número de IDs no coincide:', {
+          received: normalizedHabitIds.length,
+          existing: existingIds.length,
+          receivedIds: normalizedHabitIds,
+          existingIds: existingIds
+        });
+        // Si hay más IDs recibidos que existentes, puede ser un error
+        if (normalizedHabitIds.length > existingIds.length) {
+          return res.status(400).json({ 
+            error: 'Se recibieron más IDs de los que existen en customHabits',
+            received: normalizedHabitIds.length,
+            existing: existingIds.length,
+            receivedIds: normalizedHabitIds,
+            existingIds: existingIds
+          });
+        }
+      }
+
+      // Verificar que el número de IDs coincide
+      if (habitIds.length !== existingIds.length) {
+        console.warn('[usersController.reorderHabits] Número de IDs no coincide:', {
+          received: habitIds.length,
+          existing: existingIds.length
+        });
+      }
+
+      // Reordenar según el array proporcionado
+      const reorderedHabits = normalizedHabitIds.map((id, index) => {
+        const habit = user.customHabits[section].find(h => {
+          const habitId = (h.id || h._id?.toString() || h._id)?.toString();
+          return habitId === id;
+        });
+        if (!habit) {
+          console.error('[usersController.reorderHabits] Hábito no encontrado durante reordenamiento:', { id, index, availableHabits: user.customHabits[section].map(h => ({ id: h.id, _id: h._id?.toString() })) });
+          throw new Error(`Hábito con ID ${id} no encontrado`);
+        }
+        const habitObj = habit.toObject ? habit.toObject() : (typeof habit === 'object' ? { ...habit } : habit);
+        return { 
+          ...habitObj, 
+          orden: index 
+        };
+      });
+
+      user.customHabits[section] = reorderedHabits;
+      await user.save();
+
+      console.log('[usersController.reorderHabits] Hábitos reordenados correctamente');
+
+      res.json({ 
+        message: 'Hábitos reordenados correctamente', 
+        habits: user.customHabits[section] 
+      });
+    } catch (error) {
+      console.error('[usersController] Error al reordenar hábitos:', error);
+      res.status(500).json({ 
+        error: 'Error al reordenar hábitos',
+        message: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+    }
+  },
+
+  /**
+   * Restablecer hábitos a defaults
+   * POST /api/users/habits/reset
+   */
+  resetHabits: async (req, res) => {
+    try {
+      const user = await Users.findById(req.user.id);
+      if (!user) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+
+      // Restablecer a defaults
+      user.customHabits = {
+        bodyCare: [
+          { id: 'bath', label: 'Ducha', icon: 'Bathtub', activo: true, orden: 0 },
+          { id: 'skinCareDay', label: 'Cuidado facial día', icon: 'PersonOutline', activo: true, orden: 1 },
+          { id: 'skinCareNight', label: 'Cuidado facial noche', icon: 'Nightlight', activo: true, orden: 2 },
+          { id: 'bodyCream', label: 'Crema corporal', icon: 'Spa', activo: true, orden: 3 }
+        ],
+        nutricion: [
+          { id: 'cocinar', label: 'Cocinar', icon: 'Restaurant', activo: true, orden: 0 },
+          { id: 'agua', label: 'Beber agua', icon: 'WaterDrop', activo: true, orden: 1 },
+          { id: 'protein', label: 'Proteína', icon: 'SetMeal', activo: true, orden: 2 },
+          { id: 'meds', label: 'Medicamentos', icon: 'Medication', activo: true, orden: 3 }
+        ],
+        ejercicio: [
+          { id: 'meditate', label: 'Meditar', icon: 'SelfImprovement', activo: true, orden: 0 },
+          { id: 'stretching', label: 'Correr', icon: 'DirectionsRun', activo: true, orden: 1 },
+          { id: 'gym', label: 'Gimnasio', icon: 'FitnessCenter', activo: true, orden: 2 },
+          { id: 'cardio', label: 'Bicicleta', icon: 'DirectionsBike', activo: true, orden: 3 }
+        ],
+        cleaning: [
+          { id: 'bed', label: 'Hacer la cama', icon: 'Hotel', activo: true, orden: 0 },
+          { id: 'platos', label: 'Lavar platos', icon: 'Dining', activo: true, orden: 1 },
+          { id: 'piso', label: 'Limpiar piso', icon: 'CleaningServices', activo: true, orden: 2 },
+          { id: 'ropa', label: 'Lavar ropa', icon: 'LocalLaundryService', activo: true, orden: 3 }
+        ]
+      };
+
+      await user.save();
+
+      res.json({ 
+        message: 'Hábitos restablecidos a valores por defecto', 
+        habits: user.customHabits 
+      });
+    } catch (error) {
+      console.error('[usersController] Error al restablecer hábitos:', error);
+      res.status(500).json({ 
+        error: 'Error al restablecer hábitos',
         message: error.message
       });
     }

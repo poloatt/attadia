@@ -103,6 +103,11 @@ export default function Toolbar({
       window.dispatchEvent(new CustomEvent('addRutina'));
     };
     
+    const handleSettings = () => {
+      // Disparar evento para que la página maneje la configuración de hábitos
+      window.dispatchEvent(new CustomEvent('openHabitsManager'));
+    };
+    
     // Siempre renderizar RutinaNavigation, incluso si no hay rutina
     // El componente RutinaNavigation maneja internamente los casos de rutina null
     return (
@@ -112,6 +117,7 @@ export default function Toolbar({
         currentPage={currentPage}
         totalPages={totalPages}
         onAdd={handleAdd}
+        onSettingsClick={handleSettings}
       />
     );
   };

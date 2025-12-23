@@ -19,11 +19,11 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import TuneIcon from '@mui/icons-material/Tune';
-import { iconConfig } from '../../utils/iconConfig';
+import { iconConfig, getIconByName } from '../../utils/iconConfig';
 import InlineItemConfigImproved from './InlineItemConfigImproved';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { useRutinas } from '../../context/RutinasContext';
+import { useRutinas, useHabits } from '../../context';
 
 import { useSnackbar } from 'notistack';
 // Importamos las utilidades de cadencia
@@ -67,21 +67,43 @@ const RutinaCard = ({
   onConfigChange,
   readOnly = false
 }) => {
-  // IMPORTANTE: Validar que la sección existe ANTES de cualquier hook
-  // para evitar el error "Rendered fewer hooks than expected"
-  if (!section || !iconConfig[section]) {
-    console.warn(`[ChecklistSection] Sección no válida o sin configuración de iconos: ${section}`);
+  // Contexto de rutinas y hábitos
+  const { rutina, markItemComplete, updateItemConfiguration, updateUserHabitPreference } = useRutinas();
+  const { habits } = useHabits();
+  
+  // Obtener iconos de hábitos personalizados o usar defaults
+  const sectionHabits = habits[section] || [];
+  const sectionIcons = useMemo(() => {
+    const iconsMap = {};
+    sectionHabits
+      .filter(h => h.activo !== false)
+      .sort((a, b) => (a.orden || 0) - (b.orden || 0))
+      .forEach(habit => {
+        const Icon = getIconByName(habit.icon);
+        if (Icon) {
+          iconsMap[habit.id] = Icon;
+        }
+      });
+    
+    // Si no hay hábitos personalizados, usar iconConfig como fallback
+    if (Object.keys(iconsMap).length === 0 && iconConfig[section]) {
+      return iconConfig[section];
+    }
+    
+    return iconsMap;
+  }, [section, sectionHabits]);
+  
+  // IMPORTANTE: Validar que la sección existe ANTES de continuar
+  if (!section || Object.keys(sectionIcons).length === 0) {
+    console.warn(`[ChecklistSection] Sección no válida o sin hábitos: ${section}`);
     return (
       <Box sx={{ mb: 1, bgcolor: '#212121', p: 2 }}>
         <Typography variant="subtitle1" sx={{ color: 'white' }}>
-          {capitalizeFirstLetter(title) || 'Sección sin título'} - Configuración no disponible
+          {capitalizeFirstLetter(title) || 'Sección sin título'} - No hay hábitos configurados
         </Typography>
       </Box>
     );
   }
-  
-  // Contexto de rutinas
-  const { rutina, markItemComplete, updateItemConfiguration, updateUserHabitPreference } = useRutinas();
   
   // Referencia para controlar la actualización de datos
   const dataRef = useRef(data);
@@ -187,8 +209,6 @@ const RutinaCard = ({
       return next;
     });
   };
-  
-  const sectionIcons = iconConfig[section] || {};
   
   // Función helper para determinar si un ítem está completado
   const isItemCompleted = useCallback((itemId) => {
@@ -634,9 +654,9 @@ const RutinaCard = ({
 
   // Filtrar ítems según configuración de cadencia (lógica sincrónica)
   const itemsAMostrar = useMemo(() => {
-    if (!section || !iconConfig[section]) return [];
-    return getVisibleItemIds(iconConfig[section], section, rutina, config, localData);
-  }, [section, config, rutina, localData, forceUpdate]);
+    if (!section || Object.keys(sectionIcons).length === 0) return [];
+    return getVisibleItemIds(sectionIcons, section, rutina, config, localData);
+  }, [section, sectionIcons, config, rutina, localData, forceUpdate]);
 
   // Verificar que tenemos iconos para mostrar
   if (Object.keys(sectionIcons).length === 0) {

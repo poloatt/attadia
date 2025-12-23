@@ -19,15 +19,16 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import TuneIcon from '@mui/icons-material/Tune';
-import { iconConfig } from '@shared/utils';
+import { iconConfig, getIconByName } from '@shared/utils';
 import InlineItemConfigImproved from './InlineItemConfigImproved';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { useRutinas } from '@shared/context';
+import { useRutinas, useHabits } from '@shared/context';
 
 import { useSnackbar } from 'notistack';
 // Importamos las utilidades de cadencia
 import { debesMostrarHabitoEnFecha, generarMensajeCadencia, obtenerUltimaCompletacion } from '@shared/utils';
+import { getVisibleItemIds } from '@shared/utils/visibilityUtils';
 import { getFrecuenciaLabel } from './InlineItemConfigImproved';
 // La visibilidad en esta vista extendida no oculta ítems; solo se ocultan completos en vista colapsada
 import { startOfWeek, isSameWeek, isToday } from 'date-fns';
@@ -66,21 +67,43 @@ const RutinaCard = ({
   onConfigChange,
   readOnly = false
 }) => {
-  // IMPORTANTE: Validar que la sección existe ANTES de cualquier hook
-  // para evitar el error "Rendered fewer hooks than expected"
-  if (!section || !iconConfig[section]) {
-    console.warn(`[ChecklistSection] Sección no válida o sin configuración de iconos: ${section}`);
+  // Contexto de rutinas y hábitos
+  const { rutina, markItemComplete, updateItemConfiguration, updateUserHabitPreference } = useRutinas();
+  const { habits } = useHabits();
+  
+  // Obtener iconos de hábitos personalizados o usar defaults
+  const sectionHabits = habits[section] || [];
+  const sectionIcons = useMemo(() => {
+    const iconsMap = {};
+    sectionHabits
+      .filter(h => h.activo !== false)
+      .sort((a, b) => (a.orden || 0) - (b.orden || 0))
+      .forEach(habit => {
+        const Icon = getIconByName(habit.icon);
+        if (Icon) {
+          iconsMap[habit.id] = Icon;
+        }
+      });
+    
+    // Si no hay hábitos personalizados, usar iconConfig como fallback
+    if (Object.keys(iconsMap).length === 0 && iconConfig[section]) {
+      return iconConfig[section];
+    }
+    
+    return iconsMap;
+  }, [section, sectionHabits]);
+  
+  // IMPORTANTE: Validar que la sección existe ANTES de continuar
+  if (!section || Object.keys(sectionIcons).length === 0) {
+    console.warn(`[RutinaCard] Sección no válida o sin hábitos: ${section}`);
     return (
       <Box sx={{ mb: 1, bgcolor: '#212121', p: 2 }}>
         <Typography variant="subtitle1" sx={{ color: 'white' }}>
-          {capitalizeFirstLetter(title) || 'Sección sin título'} - Configuración no disponible
+          {capitalizeFirstLetter(title) || 'Sección sin título'} - No hay hábitos configurados
         </Typography>
       </Box>
     );
   }
-  
-  // Contexto de rutinas
-  const { rutina, markItemComplete, updateItemConfiguration, updateUserHabitPreference } = useRutinas();
   
   // Referencia para controlar la actualización de datos
   const dataRef = useRef(data);
@@ -187,7 +210,7 @@ const RutinaCard = ({
     });
   };
   
-  const sectionIcons = iconConfig[section] || {};
+  // sectionIcons ya está definido arriba en useMemo
   
   // Función helper para determinar si un ítem está completado
   const isItemCompleted = useCallback((itemId) => {
@@ -327,6 +350,10 @@ const RutinaCard = ({
     
     if (readOnly) return;
     
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinaCard.jsx:345',message:'handleItemClick called',data:{itemId,section,isCustomHabit:customHabitIds.has(itemId),hasRutina:!!rutina,rutinaId:rutina?._id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'click'})}).catch(()=>{});
+    // #endregion
+    
     // Verificar si onChange es una función antes de intentar llamarla
     if (typeof onChange !== 'function') {
       console.warn(`[ChecklistSection] onChange no es una función en sección ${section}, itemId ${itemId}`);
@@ -375,9 +402,17 @@ const RutinaCard = ({
       // Crear el formato de datos sencillo esperado por el API
       const itemData = { [itemId]: newValue };
       
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinaCard.jsx:397',message:'Calling markItemComplete',data:{rutinaId:rutina._id,section,itemId,newValue,isCustomHabit:customHabitIds.has(itemId),itemData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'click'})}).catch(()=>{});
+      // #endregion
+      
       // Llamar a la función del contexto y manejar resultado
       markItemComplete(rutina._id, section, itemData)
         .then((response) => {
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinaCard.jsx:403',message:'markItemComplete success',data:{section,itemId,newValue,responseHasSection:!!response?.[section],valorServidor:response?.[section]?.[itemId],isCustomHabit:customHabitIds.has(itemId)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'click'})}).catch(()=>{});
+          // #endregion
+          
           // Verificar que los datos se actualizaron correctamente
           if (response && response[section]) {
             const valorServidor = response[section][itemId];
@@ -402,6 +437,10 @@ const RutinaCard = ({
           }
         })
         .catch(err => {
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinaCard.jsx:427',message:'markItemComplete error',data:{section,itemId,error:err.message,errorResponse:err.response?.data,isCustomHabit:customHabitIds.has(itemId)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'click'})}).catch(()=>{});
+          // #endregion
+          
           // Revertir el cambio local en caso de error
           setLocalData(prevData => ({
             ...prevData,
@@ -633,7 +672,7 @@ const RutinaCard = ({
 
   // Filtrar ítems según configuración de cadencia (lógica sincrónica)
   const itemsAMostrar = useMemo(() => {
-    if (!section || !iconConfig[section]) {
+    if (!section || Object.keys(sectionIcons).length === 0) {
       return [];
     }
 
@@ -643,7 +682,7 @@ const RutinaCard = ({
     // Incluir forceUpdate para garantizar que se recalcule cuando cambia la configuración
     const refreshTrigger = forceUpdate;
 
-    return Object.keys(iconConfig[section])
+    return Object.keys(sectionIcons)
       .filter(itemId => {
         // Lógica sincrónica simplificada para el filtrado inicial
         const cadenciaConfig = config && config[itemId] ? config[itemId] : null;
@@ -667,7 +706,7 @@ const RutinaCard = ({
         // La lógica completa de cadencia se aplica en `renderItems`
         return true;
       });
-  }, [section, config, rutina, forceUpdate]);
+  }, [section, config, rutina, forceUpdate, sectionIcons]);
 
   // Verificar que tenemos iconos para mostrar
   if (Object.keys(sectionIcons).length === 0) {
@@ -698,15 +737,28 @@ const RutinaCard = ({
     />
   );
 
+  // Obtener IDs de hábitos personalizados para filtrarlos
+  const customHabitIds = useMemo(() => {
+    return new Set(
+      sectionHabits
+        .filter(h => h.activo !== false)
+        .map(h => h.id || h._id)
+        .filter(Boolean)
+    );
+  }, [sectionHabits]);
+
   // Renderizar cada ítem con su propio setup (engranaje) que muestra/oculte su InlineItemConfigImproved
   const renderItems = () => {
     const icons = sectionIcons || {};
     // Vista extendida: NO ocultar ítems por visibilidad; mostrar todos los activos
-    const orderedKeys = Object.keys(icons).sort((a, b) => {
-      const labelA = icons[a]?.label?.toLowerCase() || a;
-      const labelB = icons[b]?.label?.toLowerCase() || b;
-      return labelA.localeCompare(labelB);
-    });
+    // Excluir hábitos personalizados que ya se muestran en la sección de configuración
+    const orderedKeys = Object.keys(icons)
+      .filter(itemId => !customHabitIds.has(itemId)) // Excluir hábitos personalizados
+      .sort((a, b) => {
+        const labelA = icons[a]?.label?.toLowerCase() || a;
+        const labelB = icons[b]?.label?.toLowerCase() || b;
+        return labelA.localeCompare(labelB);
+      });
     return orderedKeys.map((itemId, index) => {
       const cadenciaConfig = config && config[itemId] ? config[itemId] : null;
       if (!cadenciaConfig) {
@@ -756,8 +808,8 @@ const RutinaCard = ({
         tipo: (newConfig.tipo || originalConfig.tipo || 'DIARIO').toUpperCase(),
         frecuencia: Number(newConfig.frecuencia || originalConfig.frecuencia || 1),
         periodo: newConfig.periodo || originalConfig.periodo || 'CADA_DIA',
-        diasSemana: Array.isArray(newConfig.diasSemana) ? [...newConfig.diasSemana] : [],
-        diasMes: Array.isArray(newConfig.diasMes) ? [...newConfig.diasMes] : [],
+        diasSemana: Array.isArray(newConfig.diasSemana) ? [...newConfig.diasSemana] : (Array.isArray(originalConfig.diasSemana) ? [...originalConfig.diasSemana] : []),
+        diasMes: Array.isArray(newConfig.diasMes) ? [...newConfig.diasMes] : (Array.isArray(originalConfig.diasMes) ? [...originalConfig.diasMes] : []),
         activo: newConfig.activo !== undefined ? Boolean(newConfig.activo) : true,
         esPreferenciaUsuario: true,
         ultimaActualizacion: new Date().toISOString(),
@@ -776,40 +828,51 @@ const RutinaCard = ({
       
       console.log(`[ChecklistSection] 🔄 Actualizando configuración para ${section}.${itemId}:`, cleanConfig);
       
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinaCard.jsx:813',message:'handleConfigChange called from RutinaCard',data:{section,itemId,cleanConfig,hasUpdateItemConfiguration:!!updateItemConfiguration,hasUpdateUserHabitPreference:!!updateUserHabitPreference,isCustomHabit:!sectionIcons[itemId]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
+      // #endregion
+      
       // Intentar actualizar en el contexto, con manejo de errores
+      // IMPORTANTE: Pasar isGlobal: true para guardar en preferencias globales del usuario
       try {
         if (updateItemConfiguration && typeof updateItemConfiguration === 'function') {
-          updateItemConfiguration(section, itemId, cleanConfig)
-            .then(() => {
-              console.log(`[ChecklistSection] ✅ Configuración guardada y sincronizada con backend para ${section}.${itemId}`);
-              
-              // Muy importante: actualizar también las preferencias globales del usuario
-              // Verificamos si tenemos la función en el contexto (updateUserHabitPreference)
-              if (updateUserHabitPreference && typeof updateUserHabitPreference === 'function') {
-                updateUserHabitPreference(section, itemId, cleanConfig)
-                  .then(result => {
-                    if (result && result.updated) {
-                      console.log(`[ChecklistSection] ✅ Preferencia de usuario actualizada correctamente para ${section}.${itemId}`);
-                    } else {
-                      console.warn(`[ChecklistSection] ⚠️ No se pudo actualizar preferencia de usuario para ${section}.${itemId}`);
-                    }
-                  })
-                  .catch(prefError => {
-                    console.error(`[ChecklistSection] ❌ Error al actualizar preferencia de usuario:`, prefError);
-                  });
-              }
-              
-              // Cerrar configurador una vez guardados los cambios
-              // if (typeof setSelectedItemId === 'function') { // Eliminado
-              //   setSelectedItemId(null);
-              // }
-              
-              // Forzar actualización de UI si es necesario
-              if (typeof setForceUpdate === 'function') {
-                setForceUpdate(Date.now());
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinaCard.jsx:820',message:'Calling updateItemConfiguration',data:{section,itemId,isGlobal:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
+          // #endregion
+          updateItemConfiguration(section, itemId, cleanConfig, { isGlobal: true })
+            .then((result) => {
+              // #region agent log
+              fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinaCard.jsx:822',message:'updateItemConfiguration result',data:{section,itemId,result,updated:result?.updated},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
+              // #endregion
+              if (result && result.updated) {
+                console.log(`[ChecklistSection] ✅ Configuración guardada en rutina y preferencias globales para ${section}.${itemId}`);
+                
+                // IMPORTANTE: Actualizar también el prop config localmente para reflejar cambios inmediatamente
+                // Esto asegura que los hábitos personalizados muestren los cambios sin necesidad de recargar
+                if (onConfigChange && typeof onConfigChange === 'function') {
+                  // #region agent log
+                  fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinaCard.jsx:829',message:'Calling onConfigChange callback',data:{section,itemId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
+                  // #endregion
+                  // Llamar al callback del padre para actualizar el config en RutinaTable
+                  onConfigChange(itemId, cleanConfig, { scope: 'today' });
+                }
+                
+                // Forzar actualización de UI si es necesario
+                if (typeof setForceUpdate === 'function') {
+                  setForceUpdate(Date.now());
+                }
+              } else {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinaCard.jsx:838',message:'updateItemConfiguration failed',data:{section,itemId,result},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
+                // #endregion
+                console.warn(`[ChecklistSection] ⚠️ Configuración no se pudo guardar completamente para ${section}.${itemId}`);
+                enqueueSnackbar('Advertencia: La configuración podría no haberse guardado completamente', { variant: 'warning' });
               }
             })
             .catch(error => {
+              // #region agent log
+              fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinaCard.jsx:843',message:'updateItemConfiguration error',data:{section,itemId,error:error.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
+              // #endregion
               console.error(`[ChecklistSection] ❌ Error al guardar configuración:`, error);
               enqueueSnackbar('Error al guardar configuración', { variant: 'error' });
             });
@@ -819,6 +882,9 @@ const RutinaCard = ({
           throw new Error('Función updateItemConfiguration no disponible');
         }
       } catch (execError) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinaCard.jsx:851',message:'handleConfigChange execution error',data:{section,itemId,error:execError.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
+        // #endregion
         console.error('[ChecklistSection] ❌ Error en ejecución al guardar configuración:', execError);
         enqueueSnackbar('Error inesperado al guardar', { variant: 'error' });
       }
@@ -840,6 +906,8 @@ const RutinaCard = ({
   // }; // Eliminado
 
   // Función utilitaria para renderizar los iconos de hábitos de una sección
+  // IMPORTANTE: En RutinaCard mostramos TODOS los hábitos (marcados y no marcados)
+  // En la vista colapsada, NO aplicamos reglas de cadencia, solo mostramos todos los activos
   const renderHabitIcons = ({
     sectionIcons,
     config,
@@ -850,10 +918,24 @@ const RutinaCard = ({
     iconSize = 'inherit',
     mr = 0.2
   }) => {
-    return Object.keys(sectionIcons || {}).map((itemId) => {
+    // En RutinaCard colapsado: mostrar TODOS los hábitos activos (marcados y no marcados)
+    // NO usar getVisibleItemIds porque filtra por reglas de cadencia que ocultan completados
+    // Simplemente iterar sobre todos los iconos y filtrar solo por activo === false
+    return Object.keys(sectionIcons).map((itemId) => {
       const Icon = sectionIcons[itemId];
-      const isCompleted = !!localData[itemId];
-      if (!config[itemId] || !config[itemId].activo) return null;
+      if (!Icon) return null;
+      
+      const isCompleted = !!localData[itemId] || !!rutina?.[section]?.[itemId];
+      const itemConfig = config[itemId] || {
+        tipo: 'DIARIO',
+        frecuencia: 1,
+        activo: true,
+        periodo: 'CADA_DIA'
+      };
+      
+      // Solo filtrar por activo === false, mostrar todos los demás (completados y no completados)
+      if (itemConfig.activo === false) return null;
+      
       return (
         <HabitIconButton
           key={itemId}
@@ -869,7 +951,7 @@ const RutinaCard = ({
           mr={mr}
         />
       );
-    });
+    }).filter(Boolean);
   };
 
   return (
@@ -914,7 +996,7 @@ const RutinaCard = ({
           {!isExpanded && (
             <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 0.3, alignItems: 'center' }}>
               {renderHabitIcons({
-                sectionIcons: iconConfig[section],
+                sectionIcons: sectionIcons,
                 config,
                 localData,
                 onItemClick: handleItemClick,
@@ -938,6 +1020,60 @@ const RutinaCard = ({
       {/* Contenido de la sección (colapsable) */}
       <Collapse in={isExpanded} unmountOnExit>
         <CardContent sx={{ p: 0.5, pt: 0, bgcolor: 'background.paper' }}>
+          {/* Sección de configuración de hábitos personalizados */}
+          {sectionHabits && sectionHabits.length > 0 && (
+            <Box sx={{ mb: 1, pb: 1, borderBottom: `1px solid ${alpha('#fff', 0.1)}` }}>
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  display: 'block',
+                  mb: 0.75,
+                  px: 1,
+                  color: 'text.secondary',
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5
+                }}
+              >
+                Configuración de Hábitos
+              </Typography>
+              <List dense disablePadding sx={{ py: 0, my: 0 }}>
+                {sectionHabits
+                  .filter(h => h.activo !== false)
+                  .sort((a, b) => (a.orden || 0) - (b.orden || 0))
+                  .map((habit) => {
+                    const habitId = habit.id || habit._id;
+                    const habitConfig = config[habitId] || {
+                      tipo: 'DIARIO',
+                      frecuencia: 1,
+                      activo: true,
+                      periodo: 'CADA_DIA'
+                    };
+                    const Icon = getIconByName(habit.icon);
+                    const isCompleted = isItemCompleted(habitId);
+                    
+                    return (
+                      <Box key={habitId} sx={{ mb: 0.5 }}>
+                        <ChecklistItem
+                          itemId={habitId}
+                          section={section}
+                          Icon={Icon}
+                          isCompleted={isCompleted}
+                          readOnly={readOnly}
+                          onItemClick={handleItemClick}
+                          config={habitConfig}
+                          onConfigChange={(newConfig, meta) => onConfigChange(habitId, newConfig, meta)}
+                          isSetupOpen={openSetupItemId === habitId}
+                          onSetupToggle={() => setOpenSetupItemId(openSetupItemId === habitId ? null : habitId)}
+                        />
+                      </Box>
+                    );
+                  })}
+              </List>
+            </Box>
+          )}
+          {/* Lista de ítems principales */}
           <List dense disablePadding sx={{ py: 0, my: 0 }}>
             {renderItems()}
           </List>
@@ -962,12 +1098,17 @@ const CollapsedIcons = memo(({
   if (!rutina) return null;
   
   const itemsParaMostrar = useMemo(() => {
-    // Vista colapsada: ocultar íconos completados; mostrar ítems activos no completados
+    // En RutinaCard: mostrar TODOS los hábitos activos (marcados y no marcados)
+    // NO usar getVisibleItemIds porque filtra por reglas de cadencia que ocultan completados
+    // Simplemente iterar sobre todos los iconos y filtrar solo por activo === false
     return Object.keys(sectionIcons).filter(itemId => {
       const itemConfig = config?.[itemId];
-      if (!itemConfig || itemConfig.activo === false) return false;
-      const isCompleted = !!localData[itemId] || !!rutina?.[section]?.[itemId];
-      return !isCompleted; // ocultar completados
+      if (!itemConfig) {
+        // Si no hay config, asumir activo por defecto
+        return true;
+      }
+      // Solo filtrar por activo === false, mostrar todos los demás
+      return itemConfig.activo !== false;
     });
   }, [sectionIcons, section, config, rutina, localData]);
   

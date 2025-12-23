@@ -3,8 +3,9 @@ import { Box, Typography, CircularProgress, Paper, Button } from '@mui/material'
 import { useResponsive } from '@shared/hooks';
 import RutinaTable from '../rutinas/RutinaTable';
 import { RutinaForm } from '../rutinas/RutinaForm';
+import { HabitsManager } from '../rutinas/HabitsManager';
 
-import { RutinasProvider, useRutinas } from '@shared/context';
+import { RutinasProvider, useRutinas, HabitsProvider, useHabits } from '@shared/context';
 import { useParams, useNavigate } from 'react-router-dom';
 import { formatDateForAPI, getNormalizedToday, parseAPIDate } from '@shared/utils/dateUtils';
 import { 
@@ -31,17 +32,21 @@ const RutinasWithContext = () => {
     getRutinaById
   } = rutinasContext;
   
-  // Debug temporal
-  console.log('[DEBUG Rutinas.jsx] Estado actual:', {
-    loading,
-    rutinasLength: rutinas?.length,
-    rutina: rutina?._id,
-    error
-  });
+  // Cargar hábitos personalizados
+  const { fetchHabits } = useHabits();
+  
+  // Debug temporal - comentado para reducir ruido en consola
+  // console.log('[DEBUG Rutinas.jsx] Estado actual:', {
+  //   loading,
+  //   rutinasLength: rutinas?.length,
+  //   rutina: rutina?._id,
+  //   error
+  // });
   const [editMode, setEditMode] = useState(false);
   const [rutinaToEdit, setRutinaToEdit] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [habitsManagerOpen, setHabitsManagerOpen] = useState(false);
   const initialFetchDone = useRef(false);
   
   // Actualizar la página actual cuando cambia la rutina - memoizado para evitar re-renders
@@ -58,14 +63,15 @@ const RutinasWithContext = () => {
     }
   }, [rutina?._id, rutinas.length]);
   
-  // Cargar todas las rutinas solo cuando se accede a la página
+  // Cargar todas las rutinas y hábitos solo cuando se accede a la página
   useEffect(() => {
     if (!initialFetchDone.current) {
       // Log eliminado para mejor rendimiento
       initialFetchDone.current = true;
       fetchRutinas();
+      fetchHabits();
     }
-  }, [fetchRutinas]); // Dependencia necesaria
+  }, [fetchRutinas, fetchHabits]); // Dependencias necesarias
   
   // Cargar rutina específica si hay un ID en los parámetros
   useEffect(() => {
@@ -107,10 +113,16 @@ const RutinasWithContext = () => {
       handleAddRutina();
     };
 
+    const handleOpenHabitsManager = () => {
+      setHabitsManagerOpen(true);
+    };
+
     window.addEventListener('addRutina', handleAddRutinaEvent);
+    window.addEventListener('openHabitsManager', handleOpenHabitsManager);
 
     return () => {
       window.removeEventListener('addRutina', handleAddRutinaEvent);
+      window.removeEventListener('openHabitsManager', handleOpenHabitsManager);
     };
   }, []); // Handlers son estables, no necesitan dependencias
 
@@ -295,6 +307,11 @@ const RutinasWithContext = () => {
           )}
         </Box>
       </Box>
+      {/* Gestor de hábitos */}
+      <HabitsManager 
+        open={habitsManagerOpen}
+        onClose={() => setHabitsManagerOpen(false)}
+      />
     </Box>
   );
 };

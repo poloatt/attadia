@@ -65,31 +65,13 @@ const cadenciaSchema = {
 };
 
 // Crear esquemas de configuración para cada sección
+// IMPORTANTE: Usar Schema.Types.Mixed para permitir hábitos personalizados dinámicos
+// Esto permite que los usuarios agreguen nuevos hábitos sin modificar el esquema
 const configSchema = {
-  bodyCare: {
-    bath: cadenciaSchema,
-    skinCareDay: cadenciaSchema,
-    skinCareNight: cadenciaSchema,
-    bodyCream: cadenciaSchema
-  },
-  nutricion: {
-    cocinar: cadenciaSchema,
-    agua: cadenciaSchema,
-    protein: cadenciaSchema,
-    meds: cadenciaSchema
-  },
-  ejercicio: {
-    meditate: cadenciaSchema,
-    stretching: cadenciaSchema,
-    gym: cadenciaSchema,
-    cardio: cadenciaSchema
-  },
-  cleaning: {
-    bed: cadenciaSchema,
-    platos: cadenciaSchema,
-    piso: cadenciaSchema,
-    ropa: cadenciaSchema
-  }
+  bodyCare: { type: mongoose.Schema.Types.Mixed, default: {} },
+  nutricion: { type: mongoose.Schema.Types.Mixed, default: {} },
+  ejercicio: { type: mongoose.Schema.Types.Mixed, default: {} },
+  cleaning: { type: mongoose.Schema.Types.Mixed, default: {} }
 };
 
 const rutinaSchema = createSchema({
@@ -98,48 +80,53 @@ const rutinaSchema = createSchema({
     default: Date.now,
     required: true
   },
+  // IMPORTANTE: Usar Schema.Types.Mixed para permitir hábitos personalizados dinámicos
+  // Esto permite que los usuarios agreguen nuevos hábitos sin modificar el esquema
   bodyCare: {
-    bath: { type: Boolean, default: false },
-    skinCareDay: { type: Boolean, default: false },
-    skinCareNight: { type: Boolean, default: false },
-    bodyCream: { type: Boolean, default: false }
+    type: mongoose.Schema.Types.Mixed,
+    default: () => ({
+      bath: false,
+      skinCareDay: false,
+      skinCareNight: false,
+      bodyCream: false
+    })
   },
   nutricion: {
-    cocinar: { type: Boolean, default: false },
-    agua: { type: Boolean, default: false },
-    protein: { type: Boolean, default: false },
-    meds: { type: Boolean, default: false }
+    type: mongoose.Schema.Types.Mixed,
+    default: () => ({
+      cocinar: false,
+      agua: false,
+      protein: false,
+      meds: false
+    })
   },
   ejercicio: {
-    meditate: { type: Boolean, default: false },
-    stretching: { type: Boolean, default: false },
-    gym: { type: Boolean, default: false },
-    cardio: { type: Boolean, default: false }
+    type: mongoose.Schema.Types.Mixed,
+    default: () => ({
+      meditate: false,
+      stretching: false,
+      gym: false,
+      cardio: false
+    })
   },
   cleaning: {
-    bed: { type: Boolean, default: false },
-    platos: { type: Boolean, default: false },
-    piso: { type: Boolean, default: false },
-    ropa: { type: Boolean, default: false }
+    type: mongoose.Schema.Types.Mixed,
+    default: () => ({
+      bed: false,
+      platos: false,
+      piso: false,
+      ropa: false
+    })
   },
   config: {
     type: configSchema,
-    default: () => {
-      const defaultConfig = {};
-      ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'].forEach(section => {
-        defaultConfig[section] = {};
-        Object.keys(rutinaSchema.obj[section]).forEach(item => {
-          defaultConfig[section][item] = {
-            tipo: 'DIARIO',
-            diasSemana: [],
-            diasMes: [],
-            frecuencia: 1,
-            activo: true
-          };
-        });
-      });
-      return defaultConfig;
-    }
+    default: () => ({
+      bodyCare: {},
+      nutricion: {},
+      ejercicio: {},
+      cleaning: {}
+    }),
+    strict: false // Permitir campos dinámicos (hábitos personalizados)
   },
   completitud: {
     type: Number,
@@ -318,11 +305,28 @@ rutinaSchema.pre('save', async function(next) {
 
 // Middleware para actualizar completitud
 rutinaSchema.pre('save', function(next) {
+  // CRÍTICO: Marcar secciones como modificadas para que Mongoose guarde campos dinámicos en Schema.Types.Mixed
+  ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'].forEach(section => {
+    if (this.isModified(section) || (this[section] && typeof this[section] === 'object')) {
+      this.markModified(section);
+      // Marcar cada campo dentro de la sección
+      if (this[section] && typeof this[section] === 'object') {
+        Object.keys(this[section]).forEach(field => {
+          this.markModified(`${section}.${field}`);
+        });
+      }
+    }
+  });
+
   let totalTasks = 0;
   let completedTasks = 0;
 
   ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'].forEach(section => {
-    const sectionFields = Object.keys(this[section].toObject());
+    // Convertir a objeto si es necesario (para Mixed types)
+    const sectionData = this[section] && typeof this[section].toObject === 'function' 
+      ? this[section].toObject() 
+      : (this[section] || {});
+    const sectionFields = Object.keys(sectionData);
     let sectionTotal = 0;
     let sectionCompleted = 0;
     
@@ -343,7 +347,7 @@ rutinaSchema.pre('save', function(next) {
       // Solo contar los campos que deben mostrarse según su cadencia
       if (this.shouldShowItem(section, field)) {
         sectionTotal++;
-        if (this[section][field] === true) {
+        if (sectionData[field] === true) {
           sectionCompleted++;
           // Actualizar última completación
           if (this.isModified(`${section}.${field}`)) {
@@ -364,6 +368,21 @@ rutinaSchema.pre('save', function(next) {
 
 // Pre-save hook para garantizar que las frecuencias sean números
 rutinaSchema.pre('save', function(next) {
+  // CRÍTICO: Marcar config como modificado para que Mongoose guarde campos dinámicos en Schema.Types.Mixed
+  if (this.isModified('config') || (this.config && typeof this.config === 'object')) {
+    this.markModified('config');
+    // Marcar cada sección también
+    ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'].forEach(section => {
+      if (this.config[section]) {
+        this.markModified(`config.${section}`);
+        // Marcar cada item dentro de la sección
+        Object.keys(this.config[section]).forEach(item => {
+          this.markModified(`config.${section}.${item}`);
+        });
+      }
+    });
+  }
+  
   if (this.config) {
     ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'].forEach(section => {
       if (this.config[section]) {

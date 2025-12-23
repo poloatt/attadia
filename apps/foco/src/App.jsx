@@ -17,6 +17,7 @@ import { NavigationBarProvider } from '@shared/context/NavigationBarContext';
 import { SidebarProvider } from '@shared/context/SidebarContext';
 import { UISettingsProvider } from '@shared/context/UISettingsContext';
 import { RutinasProvider } from '@shared/context/RutinasContext';
+import { HabitsProvider } from '@shared/context/HabitsContext';
 import { useAuth } from '@shared/context/AuthContext';
 
 // Importaciones específicas de Foco
@@ -85,9 +86,11 @@ function App() {
           <SidebarProvider>
             <UISettingsProvider>
               <RutinasProvider>
-                <ErrorBoundary>
-                  <AppContent />
-                </ErrorBoundary>
+                <HabitsProvider>
+                  <ErrorBoundary>
+                    <AppContent />
+                  </ErrorBoundary>
+                </HabitsProvider>
               </RutinasProvider>
             </UISettingsProvider>
           </SidebarProvider>

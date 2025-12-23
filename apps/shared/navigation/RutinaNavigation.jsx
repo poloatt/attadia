@@ -7,7 +7,8 @@ import {
   TodayOutlined as TodayIcon,
   DeleteOutline as DeleteIcon,
   AddOutlined as AddIcon,
-  Undo as UndoIcon
+  Undo as UndoIcon,
+  SettingsOutlined as SettingsIcon
 } from '@mui/icons-material';
 import { parseAPIDate, formatDateForAPI } from '../utils/dateUtils.js';
 import { format } from 'date-fns';
@@ -26,7 +27,8 @@ const RutinaNavigation = ({
   rutina,
   loading = false,
   currentPage,
-  totalPages
+  totalPages,
+  onSettingsClick
 }) => {
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.down('sm'));
@@ -351,10 +353,34 @@ const RutinaNavigation = ({
                   openTo="day"
                   showToolbar={false}
                   componentsProps={{ actionBar: { actions: [] } }}
+                  renderInput={() => null}
                 />
               </Box>
             </LocalizationProvider>
           </Popover>
+          {/* Botón de configuración de hábitos */}
+          {onSettingsClick && (
+            <Tooltip title="Configurar hábitos">
+              <span>
+                <IconButton 
+                  size="small" 
+                  onClick={onSettingsClick} 
+                  disabled={loading} 
+                  sx={{
+                    ...commonButtonSx,
+                    color: loading ? 'text.disabled' : 'text.secondary',
+                    '&:hover': {
+                      backgroundColor: loading ? 'transparent' : 'action.hover',
+                      color: loading ? 'text.disabled' : 'text.primary'
+                    }
+                  }} 
+                  aria-label="Configurar hábitos"
+                >
+                  <SettingsIcon />
+                </IconButton>
+              </span>
+            </Tooltip>
+          )}
           {/* Botón Undo - solo mostrar si hay acciones para deshacer */}
           {canUndo() && getUndoCount() > 0 && (
             <Tooltip title={canUndo() ? `Deshacer última acción (${getUndoCount()} disponible${getUndoCount() > 1 ? 's' : ''})` : 'No hay acciones para deshacer'}>

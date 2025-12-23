@@ -4,6 +4,7 @@ export * from './AuthContext.jsx';
 export * from './CuotasContext.jsx';
 export * from './FormContext.jsx';
 export * from './GlobalFormEventListener.jsx';
+export * from './HabitsContext.jsx';
 export * from './NavigationBarContext.jsx';
 export * from './RutinasContext.jsx';
 export * from './SidebarContext.jsx';

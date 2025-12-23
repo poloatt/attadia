@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 // Definir el esquema de configuración de cadencia global por usuario
@@ -35,30 +35,24 @@ const cadenciaConfigSchema = {
 };
 
 // Estructura para configurar las rutinas globalmente
+// IMPORTANTE: Usar Schema.Types.Mixed para permitir hábitos personalizados dinámicos
+// Las secciones deben ser objetos flexibles que permitan cualquier campo adicional
 const rutinasConfigSchema = {
   bodyCare: {
-    bath: cadenciaConfigSchema,
-    skinCareDay: cadenciaConfigSchema,
-    skinCareNight: cadenciaConfigSchema,
-    bodyCream: cadenciaConfigSchema
+    type: Schema.Types.Mixed,
+    default: () => ({})
   },
   nutricion: {
-    cocinar: cadenciaConfigSchema,
-    agua: cadenciaConfigSchema,
-    protein: cadenciaConfigSchema,
-    meds: cadenciaConfigSchema
+    type: Schema.Types.Mixed,
+    default: () => ({})
   },
   ejercicio: {
-    meditate: cadenciaConfigSchema,
-    stretching: cadenciaConfigSchema,
-    gym: cadenciaConfigSchema,
-    cardio: cadenciaConfigSchema
+    type: Schema.Types.Mixed,
+    default: () => ({})
   },
   cleaning: {
-    bed: cadenciaConfigSchema,
-    platos: cadenciaConfigSchema,
-    piso: cadenciaConfigSchema,
-    ropa: cadenciaConfigSchema
+    type: Schema.Types.Mixed,
+    default: () => ({})
   },
   // Añadir metadatos para mejor control de versiones
   _metadata: {
@@ -157,24 +151,84 @@ const userSchema = new mongoose.Schema({
       }
     },
     // Añadimos la configuración global de rutinas para el usuario
+    // Usa Schema.Types.Mixed para permitir hábitos personalizados dinámicos
     rutinasConfig: {
-      type: rutinasConfigSchema,
+      type: Schema.Types.Mixed,
       default: () => {
-        const defaultConfig = {};
-        ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'].forEach(section => {
-          defaultConfig[section] = {};
-          Object.keys(rutinasConfigSchema[section]).forEach(item => {
-            defaultConfig[section][item] = {
-              tipo: 'DIARIO',
-              diasSemana: [],
-              diasMes: [],
-              frecuencia: 1,
-              activo: true
-            };
-          });
-        });
+        const defaultConfig = {
+          bodyCare: {},
+          nutricion: {},
+          ejercicio: {},
+          cleaning: {},
+          _metadata: {
+            version: 1,
+            lastUpdated: new Date()
+          }
+        };
         return defaultConfig;
       }
+    }
+  },
+  // Hábitos personalizados del usuario
+  customHabits: {
+    type: {
+      bodyCare: [{
+        id: { type: String, required: true },
+        label: { type: String, required: true },
+        icon: { type: String, required: true },
+        activo: { type: Boolean, default: true },
+        orden: { type: Number, default: 0 }
+      }],
+      nutricion: [{
+        id: { type: String, required: true },
+        label: { type: String, required: true },
+        icon: { type: String, required: true },
+        activo: { type: Boolean, default: true },
+        orden: { type: Number, default: 0 }
+      }],
+      ejercicio: [{
+        id: { type: String, required: true },
+        label: { type: String, required: true },
+        icon: { type: String, required: true },
+        activo: { type: Boolean, default: true },
+        orden: { type: Number, default: 0 }
+      }],
+      cleaning: [{
+        id: { type: String, required: true },
+        label: { type: String, required: true },
+        icon: { type: String, required: true },
+        activo: { type: Boolean, default: true },
+        orden: { type: Number, default: 0 }
+      }]
+    },
+    default: () => {
+      // Hábitos por defecto que se pre-cargan para nuevos usuarios
+      return {
+        bodyCare: [
+          { id: 'bath', label: 'Ducha', icon: 'Bathtub', activo: true, orden: 0 },
+          { id: 'skinCareDay', label: 'Cuidado facial día', icon: 'PersonOutline', activo: true, orden: 1 },
+          { id: 'skinCareNight', label: 'Cuidado facial noche', icon: 'Nightlight', activo: true, orden: 2 },
+          { id: 'bodyCream', label: 'Crema corporal', icon: 'Spa', activo: true, orden: 3 }
+        ],
+        nutricion: [
+          { id: 'cocinar', label: 'Cocinar', icon: 'Restaurant', activo: true, orden: 0 },
+          { id: 'agua', label: 'Beber agua', icon: 'WaterDrop', activo: true, orden: 1 },
+          { id: 'protein', label: 'Proteína', icon: 'SetMeal', activo: true, orden: 2 },
+          { id: 'meds', label: 'Medicamentos', icon: 'Medication', activo: true, orden: 3 }
+        ],
+        ejercicio: [
+          { id: 'meditate', label: 'Meditar', icon: 'SelfImprovement', activo: true, orden: 0 },
+          { id: 'stretching', label: 'Correr', icon: 'DirectionsRun', activo: true, orden: 1 },
+          { id: 'gym', label: 'Gimnasio', icon: 'FitnessCenter', activo: true, orden: 2 },
+          { id: 'cardio', label: 'Bicicleta', icon: 'DirectionsBike', activo: true, orden: 3 }
+        ],
+        cleaning: [
+          { id: 'bed', label: 'Hacer la cama', icon: 'Hotel', activo: true, orden: 0 },
+          { id: 'platos', label: 'Lavar platos', icon: 'Dining', activo: true, orden: 1 },
+          { id: 'piso', label: 'Limpiar piso', icon: 'CleaningServices', activo: true, orden: 2 },
+          { id: 'ropa', label: 'Lavar ropa', icon: 'LocalLaundryService', activo: true, orden: 3 }
+        ]
+      };
     }
   },
   role: {
@@ -189,6 +243,7 @@ const userSchema = new mongoose.Schema({
   }
 }, {
   timestamps: true,
+  strict: false, // IMPORTANTE: Permitir campos dinámicos en rutinasConfig para hábitos personalizados
   toJSON: {
     transform: function(doc, ret) {
       ret.id = ret._id;
@@ -248,6 +303,40 @@ userSchema.pre('save', function(next) {
         });
       }
     });
+  }
+  next();
+});
+
+// Middleware para inicializar customHabits si no existe
+userSchema.pre('save', function(next) {
+  if (!this.customHabits || !this.customHabits.bodyCare || this.customHabits.bodyCare.length === 0) {
+    // Inicializar con hábitos por defecto
+    this.customHabits = {
+      bodyCare: [
+        { id: 'bath', label: 'Ducha', icon: 'Bathtub', activo: true, orden: 0 },
+        { id: 'skinCareDay', label: 'Cuidado facial día', icon: 'PersonOutline', activo: true, orden: 1 },
+        { id: 'skinCareNight', label: 'Cuidado facial noche', icon: 'Nightlight', activo: true, orden: 2 },
+        { id: 'bodyCream', label: 'Crema corporal', icon: 'Spa', activo: true, orden: 3 }
+      ],
+      nutricion: [
+        { id: 'cocinar', label: 'Cocinar', icon: 'Restaurant', activo: true, orden: 0 },
+        { id: 'agua', label: 'Beber agua', icon: 'WaterDrop', activo: true, orden: 1 },
+        { id: 'protein', label: 'Proteína', icon: 'SetMeal', activo: true, orden: 2 },
+        { id: 'meds', label: 'Medicamentos', icon: 'Medication', activo: true, orden: 3 }
+      ],
+      ejercicio: [
+        { id: 'meditate', label: 'Meditar', icon: 'SelfImprovement', activo: true, orden: 0 },
+        { id: 'stretching', label: 'Correr', icon: 'DirectionsRun', activo: true, orden: 1 },
+        { id: 'gym', label: 'Gimnasio', icon: 'FitnessCenter', activo: true, orden: 2 },
+        { id: 'cardio', label: 'Bicicleta', icon: 'DirectionsBike', activo: true, orden: 3 }
+      ],
+      cleaning: [
+        { id: 'bed', label: 'Hacer la cama', icon: 'Hotel', activo: true, orden: 0 },
+        { id: 'platos', label: 'Lavar platos', icon: 'Dining', activo: true, orden: 1 },
+        { id: 'piso', label: 'Limpiar piso', icon: 'CleaningServices', activo: true, orden: 2 },
+        { id: 'ropa', label: 'Lavar ropa', icon: 'LocalLaundryService', activo: true, orden: 3 }
+      ]
+    };
   }
   next();
 });

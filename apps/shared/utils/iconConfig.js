@@ -16,6 +16,22 @@ import LocalLaundryServiceIcon from '@mui/icons-material/LocalLaundryService';
 import CleaningServicesIcon from '@mui/icons-material/CleaningServices';
 import DiningIcon from '@mui/icons-material/Dining';
 import SetMealIcon from '@mui/icons-material/SetMeal';
+// Iconos adicionales para hábitos personalizados
+import AddIcon from '@mui/icons-material/Add';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
+import WbSunnyIcon from '@mui/icons-material/WbSunny';
+import BedtimeIcon from '@mui/icons-material/Bedtime';
+import ShowerIcon from '@mui/icons-material/Shower';
+import FaceIcon from '@mui/icons-material/Face';
+import EmojiFoodBeverageIcon from '@mui/icons-material/EmojiFoodBeverage';
+import LocalDrinkIcon from '@mui/icons-material/LocalDrink';
+import SportsGymnasticsIcon from '@mui/icons-material/SportsGymnastics';
+import PoolIcon from '@mui/icons-material/Pool';
+import HomeIcon from '@mui/icons-material/Home';
+import KitchenIcon from '@mui/icons-material/Kitchen';
+import HomeRepairServiceIcon from '@mui/icons-material/HomeRepairService';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -157,4 +173,91 @@ export const formatFechaDisplay = (fechaStr) => {
     console.error('[iconConfig] Error al formatear fecha para mostrar:', error);
     return 'Fecha inválida';
   }
-}; 
+};
+
+// Mapeo de nombres de iconos (string) a componentes Material-UI
+export const iconMap = {
+  // Iconos existentes
+  Bathtub: BathtubIcon,
+  Person: PersonIcon,
+  PersonOutline: PersonOutlineIcon,
+  Nightlight: NightlightIcon,
+  Spa: SpaIcon,
+  Restaurant: RestaurantIcon,
+  WaterDrop: WaterDropIcon,
+  FitnessCenter: FitnessCenterIcon,
+  Medication: MedicationIcon,
+  SelfImprovement: SelfImprovementIcon,
+  DirectionsRun: DirectionsRunIcon,
+  DirectionsBike: DirectionsBikeIcon,
+  Hotel: HotelIcon,
+  LocalLaundryService: LocalLaundryServiceIcon,
+  CleaningServices: CleaningServicesIcon,
+  Dining: DiningIcon,
+  SetMeal: SetMealIcon,
+  // Iconos adicionales
+  Add: AddIcon,
+  CheckCircle: CheckCircleIcon,
+  Favorite: FavoriteIcon,
+  LocalFireDepartment: LocalFireDepartmentIcon,
+  WbSunny: WbSunnyIcon,
+  Bedtime: BedtimeIcon,
+  Shower: ShowerIcon,
+  Face: FaceIcon,
+  EmojiFoodBeverage: EmojiFoodBeverageIcon,
+  LocalDrink: LocalDrinkIcon,
+  SportsGymnastics: SportsGymnasticsIcon,
+  Pool: PoolIcon,
+  Home: HomeIcon,
+  Kitchen: KitchenIcon,
+  Vacuum: HomeRepairServiceIcon,
+  DryCleaning: LocalLaundryServiceIcon,
+};
+
+/**
+ * Obtiene el componente de icono Material-UI a partir de un nombre (string)
+ * @param {string} iconName - Nombre del icono
+ * @returns {React.Component|null} - Componente del icono o null si no se encuentra
+ */
+export const getIconByName = (iconName) => {
+  if (!iconName || typeof iconName !== 'string') {
+    return null;
+  }
+  return iconMap[iconName] || null;
+};
+
+/**
+ * Lista de iconos disponibles para selección en el formulario
+ */
+export const availableIcons = [
+  { name: 'Bathtub', label: 'Bañera' },
+  { name: 'PersonOutline', label: 'Persona' },
+  { name: 'Nightlight', label: 'Noche' },
+  { name: 'Spa', label: 'Spa' },
+  { name: 'Restaurant', label: 'Restaurante' },
+  { name: 'WaterDrop', label: 'Agua' },
+  { name: 'SetMeal', label: 'Comida' },
+  { name: 'Medication', label: 'Medicina' },
+  { name: 'SelfImprovement', label: 'Meditación' },
+  { name: 'DirectionsRun', label: 'Correr' },
+  { name: 'FitnessCenter', label: 'Gimnasio' },
+  { name: 'DirectionsBike', label: 'Bicicleta' },
+  { name: 'Hotel', label: 'Cama' },
+  { name: 'Dining', label: 'Platos' },
+  { name: 'CleaningServices', label: 'Limpieza' },
+  { name: 'LocalLaundryService', label: 'Lavandería' },
+  { name: 'Favorite', label: 'Favorito' },
+  { name: 'LocalFireDepartment', label: 'Fuego' },
+  { name: 'WbSunny', label: 'Sol' },
+  { name: 'Bedtime', label: 'Dormir' },
+  { name: 'Shower', label: 'Ducha' },
+  { name: 'Face', label: 'Cara' },
+  { name: 'EmojiFoodBeverage', label: 'Bebida' },
+  { name: 'LocalDrink', label: 'Bebida Local' },
+  { name: 'SportsGymnastics', label: 'Gimnasia' },
+  { name: 'Pool', label: 'Piscina' },
+  { name: 'Home', label: 'Casa' },
+  { name: 'Kitchen', label: 'Cocina' },
+  { name: 'Vacuum', label: 'Aspiradora' },
+  { name: 'DryCleaning', label: 'Limpieza en Seco' },
+]; 
