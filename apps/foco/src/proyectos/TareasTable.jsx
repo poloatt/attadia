@@ -115,8 +115,7 @@ const ordenarTareas = (tareas) => {
   });
 };
 
-export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea, onActivateMultiSelect, onRefreshData }) => {
-  const [open, setOpen] = useState(false);
+export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea, onActivateMultiSelect, onRefreshData, isOpen = false, onToggleOpen }) => {
   const [estadoLocal, setEstadoLocal] = useState(tarea.estado);
   const [subtareasLocal, setSubtareasLocal] = useState(tarea.subtareas || []);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -572,7 +571,9 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
     }
     
     // Solo hacer toggle del colapse si no hay selecciones activas y no fue presión larga
-    setOpen(!open);
+    if (onToggleOpen) {
+      onToggleOpen(tarea._id);
+    }
   };
 
   const estadoTokens = getEstadoTokens(theme, estadoLocal);
@@ -707,10 +708,12 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
               size="small"
               onClick={(e) => {
                 e.stopPropagation();
-                setOpen(!open);
+                if (onToggleOpen) {
+                  onToggleOpen(tarea._id);
+                }
               }}
               sx={{
-                transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+                transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
                 transition: 'transform 0.2s',
                 color: 'text.secondary'
               }}
@@ -770,19 +773,23 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
           '& > *': { borderBottom: 'none !important' },
         }}
       >
-        <TableCell style={{ paddingBottom: 0, paddingTop: 0, borderBottom: 'none' }} colSpan={6}>
-          <Collapse in={open} timeout="auto" unmountOnExit>
+        <TableCell style={{ paddingBottom: 0, paddingTop: 0, borderBottom: 'none', paddingLeft: 0, paddingRight: 0 }} colSpan={6}>
+          <Collapse in={isOpen} timeout="auto" unmountOnExit>
             <Box sx={{ 
-              p: isMobile ? 1 : 2, 
+              py: isMobile ? 0.5 : 0.75,
+              pr: isMobile ? 0.75 : 1,
               // Nivel anidado (detalle colapsado): fondo sutil + rail de estado para clarificar pertenencia
               bgcolor: theme.palette.mode === 'dark'
                 ? alpha(theme.palette.common.white, 0.03)
                 : alpha(theme.palette.common.black, 0.03),
               borderLeft: `2px solid ${estadoTokens.softBorder}`,
-              ml: 0.5,
-              pl: isMobile ? 1 : 1.5,
+              pl: isMobile ? 0.75 : 1,
               maxHeight: isMobile ? '250px' : '300px', 
               overflowY: 'auto',
+              width: '100%',
+              boxSizing: 'border-box',
+              // Asegurar que el borderLeft esté alineado con el left: 0 de las tareas
+              ml: 0,
               '&::-webkit-scrollbar': {
                 width: isMobile ? '4px' : '8px',
               },
@@ -797,30 +804,37 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
                 backgroundColor: 'rgba(0,0,0,0.3)',
               },
             }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, textAlign: 'center', width: '100%', display: 'block' }}>
-                {format(new Date(tarea.fechaInicio), 'dd MMM yyyy', { locale: es })}
-                {tarea.fechaVencimiento && (
-                  <> → {format(new Date(tarea.fechaVencimiento), 'dd MMM yyyy', { locale: es })}</>
-                )}
-              </Typography>
-
               {tarea.descripcion && (
                 <Typography 
                   variant="body2" 
                   color="text.secondary"
-                  sx={{ mb: 0.5, whiteSpace: 'pre-wrap' }}
+                  sx={{ mb: isMobile ? 0.35 : 0.3, whiteSpace: 'pre-wrap', fontSize: isMobile ? '0.76rem' : '0.82rem', lineHeight: 1.02 }}
                 >
                   {showValues ? tarea.descripcion : maskText(tarea.descripcion)}
                 </Typography>
               )}
 
               {tarea.subtareas?.length > 0 && (
-                <Box sx={{ mb: 0.5 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.25 }}>
-                    <Typography variant="body2">
+                <Box sx={{ mb: 0, width: '100%', boxSizing: 'border-box' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: isMobile ? 0.2 : 0.15, width: '100%' }}>
+                    <Typography 
+                      variant="body2"
+                      sx={{
+                        fontSize: isMobile ? '0.7rem' : '0.75rem',
+                        lineHeight: 1.1,
+                        fontWeight: 500
+                      }}
+                    >
                       Subtareas
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography 
+                      variant="caption" 
+                      color="text.secondary"
+                      sx={{
+                        fontSize: isMobile ? '0.6rem' : '0.65rem',
+                        lineHeight: 1.1
+                      }}
+                    >
                       {subtareasLocal.filter(st => st.completada).length}/{subtareasLocal.length} completadas
                     </Typography>
                   </Box>
@@ -830,25 +844,30 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
                     sx={{ 
                       height: 2,
                       borderRadius: 1,
-                      mb: 0.5,
+                      mb: isMobile ? 0.25 : 0.2,
+                      width: '100%',
                       backgroundColor: alpha(theme.palette.common.white, 0.14),
                       '& .MuiLinearProgress-bar': {
                         backgroundColor: isArchive ? theme.palette.success.main : theme.palette.info.main
                       }
                     }}
                   />
-                  <Box sx={{ pl: 0 }}>
+                  <Box sx={{ pl: 0, pr: 0, width: '100%', boxSizing: 'border-box' }}>
                     {subtareasLocal.map((subtarea, index) => (
                       <Box 
                         key={subtarea._id || index}
                         sx={{ 
                           display: 'flex', 
                           alignItems: 'center', 
-                          gap: 0.5,
-                          mb: 0.25,
+                          gap: isMobile ? 0.25 : 0.35,
+                          mb: index === subtareasLocal.length - 1 ? 0 : (isMobile ? 0.1 : 0.05),
+                          py: isMobile ? 0.1 : 0.05,
+                          minHeight: 0,
+                          width: '100%',
+                          boxSizing: 'border-box',
                           '&:hover': {
-                            backgroundColor: 'action.hover',
-                            borderRadius: 1
+                            backgroundColor: rowHoverBg,
+                            borderRadius: 0.5
                           }
                         }}
                       >
@@ -858,35 +877,41 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
                           disabled={isUpdating}
                           size="small"
                           sx={{
-                            padding: 0.25,
+                            padding: isMobile ? 0.25 : 0.125,
                             color: 'text.secondary',
                             '&.Mui-checked': {
-                              color: isArchive ? theme.palette.success.main : theme.palette.info.main
+                              color: isArchive ? theme.palette.success.main : theme.palette.text.secondary
                             },
                             '& .MuiSvgIcon-root': {
-                              borderRadius: '50%'
+                              borderRadius: '50%',
+                              fontSize: isMobile ? '1.1rem' : '1rem'
                             },
                             '&:hover': {
                               backgroundColor: 'transparent'
                             }
                           }}
-                          icon={<PendingIcon sx={{ fontSize: '1.2rem' }} />}
+                          icon={<PendingIcon sx={{ fontSize: isMobile ? '1.1rem' : '1rem' }} />}
                           checkedIcon={<CompletedIcon sx={{ 
-                            fontSize: '1.2rem', 
+                            fontSize: isMobile ? '1.1rem' : '1rem', 
                             backgroundColor: 'background.default',
-                            color: isArchive ? theme.palette.success.main : theme.palette.info.main,
+                            color: isArchive ? theme.palette.success.main : theme.palette.text.secondary,
                             borderRadius: '50%',
                             border: '2px solid', 
-                            borderColor: isArchive ? theme.palette.success.main : theme.palette.info.main
+                            borderColor: isArchive ? theme.palette.success.main : theme.palette.text.secondary
                           }} />}
                         />
                         <Typography
-                          variant="body2"
                           sx={{
                             textDecoration: subtarea.completada ? 'line-through' : 'none',
                             color: subtarea.completada ? 'text.secondary' : 'text.primary',
                             flex: 1,
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            minWidth: 0,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            fontSize: isMobile ? '0.76rem' : '0.82rem',
+                            lineHeight: 1.02
                           }}
                           onClick={() => !isUpdating && handleSubtareaToggle(subtarea._id, subtarea.completada)}
                         >
@@ -897,6 +922,38 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
                   </Box>
                 </Box>
               )}
+
+              {/* Fechas de inicio y fin - alineadas a izquierda y derecha */}
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                mb: isMobile ? 0.35 : 0.3,
+                mt: tarea.subtareas?.length > 0 ? (isMobile ? 0.35 : 0.3) : 0
+              }}>
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary" 
+                  sx={{ 
+                    fontSize: isMobile ? '0.7rem' : '0.75rem', 
+                    lineHeight: 1.1 
+                  }}
+                >
+                  {format(new Date(tarea.fechaInicio), 'dd MMM yyyy', { locale: es })}
+                </Typography>
+                {tarea.fechaVencimiento && (
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary" 
+                    sx={{ 
+                      fontSize: isMobile ? '0.7rem' : '0.75rem', 
+                      lineHeight: 1.1 
+                    }}
+                  >
+                    {format(new Date(tarea.fechaVencimiento), 'dd MMM yyyy', { locale: es })}
+                  </Typography>
+                )}
+              </Box>
 
               {tarea.archivos?.length > 0 && (
                 <Box>
@@ -953,6 +1010,7 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
 };
 
 const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea, onActivateMultiSelect, groupingEnabled = true, agendaView = 'ahora', onRefreshData }) => {
+  const [openTareaId, setOpenTareaId] = useState(null);
   const { isMobile, theme } = useResponsive();
   const { maskText } = useValuesVisibility();
   const { layoutBg, surfaceBg, sectionDividerColor } = getGreySurfaceTokens(theme);
@@ -962,6 +1020,11 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
   const groupSubBg = surfaceBg;
   const groupDividerColor = sectionDividerColor;
   const shouldShowRutinas = !isArchive && agendaView === 'ahora';
+
+  // Función para manejar el toggle de apertura de tareas (comportamiento de acordeón)
+  const handleToggleTarea = (tareaId) => {
+    setOpenTareaId(prevId => prevId === tareaId ? null : tareaId);
+  };
 
   // Importante:
   // - En la vista principal (Tareas.jsx) ya filtramos (AHORA/LUEGO + mostrar completadas) con `useAgendaFilter`.
@@ -1028,6 +1091,8 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
                   onSelectTarea={onSelectTarea}
                   onActivateMultiSelect={onActivateMultiSelect}
                   onRefreshData={onRefreshData}
+                  isOpen={openTareaId === (tarea._id || tarea.id)}
+                  onToggleOpen={handleToggleTarea}
                 />
               ))}
             </TableBody>
@@ -1162,6 +1227,8 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
                     onSelectTarea={onSelectTarea}
                     onActivateMultiSelect={onActivateMultiSelect}
                     onRefreshData={onRefreshData}
+                    isOpen={openTareaId === (tarea._id || tarea.id)}
+                    onToggleOpen={handleToggleTarea}
                   />
                 ))}
               </TableBody>
