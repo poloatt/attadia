@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <!-- Ícono estilo Material: reloj -->
   <!-- Fondo para que el favicon no quede blanco sobre blanco -->
-  <circle cx="256" cy="256" r="148" fill="#0f172a"/>
+  <circle cx="256" cy="256" r="148" fill="#181818"/>
   <!-- Aro blanco encima del fondo -->
   <circle cx="256" cy="256" r="148" fill="none" stroke="#ffffff" stroke-width="28"/>
   <g transform="translate(256 256) scale(1.0) translate(-256 -256)">

@@ -86,9 +86,30 @@ app.use((req, res, next) => {
 });
 */
 
-// Middleware
-app.use(express.json());
+// Middleware con manejo de errores de parsing
+app.use(express.json({
+  strict: true
+}));
 app.use(express.urlencoded({ extended: true }));
+
+// Manejar errores de parsing JSON de forma más amigable (debe ir justo después de express.json)
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    // Error de parsing JSON - puede ser "null" como string u otro formato inválido
+    const bodyStr = err.body?.toString() || '';
+    if (bodyStr.trim() === 'null' || bodyStr.trim() === '') {
+      // Si es "null" o vacío, tratar como body vacío y continuar sin error
+      req.body = {};
+      return next();
+    }
+    // Para otros errores de JSON, retornar error 400
+    return res.status(400).json({ 
+      error: 'JSON inválido en el body de la petición',
+      details: config.isDev ? err.message : undefined
+    });
+  }
+  next(err);
+});
 
 // Configuración de CORS
 app.use((req, res, next) => {
@@ -249,9 +270,20 @@ app.use('/api/auth', authRoutes);
 app.use('/api', router);
 app.use('/webhook', webhookRoutes);
 
-// Manejo de errores global
+// Manejo de errores global (debe ir al final, después de todas las rutas)
 app.use((err, req, res, next) => {
+  // Si ya se manejó el error (response enviada), pasar al siguiente
+  if (res.headersSent) {
+    return next(err);
+  }
+  
   console.error('Error:', err);
+  
+  // Errores de parsing JSON ya fueron manejados arriba
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return; // Ya se manejó
+  }
+  
   res.status(err.status || 500).json({
     error: config.isDev ? err.message : 'Error interno del servidor'
   });
