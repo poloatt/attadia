@@ -6,7 +6,7 @@ import { iconConfig, iconTooltips, getIconByName } from '@shared/utils/iconConfi
 import { getNormalizedToday, parseAPIDate, toISODateString } from '@shared/utils/dateUtils';
 import { getVisibleItemIds } from '@shared/utils/visibilityUtils';
 import { getCurrentTimeOfDay } from '@shared/utils/timeOfDayUtils';
-import { isSameWeek, isSameMonth, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays } from 'date-fns';
+import { isSameWeek, isSameMonth, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays, getDay, getDate } from 'date-fns';
 import { es } from 'date-fns/locale';
 import useHorizontalDragScroll from './hooks/useHorizontalDragScroll';
 
@@ -144,6 +144,7 @@ export default function RutinasPendientesHoy({
     if (!rutinaHoy) return [];
     const sections = Object.keys(sectionIconsMap.iconsMap || {});
     const items = [];
+    const itemsSet = new Set(); // Para evitar duplicados
 
     sections.forEach((section) => {
       const sectionIcons = sectionIconsMap.iconsMap[section] || {};
@@ -163,6 +164,10 @@ export default function RutinasPendientesHoy({
         const completadoHoy = rutinaHoy?.[section]?.[itemId] === true;
         if (completadoHoy) return;
         
+        // Verificar si el item ya fue agregado (evitar duplicados)
+        const itemKey = `${section}.${itemId}`;
+        if (itemsSet.has(itemKey)) return;
+        
         const itemConfig = sectionCfg[itemId];
         const tipo = itemConfig?.tipo ? (itemConfig.tipo).toUpperCase() : 'DIARIO';
         const periodo = itemConfig?.periodo ? (itemConfig.periodo).toUpperCase() : 'CADA_DIA';
@@ -171,6 +176,7 @@ export default function RutinasPendientesHoy({
         // Incluir items diarios siempre
         if (tipo === 'DIARIO' || (tipo === 'PERSONALIZADO' && periodo === 'CADA_DIA')) {
           items.push({ section, itemId });
+          itemsSet.add(itemKey);
           return;
         }
         
@@ -187,41 +193,87 @@ export default function RutinasPendientesHoy({
           let diasRestantes = 0;
           
           if (tipo === 'SEMANAL' || (tipo === 'PERSONALIZADO' && periodo === 'CADA_SEMANA')) {
-            // Calcular completados en semana actual
-            historial.filter(fecha => 
+            const diasSemana = Array.isArray(itemConfig.diasSemana) ? itemConfig.diasSemana : [];
+            
+            // Filtrar historial por días de la semana si están configurados
+            const historialFiltrado = diasSemana.length > 0
+              ? historial.filter(fecha => {
+                  const diaSemana = getDay(fecha);
+                  return diasSemana.includes(diaSemana);
+                })
+              : historial;
+            
+            // Calcular completados (mismo filtro que RutinasLuego)
+            historialFiltrado.filter(fecha => 
               isSameWeek(fecha, hoy, { locale: es })
             ).forEach(fecha => {
               fechasUnicas.add(fecha.toISOString().split('T')[0]);
             });
             
+            const diaHoy = getDay(hoy);
+            const hoyEsValido = diasSemana.length === 0 || diasSemana.includes(diaHoy);
             const fechaHoyStr = hoy.toISOString().split('T')[0];
-            if (completadoHoy && !fechasUnicas.has(fechaHoyStr)) {
+            if (completadoHoy && !fechasUnicas.has(fechaHoyStr) && hoyEsValido) {
               fechasUnicas.add(fechaHoyStr);
             }
             
             completadosEnPeriodo = fechasUnicas.size;
             
-            // Calcular días restantes en la semana
-            const finSemana = endOfWeek(hoy, { locale: es });
-            diasRestantes = Math.max(0, differenceInDays(finSemana, hoy) + 1); // +1 para incluir hoy
+            // Calcular días restantes: solo días válidos que aún no han pasado
+            if (diasSemana.length > 0) {
+              diasRestantes = diasSemana.filter(dia => {
+                // Solo contar días que aún no han pasado esta semana
+                // Si hoy es lunes (1) y diasSemana es [1, 3, 5], contar 1, 3, 5
+                // Si hoy es miércoles (3) y diasSemana es [1, 3, 5], contar solo 3, 5
+                return dia >= diaHoy;
+              }).length;
+            } else {
+              // Sin días específicos: contar todos los días restantes
+              const finSemana = endOfWeek(hoy, { locale: es });
+              diasRestantes = Math.max(0, differenceInDays(finSemana, hoy) + 1); // +1 para incluir hoy
+            }
           } else if (tipo === 'MENSUAL' || (tipo === 'PERSONALIZADO' && periodo === 'CADA_MES')) {
+            const diasMes = Array.isArray(itemConfig.diasMes) ? itemConfig.diasMes : [];
+            
+            // Filtrar historial por días del mes si están configurados
+            const historialFiltrado = diasMes.length > 0
+              ? historial.filter(fecha => {
+                  const diaMes = getDate(fecha); // 1-31
+                  return diasMes.includes(diaMes);
+                })
+              : historial;
+            
             // Calcular completados en mes actual
-            historial.filter(fecha => 
+            historialFiltrado.filter(fecha => 
               isSameMonth(fecha, hoy)
             ).forEach(fecha => {
               fechasUnicas.add(fecha.toISOString().split('T')[0]);
             });
             
+            // Verificar si hoy es un día válido antes de agregarlo
+            const diaHoy = getDate(hoy);
+            const hoyEsValido = diasMes.length === 0 || diasMes.includes(diaHoy);
             const fechaHoyStr = hoy.toISOString().split('T')[0];
-            if (completadoHoy && !fechasUnicas.has(fechaHoyStr)) {
+            if (completadoHoy && !fechasUnicas.has(fechaHoyStr) && hoyEsValido) {
               fechasUnicas.add(fechaHoyStr);
             }
             
             completadosEnPeriodo = fechasUnicas.size;
             
-            // Calcular días restantes en el mes
-            const finMes = endOfMonth(hoy);
-            diasRestantes = Math.max(0, differenceInDays(finMes, hoy) + 1); // +1 para incluir hoy
+            // Calcular días restantes: solo días válidos que aún no han pasado
+            if (diasMes.length > 0) {
+              const diaHoy = getDate(hoy);
+              diasRestantes = diasMes.filter(dia => {
+                // Solo contar días que aún no han pasado este mes
+                // Si hoy es día 5 y diasMes es [5, 15, 25], contar 5, 15, 25
+                // Si hoy es día 20 y diasMes es [5, 15, 25], contar solo 25
+                return dia >= diaHoy;
+              }).length;
+            } else {
+              // Sin días específicos: contar todos los días restantes
+              const finMes = endOfMonth(hoy);
+              diasRestantes = Math.max(0, differenceInDays(finMes, hoy) + 1); // +1 para incluir hoy
+            }
           }
           
           // Si faltan completados y los días restantes no alcanzan para cumplir la cuota,
@@ -231,7 +283,11 @@ export default function RutinasPendientesHoy({
             const completadosPorDiaNecesarios = completadosFaltantes / diasRestantes;
             if (completadosPorDiaNecesarios >= 1) {
               // Necesita hacer al menos 1 por día, mostrar en "Hoy"
-              items.push({ section, itemId });
+              // Verificar nuevamente para evitar duplicados
+              if (!itemsSet.has(itemKey)) {
+                items.push({ section, itemId });
+                itemsSet.add(itemKey);
+              }
             }
           }
         }
@@ -245,11 +301,11 @@ export default function RutinasPendientesHoy({
   const pendingItems = itemsHoy;
 
   // Para carrusel infinito: duplicar items al inicio y final
-  // Solo activar si hay suficientes items para que tenga sentido
-  const shouldUseInfiniteCarousel = pendingItems.length > 8;
-  const carouselItems = shouldUseInfiniteCarousel
-    ? [...pendingItems, ...pendingItems, ...pendingItems] // [duplicado][original][duplicado]
-    : pendingItems;
+  // DESACTIVADO temporalmente para evitar duplicados visibles
+  // El carrusel infinito solo funciona bien cuando hay scroll real, no cuando todos los items caben en pantalla
+  // TODO: Implementar detección de scroll real antes de activar
+  const shouldUseInfiniteCarousel = false; // pendingItems.length > 15 && /* verificar que realmente hay scroll */
+  const carouselItems = pendingItems; // Sin duplicación para evitar duplicados visibles
 
   // Tamaños más compactos para encajar en headers de tabla
   // Nota UX: 24px en desktop se percibe demasiado chico. Subimos el diámetro para
@@ -381,8 +437,11 @@ export default function RutinasPendientesHoy({
         const label = sectionIconsMap.labelsMap[section]?.[itemId] || itemId;
         if (!Icon) return null;
 
+        // Key único basado en section e itemId (sin index para evitar problemas con duplicados)
+        const uniqueKey = `${section}.${itemId}`;
+
         return (
-          <Tooltip key={`${section}.${itemId}.${index}`} title={label} arrow placement="top">
+          <Tooltip key={uniqueKey} title={label} arrow placement="top">
             {/* Wrapper requerido por MUI: Tooltip no puede escuchar eventos en un button disabled */}
             <span style={{ display: 'inline-flex' }}>
               <IconButton

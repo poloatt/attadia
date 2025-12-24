@@ -17,11 +17,26 @@ import { styled, alpha } from '@mui/material/styles';
 import './InlineItemConfigImproved.css';
 import { CancelarTabButton, GuardarTabButton } from '@shared/components/common/SystemButtons';
 import { getTimeOfDayLabels, normalizeTimeOfDay, VALID_TIME_OF_DAY } from '@shared/utils/timeOfDayUtils';
+import { DIAS_SEMANA } from '@shared/utils/cadenciaUtils';
 
 // Función para normalizar la frecuencia
 const normalizeFrecuencia = (value) => {
   const parsed = parseInt(String(value || '1'), 10);
   return Number(isNaN(parsed) ? 1 : Math.max(1, parsed));
+};
+
+// Función para obtener la letra mayúscula de un día de la semana
+const getDiaSemanaLetra = (diaValue) => {
+  const letras = {
+    0: 'D', // Domingo
+    1: 'L', // Lunes
+    2: 'M', // Martes
+    3: 'X', // Miércoles
+    4: 'J', // Jueves
+    5: 'V', // Viernes
+    6: 'S'  // Sábado
+  };
+  return letras[diaValue] || '';
 };
 
 const StyledTextField = styled(TextField)(({ theme }) => ({
@@ -93,13 +108,34 @@ export const getFrecuenciaLabel = (config) => {
       label = 'Diario';
   }
   
-  // Agregar horarios si están configurados
-  const horariosLabel = getTimeOfDayLabels(config?.horarios);
-  if (horariosLabel) {
-    return `${label} • ${horariosLabel}`;
+  // Agregar días de la semana si están configurados (solo para SEMANAL o PERSONALIZADO con CADA_SEMANA)
+  const periodo = config?.periodo || 'CADA_DIA';
+  const showDiasSemana = (tipo === 'SEMANAL' || (tipo === 'PERSONALIZADO' && periodo === 'CADA_SEMANA'));
+  
+  let diasSemanaLabel = '';
+  if (showDiasSemana && config?.diasSemana && Array.isArray(config.diasSemana) && config.diasSemana.length > 0) {
+    const diasNames = config.diasSemana
+      .map(dia => getDiaSemanaLetra(dia))
+      .filter(Boolean)
+      .join(', ');
+    if (diasNames) {
+      diasSemanaLabel = `(${diasNames})`;
+    }
   }
   
-  return label;
+  // Agregar horarios si están configurados
+  const horariosLabel = getTimeOfDayLabels(config?.horarios);
+  
+  // Construir label final
+  let finalLabel = label;
+  if (diasSemanaLabel) {
+    finalLabel = `${label} ${diasSemanaLabel}`;
+  }
+  if (horariosLabel) {
+    finalLabel = `${finalLabel} • ${horariosLabel}`;
+  }
+  
+  return finalLabel;
 };
 
 const InlineItemConfigImproved = ({
@@ -108,20 +144,28 @@ const InlineItemConfigImproved = ({
     frecuencia: 1,
     activo: true,
     periodo: 'CADA_DIA',
-    horarios: []
+    horarios: [],
+    diasSemana: []
   },
   onConfigChange,
   itemId,
   sectionId,
   hideActions = false // Prop para ocultar botones cuando está embebido en un formulario
 }) => {
+  // Función para normalizar diasSemana
+  const normalizeDiasSemana = (diasSemana) => {
+    if (!Array.isArray(diasSemana)) return [];
+    return diasSemana.filter(dia => typeof dia === 'number' && dia >= 0 && dia <= 6);
+  };
+
   // Estado base original (desde props) - NO debe cambiar hasta que se guarde
   const [originalConfig, setOriginalConfig] = useState({
     tipo: (config?.tipo || 'DIARIO').toUpperCase(),
     frecuencia: normalizeFrecuencia(config?.frecuencia),
     activo: config?.activo !== false,
     periodo: config?.periodo || 'CADA_DIA',
-    horarios: normalizeTimeOfDay(config?.horarios)
+    horarios: normalizeTimeOfDay(config?.horarios),
+    diasSemana: normalizeDiasSemana(config?.diasSemana)
   });
 
   // Estado actual con cambios acumulativos - se va modificando con cada cambio
@@ -130,7 +174,8 @@ const InlineItemConfigImproved = ({
     frecuencia: normalizeFrecuencia(config?.frecuencia),
     activo: config?.activo !== false,
     periodo: config?.periodo || 'CADA_DIA',
-    horarios: normalizeTimeOfDay(config?.horarios)
+    horarios: normalizeTimeOfDay(config?.horarios),
+    diasSemana: normalizeDiasSemana(config?.diasSemana)
   });
 
   const [hasChanges, setHasChanges] = useState(false);
@@ -148,7 +193,8 @@ const InlineItemConfigImproved = ({
       frecuencia: normalizeFrecuencia(config?.frecuencia),
       activo: config?.activo !== false,
       periodo: config?.periodo || 'CADA_DIA',
-      horarios: normalizeTimeOfDay(config?.horarios)
+      horarios: normalizeTimeOfDay(config?.horarios),
+      diasSemana: normalizeDiasSemana(config?.diasSemana)
     };
 
     // Solo actualizar si realmente cambió la configuración original Y no hay cambios pendientes
@@ -173,11 +219,12 @@ const InlineItemConfigImproved = ({
   const detectChanges = useCallback((newConfig) => {
     // Usar la misma lógica que hasRealChanges para comparación consistente
     const horariosChanged = JSON.stringify(newConfig.horarios || []) !== JSON.stringify(originalConfig.horarios || []);
+    const diasSemanaChanged = JSON.stringify(newConfig.diasSemana || []) !== JSON.stringify(originalConfig.diasSemana || []);
     const otherKeysChanged = Object.keys(newConfig).some(key => {
-      if (key === 'horarios') return false; // Ya se comparó arriba
+      if (key === 'horarios' || key === 'diasSemana') return false; // Ya se compararon arriba
       return newConfig[key] !== originalConfig[key];
     });
-    const hasAnyChanges = horariosChanged || otherKeysChanged;
+    const hasAnyChanges = horariosChanged || diasSemanaChanged || otherKeysChanged;
     
     setHasChanges(hasAnyChanges);
   }, [originalConfig]);
@@ -258,13 +305,14 @@ const InlineItemConfigImproved = ({
 
   // Función para verificar si hay cambios reales (comparando con original)
   const hasRealChanges = useMemo(() => {
-    // Comparación especial para arrays (horarios)
+    // Comparación especial para arrays (horarios, diasSemana)
     const horariosChanged = JSON.stringify(configState.horarios || []) !== JSON.stringify(originalConfig.horarios || []);
+    const diasSemanaChanged = JSON.stringify(configState.diasSemana || []) !== JSON.stringify(originalConfig.diasSemana || []);
     const otherKeysChanged = Object.keys(configState).some(key => {
-      if (key === 'horarios') return false; // Ya se comparó arriba
+      if (key === 'horarios' || key === 'diasSemana') return false; // Ya se compararon arriba
       return configState[key] !== originalConfig[key];
     });
-    return horariosChanged || otherKeysChanged;
+    return horariosChanged || diasSemanaChanged || otherKeysChanged;
   }, [configState, originalConfig]);
 
   // Calcular máximo de horarios permitidos según frecuencia
@@ -288,6 +336,22 @@ const InlineItemConfigImproved = ({
         handleConfigChange({ horarios: newHorarios });
       }
       // Si ya se alcanzó el máximo, no hacer nada (el checkbox estará deshabilitado)
+    }
+  };
+
+  // Handler para toggle de días de la semana
+  const handleDiaSemanaToggle = (diaValue) => {
+    const currentDiasSemana = configState.diasSemana || [];
+    const isSelected = currentDiasSemana.includes(diaValue);
+    
+    if (isSelected) {
+      // Deseleccionar: siempre permitido
+      const newDiasSemana = currentDiasSemana.filter(d => d !== diaValue);
+      handleConfigChange({ diasSemana: newDiasSemana });
+    } else {
+      // Seleccionar: siempre permitido (no hay límite máximo)
+      const newDiasSemana = [...currentDiasSemana, diaValue].sort((a, b) => a - b);
+      handleConfigChange({ diasSemana: newDiasSemana });
     }
   };
 
@@ -512,6 +576,47 @@ const InlineItemConfigImproved = ({
               </Typography>
             )}
           </Box>
+
+          {/* Selector de días de la semana */}
+          {(configState.tipo === 'SEMANAL' || (configState.tipo === 'PERSONALIZADO' && configState.periodo === 'CADA_SEMANA')) && (
+            <Box sx={{ mt: 0.5, display: 'flex', flexDirection: 'column', gap: 0.3, alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'center' }}>
+                {/* Ordenar días para mostrar: L, M, X, J, V, S, D */}
+                {[...DIAS_SEMANA.slice(1), DIAS_SEMANA[0]].map((dia) => {
+                  const currentDiasSemana = configState.diasSemana || [];
+                  const isChecked = currentDiasSemana.includes(dia.value);
+                  const letra = getDiaSemanaLetra(dia.value);
+                  return (
+                    <Chip
+                      key={dia.value}
+                      label={letra}
+                      onClick={() => handleDiaSemanaToggle(dia.value)}
+                      size="small"
+                      sx={{
+                        backgroundColor: isChecked 
+                          ? 'rgba(25, 118, 210, 0.2)' 
+                          : 'rgba(255, 255, 255, 0.08)',
+                        color: isChecked 
+                          ? '#1976d2' 
+                          : 'rgba(255,255,255,0.7)',
+                        border: isChecked 
+                          ? '1px solid rgba(25, 118, 210, 0.5)' 
+                          : '1px solid rgba(255,255,255,0.1)',
+                        fontSize: '0.7rem',
+                        height: '24px',
+                        cursor: 'pointer',
+                        '&:hover': {
+                          backgroundColor: isChecked 
+                            ? 'rgba(25, 118, 210, 0.3)' 
+                            : 'rgba(255, 255, 255, 0.12)',
+                        }
+                      }}
+                    />
+                  );
+                })}
+              </Box>
+            </Box>
+          )}
 
           {/* Footer reservado: evita que el contenido "salte" cuando aparecen botones / feedback */}
           {!hideActions && (

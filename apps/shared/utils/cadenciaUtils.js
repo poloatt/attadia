@@ -339,7 +339,7 @@ export const getFrecuenciaLabel = (config) => {
 };
 
 // Constante con los días de la semana
-const DIAS_SEMANA = [
+export const DIAS_SEMANA = [
   { value: 0, label: 'Domingo' },
   { value: 1, label: 'Lunes' },
   { value: 2, label: 'Martes' },

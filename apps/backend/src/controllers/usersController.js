@@ -193,8 +193,8 @@ export const usersController = {
         tipo: (config.tipo || 'DIARIO').toUpperCase(),
         frecuencia: Number(config.frecuencia || 1),
         activo: config.activo !== undefined ? config.activo : true,
-        diasSemana: config.diasSemana || [],
-        diasMes: config.diasMes || []
+        diasSemana: Array.isArray(config.diasSemana) ? config.diasSemana : [],
+        diasMes: Array.isArray(config.diasMes) ? config.diasMes : []
       };
       
       // Si tipo es PERSONALIZADO, asegurar que tiene un periodo válido
@@ -647,8 +647,8 @@ export const usersController = {
             frecuencia: Number(config.frecuencia || 1),
             periodo: periodoNorm,
             activo: config.activo !== undefined ? config.activo : true,
-            diasSemana: config.diasSemana || [],
-            diasMes: config.diasMes || [],
+            diasSemana: Array.isArray(config.diasSemana) ? config.diasSemana : [],
+            diasMes: Array.isArray(config.diasMes) ? config.diasMes : [],
             horarios: normalizeHorarios(config.horarios),
             esPreferenciaUsuario: true,
             ultimaActualizacion: new Date().toISOString()
@@ -721,8 +721,8 @@ export const usersController = {
                 setOps[`config.${section}.${itemId}.frecuencia`] = normalizedConfig.frecuencia;
                 setOps[`config.${section}.${itemId}.periodo`] = normalizedConfig.periodo;
                 setOps[`config.${section}.${itemId}.activo`] = normalizedConfig.activo;
-                setOps[`config.${section}.${itemId}.diasSemana`] = normalizedConfig.diasSemana || [];
-                setOps[`config.${section}.${itemId}.diasMes`] = normalizedConfig.diasMes || [];
+                setOps[`config.${section}.${itemId}.diasSemana`] = Array.isArray(normalizedConfig.diasSemana) ? normalizedConfig.diasSemana : [];
+                setOps[`config.${section}.${itemId}.diasMes`] = Array.isArray(normalizedConfig.diasMes) ? normalizedConfig.diasMes : [];
                 setOps[`config.${section}.${itemId}.horarios`] = normalizedConfig.horarios || [];
               });
             });

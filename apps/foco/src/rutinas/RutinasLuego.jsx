@@ -6,7 +6,7 @@ import { iconConfig, iconTooltips, getIconByName } from '@shared/utils/iconConfi
 import { getNormalizedToday, parseAPIDate, toISODateString } from '@shared/utils/dateUtils';
 import { getVisibleItemIds } from '@shared/utils/visibilityUtils';
 import { getCurrentTimeOfDay } from '@shared/utils/timeOfDayUtils';
-import { isSameWeek, isSameMonth, startOfMonth, endOfMonth, endOfWeek, differenceInDays, startOfWeek } from 'date-fns';
+import { isSameWeek, isSameMonth, startOfMonth, endOfMonth, endOfWeek, differenceInDays, startOfWeek, getDay, getDate } from 'date-fns';
 import { es } from 'date-fns/locale';
 import useHorizontalDragScroll from './hooks/useHorizontalDragScroll';
 
@@ -183,31 +183,55 @@ export default function RutinasLuego({
         
         if (tipo === 'SEMANAL' || (tipo === 'PERSONALIZADO' && periodo === 'CADA_SEMANA')) {
           // Para semanal: contar días únicos completados en la semana actual
-          historial.filter(fecha => 
+          const diasSemana = Array.isArray(config.diasSemana) ? config.diasSemana : [];
+          
+          // Filtrar historial por días de la semana si están configurados
+          const historialFiltrado = diasSemana.length > 0
+            ? historial.filter(fecha => {
+                const diaSemana = getDay(fecha); // 0 = domingo, 1 = lunes, etc.
+                return diasSemana.includes(diaSemana);
+              })
+            : historial;
+          
+          // Contar solo días únicos que están en la semana Y en diasSemana (si aplica)
+          historialFiltrado.filter(fecha => 
             isSameWeek(fecha, hoy, { locale: es })
           ).forEach(fecha => {
             fechasUnicas.add(fecha.toISOString().split('T')[0]);
           });
           
+          // Verificar si hoy es un día válido antes de agregarlo
+          const diaHoy = getDay(hoy);
+          const hoyEsValido = diasSemana.length === 0 || diasSemana.includes(diaHoy);
           const fechaHoyStr = hoy.toISOString().split('T')[0];
-          if (completadoHoy && !fechasUnicas.has(fechaHoyStr)) {
+          if (completadoHoy && !fechasUnicas.has(fechaHoyStr) && hoyEsValido) {
             fechasUnicas.add(fechaHoyStr);
           }
           
           completadosEnPeriodo = fechasUnicas.size;
         } else if (tipo === 'MENSUAL' || (tipo === 'PERSONALIZADO' && periodo === 'CADA_MES')) {
           // Para mensual: contar días únicos completados en el mes actual
-          const inicioMes = startOfMonth(hoy);
-          const finMes = endOfMonth(hoy);
+          const diasMes = Array.isArray(config.diasMes) ? config.diasMes : [];
           
-          historial.filter(fecha => 
+          // Filtrar historial por días del mes si están configurados
+          const historialFiltrado = diasMes.length > 0
+            ? historial.filter(fecha => {
+                const diaMes = getDate(fecha); // 1-31
+                return diasMes.includes(diaMes);
+              })
+            : historial;
+          
+          historialFiltrado.filter(fecha => 
             isSameMonth(fecha, hoy)
           ).forEach(fecha => {
             fechasUnicas.add(fecha.toISOString().split('T')[0]);
           });
           
+          // Verificar si hoy es un día válido antes de agregarlo
+          const diaHoy = getDate(hoy);
+          const hoyEsValido = diasMes.length === 0 || diasMes.includes(diaHoy);
           const fechaHoyStr = hoy.toISOString().split('T')[0];
-          if (completadoHoy && !fechasUnicas.has(fechaHoyStr)) {
+          if (completadoHoy && !fechasUnicas.has(fechaHoyStr) && hoyEsValido) {
             fechasUnicas.add(fechaHoyStr);
           }
           
