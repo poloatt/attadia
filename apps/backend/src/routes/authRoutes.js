@@ -125,6 +125,21 @@ router.get('/google/url', (req, res) => {
   const forceSelectAccount = req.query.forceSelectAccount === 'true';
   const loginHint = req.query.loginHint;
   
+  // Validar y sanitizar loginHint si está presente
+  let sanitizedLoginHint = null;
+  if (loginHint) {
+    // Validar que sea un email válido
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (emailRegex.test(loginHint)) {
+      sanitizedLoginHint = loginHint.trim();
+    } else {
+      // Loggear pero no fallar - simplemente no usar el hint
+      if (config.env === 'development') {
+        console.warn('loginHint inválido, ignorando:', loginHint);
+      }
+    }
+  }
+  
   if (!origin) {
     console.error('No se proporcionó origen en la petición Google Auth:', {
       query: req.query,
@@ -217,8 +232,8 @@ router.get('/google/url', (req, res) => {
     `access_type=offline&` +
     // Solo forzar selector de cuenta cuando el frontend lo pide explícitamente
     (forceSelectAccount ? `prompt=select_account&` : '') +
-    // Sugerir cuenta cuando el frontend tiene un usuario recordado
-    (loginHint ? `login_hint=${encodeURIComponent(loginHint)}&` : '') +
+    // Sugerir cuenta cuando el frontend tiene un usuario recordado (solo si es válido)
+    (sanitizedLoginHint ? `login_hint=${encodeURIComponent(sanitizedLoginHint)}&` : '') +
     `state=${encodeURIComponent(statePayload)}`;
 
   res.json({ url: authUrl });

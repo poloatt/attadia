@@ -228,8 +228,14 @@ export function AuthProvider({ children }) {
       if (forceSelectAccount) {
         params.set('forceSelectAccount', 'true');
       }
-      if (loginHint) {
-        params.set('loginHint', loginHint);
+      // Validar que loginHint sea un email válido antes de enviarlo
+      if (loginHint && typeof loginHint === 'string') {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (emailRegex.test(loginHint.trim())) {
+          params.set('loginHint', loginHint.trim());
+        } else if (process.env.NODE_ENV === 'development') {
+          console.warn('loginHint inválido, ignorando:', loginHint);
+        }
       }
 
       const requestPromise = clienteAxios.get(
@@ -335,76 +341,111 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  // Detectar si estamos en PWA/móvil
+  const isPWA = typeof window !== 'undefined' && (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator?.standalone === true) ||
+    (document.referrer && document.referrer.includes('android-app://'))
+  );
+
+  // Detectar si estamos en móvil
+  const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
   // Inicialización única
   useEffect(() => {
     if (!isInitialized.current) {
       isInitialized.current = true;
-      const token = localStorage.getItem('token');
-      if (token) {
-        // Llamar checkAuth directamente sin dependencia para evitar re-ejecuciones
-        const initializeAuth = async () => {
-          try {
-            isChecking.current = true;
-            const token = localStorage.getItem('token');
-            
-            if (!token) {
-              setUser(null);
-              setIsAuthenticated(false);
-              setLoading(false);
-              return false;
-            }
+      
+      // En móviles/PWAs, dar un pequeño delay para asegurar que localStorage esté disponible
+      const initDelay = (isPWA || isMobile) ? 300 : 0;
+      
+      setTimeout(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+          // Llamar checkAuth directamente sin dependencia para evitar re-ejecuciones
+          const initializeAuth = async () => {
+            try {
+              isChecking.current = true;
+              lastCheckStart.current = Date.now();
+              const token = localStorage.getItem('token');
+              
+              if (!token) {
+                setUser(null);
+                setIsAuthenticated(false);
+                setLoading(false);
+                return false;
+              }
 
-            // Configurar token en axios
-            clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            
-            // Timeout más generoso para verificación inicial
-            const timeoutPromise = new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Timeout: Verificación inicial tardó demasiado')), 12000)
-            );
-            
-            const requestPromise = clienteAxios.get(`${currentConfig.authPrefix}/check`);
-            
-            const { data } = await Promise.race([requestPromise, timeoutPromise]);
-            
-            if (data.authenticated && data.user) {
-              setUser(data.user);
-              setIsAuthenticated(true);
-              setError(null);
-              setLoading(false);
-              return true;
-            } else {
-              // Token inválido, limpiar
+              // Configurar token en axios
+              clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+              
+              // Timeout estándar (no aumentamos porque no soluciona el problema de fondo)
+              const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Timeout: Verificación inicial tardó demasiado')), 12000)
+              );
+              
+              const requestPromise = clienteAxios.get(`${currentConfig.authPrefix}/check`);
+              
+              const { data } = await Promise.race([requestPromise, timeoutPromise]);
+              
+              if (data.authenticated && data.user) {
+                setUser(data.user);
+                setIsAuthenticated(true);
+                setError(null);
+                setLoading(false);
+                return true;
+              } else {
+                // Token inválido, limpiar
+                localStorage.removeItem('token');
+                localStorage.removeItem('refreshToken');
+                delete clienteAxios.defaults.headers.common['Authorization'];
+                
+                setUser(null);
+                setIsAuthenticated(false);
+                setLoading(false);
+                return false;
+              }
+            } catch (error) {
+              console.log('Error en inicialización de auth:', error.message);
+              
+              // En móviles/PWAs, si es timeout o error de red, no limpiar tokens inmediatamente
+              // Permitir que el usuario intente de nuevo
+              const isNetworkError = error.message?.includes('Timeout') || 
+                                    error.message?.includes('Network') ||
+                                    error.message?.includes('ERR_') ||
+                                    !error.response;
+              
+              if (isNetworkError && (isPWA || isMobile)) {
+                // En móviles, si es error de red, mantener tokens pero mostrar login
+                // El usuario puede intentar de nuevo
+                setUser(null);
+                setIsAuthenticated(false);
+                setError(null); // No mostrar error para no asustar al usuario
+                setLoading(false);
+                return false;
+              }
+              
+              // Para otros errores o desktop, limpiar tokens
               localStorage.removeItem('token');
               localStorage.removeItem('refreshToken');
               delete clienteAxios.defaults.headers.common['Authorization'];
               
               setUser(null);
               setIsAuthenticated(false);
+              setError(error.response?.data?.message || error.message);
               setLoading(false);
               return false;
+            } finally {
+              isChecking.current = false;
+              lastCheckStart.current = null;
             }
-          } catch (error) {
-            console.log('Error en inicialización de auth:', error.message);
-            
-            // Limpiar tokens inválidos
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
-            delete clienteAxios.defaults.headers.common['Authorization'];
-            
-            setUser(null);
-            setIsAuthenticated(false);
-            setError(error.response?.data?.message || error.message);
-            setLoading(false);
-            return false;
-          } finally {
-            isChecking.current = false;
-          }
-        };
-        
-        initializeAuth();
-      } else {
-        setLoading(false);
-      }
+          };
+          
+          initializeAuth();
+        } else {
+          setLoading(false);
+        }
+      }, initDelay);
     }
   }, []); // Sin dependencias para evitar re-ejecuciones
 
@@ -488,23 +529,37 @@ export function AuthProvider({ children }) {
     const handlePageShow = (event) => {
       // event.persisted indica que la página se cargó desde cache
       if (event.persisted) {
-        // Delay para asegurar que localStorage esté disponible
+        // Delay más largo en móviles para asegurar que localStorage esté disponible
+        const delay = isPWA || isMobile ? 500 : 200;
         setTimeout(() => {
           verifyTokensOnResume();
-        }, 200);
+        }, delay);
+      }
+    };
+
+    // Listener adicional para focus (cuando la app vuelve a primer plano)
+    // Específico para PWAs en móviles
+    const handleFocus = () => {
+      if (isPWA || isMobile) {
+        // Delay para asegurar que la app esté completamente activa
+        setTimeout(() => {
+          verifyTokensOnResume();
+        }, 300);
       }
     };
 
     // Agregar listeners
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener('focus', handleFocus);
 
     // Cleanup
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('focus', handleFocus);
     };
-  }, [isAuthenticated, user, checkAuth]); // Dependencias necesarias para la verificación
+  }, [isAuthenticated, user, checkAuth, isPWA, isMobile]); // Dependencias necesarias para la verificación
 
   const value = {
     user,

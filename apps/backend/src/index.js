@@ -41,11 +41,23 @@ app.set('trust proxy', 1);
 // Manejo de errores no capturados
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // Loggear stack trace si está disponible
+  if (reason instanceof Error) {
+    console.error('Stack:', reason.stack);
+  }
+  // NO hacer process.exit() aquí para evitar reinicios innecesarios
 });
 
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
-  process.exit(1);
+  console.error('Stack:', error.stack);
+  
+  // Solo hacer exit en casos realmente críticos
+  // Dar tiempo para que los logs se escriban antes de terminar
+  setTimeout(() => {
+    console.error('Terminando proceso debido a excepción no capturada...');
+    process.exit(1);
+  }, 1000);
 });
 
 // Middleware de debug para capturar peticiones problemáticas (solo para debugging)
@@ -153,8 +165,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// Middleware para verificar headers de respuesta solo en staging/producción
-if (config.env !== 'development') {
+// Función helper para determinar si se debe loggear
+const shouldLogDebug = () => {
+  return process.env.NODE_ENV === 'development' || 
+         process.env.DEBUG_LOGS === 'true';
+};
+
+// Middleware para verificar headers de respuesta solo en desarrollo o con DEBUG_LOGS
+if (shouldLogDebug()) {
   app.use((req, res, next) => {
     const oldJson = res.json;
     res.json = function(...args) {

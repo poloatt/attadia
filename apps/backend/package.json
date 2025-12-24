@@ -5,7 +5,7 @@
   "description": "",
   "main": "src/index.js",
   "scripts": {
-    "prestart": "echo '--- googleTasksService.js (HEAD 40 líneas) ---' && head -n 40 src/services/googleTasksService.js || true && echo '--- Buscando marcadores de merge ---' && (grep -n -E \"^(<<<<<<< HEAD|=======$|>>>>>>> )\" src/services/googleTasksService.js && echo 'ERROR: Marcadores de merge detectados en googleTasksService.js' && exit 1 || true)",
+    "prestart": "node -e \"const fs=require('fs');const content=fs.readFileSync('src/services/googleTasksService.js','utf8');const hasMerge=/(<<<<<<< HEAD|=======|>>>>>>> )/m.test(content);if(hasMerge){console.error('ERROR: Marcadores de merge detectados en googleTasksService.js');process.exit(1);}console.log('✓ googleTasksService.js sin marcadores de merge');\" || true",
     "start": "node src/index.js",
     "start-simple": "node src/index-simple.js",
     "dev": "set NODE_ENV=development && nodemon src/index.js",

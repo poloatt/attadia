@@ -42,8 +42,14 @@ const logFrequencyLimit = {
   reset: 60000    // Resetear contador cada minuto
 };
 
-// Función para gestionar el ratio de logs
+// Función para gestionar el ratio de logs - más restrictiva en producción
 const shouldLog = () => {
+  // Solo loggear en desarrollo o con DEBUG_AUTH habilitado
+  if (process.env.NODE_ENV === 'development' || process.env.DEBUG_AUTH === 'true') {
+    return true;
+  }
+  
+  // En producción, usar rate limiting
   const now = Date.now();
   
   // Si ha pasado el periodo de reset, reiniciar conteo
