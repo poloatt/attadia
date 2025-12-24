@@ -21,7 +21,8 @@
     "clean:cache": "npx rimraf \"apps/*/node_modules/.vite\" \"apps/*/dist\"",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "install:all": "npm install"
+    "install:all": "npm install",
+    "generate:icons": "node scripts/generate-icons.js"
   },
   "workspaces": [
     "apps/*"
