@@ -130,12 +130,27 @@ class RutinasController extends BaseController {
       
       // --- Construir configuración completa (evitar config vacío/incompleto) ---
       const seccionesValidas = ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'];
+      // Función helper para normalizar horarios
+      const normalizeHorarios = (horarios) => {
+        if (!horarios) return [];
+        if (typeof horarios === 'string') horarios = [horarios];
+        if (!Array.isArray(horarios)) return [];
+        
+        const validHorarios = ['MAÑANA', 'TARDE', 'NOCHE'];
+        return horarios
+          .map(h => String(h).toUpperCase())
+          .filter(h => validHorarios.includes(h))
+          .filter((h, index, arr) => arr.indexOf(h) === index) // Eliminar duplicados
+          .sort();
+      };
+
       const normalizeItemConfig = (cfg = {}, defaultTipo = 'DIARIO') => {
         const tipo = String(cfg?.tipo || defaultTipo).toUpperCase();
         const frecuencia = Number(cfg?.frecuencia || 1);
         const activo = cfg?.activo !== false;
         const diasSemana = Array.isArray(cfg?.diasSemana) ? cfg.diasSemana : [];
         const diasMes = Array.isArray(cfg?.diasMes) ? cfg.diasMes : [];
+        const horarios = normalizeHorarios(cfg?.horarios);
         // periodo por defecto según tipo
         const periodo =
           cfg?.periodo ||
@@ -145,21 +160,76 @@ class RutinasController extends BaseController {
           tipo,
           diasSemana,
           diasMes,
+          horarios,
           frecuencia: Number.isFinite(frecuencia) ? Math.max(1, frecuencia) : 1,
           periodo,
           activo
         };
       };
 
-      const buildDefaultFullConfig = () => {
+      const buildDefaultFullConfig = async () => {
         const full = {};
         seccionesValidas.forEach(section => {
           full[section] = {};
-          const items = Object.keys(this.Model.schema?.obj?.[section] || {});
-          items.forEach(itemId => {
-            full[section][itemId] = normalizeItemConfig({});
-          });
         });
+        
+        // IMPORTANTE: Incluir hábitos personalizados del usuario en la configuración inicial
+        // Ya que las secciones ahora son Schema.Types.Mixed, necesitamos obtener los hábitos del usuario
+        try {
+          const usuario = await Users.findById(req.user.id)
+            .select('customHabits preferences.rutinasConfig')
+            .lean();
+          
+          // Primero incluir hábitos precargados por defecto (para compatibilidad)
+          const defaultHabits = {
+            bodyCare: ['bath', 'skinCareDay', 'skinCareNight', 'bodyCream'],
+            nutricion: ['cocinar', 'agua', 'protein', 'meds'],
+            ejercicio: ['meditate', 'stretching', 'gym', 'cardio'],
+            cleaning: ['bed', 'platos', 'piso', 'ropa']
+          };
+          
+          seccionesValidas.forEach(section => {
+            (defaultHabits[section] || []).forEach(itemId => {
+              const globalConfig = usuario?.preferences?.rutinasConfig?.[section]?.[itemId];
+              full[section][itemId] = normalizeItemConfig(globalConfig || {});
+            });
+          });
+          
+          // Luego incluir hábitos personalizados del usuario
+          if (usuario && usuario.customHabits) {
+            seccionesValidas.forEach(section => {
+              const sectionHabits = usuario.customHabits[section] || [];
+              sectionHabits
+                .filter(h => h.activo !== false)
+                .forEach(habit => {
+                  const habitId = habit.id || habit._id;
+                  if (habitId) {
+                    // Usar configuración global si existe, sino valores por defecto
+                    const globalConfig = usuario.preferences?.rutinasConfig?.[section]?.[habitId];
+                    full[section][habitId] = normalizeItemConfig(globalConfig || {});
+                  }
+                });
+            });
+          }
+        } catch (error) {
+          logger.warn('[rutinasController] Error al obtener hábitos personalizados al crear rutina', error);
+          // Continuar con valores por defecto en caso de error
+          // Incluir al menos los hábitos precargados básicos
+          const defaultHabits = {
+            bodyCare: ['bath', 'skinCareDay', 'skinCareNight', 'bodyCream'],
+            nutricion: ['cocinar', 'agua', 'protein', 'meds'],
+            ejercicio: ['meditate', 'stretching', 'gym', 'cardio'],
+            cleaning: ['bed', 'platos', 'piso', 'ropa']
+          };
+          seccionesValidas.forEach(section => {
+            (defaultHabits[section] || []).forEach(itemId => {
+              if (!full[section][itemId]) {
+                full[section][itemId] = normalizeItemConfig({});
+              }
+            });
+          });
+        }
+        
         return full;
       };
 
@@ -170,9 +240,8 @@ class RutinasController extends BaseController {
           if (!target[section]) target[section] = {};
           Object.entries(source[section]).forEach(([itemId, cfg]) => {
             if (!target[section][itemId]) {
-              // ignorar keys inesperadas que no existan en el schema base
-              // (evita introducir items desconocidos)
-              if (!(itemId in (this.Model.schema?.obj?.[section] || {}))) return;
+              // IMPORTANTE: Ya no validar contra el esquema base porque las secciones son Mixed
+              // Permitir cualquier itemId (incluyendo hábitos personalizados)
               target[section][itemId] = normalizeItemConfig(cfg);
               return;
             }
@@ -185,8 +254,16 @@ class RutinasController extends BaseController {
         return target;
       };
 
-      // Base defaults
-      const configCompleta = buildDefaultFullConfig();
+      // Base defaults (ahora incluye hábitos personalizados y sus configuraciones globales)
+      const configCompleta = await buildDefaultFullConfig();
+      
+      logger.dev('[rutinasController] Configuración inicial construida', {
+        sections: Object.keys(configCompleta),
+        bodyCareCount: Object.keys(configCompleta.bodyCare || {}).length,
+        nutricionCount: Object.keys(configCompleta.nutricion || {}).length,
+        ejercicioCount: Object.keys(configCompleta.ejercicio || {}).length,
+        cleaningCount: Object.keys(configCompleta.cleaning || {}).length
+      });
 
       // 1) Si el frontend envía config explícita (RutinaForm), usarla como fuente principal
       const reqConfig = req.body?.config;
@@ -199,8 +276,10 @@ class RutinasController extends BaseController {
       }
 
       // Si se solicita usar la configuración del usuario, mergearla (sobre defaults y/o request)
+      // NOTA: buildDefaultFullConfig ya incluye las configuraciones globales, pero aquí las re-mergeamos
+      // para asegurar que cualquier actualización reciente se aplique
       if (useGlobalConfig) {
-        logger.dev('[rutinasController] Mergeando configuración de usuario (si existe) para nueva rutina');
+        logger.dev('[rutinasController] Re-mergeando configuración de usuario (si existe) para nueva rutina');
         
         try {
           const usuario = await Users.findById(req.user.id)
@@ -208,23 +287,23 @@ class RutinasController extends BaseController {
             .lean();
             
           if (usuario && usuario.preferences && usuario.preferences.rutinasConfig) {
-            logger.dev('[rutinasController] Configuración global encontrada');
+            logger.dev('[rutinasController] Configuración global encontrada para re-merge');
             
             // Transformar la configuración global al formato de config de la rutina
             const globalConfig = usuario.preferences.rutinasConfig;
             const configVersion = globalConfig._metadata?.version || 1;
             
-            logger.dev(`[rutinasController] Aplicando configuración global versión ${configVersion}`);
+            logger.dev(`[rutinasController] Re-aplicando configuración global versión ${configVersion}`);
             
             // Merge de plantilla del usuario sobre defaults completos
             mergeConfigInto(configCompleta, globalConfig);
             // Nota: guardamos versión solo en logs (schema Rutinas.config no define _metadata)
-            logger.dev('[rutinasController] Config aplicada desde plantilla usuario', { version: configVersion });
+            logger.dev('[rutinasController] Config re-aplicada desde plantilla usuario', { version: configVersion });
           } else {
-            logger.dev('[rutinasController] No se encontró configuración global, usando valores predeterminados');
+            logger.dev('[rutinasController] No se encontró configuración global para re-merge, usando valores ya incluidos');
           }
         } catch (error) {
-          logger.warn('[rutinasController] Error al obtener configuración global', error);
+          logger.warn('[rutinasController] Error al re-obtener configuración global', error);
           // Continuar con configuración por defecto en caso de error
         }
       } else {

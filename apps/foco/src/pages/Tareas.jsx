@@ -601,9 +601,10 @@ export function Tareas() {
           sx={{ 
             py: isMobile ? 1 : 2,
             px: isMobile ? 0 : 1,
-            height: isMobile ? 'calc(100vh - 180px)' : 'calc(100vh - 190px)',
+            height: isMobile ? 'calc(100vh - 160px)' : 'calc(100vh - 170px)',
             overflowY: isMobile ? 'auto' : 'hidden',
             overflowX: 'hidden',
+            pb: isMobile ? 8 : 12, // Padding bottom más extenso para mayor margen inferior
             '&::-webkit-scrollbar': {
               width: isMobile ? '4px' : '8px',
             },
@@ -672,6 +673,7 @@ export function Tareas() {
                     overflowY: 'auto',
                     overflowX: 'hidden',
                     minHeight: 0,
+                    pb: 10, // Padding bottom más extenso para mayor margen inferior
                     '&::-webkit-scrollbar': {
                       width: '8px',
                     },
@@ -742,6 +744,7 @@ export function Tareas() {
                     overflowY: 'auto',
                     overflowX: 'hidden',
                     minHeight: 0,
+                    pb: 10, // Padding bottom más extenso para mayor margen inferior
                     '&::-webkit-scrollbar': {
                       width: '8px',
                     },

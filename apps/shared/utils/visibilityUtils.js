@@ -1,5 +1,6 @@
 import shouldShowItemUtil from './shouldShowItem';
 import { parseAPIDate } from './dateUtils';
+import { getCurrentTimeOfDay } from './timeOfDayUtils';
 
 // Construye una rutina simulada coherente para evaluar visibilidad
 const buildRutinaForCheck = (rutina, section, itemId, config, localData = {}) => {
@@ -30,11 +31,20 @@ const buildRutinaForCheck = (rutina, section, itemId, config, localData = {}) =>
 };
 
 // API síncrona para decidir si un ítem debe mostrarse
-export const shouldShowItemSync = (section, itemId, rutina, config, localData = {}) => {
+export const shouldShowItemSync = (section, itemId, rutina, config, localData = {}, currentTimeOfDay = null) => {
   try {
     if (!section || !itemId || !rutina) return true;
     const rutinaCheck = buildRutinaForCheck(rutina, section, itemId, config, localData);
-    return shouldShowItemUtil(section, itemId, rutinaCheck, { historial: rutina?.historial || {} });
+    const timeOfDay = currentTimeOfDay || getCurrentTimeOfDay();
+    
+    // Determinar si el hábito está completado hoy
+    const isCompleted = Boolean(localData[itemId]) || Boolean(rutina?.[section]?.[itemId]);
+    
+    return shouldShowItemUtil(section, itemId, rutinaCheck, { 
+      historial: rutina?.historial || {},
+      currentTimeOfDay: timeOfDay,
+      isCompleted: isCompleted
+    });
   } catch (e) {
     console.error('[visibilityUtils] Error en shouldShowItemSync:', e);
     return true;
@@ -42,12 +52,12 @@ export const shouldShowItemSync = (section, itemId, rutina, config, localData = 
 };
 
 // Filtra y devuelve los itemIds visibles de una sección
-export const getVisibleItemIds = (sectionIcons, section, rutina, config, localData = {}) => {
+export const getVisibleItemIds = (sectionIcons, section, rutina, config, localData = {}, currentTimeOfDay = null) => {
   const itemIds = Object.keys(sectionIcons || {});
   return itemIds.filter(itemId => {
     const itemConfig = config?.[itemId];
     if (!itemConfig || itemConfig.activo === false) return false;
-    return shouldShowItemSync(section, itemId, rutina, itemConfig, localData);
+    return shouldShowItemSync(section, itemId, rutina, itemConfig, localData, currentTimeOfDay);
   });
 };
 

@@ -1,5 +1,5 @@
 import React, { memo, useEffect, useRef, useCallback, useMemo, useState } from 'react';
-import { Box, IconButton, Typography, Chip, Tooltip, LinearProgress, useMediaQuery, Popover } from '@mui/material';
+import { Box, IconButton, Typography, Chip, Tooltip, LinearProgress, useMediaQuery, Popover, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import {
   NavigateBefore,
@@ -8,7 +8,9 @@ import {
   DeleteOutline as DeleteIcon,
   AddOutlined as AddIcon,
   Undo as UndoIcon,
-  SettingsOutlined as SettingsIcon
+  SettingsOutlined as SettingsIcon,
+  CheckCircleOutline as RutinaIcon,
+  FitnessCenter as HabitIcon
 } from '@mui/icons-material';
 import { parseAPIDate, formatDateForAPI } from '../utils/dateUtils.js';
 import { format } from 'date-fns';
@@ -20,6 +22,7 @@ import { useActionHistory } from '../context/ActionHistoryContext';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { StaticDatePicker } from '@mui/x-date-pickers/StaticDatePicker';
+import HabitFormDialog from '../components/HabitFormDialog';
 
 // Componente de navegación entre rutinas (compartido)
 const RutinaNavigation = ({
@@ -42,6 +45,13 @@ const RutinaNavigation = ({
   // Estado para el picker de fecha
   const [datePickerAnchor, setDatePickerAnchor] = useState(null);
   const datePickerOpen = Boolean(datePickerAnchor);
+  
+  // Estado para el menú de agregar
+  const [addMenuAnchor, setAddMenuAnchor] = useState(null);
+  const addMenuOpen = Boolean(addMenuAnchor);
+  
+  // Estado para el diálogo de hábito
+  const [habitDialogOpen, setHabitDialogOpen] = useState(false);
 
   const previousRutinaId = useRef(null);
   const logCount = useRef(0);
@@ -430,11 +440,11 @@ const RutinaNavigation = ({
               </span>
             </Tooltip>
           )}
-          <Tooltip title="Agregar nueva rutina">
+          <Tooltip title="Agregar">
             <span>
               <IconButton 
                 size="small" 
-                onClick={onAdd} 
+                onClick={(e) => setAddMenuAnchor(e.currentTarget)} 
                 disabled={loading} 
                 sx={{
                   ...commonButtonSx,
@@ -444,12 +454,56 @@ const RutinaNavigation = ({
                     color: loading ? 'text.disabled' : 'text.primary'
                   }
                 }} 
-                aria-label="Agregar nueva rutina"
+                aria-label="Agregar"
               >
                 <AddIcon />
               </IconButton>
             </span>
           </Tooltip>
+          
+          {/* Menú de agregar */}
+          <Menu
+            anchorEl={addMenuAnchor}
+            open={addMenuOpen}
+            onClose={() => setAddMenuAnchor(null)}
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'center',
+            }}
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'center',
+            }}
+            PaperProps={{
+              sx: {
+                bgcolor: 'background.paper',
+                minWidth: 180
+              }
+            }}
+          >
+            <MenuItem
+              onClick={() => {
+                setAddMenuAnchor(null);
+                if (onAdd) onAdd();
+              }}
+            >
+              <ListItemIcon>
+                <RutinaIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Rutina</ListItemText>
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                setAddMenuAnchor(null);
+                setHabitDialogOpen(true);
+              }}
+            >
+              <ListItemIcon>
+                <HabitIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Hábito</ListItemText>
+            </MenuItem>
+          </Menu>
           <Tooltip title="Eliminar">
             <span>
               <IconButton 
@@ -534,6 +588,12 @@ const RutinaNavigation = ({
           </Tooltip>
         </Box>
       </Box>
+      
+      {/* Diálogo de formulario de hábito */}
+      <HabitFormDialog
+        open={habitDialogOpen}
+        onClose={() => setHabitDialogOpen(false)}
+      />
     </Box>
   );
 };

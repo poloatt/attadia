@@ -628,6 +628,20 @@ export const usersController = {
             return config.periodo || 'CADA_DIA';
           })();
 
+          // Normalizar horarios
+          const normalizeHorarios = (horarios) => {
+            if (!horarios) return [];
+            if (typeof horarios === 'string') horarios = [horarios];
+            if (!Array.isArray(horarios)) return [];
+            
+            const validHorarios = ['MAÑANA', 'TARDE', 'NOCHE'];
+            return horarios
+              .map(h => String(h).toUpperCase())
+              .filter(h => validHorarios.includes(h))
+              .filter((h, index, arr) => arr.indexOf(h) === index) // Eliminar duplicados
+              .sort();
+          };
+
           const normalizedConfig = {
             tipo: tipoNorm,
             frecuencia: Number(config.frecuencia || 1),
@@ -635,6 +649,7 @@ export const usersController = {
             activo: config.activo !== undefined ? config.activo : true,
             diasSemana: config.diasSemana || [],
             diasMes: config.diasMes || [],
+            horarios: normalizeHorarios(config.horarios),
             esPreferenciaUsuario: true,
             ultimaActualizacion: new Date().toISOString()
           };
@@ -708,6 +723,7 @@ export const usersController = {
                 setOps[`config.${section}.${itemId}.activo`] = normalizedConfig.activo;
                 setOps[`config.${section}.${itemId}.diasSemana`] = normalizedConfig.diasSemana || [];
                 setOps[`config.${section}.${itemId}.diasMes`] = normalizedConfig.diasMes || [];
+                setOps[`config.${section}.${itemId}.horarios`] = normalizedConfig.horarios || [];
               });
             });
 

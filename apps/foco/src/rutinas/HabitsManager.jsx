@@ -18,21 +18,22 @@ import {
   FormControl,
   InputLabel,
   Tooltip,
-  Collapse
+  Collapse,
+  Chip
 } from '@mui/material';
 import { useResponsive } from '@shared/hooks';
 import CloseIcon from '@mui/icons-material/Close';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import SettingsBackupRestoreIcon from '@mui/icons-material/SettingsBackupRestore';
-import TuneIcon from '@mui/icons-material/Tune';
+import EditIcon from '@mui/icons-material/Edit';
+import CheckIcon from '@mui/icons-material/Check';
+import CancelIcon from '@mui/icons-material/Cancel';
 import { useHabits, useRutinas } from '@shared/context';
 import { getIconByName, availableIcons } from '@shared/utils/iconConfig';
+import { getTimeOfDayLabels } from '@shared/utils/timeOfDayUtils';
 import InlineItemConfigImproved from './InlineItemConfigImproved';
 import clienteAxios from '@shared/config/axios';
+import { SystemButtons } from '@shared/components/common/SystemButtons';
 
 const SECTIONS = [
   { value: 'bodyCare', label: 'Cuidado Personal' },
@@ -47,7 +48,6 @@ export const HabitsManager = ({ open, onClose }) => {
   const { updateUserHabitPreference } = useRutinas();
   
   const [currentSection, setCurrentSection] = useState('bodyCare');
-  const [editingHabit, setEditingHabit] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState({
     id: '',
@@ -58,6 +58,8 @@ export const HabitsManager = ({ open, onClose }) => {
   const [errors, setErrors] = useState({});
   const [openSetupHabitId, setOpenSetupHabitId] = useState(null);
   const [habitsConfig, setHabitsConfig] = useState({});
+  const [editingHabitName, setEditingHabitName] = useState(false);
+  const [habitNameEdit, setHabitNameEdit] = useState('');
   const habitsRef = useRef(habits); // Ref para evitar recrear fetchHabitsConfig cuando habits cambia
 
   // Actualizar ref cuando habits cambia
@@ -105,7 +107,8 @@ export const HabitsManager = ({ open, onClose }) => {
             activo: true,
             periodo: 'CADA_DIA',
             diasSemana: [],
-            diasMes: []
+            diasMes: [],
+            horarios: []
           };
         }
       });
@@ -152,6 +155,7 @@ export const HabitsManager = ({ open, onClose }) => {
         periodo: newConfig.periodo || 'CADA_DIA',
         diasSemana: Array.isArray(newConfig.diasSemana) ? [...newConfig.diasSemana] : [],
         diasMes: Array.isArray(newConfig.diasMes) ? [...newConfig.diasMes] : [],
+        horarios: Array.isArray(newConfig.horarios) ? [...newConfig.horarios] : [],
         esPreferenciaUsuario: true,
         ultimaActualizacion: new Date().toISOString()
       };
@@ -214,36 +218,38 @@ export const HabitsManager = ({ open, onClose }) => {
 
   const handleSectionChange = (event, newValue) => {
     setCurrentSection(newValue);
-    setEditingHabit(null);
     setShowAddForm(false);
     setOpenSetupHabitId(null);
     setFormData({ id: '', label: '', icon: 'Add', activo: true });
     setErrors({});
+    setEditingHabitName(false);
+    setHabitNameEdit('');
     // Recargar configuración de la nueva sección
     fetchHabitsConfig();
   };
 
   const handleAddClick = () => {
     setShowAddForm(true);
-    setEditingHabit(null);
     setFormData({ id: '', label: '', icon: 'Add', activo: true });
     setErrors({});
   };
 
-  const handleEditClick = (habit) => {
-    setEditingHabit(habit);
-    setShowAddForm(false);
-    setFormData({
-      id: habit.id,
-      label: habit.label,
-      icon: habit.icon,
-      activo: habit.activo
-    });
-    setErrors({});
-  };
+  // Escuchar evento del botón AddButton
+  useEffect(() => {
+    const handleHeaderAddButtonClick = (event) => {
+      if (event.detail?.type === 'habit') {
+        handleAddClick();
+      }
+    };
+
+    window.addEventListener('headerAddButtonClicked', handleHeaderAddButtonClick);
+    return () => {
+      window.removeEventListener('headerAddButtonClicked', handleHeaderAddButtonClick);
+    };
+  }, []);
+
 
   const handleCancelEdit = () => {
-    setEditingHabit(null);
     setShowAddForm(false);
     setFormData({ id: '', label: '', icon: 'Add', activo: true });
     setErrors({});
@@ -256,7 +262,7 @@ export const HabitsManager = ({ open, onClose }) => {
       newErrors.id = 'El ID es requerido';
     } else if (!/^[a-z][a-z0-9]*$/.test(formData.id)) {
       newErrors.id = 'El ID debe comenzar con letra y contener solo letras minúsculas y números';
-    } else if (!editingHabit && habits[currentSection]?.some(h => h.id === formData.id)) {
+    } else if (habits[currentSection]?.some(h => h.id === formData.id)) {
       newErrors.id = 'Ya existe un hábito con ese ID';
     }
     
@@ -278,62 +284,53 @@ export const HabitsManager = ({ open, onClose }) => {
     }
 
     try {
-      if (editingHabit) {
-        // Actualizar hábito existente
-        await updateHabit(formData.id, currentSection, {
-          label: formData.label,
-          icon: formData.icon,
-          activo: formData.activo
-        });
-      } else {
-        // Crear nuevo hábito
-        const orden = habits[currentSection]?.length || 0;
-        await addHabit(currentSection, {
-          id: formData.id,
-          label: formData.label,
-          icon: formData.icon,
-          activo: formData.activo,
-          orden
-        });
-        
-        // Inicializar configuración por defecto para el nuevo hábito
-        const defaultConfig = {
-          tipo: 'DIARIO',
-          frecuencia: 1,
-          activo: true,
-          periodo: 'CADA_DIA',
-          diasSemana: [],
-          diasMes: [],
-          esPreferenciaUsuario: true,
-          ultimaActualizacion: new Date().toISOString()
-        };
-        
-        // Guardar configuración inicial
-        try {
-          if (updateUserHabitPreference) {
-            await updateUserHabitPreference(currentSection, formData.id, defaultConfig, true);
-          } else {
-            await clienteAxios.put('/api/users/preferences/habits', {
-              habits: {
-                [currentSection]: {
-                  [formData.id]: defaultConfig
-                }
+      // Crear nuevo hábito
+      const orden = habits[currentSection]?.length || 0;
+      await addHabit(currentSection, {
+        id: formData.id,
+        label: formData.label,
+        icon: formData.icon,
+        activo: formData.activo,
+        orden
+      });
+      
+      // Inicializar configuración por defecto para el nuevo hábito
+      const defaultConfig = {
+        tipo: 'DIARIO',
+        frecuencia: 1,
+        activo: true,
+        periodo: 'CADA_DIA',
+        diasSemana: [],
+        diasMes: [],
+        esPreferenciaUsuario: true,
+        ultimaActualizacion: new Date().toISOString()
+      };
+      
+      // Guardar configuración inicial
+      try {
+        if (updateUserHabitPreference) {
+          await updateUserHabitPreference(currentSection, formData.id, defaultConfig, true);
+        } else {
+          await clienteAxios.put('/api/users/preferences/habits', {
+            habits: {
+              [currentSection]: {
+                [formData.id]: defaultConfig
               }
-            });
-          }
-          
-          // Actualizar estado local
-          setHabitsConfig(prev => ({
-            ...prev,
-            [currentSection]: {
-              ...(prev[currentSection] || {}),
-              [formData.id]: defaultConfig
             }
-          }));
-        } catch (configError) {
-          console.warn('[HabitsManager] Error al inicializar configuración del nuevo hábito:', configError);
-          // No fallar si no se puede inicializar la configuración, el usuario puede configurarla después
+          });
         }
+        
+        // Actualizar estado local
+        setHabitsConfig(prev => ({
+          ...prev,
+          [currentSection]: {
+            ...(prev[currentSection] || {}),
+            [formData.id]: defaultConfig
+          }
+        }));
+      } catch (configError) {
+        console.warn('[HabitsManager] Error al inicializar configuración del nuevo hábito:', configError);
+        // No fallar si no se puede inicializar la configuración, el usuario puede configurarla después
       }
       
       handleCancelEdit();
@@ -355,79 +352,6 @@ export const HabitsManager = ({ open, onClose }) => {
     }
   };
 
-  const handleMoveUp = async (habitId) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsManager.jsx:358',message:'handleMoveUp called',data:{habitId,currentSection,habitsCount:habits[currentSection]?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'reorder'})}).catch(()=>{});
-    // #endregion
-    try {
-      // IMPORTANTE: Usar sortedHabits para mantener el mismo orden que se muestra en la UI
-      // CRÍTICO: Solo usar hábitos que tienen ID válido (excluir hábitos sin ID o con ID inválido)
-      const currentHabits = [...(habits[currentSection] || [])]
-        .filter(h => h && h.id && h.id !== '' && h.id != null) // Filtrar hábitos sin ID válido
-        .sort((a, b) => (a.orden || 0) - (b.orden || 0));
-      const index = currentHabits.findIndex(h => h.id === habitId);
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsManager.jsx:365',message:'Before reorder',data:{index,currentHabitsIds:currentHabits.map(h=>h.id),habitIdsToSend:currentHabits.map(h=>h.id)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'reorder'})}).catch(()=>{});
-      // #endregion
-      
-      if (index > 0) {
-        const newOrder = [...currentHabits];
-        [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
-        // IMPORTANTE: Solo enviar IDs que existen y no son null/undefined
-        const habitIds = newOrder.map(h => h.id).filter(id => id != null && id !== '');
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsManager.jsx:372',message:'Calling reorderHabits',data:{currentSection,habitIds,habitIdsCount:habitIds.length,currentHabitsCount:currentHabits.length,habitIdsList:habitIds},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'reorder'})}).catch(()=>{});
-        // #endregion
-        if (habitIds.length > 0 && habitIds.length === currentHabits.length) {
-          await reorderHabits(currentSection, habitIds);
-        } else {
-          console.error('[HabitsManager] Error: No se pueden reordenar hábitos con IDs faltantes', { habitIds, currentHabits });
-        }
-      }
-    } catch (error) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsManager.jsx:382',message:'handleMoveUp error',data:{habitId,currentSection,error:error.message,errorResponse:error.response?.data},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'reorder'})}).catch(()=>{});
-      // #endregion
-      console.error('[HabitsManager] Error al mover hábito hacia arriba:', error);
-      // El error ya se maneja en el contexto, pero no lanzamos el error para evitar que se propague
-    }
-  };
-
-  const handleMoveDown = async (habitId) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsManager.jsx:394',message:'handleMoveDown called',data:{habitId,currentSection,habitsCount:habits[currentSection]?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'reorder'})}).catch(()=>{});
-    // #endregion
-    try {
-      // IMPORTANTE: Usar sortedHabits para mantener el mismo orden que se muestra en la UI
-      // CRÍTICO: Solo usar hábitos que tienen ID válido (excluir hábitos sin ID o con ID inválido)
-      const currentHabits = [...(habits[currentSection] || [])]
-        .filter(h => h && h.id && h.id !== '' && h.id != null) // Filtrar hábitos sin ID válido
-        .sort((a, b) => (a.orden || 0) - (b.orden || 0));
-      const index = currentHabits.findIndex(h => h.id === habitId);
-      
-      if (index < currentHabits.length - 1) {
-        const newOrder = [...currentHabits];
-        [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
-        // IMPORTANTE: Solo enviar IDs que existen y no son null/undefined
-        const habitIds = newOrder.map(h => h.id).filter(id => id != null && id !== '');
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsManager.jsx:406',message:'Calling reorderHabits',data:{currentSection,habitIds,habitIdsCount:habitIds.length,currentHabitsCount:currentHabits.length,habitIdsList:habitIds},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'reorder'})}).catch(()=>{});
-        // #endregion
-        if (habitIds.length > 0 && habitIds.length === currentHabits.length) {
-          await reorderHabits(currentSection, habitIds);
-        } else {
-          console.error('[HabitsManager] Error: No se pueden reordenar hábitos con IDs faltantes', { habitIds, currentHabits });
-        }
-      }
-    } catch (error) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsManager.jsx:415',message:'handleMoveDown error',data:{habitId,currentSection,error:error.message,errorResponse:error.response?.data},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'reorder'})}).catch(()=>{});
-      // #endregion
-      console.error('[HabitsManager] Error al mover hábito hacia abajo:', error);
-      // El error ya se maneja en el contexto, pero no lanzamos el error para evitar que se propague
-    }
-  };
 
   const handleReset = async () => {
     if (window.confirm('¿Estás seguro de que deseas restablecer todos los hábitos a los valores por defecto? Esta acción no se puede deshacer.')) {
@@ -473,60 +397,93 @@ export const HabitsManager = ({ open, onClose }) => {
         <Typography variant="subtitle1" component="span" sx={{ fontWeight: 500 }}>
           Gestionar Hábitos
         </Typography>
-        <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-          <Tooltip title="Restablecer a defaults">
-            <IconButton
-              size="small"
-              onClick={handleReset}
-              sx={{ 
-                color: 'text.secondary',
-                width: 32,
-                height: 32,
-                padding: 0.5
-              }}
-            >
-              <SettingsBackupRestoreIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <IconButton
-            size="small"
-            onClick={onClose}
-            sx={{ 
-              color: 'text.secondary',
-              width: 32,
-              height: 32,
-              padding: 0.5
-            }}
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        </Box>
-      </DialogTitle>
-
-      <DialogContent sx={{ p: 0, bgcolor: theme.palette.background.default }}>
-        <Tabs
-          value={currentSection}
-          onChange={handleSectionChange}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{
-            borderBottom: `1px solid ${theme.palette.divider}`,
-            bgcolor: theme.palette.background.paper,
-            minHeight: 40,
-            '& .MuiTab-root': {
-              minHeight: 40,
-              padding: '8px 16px',
-              fontSize: '0.875rem'
-            }
+        <IconButton
+          size="small"
+          onClick={onClose}
+          sx={{ 
+            color: 'text.secondary',
+            width: 32,
+            height: 32,
+            padding: 0.5
           }}
         >
-          {SECTIONS.map(section => (
-            <Tab key={section.value} label={section.label} value={section.value} />
-          ))}
-        </Tabs>
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </DialogTitle>
 
-        <Box sx={{ p: 1.5 }}>
-          {showAddForm || editingHabit ? (
+      <DialogContent 
+        sx={{ 
+          p: 0, 
+          bgcolor: theme.palette.background.default,
+          minHeight: isMobile ? 'auto' : '600px',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: `1px solid ${theme.palette.divider}`,
+            bgcolor: theme.palette.background.paper
+          }}
+        >
+          <Tabs
+            value={currentSection}
+            onChange={handleSectionChange}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{
+              flex: 1,
+              minHeight: 40,
+              '& .MuiTab-root': {
+                minHeight: 40,
+                padding: '8px 16px',
+                fontSize: '0.875rem'
+              }
+            }}
+          >
+            {SECTIONS.map(section => (
+              <Tab key={section.value} label={section.label} value={section.value} />
+            ))}
+          </Tabs>
+          {!showAddForm && (
+            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', pr: 1 }}>
+              <Tooltip title="Restablecer a defaults">
+                <IconButton
+                  size="small"
+                  onClick={handleReset}
+                  sx={{ 
+                    color: 'text.secondary',
+                    width: 32,
+                    height: 32,
+                    padding: 0.5
+                  }}
+                >
+                  <SettingsBackupRestoreIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <SystemButtons.AddButton
+                entityConfig={{
+                  id: 'habit',
+                  name: 'Hábito',
+                  title: 'Hábito',
+                  canAdd: true
+                }}
+                buttonSx={{
+                  borderRadius: 0,
+                  width: 32,
+                  height: 32,
+                  padding: 0.5
+                }}
+              />
+            </Box>
+          )}
+        </Box>
+
+        <Box sx={{ p: 1.5, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto' }}>
+          {showAddForm ? (
             <Box sx={{ mb: 2, p: 1.5, bgcolor: 'background.paper', borderRadius: 0, border: `1px solid ${theme.palette.divider}` }}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 <TextField
@@ -535,7 +492,7 @@ export const HabitsManager = ({ open, onClose }) => {
                   onChange={(e) => setFormData({ ...formData, id: e.target.value.toLowerCase().replace(/\s+/g, '') })}
                   error={!!errors.id}
                   helperText={errors.id || 'Solo letras minúsculas y números'}
-                  disabled={!!editingHabit}
+                  disabled={false}
                   fullWidth
                   size="small"
                 />
@@ -597,64 +554,121 @@ export const HabitsManager = ({ open, onClose }) => {
                     size="small"
                     sx={{ borderRadius: 0, flex: 1 }}
                   >
-                    {editingHabit ? 'Actualizar' : 'Agregar'}
+                    Agregar
                   </Button>
                 </Box>
               </Box>
             </Box>
-          ) : (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleAddClick}
-              sx={{ mb: 1.5, borderRadius: 0 }}
-              fullWidth
-              size="small"
-            >
-              Agregar Hábito
-            </Button>
-          )}
+          ) : null}
 
           {sortedHabits.length === 0 ? (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
               No hay hábitos en esta sección
             </Typography>
           ) : (
-            <List dense sx={{ py: 0 }}>
-              {sortedHabits.map((habit, index) => {
-                const Icon = getIconByName(habit.icon);
-                
-                // Obtener configuración del hábito, inicializando con valores por defecto si no existe
-                // Esto funciona tanto para hábitos precargados como para nuevos
-                const habitConfig = habitsConfig[currentSection]?.[habit.id] || {
-                  tipo: 'DIARIO',
-                  frecuencia: 1,
-                  activo: habit.activo !== undefined ? habit.activo : true,
-                  periodo: 'CADA_DIA',
-                  diasSemana: [],
-                  diasMes: []
-                };
-                
-                const isSetupOpen = openSetupHabitId === habit.id;
-                
-                return (
-                  <React.Fragment key={habit.id}>
-                    <ListItem
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {/* Lista horizontal de hábitos */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  gap: 1,
+                  overflowX: 'auto',
+                  overflowY: 'hidden',
+                  pb: 1,
+                  '&::-webkit-scrollbar': {
+                    height: 6
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    borderRadius: 3
+                  }
+                }}
+              >
+                {sortedHabits.map((habit, index) => {
+                  const Icon = getIconByName(habit.icon);
+                  
+                  // Obtener configuración del hábito, inicializando con valores por defecto si no existe
+                  const habitConfig = habitsConfig[currentSection]?.[habit.id] || {
+                    tipo: 'DIARIO',
+                    frecuencia: 1,
+                    activo: habit.activo !== undefined ? habit.activo : true,
+                    periodo: 'CADA_DIA',
+                    diasSemana: [],
+                    diasMes: []
+                  };
+                  
+                  const isSetupOpen = openSetupHabitId === habit.id;
+                  
+                  const handleHabitClick = async (e) => {
+                    // No hacer nada si se hace click en los botones de acción
+                    if (e.target.closest('button')) {
+                      return;
+                    }
+                    
+                    // Si se está abriendo el setup, inicializar datos de edición
+                    if (!isSetupOpen) {
+                      setEditingHabitName(false);
+                      setHabitNameEdit(habit.label);
+                      
+                      // Si no hay configuración, inicializarla
+                      if (!habitsConfig[currentSection]?.[habit.id]) {
+                        const defaultConfig = {
+                          tipo: 'DIARIO',
+                          frecuencia: 1,
+                          activo: habit.activo !== undefined ? habit.activo : true,
+                          periodo: 'CADA_DIA',
+                          diasSemana: [],
+                          diasMes: [],
+                          horarios: []
+                        };
+                        
+                        setHabitsConfig(prev => ({
+                          ...prev,
+                          [currentSection]: {
+                            ...(prev[currentSection] || {}),
+                            [habit.id]: defaultConfig
+                          }
+                        }));
+                        
+                        handleConfigChange(habit.id, defaultConfig).catch(err => {
+                          console.warn('[HabitsManager] Error al inicializar configuración:', err);
+                        });
+                      }
+                    }
+                    
+                    setOpenSetupHabitId(isSetupOpen ? null : habit.id);
+                    if (isSetupOpen) {
+                      setEditingField(null);
+                    }
+                  };
+                  
+                  return (
+                    <Box
+                      key={habit.id}
+                      onClick={handleHabitClick}
                       sx={{
-                        bgcolor: habit.activo ? 'transparent' : 'action.disabledBackground',
-                        borderRadius: 0,
-                        mb: 0.5,
-                        py: 0.75,
-                        px: 1,
-                        border: editingHabit?.id === habit.id ? `1px solid ${theme.palette.primary.main}` : '1px solid transparent',
-                        '&:hover': {
-                          bgcolor: 'action.hover'
-                        },
+                        display: 'flex',
                         flexDirection: 'column',
-                        alignItems: 'flex-start'
+                        minWidth: 200,
+                        maxWidth: 250,
+                        bgcolor: habit.activo ? 'background.paper' : 'action.disabledBackground',
+                        border: isSetupOpen
+                          ? `2px solid ${theme.palette.primary.main}`
+                          : `1px solid ${theme.palette.divider}`,
+                        borderRadius: 1,
+                        p: 1,
+                        position: 'relative',
+                        opacity: habit.activo === false ? 0.6 : 1,
+                        cursor: 'pointer',
+                        '&:hover': {
+                          bgcolor: 'action.hover',
+                          borderColor: theme.palette.primary.main
+                        }
                       }}
                     >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1, minWidth: 0, width: '100%' }}>
+                      {/* Header del hábito */}
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75 }}>
                         {Icon && (
                           <Icon 
                             sx={{ 
@@ -670,6 +684,7 @@ export const HabitsManager = ({ open, onClose }) => {
                             sx={{
                               color: habit.activo ? 'text.primary' : 'text.disabled',
                               textDecoration: habit.activo ? 'none' : 'line-through',
+                              fontWeight: 500,
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap'
@@ -677,148 +692,274 @@ export const HabitsManager = ({ open, onClose }) => {
                           >
                             {habit.label}
                           </Typography>
-                          {/* Mostrar resumen de configuración */}
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ fontSize: '0.7rem', display: 'block', mt: 0.2 }}
-                          >
-                            {(() => {
-                              const tipo = (habitConfig?.tipo || 'DIARIO').toUpperCase();
-                              const frecuencia = Number(habitConfig?.frecuencia || 1);
-                              if (tipo === 'DIARIO') {
-                                return frecuencia === 1 ? 'Diario' : `${frecuencia}x/día`;
-                              } else if (tipo === 'SEMANAL') {
-                                return frecuencia === 1 ? 'Semanal' : `${frecuencia}x/sem`;
-                              } else if (tipo === 'MENSUAL') {
-                                return frecuencia === 1 ? 'Mensual' : `${frecuencia}x/mes`;
-                              }
-                              return 'Personalizado';
-                            })()}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', gap: 0.25, ml: 1 }}>
-                          <Tooltip title="Configurar cadencia">
-                            <IconButton
-                              size="small"
-                              onClick={async () => {
-                                // Si se está abriendo el setup y no hay configuración, inicializarla
-                                if (!isSetupOpen && !habitsConfig[currentSection]?.[habit.id]) {
-                                  const defaultConfig = {
-                                    tipo: 'DIARIO',
-                                    frecuencia: 1,
-                                    activo: habit.activo !== undefined ? habit.activo : true,
-                                    periodo: 'CADA_DIA',
-                                    diasSemana: [],
-                                    diasMes: []
-                                  };
-                                  
-                                  // Actualizar estado local inmediatamente para mostrar el setup
-                                  setHabitsConfig(prev => ({
-                                    ...prev,
-                                    [currentSection]: {
-                                      ...(prev[currentSection] || {}),
-                                      [habit.id]: defaultConfig
-                                    }
-                                  }));
-                                  
-                                  // Guardar en el backend (sin esperar para no bloquear la UI)
-                                  handleConfigChange(habit.id, defaultConfig).catch(err => {
-                                    console.warn('[HabitsManager] Error al inicializar configuración:', err);
-                                  });
+                          {/* Resumen de configuración */}
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.2, flexWrap: 'wrap' }}>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{ fontSize: '0.7rem' }}
+                            >
+                              {(() => {
+                                const tipo = (habitConfig?.tipo || 'DIARIO').toUpperCase();
+                                const frecuencia = Number(habitConfig?.frecuencia || 1);
+                                let cadenciaLabel = '';
+                                if (tipo === 'DIARIO') {
+                                  cadenciaLabel = frecuencia === 1 ? 'Diario' : `${frecuencia}x/día`;
+                                } else if (tipo === 'SEMANAL') {
+                                  cadenciaLabel = frecuencia === 1 ? 'Semanal' : `${frecuencia}x/sem`;
+                                } else if (tipo === 'MENSUAL') {
+                                  cadenciaLabel = frecuencia === 1 ? 'Mensual' : `${frecuencia}x/mes`;
+                                } else {
+                                  cadenciaLabel = 'Personalizado';
                                 }
-                                
-                                setOpenSetupHabitId(isSetupOpen ? null : habit.id);
-                              }}
-                              sx={{ 
-                                width: 28, 
-                                height: 28, 
-                                padding: 0.5,
-                                color: isSetupOpen ? 'primary.main' : 'text.secondary'
-                              }}
-                            >
-                              <TuneIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Mover arriba">
-                            <span>
-                              <IconButton
+                                return cadenciaLabel;
+                              })()}
+                            </Typography>
+                            {/* Indicador de horarios */}
+                            {habitConfig?.horarios && Array.isArray(habitConfig.horarios) && habitConfig.horarios.length > 0 && (
+                              <Chip
+                                label={getTimeOfDayLabels(habitConfig.horarios)}
                                 size="small"
-                                onClick={() => handleMoveUp(habit.id)}
-                                disabled={index === 0 || loading}
-                                sx={{ width: 28, height: 28, padding: 0.5 }}
-                              >
-                                <ArrowUpwardIcon fontSize="small" />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                          <Tooltip title="Mover abajo">
-                            <span>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleMoveDown(habit.id)}
-                                disabled={index === sortedHabits.length - 1 || loading}
-                                sx={{ width: 28, height: 28, padding: 0.5 }}
-                              >
-                                <ArrowDownwardIcon fontSize="small" />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                          <Tooltip title="Editar">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleEditClick(habit)}
-                              disabled={loading}
-                              sx={{ width: 28, height: 28, padding: 0.5 }}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Eliminar">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDelete(habit.id)}
-                              disabled={loading || sortedHabits.length <= 1}
-                              color="error"
-                              sx={{ width: 28, height: 28, padding: 0.5 }}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                                sx={{
+                                  height: 16,
+                                  fontSize: '0.65rem',
+                                  bgcolor: 'rgba(25, 118, 210, 0.2)',
+                                  color: 'rgba(255, 255, 255, 0.7)',
+                                  border: '1px solid rgba(25, 118, 210, 0.3)',
+                                  '& .MuiChip-label': {
+                                    px: 0.5,
+                                    py: 0
+                                  }
+                                }}
+                              />
+                            )}
+                          </Box>
                         </Box>
                       </Box>
-                    </ListItem>
-                    {/* Panel de configuración de cadencia */}
-                    <Collapse in={isSetupOpen} timeout="auto" unmountOnExit>
-                      <Box sx={{ pl: 4, pr: 1, pb: 1, mb: 0.5 }}>
-                        <InlineItemConfigImproved
-                          config={habitConfig}
-                          onConfigChange={async (newConfig) => {
-                            // #region agent log
-                            fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsManager.jsx:683',message:'onConfigChange from InlineItemConfigImproved',data:{habitId:habit.id,currentSection,newConfig,isNewHabit:!habitsConfig[currentSection]?.[habit.id]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                            // #endregion
-                            // Guardar configuración (actualiza preferencias globales y rutina actual)
-                            await handleConfigChange(habit.id, newConfig);
-                            // #region agent log
-                            fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsManager.jsx:687',message:'After handleConfigChange, before fetchHabitsConfig',data:{habitId:habit.id,currentSection},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-                            // #endregion
-                            // NO recargar configuración aquí para evitar loops
-                            // El estado local ya se actualizó en handleConfigChange
-                            // Solo recargar si es necesario después de un delay o en un efecto separado
-                            // await fetchHabitsConfig(); // COMENTADO: causa loop infinito
-                            // #region agent log
-                            fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsManager.jsx:738',message:'After fetchHabitsConfig',data:{habitId:habit.id,currentSection,configAfterReload:!!habitsConfig[currentSection]?.[habit.id],willTriggerRerender:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-                            // #endregion
-                          }}
-                          itemId={habit.id}
-                          sectionId={currentSection}
-                        />
-                      </Box>
-                    </Collapse>
-                  </React.Fragment>
-                );
-              })}
-            </List>
+                    </Box>
+                  );
+                })}
+              </Box>
+              
+              {/* Panel de configuración y edición - se muestra debajo cuando se selecciona un hábito */}
+              <Box sx={{ minHeight: openSetupHabitId ? '450px' : '0px', transition: 'min-height 0.3s ease', overflow: 'hidden' }}>
+                {openSetupHabitId && sortedHabits.find(h => h.id === openSetupHabitId) && (
+                  <Collapse in={!!openSetupHabitId} timeout="auto" unmountOnExit>
+                    <Box sx={{ mt: 1, p: 2, bgcolor: 'background.paper', border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
+                    {(() => {
+                      const selectedHabit = sortedHabits.find(h => h.id === openSetupHabitId);
+                      if (!selectedHabit) return null;
+                      
+                      const habitConfig = habitsConfig[currentSection]?.[selectedHabit.id] || {
+                        tipo: 'DIARIO',
+                        frecuencia: 1,
+                        activo: selectedHabit.activo !== undefined ? selectedHabit.activo : true,
+                        periodo: 'CADA_DIA',
+                        diasSemana: [],
+                        diasMes: [],
+                        horarios: []
+                      };
+                      
+                      const IconComponent = getIconByName(selectedHabit.icon);
+                      
+                      const handleStartEditName = () => {
+                        setHabitNameEdit(selectedHabit.label);
+                        setEditingHabitName(true);
+                      };
+                      
+                      const handleSaveName = async () => {
+                        if (!habitNameEdit || habitNameEdit.trim() === '') {
+                          return;
+                        }
+                        
+                        try {
+                          await updateHabit(selectedHabit.id, currentSection, {
+                            label: habitNameEdit.trim(),
+                            icon: selectedHabit.icon,
+                            activo: selectedHabit.activo !== undefined ? selectedHabit.activo : true
+                          });
+                          await fetchHabits();
+                          setEditingHabitName(false);
+                        } catch (error) {
+                          console.error('[HabitsManager] Error al actualizar nombre del hábito:', error);
+                        }
+                      };
+                      
+                      const handleCancelEditName = () => {
+                        setHabitNameEdit(selectedHabit.label);
+                        setEditingHabitName(false);
+                      };
+                      
+                      return (
+                        <Box>
+                          {/* Título con nombre del hábito */}
+                          <Box sx={{ mb: 3 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                              {IconComponent && (
+                                <IconComponent 
+                                  sx={{ 
+                                    color: 'primary.main', 
+                                    fontSize: '1.5rem',
+                                    flexShrink: 0
+                                  }} 
+                                />
+                              )}
+                              {editingHabitName ? (
+                                <>
+                                  <TextField
+                                    value={habitNameEdit}
+                                    onChange={(e) => setHabitNameEdit(e.target.value)}
+                                    size="small"
+                                    autoFocus
+                                    sx={{ flex: 1 }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        handleSaveName();
+                                      } else if (e.key === 'Escape') {
+                                        handleCancelEditName();
+                                      }
+                                    }}
+                                  />
+                                  <IconButton
+                                    size="small"
+                                    onClick={handleSaveName}
+                                    color="primary"
+                                    sx={{ width: 32, height: 32 }}
+                                  >
+                                    <CheckIcon fontSize="small" />
+                                  </IconButton>
+                                  <IconButton
+                                    size="small"
+                                    onClick={handleCancelEditName}
+                                    sx={{ width: 32, height: 32 }}
+                                  >
+                                    <CancelIcon fontSize="small" />
+                                  </IconButton>
+                                </>
+                              ) : (
+                                <>
+                                  <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }}>
+                                    {selectedHabit.label}
+                                  </Typography>
+                                  <IconButton
+                                    size="small"
+                                    onClick={handleStartEditName}
+                                    sx={{ width: 28, height: 28 }}
+                                  >
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                </>
+                              )}
+                            </Box>
+                            
+                            {/* Selector de grupo */}
+                            <Box sx={{ mt: 1 }}>
+                              <FormControl fullWidth size="small" sx={{ '& .MuiInputBase-root': { fontSize: '0.85rem', height: '32px' } }}>
+                                <InputLabel sx={{ fontSize: '0.85rem' }}>Grupo</InputLabel>
+                                <Select
+                                  value={currentSection}
+                                  label="Grupo"
+                                  sx={{ fontSize: '0.85rem' }}
+                                  onChange={async (e) => {
+                                    const newSection = e.target.value;
+                                    if (newSection !== currentSection) {
+                                      try {
+                                        // Mover el hábito a la nueva sección
+                                        // Primero eliminar de la sección actual
+                                        await deleteHabit(selectedHabit.id, currentSection);
+                                        // Luego agregar a la nueva sección
+                                        const orden = habits[newSection]?.length || 0;
+                                        await addHabit(newSection, {
+                                          id: selectedHabit.id,
+                                          label: selectedHabit.label,
+                                          icon: selectedHabit.icon,
+                                          activo: selectedHabit.activo !== undefined ? selectedHabit.activo : true,
+                                          orden
+                                        });
+                                        
+                                        // Mover la configuración también
+                                        const habitConfigToMove = habitsConfig[currentSection]?.[selectedHabit.id];
+                                        if (habitConfigToMove && updateUserHabitPreference) {
+                                          await updateUserHabitPreference(newSection, selectedHabit.id, habitConfigToMove, true);
+                                        }
+                                        
+                                        // Actualizar estado local
+                                        setHabitsConfig(prev => {
+                                          const updated = { ...prev };
+                                          if (updated[currentSection]?.[selectedHabit.id]) {
+                                            if (!updated[newSection]) {
+                                              updated[newSection] = {};
+                                            }
+                                            updated[newSection][selectedHabit.id] = updated[currentSection][selectedHabit.id];
+                                            delete updated[currentSection][selectedHabit.id];
+                                          }
+                                          return updated;
+                                        });
+                                        
+                                        // Cerrar el panel y cambiar a la nueva sección
+                                        setOpenSetupHabitId(null);
+                                        setCurrentSection(newSection);
+                                        await fetchHabits();
+                                        await fetchHabitsConfig();
+                                      } catch (error) {
+                                        console.error('[HabitsManager] Error al mover hábito a otra sección:', error);
+                                      }
+                                    }
+                                  }}
+                                >
+                                  {SECTIONS.map(section => (
+                                    <MenuItem key={section.value} value={section.value}>
+                                      {section.label}
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              </FormControl>
+                            </Box>
+                            <InlineItemConfigImproved
+                              config={habitConfig}
+                              onConfigChange={async (newConfig) => {
+                                // #region agent log
+                                fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsManager.jsx:683',message:'onConfigChange from InlineItemConfigImproved',data:{habitId:selectedHabit.id,currentSection,newConfig,isNewHabit:!habitsConfig[currentSection]?.[selectedHabit.id]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                                // #endregion
+                                await handleConfigChange(selectedHabit.id, newConfig);
+                                // #region agent log
+                                fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsManager.jsx:687',message:'After handleConfigChange, before fetchHabitsConfig',data:{habitId:selectedHabit.id,currentSection},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+                                // #endregion
+                                // #region agent log
+                                fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsManager.jsx:738',message:'After fetchHabitsConfig',data:{habitId:selectedHabit.id,currentSection,configAfterReload:!!habitsConfig[currentSection]?.[selectedHabit.id],willTriggerRerender:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                                // #endregion
+                              }}
+                              itemId={selectedHabit.id}
+                              sectionId={currentSection}
+                            />
+                          </Box>
+                          
+                          {/* Botón de eliminar */}
+                          <Box sx={{ pt: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
+                            <Button
+                              variant="outlined"
+                              color="error"
+                              startIcon={<DeleteIcon />}
+                              onClick={() => {
+                                setOpenSetupHabitId(null);
+                                handleDelete(selectedHabit.id);
+                              }}
+                              disabled={loading || sortedHabits.length <= 1}
+                              fullWidth
+                              size="small"
+                              sx={{ borderRadius: 0 }}
+                            >
+                              Eliminar Hábito
+                            </Button>
+                          </Box>
+                        </Box>
+                      );
+                    })()}
+                    </Box>
+                  </Collapse>
+                )}
+              </Box>
+            </Box>
           )}
         </Box>
       </DialogContent>

@@ -296,6 +296,7 @@ export function Archivo() {
             px: isMobile ? 0 : 1,
             height: isMobile ? 'calc(100vh - 180px)' : 'calc(100vh - 190px)', // Ajustado para móvil
             overflowY: 'auto',
+            pb: isMobile ? 4 : 6, // Agregar padding bottom más extenso
             '&::-webkit-scrollbar': {
               width: isMobile ? '4px' : '8px',
             },

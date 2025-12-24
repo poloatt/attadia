@@ -1,10 +1,12 @@
 import { debesMostrarHabitoEnFecha } from './cadenciaUtils';
 import { parseAPIDate } from './dateUtils';
+import { shouldShowHabitByTimeOfDay, getCurrentTimeOfDay } from './timeOfDayUtils';
 
 /**
  * Determina sincrónicamente si un ítem debe mostrarse para una rutina dada.
  * Usa una heurística basada en cadencia (sin llamadas async) para mantener la UI fluida.
  * Si se provee historial en additionalData, se considera para frecuencia/período.
+ * Si se provee currentTimeOfDay en additionalData, se filtra por horario configurado.
  */
 export default function shouldShowItem(section, itemId, rutina, additionalData = {}) {
   try {
@@ -15,6 +17,16 @@ export default function shouldShowItem(section, itemId, rutina, additionalData =
     // (evita que migraciones/parciales rompan la UI y los cálculos de completitud).
     if (!config) return true;
     if (config.activo === false) return false;
+
+    // Filtrar por horario si está configurado (antes de evaluar cadencia) usando lógica acumulativa
+    if (config.horarios && Array.isArray(config.horarios) && config.horarios.length > 0) {
+      const currentTimeOfDay = additionalData.currentTimeOfDay || getCurrentTimeOfDay();
+      // Verificar si el hábito está completado hoy
+      const isCompleted = rutina?.[section]?.[itemId] === true || additionalData.isCompleted === true;
+      if (!shouldShowHabitByTimeOfDay(config.horarios, currentTimeOfDay, isCompleted)) {
+        return false; // No mostrar según lógica acumulativa
+      }
+    }
 
     // Normalizar fecha de rutina
     const fechaRutina = parseAPIDate(rutina.fecha) || new Date();

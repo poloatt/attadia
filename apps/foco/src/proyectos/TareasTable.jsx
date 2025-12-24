@@ -1085,7 +1085,7 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
     return (
       // Usar la misma "surface" que RutinasPendientesHoy para que no choque con el theme paper
       // El contenedor usa el background del layout; las filas tienen su surfaceBg.
-      <Stack spacing={isMobile ? 1 : 2}>
+      <Stack spacing={isMobile ? 1 : 2} sx={{ pb: isMobile ? 4 : 6 }}>
         {shouldShowRutinas && (
           <Paper
             elevation={0}
@@ -1176,7 +1176,7 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
   const hasHoyPeriodo = Object.prototype.hasOwnProperty.call(tareasAgrupadas, 'HOY');
 
   return (
-    <Stack spacing={isMobile ? 1 : 2}>
+    <Stack spacing={isMobile ? 1 : 2} sx={{ pb: isMobile ? 4 : 6 }}>
       {/* Rutinas: antes de la división en grupos, debajo de "Ahora" */}
       {shouldShowRutinas && (
         <Paper

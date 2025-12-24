@@ -60,7 +60,7 @@ export const EntityActions = memo(({
       show: true
     },
     showEdit && onEdit ? ACTIONS.edit({ onClick: onEdit, disabled, color: 'white' }) : null,
-    showDelete && onDelete ? ACTIONS.delete({ onClick: onDelete, disabled, itemName, color: 'white' }) : null
+    showDelete && onDelete ? ACTIONS.delete({ onClick: onDelete, disabled, itemName }) : null
   ].filter(Boolean);
   return (
     <SystemButtons
@@ -68,10 +68,18 @@ export const EntityActions = memo(({
       direction={direction}
       size={size}
       disabled={disabled}
-      // Forzar color blanco en todos los botones
+      // Forzar color blanco en todos los botones excepto delete
       sx={{
         '& .MuiIconButton-root': {
           color: 'white',
+        },
+        // Sobrescribir color para el botón delete con rojo al 40% de opacidad
+        // El selector busca el botón que contiene el icono de delete
+        '& .MuiIconButton-root:has(svg[data-testid="DeleteIcon"])': {
+          color: 'rgba(244, 67, 54, 0.4) !important',
+          '&:hover': {
+            color: 'rgba(244, 67, 54, 0.6) !important'
+          }
         }
       }}
     />
@@ -96,7 +104,13 @@ export const ACTIONS = {
     disabled,
     tooltip: 'Eliminar',
     confirm: true,
-    confirmText: itemName
+    confirmText: itemName,
+    buttonSx: {
+      color: 'rgba(244, 67, 54, 0.4) !important', // Rojo con 40% de opacidad
+      '&:hover': {
+        color: 'rgba(244, 67, 54, 0.6) !important' // Rojo con 60% de opacidad al hacer hover
+      }
+    }
   })
 };
 

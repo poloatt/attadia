@@ -129,7 +129,7 @@ export function Layout() {
                 right: 0,
                 bottom: 0,
                 pt: `${mainTopPadding}px`,
-                pb: `${FOOTER_CONFIG.height}px`,
+                pb: `${FOOTER_CONFIG.height + 24}px`, // Agregar 24px adicionales de margen inferior
                 bgcolor: 'background.default',
                 overflowY: 'auto',
                 overflowX: 'hidden',
@@ -160,6 +160,7 @@ export function Layout() {
                 minHeight: 0,
                 border: 'none',
                 outline: 'none',
+                pb: 3, // Agregar padding bottom adicional al contenedor interno
               }}>
                 <Outlet />
               </Box>
@@ -210,7 +211,7 @@ export function Layout() {
                 right: 0,
                 bottom: 0,
                 pt: `${mainTopPadding}px`,
-                pb: `${FOOTER_CONFIG.height}px`,
+                pb: `${FOOTER_CONFIG.height + 24}px`, // Agregar 24px adicionales de margen inferior
                 bgcolor: 'background.default',
                 overflowY: 'auto',
                 overflowX: 'hidden',
@@ -241,6 +242,7 @@ export function Layout() {
                 minHeight: 0,
                 border: 'none',
                 outline: 'none',
+                pb: 3, // Agregar padding bottom adicional al contenedor interno
               }}>
                 <Outlet />
               </Box>

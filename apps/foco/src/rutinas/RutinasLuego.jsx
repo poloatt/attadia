@@ -5,6 +5,7 @@ import { useRutinas, useHabits } from '@shared/context';
 import { iconConfig, iconTooltips, getIconByName } from '@shared/utils/iconConfig';
 import { getNormalizedToday, parseAPIDate, toISODateString } from '@shared/utils/dateUtils';
 import { getVisibleItemIds } from '@shared/utils/visibilityUtils';
+import { getCurrentTimeOfDay } from '@shared/utils/timeOfDayUtils';
 import { isSameWeek, isSameMonth, startOfMonth, endOfMonth, endOfWeek, differenceInDays, startOfWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import useHorizontalDragScroll from './hooks/useHorizontalDragScroll';
@@ -58,6 +59,9 @@ export default function RutinasLuego({
   });
 
   const todayStr = useMemo(() => toISODateString(getNormalizedToday()), []);
+  // Usar horario actual automáticamente (la lógica acumulativa se aplica en shouldShowItem)
+  // Se recalcula en cada render para reflejar el horario actual
+  const currentTimeOfDay = getCurrentTimeOfDay();
 
   const rutinaHoy = useMemo(() => {
     const sameDay = (r) => {
@@ -143,13 +147,14 @@ export default function RutinasLuego({
       const sectionIcons = sectionIconsMap.iconsMap[section] || {};
       const sectionCfg = rutinaHoy?.config?.[section] || {};
 
-      // Usar getVisibleItemIds para obtener items visibles según las reglas de cadencia
+      // Usar getVisibleItemIds para obtener items visibles según las reglas de cadencia y horario
       const visibleItemIds = getVisibleItemIds(
         sectionIcons,
         section,
         rutinaHoy,
         sectionCfg,
-        rutinaHoy?.[section] || {}
+        rutinaHoy?.[section] || {},
+        currentTimeOfDay
       );
 
       visibleItemIds.forEach((itemId) => {

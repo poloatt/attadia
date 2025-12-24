@@ -24,6 +24,7 @@ import InlineItemConfigImproved from './InlineItemConfigImproved';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useRutinas, useHabits } from '@shared/context';
+import HabitFormDialog from '@shared/components/HabitFormDialog';
 
 import { useSnackbar } from 'notistack';
 // Importamos las utilidades de cadencia
@@ -69,7 +70,7 @@ const RutinaCard = ({
 }) => {
   // Contexto de rutinas y hábitos
   const { rutina, markItemComplete, updateItemConfiguration, updateUserHabitPreference } = useRutinas();
-  const { habits } = useHabits();
+  const { habits, updateHabit, deleteHabit, fetchHabits } = useHabits();
   
   // Obtener iconos de hábitos personalizados o usar defaults
   const sectionHabits = habits[section] || [];
@@ -130,6 +131,9 @@ const RutinaCard = ({
   
   // Agrega estado para el ítem con setup abierto
   const [openSetupItemId, setOpenSetupItemId] = useState(null);
+  
+  // Estado para el diálogo de edición de hábito
+  const [editingHabitDialog, setEditingHabitDialog] = useState({ open: false, habit: null, section: null });
   
   // Importar el hook de snackbar
   const { enqueueSnackbar } = useSnackbar();
@@ -956,28 +960,6 @@ const RutinaCard = ({
 
   return (
     <Card sx={{ mb: 1, bgcolor: 'background.paper', borderRadius: 1.5, boxShadow: 'none', border: 'none', overflow: 'visible', position: 'relative' }}>
-      {/* Label flotante de sección */}
-      <Typography
-        variant="caption"
-        sx={{
-          position: 'absolute',
-          top: -10,
-          left: 8,
-          px: 0,
-          py: 0,
-          bgcolor: 'transparent',
-          color: 'text.secondary',
-          fontWeight: 700,
-          fontSize: '0.72rem',
-          zIndex: 10,
-          letterSpacing: 0.2,
-          textTransform: 'uppercase',
-          pointerEvents: 'none',
-          textShadow: '0 0 2px rgba(0,0,0,0.6)'
-        }}
-      >
-        {capitalizeFirstLetter(title) || section}
-      </Typography>
       {/* Encabezado de la sección */}
       <Box 
         sx={{ 
@@ -991,7 +973,21 @@ const RutinaCard = ({
         }}
         onClick={handleToggle}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'center' }}>
+          {/* Label centrado de sección */}
+          <Typography
+            variant="caption"
+            sx={{
+              color: 'text.secondary',
+              fontWeight: 700,
+              fontSize: '0.72rem',
+              letterSpacing: 0.2,
+              textTransform: 'uppercase',
+              pointerEvents: 'none'
+            }}
+          >
+            {capitalizeFirstLetter(title) || section}
+          </Typography>
           <Box sx={{ flexGrow: 1 }} />
           {!isExpanded && (
             <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 0.3, alignItems: 'center' }}>
@@ -1023,21 +1019,6 @@ const RutinaCard = ({
           {/* Sección de configuración de hábitos personalizados */}
           {sectionHabits && sectionHabits.length > 0 && (
             <Box sx={{ mb: 1, pb: 1, borderBottom: `1px solid ${alpha('#fff', 0.1)}` }}>
-              <Typography 
-                variant="caption" 
-                sx={{ 
-                  display: 'block',
-                  mb: 0.75,
-                  px: 1,
-                  color: 'text.secondary',
-                  fontSize: '0.7rem',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5
-                }}
-              >
-                Configuración de Hábitos
-              </Typography>
               <List dense disablePadding sx={{ py: 0, my: 0 }}>
                 {sectionHabits
                   .filter(h => h.activo !== false)
@@ -1054,20 +1035,35 @@ const RutinaCard = ({
                     const isCompleted = isItemCompleted(habitId);
                     
                     return (
-                      <Box key={habitId} sx={{ mb: 0.5 }}>
-                        <ChecklistItem
-                          itemId={habitId}
-                          section={section}
-                          Icon={Icon}
-                          isCompleted={isCompleted}
-                          readOnly={readOnly}
-                          onItemClick={handleItemClick}
-                          config={habitConfig}
-                          onConfigChange={(newConfig, meta) => onConfigChange(habitId, newConfig, meta)}
-                          isSetupOpen={openSetupItemId === habitId}
-                          onSetupToggle={() => setOpenSetupItemId(openSetupItemId === habitId ? null : habitId)}
-                        />
-                      </Box>
+                      <HabitItemWithConfig
+                        key={habitId}
+                        habitId={habitId}
+                        section={section}
+                        Icon={Icon}
+                        isCompleted={isCompleted}
+                        readOnly={readOnly}
+                        onItemClick={handleItemClick}
+                        config={habitConfig}
+                        onConfigChange={(newConfig, meta) => onConfigChange(habitId, newConfig, meta)}
+                        isSetupOpen={openSetupItemId === habitId}
+                        onSetupToggle={() => setOpenSetupItemId(openSetupItemId === habitId ? null : habitId)}
+                        isCustomHabit={true}
+                        habitLabel={habit.label}
+                        habit={habit}
+                        onEditHabit={() => {
+                          setEditingHabitDialog({ open: true, habit: habit, section: section });
+                        }}
+                        onDeleteHabit={async () => {
+                          if (window.confirm('¿Estás seguro de que deseas eliminar este hábito?')) {
+                            try {
+                              await deleteHabit(habitId, section);
+                              await fetchHabits();
+                            } catch (error) {
+                              console.error('[RutinaCard] Error al eliminar hábito:', error);
+                            }
+                          }
+                        }}
+                      />
                     );
                   })}
               </List>
@@ -1079,6 +1075,14 @@ const RutinaCard = ({
           </List>
         </CardContent>
       </Collapse>
+      
+      {/* Diálogo de edición de hábito */}
+      <HabitFormDialog
+        open={editingHabitDialog.open}
+        onClose={() => setEditingHabitDialog({ open: false, habit: null, section: null })}
+        editingHabit={editingHabitDialog.habit}
+        editingSection={editingHabitDialog.section}
+      />
     </Card>
   );
 };
@@ -1160,6 +1164,74 @@ const CollapsedIcons = memo(({
     </Box>
   );
 });
+
+// Componente wrapper para hábitos con configuración
+const HabitItemWithConfig = ({
+  habitId,
+  section,
+  Icon,
+  isCompleted,
+  readOnly,
+  onItemClick,
+  config,
+  onConfigChange,
+  isSetupOpen,
+  onSetupToggle,
+  isCustomHabit,
+  habitLabel,
+  habit,
+  onEditHabit,
+  onDeleteHabit
+}) => {
+  const [configState, setConfigState] = useState(config);
+  
+  // Sincronizar configState cuando cambia config desde props
+  useEffect(() => {
+    if (JSON.stringify(config) !== JSON.stringify(configState)) {
+      setConfigState(config);
+    }
+  }, [config]);
+  
+  return (
+    <Box sx={{ mb: 0.5 }}>
+      <ChecklistItem
+        itemId={habitId}
+        section={section}
+        Icon={Icon}
+        isCompleted={isCompleted}
+        readOnly={readOnly}
+        onItemClick={onItemClick}
+        config={configState}
+        onConfigChange={(newConfig) => {
+          setConfigState(newConfig);
+        }}
+        isSetupOpen={isSetupOpen}
+        onSetupToggle={onSetupToggle}
+        isCustomHabit={isCustomHabit}
+        habitLabel={habitLabel}
+        onEditHabit={onEditHabit}
+        onDeleteHabit={onDeleteHabit}
+      />
+      {isSetupOpen && (
+        <Box sx={{ width: '100%', mt: 1 }}>
+          <InlineItemConfigImproved
+            config={configState}
+            onConfigChange={async (newConfig, meta) => {
+              // Actualizar estado local
+              setConfigState(newConfig);
+              // Guardar cuando se llama desde handleSave
+              if (meta?.scope === 'today') {
+                await onConfigChange(newConfig, meta);
+              }
+            }}
+            itemId={habitId}
+            sectionId={section}
+          />
+        </Box>
+      )}
+    </Box>
+  );
+};
 
 // Memoizar RutinaCard con comparación optimizada
 const MemoizedRutinaCard = memo(RutinaCard, (prevProps, nextProps) => {
