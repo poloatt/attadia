@@ -6,7 +6,7 @@ import { iconConfig, iconTooltips, getIconByName } from '@shared/utils/iconConfi
 import { getNormalizedToday, parseAPIDate, toISODateString } from '@shared/utils/dateUtils';
 import { getVisibleItemIds } from '@shared/utils/visibilityUtils';
 import { getCurrentTimeOfDay } from '@shared/utils/timeOfDayUtils';
-import { shouldShowHabitForCurrentTime } from '@shared/utils/habitTimeLogic';
+import { shouldShowHabitForCurrentTime, getHorarioToShow } from '@shared/utils/habitTimeLogic';
 import { HabitCounterBadge } from '@shared/components/common/HabitCounterBadge';
 import { isSameWeek, isSameMonth, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays, getDay, getDate } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -148,7 +148,17 @@ export default function RutinasPendientesHoy({
       );
 
       visibleItemIds.forEach((itemId) => {
-        const completadoHoy = rutinaHoy?.[section]?.[itemId] === true;
+        // Verificar si está completado: puede ser boolean (legacy) u objeto con horarios (nuevo formato)
+        const itemValue = rutinaHoy?.[section]?.[itemId];
+        const isObjectFormat = typeof itemValue === 'object' && itemValue !== null && !Array.isArray(itemValue);
+        const isBooleanFormat = typeof itemValue === 'boolean';
+        
+        // Si está en formato objeto, verificar si todos los horarios están completados
+        // Si está en formato boolean, verificar directamente
+        const completadoHoy = isObjectFormat 
+          ? Object.values(itemValue).every(Boolean) 
+          : (isBooleanFormat && itemValue === true);
+        
         if (completadoHoy) return;
         
         // Verificar si el item ya fue agregado (evitar duplicados)
@@ -329,9 +339,57 @@ export default function RutinasPendientesHoy({
     }
     try {
       const prevSection = rutinaHoy?.[section] || {};
-      const prev = prevSection?.[itemId] === true;
-      // El API espera un payload mínimo: { [itemId]: boolean }
-      const itemData = { [itemId]: !prev };
+      const itemValue = prevSection[itemId];
+      const itemConfig = rutinaHoy?.config?.[section]?.[itemId] || {};
+      const horariosConfig = Array.isArray(itemConfig.horarios) ? itemConfig.horarios : [];
+      
+      // Determinar el horario específico que se debe marcar
+      const completadoHoy = itemValue !== undefined ? itemValue : false;
+      const tipo = (itemConfig.tipo || 'DIARIO').toUpperCase();
+      const frecuencia = Number(itemConfig.frecuencia || 1);
+      const horarioToMark = getHorarioToShow(horariosConfig, currentTimeOfDay, completadoHoy, tipo, frecuencia) || currentTimeOfDay;
+      const normalizedHorario = String(horarioToMark).toUpperCase();
+      
+      // Detectar formato actual: objeto o boolean
+      const isObjectFormat = typeof itemValue === 'object' && itemValue !== null && !Array.isArray(itemValue);
+      const isBooleanFormat = typeof itemValue === 'boolean';
+      
+      let newValue;
+      
+      // Si tiene múltiples horarios configurados, usar formato objeto y marcar solo el horario específico
+      if (horariosConfig.length > 1) {
+        if (isObjectFormat) {
+          // Ya está en formato objeto, actualizar solo el horario específico
+          const horarioEspecificoCompletado = itemValue[normalizedHorario] === true;
+          newValue = {
+            ...itemValue,
+            [normalizedHorario]: !horarioEspecificoCompletado
+          };
+        } else {
+          // Convertir de formato legacy (boolean) a formato objeto
+          // IMPORTANTE: Al convertir de legacy, todos los horarios empiezan en false
+          // y solo se marca el horario específico (no se propaga el estado legacy a otros horarios)
+          const newObject = {};
+          horariosConfig.forEach(h => {
+            const normalizedH = String(h).toUpperCase();
+            if (normalizedH === normalizedHorario) {
+              // Toggle del horario específico: si estaba completado en legacy, desmarcar; si no, marcar
+              newObject[normalizedH] = !(isBooleanFormat && itemValue === true);
+            } else {
+              // Los otros horarios siempre empiezan en false al convertir de legacy
+              // No se propaga el estado legacy para evitar marcar horarios que no se han hecho
+              newObject[normalizedH] = false;
+            }
+          });
+          newValue = newObject;
+        }
+      } else {
+        // Sin múltiples horarios: usar formato legacy (boolean)
+        const prev = isBooleanFormat ? itemValue : (isObjectFormat ? Object.values(itemValue).some(Boolean) : false);
+        newValue = !prev;
+      }
+      
+      const itemData = { [itemId]: newValue };
       // Esto actualiza backend + parchea contexto (rutina + rutinas), por lo que Rutinas.jsx queda sincronizado.
       await markItemComplete(rutinaHoy._id, section, itemData);
     } catch {
@@ -435,7 +493,10 @@ export default function RutinasPendientesHoy({
           if (horarios.length === 0) return true;
           
           // Verificar si el hábito está completado hoy (solo considerar el día de hoy)
-          const completadoHoy = rutinaHoy?.[section]?.[itemId] === true;
+          // Puede ser boolean (legacy) u objeto con horarios (nuevo formato)
+          const itemValue = rutinaHoy?.[section]?.[itemId];
+          // Pasar el itemValue completo (puede ser objeto o boolean) para que shouldShowHabitForCurrentTime lo maneje
+          const completadoHoy = itemValue !== undefined ? itemValue : false;
           const tipo = (itemConfig.tipo || 'DIARIO').toUpperCase();
           const frecuencia = Number(itemConfig.frecuencia || 1);
           
@@ -449,6 +510,39 @@ export default function RutinasPendientesHoy({
 
           // Obtener configuración del hábito para el badge
           const itemConfig = rutinaHoy?.config?.[section]?.[itemId] || {};
+          
+          // Determinar el horario específico que se debe mostrar
+          const horariosConfig = Array.isArray(itemConfig.horarios) ? itemConfig.horarios : [];
+          const itemValue = rutinaHoy?.[section]?.[itemId];
+          const completadoHoy = itemValue !== undefined ? itemValue : false;
+          const tipo = (itemConfig.tipo || 'DIARIO').toUpperCase();
+          const frecuencia = Number(itemConfig.frecuencia || 1);
+          
+          // Obtener el horario específico que debe mostrarse
+          const horarioToShow = getHorarioToShow(horariosConfig, currentTimeOfDay, completadoHoy, tipo, frecuencia);
+          
+          // Calcular si el hábito está completado (sincronizado con RutinaCard.jsx)
+          // Verificar si está completado: puede ser boolean (legacy) u objeto con horarios (nuevo formato)
+          const isObjectFormat = typeof itemValue === 'object' && itemValue !== null && !Array.isArray(itemValue);
+          const isBooleanFormat = typeof itemValue === 'boolean';
+          
+          // Para hábitos con múltiples horarios, verificar si el horario específico a mostrar está completado
+          const hasMultipleHorarios = horariosConfig.length > 1;
+          
+          let isCompleted = false;
+          if (hasMultipleHorarios && isObjectFormat && horarioToShow) {
+            // Si tiene múltiples horarios y está en formato objeto, verificar el horario específico a mostrar
+            isCompleted = itemValue[horarioToShow] === true;
+          } else if (hasMultipleHorarios && isObjectFormat) {
+            // Si no hay horario específico a mostrar, verificar si algún horario está completado
+            isCompleted = Object.values(itemValue).some(Boolean);
+          } else if (isObjectFormat) {
+            // Si está en formato objeto pero no tiene múltiples horarios, verificar si algún horario está completado
+            isCompleted = Object.values(itemValue).some(Boolean);
+          } else if (isBooleanFormat) {
+            // Formato legacy: boolean simple
+            isCompleted = itemValue === true;
+          }
 
           // Key único basado en section e itemId (sin index para evitar problemas con duplicados)
           const uniqueKey = `${section}.${itemId}`;
@@ -477,16 +571,17 @@ export default function RutinasPendientesHoy({
                   height: size,
                   p: 0,
                   borderRadius: '50%',
-                  bgcolor: bg,
-                  color: 'text.secondary',
+                  bgcolor: isCompleted ? 'action.selected' : bg,
+                  color: isCompleted ? 'primary.main' : 'text.secondary',
                   border: '1px solid',
-                  borderColor: rail,
+                  borderColor: isCompleted ? 'primary.main' : rail,
                   flex: '0 0 auto',
                   // Permitir que un drag horizontal comience encima del botón (mobile/desktop)
                   touchAction: 'pan-x',
+                  transition: 'all 0.2s ease',
                   '&:hover': {
-                    bgcolor: hoverBg,
-                    color: 'text.primary'
+                    bgcolor: isCompleted ? 'action.selected' : hoverBg,
+                    color: isCompleted ? 'primary.main' : 'text.primary'
                   }
                 }}
               >

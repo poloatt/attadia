@@ -286,9 +286,52 @@ export default function RutinasLuego({
     }
     try {
       const prevSection = rutinaHoy?.[section] || {};
-      const prev = prevSection?.[itemId] === true;
-      // El API espera un payload mínimo: { [itemId]: boolean }
-      const itemData = { [itemId]: !prev };
+      const itemValue = prevSection[itemId];
+      const itemConfig = rutinaHoy?.config?.[section]?.[itemId] || {};
+      const horariosConfig = Array.isArray(itemConfig.horarios) ? itemConfig.horarios : [];
+      
+      // Detectar formato actual: objeto o boolean
+      const isObjectFormat = typeof itemValue === 'object' && itemValue !== null && !Array.isArray(itemValue);
+      const isBooleanFormat = typeof itemValue === 'boolean';
+      
+      let newValue;
+      
+      // Si tiene múltiples horarios configurados, usar formato objeto y marcar solo el horario actual
+      if (horariosConfig.length > 1) {
+        const normalizedHorario = String(currentTimeOfDay).toUpperCase();
+        
+        if (isObjectFormat) {
+          // Ya está en formato objeto, actualizar solo el horario específico
+          const horarioActualCompletado = itemValue[normalizedHorario] === true;
+          newValue = {
+            ...itemValue,
+            [normalizedHorario]: !horarioActualCompletado
+          };
+        } else {
+          // Convertir de formato legacy (boolean) a formato objeto
+          // IMPORTANTE: Al convertir de legacy, todos los horarios empiezan en false
+          // y solo se marca el horario actual (no se propaga el estado legacy a otros horarios)
+          const newObject = {};
+          horariosConfig.forEach(h => {
+            const normalizedH = String(h).toUpperCase();
+            if (normalizedH === normalizedHorario) {
+              // Toggle del horario actual: si estaba completado en legacy, desmarcar; si no, marcar
+              newObject[normalizedH] = !(isBooleanFormat && itemValue === true);
+            } else {
+              // Los otros horarios siempre empiezan en false al convertir de legacy
+              // No se propaga el estado legacy para evitar marcar horarios que no se han hecho
+              newObject[normalizedH] = false;
+            }
+          });
+          newValue = newObject;
+        }
+      } else {
+        // Sin múltiples horarios: usar formato legacy (boolean)
+        const prev = isBooleanFormat ? itemValue : (isObjectFormat ? Object.values(itemValue).some(Boolean) : false);
+        newValue = !prev;
+      }
+      
+      const itemData = { [itemId]: newValue };
       // Esto actualiza backend + parchea contexto (rutina + rutinas), por lo que Rutinas.jsx queda sincronizado.
       await markItemComplete(rutinaHoy._id, section, itemData);
     } catch {

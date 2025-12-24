@@ -115,22 +115,51 @@ export const HabitCounterBadge = ({
       const normalizedHorarios = horarios.map(h => String(h).toUpperCase());
       const normalizedTimeOfDay = String(currentTimeOfDay).toUpperCase();
       
+      // Obtener estado de completitud del hábito (puede ser objeto o boolean)
+      const itemValue = rutina?.[section]?.[itemId];
+      const isObjectFormat = typeof itemValue === 'object' && itemValue !== null && !Array.isArray(itemValue);
+      const isBooleanFormat = typeof itemValue === 'boolean';
+      
+      // Función helper para verificar si un horario específico está completado
+      const isHorarioCompleted = (horario) => {
+        if (isObjectFormat) {
+          return itemValue[horario] === true;
+        } else if (isBooleanFormat) {
+          // En formato legacy, si está completado, todos los horarios están completados
+          return itemValue === true;
+        }
+        return false;
+      };
+      
       // Orden de horarios del día (de más temprano a más tarde)
       const HORARIOS_ORDER = ['MAÑANA', 'TARDE', 'NOCHE'];
       
       let horarioAMostrar = null;
       
-      // Si el horario actual está en la lista, mostrarlo
+      // Si el horario actual está en la lista, verificar si está completado
       if (normalizedHorarios.includes(normalizedTimeOfDay)) {
-        horarioAMostrar = normalizedTimeOfDay;
+        // Si no está completado, mostrar el horario actual
+        if (!isHorarioCompleted(normalizedTimeOfDay)) {
+          horarioAMostrar = normalizedTimeOfDay;
+        } else {
+          // Si está completado, buscar el último horario no completado antes del actual
+          const currentIndex = HORARIOS_ORDER.indexOf(normalizedTimeOfDay);
+          for (let i = currentIndex - 1; i >= 0; i--) {
+            const horarioAnterior = HORARIOS_ORDER[i];
+            if (normalizedHorarios.includes(horarioAnterior) && !isHorarioCompleted(horarioAnterior)) {
+              horarioAMostrar = horarioAnterior;
+              break;
+            }
+          }
+        }
       } 
       // Si no, para hábitos diarios con múltiples repeticiones, mostrar el último horario no completado
       else if (frecuencia > 1 || normalizedHorarios.length > 1) {
-        // Buscar el último horario configurado antes del horario actual
+        // Buscar el último horario configurado antes del horario actual que no esté completado
         const currentIndex = HORARIOS_ORDER.indexOf(normalizedTimeOfDay);
         for (let i = currentIndex - 1; i >= 0; i--) {
           const horarioAnterior = HORARIOS_ORDER[i];
-          if (normalizedHorarios.includes(horarioAnterior)) {
+          if (normalizedHorarios.includes(horarioAnterior) && !isHorarioCompleted(horarioAnterior)) {
             horarioAMostrar = horarioAnterior;
             break;
           }

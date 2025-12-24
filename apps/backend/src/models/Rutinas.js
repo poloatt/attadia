@@ -346,11 +346,37 @@ rutinaSchema.pre('save', function(next) {
       }
       // Solo contar los campos que deben mostrarse según su cadencia
       if (this.shouldShowItem(section, field)) {
-        sectionTotal++;
-        if (sectionData[field] === true) {
-          sectionCompleted++;
-          // Actualizar última completación
-          if (this.isModified(`${section}.${field}`)) {
+        const fieldValue = sectionData[field];
+        const isObjectFormat = typeof fieldValue === 'object' && fieldValue !== null && !Array.isArray(fieldValue);
+        const isBooleanFormat = typeof fieldValue === 'boolean';
+        
+        if (isObjectFormat) {
+          // Nuevo formato: objeto con horarios { MAÑANA: true, NOCHE: false }
+          // Contar cada horario como una tarea separada
+          const horariosCompletados = Object.values(fieldValue).filter(Boolean).length;
+          const totalHorarios = Object.keys(fieldValue).length;
+          sectionTotal += totalHorarios;
+          sectionCompleted += horariosCompletados;
+        } else if (isBooleanFormat) {
+          // Formato legacy: boolean simple
+          sectionTotal++;
+          if (fieldValue === true) {
+            sectionCompleted++;
+          }
+        } else {
+          // Formato desconocido, tratar como no completado
+          sectionTotal++;
+        }
+        
+        // Actualizar última completación si se modificó
+        if (this.isModified(`${section}.${field}`)) {
+          if (isObjectFormat) {
+            // Si hay algún horario completado, actualizar última completación
+            const hasAnyCompleted = Object.values(fieldValue).some(Boolean);
+            if (hasAnyCompleted) {
+              this.config[section][field].ultimaCompletacion = new Date();
+            }
+          } else if (isBooleanFormat && fieldValue === true) {
             this.config[section][field].ultimaCompletacion = new Date();
           }
         }

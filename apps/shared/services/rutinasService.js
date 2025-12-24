@@ -293,20 +293,34 @@ class RutinasService {
       const itemId = Object.keys(data)[0];
       if (!itemId) throw new Error('No se proporcionó ID de ítem');
       
-      const isCompleted = data[itemId] === true;
+      const itemValue = data[itemId];
+      
+      // Detectar formato: objeto (nuevo formato con horarios) o boolean (legacy)
+      const isObjectFormat = typeof itemValue === 'object' && itemValue !== null && !Array.isArray(itemValue);
+      const isBooleanFormat = typeof itemValue === 'boolean';
+      
+      // Determinar si está completado para el caché y logs
+      let isCompleted = false;
+      if (isObjectFormat) {
+        // Si es objeto, verificar si algún horario está completado
+        isCompleted = Object.values(itemValue).some(Boolean);
+      } else if (isBooleanFormat) {
+        isCompleted = itemValue === true;
+      }
       
       // Actualizar caché local inmediatamente
       const cacheKey = `${section}_${itemId}_completado`;
       this.cache.set(cacheKey, isCompleted);
       
-      // Payload simplificado para mejor rendimiento
+      // Payload: enviar el valor tal cual (objeto o boolean)
       const payload = {
         [section]: {
-          [itemId]: isCompleted
+          [itemId]: itemValue
         },
         _metadata: {
           timestamp: Date.now(),
-          action: isCompleted ? 'COMPLETE' : 'UNCOMPLETE'
+          action: isCompleted ? 'COMPLETE' : 'UNCOMPLETE',
+          format: isObjectFormat ? 'object' : 'boolean'
         }
       };
 

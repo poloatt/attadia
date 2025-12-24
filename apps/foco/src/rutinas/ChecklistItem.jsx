@@ -86,8 +86,26 @@ const ChecklistItem = ({
   habitLabel = '',
   onEditHabit,
   onDeleteHabit,
+  localData = null, // Prop opcional para acceso a estado local optimista
 }) => {
   const { rutina } = useRutinas();
+  
+  // Función helper para verificar si un horario específico está completado
+  // Prioriza localData (estado local) sobre rutina (estado del servidor) para respuesta inmediata
+  const isHorarioCompleted = (horario) => {
+    // Priorizar localData si está disponible (para actualizaciones optimistas)
+    const itemValue = localData?.[itemId] !== undefined ? localData[itemId] : (rutina?.[section]?.[itemId]);
+    if (!itemValue) return false;
+    
+    const isObjectFormat = typeof itemValue === 'object' && itemValue !== null && !Array.isArray(itemValue);
+    if (isObjectFormat) {
+      const normalizedHorario = String(horario).toUpperCase();
+      return itemValue[normalizedHorario] === true;
+    }
+    
+    // Formato legacy: si está completado, todos los horarios están completados
+    return itemValue === true;
+  };
   
   const handleDeleteClick = async (e) => {
     e.stopPropagation();
@@ -108,8 +126,19 @@ const ChecklistItem = ({
     let completados = 0;
     
     if (tipo === 'DIARIO') {
-      // Para diario, solo importa si se completó hoy
-      completados = isCompleted ? 1 : 0;
+      // Para diario, verificar si tiene múltiples horarios configurados
+      const horariosConfig = Array.isArray(config.horarios) ? config.horarios : [];
+      const itemValue = rutina?.[section]?.[itemId];
+      const isObjectFormat = typeof itemValue === 'object' && itemValue !== null && !Array.isArray(itemValue);
+      
+      if (horariosConfig.length > 1 && isObjectFormat) {
+        // Si tiene múltiples horarios y está en formato objeto, contar horarios completados
+        const horariosCompletados = Object.values(itemValue).filter(Boolean).length;
+        completados = horariosCompletados;
+      } else {
+        // Formato legacy o un solo horario: usar lógica simple
+        completados = isCompleted ? 1 : 0;
+      }
     } else if (tipo === 'SEMANAL' || tipo === 'MENSUAL' || 
                (tipo === 'PERSONALIZADO' && periodo !== 'CADA_DIA')) {
       // Para hábitos periódicos, usar el historial real
@@ -247,7 +276,7 @@ const ChecklistItem = ({
                   >
                     {secondaryText}
                   </Typography>
-                  {/* Badges de horarios a la derecha del texto secundario */}
+                  {/* Iconos de horarios clickeables a la derecha del texto secundario */}
                   {config?.horarios && Array.isArray(config.horarios) && config.horarios.length > 0 && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, ml: 0.5 }}>
                       {config.horarios.map((horario, index) => {
@@ -270,14 +299,45 @@ const ChecklistItem = ({
                         
                         if (!IconComponent) return null;
                         
+                        const horarioCompleted = isHorarioCompleted(horario);
+                        
                         return (
-                          <IconComponent
+                          <IconButton
                             key={`${horario}-${index}`}
-                            sx={{
-                              fontSize: '0.75rem',
-                              color: 'rgba(255,255,255,0.3)'
+                            size="small"
+                            disabled={readOnly}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (onItemClick) {
+                                onItemClick(itemId, e, normalizedHorario);
+                              }
                             }}
-                          />
+                            sx={{
+                              padding: 0.25,
+                              minWidth: 'auto',
+                              width: 'auto',
+                              height: 'auto',
+                              cursor: readOnly ? 'default' : 'pointer',
+                              color: horarioCompleted ? 'primary.main' : 'rgba(255,255,255,0.3)',
+                              opacity: horarioCompleted ? 1 : 0.3,
+                              transition: 'all 0.2s ease',
+                              '&:hover': {
+                                color: horarioCompleted ? 'primary.main' : 'rgba(255,255,255,0.6)',
+                                opacity: horarioCompleted ? 1 : 0.6,
+                                bgcolor: 'rgba(255,255,255,0.05)'
+                              },
+                              '&:disabled': {
+                                opacity: 0.3,
+                                cursor: 'default'
+                              }
+                            }}
+                          >
+                            <IconComponent
+                              sx={{
+                                fontSize: '0.75rem'
+                              }}
+                            />
+                          </IconButton>
                         );
                       })}
                     </Box>

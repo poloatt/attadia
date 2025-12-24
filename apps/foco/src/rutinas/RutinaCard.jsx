@@ -19,6 +19,7 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import TuneIcon from '@mui/icons-material/Tune';
+import ViewListIcon from '@mui/icons-material/ViewList';
 import { iconConfig, getIconByName } from '@shared/utils';
 import InlineItemConfigImproved from './InlineItemConfigImproved';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
@@ -124,6 +125,9 @@ const RutinaCard = ({
   // Estado para el diálogo de edición de hábito
   const [editingHabitDialog, setEditingHabitDialog] = useState({ open: false, habit: null, section: null });
   
+  // Estado para vista individual de un hábito (cuando se hace clic desde la vista colapsada)
+  const [focusedItemId, setFocusedItemId] = useState(null);
+  
   // Importar el hook de snackbar
   const { enqueueSnackbar } = useSnackbar();
   
@@ -135,6 +139,60 @@ const RutinaCard = ({
       setLocalData(data);
     }
   }, [data, section]);
+  
+  // Sincronizar localData cuando rutina cambia desde el contexto
+  // Esto asegura que cambios desde otros componentes (RutinasPendientesHoy, RutinasLuego) se reflejen
+  // Usar useRef para evitar bucles infinitos
+  const localDataRef = useRef(localData);
+  useEffect(() => {
+    localDataRef.current = localData;
+  }, [localData]);
+  
+  useEffect(() => {
+    if (rutina && rutina[section]) {
+      const sectionData = rutina[section];
+      const currentLocalData = localDataRef.current;
+      
+      // Solo actualizar si hay diferencias significativas
+      const hasChanges = Object.keys(sectionData).some(itemId => {
+        const serverValue = sectionData[itemId];
+        const localValue = currentLocalData[itemId];
+        
+        // Comparar valores (manejar objetos con comparación profunda)
+        if (typeof serverValue === 'object' && serverValue !== null && !Array.isArray(serverValue)) {
+          return JSON.stringify(serverValue) !== JSON.stringify(localValue);
+        }
+        return serverValue !== localValue;
+      });
+      
+      if (hasChanges) {
+        // Actualizar solo los items que han cambiado, preservando el estado local optimista
+        setLocalData(prevData => {
+          const updated = { ...prevData };
+          Object.keys(sectionData).forEach(itemId => {
+            // Solo actualizar si el valor del servidor es diferente y no hay un cambio pendiente local
+            const serverValue = sectionData[itemId];
+            const localValue = prevData[itemId];
+            
+            // Si el valor local es undefined o null, usar el del servidor
+            if (localValue === undefined || localValue === null) {
+              updated[itemId] = serverValue;
+            } else {
+              // Comparar valores
+              if (typeof serverValue === 'object' && serverValue !== null && !Array.isArray(serverValue)) {
+                if (JSON.stringify(serverValue) !== JSON.stringify(localValue)) {
+                  updated[itemId] = serverValue;
+                }
+              } else if (serverValue !== localValue) {
+                updated[itemId] = serverValue;
+              }
+            }
+          });
+          return updated;
+        });
+      }
+    }
+  }, [rutina, section]);
 
   // Forzar actualización cuando cambia la configuración
   useEffect(() => {
@@ -198,6 +256,9 @@ const RutinaCard = ({
           });
           window.dispatchEvent(event);
         }
+      } else {
+        // Si se colapsa, también limpiar el item enfocado
+        setFocusedItemId(null);
       }
       return next;
     });
@@ -206,15 +267,40 @@ const RutinaCard = ({
   // sectionIcons ya está definido arriba en useMemo
   
   // Función helper para determinar si un ítem está completado
-  const isItemCompleted = useCallback((itemId) => {
-    // MEJORA: Siempre usar el estado local para actualización inmediata
-    const completado = localData[itemId] === true;
+  // Soporta dos formatos:
+  // 1. Legacy (boolean): { itemId: true/false }
+  // 2. Nuevo formato (objeto por horario): { itemId: { MAÑANA: true, NOCHE: false } }
+  // Prioriza localData (estado local) sobre rutina (estado del servidor) para respuesta inmediata
+  const isItemCompleted = useCallback((itemId, horario = null) => {
+    // Priorizar localData para respuesta inmediata, luego rutina como fallback
+    const itemValue = localData[itemId] !== undefined ? localData[itemId] : (rutina?.[section]?.[itemId]);
     
-    // DEBUGGING: Mostrar estado actual
-    // console.log(`[ChecklistSection] 🔍 Estado de ${section}.${itemId}: ${completado ? 'Completado' : 'Pendiente'}`);
+    // Si no hay valor, no está completado
+    if (itemValue === undefined || itemValue === null) {
+      return false;
+    }
     
-    return completado;
-  }, [localData, section]); // Dependencias correctas para el useCallback
+    // Detectar formato: objeto o boolean
+    const isObjectFormat = typeof itemValue === 'object' && itemValue !== null && !Array.isArray(itemValue);
+    const isBooleanFormat = typeof itemValue === 'boolean';
+    
+    if (isObjectFormat) {
+      // Nuevo formato: objeto con horarios
+      if (horario) {
+        // Si se especifica un horario, verificar solo ese horario
+        const normalizedHorario = String(horario).toUpperCase();
+        return itemValue[normalizedHorario] === true;
+      } else {
+        // Si no se especifica horario, verificar si algún horario está completado
+        return Object.values(itemValue).some(Boolean);
+      }
+    } else if (isBooleanFormat) {
+      // Formato legacy: boolean simple
+      return itemValue === true;
+    }
+    
+    return false;
+  }, [localData, rutina, section]); // Dependencias correctas para el useCallback
 
   // Renderizar los iconos en la vista colapsada - Función sincrónica para mejor rendimiento
   const renderCollapsedIcons = (sectionIcons, section, config, rutina, handleItemClick, readOnly, localData, forceUpdate) => {
@@ -232,7 +318,10 @@ const RutinaCard = ({
         if (horarios.length === 0) return true;
         
         // Verificar si el hábito está completado hoy (solo considerar el día de hoy)
-        const completadoHoy = localData[itemId] === true || rutina?.[section]?.[itemId] === true;
+        // Puede ser boolean (legacy) u objeto con horarios (nuevo formato)
+        const itemValueLocal = localData[itemId];
+        const itemValueRutina = rutina?.[section]?.[itemId];
+        const completadoHoy = itemValueLocal !== undefined ? itemValueLocal : itemValueRutina;
         const tipo = (cadenciaConfig.tipo || 'DIARIO').toUpperCase();
         const frecuencia = Number(cadenciaConfig.frecuencia || 1);
         
@@ -243,7 +332,14 @@ const RutinaCard = ({
       const Icon = sectionIcons[itemId];
       
       // Usar estado local para respuesta inmediata
-      const isCompletedIcon = localData[itemId] === true;
+      // Puede ser boolean (legacy) u objeto con horarios (nuevo formato)
+      const itemValueLocal = localData[itemId];
+      const itemValueRutina = rutina?.[section]?.[itemId];
+      const itemValue = itemValueLocal !== undefined ? itemValueLocal : itemValueRutina;
+      const isObjectFormat = typeof itemValue === 'object' && itemValue !== null && !Array.isArray(itemValue);
+      const isCompletedIcon = isObjectFormat 
+        ? Object.values(itemValue).some(Boolean) 
+        : (itemValue === true);
       
       // Añadir key para forzar actualización cuando cambia forceUpdate
       const renderKey = `${itemId}_${isCompletedIcon}_${forceUpdate}`;
@@ -382,7 +478,8 @@ const RutinaCard = ({
   };
 
   // Optimizar handleItemClick para actualización inmediata sin efectos innecesarios
-  const handleItemClick = useCallback((itemId, event) => {
+  // Ahora acepta un parámetro opcional 'horario' para marcar horarios específicos
+  const handleItemClick = useCallback((itemId, event, horario = null) => {
     // Si se recibe un evento, detener propagación
     if (event) {
       event.stopPropagation();
@@ -390,19 +487,97 @@ const RutinaCard = ({
     
     if (readOnly) return;
     
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinaCard.jsx:345',message:'handleItemClick called',data:{itemId,section,isCustomHabit:customHabitIds.has(itemId),hasRutina:!!rutina,rutinaId:rutina?._id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'click'})}).catch(()=>{});
-    // #endregion
-    
     // Verificar si onChange es una función antes de intentar llamarla
     if (typeof onChange !== 'function') {
       console.warn(`[ChecklistSection] onChange no es una función en sección ${section}, itemId ${itemId}`);
       return;
     }
     
-    // Verificar si data existe y crear un nuevo objeto con el estado actualizado
-    const isCompleted = isItemCompleted(itemId); // Usar la función helper
-    const newValue = !isCompleted;
+    // Obtener el valor actual del item
+    const currentValue = localData[itemId];
+    const isObjectFormat = typeof currentValue === 'object' && currentValue !== null && !Array.isArray(currentValue);
+    const isBooleanFormat = typeof currentValue === 'boolean';
+    const itemConfig = config?.[itemId] || {};
+    const horariosConfig = Array.isArray(itemConfig.horarios) ? itemConfig.horarios : [];
+    
+    // Si se hace clic desde la vista colapsada y el item tiene múltiples horarios,
+    // expandir automáticamente y enfocar en ese item
+    const hasMultipleHorarios = horariosConfig.length > 1;
+    if (!isExpanded && hasMultipleHorarios && horario) {
+      setIsExpanded(true);
+      setFocusedItemId(itemId);
+    }
+    
+    let newValue;
+    
+    if (horario && horariosConfig.length > 0) {
+      // Si se especifica un horario y el hábito tiene horarios configurados, usar formato objeto
+      const normalizedHorario = String(horario).toUpperCase();
+      
+      if (isObjectFormat) {
+        // Ya está en formato objeto, actualizar solo el horario específico
+        newValue = {
+          ...currentValue,
+          [normalizedHorario]: !isItemCompleted(itemId, normalizedHorario)
+        };
+      } else {
+        // Convertir de formato legacy (boolean) a formato objeto
+        // IMPORTANTE: Al convertir de legacy, todos los horarios empiezan en false
+        // y solo se marca el horario específico (no se propaga el estado legacy a otros horarios)
+        const newObject = {};
+        horariosConfig.forEach(h => {
+          const normalizedH = String(h).toUpperCase();
+          if (normalizedH === normalizedHorario) {
+            // Toggle del horario específico: si estaba completado en legacy, desmarcar; si no, marcar
+            newObject[normalizedH] = !isItemCompleted(itemId, normalizedHorario);
+          } else {
+            // Los otros horarios siempre empiezan en false al convertir de legacy
+            // No se propaga el estado legacy para evitar marcar horarios que no se han hecho
+            newObject[normalizedH] = false;
+          }
+        });
+        newValue = newObject;
+      }
+    } else {
+      // Sin horario específico: comportamiento según si tiene múltiples horarios
+      if (hasMultipleHorarios) {
+        // Si tiene múltiples horarios pero no se especificó horario, marcar/desmarcar el horario actual
+        const currentTimeOfDay = getCurrentTimeOfDay();
+        const normalizedHorario = String(currentTimeOfDay).toUpperCase();
+        
+        if (isObjectFormat) {
+          // Ya está en formato objeto, actualizar solo el horario actual
+          newValue = {
+            ...currentValue,
+            [normalizedHorario]: !isItemCompleted(itemId, normalizedHorario)
+          };
+        } else {
+          // Convertir de formato legacy (boolean) a formato objeto
+          const newObject = {};
+          horariosConfig.forEach(h => {
+            const normalizedH = String(h).toUpperCase();
+            if (normalizedH === normalizedHorario) {
+              // Toggle del horario actual: verificar el estado actual del horario específico
+              newObject[normalizedH] = !isItemCompleted(itemId, normalizedHorario);
+            } else {
+              // Los otros horarios empiezan en false
+              newObject[normalizedH] = false;
+            }
+          });
+          newValue = newObject;
+        }
+      } else {
+        // Sin múltiples horarios: mantener comportamiento legacy (toggle del hábito completo)
+        if (isObjectFormat) {
+          // Si ya está en formato objeto, convertir a boolean basado en si todos están completados
+          const allCompleted = Object.values(currentValue).every(Boolean);
+          newValue = !allCompleted;
+        } else {
+          // Formato legacy: toggle simple
+          newValue = !isItemCompleted(itemId);
+        }
+      }
+    }
     
     // Datos para actualización local de la UI
     const newData = {
@@ -458,7 +633,12 @@ const RutinaCard = ({
             const valorServidor = response[section][itemId];
             
             // Si el valor del servidor no coincide con nuestro estado local, actualizar
-            if (valorServidor !== newValue) {
+            // Usar comparación profunda para objetos
+            const valoresDiferentes = typeof valorServidor === 'object' && valorServidor !== null && !Array.isArray(valorServidor)
+              ? JSON.stringify(valorServidor) !== JSON.stringify(newValue)
+              : valorServidor !== newValue;
+            
+            if (valoresDiferentes) {
               // Actualizar estado local con valor del servidor
               setLocalData(prevData => ({
                 ...prevData,
@@ -510,7 +690,7 @@ const RutinaCard = ({
       else if (!rutina) reason = "No hay rutina activa";
       else if (!rutina._id) reason = "La rutina no tiene ID";
     }
-  }, [section, onChange, localData, readOnly, rutina, markItemComplete, isItemCompleted]);
+  }, [section, onChange, localData, readOnly, rutina, markItemComplete, isItemCompleted, config, isExpanded, setFocusedItemId]);
 
   // Función para obtener el estado de cadencia de un ítem
   const getItemCadenciaStatus = async (itemId, section, rutina, config) => {
@@ -812,13 +992,19 @@ const RutinaCard = ({
     const icons = sectionIcons || {};
     // Vista extendida: NO ocultar ítems por visibilidad; mostrar todos los activos
     // Excluir hábitos personalizados que ya se muestran en la sección de configuración
-    const orderedKeys = Object.keys(icons)
+    let orderedKeys = Object.keys(icons)
       .filter(itemId => !customHabitIds.has(itemId)) // Excluir hábitos personalizados
       .sort((a, b) => {
         const labelA = icons[a]?.label?.toLowerCase() || a;
         const labelB = icons[b]?.label?.toLowerCase() || b;
         return labelA.localeCompare(labelB);
       });
+    
+    // Si hay un item enfocado, mostrar solo ese item
+    if (focusedItemId) {
+      orderedKeys = orderedKeys.filter(itemId => itemId === focusedItemId);
+    }
+    
     return orderedKeys.map((itemId, index) => {
       const cadenciaConfig = config && config[itemId] ? config[itemId] : null;
       if (!cadenciaConfig) {
@@ -827,6 +1013,7 @@ const RutinaCard = ({
         return null;
       }
       const Icon = sectionIcons[itemId];
+      // isCompleted puede ser boolean (legacy) o true si algún horario está completado (nuevo formato)
       const isCompleted = isItemCompleted(itemId);
       return (
         <ChecklistItem
@@ -978,6 +1165,8 @@ const RutinaCard = ({
     iconSize = 'inherit',
     mr = 0.2
   }) => {
+    const currentTimeOfDay = getCurrentTimeOfDay();
+    
     // En RutinaCard colapsado: mostrar TODOS los hábitos activos (marcados y no marcados)
     // NO usar getVisibleItemIds porque filtra por reglas de cadencia que ocultan completados
     // Simplemente iterar sobre todos los iconos y filtrar solo por activo === false
@@ -985,7 +1174,8 @@ const RutinaCard = ({
       const Icon = sectionIcons[itemId];
       if (!Icon) return null;
       
-      const isCompleted = !!localData[itemId] || !!rutina?.[section]?.[itemId];
+      // Usar isItemCompleted para calcular correctamente el estado, especialmente para objetos con horarios
+      const isCompleted = isItemCompleted(itemId);
       const itemConfig = config[itemId] || {
         tipo: 'DIARIO',
         frecuencia: 1,
@@ -996,6 +1186,11 @@ const RutinaCard = ({
       // Solo filtrar por activo === false, mostrar todos los demás (completados y no completados)
       if (itemConfig.activo === false) return null;
       
+      // Detectar si tiene múltiples horarios configurados
+      const horariosConfig = Array.isArray(itemConfig.horarios) ? itemConfig.horarios : [];
+      const hasMultipleHorarios = horariosConfig.length > 1;
+      const isDiario = (itemConfig.tipo || 'DIARIO').toUpperCase() === 'DIARIO';
+      
       return (
         <HabitIconButton
           key={itemId}
@@ -1003,7 +1198,21 @@ const RutinaCard = ({
           Icon={Icon}
           onClick={(e) => {
             e.stopPropagation();
-            !readOnly && onItemClick(itemId, e);
+            if (!readOnly) {
+              // Si es diario con múltiples horarios, solo expandir (no marcar)
+              if (hasMultipleHorarios && isDiario) {
+                // Solo expandir y enfocar, no marcar
+                setIsExpanded(true);
+                setFocusedItemId(itemId);
+              } else {
+                // Para otros casos, marcar normalmente
+                if (hasMultipleHorarios) {
+                  onItemClick(itemId, e, currentTimeOfDay);
+                } else {
+                  onItemClick(itemId, e);
+                }
+              }
+            }
           }}
           readOnly={readOnly}
           size={size}
@@ -1030,6 +1239,29 @@ const RutinaCard = ({
         onClick={handleToggle}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'center' }}>
+          {/* Botón para volver a vista completa cuando hay un item enfocado */}
+          {focusedItemId && isExpanded && (
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                setFocusedItemId(null);
+              }}
+              sx={{ 
+                color: 'text.secondary', 
+                opacity: 0.7, 
+                width: 24, 
+                height: 24, 
+                mr: 0.5,
+                '&:hover': {
+                  opacity: 1
+                }
+              }}
+              title="Ver todos los hábitos"
+            >
+              <ViewListIcon fontSize="small" />
+            </IconButton>
+          )}
           {/* Label centrado de sección */}
           <Typography
             variant="caption"
@@ -1077,7 +1309,15 @@ const RutinaCard = ({
             <Box sx={{ mb: 1, pb: 1, borderBottom: `1px solid ${alpha('#fff', 0.1)}` }}>
               <List dense disablePadding sx={{ py: 0, my: 0 }}>
                 {sectionHabits
-                  .filter(h => h.activo !== false)
+                  .filter(h => {
+                    // Si hay un item enfocado, mostrar solo ese hábito personalizado
+                    if (focusedItemId) {
+                      const habitId = h.id || h._id;
+                      return habitId === focusedItemId;
+                    }
+                    // Si no hay item enfocado, mostrar todos los activos
+                    return h.activo !== false;
+                  })
                   .sort((a, b) => (a.orden || 0) - (b.orden || 0))
                   .map((habit) => {
                     const habitId = habit.id || habit._id;
@@ -1106,6 +1346,7 @@ const RutinaCard = ({
                         isCustomHabit={true}
                         habitLabel={habit.label}
                         habit={habit}
+                        localData={localData}
                         onEditHabit={() => {
                           setEditingHabitDialog({ open: true, habit: habit, section: section });
                         }}
@@ -1157,6 +1398,27 @@ const CollapsedIcons = memo(({
   // para evitar re-renderizados innecesarios
   if (!rutina) return null;
   
+  // Función helper para verificar si un item está completado (similar a isItemCompleted)
+  const checkItemCompleted = (itemId) => {
+    const itemValue = localData?.[itemId] !== undefined ? localData[itemId] : (rutina?.[section]?.[itemId]);
+    
+    if (itemValue === undefined || itemValue === null) {
+      return false;
+    }
+    
+    const isObjectFormat = typeof itemValue === 'object' && itemValue !== null && !Array.isArray(itemValue);
+    const isBooleanFormat = typeof itemValue === 'boolean';
+    
+    if (isObjectFormat) {
+      // Para objetos, verificar si algún horario está completado
+      return Object.values(itemValue).some(Boolean);
+    } else if (isBooleanFormat) {
+      return itemValue === true;
+    }
+    
+    return false;
+  };
+  
   const itemsParaMostrar = useMemo(() => {
     // En RutinaCard: mostrar TODOS los hábitos activos (marcados y no marcados)
     // NO usar getVisibleItemIds porque filtra por reglas de cadencia que ocultan completados
@@ -1181,7 +1443,8 @@ const CollapsedIcons = memo(({
       ) : (
         itemsParaMostrar.map(itemId => {
           const Icon = sectionIcons[itemId];
-          const isCompleted = !!localData[itemId];
+          // Usar checkItemCompleted para verificar correctamente el estado, especialmente para objetos con horarios
+          const isCompleted = checkItemCompleted(itemId);
           
           // Usar una key compuesta para asegurar unicidad y forzar actualización cuando es necesario
           const keyId = `${section}-${itemId}-${isCompleted ? 'completed' : 'pending'}`;
@@ -1237,7 +1500,8 @@ const HabitItemWithConfig = ({
   habitLabel,
   habit,
   onEditHabit,
-  onDeleteHabit
+  onDeleteHabit,
+  localData = null
 }) => {
   const [configState, setConfigState] = useState(config);
   
@@ -1265,6 +1529,7 @@ const HabitItemWithConfig = ({
         onSetupToggle={onSetupToggle}
         isCustomHabit={isCustomHabit}
         habitLabel={habitLabel}
+        localData={localData}
         onEditHabit={onEditHabit}
         onDeleteHabit={onDeleteHabit}
       />

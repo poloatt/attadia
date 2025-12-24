@@ -511,8 +511,9 @@ class RutinasController extends BaseController {
       }
 
       // Si se está actualizando un campo de completitud, actualizar la última completación
-      // NOTA: La lógica de horarios se maneja en el frontend (solo mostrar horario actual)
-      // El backend simplemente marca el ítem como completado sin diferenciar horarios
+      // Soporta dos formatos:
+      // 1. Legacy (boolean): { itemId: true/false }
+      // 2. Nuevo formato (objeto por horario): { itemId: { MAÑANA: true, NOCHE: false } }
       ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'].forEach(section => {
         if (req.body[section]) {
           Object.entries(req.body[section]).forEach(([key, value]) => {
@@ -534,11 +535,39 @@ class RutinasController extends BaseController {
               };
             }
             
-            if (value === true && (!currentRutina[section][key] || currentRutina[section][key] === false)) {
-              updateData.config[section][key].ultimaCompletacion = new Date();
-              logger.dev(`UltimaCompletacion actualizada`, { item: `${section}.${key}` });
-              // NOTA: No marcamos horarios anteriores automáticamente
-              // La lógica de mostrar solo el horario actual se maneja en el frontend
+            // Detectar si el valor es un objeto (nuevo formato) o boolean (legacy)
+            const isObjectFormat = typeof value === 'object' && value !== null && !Array.isArray(value);
+            const isBooleanFormat = typeof value === 'boolean';
+            
+            if (isObjectFormat) {
+              // Nuevo formato: objeto con horarios { MAÑANA: true, NOCHE: false }
+              // Verificar si algún horario se está marcando como completado por primera vez
+              const currentValue = currentRutina[section]?.[key];
+              const currentIsObject = typeof currentValue === 'object' && currentValue !== null && !Array.isArray(currentValue);
+              
+              // Si hay algún horario que se marca como true y antes no estaba marcado
+              const hasNewCompletion = Object.entries(value).some(([horario, completado]) => {
+                if (completado === true) {
+                  if (currentIsObject) {
+                    return !currentValue[horario];
+                  } else {
+                    // Si antes era boolean false o no existía, es una nueva completación
+                    return !currentValue;
+                  }
+                }
+                return false;
+              });
+              
+              if (hasNewCompletion) {
+                updateData.config[section][key].ultimaCompletacion = new Date();
+                logger.dev(`UltimaCompletacion actualizada (formato objeto)`, { item: `${section}.${key}`, horarios: value });
+              }
+            } else if (isBooleanFormat) {
+              // Formato legacy: boolean simple
+              if (value === true && (!currentRutina[section][key] || currentRutina[section][key] === false)) {
+                updateData.config[section][key].ultimaCompletacion = new Date();
+                logger.dev(`UltimaCompletacion actualizada (formato legacy)`, { item: `${section}.${key}` });
+              }
             }
           });
         }

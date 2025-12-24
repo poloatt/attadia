@@ -33,8 +33,10 @@ export default function shouldShowItem(section, itemId, rutina, additionalData =
       
       // Solo aplicar lógica mejorada si es el día de hoy
       if (esHoy) {
-      // Verificar si el hábito está completado hoy
-        const isCompletedToday = rutina?.[section]?.[itemId] === true || additionalData.isCompleted === true;
+        // Verificar si el hábito está completado hoy
+        // Puede ser boolean (legacy) u objeto con horarios (nuevo formato)
+        const itemValue = rutina?.[section]?.[itemId];
+        const isCompletedToday = itemValue !== undefined ? itemValue : (additionalData.isCompleted || false);
         
         // Obtener tipo y frecuencia para la lógica mejorada
         const tipo = (config.tipo || 'DIARIO').toUpperCase();

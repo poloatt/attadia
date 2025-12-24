@@ -5,7 +5,9 @@ import { getCurrentTimeOfDay } from './timeOfDayUtils';
 // Construye una rutina simulada coherente para evaluar visibilidad
 const buildRutinaForCheck = (rutina, section, itemId, config, localData = {}) => {
   const fecha = parseAPIDate(rutina?.fecha) || new Date();
-  const completadoHoy = Boolean(localData[itemId]) || Boolean(rutina?.[section]?.[itemId]);
+  // IMPORTANTE: Preservar el formato completo (objeto o boolean) para hábitos con múltiples horarios
+  // Priorizar localData para obtener el valor completo
+  const completadoHoy = localData[itemId] !== undefined ? localData[itemId] : (rutina?.[section]?.[itemId] !== undefined ? rutina[section][itemId] : false);
 
   // Merge config actual con el ítem a evaluar
   const mergedConfig = {
@@ -20,7 +22,7 @@ const buildRutinaForCheck = (rutina, section, itemId, config, localData = {}) =>
     ...rutina,
     fecha: fecha.toISOString(),
     config: mergedConfig,
-    // Incluir estado de completado local y/o actual
+    // Incluir estado de completado local y/o actual (preservar formato objeto o boolean)
     [section]: {
       ...(rutina?.[section] || {}),
       [itemId]: completadoHoy
@@ -38,7 +40,9 @@ export const shouldShowItemSync = (section, itemId, rutina, config, localData = 
     const timeOfDay = currentTimeOfDay || getCurrentTimeOfDay();
     
     // Determinar si el hábito está completado hoy
-    const isCompleted = Boolean(localData[itemId]) || Boolean(rutina?.[section]?.[itemId]);
+    // IMPORTANTE: Priorizar localData para obtener el valor completo (puede ser objeto o boolean)
+    // No convertir a boolean para preservar el formato objeto con horarios
+    const isCompleted = localData[itemId] !== undefined ? localData[itemId] : (rutina?.[section]?.[itemId] !== undefined ? rutina[section][itemId] : false);
     
     return shouldShowItemUtil(section, itemId, rutinaCheck, { 
       historial: rutina?.historial || {},
