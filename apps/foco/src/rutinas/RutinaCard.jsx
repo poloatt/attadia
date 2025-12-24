@@ -28,7 +28,7 @@ import HabitFormDialog from '@shared/components/HabitFormDialog';
 
 import { useSnackbar } from 'notistack';
 // Importamos las utilidades de cadencia
-import { debesMostrarHabitoEnFecha, generarMensajeCadencia, obtenerUltimaCompletacion } from '@shared/utils';
+import { debesMostrarHabitoEnFecha, generarMensajeCadencia, obtenerUltimaCompletacion, obtenerHistorialCompletados, contarCompletadosEnPeriodo } from '@shared/utils';
 import { getVisibleItemIds } from '@shared/utils/visibilityUtils';
 import { getFrecuenciaLabel } from './InlineItemConfigImproved';
 // La visibilidad en esta vista extendida no oculta ítems; solo se ocultan completos en vista colapsada
@@ -36,6 +36,9 @@ import { startOfWeek, isSameWeek, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 // historial removido del flujo simplificado
 import ChecklistItem, { HabitIconButton } from './ChecklistItem';
+import { HabitCounterBadge } from '@shared/components/common/HabitCounterBadge';
+import { getCurrentTimeOfDay } from '@shared/utils/timeOfDayUtils';
+import { shouldShowHabitForCurrentTime } from '@shared/utils/habitTimeLogic';
 
 // Función para capitalizar solo la primera letra
 const capitalizeFirstLetter = (string) => {
@@ -44,20 +47,6 @@ const capitalizeFirstLetter = (string) => {
 };
 
 // Eliminadas funciones ad-hoc de visibilidad: usamos visibilityUtils centralizado
-
-// Función para obtener el historial de completados de un ítem
-const obtenerHistorialCompletados = (itemId, section, rutina) => {
-  if (!rutina || !rutina.historial || !rutina.historial[section]) {
-    return [];
-  }
-
-  const historial = rutina.historial[section];
-  
-  // Filtrar entradas del historial donde el ítem esté completado
-  return Object.entries(historial)
-    .filter(([fecha, items]) => items && items[itemId] === true)
-    .map(([fecha]) => new Date(fecha));
-};
 
 const RutinaCard = ({
   title,
@@ -229,8 +218,28 @@ const RutinaCard = ({
 
   // Renderizar los iconos en la vista colapsada - Función sincrónica para mejor rendimiento
   const renderCollapsedIcons = (sectionIcons, section, config, rutina, handleItemClick, readOnly, localData, forceUpdate) => {
+    const currentTimeOfDay = getCurrentTimeOfDay();
+    
     // Renderizar los iconos y aplicar filtros de visibilidad
-    return Object.keys(sectionIcons).map((itemId) => {
+    return Object.keys(sectionIcons)
+      .filter((itemId) => {
+        // Filtrar por horario actual: mostrar hábitos del horario actual o último no completado
+        const cadenciaConfig = config && config[itemId] ? config[itemId] : null;
+        if (!cadenciaConfig) return false;
+        
+        const horarios = Array.isArray(cadenciaConfig.horarios) ? cadenciaConfig.horarios : [];
+        // Si no tiene horarios configurados, mostrar siempre
+        if (horarios.length === 0) return true;
+        
+        // Verificar si el hábito está completado hoy (solo considerar el día de hoy)
+        const completadoHoy = localData[itemId] === true || rutina?.[section]?.[itemId] === true;
+        const tipo = (cadenciaConfig.tipo || 'DIARIO').toUpperCase();
+        const frecuencia = Number(cadenciaConfig.frecuencia || 1);
+        
+        // Usar lógica mejorada que considera el último horario no completado
+        return shouldShowHabitForCurrentTime(horarios, currentTimeOfDay, completadoHoy, tipo, frecuencia);
+      })
+      .map((itemId) => {
       const Icon = sectionIcons[itemId];
       
       // Usar estado local para respuesta inmediata
@@ -252,6 +261,14 @@ const RutinaCard = ({
         console.log(`[ChecklistSection] 🔍 Renderizando icono ${section}.${itemId} - Completado hoy`);
         return (
           <Tooltip key={renderKey} title={itemId} arrow placement="top">
+              <HabitCounterBadge
+                config={cadenciaConfig}
+                currentTimeOfDay={currentTimeOfDay}
+                size="small"
+                rutina={rutina}
+                section={section}
+                itemId={itemId}
+              >
             <IconButton
               size="small"
               onClick={(e) => {
@@ -274,6 +291,7 @@ const RutinaCard = ({
             >
               {Icon && <Icon fontSize="small" />}
             </IconButton>
+              </HabitCounterBadge>
           </Tooltip>
         );
       }
@@ -287,6 +305,14 @@ const RutinaCard = ({
         console.log(`[ChecklistSection] 🔍 Renderizando icono ${section}.${itemId} - Diario pendiente`);
         return (
           <Tooltip key={renderKey} title={itemId} arrow placement="top">
+              <HabitCounterBadge
+                config={cadenciaConfig}
+                currentTimeOfDay={currentTimeOfDay}
+                size="small"
+                rutina={rutina}
+                section={section}
+                itemId={itemId}
+              >
             <IconButton
               size="small"
               onClick={(e) => {
@@ -309,6 +335,7 @@ const RutinaCard = ({
             >
               {Icon && <Icon fontSize="small" />}
             </IconButton>
+              </HabitCounterBadge>
           </Tooltip>
         );
       }
@@ -318,6 +345,14 @@ const RutinaCard = ({
       console.log(`[ChecklistSection] 🔍 Renderizando icono ${section}.${itemId} - ${tipo} pendiente`);
       return (
         <Tooltip key={renderKey} title={itemId} arrow placement="top">
+            <HabitCounterBadge
+              config={cadenciaConfig}
+              currentTimeOfDay={currentTimeOfDay}
+              size="small"
+              rutina={rutina}
+              section={section}
+              itemId={itemId}
+            >
           <IconButton
             size="small"
             onClick={(e) => {
@@ -340,6 +375,7 @@ const RutinaCard = ({
           >
             {Icon && <Icon fontSize="small" />}
           </IconButton>
+            </HabitCounterBadge>
         </Tooltip>
       );
     }).filter(Boolean); // Filtrar elementos nulos
@@ -529,29 +565,21 @@ const RutinaCard = ({
             ).length;
           }
         } else {
-          // Para la rutina actual, OPTIMIZACIÓN:
-          // 1. Considerar el estado local (más reciente) antes que el del historial
-          // 2. Incluir solo registros ÚNICOS por día en el conteo semanal
-
-          // Obtener historial y filtrar por semana actual
+          // Para la rutina actual, usar la función centralizada
           const historial = obtenerHistorialCompletados(itemId, section, rutina);
+          completados = contarCompletadosEnPeriodo(fechaRutina, tipo, 'CADA_SEMANA', historial);
           
-          // Crear un conjunto de fechas únicas en formato YYYY-MM-DD
-          const fechasUnicas = new Set();
-          
-          historial.filter(fecha => 
-            isSameWeek(fecha, fechaRutina, { locale: es })
-          ).forEach(fecha => {
-            fechasUnicas.add(fecha.toISOString().split('T')[0]);
-          });
-          
-          // Contar días únicos completados
-          completados = fechasUnicas.size;
-          
-          // Comprobar si está completado hoy y no está en el conjunto
-          const fechaHoyStr = new Date().toISOString().split('T')[0];
-          if (completadoHoy && !fechasUnicas.has(fechaHoyStr)) {
+          // Agregar hoy si está completado y no está en el historial
+          if (completadoHoy) {
+            const hoyStr = new Date().toISOString().split('T')[0];
+            const yaEstaEnHistorial = historial.some(fecha => {
+              const fechaStr = fecha.toISOString().split('T')[0];
+              return fechaStr === hoyStr;
+            });
+            
+            if (!yaEstaEnHistorial) {
             completados++;
+            }
           }
         }
         
@@ -562,7 +590,24 @@ const RutinaCard = ({
         return `${conteoSeguro}/${frecuencia} veces por semana`;
         
       } else if (tipo === 'MENSUAL') {
-        // Implementación similar para cadencia mensual
+        // Para cadencia mensual, usar la función centralizada
+        const fechaRutina = rutina?.fecha ? new Date(rutina.fecha) : new Date();
+        const historial = obtenerHistorialCompletados(itemId, section, rutina);
+        completados = contarCompletadosEnPeriodo(fechaRutina, tipo, 'CADA_MES', historial);
+        
+        // Agregar hoy si está completado y no está en el historial
+        if (completadoHoy) {
+          const hoyStr = new Date().toISOString().split('T')[0];
+          const yaEstaEnHistorial = historial.some(fecha => {
+            const fechaStr = fecha.toISOString().split('T')[0];
+            return fechaStr === hoyStr;
+          });
+          
+          if (!yaEstaEnHistorial) {
+            completados++;
+          }
+        }
+        
         return `${completados}/${frecuencia} veces por mes`;
       }
       
@@ -603,29 +648,40 @@ const RutinaCard = ({
       if (tipo === 'DIARIO') {
         completados = completadoHoy ? 1 : 0;
       } else if (tipo === 'SEMANAL') {
-        // Para semanal, optimizar conteo considerando duplicados por día
+        // Para semanal, usar la función centralizada
         const hoy = new Date();
-        const inicioSemana = startOfWeek(hoy, { locale: es });
-        
-        // Obtener historial y filtrar por semana actual
         const historial = obtenerHistorialCompletados(itemId, section, rutina);
+        completados = contarCompletadosEnPeriodo(hoy, tipo, 'CADA_SEMANA', historial);
         
-        // Crear un conjunto de fechas únicas en formato YYYY-MM-DD
-        const fechasUnicas = new Set();
-        
-        historial.filter(fecha => 
-          isSameWeek(fecha, hoy, { locale: es })
-        ).forEach(fecha => {
-          fechasUnicas.add(fecha.toISOString().split('T')[0]);
+        // Agregar hoy si está completado y no está en el historial
+        if (completadoHoy) {
+          const hoyStr = hoy.toISOString().split('T')[0];
+          const yaEstaEnHistorial = historial.some(fecha => {
+            const fechaStr = fecha.toISOString().split('T')[0];
+            return fechaStr === hoyStr;
         });
         
-        // Contar días únicos completados
-        completados = fechasUnicas.size;
+          if (!yaEstaEnHistorial) {
+            completados++;
+          }
+        }
+      } else if (tipo === 'MENSUAL') {
+        // Para mensual, usar la función centralizada
+        const hoy = new Date();
+        const historial = obtenerHistorialCompletados(itemId, section, rutina);
+        completados = contarCompletadosEnPeriodo(hoy, tipo, 'CADA_MES', historial);
         
-        // Comprobar si está completado hoy y no está en el conjunto
-        const fechaHoyStr = new Date().toISOString().split('T')[0];
-        if (completadoHoy && !fechasUnicas.has(fechaHoyStr)) {
+        // Agregar hoy si está completado y no está en el historial
+        if (completadoHoy) {
+          const hoyStr = hoy.toISOString().split('T')[0];
+          const yaEstaEnHistorial = historial.some(fecha => {
+            const fechaStr = fecha.toISOString().split('T')[0];
+            return fechaStr === hoyStr;
+          });
+          
+          if (!yaEstaEnHistorial) {
           completados++;
+          }
         }
       }
       

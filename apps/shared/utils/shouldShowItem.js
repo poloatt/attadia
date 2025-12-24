@@ -1,6 +1,7 @@
 import { debesMostrarHabitoEnFecha } from './cadenciaUtils';
-import { parseAPIDate } from './dateUtils';
-import { shouldShowHabitByTimeOfDay, getCurrentTimeOfDay } from './timeOfDayUtils';
+import { parseAPIDate, toISODateString, getNormalizedToday } from './dateUtils';
+import { getCurrentTimeOfDay } from './timeOfDayUtils';
+import { shouldShowHabitForCurrentTime } from './habitTimeLogic';
 
 /**
  * Determina sincrónicamente si un ítem debe mostrarse para una rutina dada.
@@ -18,18 +19,37 @@ export default function shouldShowItem(section, itemId, rutina, additionalData =
     if (!config) return true;
     if (config.activo === false) return false;
 
-    // Filtrar por horario si está configurado (antes de evaluar cadencia) usando lógica acumulativa
-    if (config.horarios && Array.isArray(config.horarios) && config.horarios.length > 0) {
-      const currentTimeOfDay = additionalData.currentTimeOfDay || getCurrentTimeOfDay();
-      // Verificar si el hábito está completado hoy
-      const isCompleted = rutina?.[section]?.[itemId] === true || additionalData.isCompleted === true;
-      if (!shouldShowHabitByTimeOfDay(config.horarios, currentTimeOfDay, isCompleted)) {
-        return false; // No mostrar según lógica acumulativa
-      }
-    }
-
     // Normalizar fecha de rutina
     const fechaRutina = parseAPIDate(rutina.fecha) || new Date();
+
+    // Filtrar por horario si está configurado (antes de evaluar cadencia) usando lógica mejorada
+    // Para hábitos diarios con múltiples repeticiones: mostrar último horario no completado del día de hoy
+    if (config.horarios && Array.isArray(config.horarios) && config.horarios.length > 0) {
+      const currentTimeOfDay = additionalData.currentTimeOfDay || getCurrentTimeOfDay();
+      
+      // Verificar si la rutina es de hoy (solo aplicar lógica mejorada para el día de hoy)
+      const hoy = getNormalizedToday();
+      const esHoy = toISODateString(fechaRutina) === toISODateString(hoy);
+      
+      // Solo aplicar lógica mejorada si es el día de hoy
+      if (esHoy) {
+      // Verificar si el hábito está completado hoy
+        const isCompletedToday = rutina?.[section]?.[itemId] === true || additionalData.isCompleted === true;
+        
+        // Obtener tipo y frecuencia para la lógica mejorada
+        const tipo = (config.tipo || 'DIARIO').toUpperCase();
+        const frecuencia = Number(config.frecuencia || 1);
+        
+        if (!shouldShowHabitForCurrentTime(config.horarios, currentTimeOfDay, isCompletedToday, tipo, frecuencia)) {
+          return false; // No mostrar según lógica de horarios
+      }
+      } else {
+        // Para días que no son hoy, usar lógica simple: solo mostrar si el horario actual está configurado
+        if (!shouldShowHabitForCurrentTime(config.horarios, currentTimeOfDay, false, 'DIARIO', 1)) {
+          return false;
+        }
+      }
+    }
 
     // 1) Preferir contadores/períodos embebidos en la config (sin historial)
     const tipo = (config.tipo || 'DIARIO').toUpperCase();

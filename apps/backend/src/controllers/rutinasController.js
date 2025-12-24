@@ -511,6 +511,8 @@ class RutinasController extends BaseController {
       }
 
       // Si se está actualizando un campo de completitud, actualizar la última completación
+      // NOTA: La lógica de horarios se maneja en el frontend (solo mostrar horario actual)
+      // El backend simplemente marca el ítem como completado sin diferenciar horarios
       ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'].forEach(section => {
         if (req.body[section]) {
           Object.entries(req.body[section]).forEach(([key, value]) => {
@@ -535,6 +537,8 @@ class RutinasController extends BaseController {
             if (value === true && (!currentRutina[section][key] || currentRutina[section][key] === false)) {
               updateData.config[section][key].ultimaCompletacion = new Date();
               logger.dev(`UltimaCompletacion actualizada`, { item: `${section}.${key}` });
+              // NOTA: No marcamos horarios anteriores automáticamente
+              // La lógica de mostrar solo el horario actual se maneja en el frontend
             }
           });
         }

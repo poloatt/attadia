@@ -8,6 +8,43 @@ import { addDays, isSameDay, isWithinInterval, getDay, getDate, setDate,
 import { es } from 'date-fns/locale';
 
 /**
+ * Obtiene el historial de completados de un ítem desde una rutina
+ * El historial se estructura como: historial[section][itemId][YYYY-MM-DD] = true
+ * @param {string} itemId - ID del ítem
+ * @param {string} section - Sección del ítem
+ * @param {Object} rutina - Objeto de rutina con historial
+ * @returns {Array<Date>} - Array de fechas donde el ítem fue completado
+ */
+export const obtenerHistorialCompletados = (itemId, section, rutina) => {
+  if (!rutina || !rutina.historial || !rutina.historial[section]) {
+    return [];
+  }
+
+  const historialSection = rutina.historial[section];
+  const historialItem = historialSection[itemId];
+  
+  if (!historialItem) {
+    return [];
+  }
+
+  // El historial viene como objeto { 'YYYY-MM-DD': true }
+  if (typeof historialItem === 'object' && !Array.isArray(historialItem)) {
+    return Object.keys(historialItem)
+      .filter(fecha => historialItem[fecha] === true)
+      .map(fecha => {
+        // Parsear fecha YYYY-MM-DD a Date
+        const [year, month, day] = fecha.split('-').map(Number);
+        return new Date(year, month - 1, day, 12, 0, 0, 0);
+      });
+  } else if (Array.isArray(historialItem)) {
+    // Fallback: si viene como array de fechas
+    return historialItem.map(fecha => new Date(fecha));
+  }
+  
+  return [];
+};
+
+/**
  * Determina si un día específico debe mostrar un hábito según su configuración de cadencia
  * @param {Date} targetDate - Fecha objetivo a evaluar
  * @param {Object} cadenciaConfig - Configuración de cadencia del hábito

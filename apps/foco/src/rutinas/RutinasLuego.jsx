@@ -4,27 +4,13 @@ import { alpha, useTheme } from '@mui/material/styles';
 import { useRutinas, useHabits } from '@shared/context';
 import { iconConfig, iconTooltips, getIconByName } from '@shared/utils/iconConfig';
 import { getNormalizedToday, parseAPIDate, toISODateString } from '@shared/utils/dateUtils';
-import { getVisibleItemIds } from '@shared/utils/visibilityUtils';
 import { getCurrentTimeOfDay } from '@shared/utils/timeOfDayUtils';
+import { shouldShowHabitForCurrentTime } from '@shared/utils/habitTimeLogic';
+import { HabitCounterBadge } from '@shared/components/common/HabitCounterBadge';
 import { isSameWeek, isSameMonth, startOfMonth, endOfMonth, endOfWeek, differenceInDays, startOfWeek, getDay, getDate } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { contarCompletadosEnPeriodo, obtenerHistorialCompletados } from '@shared/utils/cadenciaUtils';
 import useHorizontalDragScroll from './hooks/useHorizontalDragScroll';
-
-/**
- * Función para obtener el historial de completados de un ítem
- */
-const obtenerHistorialCompletados = (itemId, section, rutina) => {
-  if (!rutina || !rutina.historial || !rutina.historial[section]) {
-    return [];
-  }
-
-  const historial = rutina.historial[section];
-  
-  // Filtrar entradas del historial donde el ítem esté completado
-  return Object.entries(historial)
-    .filter(([fecha, items]) => items && items[itemId] === true)
-    .map(([fecha]) => new Date(fecha));
-};
 
 /**
  * RutinasLuego
@@ -112,8 +98,8 @@ export default function RutinasLuego({
       // Obtener hábitos personalizados de la sección
       const sectionHabits = habits[section] || [];
       
+      // Primero agregar hábitos personalizados
       if (sectionHabits.length > 0) {
-        // Usar hábitos personalizados
         sectionHabits
           .filter(h => h.activo !== false)
           .sort((a, b) => (a.orden || 0) - (b.orden || 0))
@@ -126,11 +112,15 @@ export default function RutinasLuego({
           });
       }
       
-      // Si no hay hábitos personalizados, usar iconConfig como fallback
-      if (Object.keys(iconsMap[section]).length === 0 && iconConfig[section]) {
+      // Luego agregar iconConfig como complemento (no solo como fallback)
+      // Esto asegura que items de iconConfig también estén disponibles
+      if (iconConfig[section]) {
         Object.keys(iconConfig[section]).forEach(itemId => {
-          iconsMap[section][itemId] = iconConfig[section][itemId];
-          labelsMap[section][itemId] = iconTooltips?.[section]?.[itemId] || itemId;
+          // Solo agregar si no existe ya (los hábitos personalizados tienen prioridad)
+          if (!iconsMap[section][itemId]) {
+            iconsMap[section][itemId] = iconConfig[section][itemId];
+            labelsMap[section][itemId] = iconTooltips?.[section]?.[itemId] || itemId;
+          }
         });
       }
     });
@@ -140,108 +130,115 @@ export default function RutinasLuego({
 
   const itemsLuego = useMemo(() => {
     if (!rutinaHoy) return [];
-    const sections = Object.keys(sectionIconsMap.iconsMap || {});
+    const sections = ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'];
     const items = [];
 
     sections.forEach((section) => {
       const sectionIcons = sectionIconsMap.iconsMap[section] || {};
       const sectionCfg = rutinaHoy?.config?.[section] || {};
 
-      // Usar getVisibleItemIds para obtener items visibles según las reglas de cadencia y horario
-      const visibleItemIds = getVisibleItemIds(
-        sectionIcons,
-        section,
-        rutinaHoy,
-        sectionCfg,
-        rutinaHoy?.[section] || {},
-        currentTimeOfDay
-      );
-
-      visibleItemIds.forEach((itemId) => {
+      // Para "RutinasLuego", queremos mostrar TODOS los hábitos periódicos (semanal/mensual)
+      // que aún no han cumplido su cuota, independientemente de si están completados hoy.
+      // No usar getVisibleItemIds porque puede ocultar items que deberían mostrarse aquí.
+      // IMPORTANTE: Incluir tanto items con iconos como items que solo están en config
+      // (puede haber hábitos configurados que no tienen icono personalizado)
+      const itemIdsFromIcons = Object.keys(sectionIcons);
+      const itemIdsFromConfig = Object.keys(sectionCfg);
+      // Combinar ambos para asegurar que no se pierda ningún hábito
+      const allItemIds = Array.from(new Set([...itemIdsFromIcons, ...itemIdsFromConfig]));
+      
+      allItemIds.forEach((itemId) => {
         const config = sectionCfg[itemId];
-        if (!config || config.activo === false) return;
+        // Si no hay config, asumir que está activo por defecto (para hábitos sin config explícita)
+        if (config && config.activo === false) return;
         
-        // Ocultar items completados hoy (solo mostrar pendientes)
-        const completadoHoy = rutinaHoy?.[section]?.[itemId] === true;
-        if (completadoHoy) return; // Ocultar completados
+        // Si no hay config y no hay icono, saltar (no podemos mostrar sin icono)
+        if (!config && !sectionIcons[itemId]) return;
         
-        const tipo = (config.tipo || 'DIARIO').toUpperCase();
+        // Si no hay config, usar valores por defecto para mantener consistencia con RutinaCard
+        const tipo = (config?.tipo || 'DIARIO').toUpperCase();
         const periodo = config?.periodo ? (config.periodo).toUpperCase() : 'CADA_DIA';
+        const frecuencia = Number(config?.frecuencia || 1);
+        const completadoHoy = rutinaHoy?.[section]?.[itemId] === true;
         
         // Excluir items diarios: estos se muestran en "Hoy"
         if (tipo === 'DIARIO') return;
         if (tipo === 'PERSONALIZADO' && periodo === 'CADA_DIA') return;
         
-        // Incluir: SEMANAL, MENSUAL, y PERSONALIZADO con periodo CADA_SEMANA o CADA_MES
-        const frecuencia = Number(config.frecuencia || 1);
+        // Solo procesar SEMANAL, MENSUAL, y PERSONALIZADO con periodo CADA_SEMANA o CADA_MES
+        const esPeriodico = tipo === 'SEMANAL' || tipo === 'MENSUAL' || 
+          (tipo === 'PERSONALIZADO' && (periodo === 'CADA_SEMANA' || periodo === 'CADA_MES'));
         
-        // Calcular completados según el tipo de cadencia
+        if (!esPeriodico) return;
+        
+        // IMPORTANTE: Para hábitos periódicos en RutinasLuego, NO aplicar filtro de horarios
+        // Los hábitos periódicos (semanal/mensual) deben mostrarse independientemente del horario
+        // El filtro de horarios solo aplica para hábitos diarios, no para periódicos
+        // #region agent log
+        const horarios = Array.isArray(config?.horarios) ? config.horarios : [];
+        fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasLuego.jsx:177',message:'Hábito periódico - NO aplicar filtro de horarios',data:{section,itemId,tipo,periodo,horarios,currentTimeOfDay,completadoHoy,frecuencia,esPeriodico},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
+        // #endregion
+        // No aplicar filtro de horarios para hábitos periódicos - continuar con el procesamiento
+        
+        // Obtener historial usando la función centralizada
         const historial = obtenerHistorialCompletados(itemId, section, rutinaHoy);
         const hoy = new Date();
-        const fechasUnicas = new Set();
-        let completadosEnPeriodo = 0;
+        
+        // Para hábitos con días específicos (diasSemana o diasMes), filtrar el historial primero
+        // ya que contarCompletadosEnPeriodo no considera estos filtros
+        let historialParaContar = historial;
+        let hoyEsValido = true;
         
         if (tipo === 'SEMANAL' || (tipo === 'PERSONALIZADO' && periodo === 'CADA_SEMANA')) {
-          // Para semanal: contar días únicos completados en la semana actual
           const diasSemana = Array.isArray(config.diasSemana) ? config.diasSemana : [];
-          
-          // Filtrar historial por días de la semana si están configurados
-          const historialFiltrado = diasSemana.length > 0
-            ? historial.filter(fecha => {
-                const diaSemana = getDay(fecha); // 0 = domingo, 1 = lunes, etc.
-                return diasSemana.includes(diaSemana);
-              })
-            : historial;
-          
-          // Contar solo días únicos que están en la semana Y en diasSemana (si aplica)
-          historialFiltrado.filter(fecha => 
-            isSameWeek(fecha, hoy, { locale: es })
-          ).forEach(fecha => {
-            fechasUnicas.add(fecha.toISOString().split('T')[0]);
-          });
-          
-          // Verificar si hoy es un día válido antes de agregarlo
-          const diaHoy = getDay(hoy);
-          const hoyEsValido = diasSemana.length === 0 || diasSemana.includes(diaHoy);
-          const fechaHoyStr = hoy.toISOString().split('T')[0];
-          if (completadoHoy && !fechasUnicas.has(fechaHoyStr) && hoyEsValido) {
-            fechasUnicas.add(fechaHoyStr);
+          if (diasSemana.length > 0) {
+            // Filtrar historial por días de la semana
+            historialParaContar = historial.filter(fecha => {
+              const diaSemana = getDay(fecha);
+              return diasSemana.includes(diaSemana);
+            });
+            
+            // Verificar si hoy es un día válido
+            const diaHoy = getDay(hoy);
+            hoyEsValido = diasSemana.includes(diaHoy);
           }
-          
-          completadosEnPeriodo = fechasUnicas.size;
         } else if (tipo === 'MENSUAL' || (tipo === 'PERSONALIZADO' && periodo === 'CADA_MES')) {
-          // Para mensual: contar días únicos completados en el mes actual
           const diasMes = Array.isArray(config.diasMes) ? config.diasMes : [];
-          
-          // Filtrar historial por días del mes si están configurados
-          const historialFiltrado = diasMes.length > 0
-            ? historial.filter(fecha => {
-                const diaMes = getDate(fecha); // 1-31
-                return diasMes.includes(diaMes);
-              })
-            : historial;
-          
-          historialFiltrado.filter(fecha => 
-            isSameMonth(fecha, hoy)
-          ).forEach(fecha => {
-            fechasUnicas.add(fecha.toISOString().split('T')[0]);
+          if (diasMes.length > 0) {
+            // Filtrar historial por días del mes
+            historialParaContar = historial.filter(fecha => {
+              const diaMes = getDate(fecha);
+              return diasMes.includes(diaMes);
+            });
+            
+            // Verificar si hoy es un día válido
+            const diaHoy = getDate(hoy);
+            hoyEsValido = diasMes.includes(diaHoy);
+          }
+        }
+        
+        // Calcular completados del período actual usando la función centralizada
+        let completadosEnPeriodo = contarCompletadosEnPeriodo(hoy, tipo, periodo, historialParaContar);
+        
+        // Verificar si el hábito está completado hoy y agregarlo si no está en el historial
+        if (completadoHoy && hoyEsValido) {
+          const hoyStr = hoy.toISOString().split('T')[0];
+          const yaEstaEnHistorial = historialParaContar.some(fecha => {
+            const fechaStr = fecha.toISOString().split('T')[0];
+            return fechaStr === hoyStr;
           });
           
-          // Verificar si hoy es un día válido antes de agregarlo
-          const diaHoy = getDate(hoy);
-          const hoyEsValido = diasMes.length === 0 || diasMes.includes(diaHoy);
-          const fechaHoyStr = hoy.toISOString().split('T')[0];
-          if (completadoHoy && !fechasUnicas.has(fechaHoyStr) && hoyEsValido) {
-            fechasUnicas.add(fechaHoyStr);
+          // Si no está en el historial, agregarlo al conteo
+          if (!yaEstaEnHistorial) {
+            completadosEnPeriodo++;
           }
-          
-          completadosEnPeriodo = fechasUnicas.size;
         }
         
         // Mostrar si no se cumplió la cuota máxima
         // Esto incluye:
         // - completadoHoy === true && completadosEnPeriodo < frecuencia (ya cumplió hoy pero no la cuota del período)
         // - completadoHoy === false && completadosEnPeriodo < frecuencia (no cumplió hoy pero tampoco la cuota del período)
+        // IMPORTANTE: Para hábitos semanales/mensuales, mostrar aunque estén completados hoy si aún no cumplieron la cuota
         if (completadosEnPeriodo < frecuencia) {
           items.push({ section, itemId });
         }
@@ -249,7 +246,7 @@ export default function RutinasLuego({
     });
 
     return items;
-  }, [rutinaHoy, sectionIconsMap]);
+  }, [rutinaHoy, sectionIconsMap, currentTimeOfDay]);
 
   // En Agenda "Luego" queremos items semanales pendientes de cuota.
   const pendingItems = itemsLuego;
@@ -386,15 +383,28 @@ export default function RutinasLuego({
       }}
       {...bind}
     >
-      {carouselItems.map(({ section, itemId }, index) => {
+      {carouselItems
+        .map(({ section, itemId }, index) => {
         const Icon = sectionIconsMap.iconsMap[section]?.[itemId];
         const label = sectionIconsMap.labelsMap[section]?.[itemId] || itemId;
+        // Si no hay icono, no podemos renderizar el item
         if (!Icon) return null;
+
+          // Obtener configuración del hábito para el badge
+          const itemConfig = rutinaHoy?.config?.[section]?.[itemId] || {};
 
         return (
           <Tooltip key={`${section}.${itemId}.${index}`} title={label} arrow placement="top">
             {/* Wrapper requerido por MUI: Tooltip no puede escuchar eventos en un button disabled */}
             <span style={{ display: 'inline-flex' }}>
+                <HabitCounterBadge
+                  config={itemConfig}
+                  currentTimeOfDay={currentTimeOfDay}
+                  size={dense ? 'small' : 'medium'}
+                  rutina={rutinaHoy}
+                  section={section}
+                  itemId={itemId}
+                >
               <IconButton
                 size="small"
                 disabled={!interactive}
@@ -422,6 +432,7 @@ export default function RutinasLuego({
               >
                 <Icon sx={{ fontSize: dense ? '1.1rem' : '1.2rem' }} />
               </IconButton>
+                </HabitCounterBadge>
             </span>
           </Tooltip>
         );

@@ -6,25 +6,12 @@ import { iconConfig, iconTooltips, getIconByName } from '@shared/utils/iconConfi
 import { getNormalizedToday, parseAPIDate, toISODateString } from '@shared/utils/dateUtils';
 import { getVisibleItemIds } from '@shared/utils/visibilityUtils';
 import { getCurrentTimeOfDay } from '@shared/utils/timeOfDayUtils';
+import { shouldShowHabitForCurrentTime } from '@shared/utils/habitTimeLogic';
+import { HabitCounterBadge } from '@shared/components/common/HabitCounterBadge';
 import { isSameWeek, isSameMonth, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays, getDay, getDate } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { contarCompletadosEnPeriodo, obtenerHistorialCompletados } from '@shared/utils/cadenciaUtils';
 import useHorizontalDragScroll from './hooks/useHorizontalDragScroll';
-
-/**
- * Función para obtener el historial de completados de un ítem
- */
-const obtenerHistorialCompletados = (itemId, section, rutina) => {
-  if (!rutina || !rutina.historial || !rutina.historial[section]) {
-    return [];
-  }
-
-  const historial = rutina.historial[section];
-  
-  // Filtrar entradas del historial donde el ítem esté completado
-  return Object.entries(historial)
-    .filter(([fecha, items]) => items && items[itemId] === true)
-    .map(([fecha]) => new Date(fecha));
-};
 
 /**
  * RutinasPendientesHoy
@@ -188,7 +175,6 @@ export default function RutinasPendientesHoy({
           
           const historial = obtenerHistorialCompletados(itemId, section, rutinaHoy);
           const hoy = new Date();
-          const fechasUnicas = new Set();
           let completadosEnPeriodo = 0;
           let diasRestantes = 0;
           
@@ -203,24 +189,29 @@ export default function RutinasPendientesHoy({
                 })
               : historial;
             
-            // Calcular completados (mismo filtro que RutinasLuego)
-            historialFiltrado.filter(fecha => 
-              isSameWeek(fecha, hoy, { locale: es })
-            ).forEach(fecha => {
-              fechasUnicas.add(fecha.toISOString().split('T')[0]);
-            });
+            // Calcular completados usando la función centralizada
+            completadosEnPeriodo = contarCompletadosEnPeriodo(hoy, tipo, periodo, historialFiltrado);
             
-            const diaHoy = getDay(hoy);
-            const hoyEsValido = diasSemana.length === 0 || diasSemana.includes(diaHoy);
-            const fechaHoyStr = hoy.toISOString().split('T')[0];
-            if (completadoHoy && !fechasUnicas.has(fechaHoyStr) && hoyEsValido) {
-              fechasUnicas.add(fechaHoyStr);
+            // Verificar si el hábito está completado hoy y agregarlo si no está en el historial
+            if (completadoHoy) {
+              const diaHoy = getDay(hoy);
+              const hoyEsValido = diasSemana.length === 0 || diasSemana.includes(diaHoy);
+              if (hoyEsValido) {
+                const hoyStr = hoy.toISOString().split('T')[0];
+                const yaEstaEnHistorial = historialFiltrado.some(fecha => {
+                  const fechaStr = fecha.toISOString().split('T')[0];
+                  return fechaStr === hoyStr;
+                });
+                
+                if (!yaEstaEnHistorial) {
+                  completadosEnPeriodo++;
+                }
+              }
             }
-            
-            completadosEnPeriodo = fechasUnicas.size;
             
             // Calcular días restantes: solo días válidos que aún no han pasado
             if (diasSemana.length > 0) {
+              const diaHoy = getDay(hoy);
               diasRestantes = diasSemana.filter(dia => {
                 // Solo contar días que aún no han pasado esta semana
                 // Si hoy es lunes (1) y diasSemana es [1, 3, 5], contar 1, 3, 5
@@ -229,8 +220,8 @@ export default function RutinasPendientesHoy({
               }).length;
             } else {
               // Sin días específicos: contar todos los días restantes
-              const finSemana = endOfWeek(hoy, { locale: es });
-              diasRestantes = Math.max(0, differenceInDays(finSemana, hoy) + 1); // +1 para incluir hoy
+            const finSemana = endOfWeek(hoy, { locale: es });
+            diasRestantes = Math.max(0, differenceInDays(finSemana, hoy) + 1); // +1 para incluir hoy
             }
           } else if (tipo === 'MENSUAL' || (tipo === 'PERSONALIZADO' && periodo === 'CADA_MES')) {
             const diasMes = Array.isArray(itemConfig.diasMes) ? itemConfig.diasMes : [];
@@ -243,22 +234,25 @@ export default function RutinasPendientesHoy({
                 })
               : historial;
             
-            // Calcular completados en mes actual
-            historialFiltrado.filter(fecha => 
-              isSameMonth(fecha, hoy)
-            ).forEach(fecha => {
-              fechasUnicas.add(fecha.toISOString().split('T')[0]);
-            });
+            // Calcular completados usando la función centralizada
+            completadosEnPeriodo = contarCompletadosEnPeriodo(hoy, tipo, periodo, historialFiltrado);
             
-            // Verificar si hoy es un día válido antes de agregarlo
-            const diaHoy = getDate(hoy);
-            const hoyEsValido = diasMes.length === 0 || diasMes.includes(diaHoy);
-            const fechaHoyStr = hoy.toISOString().split('T')[0];
-            if (completadoHoy && !fechasUnicas.has(fechaHoyStr) && hoyEsValido) {
-              fechasUnicas.add(fechaHoyStr);
+            // Verificar si el hábito está completado hoy y agregarlo si no está en el historial
+            if (completadoHoy) {
+              const diaHoy = getDate(hoy);
+              const hoyEsValido = diasMes.length === 0 || diasMes.includes(diaHoy);
+              if (hoyEsValido) {
+                const hoyStr = hoy.toISOString().split('T')[0];
+                const yaEstaEnHistorial = historialFiltrado.some(fecha => {
+                  const fechaStr = fecha.toISOString().split('T')[0];
+                  return fechaStr === hoyStr;
+                });
+                
+                if (!yaEstaEnHistorial) {
+                  completadosEnPeriodo++;
+                }
+              }
             }
-            
-            completadosEnPeriodo = fechasUnicas.size;
             
             // Calcular días restantes: solo días válidos que aún no han pasado
             if (diasMes.length > 0) {
@@ -271,8 +265,8 @@ export default function RutinasPendientesHoy({
               }).length;
             } else {
               // Sin días específicos: contar todos los días restantes
-              const finMes = endOfMonth(hoy);
-              diasRestantes = Math.max(0, differenceInDays(finMes, hoy) + 1); // +1 para incluir hoy
+            const finMes = endOfMonth(hoy);
+            diasRestantes = Math.max(0, differenceInDays(finMes, hoy) + 1); // +1 para incluir hoy
             }
           }
           
@@ -285,7 +279,7 @@ export default function RutinasPendientesHoy({
               // Necesita hacer al menos 1 por día, mostrar en "Hoy"
               // Verificar nuevamente para evitar duplicados
               if (!itemsSet.has(itemKey)) {
-                items.push({ section, itemId });
+              items.push({ section, itemId });
                 itemsSet.add(itemKey);
               }
             }
@@ -432,18 +426,45 @@ export default function RutinasPendientesHoy({
       }}
       {...bind}
     >
-      {carouselItems.map(({ section, itemId }, index) => {
+      {carouselItems
+        .filter(({ section, itemId }) => {
+          // Filtrar por horario actual: mostrar hábitos del horario actual o último no completado
+          const itemConfig = rutinaHoy?.config?.[section]?.[itemId] || {};
+          const horarios = Array.isArray(itemConfig.horarios) ? itemConfig.horarios : [];
+          // Si no tiene horarios configurados, mostrar siempre
+          if (horarios.length === 0) return true;
+          
+          // Verificar si el hábito está completado hoy (solo considerar el día de hoy)
+          const completadoHoy = rutinaHoy?.[section]?.[itemId] === true;
+          const tipo = (itemConfig.tipo || 'DIARIO').toUpperCase();
+          const frecuencia = Number(itemConfig.frecuencia || 1);
+          
+          // Usar lógica mejorada que considera el último horario no completado
+          return shouldShowHabitForCurrentTime(horarios, currentTimeOfDay, completadoHoy, tipo, frecuencia);
+        })
+        .map(({ section, itemId }, index) => {
         const Icon = sectionIconsMap.iconsMap[section]?.[itemId];
         const label = sectionIconsMap.labelsMap[section]?.[itemId] || itemId;
         if (!Icon) return null;
 
-        // Key único basado en section e itemId (sin index para evitar problemas con duplicados)
-        const uniqueKey = `${section}.${itemId}`;
+          // Obtener configuración del hábito para el badge
+          const itemConfig = rutinaHoy?.config?.[section]?.[itemId] || {};
+
+          // Key único basado en section e itemId (sin index para evitar problemas con duplicados)
+          const uniqueKey = `${section}.${itemId}`;
 
         return (
-          <Tooltip key={uniqueKey} title={label} arrow placement="top">
+            <Tooltip key={uniqueKey} title={label} arrow placement="top">
             {/* Wrapper requerido por MUI: Tooltip no puede escuchar eventos en un button disabled */}
             <span style={{ display: 'inline-flex' }}>
+                <HabitCounterBadge
+                  config={itemConfig}
+                  currentTimeOfDay={currentTimeOfDay}
+                  size={dense ? 'small' : 'medium'}
+                  rutina={rutinaHoy}
+                  section={section}
+                  itemId={itemId}
+                >
               <IconButton
                 size="small"
                 disabled={!interactive}
@@ -471,6 +492,7 @@ export default function RutinasPendientesHoy({
               >
                 <Icon sx={{ fontSize: dense ? '1.1rem' : '1.2rem' }} />
               </IconButton>
+                </HabitCounterBadge>
             </span>
           </Tooltip>
         );
