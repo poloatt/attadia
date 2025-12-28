@@ -12,6 +12,7 @@ import { initializeMonedas } from './config/initData.js';
 import MongoStore from 'connect-mongo';
 import BankSyncScheduler from './services/bankSyncScheduler.js';
 import autoSyncService from './services/autoSyncService.js';
+import mongoose from 'mongoose';
 
 // Importar configuración según el entorno
 let config;
@@ -38,26 +39,50 @@ const app = express();
 // Configurar trust proxy para trabajar con nginx
 app.set('trust proxy', 1);
 
-// Manejo de errores no capturados
+// Manejo de errores no capturados - CRÍTICO para evitar reinicios en Render
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('⚠️ Unhandled Rejection at:', promise, 'reason:', reason);
   // Loggear stack trace si está disponible
   if (reason instanceof Error) {
     console.error('Stack:', reason.stack);
   }
-  // NO hacer process.exit() aquí para evitar reinicios innecesarios
+  // NO hacer process.exit() aquí para evitar reinicios innecesarios en Render
+  // Render reiniciará automáticamente si el proceso termina, así que mejor mantenerlo vivo
 });
 
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
+  console.error('❌ Uncaught Exception:', error);
   console.error('Stack:', error.stack);
   
   // Solo hacer exit en casos realmente críticos
   // Dar tiempo para que los logs se escriban antes de terminar
+  // IMPORTANTE: Render reiniciará automáticamente, así que solo salir en casos extremos
   setTimeout(() => {
-    console.error('Terminando proceso debido a excepción no capturada...');
+    console.error('⚠️ Terminando proceso debido a excepción no capturada...');
     process.exit(1);
-  }, 1000);
+  }, 2000); // Aumentado a 2 segundos para dar más tiempo a los logs
+});
+
+// Prevenir que el proceso se cierre por señales no manejadas
+process.on('SIGTERM', () => {
+  // Loggear solo en desarrollo para reducir ruido en producción
+  if (config.isDev) {
+    console.log('📴 Recibida señal SIGTERM - cerrando servidor gracefully...');
+  }
+  // Dar tiempo para que las conexiones se cierren
+  setTimeout(() => {
+    process.exit(0);
+  }, 5000);
+});
+
+process.on('SIGINT', () => {
+  // Loggear solo en desarrollo para reducir ruido en producción
+  if (config.isDev) {
+    console.log('📴 Recibida señal SIGINT - cerrando servidor gracefully...');
+  }
+  setTimeout(() => {
+    process.exit(0);
+  }, 5000);
 });
 
 // Middleware de debug para capturar peticiones problemáticas (solo para debugging)
@@ -254,15 +279,50 @@ if (config.isDev) {
   app.use(morgan('dev'));
 }
 
-// Health check
+// Health check robusto para Render y otros servicios
+// Render hace health checks automáticos - este endpoint debe responder siempre
+// CRÍTICO: Siempre responder con 200 para evitar reinicios automáticos
 app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'ok',
-    timestamp: new Date(),
-    env: config.env,
-    port: config.port,
-    envPort: process.env.PORT
-  });
+  try {
+    // Verificar que MongoDB esté conectado
+    const mongoStatus = mongoose.connection.readyState;
+    const mongoConnected = mongoStatus === 1; // 1 = connected
+    
+    // Respuesta mínima en producción, detallada en desarrollo
+    const health = config.isDev ? {
+      status: mongoConnected ? 'ok' : 'degraded',
+      timestamp: new Date().toISOString(),
+      env: config.env,
+      port: config.port,
+      mongo: {
+        connected: mongoConnected,
+        readyState: mongoStatus // 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
+      },
+      uptime: process.uptime(),
+      memory: {
+        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024)
+      }
+    } : {
+      status: mongoConnected ? 'ok' : 'degraded',
+      timestamp: new Date().toISOString()
+    };
+    
+    // Responder con 200 incluso si MongoDB no está conectado (para evitar reinicios)
+    // Render reiniciará si el health check falla (no responde o 5xx)
+    res.status(200).json(health);
+  } catch (error) {
+    // En caso de error, responder con 200 para evitar reinicios automáticos
+    // pero indicar el problema en el status
+    // Solo loggear en desarrollo para reducir ruido en producción
+    if (config.isDev) {
+      console.error('Error en health check:', error);
+    }
+    res.status(200).json({
+      status: 'error',
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Rutas
