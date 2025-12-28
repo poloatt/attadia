@@ -314,15 +314,32 @@ app.get('/health', (req, res) => {
   } catch (error) {
     // En caso de error, responder con 200 para evitar reinicios automáticos
     // pero indicar el problema en el status
-    // Solo loggear en desarrollo para reducir ruido en producción
-    if (config.isDev) {
-      console.error('Error en health check:', error);
-    }
+    // Loggear siempre errores en health check (son críticos)
+    console.error('❌ Error en health check:', error.message);
     res.status(200).json({
       status: 'error',
       timestamp: new Date().toISOString()
     });
   }
+});
+
+// Health check adicional en la raíz para Render (algunos servicios lo requieren)
+app.get('/', (req, res) => {
+  // Si es un health check de Render (User-Agent típico de Render)
+  const isHealthCheck = req.headers['user-agent']?.includes('Render') || 
+                        req.path === '/' && Object.keys(req.query).length === 0;
+  
+  if (isHealthCheck) {
+    // Redirigir al health check real
+    return res.redirect('/health');
+  }
+  
+  // Para otras peticiones, responder con información básica
+  res.status(200).json({
+    service: 'Attadia API',
+    status: 'running',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Rutas

@@ -145,7 +145,12 @@ class AutoSyncService {
       }
 
     } catch (error) {
+      // Loggear error pero NO lanzarlo - evitar que cause reinicios
       console.error('❌ Error crítico en sincronización automática:', error);
+      if (error.stack) {
+        console.error('Stack trace:', error.stack);
+      }
+      // NO re-lanzar el error para evitar que cause reinicios del proceso
     }
   }
 
