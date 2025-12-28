@@ -179,10 +179,26 @@ router.get('/google/url', (req, res) => {
   }
 
   // Guardar el origen en la sesión para usar en el callback
-  if (!req.session) {
-    req.session = {};
+  // Manejo robusto de sesiones para evitar crashes en PWA
+  try {
+    if (!req.session) {
+      // Si no hay sesión, intentar inicializarla
+      if (typeof req.session === 'undefined') {
+        // En caso de que la sesión no esté disponible, usar el state en la URL
+        // El callback podrá extraer el origin del state
+        console.warn('⚠️ Sesión no disponible en /google/url, usando state en URL');
+      } else {
+        req.session = {};
+      }
+    }
+    if (req.session) {
+      req.session.googleCallbackOrigin = origin;
+    }
+  } catch (sessionError) {
+    // Si hay error al acceder a la sesión, loggear pero continuar
+    // El origin se guardará en el state de la URL como fallback
+    console.warn('⚠️ Error al guardar en sesión (continuando con state en URL):', sessionError.message);
   }
-  req.session.googleCallbackOrigin = origin;
 
   console.log(`🚀 Google Auth iniciado desde: ${origin}`);
 
@@ -219,10 +235,17 @@ router.get('/google/url', (req, res) => {
     origin,
     ts: Date.now()
   })).toString('base64');
+  // Intentar guardar state en sesión, pero no fallar si no está disponible
   try {
-    if (!req.session) req.session = {};
-    req.session.googleOAuthState = statePayload;
-  } catch (_) {}
+    if (req.session) {
+      req.session.googleOAuthState = statePayload;
+    }
+  } catch (sessionError) {
+    // Silenciar errores de sesión - el state está en la URL como fallback
+    if (config.env === 'development') {
+      console.warn('⚠️ No se pudo guardar state en sesión:', sessionError.message);
+    }
+  }
 
   let authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
     `client_id=${encodeURIComponent(config.google.clientId)}&` +
@@ -241,12 +264,43 @@ router.get('/google/url', (req, res) => {
 
 router.get('/google/callback',
   (req, res, next) => {
+    // Helper para obtener callback origin de forma segura
+    const getCallbackOrigin = () => {
+      try {
+        // Intentar obtener desde sesión
+        if (req.session?.googleCallbackOrigin) {
+          return req.session.googleCallbackOrigin;
+        }
+      } catch (sessionError) {
+        // Si hay error al acceder a sesión, continuar con fallbacks
+        if (config.env === 'development') {
+          console.warn('⚠️ Error al leer sesión en callback:', sessionError.message);
+        }
+      }
+      
+      // Fallback: extraer del state si está disponible
+      if (req.query?.state) {
+        try {
+          const decoded = JSON.parse(Buffer.from(req.query.state, 'base64').toString('utf8'));
+          if (decoded?.origin) {
+            return decoded.origin;
+          }
+        } catch (e) {
+          // Ignorar errores de parsing
+        }
+      }
+      
+      // Último fallback: usar configuración
+      return config.frontendUrl;
+    };
+
     // Solo loggear errores o en desarrollo
     if (req.query.error || config.env === 'development') {
       console.log('Callback de Google recibido:', {
         env: config.env,
         error: req.query.error,
-        code: req.query.code ? 'presente' : 'ausente'
+        code: req.query.code ? 'presente' : 'ausente',
+        hasSession: !!req.session
       });
     }
 
@@ -257,7 +311,7 @@ router.get('/google/callback',
         error_description: req.query.error_description,
         error_uri: req.query.error_uri
       });
-      const callbackOrigin = req.session?.googleCallbackOrigin || config.frontendUrl;
+      const callbackOrigin = getCallbackOrigin();
       return res.redirect(`${callbackOrigin}/auth/callback?error=${encodeURIComponent(req.query.error)}`);
     }
 
@@ -266,7 +320,7 @@ router.get('/google/callback',
         env: config.env,
         headers: req.headers
       });
-      const callbackOrigin = req.session?.googleCallbackOrigin || config.frontendUrl;
+      const callbackOrigin = getCallbackOrigin();
       return res.redirect(`${callbackOrigin}/auth/callback?error=no_auth_code`);
     }
 
@@ -276,7 +330,7 @@ router.get('/google/callback',
     })(req, res, (err) => {
       if (err) {
         console.error('Error en passport authenticate:', err);
-        const callbackOrigin = req.session?.googleCallbackOrigin || config.frontendUrl;
+        const callbackOrigin = getCallbackOrigin();
         return res.redirect(`${callbackOrigin}/auth/callback?error=auth_failed`);
       }
       next();

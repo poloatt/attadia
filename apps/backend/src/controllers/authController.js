@@ -321,6 +321,32 @@ export const authController = {
   },
 
   googleCallback: async (req, res) => {
+    // Helper para obtener callback origin de forma segura en caso de error
+    // Definido fuera del try-catch para que esté disponible en ambos bloques
+    const getSafeCallbackOrigin = () => {
+      try {
+        if (req.session?.googleCallbackOrigin) {
+          return req.session.googleCallbackOrigin;
+        }
+      } catch (e) {
+        // Ignorar errores de sesión
+      }
+      
+      // Intentar desde state
+      if (req.query?.state) {
+        try {
+          const decoded = JSON.parse(Buffer.from(req.query.state, 'base64').toString('utf8'));
+          if (decoded?.origin) {
+            return decoded.origin;
+          }
+        } catch (e) {
+          // Ignorar errores de parsing
+        }
+      }
+      
+      return config.frontendUrl;
+    };
+
     try {
       console.log('Iniciando callback de Google con datos:', {
         user: req.user ? {
@@ -336,7 +362,18 @@ export const authController = {
       }
 
       // Obtener país del perfil de Google, sesión o body (si está disponible)
-      let pais = req.body?.pais || req.session?.pais || req.user.pais || 'AR';
+      // Proteger acceso a sesión para evitar crashes en PWA
+      let pais = req.body?.pais || req.user.pais || 'AR';
+      try {
+        if (req.session?.pais) {
+          pais = req.session.pais;
+        }
+      } catch (sessionError) {
+        // Ignorar errores de sesión - usar valor por defecto
+        if (config.env === 'development') {
+          console.warn('⚠️ Error al leer país de sesión:', sessionError.message);
+        }
+      }
       // Si el usuario ya existe, actualizar el país si es necesario
       if (req.user && req.user._id) {
         const userDoc = await Users.findById(req.user._id);
@@ -353,6 +390,7 @@ export const authController = {
       let callbackOrigin = null;
 
       // 0. Prioridad máxima: parámetro state (contiene origin codificado)
+      // Este es el más confiable porque funciona incluso si las sesiones fallan
       if (req.query?.state) {
         try {
           const decoded = JSON.parse(Buffer.from(req.query.state, 'base64').toString('utf8'));
@@ -365,10 +403,18 @@ export const authController = {
         }
       }
       
-      // 1. Prioridad: origen guardado en sesión
-      if (req.session?.googleCallbackOrigin) {
-        callbackOrigin = req.session.googleCallbackOrigin;
-        console.log(`🔍 Usando origen de sesión: ${callbackOrigin}`);
+      // 1. Prioridad: origen guardado en sesión (solo si no tenemos state)
+      // Manejo robusto para evitar crashes si la sesión no está disponible
+      if (!callbackOrigin) {
+        try {
+          if (req.session?.googleCallbackOrigin) {
+            callbackOrigin = req.session.googleCallbackOrigin;
+            console.log(`🔍 Usando origen de sesión: ${callbackOrigin}`);
+          }
+        } catch (sessionError) {
+          // Si hay error al acceder a sesión, continuar con otros métodos
+          console.warn('⚠️ Error al leer sesión (continuando con otros métodos):', sessionError.message);
+        }
       }
       // 2. Detectar desde el referer (cuando Google redirige)
       else if (req.headers.referer) {
@@ -429,7 +475,32 @@ export const authController = {
         console.log(`🔍 Usando frontendUrl como fallback: ${callbackOrigin}`);
       }
       
-      console.log(`🔗 Redirigiendo a origen: ${callbackOrigin} (desde sesión: ${!!req.session?.googleCallbackOrigin})`);
+      // Helper para obtener callback origin de forma segura en caso de error
+      const getSafeCallbackOrigin = () => {
+        try {
+          if (req.session?.googleCallbackOrigin) {
+            return req.session.googleCallbackOrigin;
+          }
+        } catch (e) {
+          // Ignorar errores de sesión
+        }
+        
+        // Intentar desde state
+        if (req.query?.state) {
+          try {
+            const decoded = JSON.parse(Buffer.from(req.query.state, 'base64').toString('utf8'));
+            if (decoded?.origin) {
+              return decoded.origin;
+            }
+          } catch (e) {
+            // Ignorar errores de parsing
+          }
+        }
+        
+        return config.frontendUrl;
+      };
+
+      console.log(`🔗 Redirigiendo a origen: ${callbackOrigin} (desde sesión: ${!!(req.session && req.session.googleCallbackOrigin)})`);
 
       // Redirigir al frontend con los tokens (usando query params para BrowserRouter)
       const redirectUrl = new URL('/auth/callback', callbackOrigin);
@@ -443,7 +514,10 @@ export const authController = {
       res.redirect(redirectUrl.toString());
     } catch (error) {
       console.error('Error en callback de Google:', error);
-      const callbackOrigin = req.session?.googleCallbackOrigin || config.frontendUrl;
+      console.error('Stack trace:', error.stack);
+      
+      // Obtener callback origin de forma segura usando el helper
+      const callbackOrigin = getSafeCallbackOrigin();
       res.redirect(`${callbackOrigin}/auth/callback?error=server_error`);
     }
   }
