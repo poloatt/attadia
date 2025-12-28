@@ -71,24 +71,18 @@ export const HabitsManager = ({ open, onClose }) => {
   // IMPORTANTE: Debe declararse ANTES del useEffect que la usa
   // Usa habitsRef.current en lugar de habits directamente para evitar recrear la función
   const fetchHabitsConfig = useCallback(async () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsManager.jsx:68',message:'fetchHabitsConfig called',data:{currentSection,habitsCount:Object.keys(habitsRef.current).reduce((acc,k)=>(acc+(habitsRef.current[k]?.length||0)),0),habitsInSection:habitsRef.current[currentSection]?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
+    // Debug telemetry deshabilitado en producción
     try {
       const response = await clienteAxios.get('/api/users/preferences/habits');
       const loadedConfig = response.data?.habits || {};
       
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsManager.jsx:75',message:'Config loaded from API',data:{loadedConfigKeys:Object.keys(loadedConfig),currentSectionConfigKeys:Object.keys(loadedConfig[currentSection]||{}),loadedConfigSample:JSON.stringify(loadedConfig[currentSection]||{}).substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
+      // Debug telemetry deshabilitado en producción
       
       // Asegurar que todos los hábitos tengan configuración inicializada
       const initializedConfig = { ...loadedConfig };
       const currentHabits = habitsRef.current[currentSection] || [];
       
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsManager.jsx:73',message:'Before initializing configs',data:{currentHabitsIds:currentHabits.map(h=>h.id),existingConfigIds:Object.keys(initializedConfig[currentSection]||{})},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
+      // Debug telemetry deshabilitado en producción
       
       // Para cada hábito en la sección actual, asegurar que tenga configuración
       currentHabits.forEach(habit => {
@@ -98,9 +92,7 @@ export const HabitsManager = ({ open, onClose }) => {
         
         // Si el hábito no tiene configuración, inicializar con valores por defecto
         if (!initializedConfig[currentSection][habit.id]) {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsManager.jsx:80',message:'Initializing default config for habit',data:{habitId:habit.id,section:currentSection,isNewHabit:!loadedConfig[currentSection]?.[habit.id]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-          // #endregion
+          // Debug telemetry deshabilitado en producción
           initializedConfig[currentSection][habit.id] = {
             tipo: 'DIARIO',
             frecuencia: 1,
@@ -113,14 +105,10 @@ export const HabitsManager = ({ open, onClose }) => {
         }
       });
       
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsManager.jsx:107',message:'Setting habitsConfig state',data:{finalConfigKeys:Object.keys(initializedConfig[currentSection]||{}),allSections:Object.keys(initializedConfig),sampleConfig:initializedConfig[currentSection]?.[currentHabits[0]?.id]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
+      // Debug telemetry deshabilitado en producción
       setHabitsConfig(initializedConfig);
     } catch (error) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsManager.jsx:115',message:'Error loading config',data:{error:error.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
+      // Debug telemetry deshabilitado en producción
       console.error('[HabitsManager] Error al cargar configuración de hábitos:', error);
       // Inicializar con estructura vacía pero válida
       setHabitsConfig({});
@@ -130,11 +118,11 @@ export const HabitsManager = ({ open, onClose }) => {
   // Cargar hábitos y configuración al abrir el modal
   useEffect(() => {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsManager.jsx:121',message:'useEffect for open modal',data:{open,habitsChanged:JSON.stringify(habits).length,hasFetchHabits:!!fetchHabits,hasFetchHabitsConfig:!!fetchHabitsConfig},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // Debug telemetry deshabilitado en producción
     // #endregion
     if (open) {
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsManager.jsx:125',message:'Calling fetchHabits and fetchHabitsConfig',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // Debug telemetry deshabilitado en producción
       // #endregion
       fetchHabits();
       fetchHabitsConfig();
@@ -143,9 +131,7 @@ export const HabitsManager = ({ open, onClose }) => {
 
   // Función para guardar la configuración de cadencia de un hábito
   const handleConfigChange = async (habitId, newConfig) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsManager.jsx:109',message:'handleConfigChange called',data:{habitId,currentSection,newConfig,hasUpdateUserHabitPreference:!!updateUserHabitPreference,isNewHabit:!habitsConfig[currentSection]?.[habitId]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
+    // Debug telemetry deshabilitado en producción
     try {
       // Normalizar configuración
       const normalizedConfig = {

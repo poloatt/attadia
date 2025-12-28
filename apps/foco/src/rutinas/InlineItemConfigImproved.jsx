@@ -357,13 +357,10 @@ const InlineItemConfigImproved = ({
 
   // Sincronizar hasChanges con los cambios reales
   useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'InlineItemConfigImproved.jsx:301',message:'sync hasChanges useEffect',data:{hasChanges,hasRealChanges,areEqual:hasChanges===hasRealChanges},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
+    // Debug telemetry deshabilitado en producción
     if (hasChanges !== hasRealChanges) {
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'InlineItemConfigImproved.jsx:303',message:'syncing hasChanges',data:{oldHasChanges:hasChanges,newHasChanges:hasRealChanges},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
+      // Debug telemetry deshabilitado en producción
       setHasChanges(hasRealChanges);
     }
   }, [hasChanges, hasRealChanges]);

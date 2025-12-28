@@ -452,7 +452,23 @@ export function AuthProvider({ children }) {
   // Listeners para eventos de ciclo de vida (importante para webapps en smartphones)
   useEffect(() => {
     // Función helper para verificar tokens de forma segura
+    // Ref para debounce de verificaciones desde PWA
+    const lastVerificationAttempt = useRef(0);
+    const VERIFICATION_DEBOUNCE_MS = 2000; // 2 segundos entre verificaciones
+
     const verifyTokensOnResume = async () => {
+      // Prevenir múltiples verificaciones simultáneas desde diferentes listeners
+      if (isChecking.current) {
+        return;
+      }
+
+      // Debounce: evitar verificaciones muy frecuentes desde múltiples eventos de PWA
+      const now = Date.now();
+      if (now - lastVerificationAttempt.current < VERIFICATION_DEBOUNCE_MS) {
+        return; // Ignorar si la última verificación fue hace menos de 2 segundos
+      }
+      lastVerificationAttempt.current = now;
+
       try {
         // Watchdog: si hay un check en progreso demasiado tiempo, forzar reset
         if (isChecking.current && lastCheckStart.current) {
@@ -486,8 +502,9 @@ export function AuthProvider({ children }) {
         // Solo verificar si el usuario está autenticado pero puede haber expirado el token
         if (isAuthenticated && user) {
           // Verificar token de forma silenciosa (sin cambiar loading state)
+          // Timeout más corto para evitar que Render piense que el servicio está caído
           const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout')), 5000)
+            setTimeout(() => reject(new Error('Timeout')), 3000) // Reducido a 3 segundos
           );
           
           clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -500,10 +517,12 @@ export function AuthProvider({ children }) {
               await checkAuth();
             }
           } catch (error) {
-            // Si falla, intentar refresh token
+            // Si falla, intentar refresh token solo si es 401
+            // Ignorar timeouts para evitar que Render piense que el servicio está caído
             if (error.response?.status === 401) {
               await checkAuth();
             }
+            // Silenciar otros errores (timeouts, network errors) para evitar reinicios
           }
         }
       } catch (error) {
@@ -515,12 +534,13 @@ export function AuthProvider({ children }) {
     };
 
     // Listener para cuando la app vuelve a primer plano (visibilitychange)
+    // Con debounce para evitar múltiples peticiones simultáneas
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        // Pequeño delay para asegurar que localStorage esté disponible
+        // Delay más largo para evitar peticiones inmediatas que puedan causar reinicios
         setTimeout(() => {
           verifyTokensOnResume();
-        }, 100);
+        }, 500); // Aumentado a 500ms para dar tiempo al backend
       }
     };
 
@@ -530,7 +550,8 @@ export function AuthProvider({ children }) {
       // event.persisted indica que la página se cargó desde cache
       if (event.persisted) {
         // Delay más largo en móviles para asegurar que localStorage esté disponible
-        const delay = isPWA || isMobile ? 500 : 200;
+        // Y para evitar peticiones inmediatas que puedan causar reinicios
+        const delay = isPWA || isMobile ? 1000 : 500; // Aumentado para dar más tiempo
         setTimeout(() => {
           verifyTokensOnResume();
         }, delay);
@@ -538,13 +559,13 @@ export function AuthProvider({ children }) {
     };
 
     // Listener adicional para focus (cuando la app vuelve a primer plano)
-    // Específico para PWAs en móviles
+    // Específico para PWAs en móviles - CON DEBOUNCE
     const handleFocus = () => {
       if (isPWA || isMobile) {
-        // Delay para asegurar que la app esté completamente activa
+        // Delay más largo para evitar peticiones inmediatas
         setTimeout(() => {
           verifyTokensOnResume();
-        }, 300);
+        }, 800); // Aumentado para dar más tiempo al backend
       }
     };
 

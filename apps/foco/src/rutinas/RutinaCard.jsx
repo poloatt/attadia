@@ -617,16 +617,12 @@ const RutinaCard = ({
       // Crear el formato de datos sencillo esperado por el API
       const itemData = { [itemId]: newValue };
       
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinaCard.jsx:397',message:'Calling markItemComplete',data:{rutinaId:rutina._id,section,itemId,newValue,isCustomHabit:customHabitIds.has(itemId),itemData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'click'})}).catch(()=>{});
-      // #endregion
+      // Debug telemetry deshabilitado en producción
       
       // Llamar a la función del contexto y manejar resultado
       markItemComplete(rutina._id, section, itemData)
         .then((response) => {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinaCard.jsx:403',message:'markItemComplete success',data:{section,itemId,newValue,responseHasSection:!!response?.[section],valorServidor:response?.[section]?.[itemId],isCustomHabit:customHabitIds.has(itemId)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'click'})}).catch(()=>{});
-          // #endregion
+          // Debug telemetry deshabilitado en producción
           
           // Verificar que los datos se actualizaron correctamente
           if (response && response[section]) {
@@ -657,9 +653,7 @@ const RutinaCard = ({
           }
         })
         .catch(err => {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinaCard.jsx:427',message:'markItemComplete error',data:{section,itemId,error:err.message,errorResponse:err.response?.data,isCustomHabit:customHabitIds.has(itemId)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'click'})}).catch(()=>{});
-          // #endregion
+          // Debug telemetry deshabilitado en producción
           
           // Revertir el cambio local en caso de error
           setLocalData(prevData => ({
@@ -1075,31 +1069,23 @@ const RutinaCard = ({
       
       console.log(`[ChecklistSection] 🔄 Actualizando configuración para ${section}.${itemId}:`, cleanConfig);
       
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinaCard.jsx:813',message:'handleConfigChange called from RutinaCard',data:{section,itemId,cleanConfig,hasUpdateItemConfiguration:!!updateItemConfiguration,hasUpdateUserHabitPreference:!!updateUserHabitPreference,isCustomHabit:!sectionIcons[itemId]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
-      // #endregion
+          // Debug telemetry deshabilitado en producción
       
       // Intentar actualizar en el contexto, con manejo de errores
       // IMPORTANTE: Pasar isGlobal: true para guardar en preferencias globales del usuario
       try {
         if (updateItemConfiguration && typeof updateItemConfiguration === 'function') {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinaCard.jsx:820',message:'Calling updateItemConfiguration',data:{section,itemId,isGlobal:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
-          // #endregion
+          // Debug telemetry deshabilitado en producción
           updateItemConfiguration(section, itemId, cleanConfig, { isGlobal: true })
             .then((result) => {
-              // #region agent log
-              fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinaCard.jsx:822',message:'updateItemConfiguration result',data:{section,itemId,result,updated:result?.updated},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
-              // #endregion
+              // Debug telemetry deshabilitado en producción
               if (result && result.updated) {
                 console.log(`[ChecklistSection] ✅ Configuración guardada en rutina y preferencias globales para ${section}.${itemId}`);
                 
                 // IMPORTANTE: Actualizar también el prop config localmente para reflejar cambios inmediatamente
                 // Esto asegura que los hábitos personalizados muestren los cambios sin necesidad de recargar
                 if (onConfigChange && typeof onConfigChange === 'function') {
-                  // #region agent log
-                  fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinaCard.jsx:829',message:'Calling onConfigChange callback',data:{section,itemId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
-                  // #endregion
+                  // Debug telemetry deshabilitado en producción
                   // Llamar al callback del padre para actualizar el config en RutinaTable
                   onConfigChange(itemId, cleanConfig, { scope: 'today' });
                 }
@@ -1109,17 +1095,13 @@ const RutinaCard = ({
                   setForceUpdate(Date.now());
                 }
               } else {
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinaCard.jsx:838',message:'updateItemConfiguration failed',data:{section,itemId,result},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
-                // #endregion
+                // Debug telemetry deshabilitado en producción
                 console.warn(`[ChecklistSection] ⚠️ Configuración no se pudo guardar completamente para ${section}.${itemId}`);
                 enqueueSnackbar('Advertencia: La configuración podría no haberse guardado completamente', { variant: 'warning' });
               }
             })
             .catch(error => {
-              // #region agent log
-              fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinaCard.jsx:843',message:'updateItemConfiguration error',data:{section,itemId,error:error.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
-              // #endregion
+              // Debug telemetry deshabilitado en producción
               console.error(`[ChecklistSection] ❌ Error al guardar configuración:`, error);
               enqueueSnackbar('Error al guardar configuración', { variant: 'error' });
             });
@@ -1129,8 +1111,7 @@ const RutinaCard = ({
           throw new Error('Función updateItemConfiguration no disponible');
         }
       } catch (execError) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinaCard.jsx:851',message:'handleConfigChange execution error',data:{section,itemId,error:execError.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
+        // Debug telemetry deshabilitado en producción
         // #endregion
         console.error('[ChecklistSection] ❌ Error en ejecución al guardar configuración:', execError);
         enqueueSnackbar('Error inesperado al guardar', { variant: 'error' });

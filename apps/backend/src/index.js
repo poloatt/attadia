@@ -111,11 +111,15 @@ app.use((req, res, next) => {
 });
 */
 
-// Middleware con manejo de errores de parsing
+// Middleware para limitar tamaño de body y prevenir problemas con PWA
 app.use(express.json({
-  strict: true
+  strict: true,
+  limit: '10mb' // Límite razonable para prevenir problemas
 }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ 
+  extended: true,
+  limit: '10mb'
+}));
 
 // Manejar errores de parsing JSON de forma más amigable (debe ir justo después de express.json)
 app.use((err, req, res, next) => {
@@ -149,6 +153,15 @@ app.use((req, res, next) => {
   } else {
     corsOrigins = [config.frontendUrl];
   }
+  
+  // Filtrar api.attadia.com de los CORS origins (el backend no necesita CORS para sí mismo)
+  corsOrigins = corsOrigins.filter(origin => {
+    const cleaned = origin.trim();
+    // Excluir el backend URL y variaciones
+    return cleaned && 
+           !cleaned.includes('api.attadia.com') && 
+           !cleaned.includes(config.backendUrl?.replace('https://', '').replace('http://', ''));
+  });
 
   // En desarrollo, agregar explícitamente localhost:5173 si no está presente
   if (config.env === 'development' && !corsOrigins.includes('http://localhost:5173')) {
@@ -281,14 +294,17 @@ if (config.isDev) {
 
 // Health check robusto para Render y otros servicios
 // Render hace health checks automáticos - este endpoint debe responder siempre
-// CRÍTICO: Siempre responder con 200 para evitar reinicios automáticos
+// CRÍTICO: Siempre responder con 200 RÁPIDAMENTE para evitar reinicios automáticos
+// Este endpoint debe ser lo más rápido posible para evitar que Render piense que el servicio está caído
 app.get('/health', (req, res) => {
+  // Responder INMEDIATAMENTE sin bloqueos
+  // No hacer operaciones pesadas aquí para evitar timeouts
   try {
-    // Verificar que MongoDB esté conectado
+    // Verificar MongoDB de forma no bloqueante
     const mongoStatus = mongoose.connection.readyState;
     const mongoConnected = mongoStatus === 1; // 1 = connected
     
-    // Respuesta mínima en producción, detallada en desarrollo
+    // Respuesta mínima y rápida en producción
     const health = config.isDev ? {
       status: mongoConnected ? 'ok' : 'degraded',
       timestamp: new Date().toISOString(),
@@ -296,7 +312,7 @@ app.get('/health', (req, res) => {
       port: config.port,
       mongo: {
         connected: mongoConnected,
-        readyState: mongoStatus // 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
+        readyState: mongoStatus
       },
       uptime: process.uptime(),
       memory: {
@@ -308,14 +324,15 @@ app.get('/health', (req, res) => {
       timestamp: new Date().toISOString()
     };
     
-    // Responder con 200 incluso si MongoDB no está conectado (para evitar reinicios)
-    // Render reiniciará si el health check falla (no responde o 5xx)
+    // Responder con 200 INMEDIATAMENTE - no hacer operaciones pesadas
+    // Render reiniciará si el health check falla o tarda demasiado
     res.status(200).json(health);
   } catch (error) {
-    // En caso de error, responder con 200 para evitar reinicios automáticos
-    // pero indicar el problema en el status
-    // Loggear siempre errores en health check (son críticos)
-    console.error('❌ Error en health check:', error.message);
+    // En caso de error, responder con 200 INMEDIATAMENTE para evitar reinicios
+    // Loggear solo en desarrollo para reducir ruido
+    if (config.isDev) {
+      console.error('❌ Error en health check:', error.message);
+    }
     res.status(200).json({
       status: 'error',
       timestamp: new Date().toISOString()

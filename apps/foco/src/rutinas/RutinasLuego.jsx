@@ -174,9 +174,8 @@ export default function RutinasLuego({
         // IMPORTANTE: Para hábitos periódicos en RutinasLuego, NO aplicar filtro de horarios
         // Los hábitos periódicos (semanal/mensual) deben mostrarse independientemente del horario
         // El filtro de horarios solo aplica para hábitos diarios, no para periódicos
-        // #region agent log
+        // Debug telemetry deshabilitado en producción
         const horarios = Array.isArray(config?.horarios) ? config.horarios : [];
-        fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasLuego.jsx:177',message:'Hábito periódico - NO aplicar filtro de horarios',data:{section,itemId,tipo,periodo,horarios,currentTimeOfDay,completadoHoy,frecuencia,esPeriodico},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'})}).catch(()=>{});
         // #endregion
         // No aplicar filtro de horarios para hábitos periódicos - continuar con el procesamiento
         
