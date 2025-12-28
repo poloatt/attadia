@@ -28,6 +28,7 @@ export function AuthProvider({ children }) {
   const isInitialized = useRef(false);
   const isChecking = useRef(false);
   const lastCheckStart = useRef(null); // Para evitar quedarnos colgados en loading
+  const lastVerificationAttempt = useRef(0); // Para debounce de verificaciones desde PWA
 
   // Función simplificada para verificar autenticación
   const checkAuth = useCallback(async () => {
@@ -452,8 +453,6 @@ export function AuthProvider({ children }) {
   // Listeners para eventos de ciclo de vida (importante para webapps en smartphones)
   useEffect(() => {
     // Función helper para verificar tokens de forma segura
-    // Ref para debounce de verificaciones desde PWA
-    const lastVerificationAttempt = useRef(0);
     const VERIFICATION_DEBOUNCE_MS = 2000; // 2 segundos entre verificaciones
 
     const verifyTokensOnResume = async () => {
