@@ -25,15 +25,15 @@ export const api = {
   getDocumentosPorCategoria: (propiedadId, categoria) => clienteAxios.get(`/api/propiedades/${propiedadId}/documentos/categoria/${categoria}`),
   crearCarpetaGoogleDrive: (propiedadId) => clienteAxios.post(`/api/propiedades/${propiedadId}/documentos/crear-carpeta`),
   
-  // Proyectos
-  getProyectos: () => clienteAxios.get('/api/proyectos'),
-  createProyecto: (data) => clienteAxios.post('/api/proyectos', data),
-  updateProyecto: (id, data) => clienteAxios.put(`/api/proyectos/${id}`, data),
-  deleteProyecto: (id) => clienteAxios.delete(`/api/proyectos/${id}`),
+  // Objetivos
+  getObjetivos: () => clienteAxios.get('/api/objetivos'),
+  createObjetivo: (data) => clienteAxios.post('/api/objetivos', data),
+  updateObjetivo: (id, data) => clienteAxios.put(`/api/objetivos/${id}`, data),
+  deleteObjetivo: (id) => clienteAxios.delete(`/api/objetivos/${id}`),
 
   // Tareas
   getTareas: () => clienteAxios.get('/api/tareas'),
-  getTareasByProyecto: (proyectoId) => clienteAxios.get(`/api/tareas/proyecto/${proyectoId}`),
+  getTareasByObjetivo: (objetivoId) => clienteAxios.get(`/api/tareas/objetivo/${objetivoId}`),
   createTarea: (data) => clienteAxios.post('/api/tareas', data),
   updateTarea: (id, data) => clienteAxios.put(`/api/tareas/${id}`, data),
   deleteTarea: (id) => clienteAxios.delete(`/api/tareas/${id}`),

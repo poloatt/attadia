@@ -1,25 +1,25 @@
 #!/usr/bin/env node
 
 /**
- * Auditoría de consistencia Google Tasks ↔ Attadia por usuario/proyecto.
+ * Auditoría de consistencia Google Tasks ↔ Attadia por usuario/Objetivo.
  *
  * Reporta:
  * - Duplicados de tareas padre por título normalizado dentro de la misma TaskList
  * - Duplicados de subtareas por título normalizado bajo el mismo parent
- * - Tareas principales con mismo título que subtareas existentes en el proyecto (posibles órfanas)
+ * - Tareas principales con mismo título que subtareas existentes en el Objetivo (posibles órfanas)
  * - Tareas con googleTasksSync.parent definido (DB las tiene como padres, Google sugiere subtarea)
  * - (Opcional --google) Verificación en Google: parent/TaskList reales y discrepancias
  *
  * Flags:
  *   --user=<email|id>
- *   --project=<projectId>
- *   --project-name="Salud,Trámites"
+ *   --objetivo=<projectId>
+ *   --objetivo-name="Salud,Trámites"
  *   --google (consulta Google para validar parent/list real)
  */
 
 import mongoose from 'mongoose';
 import { google } from 'googleapis';
-import { Users, Tareas, Proyectos } from '../src/models/index.js';
+import { Users, Tareas, Objetivos } from '../src/models/index.js';
 import config from '../src/config/config.js';
 
 function parseArgs(argv) {
@@ -38,7 +38,7 @@ function parseArgs(argv) {
 
 const args = parseArgs(process.argv.slice(2));
 const USER_FILTER = args.user || null;
-const PROJECT_ID = args.project || null;
+const OBJETIVO_ID = args.project || null;
 const PROJECT_NAME = args['project-name'] || null;
 const CHECK_GOOGLE = !!args.google;
 
@@ -92,21 +92,21 @@ async function main() {
       console.log(`\n👤 Usuario: ${user.email || user._id}`);
       const tasksClient = CHECK_GOOGLE ? await getTasksClient(user) : null;
 
-      // Proyectos objetivo
+      // Objetivos objetivo
       let pjIds = null;
       const pjQuery = { usuario: user._id };
-      if (PROJECT_ID) pjQuery._id = PROJECT_ID;
+      if (OBJETIVO_ID) pjQuery._id = OBJETIVO_ID;
       if (PROJECT_NAME) {
         const names = PROJECT_NAME.split(',').map(s => s.trim()).filter(Boolean);
         pjQuery.nombre = { $in: names.map(n => new RegExp(`^${n}$`, 'i')) };
       }
-      const proyectos = await Proyectos.find(pjQuery).select('_id nombre googleTasksSync');
-      pjIds = proyectos.map(p => p._id);
-      console.log(`🎯 Proyectos: ${proyectos.map(p => p.nombre).join(', ') || '(todos)'}`);
+      const Objetivos = await Objetivos.find(pjQuery).select('_id nombre googleTasksSync');
+      pjIds = Objetivos.map(p => p._id);
+      console.log(`🎯 Objetivos: ${Objetivos.map(p => p.nombre).join(', ') || '(todos)'}`);
 
-      for (const proyecto of proyectos) {
-        console.log(`\n📁 Proyecto: ${proyecto.nombre}`);
-        const tQuery = { usuario: user._id, proyecto: proyecto._id };
+      for (const Objetivo of Objetivos) {
+        console.log(`\n📁 Objetivo: ${Objetivo.nombre}`);
+        const tQuery = { usuario: user._id, objetivo: objetivo._id };
         const tareas = await Tareas.find(tQuery).lean();
         console.log(`   Tareas: ${tareas.length}`);
 
@@ -148,7 +148,7 @@ async function main() {
           console.log('   ✅ Sin duplicados de subtareas por título');
         }
 
-        // Main vs subtask duplicates en el proyecto
+        // Main vs subtask duplicates en el Objetivo
         const subTitles = new Map();
         for (const t of tareas) {
           for (const st of (t.subtareas || [])) {
@@ -180,9 +180,9 @@ async function main() {
         // (Opcional) Verificación contra Google
         if (CHECK_GOOGLE) {
           try {
-            const listId = proyecto.googleTasksSync?.googleTaskListId;
+            const listId = Objetivo.googleTasksSync?.googleTaskListId;
             if (!listId) {
-              console.log('   ℹ️ Proyecto sin googleTaskListId, se omite validación Google.');
+              console.log('   ℹ️ Objetivo sin googleTaskListId, se omite validación Google.');
             } else {
               const allGTasks = [];
               let pageToken;

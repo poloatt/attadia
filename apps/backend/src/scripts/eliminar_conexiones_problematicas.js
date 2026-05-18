@@ -20,7 +20,7 @@ async function testConnections() {
       return url; // Usar esta URL para el resto del script
     } catch (error) {
       console.error('❌ Error de conexión:', error.message);
-      try { await mongoose.disconnect(); } catch {}
+      try { await mongoose.disconnect(); } catch { /* ignore */ }
     }
   }
   throw new Error('No se pudo conectar a MongoDB con ninguna de las URLs probadas.');

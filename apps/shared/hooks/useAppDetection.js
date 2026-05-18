@@ -20,7 +20,7 @@ export const useAppDetection = () => {
       appName,
       appTitle: appConfig?.title || 'Foco',
       appIcon: appConfig?.icon || 'accessTime',
-      appPath: appConfig?.path || '/rutinas',
+      appPath: appConfig?.path || '/foco',
       currentPort,
       detectedBy: 'path'
     };

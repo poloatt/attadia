@@ -9,7 +9,7 @@ import {
   Collapse,
   Tooltip
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { styled, useTheme } from '@mui/material/styles';
 import { Link } from 'react-router-dom';
 import { InquilinoDetail } from '.';
 import { getInquilinosByPropiedad, getInquilinosByContrato } from '@shared/utils/inquilinosUtils';
@@ -522,7 +522,8 @@ const SECTION_CONFIGS = {
 };
 
 // Componente para renderizar sección con layout izquierda/derecha
-const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null, inquilinos = [], onInquilinoDetail = null }) => {
+const SectionRenderer = ({ section, isCollapsed = false, onContratoDetail = null, inquilinos = [], onInquilinoDetail = null, onInventarioClick = null }) => {
+  const theme = useTheme();
   if (section.hidden) return null;
 
   // Detectar si es sección especial (ubicación, finanzas, inquilinos/contratos) que usan value como array o string
@@ -1147,7 +1148,7 @@ const SecondarySectionRenderer = ({ section, isCollapsed = false }) => {
 };
 
 // Componente para mostrar secciones estándar organizadas
-const StandardSections = ({ sections, gridSize = { xs: 6, sm: 6, md: 6, lg: 6 }, isCollapsed = false, onContratoDetail = null, inquilinos = [], onInquilinoDetail = null }) => {
+const StandardSections = ({ sections, gridSize = { xs: 6, sm: 6, md: 6, lg: 6 }, isCollapsed = false, onContratoDetail = null, inquilinos = [], onInquilinoDetail = null, onInventarioClick = null }) => {
   // Secciones estándar
   const seccionesPrimarias = sections.filter(s => s.type === 'primary' && !s.hidden);
   const seccionesSecundarias = sections.filter(s => s.type === 'secondary');
@@ -1167,7 +1168,7 @@ const StandardSections = ({ sections, gridSize = { xs: 6, sm: 6, md: 6, lg: 6 },
                 {section.render()}
               </Box>
             ) : (
-              <SectionRenderer section={section} isCollapsed={isCollapsed} onContratoDetail={onContratoDetail} inquilinos={inquilinos} onInquilinoDetail={onInquilinoDetail} />
+              <SectionRenderer section={section} isCollapsed={isCollapsed} onContratoDetail={onContratoDetail} inquilinos={inquilinos} onInquilinoDetail={onInquilinoDetail} onInventarioClick={onInventarioClick} />
             )}
           </Box>
           {/* Separador sutil después de secciones primarias */}
@@ -1854,7 +1855,7 @@ const PropiedadContent = ({
       case 'info':
         return <InfoGrid data={data} config={config} gridSize={gridSize} />;
       case 'sections':
-        return <StandardSections sections={sections} gridSize={sectionGridSize} isCollapsed={collapsed} onContratoDetail={handleContratoDetail} inquilinos={inquilinos} onInquilinoDetail={handleInquilinoDetail} />;
+        return <StandardSections sections={sections} gridSize={sectionGridSize} isCollapsed={collapsed} onContratoDetail={handleContratoDetail} inquilinos={inquilinos} onInquilinoDetail={handleInquilinoDetail} onInventarioClick={onInventarioClick} />;
       case 'habitaciones':
         return <HabitacionesRenderer section={data} isCollapsed={collapsed} />;
       default:

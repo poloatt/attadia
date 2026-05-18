@@ -21,6 +21,7 @@ import { Breadcrumbs } from '../utils/materialImports';
 import useResponsive from '../hooks/useResponsive';
 import { useNavigationState } from '../utils/navigationUtils';
 import { HEADER_CONFIG, NAV_TYPO } from '../config/uiConstants';
+import { isTiempoToolbarPath } from './toolbarModules';
 import { getCenteredSectionSx } from './alignmentUtils';
 import { DynamicIcon } from '../components/common/DynamicIcon';
   import { SystemButtons, SYSTEM_ICONS, MenuButton } from '../components/common/SystemButtons';
@@ -108,6 +109,10 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
       ...NAV_TYPO.headerTitleSx,
       lineHeight: 1.0,
     };
+
+    if (isTiempoToolbarPath(location.pathname)) {
+      return null;
+    }
 
     return (
       <AppBar 

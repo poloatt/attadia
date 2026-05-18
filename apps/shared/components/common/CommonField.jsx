@@ -98,7 +98,7 @@ const CreateForm = memo(({
       {field.createFields?.map(createField => {
         if (createField.type === 'relational' || createField.type === 'select') {
           return (
-            <FormField
+            <CommonField
               key={createField.name}
               field={createField}
               value={formData[createField.name]}

@@ -12,21 +12,25 @@ import {
   Add as AddIcon,
 } from '@mui/icons-material';
 import { Toolbar, SystemButtons } from '@shared/navigation';
-import TareasTable from '../proyectos/TareasTable';
-import TareaForm from '../proyectos/TareaForm';
-import GoogleTasksConfig from '../proyectos/GoogleTasksConfig';
+import TareasTable from '../objetivos/TareasTable';
+import TareaForm from '../objetivos/TareaForm';
+import GoogleTasksConfig from '../objetivos/GoogleTasksConfig';
+import HabitsManagerHost from '../foco/HabitsManagerHost';
 import clienteAxios from '@shared/config/axios';
 import { useSnackbar } from 'notistack';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useNavigationBar } from '@shared/context';
 import { useValuesVisibility } from '@shared/context';
 import { usePageWithHistory } from '@shared/hooks';
-import { useAgendaFilter } from '../proyectos/useAgendaFilter';
+import { useAgendaFilter } from '../objetivos/useAgendaFilter';
+import { normalizeTaskList } from '@shared/utils/taskListUtils';
+import { buildTareaPayload } from '../foco/buildTareaPayload';
+import { syncTareaToGoogleAfterSave } from '../foco/tareaGoogleSync';
 import { isInAhora, isInLuego, isTaskCompleted } from '@shared/utils';
 
 export function Tareas() {
   const [tareas, setTareas] = useState([]);
-  const [proyectos, setProyectos] = useState([]);
+  const [objetivos, setObjetivos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTarea, setEditingTarea] = useState(null);
@@ -140,7 +144,7 @@ export function Tareas() {
       
       // Recargar datos del servidor para mantener consistencia
       await fetchTareas();
-      await fetchProyectos();
+      await fetchObjetivos();
       
     } catch (error) {
       console.error('Error al eliminar tareas:', error);
@@ -235,24 +239,24 @@ export function Tareas() {
     }
   }, [setTitle, setActions, isMobile, selectedTareas.length, tareas.length]);
 
-  const fetchProyectosRef = useRef(null);
-  const fetchProyectos = useCallback(async () => {
+  const fetchObjetivosRef = useRef(null);
+  const fetchObjetivos = useCallback(async () => {
     // Cancelar llamada anterior si existe
-    if (fetchProyectosRef.current) {
-      clearTimeout(fetchProyectosRef.current);
+    if (fetchObjetivosRef.current) {
+      clearTimeout(fetchObjetivosRef.current);
     }
     
     return new Promise((resolve, reject) => {
-      fetchProyectosRef.current = setTimeout(async () => {
+      fetchObjetivosRef.current = setTimeout(async () => {
         try {
-          // Obtener proyectos con sus tareas incluidas
-          const response = await clienteAxios.get(`/api/proyectos?populate=tareas&_t=${Date.now()}`);
-          setProyectos(response.data.docs || []);
+          // Obtener objetivos con sus tareas incluidas
+          const response = await clienteAxios.get(`/api/objetivos?populate=tareas&_t=${Date.now()}`);
+          setObjetivos(response.data.docs || []);
           resolve(response.data);
         } catch (error) {
           console.error('Error:', error);
-          enqueueSnackbar('Error al cargar proyectos', { variant: 'error' });
-          setProyectos([]);
+          enqueueSnackbar('Error al cargar Objetivos', { variant: 'error' });
+          setObjetivos([]);
           reject(error);
         }
       }, 100); // Debounce de 100ms
@@ -283,7 +287,7 @@ export function Tareas() {
             }
           }
 
-          setTareas(allDocs);
+          setTareas(normalizeTaskList(allDocs));
           setLoading(false);
           resolve({ docs: allDocs, totalPages });
         } catch (error) {
@@ -300,13 +304,13 @@ export function Tareas() {
   // Función estable para el historial
   const fetchDataStable = useCallback(async () => {
     try {
-      await fetchProyectos();
+      await fetchObjetivos();
       await fetchTareas();
     } catch (error) {
       console.error('Error al recargar datos:', error);
       enqueueSnackbar('Error al recargar datos', { variant: 'error' });
     }
-  }, [fetchProyectos, fetchTareas, enqueueSnackbar]);
+  }, [fetchObjetivos, fetchTareas, enqueueSnackbar]);
 
   // Usar el sistema automático de historial
   const { 
@@ -324,7 +328,7 @@ export function Tareas() {
 
   useEffect(() => {
     fetchTareas();
-    fetchProyectos();
+    fetchObjetivos();
   }, []);
 
   // Escuchar eventos del Header y navegación
@@ -336,7 +340,7 @@ export function Tareas() {
       }
     };
 
-    // Escuchar eventos de la navegación de proyectos
+    // Escuchar eventos de la navegación de Objetivos
     const handleAddTask = () => {
       setEditingTarea(null);
       setIsFormOpen(true);
@@ -351,7 +355,7 @@ export function Tareas() {
       // solo necesitamos recargar los datos para reflejar los cambios
       try {
         await fetchTareas();
-        await fetchProyectos();
+        await fetchObjetivos();
         console.log('✅ Datos recargados después del undo');
       } catch (error) {
         console.error('❌ Error al recargar datos después del undo:', error);
@@ -367,7 +371,7 @@ export function Tareas() {
         // useAutoUndoHandler debería manejar esto, pero como fallback recargamos
         try {
           await fetchTareas();
-          await fetchProyectos();
+          await fetchObjetivos();
         } catch (error) {
           console.error('❌ Error al recargar datos después del undo (fallback):', error);
         }
@@ -382,9 +386,9 @@ export function Tareas() {
     const handleGoogleTasksSyncCompleted = async (event) => {
       console.log('🔄 Sincronización de Google Tasks completada, recargando tareas...', event.detail);
       
-      // Recargar tareas y proyectos después de la sincronización
+      // Recargar tareas y objetivos después de la sincronización
       await fetchTareas();
-      await fetchProyectos();
+      await fetchObjetivos();
       
       // Mostrar notificación adicional
       const { results } = event.detail;
@@ -425,127 +429,43 @@ export function Tareas() {
       window.removeEventListener('deleteSelectedTasks', handleDeleteSelectedTasks);
       window.removeEventListener('selectAllTasks', handleSelectAllTasks);
     };
-  }, [fetchTareas, fetchProyectos, handleDeleteSelected]);
+  }, [fetchTareas, fetchObjetivos, handleDeleteSelected]);
 
   const handleFormSubmit = async (formData) => {
     try {
-      // Función helper para convertir fecha a ISO string de forma segura
-      const toISOString = (dateValue, fallback = null) => {
-        if (!dateValue) return fallback;
-        try {
-          // Si ya es un string ISO válido, verificar que sea válido
-          if (typeof dateValue === 'string') {
-            const date = new Date(dateValue);
-            if (!isNaN(date.getTime())) {
-              return date.toISOString();
-            }
-          }
-          // Si es un objeto Date
-          if (dateValue instanceof Date) {
-            if (!isNaN(dateValue.getTime())) {
-              return dateValue.toISOString();
-            }
-          }
-          return fallback;
-        } catch (e) {
-          return fallback;
-        }
-      };
-      
-      // Asegurar que fechaInicio siempre esté presente y sea válida (requerida para filtros de agenda)
-      const fechaInicio = toISOString(
-        formData.fechaInicio, 
-        editingTarea?.fechaInicio 
-          ? toISOString(editingTarea.fechaInicio, new Date().toISOString())
-          : new Date().toISOString()
-      );
-      
-      // Preservar fechaVencimiento si existe
-      const fechaVencimiento = toISOString(
-        formData.fechaVencimiento,
-        editingTarea?.fechaVencimiento ? toISOString(editingTarea.fechaVencimiento, null) : null
-      );
-      
-      // Preservar fechaFin si existe
-      const fechaFin = toISOString(
-        formData.fechaFin,
-        editingTarea?.fechaFin ? toISOString(editingTarea.fechaFin, null) : null
-      );
-      
-      // Calcular completada correctamente basándose en estado y subtareas
-      const subtareas = formData.subtareas || [];
-      let completadaCalculada = false;
-      
-      // Si hay subtareas, calcular basándose en ellas
-      if (subtareas.length > 0) {
-        const todasCompletadas = subtareas.every(st => st.completada);
-        completadaCalculada = todasCompletadas;
-      } else {
-        // Si no hay subtareas, basarse en el estado
-        const estado = formData.estado || editingTarea?.estado || 'PENDIENTE';
-        completadaCalculada = estado === 'COMPLETADA';
-      }
-      
-      // Usar el valor calculado o el explícito del formulario
-      const completada = formData.completada !== undefined 
-        ? formData.completada 
-        : (editingTarea?.completada !== undefined 
-          ? editingTarea.completada 
-          : completadaCalculada);
-      
-      // Construir objeto preservando todos los campos de la tarea original
-      // Esto asegura que campos como googleTasksSync, usuario, etc. no se pierdan
-      const datosAEnviar = {
-        // Campos del formulario (siempre presentes)
-        titulo: formData.titulo,
-        descripcion: formData.descripcion || '',
-        estado: formData.estado || 'PENDIENTE',
-        fechaInicio: fechaInicio,
-        fechaVencimiento: fechaVencimiento,
-        fechaFin: fechaFin,
-        prioridad: formData.prioridad || 'BAJA',
-        proyecto: formData.proyecto?._id || formData.proyecto || null,
-        completada: completada,
-        subtareas: subtareas,
-        archivos: formData.archivos || [],
-        // Preservar campos que no están en el formulario pero son importantes
-        ...(editingTarea && {
-          usuario: editingTarea.usuario,
-          googleTasksSync: editingTarea.googleTasksSync,
-          orden: editingTarea.orden,
-          pushCount: editingTarea.pushCount
-        })
-      };
-      
-      console.log('📝 Datos a enviar al actualizar:', { 
-        ...datosAEnviar, 
-        subtareas: `[${datosAEnviar.subtareas.length} subtareas]`,
-        fechaInicio,
-        fechaVencimiento,
-        fechaFin
-      });
+      const datosAEnviar = buildTareaPayload(formData, { editingTarea, objetivos });
+      let saved;
 
       if (editingTarea) {
-        // Usar la función con historial automático
-        await updateWithHistory(editingTarea._id, datosAEnviar, editingTarea);
+        saved = await updateWithHistory(editingTarea._id, datosAEnviar, editingTarea);
         enqueueSnackbar('Tarea actualizada exitosamente', { variant: 'success' });
       } else {
-        // Usar la función con historial automático
-        await createWithHistory(datosAEnviar);
+        saved = await createWithHistory(datosAEnviar);
         enqueueSnackbar('Tarea creada exitosamente', { variant: 'success' });
+      }
+
+      try {
+        const { synced } = await syncTareaToGoogleAfterSave(saved || datosAEnviar);
+        if (synced) {
+          enqueueSnackbar('Sincronizada con Google Tasks', { variant: 'info' });
+        }
+      } catch (syncErr) {
+        console.warn('Sync Google Tasks tras guardar:', syncErr);
+        enqueueSnackbar(
+          syncErr.response?.data?.error || 'Tarea guardada; no se pudo sincronizar con Google',
+          { variant: 'warning' },
+        );
       }
 
       setIsFormOpen(false);
       setEditingTarea(null);
-      
-      // Recargar datos del servidor para mantener consistencia
       await fetchTareas();
-      await fetchProyectos();
+      await fetchObjetivos();
     } catch (error) {
       console.error('Error al guardar tarea:', error.response?.data || error.message);
       enqueueSnackbar(
-        error.response?.data?.error || 'Error al guardar la tarea', 
-        { variant: 'error' }
+        error.response?.data?.error || 'Error al guardar la tarea',
+        { variant: 'error' },
       );
     }
   };
@@ -788,8 +708,8 @@ export function Tareas() {
             onSubmit={handleFormSubmit}
             isEditing={!!editingTarea}
             initialData={editingTarea}
-            proyectos={proyectos}
-            onProyectosUpdate={fetchProyectos}
+            objetivos={objetivos}
+            onObjetivosUpdate={fetchObjetivos}
             createWithHistory={createWithHistory}
             updateWithHistory={updateWithHistory}
             deleteWithHistory={deleteWithHistory}
@@ -797,6 +717,7 @@ export function Tareas() {
         )}
         
         {/* Modal de configuración de Google Tasks */}
+        <HabitsManagerHost />
         <GoogleTasksConfig
           open={isGoogleTasksConfigOpen}
           onClose={() => setIsGoogleTasksConfigOpen(false)}

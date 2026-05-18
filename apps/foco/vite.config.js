@@ -63,6 +63,8 @@ export default defineConfig(({ mode }) => {
         '@emotion/styled',
         '@mui/icons-material',
         '@mui/x-date-pickers',
+        '@mui/x-date-pickers/DatePicker',
+        '@mui/x-date-pickers/TimePicker',
         'date-fns',
         'react-router-dom',
         'notistack',

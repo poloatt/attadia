@@ -14,7 +14,6 @@ import {
   ViewModule as ViewModuleIcon,
   ViewList as ViewListIcon,
   FilterList as FilterListIcon,
-  FolderOutlined as ProjectIcon,
   TaskOutlined as TaskIcon,
   ArchiveOutlined as ArchiveIcon,
   Visibility as ShowValuesIcon,
@@ -23,50 +22,53 @@ import {
 } from '@mui/icons-material';
 import clienteAxios from '@shared/config/axios';
 import { useSnackbar } from 'notistack';
-import ProyectosGrid from '../proyectos/ProyectosGrid';
-import ProyectoForm from '../proyectos/ProyectoForm';
+import ObjetivosGrid from '../objetivos/ObjetivosGrid';
+import ObjetivoForm from '../objetivos/ObjetivoForm';
 import { useNavigationBar } from '@shared/context';
-import TareaForm from '../proyectos/TareaForm';
+import TareaForm from '../objetivos/TareaForm';
 import { useValuesVisibility } from '@shared/context';
 import { usePageWithHistory, useGlobalActionHistory } from '@shared/hooks';
 import { useNavigate } from 'react-router-dom';
 import { SystemButtons } from '@shared/components/common/SystemButtons';
+import GoogleTasksConfig from '../objetivos/GoogleTasksConfig';
+import HabitsManagerHost from '../foco/HabitsManagerHost';
 
-export function Proyectos() {
-  const [proyectos, setProyectos] = useState([]);
+export function Objetivos() {
+  const [objetivos, setObjetivos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingProyecto, setEditingProyecto] = useState(null);
+  const [editingObjetivo, setEditingObjetivo] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
   const [isTareaFormOpen, setIsTareaFormOpen] = useState(false);
-  const [selectedProyecto, setSelectedProyecto] = useState(null);
-  const [selectedProyectos, setSelectedProyectos] = useState([]);
+  const [selectedObjetivo, setSelectedObjetivo] = useState(null);
+  const [selectedObjetivos, setSelectedObjetivos] = useState([]);
+  const [isGoogleTasksConfigOpen, setIsGoogleTasksConfigOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   const { isMobile } = useResponsive();
   const { setTitle, setActions } = useNavigationBar();
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
   const navigate = useNavigate();
 
-  // 1. Definir fetchProyectos primero con debounce
-  const fetchProyectosRef = useRef(null);
-  const fetchProyectos = useCallback(async () => {
+  // 1. Definir fetchObjetivos primero con debounce
+  const fetchObjetivosRef = useRef(null);
+  const fetchObjetivos = useCallback(async () => {
     // Cancelar llamada anterior si existe
-    if (fetchProyectosRef.current) {
-      clearTimeout(fetchProyectosRef.current);
+    if (fetchObjetivosRef.current) {
+      clearTimeout(fetchObjetivosRef.current);
     }
     
     return new Promise((resolve, reject) => {
-      fetchProyectosRef.current = setTimeout(async () => {
+      fetchObjetivosRef.current = setTimeout(async () => {
         try {
           // Agregar timestamp para evitar cache
-          const response = await clienteAxios.get(`/api/proyectos?populate=tareas&_t=${Date.now()}`);
-          setProyectos(response.data.docs || []);
+          const response = await clienteAxios.get(`/api/objetivos?populate=tareas&_t=${Date.now()}`);
+          setObjetivos(response.data.docs || []);
           setLoading(false);
           resolve(response.data);
         } catch (error) {
           console.error('Error:', error);
-          enqueueSnackbar('Error al cargar proyectos', { variant: 'error' });
-          setProyectos([]);
+          enqueueSnackbar('Error al cargar Objetivos', { variant: 'error' });
+          setObjetivos([]);
           setLoading(false);
           reject(error);
         }
@@ -75,29 +77,29 @@ export function Proyectos() {
   }, [enqueueSnackbar]);
 
   // Función estable para el historial
-  const fetchProyectosStable = useCallback(async () => {
+  const fetchObjetivosStable = useCallback(async () => {
     try {
-      const response = await clienteAxios.get(`/api/proyectos?populate=tareas&_t=${Date.now()}`);
-      setProyectos(response.data.docs || []);
+      const response = await clienteAxios.get(`/api/objetivos?populate=tareas&_t=${Date.now()}`);
+      setObjetivos(response.data.docs || []);
       setLoading(false);
       return response.data;
     } catch (error) {
       console.error('Error:', error);
-      enqueueSnackbar('Error al cargar proyectos', { variant: 'error' });
-      setProyectos([]);
+      enqueueSnackbar('Error al cargar Objetivos', { variant: 'error' });
+      setObjetivos([]);
       setLoading(false);
       throw error;
     }
   }, [enqueueSnackbar]);
 
-  // 2. Historial de proyectos (ruta actual)
+  // 2. Historial de objetivos (ruta actual)
   const { 
     isSupported,
     createWithHistory, 
     updateWithHistory, 
     deleteWithHistory 
   } = usePageWithHistory(
-    fetchProyectosStable,
+    fetchObjetivosStable,
     (error) => {
       console.error('Error al revertir acción:', error);
       enqueueSnackbar('Error al revertir la acción', { variant: 'error' });
@@ -118,11 +120,11 @@ export function Proyectos() {
   };
 
   // Funciones para selección múltiple
-  const handleSelectProyecto = useCallback((proyectoId) => {
-    setSelectedProyectos(prev => {
-      const newSelection = prev.includes(proyectoId) 
-        ? prev.filter(id => id !== proyectoId)
-        : [...prev, proyectoId];
+  const handleSelectobjetivo = useCallback((objetivoId) => {
+    setSelectedObjetivos(prev => {
+      const newSelection = prev.includes(objetivoId) 
+        ? prev.filter(id => id !== objetivoId)
+        : [...prev, objetivoId];
       
       // Comunicar el estado de selección al Toolbar
       window.dispatchEvent(new CustomEvent('selectionChanged', { 
@@ -133,24 +135,24 @@ export function Proyectos() {
     });
   }, []);
 
-  const handleSelectAllProyectos = useCallback(() => {
-    if (selectedProyectos.length === proyectos.length) {
-      setSelectedProyectos([]);
+  const handleSelectAllObjetivos = useCallback(() => {
+    if (selectedObjetivos.length === objetivos.length) {
+      setSelectedObjetivos([]);
       // Comunicar que no hay selecciones
       window.dispatchEvent(new CustomEvent('selectionChanged', { 
         detail: { hasSelections: false } 
       }));
     } else {
-      setSelectedProyectos(proyectos.map(proyecto => proyecto._id));
+      setSelectedObjetivos(objetivos.map(objetivo => objetivo._id));
       // Comunicar que hay selecciones
       window.dispatchEvent(new CustomEvent('selectionChanged', { 
         detail: { hasSelections: true } 
       }));
     }
-  }, [selectedProyectos.length, proyectos]);
+  }, [selectedObjetivos.length, objetivos]);
 
   const handleDeactivateMultiSelect = useCallback(() => {
-    setSelectedProyectos([]);
+    setSelectedObjetivos([]);
     // Comunicar que no hay selecciones
     window.dispatchEvent(new CustomEvent('selectionChanged', { 
       detail: { hasSelections: false } 
@@ -158,12 +160,12 @@ export function Proyectos() {
   }, []);
 
   const handleDeleteSelected = useCallback(async () => {
-    if (selectedProyectos.length === 0) return;
+    if (selectedObjetivos.length === 0) return;
     
     try {
       // Eliminar todas las tareas seleccionadas usando el sistema de historial
       const results = await Promise.allSettled(
-        selectedProyectos.map(id => deleteWithHistory(id))
+        selectedObjetivos.map(id => deleteWithHistory(id))
       );
       
       // Contar eliminaciones exitosas y fallidas
@@ -174,21 +176,21 @@ export function Proyectos() {
       
       const failed = results.length - successful;
       
-      // Actualizar estado local inmediatamente removiendo los proyectos eliminados
-      setProyectos(prevProyectos => 
-        prevProyectos.filter(proyecto => !selectedProyectos.includes(proyecto._id))
+      // Actualizar estado local inmediatamente removiendo los objetivos eliminados
+      setObjetivos(prevObjetivos => 
+        prevObjetivos.filter(objetivo => !selectedObjetivos.includes(objetivo._id))
       );
       
       // Mostrar mensaje apropiado
       if (successful > 0) {
-        enqueueSnackbar(`${successful} proyecto(s) eliminado(s) exitosamente`, { variant: 'success' });
+        enqueueSnackbar(`${successful} objetivo(s) eliminado(s) exitosamente`, { variant: 'success' });
       }
       
       if (failed > 0) {
-        enqueueSnackbar(`${failed} proyecto(s) ya fueron eliminados`, { variant: 'warning' });
+        enqueueSnackbar(`${failed} objetivo(s) ya fueron eliminados`, { variant: 'warning' });
       }
       
-      setSelectedProyectos([]);
+      setSelectedObjetivos([]);
       
       // Comunicar que no hay selecciones
       window.dispatchEvent(new CustomEvent('selectionChanged', { 
@@ -197,54 +199,54 @@ export function Proyectos() {
       
       // Recargar datos después de un breve delay para asegurar sincronización
       setTimeout(() => {
-        fetchProyectos();
+        fetchObjetivos();
       }, 500);
       
     } catch (error) {
-      console.error('Error al eliminar proyectos:', error);
-      enqueueSnackbar('Error al eliminar los proyectos', { variant: 'error' });
+      console.error('Error al eliminar objetivos:', error);
+      enqueueSnackbar('Error al eliminar los Objetivos', { variant: 'error' });
     }
-  }, [selectedProyectos, deleteWithHistory, enqueueSnackbar, fetchProyectos]);
+  }, [selectedObjetivos, deleteWithHistory, enqueueSnackbar, fetchObjetivos]);
 
   useLayoutEffect(() => {
-    setTitle('Proyectos');
+    setTitle('Objetivos');
     
     // Solo mostrar iconos en desktop
     if (!isMobile) {
       const actions = [];
       
-      // Botón "Nuevo Proyecto" siempre visible
+      // Botón "Nuevo objetivo" siempre visible
       actions.push({
         component: (
           <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => {
-              setEditingProyecto(null);
+              setEditingObjetivo(null);
               setIsFormOpen(true);
             }}
             sx={{ borderRadius: 0 }}
           >
-            Nuevo Proyecto
+            Nuevo objetivo
           </Button>
         ),
         onClick: () => {}
       });
       
-      // Si hay proyectos seleccionados, mostrar botones de selección múltiple
-      if (selectedProyectos.length > 0) {
+      // Si hay objetivos seleccionados, mostrar botones de selección múltiple
+      if (selectedObjetivos.length > 0) {
         // Botón seleccionar todas/deseleccionar todas
         actions.push({
           component: (
             <Button
               variant="outlined"
-              onClick={handleSelectAllProyectos}
+              onClick={handleSelectAllObjetivos}
               sx={{ borderRadius: 0 }}
             >
-              {selectedProyectos.length === proyectos.length ? 'Deseleccionar Todas' : 'Seleccionar Todas'}
+              {selectedObjetivos.length === objetivos.length ? 'Deseleccionar Todas' : 'Seleccionar Todas'}
             </Button>
           ),
-          onClick: handleSelectAllProyectos
+          onClick: handleSelectAllObjetivos
         });
         
         // Botón de delete
@@ -252,7 +254,7 @@ export function Proyectos() {
           component: (
             <SystemButtons.MultiSelectDeleteButton 
               onDelete={handleDeleteSelected}
-              selectedCount={selectedProyectos.length}
+              selectedCount={selectedObjetivos.length}
             />
           ),
           onClick: handleDeleteSelected
@@ -271,7 +273,7 @@ export function Proyectos() {
       
       setActions(actions);
     } else {
-      // En móvil, solo mostrar el botón "Nuevo Proyecto"
+      // En móvil, solo mostrar el botón "Nuevo objetivo"
       setActions([
         {
           component: (
@@ -279,51 +281,51 @@ export function Proyectos() {
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => {
-                setEditingProyecto(null);
+                setEditingObjetivo(null);
                 setIsFormOpen(true);
               }}
               sx={{ borderRadius: 0 }}
             >
-              Nuevo Proyecto
+              Nuevo objetivo
             </Button>
           ),
           onClick: () => {}
         }
       ]);
     }
-  }, [setTitle, setActions, isMobile, selectedProyectos.length, proyectos.length, handleSelectAllProyectos, handleDeleteSelected, handleDeactivateMultiSelect]);
+  }, [setTitle, setActions, isMobile, selectedObjetivos.length, objetivos.length, handleSelectAllObjetivos, handleDeleteSelected, handleDeactivateMultiSelect]);
 
   useEffect(() => {
-    fetchProyectos();
-  }, [fetchProyectos]);
+    fetchObjetivos();
+  }, [fetchObjetivos]);
 
   // Escuchar eventos del Header y navegación
   useEffect(() => {
     const handleHeaderAddButton = (event) => {
-      if (event.detail.type === 'proyecto') {
-        setEditingProyecto(null);
+      if (event.detail.type === 'OBJETIVO') {
+        setEditingObjetivo(null);
         setIsFormOpen(true);
       }
     };
 
-    // Escuchar eventos de la navegación de proyectos
-    const handleAddProject = () => {
-      setEditingProyecto(null);
+    // Escuchar eventos de la navegación de Objetivos
+    const handleaddObjetivo = () => {
+      setEditingObjetivo(null);
       setIsFormOpen(true);
     };
 
     const handleAddTask = () => {
-      setSelectedProyecto(null);
+      setSelectedObjetivo(null);
       setIsTareaFormOpen(true);
     };
 
-    // Escuchar eventos de deshacer específicos para proyectos
+    // Escuchar eventos de deshacer específicos para Objetivos
     const handleUndoAction = (event) => {
       const action = event.detail;
-      console.log('Undo de proyecto detectado:', action);
-      // Refrescar proyectos después del undo
+      console.log('Undo de objetivo detectado:', action);
+      // Refrescar objetivos después del undo
       setTimeout(() => {
-        fetchProyectos();
+        fetchObjetivos();
       }, 500);
     };
 
@@ -331,45 +333,51 @@ export function Proyectos() {
     const handleUndoTareaAction = (event) => {
       const action = event.detail;
       console.log('Undo de tarea detectado:', action);
-      // Refrescar proyectos después del undo de tarea
+      // Refrescar objetivos después del undo de tarea
       setTimeout(() => {
-        fetchProyectos();
+        fetchObjetivos();
       }, 500);
     };
 
-    // Manejar eliminación de proyectos seleccionados desde el Toolbar
-    const handleDeleteSelectedProyectos = () => {
+    // Manejar eliminación de objetivos seleccionados desde el Toolbar
+    const handleDeleteSelectedObjetivos = () => {
       handleDeleteSelected();
     };
 
 
     // Manejar seleccionar todas desde el Toolbar
-    const handleSelectAllProyectosFromToolbar = () => {
-      handleSelectAllProyectos();
+    const handleSelectAllObjetivosFromToolbar = () => {
+      handleSelectAllObjetivos();
     };
 
     window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
-    window.addEventListener('addProject', handleAddProject);
+    window.addEventListener('addObjetivo', handleaddObjetivo);
     window.addEventListener('addTask', handleAddTask);
-    window.addEventListener('undoAction_proyecto', handleUndoAction);
+    window.addEventListener('undoAction_objetivo', handleUndoAction);
     window.addEventListener('undoAction_tarea', handleUndoTareaAction);
-    window.addEventListener('deleteSelectedProyectos', handleDeleteSelectedProyectos);
-    window.addEventListener('selectAllProyectos', handleSelectAllProyectosFromToolbar);
-    
+    window.addEventListener('deleteSelectedObjetivos', handleDeleteSelectedObjetivos);
+    window.addEventListener('selectAllObjetivos', handleSelectAllObjetivosFromToolbar);
+    const handleOpenGoogleTasksConfig = () => setIsGoogleTasksConfigOpen(true);
+    const handleGoogleTasksSyncCompleted = () => fetchObjetivos();
+    window.addEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
+    window.addEventListener('googleTasksSyncCompleted', handleGoogleTasksSyncCompleted);
+
     return () => {
       window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
-      window.removeEventListener('addProject', handleAddProject);
+      window.removeEventListener('addObjetivo', handleaddObjetivo);
       window.removeEventListener('addTask', handleAddTask);
-      window.removeEventListener('undoAction_proyecto', handleUndoAction);
+      window.removeEventListener('undoAction_objetivo', handleUndoAction);
       window.removeEventListener('undoAction_tarea', handleUndoTareaAction);
-      window.removeEventListener('deleteSelectedProyectos', handleDeleteSelectedProyectos);
-      window.removeEventListener('selectAllProyectos', handleSelectAllProyectosFromToolbar);
+      window.removeEventListener('deleteSelectedObjetivos', handleDeleteSelectedObjetivos);
+      window.removeEventListener('selectAllObjetivos', handleSelectAllObjetivosFromToolbar);
+      window.removeEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
+      window.removeEventListener('googleTasksSyncCompleted', handleGoogleTasksSyncCompleted);
     };
   }, []);
 
   // Cargar datos iniciales
   useEffect(() => {
-    fetchProyectos();
+    fetchObjetivos();
   }, []);
 
   const handleFormSubmit = async (formData) => {
@@ -381,34 +389,34 @@ export function Proyectos() {
       };
 
       let response;
-      if (editingProyecto) {
+      if (editingObjetivo) {
         // Usar la función con historial automático
         response = await updateWithHistory(
-          editingProyecto._id || editingProyecto.id, 
+          editingObjetivo._id || editingObjetivo.id, 
           dataToSend, 
-          editingProyecto
+          editingObjetivo
         );
-        enqueueSnackbar('Proyecto actualizado exitosamente', { variant: 'success' });
+        enqueueSnackbar('objetivo actualizado exitosamente', { variant: 'success' });
       } else {
         // Usar la función con historial automático
         response = await createWithHistory(dataToSend);
-        enqueueSnackbar('Proyecto creado exitosamente', { variant: 'success' });
+        enqueueSnackbar('objetivo creado exitosamente', { variant: 'success' });
       }
       
       setIsFormOpen(false);
-      setEditingProyecto(null);
-      await fetchProyectos();
+      setEditingObjetivo(null);
+      await fetchObjetivos();
     } catch (error) {
       console.error('Error:', error);
       enqueueSnackbar(
-        error.response?.data?.error || 'Error al guardar el proyecto', 
+        error.response?.data?.error || 'Error al guardar el objetivo', 
         { variant: 'error' }
       );
     }
   };
 
-  const handleEdit = useCallback((proyecto) => {
-    setEditingProyecto(proyecto);
+  const handleEdit = useCallback((objetivo) => {
+    setEditingObjetivo(objetivo);
     setIsFormOpen(true);
   }, []);
 
@@ -416,34 +424,34 @@ export function Proyectos() {
     try {
       // Usar la función con historial automático
       await deleteWithHistory(id);
-      enqueueSnackbar('Proyecto eliminado exitosamente', { variant: 'success' });
-      await fetchProyectos();
+      enqueueSnackbar('objetivo eliminado exitosamente', { variant: 'success' });
+      await fetchObjetivos();
     } catch (error) {
-      console.error('Error al eliminar proyecto:', error);
-      enqueueSnackbar('Error al eliminar el proyecto', { variant: 'error' });
+      console.error('Error al eliminar objetivo:', error);
+      enqueueSnackbar('Error al eliminar el objetivo', { variant: 'error' });
     }
-  }, [deleteWithHistory, enqueueSnackbar, fetchProyectos]);
+  }, [deleteWithHistory, enqueueSnackbar, fetchObjetivos]);
 
   const handleUpdateTarea = useCallback((tareaActualizada) => {
-    setProyectos(prevProyectos =>
-      prevProyectos.map(proyecto => {
-        // Soportar tanto _id como id en proyecto de la tarea actualizada
-        const proyectoIdTarea = tareaActualizada.proyecto?._id || tareaActualizada.proyecto;
-        if (proyecto._id === proyectoIdTarea) {
+    setObjetivos(prevObjetivos =>
+      prevObjetivos.map(objetivo => {
+        // Soportar tanto _id como id en objetivo de la tarea actualizada
+        const objetivoIdTarea = tareaActualizada.objetivo?._id || tareaActualizada.objetivo;
+        if (objetivo._id === objetivoIdTarea) {
           return {
-            ...proyecto,
-            tareas: proyecto.tareas.map(tarea =>
+            ...objetivo,
+            tareas: objetivo.tareas.map(tarea =>
               tarea._id === tareaActualizada._id ? tareaActualizada : tarea
             )
           };
         }
-        return proyecto;
+        return objetivo;
       })
     );
   }, []);
 
-  const handleAddTarea = (proyecto) => {
-    setSelectedProyecto(proyecto);
+  const handleAddTarea = (objetivo) => {
+    setSelectedObjetivo(objetivo);
     setIsTareaFormOpen(true);
   };
 
@@ -451,21 +459,21 @@ export function Proyectos() {
     try {
       const datosAEnviar = {
         ...formData,
-        proyecto: selectedProyecto._id
+        objetivo: selectedObjetivo._id
       };
 
       const response = await clienteAxios.post('/api/tareas', datosAEnviar);
       enqueueSnackbar('Tarea creada exitosamente', { variant: 'success' });
       setIsTareaFormOpen(false);
-      setSelectedProyecto(null);
-      await fetchProyectos();
+      setSelectedObjetivo(null);
+      await fetchObjetivos();
     } catch (error) {
       console.error('Error al crear tarea:', error);
       enqueueSnackbar('Error al crear la tarea', { variant: 'error' });
     }
   };
 
-  const filteredProyectos = proyectos;
+  const filteredobjetivos = Objetivos;
 
   return (
     <Box sx={{ px: { xs: 1, sm: 2, md: 3 }, width: '100%' }}>
@@ -498,12 +506,12 @@ export function Proyectos() {
               <CircularProgress />
             </Box>
           ) : (
-            <ProyectosGrid
-              proyectos={proyectos}
+            <ObjetivosGrid
+              objetivos={objetivos}
               onEdit={handleEdit}
               onDelete={handleDelete}
               onAdd={() => {
-                setEditingProyecto(null);
+                setEditingObjetivo(null);
                 setIsFormOpen(true);
               }}
               onUpdateTarea={handleUpdateTarea}
@@ -511,18 +519,18 @@ export function Proyectos() {
               showValues={showValues}
               updateWithHistory={updateWithHistory}
               updateTareaWithHistory={updateTareaWithHistory}
-              isMultiSelectMode={selectedProyectos.length > 0}
-              selectedProyectos={selectedProyectos}
-              onSelectProyecto={handleSelectProyecto}
+              isMultiSelectMode={selectedObjetivos.length > 0}
+              selectedObjetivos={selectedObjetivos}
+              onSelectobjetivo={handleSelectobjetivo}
             />
           )}
         </Box>
-        <ProyectoForm
+        <ObjetivoForm
           open={isFormOpen}
           onClose={() => setIsFormOpen(false)}
           onSubmit={handleFormSubmit}
-          isEditing={!!editingProyecto}
-          initialData={editingProyecto}
+          isEditing={!!editingObjetivo}
+          initialData={editingObjetivo}
           createWithHistory={createWithHistory}
           updateWithHistory={updateWithHistory}
           deleteWithHistory={deleteWithHistory}
@@ -534,18 +542,18 @@ export function Proyectos() {
             open={isTareaFormOpen}
             onClose={() => {
               setIsTareaFormOpen(false);
-              setSelectedProyecto(null);
+              setSelectedObjetivo(null);
             }}
             onSubmit={handleTareaSubmit}
             isEditing={false}
             initialData={null}
-            proyectos={proyectos}
-            onProyectosUpdate={fetchProyectos}
+            Objetivos={objetivos}
+            onObjetivosUpdate={fetchObjetivos}
           />
         )}
         
         {/* Barra flotante minimalista para selección múltiple */}
-        {selectedProyectos.length > 0 && (
+        {selectedObjetivos.length > 0 && (
           <Box
             sx={{
               position: 'fixed',
@@ -574,7 +582,7 @@ export function Proyectos() {
             }}
           >
             <Chip
-              label={`${selectedProyectos.length} seleccionados`}
+              label={`${selectedObjetivos.length} seleccionados`}
               size={isMobile ? "medium" : "small"}
               color="primary"
               variant="outlined"
@@ -600,9 +608,15 @@ export function Proyectos() {
             </IconButton>
           </Box>
         )}
+
+        <HabitsManagerHost />
+        <GoogleTasksConfig
+          open={isGoogleTasksConfigOpen}
+          onClose={() => setIsGoogleTasksConfigOpen(false)}
+        />
       </Box>
     </Box>
   );
 }
 
-export default Proyectos;
+export default Objetivos;

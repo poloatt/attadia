@@ -28,6 +28,7 @@ import { useRutinas, useHabits } from '../../context';
 import { useSnackbar } from 'notistack';
 // Importamos las utilidades de cadencia
 import { debesMostrarHabitoEnFecha, generarMensajeCadencia, obtenerUltimaCompletacion } from '../../utils/cadenciaUtils';
+import { esRutinaHistorica, obtenerHistorialCompletaciones } from '@shared/utils';
 import { getFrecuenciaLabel } from './InlineItemConfigImproved';
 // Importar el nuevo gestor de visibilidad centralizado
 import { startOfWeek, isSameWeek, isToday } from 'date-fns';

@@ -18,8 +18,8 @@ const routerConfig = {
 
 // Configuración específica para Foco
 const AppConfig = {
-  name: 'Foco',
-  title: 'Foco',
+  name: 'Agenda',
+  title: 'Agenda',
   theme: 'blue',
   primaryColor: '#1976d2'
 }
@@ -29,13 +29,13 @@ window.APP_CONFIG = AppConfig
 
 // Definir mapa de rutas para Foco
 const focoRoutesMap = {
-  '/proyectos': {
-    entity: 'proyecto',
+  '/objetivos': {
+    entity: 'OBJETIVO',
     apiService: {
-      create: (data) => clienteAxios.post('/api/proyectos', data).then(res => res.data),
-      update: (id, data) => clienteAxios.put(`/api/proyectos/${id}`, data).then(res => res.data),
-      delete: (id) => clienteAxios.delete(`/api/proyectos/${id}`).then(res => res.data),
-      getById: (id) => clienteAxios.get(`/api/proyectos/${id}`).then(res => res.data)
+      create: (data) => clienteAxios.post('/api/objetivos', data).then(res => res.data),
+      update: (id, data) => clienteAxios.put(`/api/objetivos/${id}`, data).then(res => res.data),
+      delete: (id) => clienteAxios.delete(`/api/objetivos/${id}`).then(res => res.data),
+      getById: (id) => clienteAxios.get(`/api/objetivos/${id}`).then(res => res.data)
     }
   },
   '/tareas': {
@@ -63,6 +63,15 @@ const focoRoutesMap = {
       update: (id, data) => clienteAxios.put(`/api/rutinas/${id}`, data).then(res => res.data),
       delete: (id) => clienteAxios.delete(`/api/rutinas/${id}`).then(res => res.data),
       getById: (id) => clienteAxios.get(`/api/rutinas/${id}`).then(res => res.data)
+    }
+  },
+  '/foco': {
+    entity: 'tarea',
+    apiService: {
+      create: (data) => clienteAxios.post('/api/tareas', data).then(res => res.data),
+      update: (id, data) => clienteAxios.put(`/api/tareas/${id}`, data).then(res => res.data),
+      delete: (id) => clienteAxios.delete(`/api/tareas/${id}`).then(res => res.data),
+      getById: (id) => clienteAxios.get(`/api/tareas/${id}`).then(res => res.data)
     }
   }
 }

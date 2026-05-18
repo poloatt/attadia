@@ -18,7 +18,7 @@
 
 import mongoose from 'mongoose';
 import { google } from 'googleapis';
-import { Users, Tareas, Proyectos } from '../src/models/index.js';
+import { Users, Tareas, Objetivos } from '../src/models/index.js';
 import config from '../src/config/config.js';
 
 function parseArgs(argv) {
@@ -50,7 +50,7 @@ const args = parseArgs(process.argv.slice(2));
 const DRY_RUN = args['dry-run'] !== false && args['dry-run'] !== 'false'; // default true
 const INCLUDE_GOOGLE = !!args.google;
 const USER_FILTER = args.user || null;
-const PROJECT_ID = args.project || null;
+const OBJETIVO_ID = args.project || null;
 const PROJECT_NAME = args['project-name'] || null; // puede ser "Salud,Trámites"
 
 function normalizeTitle(title) {
@@ -65,7 +65,7 @@ function normalizeTitle(title) {
 function normalizeDescripcion(descripcion) {
   if (!descripcion) return '';
   const lines = String(descripcion).split('\n');
-  const endMarkers = ['Subtareas:', 'Proyecto:', '---'];
+  const endMarkers = ['Subtareas:', 'Objetivo:', '---'];
   let result = '';
   for (const line of lines) {
     if (endMarkers.some(marker => line.trim().startsWith(marker))) break;
@@ -192,27 +192,27 @@ async function cleanupDuplicateSubtasks() {
         }
       }
 
-      // Obtener proyectos objetivo si se pidió filtro
-      let proyectoIds = null;
-      if (PROJECT_ID || PROJECT_NAME) {
+      // Obtener Objetivos objetivo si se pidió filtro
+      let objetivoIds = null;
+      if (OBJETIVO_ID || PROJECT_NAME) {
         const pjQuery = { usuario: user._id };
-        if (PROJECT_ID) {
-          pjQuery._id = PROJECT_ID;
+        if (OBJETIVO_ID) {
+          pjQuery._id = OBJETIVO_ID;
         }
         if (PROJECT_NAME) {
           const names = PROJECT_NAME.split(',').map(s => s.trim()).filter(Boolean);
           // búsqueda case-insensitive
           pjQuery.nombre = { $in: names.map(n => new RegExp(`^${n}$`, 'i')) };
         }
-        const proyectos = await Proyectos.find(pjQuery).select('_id nombre');
-        proyectoIds = proyectos.map(p => p._id);
-        console.log(`🎯 Proyectos objetivo: ${proyectos.map(p => p.nombre).join(', ') || '(ninguno encontrado)'}`);
+        const Objetivos = await Objetivos.find(pjQuery).select('_id nombre');
+        objetivoIds = Objetivos.map(p => p._id);
+        console.log(`🎯 Objetivos objetivo: ${Objetivos.map(p => p.nombre).join(', ') || '(ninguno encontrado)'}`);
       }
 
-      // Buscar tareas del usuario con subtareas (y opcionalmente por proyecto)
+      // Buscar tareas del usuario con subtareas (y opcionalmente por Objetivo)
       const tareasQuery = { usuario: user._id, 'subtareas.0': { $exists: true } };
-      if (proyectoIds && proyectoIds.length > 0) {
-        tareasQuery.proyecto = { $in: proyectoIds };
+      if (objetivoIds && objetivoIds.length > 0) {
+        tareasQuery.Objetivo = { $in: objetivoIds };
       }
       const tareas = await Tareas.find(tareasQuery);
       console.log(`📋 Tareas con subtareas: ${tareas.length}`);

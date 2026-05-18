@@ -1,9 +1,17 @@
-export { default as TareasTable } from './TareasTable';
-export { default as TareasSection } from './TareasSection';
-export { default as TareaForm } from './TareaForm';
-export { default as TareaActions } from './TareaActions';
-export { default as ProyectosStats } from './ProyectosStats';
-export { default as ProyectosGrid } from './ProyectosGrid';
-export { default as ProyectoForm } from './ProyectoForm';
-export { default as ProyectoCard } from './ProyectoCard';
-export { default as GoogleTasksConfig } from './GoogleTasksConfig'; 
+/** @deprecated Import from `../objetivos` instead. Legacy "proyectos" aliases. */
+export {
+  TareasTable,
+  TareasSection,
+  TareaForm,
+  TareaActions,
+  ObjetivosStats,
+  ObjetivosGrid,
+  ObjetivoForm,
+  ObjetivoCard,
+  GoogleTasksConfig,
+} from '../objetivos';
+
+export { default as ProyectosGrid } from '../objetivos/ObjetivosGrid';
+export { default as ProyectoCard } from '../objetivos/ObjetivoCard';
+export { default as ProyectoForm } from '../objetivos/ObjetivoForm';
+export { default as ProyectosStats } from '../objetivos/ObjetivosStats';

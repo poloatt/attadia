@@ -487,6 +487,7 @@ export const RutinaTable = ({
       });
       
       const newRutina = response.data;
+      const totalRutinas = rutinas.length + 1;
       
       // La actualización de rutinas se maneja en el contexto padre
       
@@ -496,13 +497,13 @@ export const RutinaTable = ({
         onRutinaChange({
           ...newRutina,
           _page: 1,
-          _totalPages: updatedRutinas.length
+          _totalPages: totalRutinas
         });
       }
       
       // Actualizar página actual a 1
       setCurrentPage(1);
-      setTotalPages(updatedRutinas.length);
+      setTotalPages(totalRutinas);
       
       enqueueSnackbar('Nueva rutina creada', { variant: 'success' });
     } catch (error) {

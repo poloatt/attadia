@@ -15,7 +15,6 @@ import {
   Add as AddIcon,
   FilterList as FilterListIcon,
   TaskOutlined as TaskIcon,
-  FolderOutlined as ProjectIcon,
   ArchiveOutlined as ArchiveIcon,
   CheckCircle as CompletedIcon,
   RadioButtonUnchecked as PendingIcon,
@@ -26,8 +25,10 @@ import {
   CheckBoxOutlined as MultiSelectIcon,
 } from '@mui/icons-material';
 import { Toolbar, SystemButtons } from '@shared/navigation';
-import TareasTable from '../proyectos/TareasTable';
-import TareaForm from '../proyectos/TareaForm';
+import TareasTable from '../objetivos/TareasTable';
+import TareaForm from '../objetivos/TareaForm';
+import { buildTareaPayload } from '../foco/buildTareaPayload';
+import { syncTareaToGoogleAfterSave } from '../foco/tareaGoogleSync';
 import clienteAxios from '@shared/config/axios';
 import { useSnackbar } from 'notistack';
 import { useNavigationBar } from '@shared/context';
@@ -37,7 +38,7 @@ import { useValuesVisibility } from '@shared/context';
 
 export function Archivo() {
   const [tareas, setTareas] = useState([]);
-  const [proyectos, setProyectos] = useState([]);
+  const [objetivos, setObjetivos] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTarea, setEditingTarea] = useState(null);
   const [selectedTareas, setSelectedTareas] = useState([]);
@@ -51,7 +52,7 @@ export function Archivo() {
   const { updateWithHistory } = usePageWithHistory(
     // Función para recargar datos
     async () => {
-      await fetchProyectos();
+      await fetchObjetivos();
       await fetchTareas();
     },
     // Función para manejar errores
@@ -97,15 +98,15 @@ export function Archivo() {
     }
   }, [setTitle, setActions, isMobile, selectedTareas.length]);
 
-  const fetchProyectos = useCallback(async () => {
+  const fetchObjetivos = useCallback(async () => {
     try {
-      const response = await clienteAxios.get('/api/proyectos?populate=tareas');
-      console.log('Proyectos con tareas:', response.data);
-      setProyectos(response.data.docs || []);
+      const response = await clienteAxios.get('/api/objetivos?populate=tareas');
+      console.log('objetivos con tareas:', response.data);
+      setObjetivos(response.data.docs || []);
     } catch (error) {
       console.error('Error:', error);
-      enqueueSnackbar('Error al cargar proyectos', { variant: 'error' });
-      setProyectos([]);
+      enqueueSnackbar('Error al cargar Objetivos', { variant: 'error' });
+      setObjetivos([]);
     }
   }, [enqueueSnackbar]);
 
@@ -123,7 +124,7 @@ export function Archivo() {
 
   useEffect(() => {
     fetchTareas();
-    fetchProyectos();
+    fetchObjetivos();
   }, []);
 
   const handleDeleteSelected = async () => {
@@ -151,16 +152,16 @@ export function Archivo() {
     }
   };
 
-  // Escuchar eventos de la navegación de proyectos
+  // Escuchar eventos de la navegación de Objetivos
   useEffect(() => {
     // En la página de archivo, los eventos de agregar no hacen nada
     // pero podríamos redirigir a las páginas correspondientes
-    const handleAddProject = () => {
-      navigate('/tiempo/proyectos');
+    const handleaddObjetivo = () => {
+      navigate('/objetivos');
     };
 
     const handleAddTask = () => {
-      navigate('/tiempo/tareas');
+      navigate('/tareas');
     };
 
     const handleDeleteSelectedTasks = () => {
@@ -168,12 +169,12 @@ export function Archivo() {
     };
 
 
-    window.addEventListener('addProject', handleAddProject);
+    window.addEventListener('addObjetivo', handleaddObjetivo);
     window.addEventListener('addTask', handleAddTask);
     window.addEventListener('deleteSelectedTasks', handleDeleteSelectedTasks);
     
     return () => {
-      window.removeEventListener('addProject', handleAddProject);
+      window.removeEventListener('addObjetivo', handleaddObjetivo);
       window.removeEventListener('addTask', handleAddTask);
       window.removeEventListener('deleteSelectedTasks', handleDeleteSelectedTasks);
     };
@@ -184,7 +185,7 @@ export function Archivo() {
       let response;
       const datosAEnviar = {
         ...formData,
-        proyecto: formData.proyecto?._id || formData.proyecto
+        objetivo: formData.objetivo?._id || formData.objetivo
       };
 
       console.log('Datos a enviar:', datosAEnviar);
@@ -204,7 +205,7 @@ export function Archivo() {
       setIsFormOpen(false);
       setEditingTarea(null);
       
-      await fetchProyectos();
+      await fetchObjetivos();
       await fetchTareas();
     } catch (error) {
       console.error('Error completo:', error);
@@ -337,8 +338,8 @@ export function Archivo() {
             onSubmit={handleFormSubmit}
             initialData={editingTarea}
             isEditing={!!editingTarea}
-            proyectos={proyectos}
-            onProyectosUpdate={fetchProyectos}
+            objetivos={objetivos}
+            onObjetivosUpdate={fetchObjetivos}
           />
         )}
 

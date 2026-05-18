@@ -7,7 +7,7 @@ import {
   Cuentas, 
   Transacciones, 
   Tareas, 
-  Proyectos, 
+  Objetivos, 
   Inventarios,
   Users 
 } from '../models/index.js';
@@ -188,8 +188,8 @@ export const initializeSampleData = async (userId) => {
       }
     ]);
 
-    // 7. Crear Proyectos
-    const proyectos = await Proyectos.create([
+    // 7. Crear Objetivos
+    const objetivos = await Objetivos.create([
       {
         nombre: 'Renovación Departamento Centro',
         descripcion: 'Renovación completa del departamento',
@@ -217,7 +217,7 @@ export const initializeSampleData = async (userId) => {
         titulo: 'Pintar habitación principal',
         descripcion: 'Pintar las paredes de la habitación principal',
         usuario: userId,
-        proyecto: proyectos[0]._id,
+        objetivo: objetivos[0]._id,
         estado: 'pendiente',
         prioridad: 'alta',
         fechaVencimiento: new Date('2024-07-15')
@@ -226,7 +226,7 @@ export const initializeSampleData = async (userId) => {
         titulo: 'Reparar grifo cocina',
         descripcion: 'Reparar el grifo que gotea en la cocina',
         usuario: userId,
-        proyecto: proyectos[1]._id,
+        objetivo: objetivos[1]._id,
         estado: 'en_progreso',
         prioridad: 'media',
         fechaVencimiento: new Date('2024-07-10')
@@ -285,7 +285,7 @@ export const initializeSampleData = async (userId) => {
     console.log(`- ${contratos.length} contratos`);
     console.log(`- ${cuentas.length} cuentas`);
     console.log(`- ${transacciones.length} transacciones`);
-    console.log(`- ${proyectos.length} proyectos`);
+    console.log(`- ${objetivos.length} objetivos`);
     console.log(`- ${tareas.length} tareas`);
     console.log(`- ${inventarios.length} items de inventario`);
 

@@ -76,13 +76,6 @@ const ESTADO_MAP = {
     SIN_CONTRATO: 'ARCHIVED',
     CANCELADO: 'CANCELLED'
   },
-  PROYECTO: {
-    PENDIENTE: 'PENDING',
-    PLANEADO: 'IN_PROGRESS',
-    EN_PROGRESO: 'IN_PROGRESS',
-    COMPLETADO: 'COMPLETED',
-    CANCELADO: 'CANCELLED'
-  },
   TAREA: {
     PENDIENTE: 'PENDING',
     PLANEADA: 'PENDING',
@@ -155,13 +148,6 @@ const TEXT_MAP = {
     ACTIVO: 'Activo',
     INACTIVO: 'Inactivo',
     SIN_CONTRATO: 'Sin contrato',
-    CANCELADO: 'Cancelado'
-  },
-  PROYECTO: {
-    PENDIENTE: 'Pendiente',
-    PLANEADO: 'Planeado',
-    EN_PROGRESO: 'En progreso',
-    COMPLETADO: 'Completado',
     CANCELADO: 'Cancelado'
   },
   TAREA: {
@@ -251,7 +237,7 @@ const ICON_OVERRIDE_MAP = {
 /**
  * Obtiene información completa de un estado (color, icono, texto)
  * @param {string} estado - Nombre del estado (ej: 'PENDIENTE', 'ACTIVO')
- * @param {string} tipo - Tipo de entidad (ej: 'TAREA', 'PROYECTO')
+ * @param {string} tipo - Tipo de entidad (ej: 'TAREA', 'OBJETIVO')
  * @returns {Object} Objeto con color, icon y text
  */
 export function getEstadoInfo(estado, tipo = 'PROPIEDAD') {
@@ -360,7 +346,7 @@ function generateEstadoExport(tipo) {
 export const PROPIEDAD_ESTADOS = generateEstadoExport('PROPIEDAD');
 export const CONTRATO_ESTADOS = generateEstadoExport('CONTRATO');
 export const INQUILINO_ESTADOS = generateEstadoExport('INQUILINO');
-export const PROYECTO_ESTADOS = generateEstadoExport('PROYECTO');
+export const objetivo_ESTADOS = generateEstadoExport('OBJETIVO');
 export const TAREA_ESTADOS = generateEstadoExport('TAREA');
 export const TRANSACCION_ESTADOS = generateEstadoExport('TRANSACCION');
 export const TRANSACCION_RECURRENTE_ESTADOS = generateEstadoExport('TRANSACCION_RECURRENTE');

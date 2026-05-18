@@ -7,7 +7,7 @@ import { getNormalizedToday, parseAPIDate, toISODateString } from '@shared/utils
 import { getCurrentTimeOfDay } from '@shared/utils/timeOfDayUtils';
 import { shouldShowHabitForCurrentTime } from '@shared/utils/habitTimeLogic';
 import { HabitCounterBadge } from '@shared/components/common/HabitCounterBadge';
-import { isSameWeek, isSameMonth, startOfMonth, endOfMonth, endOfWeek, differenceInDays, startOfWeek, getDay, getDate } from 'date-fns';
+import { isSameDay, isSameWeek, isSameMonth, startOfMonth, endOfMonth, endOfWeek, differenceInDays, startOfWeek, getDay, getDate } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { contarCompletadosEnPeriodo, obtenerHistorialCompletados } from '@shared/utils/cadenciaUtils';
 import useHorizontalDragScroll from './hooks/useHorizontalDragScroll';
@@ -30,6 +30,7 @@ export default function RutinasLuego({
   showDividers = true,
   enableDragScroll = true,
   interactive = true,
+  targetDate,
 }) {
   const theme = useTheme();
   const { rutina, rutinas, loading, fetchRutinas, markItemComplete } = useRutinas();
@@ -44,28 +45,35 @@ export default function RutinasLuego({
     thresholdPx: 12,
   });
 
-  const todayStr = useMemo(() => toISODateString(getNormalizedToday()), []);
-  // Usar horario actual automáticamente (la lógica acumulativa se aplica en shouldShowItem)
-  // Se recalcula en cada render para reflejar el horario actual
-  const currentTimeOfDay = getCurrentTimeOfDay();
+  const resolvedTargetDate = useMemo(
+    () => targetDate || getNormalizedToday(),
+    [targetDate],
+  );
+  const targetDateStr = useMemo(
+    () => toISODateString(resolvedTargetDate),
+    [resolvedTargetDate],
+  );
+  const isTargetToday = useMemo(
+    () => isSameDay(resolvedTargetDate, getNormalizedToday()),
+    [resolvedTargetDate],
+  );
+  const currentTimeOfDay = isTargetToday ? getCurrentTimeOfDay() : 'MAÑANA';
 
   const rutinaHoy = useMemo(() => {
     const sameDay = (r) => {
       try {
-        return toISODateString(parseAPIDate(r?.fecha)) === todayStr;
+        return toISODateString(parseAPIDate(r?.fecha)) === targetDateStr;
       } catch {
         return false;
       }
     };
 
-    // 1) Si la rutina seleccionada en el contexto es hoy, úsala
     if (rutina && sameDay(rutina)) return rutina;
 
-    // 2) Buscar en el listado
     const list = Array.isArray(rutinas) ? rutinas : [];
     const found = list.find(sameDay);
     return found || null;
-  }, [rutina, rutinas, todayStr]);
+  }, [rutina, rutinas, targetDateStr]);
 
   // Cargar hábitos personalizados al montar
   useEffect(() => {

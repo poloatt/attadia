@@ -299,8 +299,11 @@ if (config.isDev) {
 app.get('/health', (req, res) => {
   // Responder INMEDIATAMENTE sin bloqueos
   // No hacer operaciones pesadas aquí para evitar timeouts
+  // Este endpoint debe responder incluso durante sincronizaciones pesadas
+  const healthCheckStart = Date.now();
+  
   try {
-    // Verificar MongoDB de forma no bloqueante
+    // Verificar MongoDB de forma no bloqueante (solo lectura de estado)
     const mongoStatus = mongoose.connection.readyState;
     const mongoConnected = mongoStatus === 1; // 1 = connected
     
@@ -318,7 +321,8 @@ app.get('/health', (req, res) => {
       memory: {
         used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
         total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024)
-      }
+      },
+      healthCheckDuration: Date.now() - healthCheckStart
     } : {
       status: mongoConnected ? 'ok' : 'degraded',
       timestamp: new Date().toISOString()
@@ -329,10 +333,8 @@ app.get('/health', (req, res) => {
     res.status(200).json(health);
   } catch (error) {
     // En caso de error, responder con 200 INMEDIATAMENTE para evitar reinicios
-    // Loggear solo en desarrollo para reducir ruido
-    if (config.isDev) {
-      console.error('❌ Error en health check:', error.message);
-    }
+    // Loggear siempre errores en health check (son críticos)
+    console.error('❌ Error en health check:', error.message);
     res.status(200).json({
       status: 'error',
       timestamp: new Date().toISOString()

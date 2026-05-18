@@ -21,7 +21,7 @@
     "./pages/*": "./pages/*"
   },
   "scripts": {
-    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "lint": "eslint . --ext js,jsx",
     "clean": "npx rimraf node_modules/.vite"
   },
   "peerDependencies": {

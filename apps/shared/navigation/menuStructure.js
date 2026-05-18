@@ -1,4 +1,5 @@
 import React from 'react';
+import { TIEMPO_ICON_KEYS, TIEMPO_MODULE_ICON_KEY } from './tiempoNavConfig.js';
 // import { icons } from './menuIcons'; // Ya no se usa icons directamente
 
 // Nueva estructura: modulos (primer nivel = módulo raíz)
@@ -53,13 +54,13 @@ export const modulos = [
   },
   {
     id: 'tiempo',
-    title: 'Foco',
-    icon: 'accessTime',
-    path: '/rutinas',
+    title: 'Agenda',
+    icon: TIEMPO_MODULE_ICON_KEY,
+    path: '/foco',
     subItems: [
-      { id: 'rutinas', title: 'Rutinas', icon: 'fitnessCenter', path: '/rutinas', canAdd: true },
-      { id: 'tareas', title: 'Agenda', icon: 'agenda', path: '/tareas', canAdd: true },
-      { id: 'proyectos', title: 'Proyectos', icon: 'folder', path: '/proyectos', canAdd: true }
+      { id: 'foco', title: 'Agenda', icon: TIEMPO_ICON_KEYS.foco, path: '/foco', canAdd: true },
+      { id: 'objetivos', title: 'Objetivos', icon: TIEMPO_ICON_KEYS.objetivos, path: '/objetivos', canAdd: true },
+      { id: 'tareas', title: 'Tareas', icon: TIEMPO_ICON_KEYS.tareas, path: '/tareas', canAdd: true },
     ]
   },
   {
@@ -97,11 +98,11 @@ export const bottomNavigationItems = [
   {
     id: 'tiempo',
     appKey: 'foco',
-    title: 'Foco',
-    icon: 'accessTime',
-    path: '/rutinas',
+    title: 'Agenda',
+    icon: TIEMPO_MODULE_ICON_KEY,
+    path: '/foco',
     type: 'module',
-    activePaths: ['/rutinas', '/proyectos', '/tareas', '/archivo']
+    activePaths: ['/foco', '/rutinas', '/objetivos', '/tareas', '/archivo']
   }
 ];
 

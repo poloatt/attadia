@@ -1,31 +1,51 @@
 import React from 'react';
-import AgendaToolbarCenter from '../../foco/src/proyectos/AgendaToolbarCenter.jsx';
-import AgendaToolbarRight from '../../foco/src/proyectos/AgendaToolbarRight.jsx';
+import ObjetivosToolbarCenter from '../../foco/src/foco/ObjetivosToolbarCenter.jsx';
+import TareasToolbarCenter from '../../foco/src/foco/TareasToolbarCenter.jsx';
+import TiempoToolbarRight from '../../foco/src/foco/TiempoToolbarRight.jsx';
+import { matchTiempoSection } from '../../foco/src/foco/tiempoToolbarPaths.js';
 
 /**
  * Registro de módulos de Toolbar por ruta.
- * Cada entrada puede proveer un componente central para el track centrado.
  */
 export const toolbarModules = [
   {
-    id: 'agenda',
-    match: (path) => (
-      path === '/tiempo/tareas' || path.startsWith('/tiempo/tareas/') ||
-      path === '/tareas' || path.startsWith('/tareas/')
-    ),
-    center: AgendaToolbarCenter,
-    right: AgendaToolbarRight
-  }
+    id: 'foco',
+    match: (path) => matchTiempoSection(path) === 'foco',
+    center: null,
+    centerDesktop: false,
+    right: TiempoToolbarRight,
+  },
+  {
+    id: 'objetivos',
+    match: (path) => matchTiempoSection(path) === 'objetivos',
+    center: ObjetivosToolbarCenter,
+    centerDesktop: true,
+    right: TiempoToolbarRight,
+  },
+  {
+    id: 'tareas',
+    match: (path) => matchTiempoSection(path) === 'tareas',
+    center: TareasToolbarCenter,
+    centerDesktop: true,
+    right: TiempoToolbarRight,
+  },
 ];
 
+export { matchTiempoSection };
+export { isTiempoToolbarPath } from '../../foco/src/foco/tiempoToolbarPaths.js';
+
+export function resolveToolbarModule(currentPath) {
+  return toolbarModules.find((m) => m.match(currentPath)) || null;
+}
+
 export function resolveToolbarCenterByPath(currentPath) {
-  const mod = toolbarModules.find(m => m.match(currentPath));
-  return mod?.center || null;
+  return resolveToolbarModule(currentPath)?.center || null;
+}
+
+export function resolveToolbarCenterDesktop(currentPath) {
+  return !!resolveToolbarModule(currentPath)?.centerDesktop;
 }
 
 export function resolveToolbarRightByPath(currentPath) {
-  const mod = toolbarModules.find(m => m.match(currentPath));
-  return mod?.right || null;
+  return resolveToolbarModule(currentPath)?.right || null;
 }
-
-

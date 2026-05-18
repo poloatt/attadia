@@ -28,6 +28,7 @@ import {
   Button
 } from '@mui/material';
 import { useResponsive } from '@shared/hooks';
+import CommonActions from '@shared/components/common/CommonActions';
 import { styled } from '@mui/material/styles';
 import {
   ExpandMore as ExpandMoreIcon,

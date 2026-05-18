@@ -1,3 +1,4 @@
+/** @deprecated Prefer embedded subtareas on Tareas. Routes kept for legacy clients. */
 import express from 'express';
 import { subtareasController } from '../controllers/subtareasController.js';
 import { checkAuth } from '../middleware/auth.js';

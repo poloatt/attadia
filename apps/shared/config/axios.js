@@ -62,7 +62,7 @@ clienteAxios.interceptors.request.use(
       '/api/inquilinos',
       '/api/contratos',
       '/api/tareas',
-      '/api/proyectos',
+      '/api/objetivos',
       '/api/transacciones',
       '/api/monedas',
       '/api/users',

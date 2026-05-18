@@ -21,6 +21,8 @@ build/
 .vuepress/dist/
 .cache/
 .vite/
+vite.config.js.timestamp-*
+**/*.timestamp-*.mjs
 .parcel-cache/
 
 # Environment variables

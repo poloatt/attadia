@@ -78,7 +78,7 @@ const main = async () => {
       quotaHit: results?.metrics?.quotaHit,
       timings: results?.metrics?.timings,
       batches: results?.metrics?.batches,
-      proyectos: results?.proyectos,
+      objetivos: results?.objetivos,
       toGoogle: results?.tareas?.toGoogle,
       fromGoogle: results?.tareas?.fromGoogle
     };

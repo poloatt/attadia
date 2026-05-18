@@ -1300,33 +1300,6 @@ class BankConnectionController extends BaseController {
         'RW': 'RWF', // Ruanda - Franco Ruandés
         'BI': 'BIF', // Burundi - Franco Burundés
         'CD': 'CDF', // República Democrática del Congo - Franco Congoleño
-        'CF': 'XAF', // República Centroafricana - Franco CFA
-        'TD': 'XAF', // Chad - Franco CFA
-        'CM': 'XAF', // Camerún - Franco CFA
-        'CG': 'XAF', // República del Congo - Franco CFA
-        'GA': 'XAF', // Gabón - Franco CFA
-        'GQ': 'XAF', // Guinea Ecuatorial - Franco CFA
-        'NE': 'XAF', // Níger - Franco CFA
-        'BF': 'XAF', // Burkina Faso - Franco CFA
-        'ML': 'XAF', // Malí - Franco CFA
-        'SN': 'XAF', // Senegal - Franco CFA
-        'GN': 'GNF', // Guinea - Franco Guineano
-        'SL': 'SLL', // Sierra Leona - Leona
-        'LR': 'LRD', // Liberia - Dólar Liberiano
-        'CI': 'XOF', // Costa de Marfil - Franco CFA
-        'BJ': 'XOF', // Benín - Franco CFA
-        'TG': 'XOF', // Togo - Franco CFA
-        'GW': 'XOF', // Guinea-Bisáu - Franco CFA
-        'MR': 'MRO', // Mauritania - Ouguiya
-        'CV': 'CVE', // Cabo Verde - Escudo Caboverdiano
-        'GM': 'GMD', // Gambia - Dalasi
-        'ST': 'STD', // Santo Tomé y Príncipe - Dobra
-        'AO': 'AOA', // Angola - Kwanza
-        'MZ': 'MZN', // Mozambique - Metical
-        'MW': 'MWK', // Malawi - Kwacha Malauí
-        'RW': 'RWF', // Ruanda - Franco Ruandés
-        'BI': 'BIF', // Burundi - Franco Burundés
-        'CD': 'CDF', // República Democrática del Congo - Franco Congoleño
       };
 
       const codigoMoneda = mapeoPaisMoneda[pais] || 'USD'; // Por defecto USD

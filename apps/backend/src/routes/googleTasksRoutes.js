@@ -27,7 +27,7 @@ router.post('/cleanup-tokens', googleTasksController.cleanupInvalidTokens);
 // Rutas adicionales
 router.get('/stats', googleTasksController.getStats);
 router.get('/task-lists', googleTasksController.getTaskLists);
-// Auditoría y limpieza por proyecto
+// Auditoría y limpieza por objetivo
 router.post('/audit-project', googleTasksController.auditProject);
 router.post('/cleanup-project', googleTasksController.cleanupProject);
 

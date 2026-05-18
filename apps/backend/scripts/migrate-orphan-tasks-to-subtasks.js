@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * Migra tareas huérfanas dentro de un Proyecto a subtareas de una tarea ancla.
+ * Migra tareas huérfanas dentro de un Objetivo a subtareas de una tarea ancla.
  *
  * Uso típico (diagnóstico y luego aplicar):
- *   node apps/backend/scripts/migrate-orphan-tasks-to-subtasks.js --user="email@dominio" --project="Salud" --dry-run
- *   node apps/backend/scripts/migrate-orphan-tasks-to-subtasks.js --user="email@dominio" --project="Salud" --dry-run=false
+ *   node apps/backend/scripts/migrate-orphan-tasks-to-subtasks.js --user="email@dominio" --objetivo="Salud" --dry-run
+ *   node apps/backend/scripts/migrate-orphan-tasks-to-subtasks.js --user="email@dominio" --objetivo="Salud" --dry-run=false
  *
  * Opcionales:
  *   --parent-title="Salud] Turno procto"   Fuerza la tarea ancla por título (normalizado)
@@ -14,7 +14,7 @@
 
 import mongoose from 'mongoose';
 import { google } from 'googleapis';
-import { Users, Tareas, Proyectos } from '../src/models/index.js';
+import { Users, Tareas, Objetivos } from '../src/models/index.js';
 import config from '../src/config/config.js';
 
 function parseArgs(argv) {
@@ -38,7 +38,7 @@ function parseArgs(argv) {
 const args = parseArgs(process.argv.slice(2));
 const DRY_RUN = args['dry-run'] !== false && args['dry-run'] !== 'false';
 const USER_FILTER = args.user || null;
-const PROJECT_FILTER = args.project || null;
+const OBJETIVO_FILTER = args.project || null;
 const PARENT_TITLE = args['parent-title'] || null;
 const DO_GOOGLE = !!args.google;
 const AUTO_ALL = !!args['auto-all'];
@@ -68,7 +68,7 @@ async function getGoogleTasksClient(user) {
 }
 
 async function run() {
-  if (!USER_FILTER || (!PROJECT_FILTER && !ALL_PROJECTS)) {
+  if (!USER_FILTER || (!OBJETIVO_FILTER && !ALL_PROJECTS)) {
     console.error('❌ Debes indicar --user y --project, o bien --all-projects');
     process.exit(1);
   }
@@ -90,10 +90,10 @@ async function run() {
       console.warn('⚠️ Google Tasks no está habilitado para el usuario; ejecutaré solo BD');
     }
 
-    // Helper para procesar un proyecto con AUTO_ALL o con PARENT_TITLE
+    // Helper para procesar un Objetivo con AUTO_ALL o con PARENT_TITLE
     async function migrateInProject(projectDoc, tareas) {
-      console.log(`\n📁 Proyecto: ${projectDoc ? projectDoc.nombre : '(sin proyecto)'} (${projectDoc?._id || 'no-id'})`);
-      console.log(`📋 Tareas en proyecto: ${tareas.length}`);
+      console.log(`\n📁 Objetivo: ${projectDoc ? projectDoc.nombre : '(sin Objetivo)'} (${projectDoc?._id || 'no-id'})`);
+      console.log(`📋 Tareas en Objetivo: ${tareas.length}`);
 
       if (AUTO_ALL) {
         const anchors = tareas
@@ -254,16 +254,16 @@ async function run() {
       if (DRY_RUN) console.log('   (Modo DRY-RUN: no se aplicaron cambios)');
     }
 
-    // ALL_PROJECTS: iterar por todos los proyectos del usuario y opcionalmente tareas sin proyecto
+    // ALL_PROJECTS: iterar por todos los Objetivos del usuario y opcionalmente tareas sin Objetivo
     if (ALL_PROJECTS) {
-      const projects = await Proyectos.find({ usuario: user._id });
-      console.log(`👥 Proyectos a procesar: ${projects.length}`);
+      const projects = await Objetivos.find({ usuario: user._id });
+      console.log(`👥 Objetivos a procesar: ${projects.length}`);
       for (const p of projects) {
-        const tareasP = await Tareas.find({ usuario: user._id, proyecto: p._id }).lean(false);
+        const tareasP = await Tareas.find({ usuario: user._id, Objetivo: p._id }).lean(false);
         await migrateInProject(p, tareasP);
       }
       if (INCLUDE_UNASSIGNED) {
-        const unassigned = await Tareas.find({ usuario: user._id, proyecto: { $in: [null, undefined] } }).lean(false);
+        const unassigned = await Tareas.find({ usuario: user._id, Objetivo: { $in: [null, undefined] } }).lean(false);
         if (unassigned.length > 0) {
           await migrateInProject(null, unassigned);
         }
@@ -271,23 +271,23 @@ async function run() {
       return;
     }
 
-    // Resolver proyecto (modo específico)
+    // Resolver Objetivo (modo específico)
     const projQuery = { usuario: user._id };
     try {
-      const oid = new mongoose.Types.ObjectId(PROJECT_FILTER);
+      const oid = new mongoose.Types.ObjectId(OBJETIVO_FILTER);
       projQuery.$or = [{ _id: oid }];
     } catch {
-      projQuery.$or = [{ nombre: PROJECT_FILTER }];
+      projQuery.$or = [{ nombre: OBJETIVO_FILTER }];
     }
-    const proyecto = await Proyectos.findOne(projQuery);
-    if (!proyecto) throw new Error('Proyecto no encontrado');
-    console.log(`📁 Proyecto: ${proyecto.nombre} (${proyecto._id})`);
+    const Objetivo = await Objetivos.findOne(projQuery);
+    if (!Objetivo) throw new Error('Objetivo no encontrado');
+    console.log(`📁 Objetivo: ${Objetivo.nombre} (${Objetivo._id})`);
 
-    // Tareas del proyecto
-    const tareas = await Tareas.find({ usuario: user._id, proyecto: proyecto._id }).lean(false);
-    console.log(`📋 Tareas en proyecto: ${tareas.length}`);
+    // Tareas del Objetivo
+    const tareas = await Tareas.find({ usuario: user._id, objetivo: objetivo._id }).lean(false);
+    console.log(`📋 Tareas en Objetivo: ${tareas.length}`);
 
-    // Si se solicita migración automática para todos los anchors del proyecto
+    // Si se solicita migración automática para todos los anchors del Objetivo
     if (AUTO_ALL) {
       // Ordenar posibles anchors por cantidad de subtareas desc (procesar primero los más estructurados)
       const anchors = tareas
@@ -340,7 +340,7 @@ async function run() {
           removedIds.add(String(t._id));
           if (!DRY_RUN) {
             const gId = t.googleTasksSync?.googleTaskId;
-            const gList = t.googleTasksSync?.googleTaskListId || proyecto.googleTasksSync?.googleTaskListId;
+            const gList = t.googleTasksSync?.googleTaskListId || Objetivo.googleTasksSync?.googleTaskListId;
             if (DO_GOOGLE && tasksClient && gId && gList) {
               try { await tasksClient.tasks.delete({ tasklist: gList, task: gId }); } catch {}
             }
@@ -397,7 +397,7 @@ async function run() {
     if (Array.isArray(anchor.subtareas) && anchor.subtareas.length > 0) {
       for (const st of anchor.subtareas) candidateTitles.add(normalizeTitle(st.titulo));
     } else {
-      // Frecuencia de títulos en el proyecto (para detectar patrones de subtareas repetidas)
+      // Frecuencia de títulos en el Objetivo (para detectar patrones de subtareas repetidas)
       const freq = new Map();
       for (const t of tareas) {
         const k = normalizeTitle(t.titulo);
@@ -451,7 +451,7 @@ async function run() {
       if (!DRY_RUN) {
         // Borrar en Google si se solicita
         const gId = t.googleTasksSync?.googleTaskId;
-        const gList = t.googleTasksSync?.googleTaskListId || proyecto.googleTasksSync?.googleTaskListId;
+        const gList = t.googleTasksSync?.googleTaskListId || Objetivo.googleTasksSync?.googleTaskListId;
         if (DO_GOOGLE && tasksClient && gId && gList) {
           try {
             await tasksClient.tasks.delete({ tasklist: gList, task: gId });

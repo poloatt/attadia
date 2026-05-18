@@ -2,20 +2,20 @@
 
 /**
  * Elimina tareas padres duplicadas cuyo título coincide con subtareas existentes
- * dentro del mismo proyecto. Mantiene la subtarea y borra el padre duplicado
+ * dentro del mismo Objetivo. Mantiene la subtarea y borra el padre duplicado
  * (en BD y opcionalmente en Google).
  *
  * Flags:
  *   --user=<email|id>
- *   --project=<projectId>
- *   --project-name="Salud,Tràmites"
+ *   --objetivo=<projectId>
+ *   --objetivo-name="Salud,Tràmites"
  *   --google                 También elimina en Google
  *   --dry-run=false          Aplica cambios (por defecto dry-run)
  */
 
 import mongoose from 'mongoose';
 import { google } from 'googleapis';
-import { Users, Tareas, Proyectos } from '../src/models/index.js';
+import { Users, Tareas, Objetivos } from '../src/models/index.js';
 import config from '../src/config/config.js';
 
 function parseArgs(argv) {
@@ -34,7 +34,7 @@ function parseArgs(argv) {
 
 const args = parseArgs(process.argv.slice(2));
 const USER_FILTER = args.user || null;
-const PROJECT_ID = args.project || null;
+const OBJETIVO_ID = args.project || null;
 const PROJECT_NAME = args['project-name'] || null;
 const INCLUDE_GOOGLE = !!args.google;
 const DRY_RUN = args['dry-run'] !== false && args['dry-run'] !== 'false';
@@ -88,22 +88,22 @@ async function main() {
       console.log(`\n👤 Usuario: ${user.email || user._id}`);
       const tasksClient = INCLUDE_GOOGLE ? await getTasksClient(user) : null;
 
-      // Obtener proyectos y filtrar por nombre de forma robusta (ignorando tildes y may/minus)
-      const allProjects = await Proyectos.find({ usuario: user._id }).select('_id nombre');
+      // Obtener Objetivos y filtrar por nombre de forma robusta (ignorando tildes y may/minus)
+      const allProjects = await Objetivos.find({ usuario: user._id }).select('_id nombre');
       const norm = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-      let proyectos = allProjects;
-      if (PROJECT_ID) {
-        proyectos = proyectos.filter(p => String(p._id) === String(PROJECT_ID));
+      let Objetivos = allProjects;
+      if (OBJETIVO_ID) {
+        Objetivos = Objetivos.filter(p => String(p._id) === String(OBJETIVO_ID));
       }
       if (PROJECT_NAME) {
         const nameList = PROJECT_NAME.split(',').map(s => s.trim()).filter(Boolean).map(norm);
-        proyectos = proyectos.filter(p => nameList.includes(norm(p.nombre)));
+        Objetivos = Objetivos.filter(p => nameList.includes(norm(p.nombre)));
       }
-      console.log(`🎯 Proyectos: ${proyectos.map(p => p.nombre).join(', ')}`);
+      console.log(`🎯 Objetivos: ${Objetivos.map(p => p.nombre).join(', ')}`);
 
-      for (const proyecto of proyectos) {
-        console.log(`\n📁 Proyecto: ${proyecto.nombre}`);
-        const tareas = await Tareas.find({ usuario: user._id, proyecto: proyecto._id });
+      for (const Objetivo of Objetivos) {
+        console.log(`\n📁 Objetivo: ${Objetivo.nombre}`);
+        const tareas = await Tareas.find({ usuario: user._id, objetivo: objetivo._id });
 
         // índice: título normalizado de subtareas → array de padres que la contienen
         const subToParents = new Map();
@@ -120,7 +120,7 @@ async function main() {
         for (const t of parents) {
           const k = normalizeTitle(t.titulo);
           if (!subToParents.has(k)) continue;
-          // Si existe la misma subtarea en algún padre del proyecto, este padre t es duplicado
+          // Si existe la misma subtarea en algún padre del Objetivo, este padre t es duplicado
           // y se elimina (mantenemos la subtarea existente)
           if (DRY_RUN) {
             console.log(`DRY-RUN: Eliminar padre duplicado "${t.titulo}" (coincide con subtarea existente)`);
@@ -143,7 +143,7 @@ async function main() {
           }
         }
 
-        console.log(`📊 Proyecto ${proyecto.nombre}: padres eliminados=${removed}`);
+        console.log(`📊 Objetivo ${Objetivo.nombre}: padres eliminados=${removed}`);
       }
     }
 

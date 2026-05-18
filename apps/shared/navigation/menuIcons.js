@@ -13,9 +13,11 @@ import {
   ScienceOutlined,
   RestaurantOutlined,
   AccessTimeOutlined,
+  CalendarTodayOutlined,
   EventNoteOutlined,
   FolderOutlined,
-  TaskOutlined,
+  TrackChangesOutlined,
+  CheckCircleOutlined,
   ArchiveOutlined,
   SettingsOutlined,
   ManageAccountsOutlined,
@@ -53,9 +55,12 @@ export const icons = {
   science: ScienceOutlined,
   restaurant: RestaurantOutlined,
   accessTime: AccessTimeOutlined,
-  agenda: EventNoteOutlined, // icono calendario/notas para Agenda
+  calendarToday: CalendarTodayOutlined,
+  agenda: CalendarTodayOutlined, // alias Agenda (módulo Tiempo)
   folder: FolderOutlined,
-  task: TaskOutlined,
+  objetivo: TrackChangesOutlined, // objetivos / proyectos (diana; fuente única; ver tiempoNavConfig)
+  proyecto: TrackChangesOutlined, // alias legacy
+  task: CheckCircleOutlined, // check en círculo (estilo Google Tasks)
   archive: ArchiveOutlined,
   settings: TuneOutlined,
   manageAccounts: ManageAccountsOutlined,

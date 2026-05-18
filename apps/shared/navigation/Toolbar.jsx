@@ -19,7 +19,11 @@ import RutinaNavigation from './RutinaNavigation.jsx';
 import { useRutinas } from '../context/RutinasContext';
 import { calculateCompletionPercentage } from '../utils/rutinaCalculations';
 import { ToggleButton, ToggleButtonGroup, Menu, MenuItem } from '@mui/material';
-import { resolveToolbarCenterByPath, resolveToolbarRightByPath } from './toolbarModules';
+import {
+  resolveToolbarCenterByPath,
+  resolveToolbarCenterDesktop,
+  resolveToolbarRightByPath,
+} from './toolbarModules';
 
 export default function Toolbar({
   moduloActivo,
@@ -60,7 +64,8 @@ export default function Toolbar({
   const shouldShowSpecificNavigation = () => {
     const specificNavigationRoutes = [
       '/tiempo/rutinas',
-      '/rutinas'
+      '/rutinas',
+      '/foco',
     ];
     return specificNavigationRoutes.some(route => currentPath.startsWith(route));
   };
@@ -74,7 +79,7 @@ export default function Toolbar({
   // Wrapper para RutinaNavigation que proporciona los datos necesarios desde el contexto
   const RutinaNavigationWrapper = () => {
     // Solo usar useRutinas si estamos en una ruta de rutinas
-    if (!(currentPath.startsWith('/rutinas') || currentPath.startsWith('/tiempo/rutinas'))) {
+    if (!(currentPath.startsWith('/rutinas') || currentPath.startsWith('/tiempo/rutinas') || currentPath.startsWith('/foco'))) {
       return null;
     }
     
@@ -108,16 +113,15 @@ export default function Toolbar({
       window.dispatchEvent(new CustomEvent('openHabitsManager'));
     };
     
-    // Siempre renderizar RutinaNavigation, incluso si no hay rutina
-    // El componente RutinaNavigation maneja internamente los casos de rutina null
     return (
-      <RutinaNavigation 
+      <RutinaNavigation
         rutina={rutina}
         loading={loading}
         currentPage={currentPage}
         totalPages={totalPages}
         onAdd={handleAdd}
-        onSettingsClick={handleSettings}
+        onSettingsClick={currentPath.startsWith('/foco') ? undefined : handleSettings}
+        navigationMode={currentPath.startsWith('/foco') ? 'week' : 'rutina'}
       />
     );
   };
@@ -299,8 +303,8 @@ export default function Toolbar({
             // Resolver componente central modular por ruta
             (() => {
               const CenterComp = resolveToolbarCenterByPath(currentPath);
-              // Solo mostrar componentes centrales modulares en móvil/tablet, no en desktop
-              if (CenterComp && isMobileOrTablet) {
+              const showCenterOnDesktop = resolveToolbarCenterDesktop(currentPath);
+              if (CenterComp && (isMobileOrTablet || showCenterOnDesktop)) {
                 return <CenterComp />;
               }
               return (
@@ -436,26 +440,27 @@ export default function Toolbar({
             // Si hay un módulo right, no renderizar acciones duplicadas aquí
             if (RightComp) return null;
 
-            // Para páginas de proyectos, usar botón inteligente
+            // Para páginas de objetivos, usar botón inteligente
             if (
-              (currentPath.startsWith('/tiempo/proyectos') || 
+              (currentPath.startsWith('/tiempo/objetivos') || 
                currentPath.startsWith('/tiempo/tareas') || 
-               currentPath.startsWith('/proyectos') || 
-               currentPath.startsWith('/tareas'))
+               currentPath.startsWith('/objetivos') || 
+               currentPath.startsWith('/tareas') ||
+               currentPath.startsWith('/foco'))
             ) {
               
               const getSmartAddButton = () => {
                 const handleSmartAdd = () => {
-                  if (currentPath === '/tiempo/proyectos' || currentPath === '/proyectos') {
-                    window.dispatchEvent(new CustomEvent('addProject'));
-                  } else if (currentPath === '/tiempo/tareas' || currentPath === '/tareas') {
+                  if (currentPath === '/tiempo/objetivos' || currentPath === '/objetivos') {
+                    window.dispatchEvent(new CustomEvent('addObjetivo'));
+                  } else if (currentPath === '/tiempo/tareas' || currentPath === '/tareas' || currentPath === '/foco') {
                     window.dispatchEvent(new CustomEvent('addTask'));
                   }
                 };
 
                 const getTooltip = () => {
-                  if (currentPath === '/tiempo/proyectos' || currentPath === '/proyectos') return 'Nuevo Proyecto';
-                  if (currentPath === '/tiempo/tareas' || currentPath === '/tareas') return 'Nueva Tarea';
+                  if (currentPath === '/tiempo/objetivos' || currentPath === '/objetivos') return 'Nuevo objetivo';
+                  if (currentPath === '/tiempo/tareas' || currentPath === '/tareas' || currentPath === '/foco') return 'Nueva Tarea';
                   return 'Agregar';
                 };
 
@@ -486,12 +491,12 @@ export default function Toolbar({
 
               return (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                  {/* Mantener acciones para Proyectos aquí (Agenda/Tareas ya vive en módulo Right) */}
-                  {(currentPath === '/tiempo/proyectos' || currentPath === '/proyectos') && (
-                    <Tooltip title="Seleccionar todos los proyectos">
+                  {/* Mantener acciones para objetivos aquí (Agenda/Tareas ya vive en módulo Right) */}
+                  {(currentPath === '/tiempo/objetivos' || currentPath === '/objetivos') && (
+                    <Tooltip title="Seleccionar todos los Objetivos">
                       <IconButton
                         size="small"
-                        onClick={() => window.dispatchEvent(new CustomEvent('selectAllProyectos'))}
+                        onClick={() => window.dispatchEvent(new CustomEvent('selectAllObjetivos'))}
                         sx={{
                           width: 32,
                           height: 32,

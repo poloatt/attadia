@@ -51,6 +51,12 @@ export const TOOLBAR_CONFIG = {
   zIndex: 1399
 };
 
+/** Barra única del módulo Agenda (header + toolbar integrados). */
+export const AGENDA_UNIFIED_BAR_CONFIG = {
+  height: 48,
+  zIndex: 1400,
+};
+
 // ===== FORM AND COMPONENT HEIGHTS =====
 export const FORM_HEIGHTS = {
   input: 40,           // Altura estándar para inputs y campos de formulario
@@ -181,11 +187,15 @@ export function calculateMainMargin(isOpen, sidebarWidth, isMobileOrTablet, show
 }
 
 /**
- * Calcula el padding total superior (header + toolbar)
- * @param {boolean} showToolbar - Si mostrar toolbar
+ * Calcula el padding total superior (header + toolbar, o barra Agenda unificada)
+ * @param {boolean} showToolbar - Si mostrar toolbar (rutas no-Agenda)
+ * @param {boolean} [agendaUnified] - Si la ruta usa barra Agenda unificada
  * @returns {number} - Padding total superior
  */
-export function calculateTopPadding(showToolbar) {
+export function calculateTopPadding(showToolbar, agendaUnified = false) {
+  if (agendaUnified) {
+    return AGENDA_UNIFIED_BAR_CONFIG.height;
+  }
   return HEADER_CONFIG.height + (showToolbar ? TOOLBAR_CONFIG.height : 0);
 }
 

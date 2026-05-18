@@ -1,0 +1,9 @@
+export { default as TareasTable } from './TareasTable';
+export { default as TareasSection } from './TareasSection';
+export { default as TareaForm } from './TareaForm';
+export { default as TareaActions } from './TareaActions';
+export { default as ObjetivosStats } from './ObjetivosStats';
+export { default as ObjetivosGrid } from './ObjetivosGrid';
+export { default as ObjetivoForm } from './ObjetivoForm';
+export { default as ObjetivoCard } from './ObjetivoCard';
+export { default as GoogleTasksConfig } from './GoogleTasksConfig'; 

@@ -29,7 +29,7 @@ import HabitFormDialog from '@shared/components/HabitFormDialog';
 
 import { useSnackbar } from 'notistack';
 // Importamos las utilidades de cadencia
-import { debesMostrarHabitoEnFecha, generarMensajeCadencia, obtenerUltimaCompletacion, obtenerHistorialCompletados, contarCompletadosEnPeriodo } from '@shared/utils';
+import { debesMostrarHabitoEnFecha, generarMensajeCadencia, obtenerUltimaCompletacion, obtenerHistorialCompletados, contarCompletadosEnPeriodo, esRutinaHistorica, obtenerHistorialCompletaciones } from '@shared/utils';
 import { getVisibleItemIds } from '@shared/utils/visibilityUtils';
 import { getFrecuenciaLabel } from './InlineItemConfigImproved';
 // La visibilidad en esta vista extendida no oculta ítems; solo se ocultan completos en vista colapsada
@@ -509,6 +509,7 @@ const RutinaCard = ({
     }
     
     let newValue;
+    const previousValue = localData[itemId];
     
     if (horario && horariosConfig.length > 0) {
       // Si se especifica un horario y el hábito tiene horarios configurados, usar formato objeto
@@ -588,9 +589,6 @@ const RutinaCard = ({
     // Actualizar el estado local inmediatamente para una respuesta visual instantánea
     setLocalData(newData);
     
-    // Notificar al componente padre del cambio en la UI inmediatamente
-    onChange(newData);
-    
     // Registrar los últimos cambios en la rutina para mejorar respuesta inmediata
     if (rutina) {
       // Si no existe la propiedad _ultimosCambios, crearla
@@ -612,7 +610,6 @@ const RutinaCard = ({
       }
     }
     
-    // Eliminar el setTimeout para evitar retrasos y manejar inmediatamente
     if (markItemComplete && typeof markItemComplete === 'function' && rutina && rutina._id) {
       // Crear el formato de datos sencillo esperado por el API
       const itemData = { [itemId]: newValue };
@@ -658,13 +655,13 @@ const RutinaCard = ({
           // Revertir el cambio local en caso de error
           setLocalData(prevData => ({
             ...prevData,
-            [itemId]: isCompleted
+            [itemId]: previousValue
           }));
           
           // Actualizar también _ultimosCambios en caso de error
           if (rutina && rutina._ultimosCambios && rutina._ultimosCambios[section]) {
             rutina._ultimosCambios[section][itemId] = {
-              valor: isCompleted, // Valor original
+              valor: previousValue,
               timestamp: Date.now(),
               error: true
             };
@@ -674,15 +671,12 @@ const RutinaCard = ({
           if (typeof onChange === 'function') {
             onChange({
               ...localData,
-              [itemId]: isCompleted // Revertir al estado anterior
+              [itemId]: previousValue
             });
           }
         });
-    } else {
-      let reason = "";
-      if (!markItemComplete) reason = "markItemComplete no disponible en contexto";
-      else if (!rutina) reason = "No hay rutina activa";
-      else if (!rutina._id) reason = "La rutina no tiene ID";
+    } else if (typeof onChange === 'function') {
+      onChange(newData);
     }
   }, [section, onChange, localData, readOnly, rutina, markItemComplete, isItemCompleted, config, isExpanded, setFocusedItemId]);
 

@@ -13,13 +13,15 @@
  *
  * Flags:
  *   --user=<email|id>         Limitar a un usuario
+ *   --objetivo=<id|nombre>     Filtrar por Objetivo (ObjectId o nombre)
+ *   --objetivo-name=<a,b>      Filtrar por nombres de Objetivo (coma-separados)
  *   --google-parents          Deduplica también tareas padres en Google
  *   --dry-run                 No guarda cambios ni borra (por defecto true)
  */
 
 import mongoose from 'mongoose';
 import { google } from 'googleapis';
-import { Users, Tareas, Proyectos } from '../src/models/index.js';
+import { Users, Tareas, Objetivos } from '../src/models/index.js';
 import config from '../src/config/config.js';
 
 function parseArgs(argv) {
@@ -49,28 +51,17 @@ const args = parseArgs(process.argv.slice(2));
 const DRY_RUN = args['dry-run'] !== false && args['dry-run'] !== 'false'; // default true
 const GOOGLE_PARENTS = !!args['google-parents'];
 const USER_FILTER = args.user || null;
-<<<<<<< HEAD
-const PROJECT_FILTER = args.project || null;
+const OBJETIVO_FILTER = args.objetivo || args.project || null;
+const OBJETIVO_NAMES = args['objetivo-name'] || args['project-name'] || null;
 
 function normalizeTitle(title) {
   const raw = String(title || '')
-    // quitar prefijos tipo "[Salud] " o "[Mis tareas] "
-    .replace(/^\s*\[[^\]]+\]\s*/g, '')
+    .replace(/^\s*(\[[^\]]+\]\s*)+/g, '')
     .trim();
   const noDiacritics = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   return noDiacritics
     .toLowerCase()
     .replace(/[._-]+/g, ' ')
-=======
-const PROJECT_ID = args.project || null;
-const PROJECT_NAME = args['project-name'] || null; // "Salud,Trámites"
-
-function normalizeTitle(title) {
-  return String(title || '')
-    .replace(/^\s*(\[[^\]]+\]\s*)+/g, '') // quitar prefijos [xxx]
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quitar tildes
-    .trim()
->>>>>>> dev
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
@@ -209,46 +200,42 @@ async function cleanupDuplicateTasks() {
         }
       }
 
-<<<<<<< HEAD
-      // Todas las tareas del usuario (opcionalmente filtradas por proyecto)
-      const tareaQuery = { usuario: user._id };
-      if (PROJECT_FILTER) {
-        const { Proyectos } = await import('../src/models/index.js');
-        let proyecto = null;
+      // Objetivos objetivo (opcional): --objetivo=id|nombre y/o --objetivo-name=a,b
+      const objetivoIdSet = new Set();
+      if (OBJETIVO_FILTER) {
+        let Objetivo = null;
         try {
-          const asId = new mongoose.Types.ObjectId(PROJECT_FILTER);
-          proyecto = await Proyectos.findOne({ _id: asId, usuario: user._id });
+          const asId = new mongoose.Types.ObjectId(OBJETIVO_FILTER);
+          Objetivo = await Objetivos.findOne({ _id: asId, usuario: user._id });
         } catch {
-          proyecto = await Proyectos.findOne({ nombre: PROJECT_FILTER, usuario: user._id });
+          Objetivo = await Objetivos.findOne({
+            nombre: new RegExp(`^${OBJETIVO_FILTER}$`, 'i'),
+            usuario: user._id
+          });
         }
-        if (!proyecto) {
-          console.warn(`⚠️ Proyecto no encontrado para filtro "${PROJECT_FILTER}", se procesarán todas las tareas del usuario.`);
+        if (Objetivo) {
+          objetivoIdSet.add(String(Objetivo._id));
+          console.log(`📁 Objetivo (--project): ${Objetivo.nombre} (${Objetivo._id})`);
         } else {
-          tareaQuery.proyecto = proyecto._id;
-          console.log(`📁 Limitando a proyecto: ${proyecto.nombre} (${proyecto._id})`);
+          console.warn(`⚠️ Objetivo no encontrado para --objetivo="${OBJETIVO_FILTER}"`);
         }
       }
-      const tareas = await Tareas.find(tareaQuery).lean(false);
-=======
-      // Proyectos objetivo (opcional)
-      let proyectoIds = null;
-      if (PROJECT_ID || PROJECT_NAME) {
-        const pjQuery = { usuario: user._id };
-        if (PROJECT_ID) pjQuery._id = PROJECT_ID;
-        if (PROJECT_NAME) {
-          const names = PROJECT_NAME.split(',').map(s => s.trim()).filter(Boolean);
-          pjQuery.nombre = { $in: names.map(n => new RegExp(`^${n}$`, 'i')) };
-        }
-        const proyectos = await Proyectos.find(pjQuery).select('_id nombre');
-        proyectoIds = proyectos.map(p => p._id);
-        console.log(`🎯 Proyectos objetivo: ${proyectos.map(p => p.nombre).join(', ') || '(ninguno encontrado)'}`);
+      if (OBJETIVO_NAMES) {
+        const names = OBJETIVO_NAMES.split(',').map(s => s.trim()).filter(Boolean);
+        const Objetivos = await Objetivos.find({
+          usuario: user._id,
+          nombre: { $in: names.map(n => new RegExp(`^${n}$`, 'i')) }
+        }).select('_id nombre');
+        for (const p of Objetivos) objetivoIdSet.add(String(p._id));
+        console.log(`🎯 Objetivos (--objetivo-name): ${Objetivos.map(p => p.nombre).join(', ') || '(ninguno encontrado)'}`);
       }
 
-      // Tareas del usuario (limitadas al proyecto si corresponde)
       const tareasQuery = { usuario: user._id };
-      if (proyectoIds && proyectoIds.length > 0) tareasQuery.proyecto = { $in: proyectoIds };
+      const objetivoIds = [...objetivoIdSet];
+      if (objetivoIds.length > 0) {
+        tareasQuery.Objetivo = { $in: objetivoIds.map(id => new mongoose.Types.ObjectId(id)) };
+      }
       const tareas = await Tareas.find(tareasQuery).lean(false);
->>>>>>> dev
       console.log(`📋 Tareas totales: ${tareas.length}`);
 
       // 1) Dedupe por googleTaskId
@@ -338,10 +325,10 @@ async function cleanupDuplicateTasks() {
         removedByTitle += toRemove.length;
       }
 
-      // 2.b) Dedupe por título normalizado dentro del mismo proyecto (aunque tengan googleTaskId)
+      // 2.b) Dedupe por título normalizado dentro del mismo Objetivo (aunque tengan googleTaskId)
       const byProjectAndTitle = new Map();
       for (const t of tareas) {
-        const proj = t.proyecto ? String(t.proyecto) : 'no-proj';
+        const proj = t.Objetivo ? String(t.Objetivo) : 'no-proj';
         const key = `${proj}::${normalizeTitle(t.titulo)}`;
         if (!byProjectAndTitle.has(key)) byProjectAndTitle.set(key, []);
         byProjectAndTitle.get(key).push(t);
@@ -377,7 +364,7 @@ async function cleanupDuplicateTasks() {
         keep.estado = keep.completada ? 'COMPLETADA' : (keep.subtareas.some(st => st.completada) ? 'EN_PROGRESO' : 'PENDIENTE');
 
         if (DRY_RUN) {
-          console.log(`DRY-RUN: Mantener "${keep.titulo}" [${key}], eliminar ${toRemove.length} duplicado(s) por título/proyecto`);
+          console.log(`DRY-RUN: Mantener "${keep.titulo}" [${key}], eliminar ${toRemove.length} duplicado(s) por título/Objetivo`);
         } else {
           await keep.save();
           for (const d of toRemove) {
@@ -411,7 +398,7 @@ async function cleanupDuplicateTasks() {
       }
 
       console.log('\n📊 Resumen usuario:');
-      console.log(`   BD - eliminados por googleTaskId: ${removedById}, por título/lista: ${removedByTitle}, por título/proyecto: ${removedByProjectTitle}`);
+      console.log(`   BD - eliminados por googleTaskId: ${removedById}, por título/lista: ${removedByTitle}, por título/Objetivo: ${removedByProjectTitle}`);
       if (GOOGLE_PARENTS) {
         console.log(`   Google - tareas padres eliminadas: ${googleDeleted}`);
       }

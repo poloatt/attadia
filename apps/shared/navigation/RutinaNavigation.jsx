@@ -1,10 +1,25 @@
 import React, { memo, useEffect, useRef, useCallback, useMemo, useState } from 'react';
-import { Box, IconButton, Typography, Chip, Tooltip, LinearProgress, useMediaQuery, Popover, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
+import {
+  Box,
+  Button,
+  ButtonBase,
+  IconButton,
+  Typography,
+  Chip,
+  Tooltip,
+  LinearProgress,
+  useMediaQuery,
+  Popover,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+} from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import {
   NavigateBefore,
   NavigateNext,
-  TodayOutlined as TodayIcon,
+  CalendarMonthOutlined as CalendarMonthIcon,
   DeleteOutline as DeleteIcon,
   AddOutlined as AddIcon,
   Undo as UndoIcon,
@@ -13,8 +28,16 @@ import {
   FitnessCenter as HabitIcon
 } from '@mui/icons-material';
 import { parseAPIDate, formatDateForAPI } from '../utils/dateUtils.js';
-import { format } from 'date-fns';
+import { format, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import {
+  formatCalendarDayHeader,
+  formatCalendarNavLabel,
+  getTodayCalendarDate,
+  isViewingTodayInCalendar,
+  shiftCalendarDate,
+} from '../utils/focoNavigationUtils.js';
+import CalendarDatePickerPopover from '../../foco/src/foco/calendar/CalendarDatePickerPopover.jsx';
 import { useRutinas } from '../context/RutinasContext.jsx';
 import { calculateCompletionPercentage, calculateVisibleItems } from '../utils/rutinaCalculations';
 import { NAV_TYPO } from '../config/uiConstants';
@@ -23,6 +46,13 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { StaticDatePicker } from '@mui/x-date-pickers/StaticDatePicker';
 import HabitFormDialog from '../components/HabitFormDialog';
+import TiempoToolbarActions from '../../foco/src/foco/TiempoToolbarActions.jsx';
+import useResponsive from '../hooks/useResponsive';
+
+/** Ancho fijo del slot «Hoy» para que ‹ › no se desplacen. */
+const HOY_BUTTON_SLOT_WIDTH = 52;
+/** Ancho fijo del botón de vista día/semana. */
+const VIEW_MODE_BUTTON_WIDTH = 64;
 
 // Componente de navegación entre rutinas (compartido)
 const RutinaNavigation = ({
@@ -31,10 +61,14 @@ const RutinaNavigation = ({
   loading = false,
   currentPage,
   totalPages,
-  onSettingsClick
+  onSettingsClick,
+  navigationMode = 'rutina',
+  /** Barra superior unificada (/foco): una fila sin progress ni chips. */
+  compactBar = false,
 }) => {
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.down('sm'));
+  const { isMobile } = useResponsive();
   const { handlePrevious, handleNext, deleteRutina, rutinas, getRutinaById } = useRutinas();
   const { 
     canUndo, 
@@ -52,6 +86,29 @@ const RutinaNavigation = ({
   
   // Estado para el diálogo de hábito
   const [habitDialogOpen, setHabitDialogOpen] = useState(false);
+
+  const isCalendarNav = navigationMode === 'day' || navigationMode === 'week';
+  const [calendarDate, setCalendarDate] = useState(() => new Date());
+  const [calendarViewMode, setCalendarViewMode] = useState(() => (
+    navigationMode === 'day' ? 'day' : 'week'
+  ));
+
+  const effectiveCalendarMode = isCalendarNav ? calendarViewMode : navigationMode;
+
+  useEffect(() => {
+    if (!isCalendarNav) return undefined;
+    const handleFocoCalendarState = (event) => {
+      const { date, viewMode: vm } = event.detail || {};
+      if (date) setCalendarDate(new Date(date));
+      if (vm === 'day' || vm === 'week') setCalendarViewMode(vm);
+    };
+    window.addEventListener('focoCalendarState', handleFocoCalendarState);
+    return () => window.removeEventListener('focoCalendarState', handleFocoCalendarState);
+  }, [isCalendarNav]);
+
+  const handleToggleViewMode = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('focoToggleViewMode'));
+  }, []);
 
   const previousRutinaId = useRef(null);
   const logCount = useRef(0);
@@ -82,25 +139,68 @@ const RutinaNavigation = ({
     }
   }, [rutina?._id, currentPage, totalPages, loading]);
 
+  const dispatchCalendarNavigate = useCallback((direction, date) => {
+    window.dispatchEvent(new CustomEvent('navigate', {
+      detail: {
+        direction,
+        date: (date || new Date()).toISOString(),
+      },
+    }));
+  }, []);
+
   const onPrevious = useCallback(() => {
+    if (loading) return;
+    if (isCalendarNav) {
+      const nextDate = shiftCalendarDate(calendarDate, effectiveCalendarMode, 'prev');
+      setCalendarDate(nextDate);
+      dispatchCalendarNavigate('prev', nextDate);
+      return;
+    }
     limitedLog('Click anterior', { currentPage, totalPages, loading });
-    if (currentPage <= 1 || loading) return;
+    if (currentPage <= 1) return;
     handlePrevious();
-  }, [currentPage, totalPages, loading, handlePrevious, limitedLog]);
+  }, [
+    calendarDate,
+    currentPage,
+    dispatchCalendarNavigate,
+    handlePrevious,
+    isCalendarNav,
+    limitedLog,
+    loading,
+    effectiveCalendarMode,
+    totalPages,
+  ]);
 
   const onNext = useCallback(() => {
+    if (loading) return;
+    if (isCalendarNav) {
+      const nextDate = shiftCalendarDate(calendarDate, effectiveCalendarMode, 'next');
+      setCalendarDate(nextDate);
+      dispatchCalendarNavigate('next', nextDate);
+      return;
+    }
     limitedLog('Click siguiente', { currentPage, totalPages, loading });
-    if (currentPage >= totalPages || loading) return;
+    if (currentPage >= totalPages) return;
     handleNext();
-  }, [currentPage, totalPages, loading, handleNext, limitedLog]);
+  }, [
+    calendarDate,
+    currentPage,
+    dispatchCalendarNavigate,
+    handleNext,
+    isCalendarNav,
+    limitedLog,
+    loading,
+    effectiveCalendarMode,
+    totalPages,
+  ]);
 
-  const prevDisabled = currentPage <= 1 || loading;
-  const nextDisabled = currentPage >= totalPages || loading;
+  const prevDisabled = isCalendarNav ? loading : (currentPage <= 1 || loading);
+  const nextDisabled = isCalendarNav ? loading : (currentPage >= totalPages || loading);
 
   const goToToday = () => {
-    window.dispatchEvent(new CustomEvent('navigate', {
-      detail: { direction: 'today', date: new Date().toISOString().split('T')[0] }
-    }));
+    const today = getTodayCalendarDate();
+    setCalendarDate(today);
+    dispatchCalendarNavigate('today', today);
   };
 
   const handleDelete = () => {
@@ -133,16 +233,23 @@ const RutinaNavigation = ({
   // Handler para cuando se selecciona una fecha
   const handleDateChange = useCallback(async (newDate) => {
     if (!newDate) return;
-    
+
     try {
+      if (isCalendarNav) {
+        const picked = startOfDay(newDate);
+        setCalendarDate(picked);
+        dispatchCalendarNavigate('pick', picked);
+        handleDatePickerClose();
+        return;
+      }
+
       const dateStr = formatDateForAPI(newDate);
       if (!dateStr || !rutinas || rutinas.length === 0) {
         handleDatePickerClose();
         return;
       }
 
-      // Buscar rutina con esa fecha
-      const target = rutinas.find(r => {
+      const target = rutinas.find((r) => {
         try {
           return formatDateForAPI(parseAPIDate(r.fecha)) === dateStr;
         } catch {
@@ -151,31 +258,42 @@ const RutinaNavigation = ({
       });
 
       if (target?._id) {
-        // Si existe, navegar a esa rutina
         await getRutinaById(target._id);
       } else {
-        // Si no existe, disparar evento para crear nueva rutina con esa fecha
         window.dispatchEvent(new CustomEvent('navigate', {
-          detail: { direction: 'today', date: dateStr }
+          detail: { direction: 'today', date: dateStr },
         }));
       }
-      
+
       handleDatePickerClose();
     } catch (error) {
       console.error('Error al navegar a fecha:', error);
       handleDatePickerClose();
     }
-  }, [rutinas, getRutinaById]);
+  }, [dispatchCalendarNavigate, getRutinaById, isCalendarNav, rutinas]);
 
   // Obtener la fecha actual de la rutina para el picker
   const currentDate = useMemo(() => {
+    if (isCalendarNav) return calendarDate;
     if (!rutina?.fecha) return new Date();
     try {
       return parseAPIDate(rutina.fecha);
     } catch {
       return new Date();
     }
-  }, [rutina?.fecha]);
+  }, [calendarDate, isCalendarNav, rutina?.fecha]);
+
+  const navDateLabel = useMemo(() => {
+    if (isCalendarNav) {
+      return formatCalendarNavLabel(calendarDate, effectiveCalendarMode);
+    }
+    if (!rutina?.fecha) return '';
+    try {
+      return format(parseAPIDate(rutina.fecha), 'dd MMM yy', { locale: es });
+    } catch {
+      return '';
+    }
+  }, [calendarDate, isCalendarNav, effectiveCalendarMode, rutina?.fecha]);
 
   // Estilo común para botones (igual que AgendaToolbarRight)
   const commonButtonSx = useMemo(() => ({
@@ -217,6 +335,261 @@ const RutinaNavigation = ({
     ? `${totalCompleted}/${totalVisible} completados`
     : 'Sin ítems activos';
 
+  const dayHeader = formatCalendarDayHeader(isCalendarNav ? calendarDate : null);
+  const viewingToday = isCalendarNav && isViewingTodayInCalendar(currentDate, effectiveCalendarMode);
+  const compactCalendar = compactBar && isCalendarNav;
+  const hideCompactDateInBar = compactCalendar && isMobile;
+
+  const prevTooltip = isCalendarNav
+    ? (effectiveCalendarMode === 'week' ? 'Semana anterior' : 'Día anterior')
+    : 'Rutina más reciente';
+  const nextTooltip = isCalendarNav
+    ? (effectiveCalendarMode === 'week' ? 'Semana siguiente' : 'Día siguiente')
+    : 'Rutina siguiente';
+
+  const navChevrons = (
+    <Box sx={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
+      <Tooltip title={prevTooltip}>
+        <span>
+          <IconButton
+            size="small"
+            onClick={onPrevious}
+            disabled={prevDisabled}
+            sx={{
+              ...commonButtonSx,
+              color: prevDisabled ? 'text.disabled' : 'text.secondary',
+              '&:hover': {
+                backgroundColor: prevDisabled ? 'transparent' : 'action.hover',
+                color: prevDisabled ? 'text.disabled' : 'text.primary',
+              },
+            }}
+            aria-label="Anterior"
+            data-testid="prev-button"
+          >
+            <NavigateBefore />
+          </IconButton>
+        </span>
+      </Tooltip>
+      <Tooltip title={nextTooltip}>
+        <span>
+          <IconButton
+            size="small"
+            onClick={onNext}
+            disabled={nextDisabled}
+            sx={{
+              ...commonButtonSx,
+              color: nextDisabled ? 'text.disabled' : 'text.secondary',
+              '&:hover': {
+                backgroundColor: nextDisabled ? 'transparent' : 'action.hover',
+                color: nextDisabled ? 'text.disabled' : 'text.primary',
+              },
+            }}
+            aria-label="Siguiente"
+            data-testid="next-button"
+          >
+            <NavigateNext />
+          </IconButton>
+        </span>
+      </Tooltip>
+    </Box>
+  );
+
+  const viewModeLabel = effectiveCalendarMode === 'week' ? 'Día' : 'Semana';
+  const viewModeTooltip = effectiveCalendarMode === 'week' ? 'Ver día' : 'Ver semana';
+
+  const showViewModeInDateCluster = !hideCompactDateInBar && !isMobile && isCalendarNav && !compactCalendar;
+  const viewModeButton = showViewModeInDateCluster ? (
+    <Tooltip title={viewModeTooltip}>
+      <Button
+        size="small"
+        variant="text"
+        onClick={handleToggleViewMode}
+        disabled={loading}
+        sx={{
+          textTransform: 'none',
+          fontWeight: 600,
+          minWidth: VIEW_MODE_BUTTON_WIDTH,
+          width: VIEW_MODE_BUTTON_WIDTH,
+          flexShrink: 0,
+          px: 0.75,
+          py: 0.25,
+          lineHeight: 1.2,
+          color: 'text.secondary',
+          '&:hover': { color: 'text.primary' },
+        }}
+        aria-label={viewModeTooltip}
+      >
+        {viewModeLabel}
+      </Button>
+    </Tooltip>
+  ) : null;
+
+  const dateLabelButton = !hideCompactDateInBar ? (
+    <Tooltip title="Elegir fecha">
+      <ButtonBase
+        onClick={handleDateClick}
+        disabled={loading}
+        sx={{
+          borderRadius: 1.5,
+          px: compactCalendar ? { xs: 0.5, sm: 0.75 } : { xs: 0.75, sm: 1.25 },
+          py: 0.25,
+          minWidth: 0,
+          maxWidth: compactCalendar ? { xs: 120, sm: 200, md: 280 } : undefined,
+          flex: compactCalendar ? '0 1 auto' : 1,
+          overflow: 'hidden',
+          '&:hover': { bgcolor: loading ? 'transparent' : 'action.hover' },
+        }}
+        aria-label="Elegir fecha"
+      >
+        {effectiveCalendarMode === 'day' ? (
+          isXs && !compactCalendar ? (
+            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75 }}>
+              <Typography component="span" sx={{ fontSize: '1.35rem', fontWeight: 500, lineHeight: 1 }}>
+                {dayHeader.dayNumber}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'capitalize', fontWeight: 500 }}>
+                {dayHeader.monthYear}
+              </Typography>
+            </Box>
+          ) : (
+            <Typography
+              sx={{
+                fontWeight: 600,
+                color: 'text.primary',
+                whiteSpace: 'nowrap',
+                lineHeight: 1.2,
+                textTransform: 'capitalize',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {`${dayHeader.dayNumber} ${dayHeader.monthYear}`}
+            </Typography>
+          )
+        ) : (
+          <Typography
+            sx={{
+              fontWeight: 600,
+              color: 'text.primary',
+              whiteSpace: 'nowrap',
+              lineHeight: 1.2,
+              textTransform: 'capitalize',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {navDateLabel}
+          </Typography>
+        )}
+      </ButtonBase>
+    </Tooltip>
+  ) : null;
+
+  const calendarIconButton = !hideCompactDateInBar && !compactCalendar ? (
+    <Tooltip title="Elegir fecha">
+      <span>
+        <IconButton
+          size="small"
+          onClick={handleDateClick}
+          disabled={loading}
+          sx={{ ...commonButtonSx, flexShrink: 0 }}
+          aria-label="Elegir fecha"
+        >
+          <CalendarMonthIcon />
+        </IconButton>
+      </span>
+    </Tooltip>
+  ) : null;
+
+  const showHoyInBar = !hideCompactDateInBar;
+  const hoyButtonSlot = showHoyInBar ? (
+    <Box
+      sx={{
+        width: HOY_BUTTON_SLOT_WIDTH,
+        minWidth: HOY_BUTTON_SLOT_WIDTH,
+        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Tooltip title={viewingToday ? 'Ya estás en hoy' : 'Ir a hoy'}>
+        <span>
+          <Button
+            size="small"
+            variant="text"
+            onClick={goToToday}
+            disabled={loading || viewingToday}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 600,
+              minWidth: HOY_BUTTON_SLOT_WIDTH,
+              px: compactCalendar ? 0.75 : 1,
+              py: 0.25,
+              lineHeight: 1.2,
+              color: viewingToday ? 'text.disabled' : 'text.secondary',
+              '&.Mui-disabled': {
+                color: 'text.disabled',
+              },
+            }}
+          >
+            Hoy
+          </Button>
+        </span>
+      </Tooltip>
+    </Box>
+  ) : null;
+
+  const datePickerPopover = showHoyInBar ? (
+    <CalendarDatePickerPopover
+      open={datePickerOpen}
+      anchorEl={datePickerAnchor}
+      onClose={handleDatePickerClose}
+      value={currentDate}
+      onChange={handleDateChange}
+    />
+  ) : null;
+
+  const dateCluster = !hideCompactDateInBar ? (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 0.375,
+        minWidth: 0,
+        overflow: 'hidden',
+        flexShrink: 1,
+      }}
+    >
+      {hoyButtonSlot}
+      {navChevrons}
+      {dateLabelButton}
+      {viewModeButton}
+      {datePickerPopover}
+    </Box>
+  ) : null;
+
+  if (compactCalendar) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: isMobile ? 'center' : 'flex-start',
+          width: '100%',
+          minWidth: 0,
+          gap: isMobile ? 0.75 : { xs: 0.5, sm: 1 },
+          overflow: 'hidden',
+          // Date nav only on the left; let AgendaUnifiedBar centered actions receive clicks
+          pointerEvents: 'none',
+          '& > *': { pointerEvents: 'auto' },
+        }}
+      >
+        {!isMobile && dateCluster}
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ mb: 1 }}>
       <LinearProgress
@@ -241,155 +614,114 @@ const RutinaNavigation = ({
         }}
       >
         {/* Izquierda: atrás + fecha */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 0.75 }, minWidth: 0 }}>
-          <Tooltip title="Rutina más reciente">
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 0.75 }, minWidth: 0, flex: isCalendarNav ? 1 : undefined }}>
+          {!isCalendarNav && (
+            <Tooltip title={prevTooltip}>
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={onPrevious}
+                  disabled={prevDisabled}
+                  sx={{
+                    ...commonButtonSx,
+                    color: prevDisabled ? 'text.disabled' : 'text.secondary',
+                    '&:hover': {
+                      backgroundColor: prevDisabled ? 'transparent' : 'action.hover',
+                      color: prevDisabled ? 'text.disabled' : 'text.primary',
+                    },
+                  }}
+                  aria-label="Ir a la rutina anterior"
+                  data-testid="prev-button"
+                >
+                  <NavigateBefore />
+                </IconButton>
+              </span>
+            </Tooltip>
+          )}
+          {isCalendarNav ? (
+            <>
+              {hoyButtonSlot}
+              {navChevrons}
+              {dateLabelButton}
+              {viewModeButton}
+              {datePickerPopover}
+            </>
+          ) : (
+            <Tooltip title="Ir a hoy">
+              <Typography
+                variant={isXs ? NAV_TYPO.captionVariant : NAV_TYPO.itemVariant}
+                component="div"
+                onClick={goToToday}
+                sx={{
+                  fontWeight: 700,
+                  ...(isXs ? {} : NAV_TYPO.compactBodySx),
+                  lineHeight: 1.2,
+                  color: 'text.secondary',
+                  minWidth: 0,
+                  maxWidth: { xs: 96, sm: 160, md: 240 },
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  cursor: 'pointer',
+                  '&:hover': { color: 'text.primary', textDecoration: 'underline' },
+                }}
+              >
+                {navDateLabel}
+              </Typography>
+            </Tooltip>
+          )}
+        </Box>
+
+        {/* Centro: acciones (foco) o legacy rutinas */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.02, sm: 0.1 }, flex: 1, justifyContent: 'center', minWidth: 0 }}>
+          {isCalendarNav && (
+            <TiempoToolbarActions section="foco" dense />
+          )}
+          {!isCalendarNav && (
+            <>
+          <Tooltip title="Seleccionar fecha">
             <span>
               <IconButton
                 size="small"
-                onClick={onPrevious}
-                disabled={prevDisabled}
-                sx={{
-                  ...commonButtonSx,
-                  color: prevDisabled ? 'text.disabled' : 'text.secondary',
-                  '&:hover': {
-                    backgroundColor: prevDisabled ? 'transparent' : 'action.hover',
-                    color: prevDisabled ? 'text.disabled' : 'text.primary'
-                  }
-                }}
-                aria-label="Ir a la rutina anterior"
-                data-testid="prev-button"
-              >
-                <NavigateBefore />
-              </IconButton>
-            </span>
-          </Tooltip>
-          <Tooltip title="Ir a hoy">
-            <Typography
-              variant={isXs ? NAV_TYPO.captionVariant : NAV_TYPO.itemVariant}
-              component="div"
-              onClick={goToToday}
-              sx={{
-                fontWeight: 700,
-                ...(isXs ? {} : NAV_TYPO.compactBodySx),
-                lineHeight: 1.2,
-                letterSpacing: '0.01em',
-                color: 'text.secondary',
-                minWidth: 0,
-                maxWidth: { xs: 96, sm: 160, md: 240 },
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                cursor: 'pointer',
-                userSelect: 'none',
-                '&:hover': {
-                  color: 'text.primary',
-                  textDecoration: 'underline'
-                }
-              }}
-            >
-              {rutina ? format(parseAPIDate(rutina.fecha), 'dd MMM yy', { locale: es }) : ''}
-            </Typography>
-          </Tooltip>
-        </Box>
-
-        {/* Centro: acciones */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.02, sm: 0.1 }, flex: 1, justifyContent: 'center', minWidth: 0 }}>
-          <Tooltip title="Seleccionar fecha">
-            <span>
-              <IconButton 
-                size="small" 
-                onClick={handleDateClick} 
-                disabled={loading} 
-                sx={{
-                  ...commonButtonSx,
-                  color: loading ? 'text.disabled' : 'text.secondary',
-                  '&:hover': {
-                    backgroundColor: loading ? 'transparent' : 'action.hover',
-                    color: loading ? 'text.disabled' : 'text.primary'
-                  }
-                }} 
+                onClick={handleDateClick}
+                disabled={loading}
+                sx={commonButtonSx}
                 aria-label="Seleccionar fecha"
               >
-                <TodayIcon />
+                <SettingsIcon fontSize="small" />
               </IconButton>
             </span>
           </Tooltip>
-          
-          {/* Popover con DatePicker */}
           <Popover
             open={datePickerOpen}
             anchorEl={datePickerAnchor}
             onClose={handleDatePickerClose}
-            anchorOrigin={{
-              vertical: 'bottom',
-              horizontal: 'center',
-            }}
-            transformOrigin={{
-              vertical: 'top',
-              horizontal: 'center',
-            }}
-            PaperProps={{
-              sx: {
-                borderRadius: 0,
-                bgcolor: 'background.default',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
-              }
-            }}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'center' }}
           >
             <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-              <Box sx={{
-                '& .MuiPickersCalendarHeader-root': {
-                  backgroundColor: 'transparent',
-                },
-                '& .MuiPickersDay-root': {
-                  color: 'text.primary',
-                  '&.Mui-selected': {
-                    backgroundColor: 'primary.main',
-                    color: 'primary.contrastText',
-                    '&:hover': {
-                      backgroundColor: 'primary.dark',
-                    },
-                  },
-                  '&:hover': {
-                    backgroundColor: 'action.hover',
-                  },
-                },
-              }}>
-                <StaticDatePicker
-                  displayStaticWrapperAs="mobile"
-                  value={currentDate}
-                  onChange={handleDateChange}
-                  views={['year', 'month', 'day']}
-                  openTo="day"
-                  showToolbar={false}
-                  componentsProps={{ actionBar: { actions: [] } }}
-                  renderInput={() => null}
-                />
-              </Box>
+              <StaticDatePicker
+                displayStaticWrapperAs="mobile"
+                value={currentDate}
+                onChange={handleDateChange}
+                views={['year', 'month', 'day']}
+                openTo="day"
+                showToolbar={false}
+                componentsProps={{ actionBar: { actions: [] } }}
+                renderInput={() => null}
+              />
             </LocalizationProvider>
           </Popover>
-          {/* Botón de configuración de hábitos */}
           {onSettingsClick && (
-            <Tooltip title="Configurar hábitos">
+            <Tooltip title="Personalizar mi rutina">
               <span>
-                <IconButton 
-                  size="small" 
-                  onClick={onSettingsClick} 
-                  disabled={loading} 
-                  sx={{
-                    ...commonButtonSx,
-                    color: loading ? 'text.disabled' : 'text.secondary',
-                    '&:hover': {
-                      backgroundColor: loading ? 'transparent' : 'action.hover',
-                      color: loading ? 'text.disabled' : 'text.primary'
-                    }
-                  }} 
-                  aria-label="Configurar hábitos"
-                >
+                <IconButton size="small" onClick={onSettingsClick} disabled={loading} sx={commonButtonSx} aria-label="Personalizar mi rutina">
                   <SettingsIcon />
                 </IconButton>
               </span>
             </Tooltip>
+          )}
+            </>
           )}
           {/* Botón Undo - solo mostrar si hay acciones para deshacer */}
           {canUndo() && getUndoCount() > 0 && (
@@ -440,6 +772,8 @@ const RutinaNavigation = ({
               </span>
             </Tooltip>
           )}
+          {!isCalendarNav && (
+            <>
           <Tooltip title="Agregar">
             <span>
               <IconButton 
@@ -524,6 +858,8 @@ const RutinaNavigation = ({
               </IconButton>
             </span>
           </Tooltip>
+            </>
+          )}
         </Box>
 
         {/* Derecha: porcentaje + siguiente */}
@@ -565,27 +901,29 @@ const RutinaNavigation = ({
               {completionLabel}
             </Typography>
           </Tooltip>
-          <Tooltip title="Rutina siguiente">
-            <span>
-              <IconButton
-                size="small"
-                onClick={onNext}
-                disabled={nextDisabled}
-                sx={{
-                  ...commonButtonSx,
-                  color: nextDisabled ? 'text.disabled' : 'text.secondary',
-                  '&:hover': {
-                    backgroundColor: nextDisabled ? 'transparent' : 'action.hover',
-                    color: nextDisabled ? 'text.disabled' : 'text.primary'
-                  }
-                }}
-                aria-label="Ir a la rutina siguiente"
-                data-testid="next-button"
-              >
-                <NavigateNext />
-              </IconButton>
-            </span>
-          </Tooltip>
+          {!isCalendarNav && (
+            <Tooltip title={nextTooltip}>
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={onNext}
+                  disabled={nextDisabled}
+                  sx={{
+                    ...commonButtonSx,
+                    color: nextDisabled ? 'text.disabled' : 'text.secondary',
+                    '&:hover': {
+                      backgroundColor: nextDisabled ? 'transparent' : 'action.hover',
+                      color: nextDisabled ? 'text.disabled' : 'text.primary',
+                    },
+                  }}
+                  aria-label="Ir a la rutina siguiente"
+                  data-testid="next-button"
+                >
+                  <NavigateNext />
+                </IconButton>
+              </span>
+            </Tooltip>
+          )}
         </Box>
       </Box>
       

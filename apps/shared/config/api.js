@@ -9,7 +9,7 @@ export const endpoints = {
     logout: `${API_URL}/auth/logout`,
     profile: `${API_URL}/auth/profile`,
   },
-  proyectos: `${API_URL}/proyectos`,
+  objetivos: `${API_URL}/objetivos`,
   tareas: `${API_URL}/tareas`,
   propiedades: `${API_URL}/propiedades`,
   // ... otros endpoints

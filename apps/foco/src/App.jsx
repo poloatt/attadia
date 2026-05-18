@@ -23,8 +23,9 @@ import { useAuth } from '@shared/context/AuthContext';
 // Importaciones específicas de Foco
 import Rutinas from './pages/Rutinas';
 import Tareas from './pages/Tareas';
-import Proyectos from './pages/Proyectos';
+import { Objetivos } from './pages/Objetivos';
 import Archivo from './pages/Archivo';
+import Foco from './pages/Foco';
 import Perfil from '@shared/pages/Perfil';
 import Configuracion from '@shared/pages/Configuracion';
 import Preferencias from '@shared/pages/Preferencias';
@@ -45,21 +46,25 @@ function AppContent() {
   return (
     <Routes>
       {/* Rutas públicas */}
-      <Route path="/login" element={user ? <Navigate to="/tareas" replace /> : <Login />} />
+      <Route path="/login" element={user ? <Navigate to="/foco" replace /> : <Login />} />
       <Route path="/registro" element={<Register />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/auth/callback/*" element={<AuthCallback />} />
       <Route path="/auth/error" element={<AuthError />} />
       
-      {/* Ruta raíz redirige a tareas */}
-      <Route path="/" element={<Navigate to="/tareas" replace />} />
+      {/* Ruta raíz redirige a Foco */}
+      <Route path="/" element={<Navigate to="/foco" replace />} />
       
       {/* Rutas protegidas */}
       <Route element={<PrivateRoute />}>
         <Route element={<Layout />}>
           {/* Módulo principal - Foco */}
+          <Route path="/foco" element={<Foco />} />
           <Route path="/rutinas" element={<Rutinas />} />
-          <Route path="/proyectos" element={<Proyectos />} />
+          <Route path="/objetivos" element={<Objetivos />} />
+          <Route path="/proyectos" element={<Navigate to="/objetivos" replace />} />
+          <Route path="/tiempo/proyectos" element={<Navigate to="/objetivos" replace />} />
+          <Route path="/tiempo/objetivos" element={<Navigate to="/objetivos" replace />} />
           <Route path="/tareas" element={<Tareas />} />
           <Route path="/archivo" element={<Archivo />} />
           
@@ -71,7 +76,7 @@ function AppContent() {
       </Route>
 
       {/* Ruta 404 */}
-      <Route path="*" element={<Navigate to="/tareas" replace />} />
+      <Route path="*" element={<Navigate to="/foco" replace />} />
     </Routes>
   );
 }

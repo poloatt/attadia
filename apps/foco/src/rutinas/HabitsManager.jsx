@@ -381,7 +381,7 @@ export const HabitsManager = ({ open, onClose }) => {
         }}
       >
         <Typography variant="subtitle1" component="span" sx={{ fontWeight: 500 }}>
-          Gestionar Hábitos
+          Personalizar mi rutina
         </Typography>
         <IconButton
           size="small"
@@ -624,9 +624,6 @@ export const HabitsManager = ({ open, onClose }) => {
                     }
                     
                     setOpenSetupHabitId(isSetupOpen ? null : habit.id);
-                    if (isSetupOpen) {
-                      setEditingField(null);
-                    }
                   };
                   
                   return (

@@ -14,7 +14,7 @@ export const ACTION_TYPES = {
 
 // Entidades soportadas
 export const ENTITY_TYPES = {
-  PROYECTO: 'proyecto',
+  OBJETIVO: 'objetivo',
   TAREA: 'tarea',
   PROPIEDAD: 'propiedad',
   TRANSACCION: 'transaccion',

@@ -4,7 +4,8 @@ import { useUISettings } from '../context/UISettingsContext';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import { useAuth } from '../context/AuthContext';
-import { Header, Toolbar } from '../navigation';
+import { Header, Toolbar, AgendaUnifiedBar } from '../navigation';
+import { isTiempoToolbarPath } from '../navigation/toolbarModules';
 import { Footer } from '../navigation';
 import { Sidebar, BottomNavigation } from '../navigation';
 import { CustomSnackbarProvider } from '../components/common';
@@ -58,7 +59,11 @@ export function Layout() {
   // Nota UX: el setting "showEntityToolbarNavigation" está pensado SOLO para móvil.
   // En tablet/desktop la Toolbar siempre debe mostrarse (evita que quede "oculta" en pantallas medianas).
   const showToolbar = isMobile ? showEntityToolbarNavigation : true;
-  const totalTopPadding = calculateTopPadding(showToolbar);
+  const agendaUnified = isTiempoToolbarPath(currentPath);
+  const totalTopPadding = calculateTopPadding(showToolbar, agendaUnified);
+  const showHeader = !agendaUnified;
+  const showLegacyToolbar = showToolbar && !agendaUnified;
+  const showAgendaBar = agendaUnified;
   
   // Padding superior para el main
   const mainTopPadding = totalTopPadding;
@@ -81,15 +86,21 @@ export function Layout() {
     <FormManagerProvider>
       <GlobalFormEventListener />
       <Box sx={{ minHeight: '100vh', maxWidth: '100vw', bgcolor: 'background.default', position: 'relative' }}>
-        {/* Header */}
-        <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', zIndex: 1400 }}>
-          <Header />
-        </Box>
+        {showHeader && (
+          <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', zIndex: 1400 }}>
+            <Header />
+          </Box>
+        )}
+        {showAgendaBar && (
+          <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', zIndex: 1400 }}>
+            <AgendaUnifiedBar currentPath={currentPath} />
+          </Box>
+        )}
         {/* Toolbar + Sidebar + Main: envueltos por RutinasProvider cuando corresponde */}
         {(currentPath.startsWith('/tiempo/rutinas') || currentPath.startsWith('/rutinas')) ? (
           <MaybeRutinasProvider>
             {/* Toolbar siempre se renderiza */}
-            {showToolbar && (
+            {showLegacyToolbar && (
               <Box sx={{ position: 'fixed', top: `${HEADER_CONFIG.height}px`, left: 0, width: '100vw', zIndex: 1399 }}>
                 <Toolbar 
                   moduloActivo={moduloActivo}
@@ -170,8 +181,7 @@ export function Layout() {
           </MaybeRutinasProvider>
         ) : (
           <>
-            {/* Toolbar siempre se renderiza */}
-            {showToolbar && (
+            {showLegacyToolbar && (
               <Box sx={{ position: 'fixed', top: `${HEADER_CONFIG.height}px`, left: 0, width: '100vw', zIndex: 1399 }}>
                 <Toolbar 
                   moduloActivo={moduloActivo}

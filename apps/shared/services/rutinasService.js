@@ -285,12 +285,13 @@ class RutinasService {
    * Versión mejorada de markComplete que maneja el progreso
    */
   async markComplete(id, section, data) {
+    let itemId;
     try {
       if (!id || !section || !data) {
         throw new Error('Parámetros inválidos');
       }
 
-      const itemId = Object.keys(data)[0];
+      itemId = Object.keys(data)[0];
       if (!itemId) throw new Error('No se proporcionó ID de ítem');
       
       const itemValue = data[itemId];
@@ -337,9 +338,9 @@ class RutinasService {
 
       throw new Error('No se recibió respuesta del servidor');
     } catch (error) {
-      // En caso de error, revertir el caché local
-      const cacheKey = `${section}_${itemId}_completado`;
-      this.cache.delete(cacheKey);
+      if (itemId) {
+        this.cache.delete(`${section}_${itemId}_completado`);
+      }
       
       console.error(`[RutinasService] ❌ Error al marcar completación:`, error);
       throw error;
@@ -416,9 +417,7 @@ class RutinasService {
   async getHistorialCompletaciones(section, itemId, fechaInicio, fechaFin) {
     try {
       if (!section || !itemId) {
-    
-      } else {
-
+        throw new Error('section e itemId son requeridos');
       }
       
       // CORRECCIÓN: Usar UTC puro en lugar de formatDateForAPI

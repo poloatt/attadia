@@ -2,7 +2,7 @@
 
 /**
  * Normaliza títulos de tareas y subtareas en la BD (opcionalmente también en Google).
- * - Remueve prefijos entre corchetes al inicio (p.ej. [Proyecto], [Mis tareas])
+ * - Remueve prefijos entre corchetes al inicio (p.ej. [Objetivo], [Mis tareas])
  * - Colapsa espacios
  *
  * Flags:
@@ -13,7 +13,7 @@
 
 import mongoose from 'mongoose';
 import { google } from 'googleapis';
-import { Users, Tareas, Proyectos } from '../src/models/index.js';
+import { Users, Tareas, Objetivos } from '../src/models/index.js';
 import config from '../src/config/config.js';
 
 function parseArgs(argv) {
@@ -37,7 +37,7 @@ const args = parseArgs(process.argv.slice(2));
 const DRY_RUN = args['dry-run'] !== false && args['dry-run'] !== 'false'; // default true
 const INCLUDE_GOOGLE = !!args.google;
 const USER_FILTER = args.user || null;
-const PROJECT_ID = args.project || null;
+const OBJETIVO_ID = args.project || null;
 const PROJECT_NAME = args['project-name'] || null; // "Salud,Trámites"
 
 function cleanTitle(raw) {
@@ -90,22 +90,22 @@ async function normalizeTitles() {
       console.log(`\n👤 Usuario: ${user.email || user._id}`);
       const tasksClient = INCLUDE_GOOGLE ? await getGoogleTasksClient(user) : null;
 
-      // Proyectos objetivo (opcional)
-      let proyectoIds = null;
-      if (PROJECT_ID || PROJECT_NAME) {
+      // Objetivos objetivo (opcional)
+      let objetivoIds = null;
+      if (OBJETIVO_ID || PROJECT_NAME) {
         const pjQuery = { usuario: user._id };
-        if (PROJECT_ID) pjQuery._id = PROJECT_ID;
+        if (OBJETIVO_ID) pjQuery._id = OBJETIVO_ID;
         if (PROJECT_NAME) {
           const names = PROJECT_NAME.split(',').map(s => s.trim()).filter(Boolean);
           pjQuery.nombre = { $in: names.map(n => new RegExp(`^${n}$`, 'i')) };
         }
-        const proyectos = await Proyectos.find(pjQuery).select('_id nombre');
-        proyectoIds = proyectos.map(p => p._id);
-        console.log(`🎯 Proyectos objetivo: ${proyectos.map(p => p.nombre).join(', ') || '(ninguno encontrado)'}`);
+        const Objetivos = await Objetivos.find(pjQuery).select('_id nombre');
+        objetivoIds = Objetivos.map(p => p._id);
+        console.log(`🎯 Objetivos objetivo: ${Objetivos.map(p => p.nombre).join(', ') || '(ninguno encontrado)'}`);
       }
 
       const tareasQuery = { usuario: user._id };
-      if (proyectoIds && proyectoIds.length > 0) tareasQuery.proyecto = { $in: proyectoIds };
+      if (objetivoIds && objetivoIds.length > 0) tareasQuery.Objetivo = { $in: objetivoIds };
       const tareas = await Tareas.find(tareasQuery);
       let updatedLocal = 0;
       let patchedGoogle = 0;

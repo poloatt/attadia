@@ -9,14 +9,14 @@ import monedasRoutes from './monedasRoutes.js';
 import cuentasRoutes from './cuentasRoutes.js';
 import transaccionesRoutes from './transaccionesRoutes.js';
 import transaccionRecurrenteRoutes from './transaccionRecurrenteRoutes.js';
-import proyectosRoutes from './proyectosRoutes.js';
+import objetivosRoutes from './objetivosRoutes.js';
 import tareasRoutes from './tareasRoutes.js';
+import tareaSeriesRoutes from './tareaSeriesRoutes.js';
 import subtareasRoutes from './subtareasRoutes.js';
 import googleTasksRoutes from './googleTasksRoutes.js';
 import rutinasRoutes from './rutinasRoutes.js';
 import labsRoutes from './labsRoutes.js';
 import dietasRoutes from './dietasRoutes.js';
-import objetivosRoutes from './objetivosRoutes.js';
 import monitoreoRoutes from './monitoreoRoutes.js';
 import perfilRoutes from './perfilRoutes.js';
 import healthRoutes from './healthRoutes.js';
@@ -46,9 +46,10 @@ router.use('/transacciones', transaccionesRoutes);
 router.use('/transaccionesrecurrentes', transaccionRecurrenteRoutes);
 router.use('/bankconnections', bankConnectionRoutes);
 
-// Rutas de gestión de proyectos
-router.use('/proyectos', proyectosRoutes);
+// Rutas de gestión de objetivos (contenedores de tareas) y tareas
+router.use('/objetivos', objetivosRoutes);
 router.use('/tareas', tareasRoutes);
+router.use('/tarea-series', tareaSeriesRoutes);
 router.use('/subtareas', subtareasRoutes);
 router.use('/google-tasks', googleTasksRoutes);
 
@@ -57,7 +58,6 @@ router.use('/rutinas', rutinasRoutes);
 router.use('/labs', labsRoutes);
 router.use('/dietas', dietasRoutes);
 router.use('/datacorporal', dataCorporalRoutes);
-router.use('/objetivos', objetivosRoutes);
 
 // Rutas de monitoreo
 router.use('/monitoreo', monitoreoRoutes);

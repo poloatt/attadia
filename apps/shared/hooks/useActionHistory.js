@@ -3,7 +3,7 @@ import { useActionHistory, ACTION_TYPES, ENTITY_TYPES } from '../context/ActionH
 
 /**
  * Hook personalizado para manejar el historial de acciones
- * @param {string} entityType - Tipo de entidad (ej: 'proyecto', 'tarea', etc.)
+ * @param {string} entityType - Tipo de entidad (ej: 'OBJETIVO', 'tarea', etc.)
  * @param {object} options - Opciones de configuración
  * @returns {object} Funciones y estado del historial
  */

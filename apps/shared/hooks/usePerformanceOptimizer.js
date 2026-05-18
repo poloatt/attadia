@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useEffect } from 'react';
+import { useCallback, useMemo, useRef, useEffect, useState } from 'react';
 import logger from '../utils/logger.js';
 
 // Hook para optimizar performance y evitar re-renders innecesarios
@@ -121,13 +121,6 @@ export function useSearchOptimizer(items, searchTerm, searchFields) {
   return searchResults;
 }
 
-// Función para importar useState si no está disponible
-function useState(initialValue) {
-  const [state, setState] = React.useState(initialValue);
-  return [state, setState];
-}
-
-// Función para importar useDebounce si no está disponible
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
 

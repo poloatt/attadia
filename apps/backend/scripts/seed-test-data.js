@@ -2,7 +2,7 @@
 import mongoose from 'mongoose';
 import { 
   Users, Roles, Monedas, Cuentas, Propiedades, Habitaciones, Inquilinos, 
-  Contratos, Transacciones, Inventarios, Tareas, Proyectos, Objetivos 
+  Contratos, Transacciones, Inventarios, Tareas, Objetivos 
 } from '../src/models/index.js';
 import { faker } from '@faker-js/faker';
 
@@ -17,8 +17,7 @@ const N_INQUILINOS = 8;
 const N_CONTRATOS = 6;
 const N_INVENTARIOS = 25;
 const N_TAREAS = 12;
-const N_PROYECTOS = 4;
-const N_OBJETIVOS = 6;
+const N_OBJETIVOS = 4;
 const N_TRANSACCIONES = 30;
 
 const ADMIN_EMAIL = 'Odell14@yahoo.com';
@@ -44,7 +43,6 @@ const main = async () => {
       Contratos.deleteMany({}),
       Inventarios.deleteMany({}),
       Tareas.deleteMany({}),
-      Proyectos.deleteMany({}),
       Objetivos.deleteMany({}),
       Transacciones.deleteMany({}),
     ]);
@@ -264,11 +262,11 @@ const main = async () => {
     }
     console.log('📦 Inventarios creados:', inventarios.length);
 
-    // Crear proyectos (al menos 1 del admin)
-    const proyectos = [];
-    for (let i = 0; i < N_PROYECTOS; i++) {
+    // Crear objetivos (contenedores de tareas, al menos 1 del admin)
+    const objetivos = [];
+    for (let i = 0; i < N_OBJETIVOS; i++) {
       const propiedad = i === 0 ? propiedades[0] : faker.helpers.arrayElement(propiedades);
-      proyectos.push(await Proyectos.create({
+      objetivos.push(await Objetivos.create({
         usuario: propiedad.usuario,
         nombre: faker.company.catchPhrase(),
         descripcion: faker.lorem.paragraph(),
@@ -281,12 +279,12 @@ const main = async () => {
         propiedad: propiedad._id
       }));
     }
-    console.log('📋 Proyectos creados:', proyectos.length);
+    console.log('🎯 Objetivos creados:', objetivos.length);
 
     // Crear tareas (al menos 2 del admin)
     const tareas = [];
     for (let i = 0; i < N_TAREAS; i++) {
-      const proyecto = i < 2 ? proyectos[0] : faker.helpers.arrayElement(proyectos);
+      const objetivo = i < 2 ? objetivos[0] : faker.helpers.arrayElement(objetivos);
       tareas.push(await Tareas.create({
         titulo: faker.lorem.sentence(),
         descripcion: faker.lorem.paragraph(),
@@ -294,36 +292,14 @@ const main = async () => {
         fechaInicio: faker.date.past(),
         fechaFin: faker.date.future(),
         fechaVencimiento: faker.date.future(),
-        proyecto: proyecto._id,
-        usuario: proyecto.usuario,
+        objetivo: objetivo._id,
+        usuario: objetivo.usuario,
         prioridad: faker.helpers.arrayElement(['BAJA', 'ALTA']),
         completada: false,
         orden: i
       }));
     }
     console.log('✅ Tareas creadas:', tareas.length);
-
-    // Crear objetivos (al menos 2 del admin)
-    const objetivos = [];
-    for (let i = 0; i < N_OBJETIVOS; i++) {
-      const propiedad = i < 2 ? propiedades[0] : faker.helpers.arrayElement(propiedades);
-      objetivos.push(await Objetivos.create({
-        titulo: faker.lorem.sentence(),
-        descripcion: faker.lorem.paragraph(),
-        tipo: faker.helpers.arrayElement(['FINANCIERO', 'MANTENIMIENTO', 'OCUPACION', 'MEJORA', 'OTRO']),
-        estado: faker.helpers.arrayElement(['PENDIENTE', 'EN_PROGRESO', 'COMPLETADO', 'CANCELADO']),
-        fechaInicio: faker.date.past(),
-        fechaObjetivo: faker.date.future(),
-        metrica: {
-          actual: faker.number.int({ min: 0, max: 100 }),
-          objetivo: faker.number.int({ min: 100, max: 1000 }),
-          unidad: faker.helpers.arrayElement(['%', 'USD', 'días', 'unidades'])
-        },
-        propiedad: propiedad._id,
-        usuario: propiedad.usuario
-      }));
-    }
-    console.log('🎯 Objetivos creados:', objetivos.length);
 
     // Crear transacciones (al menos 3 en cuentas del admin)
     for (let i = 0; i < N_TRANSACCIONES; i++) {

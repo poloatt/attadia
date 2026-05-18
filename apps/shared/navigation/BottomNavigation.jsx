@@ -22,11 +22,12 @@ export default function BottomNavigation() {
   // Obtener los menús de nivel 1 del módulo activo y ordenarlos según el orden especificado
   const allItems = moduloActivo?.subItems || [];
   
-  // Ordenar items: Rutinas, Agenda (tareas), Proyectos
+  // Orden alineado con TiempoToolbarRight: Foco, objetivos, Tareas
   const orderMap = {
-    'rutinas': 1,
-    'tareas': 2,
-    'proyectos': 3
+    foco: 1,
+    objetivos: 2,
+    tareas: 3,
+    rutinas: 4,
   };
   
   const navItems = allItems.sort((a, b) => {

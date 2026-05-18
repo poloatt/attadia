@@ -11,7 +11,7 @@ const subtareaSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  // Campos para sincronización con Google Tasks
+  // @deprecated Subtareas viven en el campo notes de la tarea padre en Google Tasks (no como Tasks hijas).
   googleTaskId: {
     type: String,
     default: null
@@ -37,6 +37,11 @@ const tareaSchema = createSchema({
     type: String,
     enum: ['PENDIENTE', 'EN_PROGRESO', 'COMPLETADA'],
     default: 'PENDIENTE'
+  },
+  tipo: {
+    type: String,
+    enum: ['TAREA', 'EVENTO'],
+    default: 'TAREA',
   },
   fechaInicio: {
     type: Date,
@@ -68,11 +73,24 @@ const tareaSchema = createSchema({
     }
   },
   subtareas: [subtareaSchema],
-  proyecto: {
+  objetivo: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Proyectos',
+    ref: 'Objetivos',
     required: false
   },
+  serieId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'TareaSeries',
+    default: null,
+  },
+  esExcepcionSerie: {
+    type: Boolean,
+    default: false,
+  },
+  /** Fechas due históricas vistas en sync (Google solo expone la actual). */
+  googleDueHistory: [{
+    type: Date,
+  }],
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Users',
@@ -106,9 +124,10 @@ const tareaSchema = createSchema({
     googleTaskId: String, // ID único de la tarea en Google Tasks
     googleTaskListId: String, // ID de la lista en Google Tasks donde está la tarea
     
-    // Campos de posición y jerarquía (para subtareas)
+    // Campos de posición y jerarquía
     position: String, // Posición de la tarea en la lista (para ordenamiento)
-    parent: String, // ID de la tarea padre (si es subtarea)
+    /** @deprecated Modelo notes-only: las subtareas no se exportan como tasks hijas con parent. */
+    parent: String,
     
     // Campos de fechas según Google Tasks
     completed: Date, // Fecha y hora de finalización (cuando se marca como completada)
@@ -182,16 +201,6 @@ tareaSchema.methods.toGoogleTaskFormat = function() {
   };
 };
 
-// Método para convertir subtareas a formato Google Tasks
-tareaSchema.methods.getSubtareasForGoogle = function() {
-  return this.subtareas.map((subtarea, index) => ({
-    title: subtarea.titulo,
-    status: subtarea.completada ? 'completed' : 'needsAction',
-    parent: this.googleTasksSync?.googleTaskId, // La tarea principal es el parent
-    position: String(index).padStart(20, '0') // Posición para ordenamiento
-  }));
-};
-
 // Método para verificar si la sincronización está bloqueada por timeout
 tareaSchema.methods.isSyncTimedOut = function() {
   if (this.googleTasksSync?.syncStatus !== 'syncing') return false;
@@ -212,8 +221,56 @@ tareaSchema.methods.clearSyncTimeout = function() {
   }
 };
 
+// Fusiona subtareas parseadas desde el campo notes de Google Tasks
+tareaSchema.methods.mergeSubtareasFromParsed = function(parsedSubtareas = []) {
+  if (!parsedSubtareas.length) {
+    return;
+  }
+  const normalize = (s) =>
+    String(s || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+  const merged = [...(this.subtareas || [])];
+  for (const incoming of parsedSubtareas) {
+    const norm = normalize(incoming.titulo);
+    const found = merged.find((st) => normalize(st.titulo) === norm);
+    if (found) {
+      found.titulo = incoming.titulo;
+      found.completada = incoming.completada;
+      found.lastSyncDate = new Date();
+    } else {
+      merged.push({
+        titulo: incoming.titulo,
+        completada: incoming.completada,
+        lastSyncDate: new Date()
+      });
+    }
+  }
+  const parsedNorms = new Set(parsedSubtareas.map((s) => normalize(s.titulo)));
+  this.subtareas = merged.filter((st) => parsedNorms.has(normalize(st.titulo)));
+};
+
+tareaSchema.methods.recordGoogleDueSnapshot = function recordGoogleDueSnapshot(dueDate) {
+  if (!dueDate || isNaN(dueDate.getTime())) return;
+  const history = Array.isArray(this.googleDueHistory) ? [...this.googleDueHistory] : [];
+  const exists = history.some((d) => {
+    const prev = d instanceof Date ? d : new Date(d);
+    return (
+      prev.getFullYear() === dueDate.getFullYear()
+      && prev.getMonth() === dueDate.getMonth()
+      && prev.getDate() === dueDate.getDate()
+    );
+  });
+  if (!exists) {
+    history.push(dueDate);
+    this.googleDueHistory = history;
+  }
+};
+
 // Método para actualizar desde Google Tasks
-tareaSchema.methods.updateFromGoogleTask = function(googleTask) {
+tareaSchema.methods.updateFromGoogleTask = function(googleTask, parsedNotes = null) {
   // Limpiar título: remover prefijos entre corchetes y espacios extra
   const cleanedTitle = String(googleTask.title || this.titulo || 'Tarea importada')
     .replace(/^\s*(\[[^\]]+\]\s*)+/g, '')
@@ -221,12 +278,26 @@ tareaSchema.methods.updateFromGoogleTask = function(googleTask) {
     .replace(/\s{2,}/g, ' ')
     .trim();
   this.titulo = cleanedTitle || 'Tarea importada';
-  this.descripcion = googleTask.notes || this.descripcion;
+
+  if (parsedNotes) {
+    this.descripcion = parsedNotes.descripcion ?? '';
+    if (parsedNotes.subtareas?.length) {
+      this.mergeSubtareasFromParsed(parsedNotes.subtareas);
+    }
+  } else {
+    this.descripcion = googleTask.notes || this.descripcion;
+  }
+
   this.completada = googleTask.status === 'completed';
   this.estado = googleTask.status === 'completed' ? 'COMPLETADA' : 'PENDIENTE';
   
   if (googleTask.due) {
-    this.fechaVencimiento = new Date(googleTask.due);
+    const dueDate = this.constructor.parseGoogleDueDate(googleTask.due);
+    if (dueDate) {
+      this.recordGoogleDueSnapshot(dueDate);
+      this.fechaVencimiento = dueDate;
+      this.fechaInicio = dueDate;
+    }
   }
   
   // Actualizar campos de Google Tasks
@@ -235,7 +306,7 @@ tareaSchema.methods.updateFromGoogleTask = function(googleTask) {
   this.googleTasksSync.googleTaskId = googleTask.id;
   this.googleTasksSync.updated = googleTask.updated ? new Date(googleTask.updated) : new Date();
   this.googleTasksSync.completed = googleTask.completed ? new Date(googleTask.completed) : null;
-  this.googleTasksSync.parent = googleTask.parent || null;
+  this.googleTasksSync.parent = null;
   this.googleTasksSync.position = googleTask.position || null;
   this.googleTasksSync.etag = googleTask.etag || null;
   this.googleTasksSync.selfLink = googleTask.selfLink || null;
@@ -257,7 +328,8 @@ tareaSchema.pre('save', function(next) {
   }
 
   // Validar que la fecha de inicio no sea anterior a hoy si es nueva tarea
-  if (this.isNew && this.fechaInicio < today) {
+  // (excepto instancias de series: deben conservar la fecha de ocurrencia para el calendario)
+  if (this.isNew && !this.serieId && this.fechaInicio < today) {
     this.fechaInicio = today;
   }
 
@@ -351,24 +423,72 @@ tareaSchema.pre('findOneAndUpdate', async function() {
       }
     }
   }
+
+  const patch = update.$set || update;
+  const newObjetivoId = patch.objetivo;
+  if (
+    newObjetivoId
+    && docToUpdate.objetivo
+    && String(newObjetivoId) !== String(docToUpdate.objetivo)
+  ) {
+    const Objetivos = mongoose.model('Objetivos');
+    const objetivo = await Objetivos.findById(newObjetivoId);
+    const listId = objetivo?.googleTasksSync?.googleTaskListId;
+    if (listId) {
+      const applyField = (key, value) => {
+        if (update.$set) {
+          update.$set[key] = value;
+        } else {
+          update[key] = value;
+        }
+      };
+      applyField('googleTasksSync.googleTaskListId', listId);
+      const syncEnabled = patch.googleTasksSync?.enabled
+        ?? docToUpdate.googleTasksSync?.enabled;
+      if (syncEnabled) {
+        applyField('googleTasksSync.needsSync', true);
+        applyField('googleTasksSync.syncStatus', 'pending');
+      }
+    }
+  }
 });
 
-// Middleware para validar que el proyecto pertenezca al usuario
+// Middleware para validar que el objetivo pertenezca al usuario
 tareaSchema.pre('save', async function(next) {
-  if (this.isNew || this.isModified('proyecto')) {
+  if (this.objetivo && (this.isNew || this.isModified('objetivo'))) {
     try {
-      const Proyectos = mongoose.model('Proyectos');
-      const proyecto = await Proyectos.findById(this.proyecto);
-      
-      if (!proyecto) {
-        throw new Error('El proyecto especificado no existe');
+      const Objetivos = mongoose.model('Objetivos');
+      const objetivo = await Objetivos.findById(this.objetivo);
+
+      if (!objetivo) {
+        throw new Error('El objetivo especificado no existe');
       }
-      
-      if (proyecto.usuario.toString() !== this.usuario.toString()) {
-        throw new Error('La tarea debe pertenecer al mismo usuario que el proyecto');
+
+      if (objetivo.usuario.toString() !== this.usuario.toString()) {
+        throw new Error('La tarea debe pertenecer al mismo usuario que el objetivo');
+      }
+
+      const listId = objetivo.googleTasksSync?.googleTaskListId;
+      if (listId) {
+        if (!this.googleTasksSync) {
+          this.googleTasksSync = { enabled: false };
+        }
+        const prevListId = this.googleTasksSync.googleTaskListId;
+        this.googleTasksSync.googleTaskListId = listId;
+        if (
+          !this.isNew
+          && this.isModified('objetivo')
+          && prevListId
+          && prevListId !== listId
+          && this.googleTasksSync.enabled
+        ) {
+          this.googleTasksSync.needsSync = true;
+          this.googleTasksSync.syncStatus = 'pending';
+          this.googleTasksSync.localVersion = (this.googleTasksSync.localVersion || 0) + 1;
+        }
       }
     } catch (error) {
-      next(error);
+      return next(error);
     }
   }
   next();
@@ -415,11 +535,12 @@ tareaSchema.pre('save', function(next) {
   next();
 });
 
-// Middleware para actualizar el estado del proyecto cuando cambia el estado de la tarea
+// Middleware para actualizar el estado del objetivo cuando cambia el estado de la tarea
 tareaSchema.post('save', async function() {
+  if (!this.objetivo) return;
   try {
-    const Proyectos = mongoose.model('Proyectos');
-    const tareas = await mongoose.model('Tareas').find({ proyecto: this.proyecto });
+    const Objetivos = mongoose.model('Objetivos');
+    const tareas = await mongoose.model('Tareas').find({ objetivo: this.objetivo });
     
     const todasCompletadas = tareas.every(tarea => tarea.estado === 'COMPLETADA');
     const algunaEnProgreso = tareas.some(tarea => tarea.estado === 'EN_PROGRESO' || tarea.estado === 'COMPLETADA');
@@ -431,10 +552,25 @@ tareaSchema.post('save', async function() {
       nuevoEstado = 'EN_PROGRESO';
     }
     
-    await Proyectos.findByIdAndUpdate(this.proyecto, { estado: nuevoEstado });
+    await Objetivos.findByIdAndUpdate(this.objetivo, { estado: nuevoEstado });
   } catch (error) {
-    console.error('Error al actualizar estado del proyecto:', error);
+    console.error('Error al actualizar estado del objetivo:', error);
   }
 });
+
+/** Fecha de Google Tasks (suele ser YYYY-MM-DD en UTC) → mediodía local para la agenda. */
+tareaSchema.statics.parseGoogleDueDate = function parseGoogleDueDate(due) {
+  if (!due) return null;
+  const raw = String(due);
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    const y = Number(match[1]);
+    const m = Number(match[2]);
+    const d = Number(match[3]);
+    return new Date(y, m - 1, d, 12, 0, 0, 0);
+  }
+  const dt = new Date(due);
+  return isNaN(dt.getTime()) ? null : dt;
+};
 
 export const Tareas = mongoose.model('Tareas', tareaSchema); 

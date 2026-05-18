@@ -13,7 +13,12 @@ import currentConfig from '../config/envConfig';
  */
 export function findActiveModule(currentPath) {
   if (!currentPath) return null;
-  
+
+  const focoLegacyPrefixes = ['/rutinas', '/archivo'];
+  if (focoLegacyPrefixes.some((p) => currentPath === p || currentPath.startsWith(`${p}/`))) {
+    return modulos.find((m) => m.id === 'tiempo') || null;
+  }
+
   return modulos.find(modulo =>
     modulo.subItems?.some(sub => currentPath.startsWith(sub.path)) ||
     currentPath.startsWith(modulo.path)
@@ -134,7 +139,7 @@ export function getBreadcrumbInfo(currentPath) {
 
 const ATTA_PATHS = ['/finanzas', '/propiedades'];
 const PULSO_PATHS = ['/datacorporal', '/dieta', '/lab'];
-const FOCO_PATHS = ['/rutinas', '/proyectos', '/tareas', '/archivo', '/configuracion'];
+const FOCO_PATHS = ['/foco', '/rutinas', '/objetivos', '/tareas', '/archivo', '/configuracion'];
 
 const PORT_APP_MAPPING = {
   '5174': 'atta',

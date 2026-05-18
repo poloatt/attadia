@@ -1,5 +1,5 @@
 import { BaseController } from './BaseController.js';
-import { Tareas, Subtareas, Proyectos } from '../models/index.js';
+import { Tareas, Subtareas, Objetivos } from '../models/index.js';
 import mongoose from 'mongoose';
 
 class TareasController extends BaseController {
@@ -8,7 +8,7 @@ class TareasController extends BaseController {
       searchFields: ['titulo', 'descripcion'],
       defaultPopulate: [
         { 
-          path: 'proyecto',
+          path: 'objetivo',
           select: 'nombre descripcion estado'
         },
         {
@@ -19,7 +19,7 @@ class TareasController extends BaseController {
     });
 
     // Bind de los métodos al contexto de la instancia
-    this.getByProyecto = this.getByProyecto.bind(this);
+    this.getByObjetivo = this.getByObjetivo.bind(this);
     this.getAllAdmin = this.getAllAdmin.bind(this);
     this.getAdminStats = this.getAdminStats.bind(this);
     this.updateSubtareas = this.updateSubtareas.bind(this);
@@ -27,12 +27,41 @@ class TareasController extends BaseController {
     this.removeSubtarea = this.removeSubtarea.bind(this);
     this.create = this.create.bind(this);
     this.updateEstado = this.updateEstado.bind(this);
+    this.getAgenda = this.getAgenda.bind(this);
   }
 
-  // GET /api/tareas/proyecto/:proyectoId
-  async getByProyecto(req, res) {
+  // GET /api/tareas/agenda?from=ISO&to=ISO — tareas + instancias de series en el rango visible
+  async getAgenda(req, res) {
     try {
-      const { proyectoId } = req.params;
+      const { from, to } = req.query;
+      if (!from || !to) {
+        return res.status(400).json({ error: 'Parámetros from y to son requeridos (ISO)' });
+      }
+
+      const rangeFrom = new Date(from);
+      const rangeTo = new Date(to);
+      if (Number.isNaN(rangeFrom.getTime()) || Number.isNaN(rangeTo.getTime())) {
+        return res.status(400).json({ error: 'Fechas from/to no válidas' });
+      }
+
+      const { getTareasForAgendaRange } = await import('../utils/tareasAgendaUtils.js');
+      const docs = await getTareasForAgendaRange(
+        req.user.id,
+        rangeFrom,
+        rangeTo,
+      );
+
+      res.json({ docs, totalDocs: docs.length });
+    } catch (error) {
+      console.error('Error getAgenda:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // GET /api/tareas/objetivo/:objetivoId
+  async getByObjetivo(req, res) {
+    try {
+      const { objetivoId } = req.params;
       const { 
         page = 1, 
         limit = 10, 
@@ -41,7 +70,7 @@ class TareasController extends BaseController {
       } = req.query;
 
       const query = { 
-        proyecto: proyectoId,
+        objetivo: objetivoId,
         usuario: req.user.id 
       };
 
@@ -51,13 +80,13 @@ class TareasController extends BaseController {
         page: parseInt(page),
         limit: parseInt(limit),
         sort,
-        populate: ['proyecto']
+        populate: ['objetivo']
       };
 
       const result = await this.Model.paginate(query, options);
       res.json(result);
     } catch (error) {
-      console.error('Error en getByProyecto:', error);
+      console.error('Error en getByObjetivo:', error);
       res.status(500).json({ error: error.message });
     }
   }
@@ -101,23 +130,23 @@ class TareasController extends BaseController {
         }
       ]);
 
-      const tareasPorProyecto = await this.Model.aggregate([
+      const tareasPorObjetivo = await this.Model.aggregate([
         {
           $group: {
-            _id: '$proyecto',
+            _id: '$objetivo',
             count: { $sum: 1 }
           }
         },
         {
           $lookup: {
-            from: 'proyectos',
+            from: 'objetivos',
             localField: '_id',
             foreignField: '_id',
-            as: 'proyecto'
+            as: 'objetivo'
           }
         },
         {
-          $unwind: '$proyecto'
+          $unwind: '$objetivo'
         }
       ]);
 
@@ -134,7 +163,7 @@ class TareasController extends BaseController {
         totalTareas,
         tareasPorEstado,
         tareasPorPrioridad,
-        tareasPorProyecto,
+        tareasPorObjetivo,
         subtareasStats
       });
     } catch (error) {
@@ -152,27 +181,64 @@ class TareasController extends BaseController {
         return res.status(401).json({ error: 'Usuario no autenticado' });
       }
 
-      // Validar que el proyecto exista y pertenezca al usuario (solo si se especifica proyecto)
-      if (req.body.proyecto) {
-        const proyecto = await Proyectos.findOne({
-          _id: req.body.proyecto,
+      // Validar que el objetivo exista y pertenezca al usuario (solo si se especifica objetivo)
+      if (req.body.objetivo) {
+        const objetivo = await Objetivos.findOne({
+          _id: req.body.objetivo,
           usuario: req.user.id
         });
 
-        if (!proyecto) {
-          return res.status(404).json({ error: 'El proyecto no existe o no pertenece al usuario' });
+        if (!objetivo) {
+          return res.status(404).json({ error: 'El objetivo no existe o no pertenece al usuario' });
+        }
+      }
+
+      const tipo = String(req.body.tipo || 'TAREA').toUpperCase();
+      const normalizedTipo = tipo === 'EVENTO' ? 'EVENTO' : 'TAREA';
+
+      const { rrule, ...tareaBody } = req.body;
+
+      if (rrule && tareaBody.objetivo) {
+        const { createSerie } = await import('./tareaSeriesController.js');
+        const mockRes = {
+          statusCode: 201,
+          body: null,
+          status(c) { this.statusCode = c; return this; },
+          json(d) { this.body = d; return d; },
+        };
+        await createSerie(
+          {
+            user: req.user,
+            body: {
+              titulo: tareaBody.titulo,
+              descripcion: tareaBody.descripcion,
+              objetivo: tareaBody.objetivo,
+              rrule,
+              dtstart: tareaBody.fechaInicio,
+              primeraInstancia: { ...tareaBody, tipo: normalizedTipo },
+            },
+          },
+          mockRes,
+        );
+        if (mockRes.statusCode === 201 && mockRes.body?.primeraInstancia) {
+          const saved = mockRes.body.primeraInstancia;
+          return res.status(201).json({
+            ...(saved.toObject ? saved.toObject() : saved),
+            isGoogleTasksEnabled: saved.googleTasksSync?.enabled || false,
+          });
         }
       }
 
       const tarea = new this.Model({
-        ...req.body,
-        usuario: req.user.id
+        ...tareaBody,
+        tipo: normalizedTipo,
+        usuario: req.user.id,
       });
 
       await tarea.save();
       await tarea.populate([
         { 
-          path: 'proyecto',
+          path: 'objetivo',
           select: 'nombre descripcion estado googleTasksSync'
         },
         {
@@ -309,7 +375,7 @@ class TareasController extends BaseController {
         const tareaActualizada = await this.Model.findById(id)
           .populate([
             { 
-              path: 'proyecto',
+              path: 'objetivo',
               select: 'nombre descripcion estado'
             },
             {
@@ -318,22 +384,22 @@ class TareasController extends BaseController {
             }
           ]);
 
-        // Actualizar el proyecto si es necesario
-        const Proyectos = mongoose.model('Proyectos');
-        const proyecto = await Proyectos.findById(tarea.proyecto);
-        if (proyecto) {
-          const tareasDelProyecto = await this.Model.find({ proyecto: proyecto._id });
-          const todasTareasCompletadas = tareasDelProyecto.every(t => t.estado === 'COMPLETADA');
-          const algunaTareaEnProgreso = tareasDelProyecto.some(t => t.estado === 'EN_PROGRESO' || t.estado === 'COMPLETADA');
+        // Actualizar el objetivo si es necesario
+        const Objetivos = mongoose.model('Objetivos');
+        const objetivo = await Objetivos.findById(tarea.objetivo);
+        if (objetivo) {
+          const tareasDelObjetivo = await this.Model.find({ objetivo: objetivo._id });
+          const todasTareasCompletadas = tareasDelObjetivo.every(t => t.estado === 'COMPLETADA');
+          const algunaTareaEnProgreso = tareasDelObjetivo.some(t => t.estado === 'EN_PROGRESO' || t.estado === 'COMPLETADA');
           
-          let nuevoEstadoProyecto = 'PENDIENTE';
+          let nuevoEstadoObjetivo = 'PENDIENTE';
           if (todasTareasCompletadas) {
-            nuevoEstadoProyecto = 'COMPLETADO';
+            nuevoEstadoObjetivo = 'COMPLETADO';
           } else if (algunaTareaEnProgreso) {
-            nuevoEstadoProyecto = 'EN_PROGRESO';
+            nuevoEstadoObjetivo = 'EN_PROGRESO';
           }
           
-          await Proyectos.findByIdAndUpdate(proyecto._id, { estado: nuevoEstadoProyecto });
+          await Objetivos.findByIdAndUpdate(objetivo._id, { estado: nuevoEstadoObjetivo });
         }
 
         return res.json(tareaActualizada);
@@ -347,7 +413,7 @@ class TareasController extends BaseController {
       const tareaActualizada = await this.Model.findById(id)
         .populate([
           { 
-            path: 'proyecto',
+            path: 'objetivo',
             select: 'nombre descripcion estado'
           },
           {
@@ -367,19 +433,31 @@ class TareasController extends BaseController {
   async updateEstado(req, res) {
     try {
       const { estado } = req.body;
-      
+
       if (!['PENDIENTE', 'EN_PROGRESO', 'COMPLETADA'].includes(estado)) {
         return res.status(400).json({ error: 'Estado no válido' });
       }
 
+      const update = { estado, completada: estado === 'COMPLETADA' };
+
       const tarea = await this.Model.findOneAndUpdate(
         { _id: req.params.id, usuario: req.user.id },
-        { estado },
-        { new: true, runValidators: true }
+        update,
+        { new: true, runValidators: true },
       );
 
       if (!tarea) {
         return res.status(404).json({ error: 'Tarea no encontrada' });
+      }
+
+      if (estado === 'COMPLETADA' && tarea.serieId && !tarea.esExcepcionSerie) {
+        try {
+          const { default: googleTasksService } = await import('../services/googleTasksService.js');
+          const { generateNextSerieInstance } = await import('../services/googleTasksRecurrenceService.js');
+          await generateNextSerieInstance(googleTasksService, tarea, req.user.id);
+        } catch (serieErr) {
+          console.warn('No se pudo generar siguiente ocurrencia de serie:', serieErr.message);
+        }
       }
 
       res.json(tarea);
@@ -396,8 +474,9 @@ class TareasController extends BaseController {
         limit = 50, // Aumentamos el límite para mostrar más tareas
         sort = 'fechaInicio', // Ordenar por fecha de inicio por defecto
         estado,
-        proyecto,
-        periodo
+        objetivo,
+        periodo,
+        tipo,
       } = req.query;
 
       const query = { usuario: req.user.id };
@@ -405,7 +484,10 @@ class TareasController extends BaseController {
       today.setHours(0, 0, 0, 0);
 
       if (estado) query.estado = estado;
-      if (proyecto) query.proyecto = proyecto;
+      if (objetivo) query.objetivo = objetivo;
+      if (tipo && ['TAREA', 'EVENTO'].includes(String(tipo).toUpperCase())) {
+        query.tipo = String(tipo).toUpperCase();
+      }
 
       // Filtrar por período si se especifica
       if (periodo) {
@@ -445,7 +527,7 @@ class TareasController extends BaseController {
         sort,
         populate: [
           { 
-            path: 'proyecto',
+            path: 'objetivo',
             select: 'nombre estado' // Reducir campos innecesarios
           },
           {
@@ -462,9 +544,9 @@ class TareasController extends BaseController {
       const transformedDocs = result.docs.map(doc => ({
         ...doc,
         id: doc._id.toString(),
-        proyecto: doc.proyecto ? {
-          ...doc.proyecto,
-          id: doc.proyecto._id.toString()
+        objetivo: doc.objetivo ? {
+          ...doc.objetivo,
+          id: doc.objetivo._id.toString()
         } : null,
         // Solo incluir información esencial de sincronización
         isGoogleTasksEnabled: doc.googleTasksSync?.enabled || false,

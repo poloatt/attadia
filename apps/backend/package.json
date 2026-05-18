@@ -10,10 +10,12 @@
     "start-simple": "node src/index-simple.js",
     "dev": "set NODE_ENV=development && nodemon src/index.js",
     "prod": "set NODE_ENV=production && node src/index.js",
-    "lint": "eslint src/**/*.js",
-    "test": "jest",
-    "test:prod": "set NODE_ENV=production && jest",
-    "cleanup-google-tokens": "node scripts/cleanup-invalid-google-tokens.js"
+    "lint": "eslint src",
+    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js",
+    "test:prod": "set NODE_ENV=production && node --experimental-vm-modules ../../node_modules/jest/bin/jest.js",
+    "cleanup-google-tokens": "node scripts/cleanup-invalid-google-tokens.js",
+    "cleanup-serie-duplicates": "node scripts/cleanup-serie-instance-duplicates.js",
+    "cleanup-serie-duplicates:apply": "node scripts/cleanup-serie-instance-duplicates.js --dry-run=false"
   },
   "keywords": [],
   "author": "",
@@ -31,7 +33,6 @@
     "express-rate-limit": "^7.5.0",
     "express-session": "^1.18.1",
     "express-validator": "^7.2.1",
-    "faker": "^6.6.6",
     "googleapis": "^131.0.0",
     "jsonwebtoken": "^9.0.2",
     "mercadopago": "^2.8.0",
@@ -43,6 +44,7 @@
     "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
+    "rrule": "^2.8.1",
     "uuid": "^11.1.0"
   },
   "devDependencies": {

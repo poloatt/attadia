@@ -2,6 +2,10 @@ import cron from 'node-cron';
 import { Users } from '../models/index.js';
 import googleTasksService from './googleTasksService.js';
 
+/**
+ * Cron global del servidor: start/stop desde la UI afecta a todos los usuarios
+ * en esta instancia, pero cada usuario se sincroniza en serie con credenciales aisladas.
+ */
 class AutoSyncService {
   constructor() {
     this.isRunning = false;
@@ -21,8 +25,12 @@ class AutoSyncService {
 
     console.log(`🔄 Iniciando sincronización automática cada 15 minutos`);
     
-    this.job = cron.schedule(this.syncInterval, async () => {
-      await this.performAutoSync();
+    this.job = cron.schedule(this.syncInterval, () => {
+      // Ejecutar sincronización de forma no bloqueante para no afectar health checks
+      // Usar setImmediate para asegurar que el event loop no se bloquee
+      setImmediate(async () => {
+        await this.performAutoSync();
+      });
     }, {
       scheduled: true,
       timezone: 'America/Santiago'
@@ -84,6 +92,7 @@ class AutoSyncService {
    * Realiza la sincronización automática para todos los usuarios con Google Tasks habilitado
    */
   async performAutoSync() {
+    const syncStartTime = Date.now();
     try {
       console.log('🔄 Iniciando sincronización automática...');
       
@@ -100,45 +109,41 @@ class AutoSyncService {
 
       console.log(`👥 Encontrados ${users.length} usuarios para sincronizar`);
 
-      // Sincronizar cada usuario (con protección contra sincronizaciones muy frecuentes)
-      const results = await Promise.allSettled(
-        users.map(async (user) => {
-          try {
-            const userId = user._id.toString();
-            const lastSyncTime = this.lastSyncTimes.get(userId);
-            const now = new Date();
-            
-            // No sincronizar si la última sincronización fue hace menos de 10 minutos
-            if (lastSyncTime && (now - lastSyncTime) < 10 * 60 * 1000) {
-              console.log(`⏭️ Saltando usuario ${user.email} - sincronizado hace menos de 10 minutos`);
-              return { userId: user._id, email: user.email, success: true, skipped: true };
-            }
+      // Sincronizar usuarios en serie (evita mezclar credenciales OAuth entre usuarios)
+      const results = [];
+      for (const user of users) {
+        try {
+          const userId = user._id.toString();
+          const lastSyncTime = this.lastSyncTimes.get(userId);
+          const now = new Date();
 
-            console.log(`🔄 Sincronizando usuario: ${user.email}`);
-            const result = await googleTasksService.fullSyncWithUser(user);
-            
-            // Actualizar tiempo de última sincronización
-            this.lastSyncTimes.set(userId, now);
-            
-            console.log(`✅ Usuario ${user.email} sincronizado exitosamente`);
-            return { userId: user._id, email: user.email, success: true, result };
-          } catch (error) {
-            console.error(`❌ Error sincronizando usuario ${user.email}:`, error.message);
-            return { userId: user._id, email: user.email, success: false, error: error.message };
+          if (lastSyncTime && (now - lastSyncTime) < 10 * 60 * 1000) {
+            console.log(`⏭️ Saltando usuario ${user.email} - sincronizado hace menos de 10 minutos`);
+            results.push({ status: 'fulfilled', value: { userId: user._id, email: user.email, success: true, skipped: true } });
+            continue;
           }
-        })
-      );
 
-      // Resumen de resultados
+          console.log(`🔄 Sincronizando usuario: ${user.email}`);
+          const result = await googleTasksService.fullSyncWithUser(user);
+          this.lastSyncTimes.set(userId, now);
+          console.log(`✅ Usuario ${user.email} sincronizado exitosamente`);
+          results.push({ status: 'fulfilled', value: { userId: user._id, email: user.email, success: true, result } });
+        } catch (error) {
+          console.error(`❌ Error sincronizando usuario ${user.email}:`, error.message);
+          results.push({ status: 'fulfilled', value: { userId: user._id, email: user.email, success: false, error: error.message } });
+        }
+      }
+
       const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
       const failed = results.length - successful;
+      const syncDuration = Date.now() - syncStartTime;
 
-      console.log(`📊 Sincronización automática completada: ${successful} exitosas, ${failed} fallidas`);
+      console.log(`📊 Sincronización automática completada: ${successful} exitosas, ${failed} fallidas (duración: ${syncDuration}ms)`);
 
       // Log de errores si los hay
       const errors = results
-        .filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success))
-        .map(r => r.status === 'rejected' ? r.reason : r.value.error);
+        .filter(r => r.status === 'fulfilled' && !r.value.success)
+        .map(r => r.value.error);
 
       if (errors.length > 0) {
         console.error('❌ Errores en sincronización automática:', errors);
@@ -146,7 +151,8 @@ class AutoSyncService {
 
     } catch (error) {
       // Loggear error pero NO lanzarlo - evitar que cause reinicios
-      console.error('❌ Error crítico en sincronización automática:', error);
+      const syncDuration = Date.now() - syncStartTime;
+      console.error(`❌ Error crítico en sincronización automática (duración: ${syncDuration}ms):`, error);
       if (error.stack) {
         console.error('Stack trace:', error.stack);
       }
