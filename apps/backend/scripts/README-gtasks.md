@@ -4,11 +4,14 @@ Este runbook documenta los comandos de mantenimiento para la integración con Go
 
 ## Alcance de la integración
 
+**Attadia sincroniza Google Tasks, no Google Calendar.** La vista de semana de Google Calendar puede mostrar citas (eventos del calendario) y, si está activado, tareas con hora desde Tasks. Solo lo segundo entra por esta integración.
+
 | Sincroniza | No sincroniza |
 |------------|----------------|
-| Tareas y eventos (`Tareas`) con **objetivo** asignado | Hábitos / Rutinas (franja de iconos en Foco) |
-| Objetivo ↔ Google Task List | Tareas sin objetivo |
-| Subtareas en campo `notes` del task padre | Subtareas como tasks hijas (`parent`) en Google |
+| Tareas (`Tareas`) con **objetivo** asignado ↔ Google Task List | Eventos nativos de Google Calendar |
+| Objetivo ↔ Google Task List | Hábitos / Rutinas (franja de iconos en Foco) |
+| Subtareas en campo `notes` del task padre | Tareas sin objetivo / listas sin vínculo |
+| Tareas con `due` con hora (RFC3339) | Subtareas como tasks hijas (`parent`) en Google |
 
 ## Modelo de subtareas (notes-only)
 
@@ -49,7 +52,7 @@ API: `POST /api/tarea-series`, `PATCH /api/tarea-series/:id`, `DELETE /api/tarea
 # GTASKS_AUTO_CREATE_OBJETIVOS=true   # por defecto false: no crear Objetivo por cada TaskList nueva en Google sin vínculo local
 # GTASKS_SERIES_HORIZON_DAYS=90       # cuántos días de ocurrencias exportar por serie
 # GTASKS_SERIES_LOOKBACK_DAYS=14      # días hacia atrás al expandir (calendario)
-# GTASKS_ASSUME_GOOGLE_RECURRING_SINGLE=false  # desactivar heurística semanal si Google devuelve 1 sola fila
+# GTASKS_ASSUME_GOOGLE_RECURRING_SINGLE=true   # opt-in: inferir semanal con 1 sola fila en Google (por defecto desactivado)
 ```
 
 ## Scripts disponibles
@@ -77,6 +80,13 @@ node apps/backend/scripts/cleanup-duplicate-tasks.js --user="EMAIL|ID" --objetiv
 ```bash
 node apps/backend/scripts/cleanup-serie-instance-duplicates.js --user="EMAIL|ID" --dry-run=false
 # npm run cleanup-serie-duplicates:apply
+```
+
+- Desactivar series inferidas por heurística semanal (tras syncs con `GTASKS_ASSUME_GOOGLE_RECURRING_SINGLE=true` antiguo):
+
+```bash
+node apps/backend/scripts/cleanup-heuristic-series.js --user="EMAIL|ID" --dry-run=true
+node apps/backend/scripts/cleanup-heuristic-series.js --user="EMAIL|ID" --dry-run=false
 ```
 
 - Auditoría de consistencia (duplicados/órfanos) por objetivo:

@@ -65,7 +65,7 @@ export default function FocoTimeGrid({
   const dayTimed = timedEvents
     .filter((ev) => !ev.allDay)
     .map((ev) => clampEventToDay(ev, day))
-    .filter((ev) => isSameDay(ev.start, day) || isSameDay(ev.end, day));
+    .filter((ev) => isSameDay(ev.start, day));
 
   return (
     <Box sx={{ display: 'flex', flex: 1, minHeight: 0, width: '100%' }}>
@@ -129,9 +129,9 @@ export default function FocoTimeGrid({
 
         {showNowIndicator && isDayToday && <NowIndicator />}
 
-        {layoutTimedEventsForDay(dayTimed).map(({ event: ev, style }) => (
+        {layoutTimedEventsForDay(dayTimed).map(({ event: ev, style }, idx) => (
           <Box
-            key={ev.task._id || ev.task.id}
+            key={`${ev.task._id || ev.task.id || 'ev'}-${idx}`}
             sx={{
               position: 'absolute',
               top: style.top,

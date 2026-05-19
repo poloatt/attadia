@@ -12,6 +12,7 @@ router.get('/active', monedasController.getActive);
 router.get('/by-code/:codigo', monedasController.getByCode);
 router.get('/select-options', monedasController.getSelectOptions);
 router.get('/colores', monedasController.getColores);
+router.put('/reorder', monedasController.reorder);
 
 // Rutas base del controlador
 router.get('/', monedasController.getAll);

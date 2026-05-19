@@ -112,6 +112,24 @@ export function calcularProgresoContrato(contratos, montoMensual) {
   };
 }
 
+/** Estado principal de una propiedad (el modelo puede guardar `estado` como array). */
+export function getPropiedadEstado(propiedadOrEstado) {
+  const raw =
+    propiedadOrEstado != null &&
+    typeof propiedadOrEstado === 'object' &&
+    !Array.isArray(propiedadOrEstado) &&
+    'estado' in propiedadOrEstado
+      ? propiedadOrEstado.estado
+      : propiedadOrEstado;
+
+  if (Array.isArray(raw) && raw.length > 0) {
+    const first = raw.find((e) => e != null && e !== '');
+    return first != null ? String(first) : 'DISPONIBLE';
+  }
+  if (typeof raw === 'string' && raw) return raw;
+  return 'DISPONIBLE';
+}
+
 // Devuelve el nombre legible del tipo de habitación
 export function getNombreTipoHabitacion(tipo) {
   const tipos = {

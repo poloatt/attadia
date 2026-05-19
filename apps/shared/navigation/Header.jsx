@@ -21,7 +21,7 @@ import { Breadcrumbs } from '../utils/materialImports';
 import useResponsive from '../hooks/useResponsive';
 import { useNavigationState } from '../utils/navigationUtils';
 import { HEADER_CONFIG, NAV_TYPO } from '../config/uiConstants';
-import { isTiempoToolbarPath } from './toolbarModules';
+import { isUnifiedToolbarPath } from './unifiedBarPaths';
 import { getCenteredSectionSx } from './alignmentUtils';
 import { DynamicIcon } from '../components/common/DynamicIcon';
   import { SystemButtons, SYSTEM_ICONS, MenuButton } from '../components/common/SystemButtons';
@@ -72,7 +72,7 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
       }
     };
 
-    // Determinar si se debe mostrar el botón atrás: ocultarlo en raíz y en niveles padre del menú (ej: finanzas, bienes, etc.)
+    // Determinar si se debe mostrar el botón atrás: ocultarlo en raíz y en niveles padre del menú (ej: finanzas, propiedades, etc.)
     const shouldShowBackButton = (() => {
       const path = location.pathname;
       if (path === '/') return false;
@@ -110,7 +110,7 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
       lineHeight: 1.0,
     };
 
-    if (isTiempoToolbarPath(location.pathname)) {
+    if (isUnifiedToolbarPath(location.pathname)) {
       return null;
     }
 

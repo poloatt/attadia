@@ -32,22 +32,13 @@ import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   StoreOutlined,
-  Bed as BedIcon,
   Inventory2Outlined as InventoryIcon,
   Visibility as ViewIcon,
   InfoOutlined as InfoIcon,
   Description as DescriptionIcon,
-  // Íconos para habitaciones
-  BathtubOutlined as BathtubIcon,
-  KingBed,
-  SingleBed,
-  ChairOutlined,
-  KitchenOutlined,
-  LocalLaundryServiceOutlined,
   Folder as FolderIcon,
 } from '@mui/icons-material';
 import { getEstadoContrato, calcularDuracionTotal, getApellidoInquilinoContrato, calcularRangoMesesContrato } from '@shared/utils/contratoUtils';
-import { contarItemsPorHabitacion } from '@shared/utils/propiedadUtils';
 import { icons } from '@shared/navigation/menuIcons';
 import { getStatusIconComponent, getStatusIconComponentRaw, getEstadoColor, getEstadoText } from '@shared/components/common/StatusSystem';
 import { IconoContratoDocumentos } from '../propiedades/SeccionesPropiedad';
@@ -56,6 +47,7 @@ import EstadoFinanzasContrato from '../propiedades/contratos/EstadoFinanzasContr
 import { CuotasProvider } from './contratos';
 import { calcularEstadoCuotasContrato } from '@shared/utils/contratoUtils';
 import { SeccionUbicacion, SeccionHabitaciones, SeccionDocumentos } from '../propiedades/SeccionesPropiedad';
+import HabitacionesCarouselSection from './HabitacionesCarouselSection';
 
 
 // Constantes de estilo jerárquicas para alineación y separadores
@@ -482,43 +474,12 @@ const SECTION_CONFIGS = {
     };
   },
 
-  // Sección de habitaciones en cuadrados (especial)
-  habitaciones: (habitaciones = [], inventarios = []) => {
-    // Función para mapear tipos de habitación a íconos de Material-UI
-    const getHabitacionIcon = (tipo) => {
-      const iconMap = {
-        'BAÑO': BathtubIcon,
-        'TOILETTE': BathtubIcon,
-        'DORMITORIO_DOBLE': KingBed,
-        'DORMITORIO_SIMPLE': SingleBed,
-        'ESTUDIO': ChairOutlined,
-        'COCINA': KitchenOutlined,
-        'DESPENSA': InventoryIcon,
-        'SALA_PRINCIPAL': ChairOutlined,
-        'PATIO': HomeOutlined,
-        'JARDIN': HomeOutlined,
-        'TERRAZA': HomeOutlined,
-        'LAVADERO': LocalLaundryServiceOutlined,
-        'OTRO': BedIcon
-      };
-      return iconMap[tipo] || BedIcon;
-    };
-
-    // Usar la función centralizada para contar items por habitación
-    const habitacionesConItems = contarItemsPorHabitacion(habitaciones, inventarios);
-
-    return {
+  // Sección de ambientes (carrusel horizontal)
+  habitaciones: (habitaciones = [], inventarios = []) => ({
     type: 'habitaciones',
-      data: habitacionesConItems.map(habitacion => ({
-        icon: getHabitacionIcon(habitacion.tipo),
-      label: habitacion.tipo || 'Habitación',
-        value: habitacion.nombrePersonalizado || (habitacion.tipo?.replace('_', ' ') || 'Sin nombre').toLowerCase().replace(/\b\w/g, l => l.toUpperCase()),
-      color: habitacion.color || 'text.secondary',
-        metrosCuadrados: habitacion.metrosCuadrados,
-        itemsCount: habitacion.itemsCount
-    }))
-    };
-  }
+    habitaciones,
+    inventarios,
+  }),
 };
 
 // Componente para renderizar sección con layout izquierda/derecha
@@ -1569,193 +1530,21 @@ const InfoGrid = ({ data, config, gridSize = { xs: 4, sm: 4, md: 4, lg: 4 } }) =
   );
 };
 
-// Componente para renderizar habitaciones en cuadrados con navegación
+// Carrusel de ambientes (misma UX que Monedas en Finanzas)
 const HabitacionesRenderer = ({ section, isCollapsed = false }) => {
-  const [currentPage, setCurrentPage] = useState(0);
-  const itemsPerPage = 6;
-  const totalPages = Math.ceil(section.data.length / itemsPerPage);
-  
   if (isCollapsed) return null;
 
-  const startIndex = currentPage * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentItems = section.data.slice(startIndex, endIndex);
-
-  const handleNextPage = () => {
-    setCurrentPage((prev) => (prev + 1) % totalPages);
-  };
-
-  const handlePrevPage = () => {
-    setCurrentPage((prev) => (prev - 1 + totalPages) % totalPages);
-  };
+  const habitaciones = section.habitaciones ?? section.data ?? [];
+  const inventarios = section.inventarios ?? [];
 
   return (
-    <GeometricPaper sx={{ minHeight: '48px', position: 'relative' }}>
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: 'column',
-        height: '100%',
-        width: '100%'
-      }}>
-
-
-        {/* Grid de habitaciones */}
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, px: 1.5, py: 1, flex: 1 }}>
-          {currentItems.map((habitacion, index) => (
-            <Box
-              key={index}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5,
-                minHeight: '32px',
-                px: 0,
-                py: 0.5
-              }}
-            >
-              {/* Ícono */}
-              <Box sx={{ fontSize: '1rem', color: habitacion.color, flexShrink: 0 }}>
-                {(habitacion.icon || InfoIcon) && React.createElement(habitacion.icon || InfoIcon, { sx: { fontSize: '1rem' } })}
-              </Box>
-              {/* Contenido: nombre y metros cuadrados */}
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                minWidth: 0,
-                flex: 1
-              }}>
-              {/* Nombre */}
-              <Typography
-                variant="body2"
-                sx={{
-                  fontWeight: 500,
-                  fontSize: '0.7rem',
-                  textAlign: 'left',
-                  lineHeight: 1,
-                  overflow: 'hidden',
-                  whiteSpace: 'nowrap',
-                  textOverflow: 'ellipsis',
-                  m: 0,
-                  p: 0
-                }}
-              >
-                {habitacion.value}
-              </Typography>
-                {/* Metros cuadrados y cantidad de items */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              {habitacion.metrosCuadrados && (
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontSize: '0.6rem',
-                    color: 'text.secondary',
-                    textAlign: 'left',
-                        lineHeight: 1
-                  }}
-                >
-                  {habitacion.metrosCuadrados}m²
-                </Typography>
-              )}
-                  {habitacion.itemsCount !== undefined && (
-                    <>
-                      {habitacion.metrosCuadrados && (
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            fontSize: '0.6rem',
-                            color: 'text.secondary',
-                            lineHeight: 1
-                          }}
-                        >
-                          •
-                        </Typography>
-                      )}
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          fontSize: '0.6rem',
-                          color: 'text.secondary',
-                          textAlign: 'left',
-                          lineHeight: 1,
-                          opacity: 0.8
-                        }}
-                      >
-                        {habitacion.itemsCount} {habitacion.itemsCount === 1 ? 'item' : 'items'}
-                      </Typography>
-                    </>
-                  )}
-                </Box>
-              </Box>
-            </Box>
-          ))}
-        </Box>
-
-        {/* Navegación */}
-        {totalPages > 1 && (
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between',
-            mt: 0.5,
-            px: 1.5
-          }}>
-            {/* Botón anterior */}
-            <IconButton
-              size="small"
-              onClick={handlePrevPage}
-              sx={{
-                color: 'text.secondary',
-                p: 0.25,
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)'
-                }
-              }}
-            >
-              <ExpandMoreIcon sx={{ 
-                fontSize: '0.9rem', 
-                transform: 'rotate(90deg)' 
-              }} />
-            </IconButton>
-
-            {/* Indicadores de página */}
-            <Box sx={{ display: 'flex', gap: 0.5 }}>
-              {Array.from({ length: totalPages }).map((_, pageIndex) => (
-                <Box
-                  key={pageIndex}
-                  sx={{
-                    width: 4,
-                    height: 4,
-                    borderRadius: '50%',
-                    backgroundColor: pageIndex === currentPage 
-                      ? 'text.secondary' 
-                      : 'rgba(255, 255, 255, 0.2)',
-                    transition: 'backgroundColor 0.2s ease'
-                  }}
-                />
-              ))}
-            </Box>
-
-            {/* Botón siguiente */}
-            <IconButton
-              size="small"
-              onClick={handleNextPage}
-              sx={{
-                color: 'text.secondary',
-                p: 0.25,
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)'
-                }
-              }}
-            >
-              <ExpandMoreIcon sx={{ 
-                fontSize: '0.9rem', 
-                transform: 'rotate(-90deg)' 
-              }} />
-            </IconButton>
-          </Box>
-        )}
-      </Box>
-    </GeometricPaper>
+    <Box sx={{ px: 0.125, py: 0.25 }}>
+      <HabitacionesCarouselSection
+        habitaciones={habitaciones}
+        inventarios={inventarios}
+        emptyMessage="Sin ambientes"
+      />
+    </Box>
   );
 };
 

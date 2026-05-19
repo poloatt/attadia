@@ -1,8 +1,16 @@
 import React from 'react';
-import { TIEMPO_ICON_KEYS, TIEMPO_MODULE_ICON_KEY } from './tiempoNavConfig.js';
+import { TIEMPO_ICON_KEYS, TIEMPO_MODULE_ICON_KEY } from './tiempoIconKeys.js';
 // import { icons } from './menuIcons'; // Ya no se usa icons directamente
 
-// Nueva estructura: modulos (primer nivel = módulo raíz)
+/**
+ * Niveles de navegación:
+ * - App (Atta/Pulso/Agenda): cambio en sidebar / AppsButton
+ * - Branch (solo Atta): Finanzas | Propiedades | Inventario — conmutadores en toolbar
+ * - Page: destinos hoja (toolbar/bottom nav en la rama activa)
+ * - Subpage (opcional): hijos de una page (p. ej. recurrentes bajo Transacciones)
+ *
+ * Propiedades usa /propiedades como hub; Inventario es rama hermana en /propiedades/inventario.
+ */
 export const modulos = [
   {
     id: 'assets',
@@ -16,29 +24,70 @@ export const modulos = [
         icon: 'wallet',
         path: '/finanzas',
         subItems: [
-          { id: 'transacciones', title: 'Transacciones', path: '/finanzas/transacciones', icon: 'moneyBag', canAdd: true },
+          {
+            id: 'transacciones',
+            title: 'Transacciones',
+            path: '/finanzas/transacciones',
+            icon: 'moneyBag',
+            canAdd: true,
+            subItems: [
+              {
+                id: 'recurrente',
+                title: 'Transacciones recurrentes',
+                path: '/finanzas/recurrente',
+                icon: 'repeat',
+                canAdd: true,
+              },
+            ],
+          },
           { id: 'cuentas', title: 'Cuentas', path: '/finanzas/cuentas', icon: 'accountBalance', canAdd: true },
           { id: 'monedas', title: 'Monedas', path: '/finanzas/monedas', icon: 'currency', canAdd: true },
           { id: 'inversiones', title: 'Inversiones', path: '/finanzas/inversiones', icon: 'inversiones', isUnderConstruction: true },
           { id: 'deudores', title: 'Deudores', path: '/finanzas/deudores', icon: 'personSearch', isUnderConstruction: true },
-          { id: 'recurrente', title: 'Recurrente', path: '/finanzas/recurrente', icon: 'repeat', isUnderConstruction: true }
         ]
       },
       {
-        id: 'bienes',
-        title: 'Bienes',
-        icon: 'bienes',
+        id: 'propiedades',
+        title: 'Propiedades',
+        icon: 'apartment',
         path: '/propiedades',
         canAdd: true,
         subItems: [
           { id: 'propiedades', title: 'Propiedades', path: '/propiedades', icon: 'apartment', canAdd: true },
-          { id: 'habitaciones', title: 'Habitaciones', path: '/propiedades/habitaciones', icon: 'bed', canAdd: true },
           { id: 'contratos', title: 'Contratos', path: '/propiedades/contratos', icon: 'description', canAdd: true },
           { id: 'inquilinos', title: 'Inquilinos', path: '/propiedades/inquilinos', icon: 'person', canAdd: true },
-          { id: 'inventario', title: 'Inventario', path: '/propiedades/inventario', icon: 'inventario', isUnderConstruction: true },
-          { id: 'vehiculos', title: 'Vehículos', path: '/propiedades/autos', icon: 'auto', isUnderConstruction: true }
-        ]
-      }
+        ],
+      },
+      {
+        id: 'inventario',
+        title: 'Inventario',
+        icon: 'inventario',
+        path: '/propiedades/inventario',
+        canAdd: true,
+        subItems: [
+          {
+            id: 'inventario-en-propiedades',
+            title: 'En propiedades',
+            path: '/propiedades/inventario/en-propiedades',
+            icon: 'apartment',
+            canAdd: true,
+          },
+          {
+            id: 'vehiculos',
+            title: 'Autos',
+            path: '/propiedades/autos',
+            icon: 'auto',
+            isUnderConstruction: true,
+          },
+          {
+            id: 'inventario-sin-ubicacion',
+            title: 'Sin locación',
+            path: '/propiedades/inventario/sin-ubicacion',
+            icon: 'inventario',
+            canAdd: true,
+          },
+        ],
+      },
     ]
   },
   {

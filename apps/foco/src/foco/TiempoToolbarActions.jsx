@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
-  AddOutlined,
   CheckCircle,
   CheckCircleOutline,
   DeleteOutlined,
   TuneOutlined,
 } from '@mui/icons-material';
 import { SystemButtons } from '@shared/components/common/SystemButtons';
+import { ToolbarAddButton } from '@shared/components/common/ToolbarAddButton';
 import { matchTiempoSection } from './tiempoToolbarPaths';
 
 /**
@@ -116,21 +116,22 @@ export default function TiempoToolbarActions({ section: sectionProp, dense = fal
 
     list.push({
       key: 'add',
-      icon: <AddOutlined />,
-      label: 'Crear',
-      tooltip: addTooltip,
-      color: 'primary.main',
-      hoverColor: 'primary.main',
-      buttonSx: commonButtonSx,
-      onClick: (e) => {
-        if (section === 'objetivos') {
-          window.dispatchEvent(new CustomEvent('addObjetivo'));
-        } else {
-          window.dispatchEvent(new CustomEvent('addTask', {
-            detail: section === 'foco' ? { anchorEl: e?.currentTarget } : {},
-          }));
-        }
-      },
+      icon: (
+        <ToolbarAddButton
+          buttonSx={commonButtonSx}
+          aria-label={addTooltip}
+          onClick={(e) => {
+            if (section === 'objetivos') {
+              window.dispatchEvent(new CustomEvent('addObjetivo'));
+            } else {
+              window.dispatchEvent(new CustomEvent('addTask', {
+                detail: section === 'foco' ? { anchorEl: e?.currentTarget } : {},
+              }));
+            }
+          }}
+        />
+      ),
+      label: addTooltip,
     });
 
     return list;

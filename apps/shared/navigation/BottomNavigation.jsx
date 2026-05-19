@@ -1,45 +1,30 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Box, Paper, Typography } from '@mui/material';
 import { NAV_TYPO } from '../config/uiConstants';
 import { useLocation, Link } from 'react-router-dom';
-import { getIconByKey, isRouteActive } from './menuIcons';
-import { findActiveModule } from '../utils/navigationUtils';
+import { resolveBottomNavItems, isAttaBranchActive, isPathActive } from './appNavResolver';
 import { DynamicIcon } from '../components/common/DynamicIcon';
 import useResponsive from '../hooks/useResponsive';
 
 /**
- * Componente de navegación inferior con diseño geométrico
- * Ahora muestra dinámicamente los menús de nivel 1 del módulo activo
+ * Navegación inferior móvil.
+ * Atta: ramas Finanzas | Propiedades | Inventario (páginas en toolbar centro).
+ * Foco/Pulso: secciones planas del módulo.
  */
 export default function BottomNavigation() {
   const { theme } = useResponsive();
   const location = useLocation();
   const currentPath = location.pathname;
 
-  // Usar utilidad centralizada para encontrar el módulo activo
-  const moduloActivo = findActiveModule(currentPath);
+  const navItems = useMemo(
+    () => resolveBottomNavItems(currentPath),
+    [currentPath],
+  );
 
-  // Obtener los menús de nivel 1 del módulo activo y ordenarlos según el orden especificado
-  const allItems = moduloActivo?.subItems || [];
-  
-  // Orden alineado con TiempoToolbarRight: Foco, objetivos, Tareas
-  const orderMap = {
-    foco: 1,
-    objetivos: 2,
-    tareas: 3,
-    rutinas: 4,
-  };
-  
-  const navItems = allItems.sort((a, b) => {
-    const orderA = orderMap[a.id] || 999;
-    const orderB = orderMap[b.id] || 999;
-    return orderA - orderB;
-  });
-
-  if (!moduloActivo || navItems.length === 0) return null;
+  if (navItems.length === 0) return null;
 
   return (
-    <Paper 
+    <Paper
       elevation={0}
       sx={{
         position: 'fixed',
@@ -48,7 +33,7 @@ export default function BottomNavigation() {
         width: '100vw',
         zIndex: 1200,
         borderRadius: 0,
-        bgcolor: theme.palette.background.default, // Fondo opaco
+        bgcolor: theme.palette.background.default,
         boxShadow: 'none',
         borderTop: '1px solid',
         borderColor: theme.palette.divider,
@@ -56,8 +41,8 @@ export default function BottomNavigation() {
         p: 0,
       }}
     >
-      <Box 
-        sx={{ 
+      <Box
+        sx={{
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'flex-start',
@@ -71,74 +56,83 @@ export default function BottomNavigation() {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            gap: 2,
             width: '100%',
-            minWidth: '300px',
             height: '56px',
-            px: { xs: 1, sm: 2, md: 3 }
+            px: { xs: 1, sm: 2 },
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            scrollbarWidth: 'none',
+            '&::-webkit-scrollbar': { display: 'none' },
           }}
         >
-          {navItems.map((item, index) => {
-            const isActive = isRouteActive(location.pathname, item.path);
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 1.5,
+              mx: 'auto',
+            }}
+          >
+          {navItems.map((item) => {
+            const isActive = item.isBranchSwitcher
+              ? isAttaBranchActive(currentPath, item)
+              : isPathActive(currentPath, item.path);
+
             return (
-              <Box
-                key={item.path}
-                component={Link}
-                to={item.path}
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  position: 'relative',
-                  textDecoration: 'none',
-                  py: 1,
-                  px: 2,
-                  '&:hover': {
-                    bgcolor: 'action.hover',
-                  },
-                  '&::after': index < navItems.length - 1 ? {
-                    content: '""',
-                    position: 'absolute',
-                    top: '50%',
-                    right: -16,
-                    transform: 'translateY(-50%)',
-                    height: '60%',
-                    width: '1px',
-                    backgroundColor: 'divider',
-                    clipPath: 'polygon(0% 0%, 100% 10%, 100% 90%, 0% 100%)'
-                  } : {}
-                }}
-              >
+              <React.Fragment key={`${item.id}-${item.path}`}>
                 <Box
+                  component={Link}
+                  to={item.path}
                   sx={{
-                    color: isActive ? 'primary.main' : 'text.secondary',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    borderRadius: '50%',
-                    bgcolor: isActive ? 'action.selected' : 'transparent',
-                    p: 1,
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    textDecoration: 'none',
+                    py: 1,
+                    px: 1.5,
+                    borderRadius: 1,
+                    opacity: item.isUnderConstruction ? 0.5 : 1,
+                    pointerEvents: item.isUnderConstruction ? 'none' : 'auto',
+                    '&:hover': {
+                      bgcolor: 'action.hover',
+                    },
                   }}
                 >
-                  <DynamicIcon iconKey={item.icon} size="small" />
+                  <Box
+                    sx={{
+                      color: isActive ? 'primary.main' : 'text.secondary',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      borderRadius: '50%',
+                      bgcolor: isActive ? 'action.selected' : 'transparent',
+                      p: 1,
+                    }}
+                  >
+                    <DynamicIcon iconKey={item.iconKey} size="small" />
+                  </Box>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: isActive ? 'primary.main' : 'text.secondary',
+                      ...NAV_TYPO.bottomNavLabelSx,
+                      fontWeight: isActive ? 500 : 400,
+                      mt: 0.2,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {item.label}
+                  </Typography>
                 </Box>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: isActive ? 'primary.main' : 'text.secondary',
-                    ...NAV_TYPO.bottomNavLabelSx,
-                    fontWeight: isActive ? 500 : 400,
-                    mt: 0.2
-                  }}
-                >
-                  {item.title}
-                </Typography>
-              </Box>
+              </React.Fragment>
             );
           })}
+          </Box>
         </Box>
       </Box>
     </Paper>
   );
-} 
+}

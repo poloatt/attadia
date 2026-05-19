@@ -33,10 +33,29 @@ export function findActiveModule(currentPath) {
  */
 export function findActiveLevel1(moduloActivo, currentPath) {
   if (!moduloActivo || !currentPath) return null;
-  
-  return moduloActivo.subItems?.find(
-    sub => currentPath.startsWith(sub.path)
-  ) || null;
+
+  let best = null;
+  let bestPathLen = -1;
+
+  for (const branch of moduloActivo.subItems || []) {
+    for (const page of branch.subItems || []) {
+      if (!page.path) continue;
+      if (currentPath === page.path || currentPath.startsWith(`${page.path}/`)) {
+        if (page.path.length > bestPathLen) {
+          bestPathLen = page.path.length;
+          best = branch;
+        }
+      }
+    }
+    if (branch.path && (currentPath === branch.path || currentPath.startsWith(`${branch.path}/`))) {
+      if (branch.path.length > bestPathLen) {
+        bestPathLen = branch.path.length;
+        best = branch;
+      }
+    }
+  }
+
+  return best;
 }
 
 /**

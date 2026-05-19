@@ -21,6 +21,7 @@ import ContratoCuotasSection from './ContratoCuotasSection';
 import { CircularProgress } from '@mui/material';
 import { CuotasProvider } from '@shared/context/CuotasContext';
 import { CommonDate } from '@shared/components/common/CommonDate';
+import { getDocumentId } from '../habitacionConstants';
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
@@ -98,43 +99,39 @@ const ContratoForm = ({
   useEffect(() => {
     let propiedadObj = null;
     if (relatedData.propiedades?.length > 0 && safeInitialData.propiedad) {
-      propiedadObj = relatedData.propiedades.find(p =>
-        p._id === (safeInitialData.propiedad?._id || safeInitialData.propiedad || safeInitialData.propiedad?.id)
-      );
+      const propiedadId = getDocumentId(safeInitialData.propiedad);
+      propiedadObj = relatedData.propiedades.find((p) => getDocumentId(p) === propiedadId);
       setSelectedPropiedad(propiedadObj || null);
     }
 
     let cuentaObj = null;
     if (relatedData.cuentas?.length > 0 && safeInitialData.cuenta) {
-      const cuentaId = typeof safeInitialData.cuenta === 'object' ? safeInitialData.cuenta._id || safeInitialData.cuenta.id : safeInitialData.cuenta;
-      cuentaObj = relatedData.cuentas.find(c => c._id === cuentaId || c.id === cuentaId);
+      const cuentaId = getDocumentId(safeInitialData.cuenta);
+      cuentaObj = relatedData.cuentas.find((c) => getDocumentId(c) === cuentaId);
       setSelectedCuenta(cuentaObj || null);
     }
 
     if (relatedData.inquilinos?.length > 0 && safeInitialData.inquilino) {
       const inquilinos = Array.isArray(safeInitialData.inquilino) ? safeInitialData.inquilino : [safeInitialData.inquilino];
       const selectedInqs = inquilinos
-        .map(inqId => relatedData.inquilinos.find(i => 
-          i._id === (typeof inqId === 'object' ? inqId._id : inqId)
-        ))
+        .map((inqId) => relatedData.inquilinos.find((i) => getDocumentId(i) === getDocumentId(inqId)))
         .filter(Boolean);
       setSelectedInquilinos(selectedInqs);
     }
 
     if (relatedData.habitaciones?.length > 0 && safeInitialData.habitacion) {
-      const habitacion = relatedData.habitaciones.find(h =>
-        h._id === (safeInitialData.habitacion?._id || safeInitialData.habitacion)
-      );
+      const habitacionId = getDocumentId(safeInitialData.habitacion);
+      const habitacion = relatedData.habitaciones.find((h) => getDocumentId(h) === habitacionId);
       setSelectedHabitacion(habitacion || null);
     }
 
     setFormData(prev => ({
       ...prev,
-      propiedad: propiedadObj?._id || propiedadObj?.id || '',
-      cuenta: cuentaObj?._id || cuentaObj?.id || '',
+      propiedad: getDocumentId(propiedadObj) || '',
+      cuenta: getDocumentId(cuentaObj) || '',
       precioTotal: safeInitialData.precioTotal?.toString() || '0',
       deposito: safeInitialData.deposito?.toString() || '0',
-      inquilino: (Array.isArray(safeInitialData.inquilino) ? safeInitialData.inquilino : [safeInitialData.inquilino]).map(i => typeof i === 'object' ? i._id : i),
+      inquilino: (Array.isArray(safeInitialData.inquilino) ? safeInitialData.inquilino : [safeInitialData.inquilino]).map((i) => getDocumentId(i)).filter(Boolean),
       cuotasMensuales: safeInitialData.cuotasMensuales || []
     }));
   }, [safeInitialData, relatedData]);
@@ -182,7 +179,7 @@ const ContratoForm = ({
 
   const handlePropiedadChange = (newValue) => {
     setSelectedPropiedad(newValue);
-    handleChange('propiedad', newValue?._id || newValue?.id || '');
+    handleChange('propiedad', getDocumentId(newValue));
     setSelectedHabitacion(null);
     handleChange('habitacion', '');
   };
@@ -197,17 +194,17 @@ const ContratoForm = ({
 
   const handleHabitacionChange = (newValue) => {
     setSelectedHabitacion(newValue);
-    handleChange('habitacion', newValue?._id || newValue?.id || '');
+    handleChange('habitacion', getDocumentId(newValue));
   };
 
   const handleInquilinosChange = (newValue) => {
     setSelectedInquilinos(newValue);
-    handleChange('inquilino', newValue.map(inq => inq._id));
+    handleChange('inquilino', newValue.map((inq) => getDocumentId(inq)));
   };
 
   const handleCuentaChange = (newValue) => {
     setSelectedCuenta(newValue);
-    handleChange('cuenta', newValue?._id || newValue?.id || '');
+    handleChange('cuenta', getDocumentId(newValue));
   };
 
   const handleCuotasChange = (cuotas) => {

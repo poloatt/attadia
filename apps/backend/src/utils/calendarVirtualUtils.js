@@ -6,6 +6,37 @@ function dayKey(date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/** Aplica la hora de la serie (p. ej. due de Google) a cada ocurrencia del RRULE. */
+function occurrenceWithSerieTime(occ, serieDtstart) {
+  const occDate = occ instanceof Date ? new Date(occ.getTime()) : new Date(occ);
+  if (Number.isNaN(occDate.getTime())) return null;
+
+  const anchor = serieDtstart ? new Date(serieDtstart) : null;
+  if (anchor && !Number.isNaN(anchor.getTime())) {
+    occDate.setHours(
+      anchor.getHours(),
+      anchor.getMinutes(),
+      anchor.getSeconds(),
+      anchor.getMilliseconds(),
+    );
+  } else if (occDate.getHours() === 0 && occDate.getMinutes() === 0) {
+    occDate.setHours(12, 0, 0, 0);
+  }
+  return occDate;
+}
+
+/** Alinea la hora de una ocurrencia con dtstart (p. ej. mediodía local en Google Tasks). */
+export function applySerieTimeToOccurrence(occ, dtstart) {
+  const d = new Date(occ);
+  const ref = dtstart instanceof Date ? dtstart : new Date(dtstart);
+  if (!Number.isNaN(ref.getTime())) {
+    d.setHours(ref.getHours(), ref.getMinutes(), ref.getSeconds(), ref.getMilliseconds());
+  } else {
+    d.setHours(12, 0, 0, 0);
+  }
+  return d;
+}
+
 function serieIdStr(serieId) {
   if (serieId == null) return '';
   return String(serieId._id ?? serieId);
@@ -58,14 +89,10 @@ export function buildVirtualTasksForRange(series = [], rangeFrom, rangeTo, exist
   to.setHours(23, 59, 59, 999);
 
   const occupied = new Set();
-  const anchorSerieIds = new Set();
 
   for (const t of existingTasks) {
     const sid = serieIdStr(t.serieId);
     if (!sid) continue;
-    if (t.googleTasksSync?.googleTaskId) {
-      anchorSerieIds.add(sid);
-    }
     const d = t.fechaVencimiento || t.fechaInicio;
     if (d) occupied.add(`${sid}|${dayKey(d)}`);
   }
@@ -76,10 +103,6 @@ export function buildVirtualTasksForRange(series = [], rangeFrom, rangeTo, exist
     if (!serie?.activa || !serie.rrule) continue;
 
     const sid = String(serie._id);
-    const exportInstances = serie.googleTasksSync?.exportInstances === true;
-    if (!exportInstances && anchorSerieIds.has(sid)) {
-      continue;
-    }
 
     const dtstart = new Date(serie.dtstart);
     if (Number.isNaN(dtstart.getTime())) continue;
@@ -92,7 +115,10 @@ export function buildVirtualTasksForRange(series = [], rangeFrom, rangeTo, exist
     }
 
     for (const occ of occurrences) {
-      const dk = dayKey(occ);
+      const occAt = occurrenceWithSerieTime(occ, dtstart);
+      if (!occAt) continue;
+
+      const dk = dayKey(occAt);
       const key = `${sid}|${dk}`;
       if (occupied.has(key)) continue;
       occupied.add(key);
@@ -104,14 +130,17 @@ export function buildVirtualTasksForRange(series = [], rangeFrom, rangeTo, exist
         usuario: serie.usuario,
         objetivo: serie.objetivo,
         serieId: serie._id,
-        fechaInicio: dk,
-        fechaVencimiento: dk,
+        fechaInicio: occAt,
+        fechaVencimiento: occAt,
         tipo: 'TAREA',
         estado: 'PENDIENTE',
         completada: false,
         virtual: true,
         esRecurrente: true,
-        googleTasksSync: { enabled: false },
+        googleTasksSync: {
+          enabled: false,
+          googleTaskListId: serie.googleTasksSync?.googleTaskListId || null,
+        },
       });
     }
   }

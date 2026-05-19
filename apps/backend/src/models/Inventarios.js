@@ -39,7 +39,7 @@ const inventarioSchema = createSchema({
   propiedad: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Propiedades',
-    required: true // Ahora es obligatorio
+    required: false,
   },
   valorEstimado: {
     type: Number,
@@ -75,10 +75,10 @@ inventarioSchema.pre('save', async function(next) {
     const Propiedades = mongoose.model('Propiedades');
     const Habitaciones = mongoose.model('Habitaciones');
 
-    // Validar propiedad
-    if (!this.propiedad) {
-      throw new Error('El campo propiedad es obligatorio para el inventario');
+    if (this.habitacion && !this.propiedad) {
+      throw new Error('No puede asignar habitación sin propiedad');
     }
+
     if (this.propiedad) {
       const propiedad = await Propiedades.findOne({
         _id: this.propiedad,
@@ -89,7 +89,6 @@ inventarioSchema.pre('save', async function(next) {
       }
     }
 
-    // Validar habitación solo si existe
     if (this.habitacion) {
       const habitacion = await Habitaciones.findOne({
         _id: this.habitacion,

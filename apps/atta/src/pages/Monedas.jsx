@@ -1,294 +1,34 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  Container, 
-  Button,
-  Box,
-  CircularProgress,
-  Tooltip,
-  Typography,
-  IconButton,
-  Grid,
-  Card,
-  CardContent,
-  CardActions,
-  Fade,
-  Menu,
-  MenuItem,
-  Divider,
-  Switch,
-  Chip
-} from '@mui/material';
-import { Toolbar } from '@shared/navigation';
+import { Button, Box, Tooltip, IconButton } from '@mui/material';
+import { FinanzasSectionNav } from '../finanzas';
+import { attaPageLayoutSx } from '../navigation/attaPageLayoutSx';
 import { CommonDetails, CommonForm } from '@shared/components/common';
-import { 
-  AccountBalanceOutlined as BankIcon,
-  AccountBalanceWalletOutlined as WalletIcon,
-  CurrencyExchangeOutlined as CurrencyIcon,
-  AutorenewOutlined as RecurrentIcon,
-  PersonOutlineOutlined,
-  MoreVertOutlined as MoreIcon,
-  EditOutlined as EditIcon,
-  DeleteOutlineOutlined as DeleteIcon,
-  CheckOutlined as CheckIcon,
-  CloseOutlined as CloseIcon,
-  AddOutlined as AddIcon,
-  RefreshOutlined as RefreshIcon
-} from '@mui/icons-material';
+import { AddOutlined as AddIcon, RefreshOutlined as RefreshIcon } from '@mui/icons-material';
 import clienteAxios from '@shared/config/axios';
 import { useSnackbar } from 'notistack';
 import { EmptyState } from '@shared/components/common';
-import { useValuesVisibility } from '@shared/context/ValuesVisibilityContext';
-import { useAPI } from '@shared/hooks/useAPI';
-import { useLocation } from 'react-router-dom';
-
-const COLORES_MONEDA = {
-  CELESTE_ARGENTINA: { value: '#75AADB', label: 'Celeste Argentina' },
-  AZUL_NAVY: { value: '#000080', label: 'Azul Navy' },
-  TEAL: { value: '#008080', label: 'Teal' },
-  DARK_TEAL: { value: '#006666', label: 'Dark Teal' },
-  DARK_GREEN: { value: '#006400', label: 'Dark Green' },
-  VIOLETA_OSCURO: { value: '#4B0082', label: 'Violeta Oscuro' }
-};
-
-const MonedaCard = React.memo(({ moneda, onEdit, onDelete, onToggleActive, onColorChange, showValues }) => {
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [isEditingColor, setIsEditingColor] = useState(false);
-  const [balance, setBalance] = useState(0);
-  const [loadingBalance, setLoadingBalance] = useState(true);
-  const open = Boolean(anchorEl);
-  
-  // Garantizar que tenemos un ID válido
-  const monedaId = moneda.id || moneda._id;
-
-  // Usar useAPI para obtener el balance de forma segura - optimizado
-  const { 
-    data: balanceData, 
-    loading: balanceLoading, 
-    error: balanceError 
-  } = useAPI(monedaId ? `/api/monedas/${monedaId}/balance` : null, {
-    params: {
-      fechaFin: new Date().toISOString().split('T')[0],
-      estado: 'PAGADO'
-    },
-    dependencies: [monedaId], // Solo depender del ID de moneda
-    enableCache: true, // Activar caché para reducir solicitudes
-    cacheDuration: 120000, // Caché de 2 minutos
-    forceRevalidate: false // No forzar revalidación en cada render
-  });
-
-  // Actualizar el balance cuando cambian los datos
-  useEffect(() => {
-    if (balanceData) {
-      setBalance(balanceData.balance || 0);
-      setLoadingBalance(false);
-    }
-  }, [balanceData]);
-
-  // Manejar errores de balance
-  useEffect(() => {
-    if (balanceError) {
-      setLoadingBalance(false);
-    }
-  }, [balanceError]);
-
-  const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleColorClick = (color) => {
-    if (monedaId) {
-      onColorChange(monedaId, color);
-      setIsEditingColor(false);
-    }
-  };
-
-  return (
-    <Card 
-      elevation={0} 
-      sx={{ 
-        position: 'relative',
-        border: '1px solid',
-        borderColor: 'divider',
-        transition: 'all 0.2s',
-        '&:hover': {
-          borderColor: 'primary.main',
-          transform: 'translateY(-2px)',
-          boxShadow: 1
-        }
-      }}
-    >
-      <CardContent sx={{ pt: 3, pb: 1 }}>
-        {/* Header */}
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'flex-start',
-          mb: 2
-        }}>
-          <Box>
-            <Typography variant="h6" sx={{ 
-              fontWeight: 500,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1
-            }}>
-              <Box 
-                component="span" 
-                sx={{ 
-                  width: 32,
-                  height: 32,
-                  borderRadius: 1,
-                  bgcolor: moneda.color || COLORES_MONEDA.CELESTE_ARGENTINA.value,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontFamily: 'monospace',
-                  cursor: isEditingColor ? 'default' : 'pointer',
-                  transition: 'transform 0.2s',
-                  '&:hover': {
-                    transform: isEditingColor ? 'none' : 'scale(1.1)'
-                  }
-                }}
-                onClick={() => setIsEditingColor(!isEditingColor)}
-              >
-                {moneda.simbolo}
-              </Box>
-              {moneda.codigo}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              {moneda.nombre}
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Switch
-              size="small"
-              checked={moneda.activa}
-              onChange={() => onToggleActive(monedaId)}
-              sx={{ mr: -1 }}
-            />
-            <IconButton
-              size="small"
-              onClick={handleClick}
-              sx={{ 
-                opacity: 0.5,
-                '&:hover': { opacity: 1 }
-              }}
-            >
-              <MoreIcon fontSize="small" />
-            </IconButton>
-          </Box>
-        </Box>
-
-        {/* Color Picker */}
-        <Fade in={isEditingColor}>
-          <Box sx={{ 
-            display: isEditingColor ? 'grid' : 'none',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 1,
-            mt: 2
-          }}>
-            {Object.entries(COLORES_MONEDA).map(([key, { value, label }]) => (
-              <Tooltip key={key} title={label} arrow>
-                <Box
-                  onClick={() => handleColorClick(value)}
-                  sx={{
-                    width: '100%',
-                    paddingTop: '100%',
-                    position: 'relative',
-                    cursor: 'pointer',
-                    borderRadius: 1,
-                    bgcolor: value,
-                    border: '2px solid',
-                    borderColor: moneda.color === value ? 'primary.main' : 'transparent',
-                    transition: 'all 0.2s',
-                    '&:hover': {
-                      transform: 'scale(1.05)',
-                      boxShadow: 2
-                    }
-                  }}
-                />
-              </Tooltip>
-            ))}
-          </Box>
-        </Fade>
-
-        {/* Balance Preview */}
-        {!isEditingColor && (
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ 
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.5
-            }}>
-              Balance actual:
-              {balanceLoading && (
-                <CircularProgress size={12} thickness={4} sx={{ ml: 1 }} />
-              )}
-            </Typography>
-            <Typography 
-              variant="h5" 
-              sx={{ 
-                color: balance >= 0 ? 
-                  (moneda.color || COLORES_MONEDA.CELESTE_ARGENTINA.value) : 
-                  'error.main',
-                fontWeight: 500,
-                mt: 0.5,
-                opacity: balanceLoading ? 0.5 : 1,
-                transition: 'opacity 0.2s'
-              }}
-            >
-              {moneda.simbolo} {balanceLoading ? '...' : 
-                showValues ? balance.toLocaleString('es-AR', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2
-                }) : '****'
-              }
-            </Typography>
-          </Box>
-        )}
-      </CardContent>
-
-      <Menu
-        anchorEl={anchorEl}
-        open={open}
-        onClose={handleClose}
-        elevation={1}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
-      >
-        <MenuItem onClick={() => { handleClose(); onEdit(moneda); }}>
-          <EditIcon sx={{ fontSize: 18, mr: 1 }} />
-          Editar
-        </MenuItem>
-        <MenuItem 
-          onClick={() => { handleClose(); onDelete(monedaId); }}
-          sx={{ color: 'error.main' }}
-        >
-          <DeleteIcon sx={{ fontSize: 18, mr: 1 }} />
-          Eliminar
-        </MenuItem>
-      </Menu>
-    </Card>
-  );
-});
+import { useAPI, useResponsive } from '@shared/hooks';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import {
+  MonedaTile,
+  MonedasCarousel,
+  MonedasSortableList,
+  MonedaTileSkeleton,
+  COLORES_MONEDA,
+  normalizeMoneda,
+  sortMonedasByOrden,
+} from '../finance/monedas';
+import { monedaDetailPath } from '../finance/finanzasDeepLink';
 
 export function Monedas() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMoneda, setEditingMoneda] = useState(null);
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
-  const { showValues } = useValuesVisibility();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const selectedMonedaId = searchParams.get('id');
+  const { isMobile } = useResponsive();
 
   // Usar nuestro hook personalizado para cargar monedas - Optimizaciones
   const { 
@@ -301,44 +41,15 @@ export function Monedas() {
     cacheDuration: 30000, // 30 segundos de caché
     dependencies: [], // Quitar dependencia a window.location.href
     forceRevalidate: false, // No forzar revalidación en cada render
-    params: {} // Quitar timestamp para evitar renderizados continuos
+    params: { sort: 'orden', limit: 200 },
   });
 
-  // Extraer las monedas del resultado paginado con useMemo para evitar renderizados innecesarios
   const monedas = useMemo(() => {
-    if (Array.isArray(monedasData?.docs)) return monedasData.docs;
-    if (Array.isArray(monedasData)) return monedasData;
-    return [];
+    const docs = Array.isArray(monedasData?.docs)
+      ? monedasData.docs
+      : (Array.isArray(monedasData) ? monedasData : []);
+    return sortMonedasByOrden(docs);
   }, [monedasData]);
-
-  // Elementos de navegación con useMemo para evitar recrear el array en cada renderizado
-  const navigationItems = useMemo(() => [
-    {
-      icon: <BankIcon sx={{ fontSize: 21.6 }} />,
-      label: 'Cuentas',
-      to: '/cuentas'
-    },
-    {
-      icon: <WalletIcon sx={{ fontSize: 21.6 }} />,
-      label: 'Transacciones',
-      to: '/transacciones'
-    },
-    {
-      icon: <RecurrentIcon sx={{ fontSize: 21.6 }} />,
-      label: 'Recurrentes',
-      to: '/recurrente'
-    },
-    {
-      icon: <PersonOutlineOutlined sx={{ fontSize: 21.6 }} />,
-      label: 'Deudores',
-      to: '/deudores'
-    }
-  ], []);
-
-  // Agregar log para debug
-  useEffect(() => {
-    // Eliminar logs innecesarios que pueden estar causando problemas
-  }, [monedasData, monedas]);
 
   // Manejar errores de la API
   useEffect(() => {
@@ -548,41 +259,34 @@ export function Monedas() {
     }
   }, [monedas, enqueueSnackbar, closeSnackbar, refetchMonedas]);
 
-  const handleColorChange = useCallback(async (id, color) => {
-    if (!id) {
-      enqueueSnackbar('Error: ID de moneda no válido', { variant: 'error' });
-      return;
-    }
-    
+  const handleReorderMonedas = useCallback(async (order) => {
     try {
-      // Mostrar mensaje de carga
-      const loadingMsg = enqueueSnackbar('Actualizando color...', { 
-        variant: 'info',
-        persist: true 
-      });
-      
-      // Buscar la moneda para verificar que existe
-      const moneda = monedas.find(m => m.id === id || m._id === id);
-      
-      if (!moneda) {
-        closeSnackbar(loadingMsg);
-        enqueueSnackbar('Error: No se pudo encontrar la moneda', { variant: 'error' });
-        return;
-      }
-      
-      // Realizar la operación
-      await clienteAxios.put(`/api/monedas/${id}`, { color });
-      
-      // Cerrar mensaje de carga
-      closeSnackbar(loadingMsg);
-      enqueueSnackbar('Color actualizado exitosamente', { variant: 'success' });
-      
-      // Recargar datos
+      await clienteAxios.put('/api/monedas/reorder', { order });
+      enqueueSnackbar('Orden de monedas actualizado', { variant: 'success' });
       await refetchMonedas();
     } catch (error) {
-      enqueueSnackbar('Error al actualizar el color: ' + (error.response?.data?.message || error.message), { variant: 'error' });
+      enqueueSnackbar(
+        'Error al guardar el orden: ' + (error.response?.data?.message || error.message),
+        { variant: 'error' },
+      );
+      throw error;
     }
-  }, [monedas, enqueueSnackbar, closeSnackbar, refetchMonedas]);
+  }, [enqueueSnackbar, refetchMonedas]);
+
+  const renderMonedaTile = useCallback((moneda) => {
+    const monedaId = moneda.id || moneda._id;
+    return (
+      <MonedaTile
+        moneda={normalizeMoneda(moneda)}
+        variant="full"
+        selected={selectedMonedaId === monedaId}
+        onSelect={(id) => navigate(monedaDetailPath(id), { replace: true })}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onToggleActive={handleToggleActive}
+      />
+    );
+  }, [selectedMonedaId, navigate, handleEdit, handleDelete, handleToggleActive]);
 
   const formFields = [
     {
@@ -620,11 +324,9 @@ export function Monedas() {
   ];
 
   return (
-    <Box sx={{ px: 0, width: '100%' }}>
-      <CommonDetails 
-        title="Monedas"
-        subtitle="Gestiona las monedas disponibles en el sistema"
-        icon={<CurrencyIcon />}
+    <Box sx={attaPageLayoutSx}>
+      <FinanzasSectionNav variant="strip" />
+      <CommonDetails
         action={
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Tooltip title="Recargar datos">
@@ -664,14 +366,15 @@ export function Monedas() {
         }
       >
         {isLoading ? (
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
-            height: 200 
-          }}>
-            <CircularProgress />
-          </Box>
+          isMobile ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.625 }}>
+              <MonedaTileSkeleton count={3} width="100%" />
+            </Box>
+          ) : (
+            <MonedasCarousel>
+              <MonedaTileSkeleton count={4} />
+            </MonedasCarousel>
+          )
         ) : monedas.length === 0 ? (
           <EmptyState 
             onAdd={() => setIsFormOpen(true)}
@@ -679,33 +382,12 @@ export function Monedas() {
             submessage="Haz clic en el botón para agregar una nueva moneda"
           />
         ) : (
-          <Grid container spacing={2}>
-            {monedas.map((moneda) => {
-              // Normalizar los datos de la moneda para asegurar consistencia
-              const normalizedMoneda = {
-                id: moneda.id || moneda._id,
-                _id: moneda.id || moneda._id, // Para compatibilidad con API
-                codigo: moneda.codigo || 'Sin código',
-                nombre: moneda.nombre || 'Sin nombre',
-                simbolo: moneda.simbolo || '$',
-                color: moneda.color || COLORES_MONEDA.CELESTE_ARGENTINA.value,
-                activa: typeof moneda.activa === 'boolean' ? moneda.activa : true
-              };
-              
-              return (
-                <Grid item xs={12} sm={6} md={4} key={normalizedMoneda.id}>
-                  <MonedaCard
-                    moneda={normalizedMoneda}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onToggleActive={handleToggleActive}
-                    onColorChange={handleColorChange}
-                    showValues={showValues}
-                  />
-                </Grid>
-              );
-            })}
-          </Grid>
+          <MonedasSortableList
+            monedas={monedas}
+            onReorder={handleReorderMonedas}
+            layout={isMobile ? 'column' : 'carousel'}
+            renderTile={renderMonedaTile}
+          />
         )}
       </CommonDetails>
 

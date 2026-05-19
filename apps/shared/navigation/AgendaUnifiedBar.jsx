@@ -9,10 +9,13 @@ import useResponsive from '../hooks/useResponsive';
 import { useRutinas } from '../context/RutinasContext';
 import RutinaNavigation from './RutinaNavigation.jsx';
 import {
+  resolveToolbarLeftByPath,
   resolveToolbarCenterByPath,
   resolveToolbarCenterDesktop,
   resolveToolbarRightByPath,
 } from './toolbarModules';
+import { resolveAttaBranchHubPath } from './appNavResolver';
+import { isAttaToolbarPath, isPulsoToolbarPath } from './unifiedBarPaths';
 import FocoViewModeToggle from '../../foco/src/foco/FocoViewModeToggle.jsx';
 import TiempoToolbarActions from '../../foco/src/foco/TiempoToolbarActions.jsx';
 
@@ -72,8 +75,8 @@ function shouldShowRutinaNavigation(currentPath) {
 }
 
 /**
- * Barra superior unificada del módulo Agenda (estilo Google Calendar):
- * izquierda: menú; centro: navegación de fecha y acciones; derecha: secciones + apps.
+ * Barra superior unificada (Foco / Atta / Pulso):
+ * izquierda: menú; centro: acciones; derecha: subpáginas + apps.
  */
 export default function AgendaUnifiedBar({ currentPath = '' }) {
   const { showEntityToolbarNavigation, showSidebarCollapsed } = useUISettings();
@@ -83,6 +86,7 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
   const path = currentPath || location.pathname;
   const [hasSelectedItems, setHasSelectedItems] = useState(false);
 
+  const LeftComp = resolveToolbarLeftByPath(path);
   const RightComp = resolveToolbarRightByPath(path);
   const CenterComp = resolveToolbarCenterByPath(path);
   const showCenterOnDesktop = resolveToolbarCenterDesktop(path);
@@ -102,18 +106,28 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
 
   const showRightNav = !isMobile || showEntityToolbarNavigation;
   const isFocoPath = path.startsWith('/foco');
+  const isAttaPath = isAttaToolbarPath(path);
+  const isPulsoPath = isPulsoToolbarPath(path);
   const mobileFocoBar = isFocoPath && isMobile;
   const showRutinaNavInBar = showCenter
     && shouldShowRutinaNavigation(path)
     && !mobileFocoBar;
+  const useCenterActionsOverlay = isFocoPath || isAttaPath || isPulsoPath;
+  // Foco: acciones en overlay + navegación de fecha/semana en el grid (no ocultar RutinaNavigation).
+  const hideGridCenter = useCenterActionsOverlay && !showRutinaNavInBar;
 
   const gridColumns = mobileFocoBar
     ? '1fr'
-    : (showCenter ? '1fr auto' : '1fr');
+    : (showCenter || RightComp ? '1fr auto' : '1fr');
 
-  const focoActionsInsetLeft = isMobile && mainMargin < collapsedWidth
+  const baseCenterInsetLeft = isMobile && mainMargin < collapsedWidth
     ? collapsedWidth
     : mainMargin;
+  const showAttaBranchBack = isAttaPath && !!resolveAttaBranchHubPath(path);
+  const ATTA_BACK_SLOT_WIDTH = 34;
+  const centerActionsInsetLeft = showAttaBranchBack
+    ? baseCenterInsetLeft + ATTA_BACK_SLOT_WIDTH
+    : baseCenterInsetLeft;
 
   return (
     <Box
@@ -126,11 +140,11 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
         alignItems: 'center',
       }}
     >
-      {isFocoPath && (
+      {useCenterActionsOverlay && (
         <Box
           sx={{
             position: 'absolute',
-            left: `${focoActionsInsetLeft}px`,
+            left: `${centerActionsInsetLeft}px`,
             right: `${collapsedWidth}px`,
             top: 0,
             bottom: 0,
@@ -142,7 +156,9 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
             '& > *': { pointerEvents: 'auto' },
           }}
         >
-          <TiempoToolbarActions section="foco" dense />
+          {isFocoPath && <TiempoToolbarActions section="foco" dense />}
+          {isAttaPath && CenterComp && <CenterComp hasSelectedItems={hasSelectedItems} />}
+          {isPulsoPath && CenterComp && <CenterComp hasSelectedItems={hasSelectedItems} />}
         </Box>
       )}
       <Box
@@ -150,15 +166,28 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
           position: 'absolute',
           left: { xs: -1, sm: -2, md: -3 },
           top: 0,
-          width: collapsedWidth,
           height: AGENDA_UNIFIED_BAR_CONFIG.height,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 2,
+          justifyContent: 'flex-start',
+          gap: 0.25,
+          pl: 0,
+          zIndex: 4,
         }}
       >
-        <MenuButton />
+        <Box
+          sx={{
+            width: collapsedWidth,
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <MenuButton />
+        </Box>
+        {LeftComp && <LeftComp hasSelectedItems={hasSelectedItems} />}
       </Box>
 
       <Box
@@ -192,7 +221,7 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
           position: 'relative',
         }}
       >
-        {showCenter && !mobileFocoBar && (
+        {showCenter && !mobileFocoBar && !hideGridCenter && (
           <Box
             sx={{
               display: 'flex',
@@ -209,7 +238,7 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
           >
             {showRutinaNavInBar ? (
               <RutinaNavigationSlot currentPath={path} />
-            ) : !shouldShowRutinaNavigation(path) && CenterComp ? (
+            ) : CenterComp ? (
               <CenterComp hasSelectedItems={hasSelectedItems} />
             ) : null}
           </Box>

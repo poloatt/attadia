@@ -6,17 +6,38 @@ import {
   collectDueDatesFromTasks,
   expandSerie,
   inferRecurrenceFromGoogleNotes,
+  ensureWeeklyByday,
   inferRruleFromDueDates,
+  cleanDescriptionFromGoogleNotes,
   parseRecurrenceFromNotes,
+  resolveRruleFromNotes,
   sameCalendarDay,
   weekdayToRruleByday,
 } from '../utils/recurrenceUtils.js';
+import { applySerieTimeToOccurrence } from '../utils/calendarVirtualUtils.js';
 
 const HORIZON_DAYS = parseInt(process.env.GTASKS_SERIES_HORIZON_DAYS || '90', 10);
 const EXPAND_LOOKBACK_DAYS = parseInt(process.env.GTASKS_SERIES_LOOKBACK_DAYS || '14', 10);
-/** Por defecto true: Google solo devuelve 1 fila por tarea recurrente en la API. */
+/**
+ * Opt-in: inferir semanal cuando Google solo devuelve 1 fila por título.
+ * Por defecto false — evita crear cientos de TareaSeries en tareas con fecha única.
+ */
 const ASSUME_GOOGLE_RECURRING_SINGLE =
-  process.env.GTASKS_ASSUME_GOOGLE_RECURRING_SINGLE !== 'false';
+  process.env.GTASKS_ASSUME_GOOGLE_RECURRING_SINGLE === 'true';
+
+function hasExplicitRecurrenceEvidence({
+  rruleFromNotes,
+  rruleFromGoogleNotes,
+  googleRruleForKey,
+  inferredFromDueDates,
+}) {
+  return Boolean(
+    rruleFromNotes
+    || rruleFromGoogleNotes
+    || googleRruleForKey
+    || inferredFromDueDates,
+  );
+}
 
 /**
  * Reconcilia tareas importadas de una TaskList en series recurrentes.
@@ -25,6 +46,8 @@ export async function reconcileSeriesFromGoogle(userId, objetivoId, taskListId, 
   const stats = { seriesCreated: 0, seriesUpdated: 0, instancesLinked: 0 };
 
   const googleDuesByKey = new Map();
+  const googleRruleByKey = new Map();
+  const googleById = new Map();
   const normalizeGoogleTitle = (title) =>
     String(title || '')
       .replace(/^\s*(\[[^\]]+\]\s*)+/g, '')
@@ -34,7 +57,10 @@ export async function reconcileSeriesFromGoogle(userId, objetivoId, taskListId, 
 
   for (const gt of googleMainTasks) {
     if (gt?.parent) continue;
+    if (gt?.id) googleById.set(gt.id, gt);
     const key = buildGoogleSerieKey(taskListId, normalizeGoogleTitle(gt.title));
+    const fromNotes = resolveRruleFromNotes(gt.notes || '');
+    if (fromNotes) googleRruleByKey.set(key, fromNotes);
     const due = Tareas.parseGoogleDueDate(gt.due);
     if (!due) continue;
     if (!googleDuesByKey.has(key)) googleDuesByKey.set(key, []);
@@ -60,9 +86,13 @@ export async function reconcileSeriesFromGoogle(userId, objetivoId, taskListId, 
     let rruleFromGoogleNotes = null;
 
     for (const t of group) {
-      const parsed = parseRecurrenceFromNotes(t.descripcion || '');
+      const rawNotes =
+        googleById.get(t.googleTasksSync?.googleTaskId)?.notes
+        ?? t.descripcion
+        ?? '';
+      const parsed = parseRecurrenceFromNotes(rawNotes);
       if (parsed.rrule) rruleFromNotes = parsed.rrule;
-      const googleHint = inferRecurrenceFromGoogleNotes(t.descripcion || '');
+      const googleHint = inferRecurrenceFromGoogleNotes(rawNotes);
       if (googleHint) rruleFromGoogleNotes = googleHint;
     }
 
@@ -74,17 +104,20 @@ export async function reconcileSeriesFromGoogle(userId, objetivoId, taskListId, 
         ...extraGoogleDues.map((d) => ({ fechaVencimiento: d })),
       ]);
     }
-    const inferred = inferRruleFromDueDates(dueDates);
-    let rrule = rruleFromNotes || rruleFromGoogleNotes || inferred;
+    const inferredFromDueDates = inferRruleFromDueDates(dueDates);
+    const googleRruleForKey = googleRruleByKey.get(googleSerieKey) || null;
+    let rrule = rruleFromNotes || googleRruleForKey || rruleFromGoogleNotes || inferredFromDueDates;
+
+    const googleAnchors = group.filter((t) => t.googleTasksSync?.googleTaskId);
+    const recurrenceAnchor = googleAnchors[0] || group[0];
 
     if (
       !rrule
       && ASSUME_GOOGLE_RECURRING_SINGLE
-      && group.length === 1
-      && group[0].googleTasksSync?.googleTaskId
-      && (group[0].fechaVencimiento || group[0].fechaInicio)
+      && googleAnchors.length === 1
+      && (recurrenceAnchor.fechaVencimiento || recurrenceAnchor.fechaInicio)
     ) {
-      const anchor = group[0].fechaVencimiento || group[0].fechaInicio;
+      const anchor = recurrenceAnchor.fechaVencimiento || recurrenceAnchor.fechaInicio;
       const anchorDate = anchor instanceof Date ? anchor : new Date(anchor);
       const byday = weekdayToRruleByday(anchorDate);
       if (byday) {
@@ -94,17 +127,44 @@ export async function reconcileSeriesFromGoogle(userId, objetivoId, taskListId, 
 
     if (!rrule) continue;
 
-    const titulo = group[0].titulo;
+    const fromAssumeHeuristic =
+      ASSUME_GOOGLE_RECURRING_SINGLE
+      && googleAnchors.length === 1
+      && !hasExplicitRecurrenceEvidence({
+        rruleFromNotes,
+        rruleFromGoogleNotes,
+        googleRruleForKey,
+        inferredFromDueDates,
+      });
+
+    if (
+      !hasExplicitRecurrenceEvidence({
+        rruleFromNotes,
+        rruleFromGoogleNotes,
+        googleRruleForKey,
+        inferredFromDueDates,
+      })
+      && !fromAssumeHeuristic
+    ) {
+      continue;
+    }
+
+    const titulo = recurrenceAnchor.titulo || group[0].titulo;
     const dtstart = dueDates.length
       ? new Date(Math.min(...dueDates.map((d) => d.getTime())))
-      : group[0].fechaInicio || new Date();
+      : recurrenceAnchor.fechaVencimiento
+        || recurrenceAnchor.fechaInicio
+        || group[0].fechaInicio
+        || new Date();
+
+    rrule = ensureWeeklyByday(rrule, dtstart);
 
     let serie = await TareaSeries.findOne({ usuario: userId, googleSerieKey });
 
     if (!serie) {
       serie = new TareaSeries({
         titulo,
-        descripcion: parseRecurrenceFromNotes(group[0].descripcion || '').descripcionSinRecurrencia,
+        descripcion: cleanDescriptionFromGoogleNotes(group[0].descripcion || ''),
         usuario: userId,
         objetivo: objetivoId,
         rrule,
@@ -120,6 +180,11 @@ export async function reconcileSeriesFromGoogle(userId, objetivoId, taskListId, 
       await serie.save();
       stats.seriesCreated++;
     } else {
+      const prevRrule = serie.rrule;
+      const prevTitulo = serie.titulo;
+      const prevDt = serie.dtstart ? new Date(serie.dtstart).getTime() : null;
+      const nextDt = dtstart instanceof Date ? dtstart.getTime() : new Date(dtstart).getTime();
+
       serie.rrule = rrule;
       serie.dtstart = dtstart;
       serie.titulo = titulo;
@@ -127,21 +192,68 @@ export async function reconcileSeriesFromGoogle(userId, objetivoId, taskListId, 
       serie.googleTasksSync.googleTaskListId = taskListId;
       serie.googleTasksSync.exportInstances = false;
       serie.googleTasksSync.lastSyncDate = new Date();
-      await serie.save();
-      stats.seriesUpdated++;
+
+      const changed =
+        prevRrule !== rrule
+        || prevTitulo !== titulo
+        || prevDt !== nextDt;
+
+      if (changed) {
+        await serie.save();
+        stats.seriesUpdated++;
+      }
     }
 
+    const anchorGt = googleById.get(recurrenceAnchor.googleTasksSync?.googleTaskId);
+    const anchorDue = anchorGt?.due ? Tareas.parseGoogleDueDate(anchorGt.due) : null;
+
     for (const t of group) {
-      if (String(t.serieId) !== String(serie._id)) {
-        t.serieId = serie._id;
-        const parsed = parseRecurrenceFromNotes(t.descripcion || '');
-        t.descripcion = parsed.descripcionSinRecurrencia;
-        if (t.googleTasksSync?.enabled && serie.googleTasksSync?.exportInstances === true) {
-          t.googleTasksSync.needsSync = true;
+      const rawNotes =
+        googleById.get(t.googleTasksSync?.googleTaskId)?.notes
+        ?? t.descripcion
+        ?? '';
+      const cleaned = cleanDescriptionFromGoogleNotes(rawNotes);
+      const wasLinked = String(t.serieId) === String(serie._id);
+      const isAnchor = String(t._id) === String(recurrenceAnchor._id);
+      const dueFromGoogle =
+        isAnchor && anchorDue
+          ? anchorDue
+          : googleById.get(t.googleTasksSync?.googleTaskId)?.due
+            ? Tareas.parseGoogleDueDate(googleById.get(t.googleTasksSync.googleTaskId).due)
+            : null;
+      const needsDueSync =
+        dueFromGoogle
+        && (() => {
+          const local = t.fechaVencimiento || t.fechaInicio;
+          if (!local) return true;
+          const localDt = local instanceof Date ? local : new Date(local);
+          return Math.abs(localDt.getTime() - dueFromGoogle.getTime()) > 60_000;
+        })();
+      const needsSave =
+        !wasLinked
+        || (t.descripcion || '') !== cleaned
+        || needsDueSync;
+
+      if (!needsSave) continue;
+
+      t.serieId = serie._id;
+      t.descripcion = cleaned;
+      if (dueFromGoogle) {
+        t.fechaVencimiento = dueFromGoogle;
+        t.fechaInicio = dueFromGoogle;
+        if (typeof t.recordGoogleDueSnapshot === 'function') {
+          t.recordGoogleDueSnapshot(dueFromGoogle);
         }
-        await t.save();
-        stats.instancesLinked++;
       }
+      if (
+        !wasLinked
+        && t.googleTasksSync?.enabled
+        && serie.googleTasksSync?.exportInstances === true
+      ) {
+        t.googleTasksSync.needsSync = true;
+      }
+      await t.save();
+      if (!wasLinked) stats.instancesLinked++;
     }
   }
 
@@ -206,16 +318,15 @@ export async function expandAndSyncSeries(googleTasksService, userId, serie, opt
       });
 
       if (!tarea) {
-        const occMidday = new Date(occDate);
-        occMidday.setHours(12, 0, 0, 0);
+        const occAt = applySerieTimeToOccurrence(occDate, serie.dtstart);
         tarea = new Tareas({
           titulo: serie.titulo,
           descripcion: appendRecurrenceToNotes(serie.descripcion || '', serie.rrule),
           usuario: userId,
           objetivo: serie.objetivo,
           serieId: serie._id,
-          fechaInicio: occMidday,
-          fechaVencimiento: occMidday,
+          fechaInicio: occAt,
+          fechaVencimiento: occAt,
           prioridad: 'BAJA',
           googleTasksSync: {
             enabled: exportInstances && serie.googleTasksSync?.enabled !== false,
@@ -328,8 +439,7 @@ export async function generateNextSerieInstance(googleTasksService, tarea, userI
   if (!upcoming.length) return null;
 
   const nextDate = upcoming[0];
-  const nextDue = new Date(nextDate);
-  nextDue.setHours(12, 0, 0, 0);
+  const nextDue = applySerieTimeToOccurrence(nextDate, serie.dtstart);
 
   if (!exportInstances) {
     let anchor = tarea.googleTasksSync?.googleTaskId ? tarea : null;
@@ -385,15 +495,15 @@ export async function generateNextSerieInstance(googleTasksService, tarea, userI
     return existing;
   }
 
-  dayStart.setHours(12, 0, 0, 0);
+  const occAt = applySerieTimeToOccurrence(nextDate, serie.dtstart);
   const nueva = new Tareas({
     titulo: serie.titulo,
     descripcion: appendRecurrenceToNotes(serie.descripcion || '', serie.rrule),
     usuario: userId,
     objetivo: serie.objetivo,
     serieId: serie._id,
-    fechaInicio: nextDue,
-    fechaVencimiento: nextDue,
+    fechaInicio: occAt,
+    fechaVencimiento: occAt,
     prioridad: 'BAJA',
     googleTasksSync: {
       enabled: exportInstances,

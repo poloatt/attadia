@@ -17,6 +17,8 @@ import { useValuesVisibility } from '@shared/context/ValuesVisibilityContext';
 import { useAPI } from '@shared/hooks/useAPI';
 import { modulos } from '@shared/navigation/menuStructure';
 import { useLocation } from 'react-router-dom';
+import { FinanzasSectionNav } from '../finanzas';
+import { attaPageLayoutSx } from '../navigation/attaPageLayoutSx';
 
 export function Transacciones() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -265,7 +267,8 @@ export function Transacciones() {
   }, [refetchTransacciones]);
 
   return (
-    <Box sx={{ px: 0, width: '100%', position: 'relative', minHeight: '80vh', bgcolor: 'background.default' }}>
+    <Box sx={{ ...attaPageLayoutSx, position: 'relative', minHeight: '80vh', bgcolor: 'background.default' }}>
+      <FinanzasSectionNav variant="strip" />
       <FabNuevaTransaccion onClick={handleOpenForm} />
 
       {isLoading ? (

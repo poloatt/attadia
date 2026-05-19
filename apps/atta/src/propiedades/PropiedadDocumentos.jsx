@@ -5,7 +5,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import AddIcon from '@mui/icons-material/Add';
 import SyncIcon from '@mui/icons-material/Sync';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import PropiedadCard from './PropiedadCard';
+import TipoPropiedadIcon from './TipoPropiedadIcon';
 // Si corresponde, importa { SeccionDocumentos } from './SeccionesPropiedad';
 
 /**
@@ -63,8 +63,11 @@ export default function PropiedadDocumentos({ propiedades = [], onAddDocumento, 
           return (
             <Paper key={propiedad._id || idx} sx={{ mb: 3, p: 2, borderRadius: 2, bgcolor: '#181818', boxShadow: 'none' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                <Box sx={{ flex: 1 }}>
-                  <PropiedadCard propiedad={propiedad} isExpanded={false} viewMode="grid" />
+                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                  <TipoPropiedadIcon tipo={propiedad.tipo} sx={{ fontSize: 20 }} />
+                  <Typography variant="subtitle1" noWrap sx={{ fontWeight: 600 }}>
+                    {propiedad.alias || propiedad.titulo || 'Sin nombre'}
+                  </Typography>
                 </Box>
                 {onAddDocumento && (
                   <Button

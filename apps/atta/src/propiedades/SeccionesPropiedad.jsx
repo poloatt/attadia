@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Typography, IconButton, Tooltip, Collapse, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { Box, Typography, IconButton, Tooltip, Collapse } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { 
   PeopleOutlined as PeopleIcon, 
@@ -7,30 +7,32 @@ import {
   MonetizationOnOutlined as MoneyIcon, 
   OpenInNew as OpenInNewIcon, 
   Visibility as VisibilityIcon,
+  EditOutlined as EditIcon,
+  DeleteOutlined as DeleteIcon,
   Folder as FolderIcon,
   Description as DescriptionIcon,
   DriveFolderUpload as DriveFolderUploadIcon, // Importar el icono de drive
   Home as HomeIcon,
   Apartment as ApartmentIcon,
   StoreOutlined,
-  Bathtub as BathtubIcon,
-  KingBed,
-  SingleBed,
-  ChairOutlined,
-  KitchenOutlined,
-  LocalLaundryServiceOutlined,
-  HomeOutlined,
-  BedOutlined
 } from '@mui/icons-material';
-import { agruparHabitaciones } from '@shared/utils/propiedadUtils';
+import HabitacionesCarouselSection from './HabitacionesCarouselSection';
 import { getInquilinosByPropiedad } from '@shared/utils/inquilinosUtils';
 import { icons } from '@shared/navigation/menuIcons';
 import { InquilinoDetail } from '.';
 import ContratoDetail from './contratos/ContratoDetail';
 import { getStatusIconComponent, getEstadoColor } from '@shared/components/common/StatusSystem';
 import { getEstadoContrato, formatMesAnio } from '@shared/utils/contratoUtils';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useResponsive } from '@shared/hooks';
+import {
+  propiedadDetailUbicacionCardSx,
+  propiedadDetailRowIconSx,
+  propiedadDetailPrimaryTextSx,
+  propiedadDetailSecondaryTextSx,
+  propiedadDetailEmptyTextSx,
+  propiedadDetailListRowSx,
+  propiedadDetailLinkTextSx,
+} from './propiedadDetailStyles';
 
 // Componente centralizado para el icono de contratos en documentos
 export const IconoContratoDocumentos = ({ sinDocumentos = false, onClick, url, ...props }) => (
@@ -42,7 +44,14 @@ export const IconoContratoDocumentos = ({ sinDocumentos = false, onClick, url, .
 );
 
 // Sección: Inquilinos
-export const SeccionInquilinos = ({ propiedad, inquilinos = [], inquilinosActivos = [], inquilinosFinalizados = [] }) => {
+export const SeccionInquilinos = ({
+  propiedad,
+  inquilinos = [],
+  inquilinosActivos = [],
+  inquilinosFinalizados = [],
+  variant,
+}) => {
+  const isDetail = variant === 'detail';
   const [selectedInquilino, setSelectedInquilino] = useState(null);
   const [inquilinoDetailOpen, setInquilinoDetailOpen] = useState(false);
 
@@ -79,48 +88,70 @@ export const SeccionInquilinos = ({ propiedad, inquilinos = [], inquilinosActivo
   };
 
   return (
-    <Box sx={{ mb: 2 }}>
-      <Typography variant="subtitle2" sx={{ fontSize: '0.95rem', fontWeight: 600 }}>
-        <PeopleIcon sx={{ fontSize: '1.1rem', mr: 1 }} />
-        Inquilinos Activos ({activos.length})
-      </Typography>
-      
-      {activos.length === 0 && (
-        <Typography variant="body2" color="text.secondary">Ninguno</Typography>
+    <Box sx={{ mb: isDetail ? 0 : 2 }}>
+      {!isDetail && (
+        <Typography variant="subtitle2" sx={{ fontSize: '0.95rem', fontWeight: 600 }}>
+          <PeopleIcon sx={{ fontSize: '1.1rem', mr: 1 }} />
+          Inquilinos Activos ({activos.length})
+        </Typography>
       )}
-      
-      {activos.map(i => (
-        <Box key={i._id} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
-          <Typography variant="body2" sx={{ fontSize: '0.85rem', flex: 1 }}>
+
+      {activos.length === 0 && (
+        <Typography sx={isDetail ? propiedadDetailEmptyTextSx : { fontSize: '0.875rem', color: 'text.secondary' }}>
+          Ninguno
+        </Typography>
+      )}
+
+      {activos.map((i) => (
+        <Box key={i._id} sx={isDetail ? propiedadDetailListRowSx : { display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
+          {isDetail ? <PeopleIcon sx={propiedadDetailRowIconSx} /> : null}
+          <Typography sx={{ ...(isDetail ? propiedadDetailPrimaryTextSx : { fontSize: '0.85rem' }), flex: 1 }}>
             {i.nombre} {i.apellido}
           </Typography>
           <Tooltip title="Ver detalle inquilino">
-            <IconButton 
-              size="small" 
+            <IconButton
+              size="small"
               onClick={() => handleOpenInquilino(i)}
-              sx={{ p: 0.5, color: 'primary.main' }}
+              sx={{ p: 0.5, color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
             >
               <VisibilityIcon sx={{ fontSize: '1rem' }} />
             </IconButton>
           </Tooltip>
         </Box>
       ))}
-      
+
       {finalizados.length > 0 && (
         <>
-          <Typography variant="subtitle2" sx={{ mt: 2, fontSize: '0.85rem', fontWeight: 500 }}>
-            Inquilinos Finalizados ({finalizados.length})
+          <Typography
+            sx={
+              isDetail
+                ? { ...propiedadDetailSecondaryTextSx, mt: 1.25, mb: 0.25, display: 'block', fontWeight: 500 }
+                : { mt: 2, fontSize: '0.85rem', fontWeight: 500 }
+            }
+          >
+            Finalizados ({finalizados.length})
           </Typography>
-          {finalizados.map(i => (
-            <Box key={i._id} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
-              <Typography variant="body2" sx={{ fontSize: '0.85rem', flex: 1, color: 'text.secondary' }}>
-                {i.nombre} {i.apellido} ({i.estado})
+          {finalizados.map((i) => (
+            <Box
+              key={i._id}
+              sx={isDetail ? propiedadDetailListRowSx : { display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}
+            >
+              {isDetail ? <PeopleIcon sx={{ ...propiedadDetailRowIconSx, opacity: 0.6 }} /> : null}
+              <Typography
+                sx={{
+                  ...(isDetail ? propiedadDetailPrimaryTextSx : { fontSize: '0.85rem' }),
+                  flex: 1,
+                  color: isDetail ? 'text.secondary' : 'text.secondary',
+                }}
+              >
+                {i.nombre} {i.apellido}
+                {!isDetail ? ` (${i.estado})` : null}
               </Typography>
               <Tooltip title="Ver detalle inquilino">
-                <IconButton 
-                  size="small" 
+                <IconButton
+                  size="small"
                   onClick={() => handleOpenInquilino(i)}
-                  sx={{ p: 0.5, color: 'text.secondary' }}
+                  sx={{ p: 0.5, color: 'text.disabled', '&:hover': { color: 'text.secondary' } }}
                 >
                   <VisibilityIcon sx={{ fontSize: '1rem' }} />
                 </IconButton>
@@ -143,129 +174,133 @@ export const SeccionInquilinos = ({ propiedad, inquilinos = [], inquilinosActivo
 };
 
 // Sección: Ubicación
-export const SeccionUbicacion = ({ propiedad }) => {
+export const SeccionUbicacion = ({ propiedad, variant }) => {
   if (!propiedad) return null;
 
-  // Helper para obtener el icono según el tipo de propiedad
+  const isDetail = variant === 'detail';
+
   const getIconoPropiedad = (tipo) => {
     const iconMap = {
-      'CASA': HomeIcon,
-      'DEPARTAMENTO': ApartmentIcon,
-      'APARTAMENTO': ApartmentIcon,
-      'LOCAL': StoreOutlined
+      CASA: HomeIcon,
+      DEPARTAMENTO: ApartmentIcon,
+      APARTAMENTO: ApartmentIcon,
+      LOCAL: StoreOutlined,
     };
     return iconMap[tipo?.toUpperCase()] || HomeIcon;
   };
 
-  if (!propiedad.direccion && !propiedad.ciudad) return null;
+  if (!propiedad.direccion && !propiedad.ciudad) {
+    return isDetail ? (
+      <Typography sx={propiedadDetailEmptyTextSx}>Sin dirección registrada</Typography>
+    ) : null;
+  }
+
+  const IconComponent = getIconoPropiedad(propiedad.tipo);
+
+  const content = (
+    <>
+      {IconComponent ? (
+        React.createElement(IconComponent, { sx: propiedadDetailRowIconSx })
+      ) : null}
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        {propiedad.direccion ? (
+          <Typography sx={propiedadDetailPrimaryTextSx} noWrap>
+            {propiedad.direccion}
+          </Typography>
+        ) : null}
+        {propiedad.ciudad ? (
+          <Typography sx={propiedadDetailSecondaryTextSx} noWrap>
+            {propiedad.ciudad}
+          </Typography>
+        ) : null}
+      </Box>
+      {propiedad.metrosCuadrados ? (
+        <Typography sx={{ ...propiedadDetailSecondaryTextSx, mt: 0, flexShrink: 0 }}>
+          {propiedad.metrosCuadrados} m²
+        </Typography>
+      ) : null}
+    </>
+  );
+
+  if (isDetail) {
+    return <Box sx={propiedadDetailUbicacionCardSx}>{content}</Box>;
+  }
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minHeight: '32px', px: 1, py: 0.2 }}>
-      {getIconoPropiedad(propiedad.tipo) && (
+      {IconComponent ? (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 36, height: '100%' }}>
-          {React.createElement(getIconoPropiedad(propiedad.tipo), { sx: { fontSize: '1.3rem', color: 'rgba(255,255,255,0.7)' } })}
+          {React.createElement(IconComponent, { sx: { fontSize: '1.3rem', color: 'rgba(255,255,255,0.7)' } })}
         </Box>
-      )}
+      ) : null}
       <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        {propiedad.direccion && (
+        {propiedad.direccion ? (
           <Typography
             variant="body2"
-            sx={{ fontWeight: 500, fontSize: '0.7rem', lineHeight: 1, m: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: { xs: 120, sm: 200, md: 260 } }}
+            sx={{
+              fontWeight: 500,
+              fontSize: '0.7rem',
+              lineHeight: 1,
+              m: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              maxWidth: { xs: 120, sm: 200, md: 260 },
+            }}
           >
             {propiedad.direccion}
           </Typography>
-        )}
-        {propiedad.ciudad && (
+        ) : null}
+        {propiedad.ciudad ? (
           <Typography
             variant="caption"
-            sx={{ fontWeight: 400, fontSize: '0.68rem', color: 'text.secondary', lineHeight: 1, m: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: { xs: 120, sm: 200, md: 260 } }}
+            sx={{
+              fontWeight: 400,
+              fontSize: '0.68rem',
+              color: 'text.secondary',
+              lineHeight: 1,
+              m: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              maxWidth: { xs: 120, sm: 200, md: 260 },
+            }}
           >
             {propiedad.ciudad}
           </Typography>
-        )}
+        ) : null}
       </Box>
-      {propiedad.metrosCuadrados && (
+      {propiedad.metrosCuadrados ? (
         <Typography
           variant="body2"
           sx={{ fontWeight: 500, fontSize: '0.7rem', color: 'text.secondary', textAlign: 'right', minWidth: 60 }}
         >
           {propiedad.metrosCuadrados}m²
         </Typography>
-      )}
+      ) : null}
     </Box>
   );
 };
 
-// Sección: Habitaciones (cuadrícula)
-export const SeccionHabitaciones = ({ habitaciones = [], inventarios = [] }) => {
-  if (!habitaciones.length) return null;
-
-  // Función para mapear tipos de habitación a íconos de Material-UI
-  const getHabitacionIcon = (tipo) => {
-    const iconMap = {
-      'BAÑO': BathtubIcon,
-      'TOILETTE': BathtubIcon,
-      'DORMITORIO_DOBLE': KingBed,
-      'DORMITORIO_SIMPLE': SingleBed,
-      'ESTUDIO': ChairOutlined,
-      'COCINA': KitchenOutlined,
-      'DESPENSA': InventoryIcon,
-      'SALA_PRINCIPAL': ChairOutlined,
-      'PATIO': HomeOutlined,
-      'JARDIN': HomeOutlined,
-      'TERRAZA': HomeOutlined,
-      'LAVADERO': LocalLaundryServiceOutlined,
-      'OTRO': BedOutlined
-    };
-    return iconMap[tipo] || BedOutlined;
-  };
-
-  // Usar la función centralizada para contar items por habitación
-  const habitacionesConItemsObj = agruparHabitaciones(habitaciones, inventarios);
-  const habitacionesConItems = Array.isArray(habitacionesConItemsObj)
-    ? habitacionesConItemsObj
-    : Object.values(habitacionesConItemsObj);
+// Sección: Ambientes (carrusel horizontal, misma UX que Monedas)
+export const SeccionHabitaciones = ({
+  habitaciones = [],
+  inventarios = [],
+  onEdit,
+  onDelete,
+  emptyMessage,
+}) => {
+  if (!habitaciones.length && !onEdit && !onDelete) return null;
 
   return (
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, px: 1.5, py: 1, flex: 1 }}>
-      {habitacionesConItems.map((habitacion, index) => (
-        <Box
-          key={index}
-          sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minHeight: '32px', px: 0, py: 0.5 }}
-        >
-          <Box sx={{ fontSize: '1rem', color: habitacion.color, flexShrink: 0 }}>
-            {(habitacion.icon || BedOutlined) && React.createElement(getHabitacionIcon(habitacion.tipo), { sx: { fontSize: '1rem' } })}
-          </Box>
-          <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-            <Typography
-              variant="body2"
-              sx={{ fontWeight: 500, fontSize: '0.7rem', textAlign: 'left', lineHeight: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', m: 0, p: 0 }}
-            >
-              {habitacion.nombrePersonalizado || (habitacion.tipo?.replace('_', ' ') || 'Sin nombre').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              {habitacion.metrosCuadrados && (
-                <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary', textAlign: 'left', lineHeight: 1 }}>
-                  {habitacion.metrosCuadrados}m²
-                </Typography>
-              )}
-              {habitacion.itemsCount !== undefined && (
-                <>
-                  {habitacion.metrosCuadrados && (
-                    <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary', lineHeight: 1 }}>
-                      •
-                    </Typography>
-                  )}
-                  <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary', textAlign: 'left', lineHeight: 1, opacity: 0.8 }}>
-                    {habitacion.itemsCount} {habitacion.itemsCount === 1 ? 'item' : 'items'}
-                  </Typography>
-                </>
-              )}
-            </Box>
-          </Box>
-        </Box>
-      ))}
-    </Box>
+    <HabitacionesCarouselSection
+      habitaciones={habitaciones}
+      inventarios={inventarios}
+      onEdit={onEdit}
+      onDelete={onDelete}
+      emptyMessage={emptyMessage}
+      carouselSx={{ px: 0.125, py: 0.25 }}
+    />
   );
 };
 
@@ -296,8 +331,9 @@ export const SeccionInventario = ({ inventario = [] }) => {
 };
 
 // Sección: Documentos y Contratos agrupados
-export const SeccionDocumentos = ({ documentos = [], propiedad }) => {
+export const SeccionDocumentos = ({ documentos = [], propiedad, variant }) => {
   const { theme } = useResponsive();
+  const isDetail = variant === 'detail';
   const [inquilinoDetailOpen, setInquilinoDetailOpen] = useState(false);
   const [selectedInquilino, setSelectedInquilino] = useState(null);
   const [contratoDetailOpen, setContratoDetailOpen] = useState(false);
@@ -330,32 +366,42 @@ export const SeccionDocumentos = ({ documentos = [], propiedad }) => {
   };
 
   return (
-    <Box sx={{ minHeight: '40px', px: 1, py: 0.2, display: 'flex', flexDirection: 'column', gap: 1, bgcolor: theme.palette.collapse.background }}>
+    <Box
+      sx={
+        isDetail
+          ? { display: 'flex', flexDirection: 'column', gap: 0.25 }
+          : {
+              minHeight: '40px',
+              px: 1,
+              py: 0.2,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1,
+              bgcolor: theme.palette.collapse.background,
+            }
+      }
+    >
       {documentos.length === 0 ? (
-        <Typography variant="caption" color="text.secondary" sx={{ pl: 1 }}>
+        <Typography sx={isDetail ? propiedadDetailEmptyTextSx : { pl: 1 }} color={isDetail ? undefined : 'text.secondary'} variant={isDetail ? undefined : 'caption'}>
           No hay documentos
         </Typography>
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.2 }}>
-          {/* Mostrar otros documentos primero */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: isDetail ? 0.25 : 0.2 }}>
           {otrosDocumentos.map((doc, idx) => (
-            <Box key={doc._id || idx} sx={{ display: 'flex', alignItems: 'center', gap: 1, pl: 1 }}>
-              <DescriptionIcon sx={{ fontSize: '1.1rem', color: 'text.secondary', flexShrink: 0 }} />
-              <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary', fontSize: '0.85rem', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <Box key={doc._id || idx} sx={isDetail ? propiedadDetailListRowSx : { display: 'flex', alignItems: 'center', gap: 1, pl: 1 }}>
+              <DescriptionIcon sx={isDetail ? propiedadDetailRowIconSx : { fontSize: '1.1rem', color: 'text.secondary', flexShrink: 0 }} />
+              <Typography sx={{ ...(isDetail ? propiedadDetailPrimaryTextSx : { fontWeight: 500, color: 'text.primary', fontSize: '0.85rem' }), flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {doc.nombre}
               </Typography>
-              {doc.url && (
-                <IconButton size="small" href={doc.url} target="_blank" rel="noopener noreferrer" sx={{ p: 0.2 }}>
-                  <VisibilityIcon sx={{ fontSize: '1rem', color: 'primary.main' }}/>
+              {doc.url ? (
+                <IconButton size="small" href={doc.url} target="_blank" rel="noopener noreferrer" sx={{ p: 0.2, color: 'text.secondary', '&:hover': { color: 'primary.main' } }}>
+                  <VisibilityIcon sx={{ fontSize: '1rem' }} />
                 </IconButton>
-              )}
+              ) : null}
             </Box>
           ))}
 
-          {/* Mostrar contratos limitados */}
           {contratosAMostrar.map((doc, idx) => {
-            // Estado dinámico del contrato
-            // Aquí puedes usar helpers de estado si los tienes disponibles
             const apellido = doc.inquilino && Array.isArray(doc.inquilino) && doc.inquilino[0]?.apellido ? doc.inquilino[0].apellido : '';
             const rango = doc.fechaInicio && doc.fechaFin ? `${formatMesAnio(doc.fechaInicio)} - ${formatMesAnio(doc.fechaFin)}` : '';
             const label = apellido;
@@ -366,78 +412,47 @@ export const SeccionDocumentos = ({ documentos = [], propiedad }) => {
             const IconoDoc = getStatusIconComponent(estadoContrato, 'CONTRATO');
             const colorIcono = getEstadoColor(estadoContrato, 'CONTRATO');
             return (
-              <Box key={doc._id || idx} sx={{ display: 'flex', alignItems: 'center', gap: 1, pl: 1 }}>
-                {IconoDoc && (
+              <Box key={doc._id || idx} sx={isDetail ? propiedadDetailListRowSx : { display: 'flex', alignItems: 'center', gap: 1, pl: 1 }}>
+                {IconoDoc ? (
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
                     {React.isValidElement(IconoDoc)
-                      ? React.cloneElement(IconoDoc, { sx: { fontSize: '1.1rem', color: colorIcono } })
-                      : React.createElement(IconoDoc, { sx: { fontSize: '1.1rem', color: colorIcono } })
-                    }
+                      ? React.cloneElement(IconoDoc, { sx: { fontSize: isDetail ? 20 : '1.1rem', color: colorIcono } })
+                      : React.createElement(IconoDoc, { sx: { fontSize: isDetail ? 20 : '1.1rem', color: colorIcono } })}
                   </Box>
-                )}
+                ) : null}
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary', fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <Typography sx={{ ...(isDetail ? propiedadDetailPrimaryTextSx : { fontWeight: 500, color: 'text.primary', fontSize: '0.85rem' }), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {label}
                   </Typography>
-                  {secondary && (
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem', mt: 0.2, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {secondary ? (
+                    <Typography sx={isDetail ? propiedadDetailSecondaryTextSx : { color: 'text.secondary', fontSize: '0.7rem', mt: 0.2, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {secondary}
                     </Typography>
-                  )}
+                  ) : null}
                 </Box>
-                {inquilino && (
-                  <IconButton size="small" sx={{ p: 0.2 }} onClick={() => handleOpenInquilino(inquilino)}>
-                    <PeopleIcon sx={{ fontSize: '1rem', color: 'primary.main' }} />
+                {inquilino ? (
+                  <IconButton size="small" sx={{ p: 0.2, color: 'text.secondary', '&:hover': { color: 'primary.main' } }} onClick={() => handleOpenInquilino(inquilino)}>
+                    <PeopleIcon sx={{ fontSize: '1rem' }} />
                   </IconButton>
-                )}
-                <IconButton size="small" sx={{ p: 0.2 }} onClick={() => handleOpenContrato(contrato)}>
-                  <DescriptionIcon sx={{ fontSize: '1rem', color: 'primary.main' }} />
+                ) : null}
+                <IconButton size="small" sx={{ p: 0.2, color: 'text.secondary', '&:hover': { color: 'primary.main' } }} onClick={() => handleOpenContrato(contrato)}>
+                  <DescriptionIcon sx={{ fontSize: '1rem' }} />
                 </IconButton>
               </Box>
             );
           })}
 
-          {/* Link para mostrar más contratos */}
-          {contratosOcultos > 0 && (
-            <Box sx={{ pl: 1, pt: 0.5 }}>
-              <Typography 
-                variant="caption" 
-                color="primary.main" 
-                sx={{ 
-                  cursor: 'pointer',
-                  textDecoration: 'underline',
-                  fontSize: '0.65rem',
-                  '&:hover': {
-                    color: 'primary.light'
-                  }
-                }}
-                onClick={() => setShowAllContratos(true)}
-              >
-                Ver {contratosOcultos} contrato{contratosOcultos > 1 ? 's' : ''} más
-              </Typography>
-            </Box>
-          )}
+          {contratosOcultos > 0 ? (
+            <Typography component="span" sx={propiedadDetailLinkTextSx} onClick={() => setShowAllContratos(true)}>
+              Ver {contratosOcultos} contrato{contratosOcultos > 1 ? 's' : ''} más
+            </Typography>
+          ) : null}
 
-          {/* Link para ocultar contratos */}
-          {showAllContratos && contratos.length > 2 && (
-            <Box sx={{ pl: 1, pt: 0.5 }}>
-              <Typography 
-                variant="caption" 
-                color="primary.main" 
-                sx={{ 
-                  cursor: 'pointer',
-                  textDecoration: 'underline',
-                  fontSize: '0.65rem',
-                  '&:hover': {
-                    color: 'primary.light'
-                  }
-                }}
-                onClick={() => setShowAllContratos(false)}
-              >
-                Mostrar menos
-              </Typography>
-            </Box>
-          )}
+          {showAllContratos && contratos.length > 2 ? (
+            <Typography component="span" sx={propiedadDetailLinkTextSx} onClick={() => setShowAllContratos(false)}>
+              Mostrar menos
+            </Typography>
+          ) : null}
         </Box>
       )}
       {/* Popups de detalle */}
@@ -452,40 +467,68 @@ export const SeccionDocumentos = ({ documentos = [], propiedad }) => {
 };
 
 // Sección: Contratos (primaria, aparte)
-export const SeccionContratos = ({ contratos = [] }) => {
+export const SeccionContratos = ({ contratos = [], variant }) => {
   const { theme } = useResponsive();
-  if (!contratos.length) return null;
+  const isDetail = variant === 'detail';
+
+  if (!contratos.length) {
+    return isDetail ? (
+      <Typography sx={propiedadDetailEmptyTextSx}>Sin contratos</Typography>
+    ) : null;
+  }
+
   return (
-    <Accordion sx={{ mb: 2, borderRadius: 0, bgcolor: theme.palette.collapse.background, border: `1px solid ${theme.palette.divider}` }}>
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography variant="subtitle2" sx={{ fontSize: '0.95rem', fontWeight: 600 }}>
-          <DescriptionIcon sx={{ fontSize: '1.1rem', mr: 1 }} />
-          Contratos ({contratos.length})
-        </Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        {contratos.map((contrato, idx) => (
-          <Box key={contrato._id || idx} sx={{ mb: 1.5, p: 1, border: `1px solid ${theme.palette.divider}`, borderRadius: 0, bgcolor: theme.palette.collapse.background }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: isDetail ? 0.5 : 1, mb: isDetail ? 0 : 2 }}>
+      {contratos.map((contrato, idx) => {
+        const apellido =
+          contrato.inquilino && Array.isArray(contrato.inquilino) && contrato.inquilino[0]?.apellido
+            ? contrato.inquilino[0].apellido
+            : contrato.inquilino?.apellido || 'Contrato';
+        const rango =
+          contrato.fechaInicio && contrato.fechaFin
+            ? `${new Date(contrato.fechaInicio).toLocaleDateString('es-ES')} – ${new Date(contrato.fechaFin).toLocaleDateString('es-ES')}`
+            : '';
+
+        if (isDetail) {
+          return (
+            <Box key={contrato._id || idx} sx={propiedadDetailListRowSx}>
+              <DescriptionIcon sx={propiedadDetailRowIconSx} />
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography sx={propiedadDetailPrimaryTextSx} noWrap>
+                  {apellido}
+                </Typography>
+                {rango ? (
+                  <Typography sx={propiedadDetailSecondaryTextSx} noWrap>
+                    {rango}
+                  </Typography>
+                ) : null}
+              </Box>
+            </Box>
+          );
+        }
+
+        return (
+          <Box
+            key={contrato._id || idx}
+            sx={{ mb: 1.5, p: 1, border: `1px solid ${theme.palette.divider}`, borderRadius: 0, bgcolor: theme.palette.collapse.background }}
+          >
             <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary', fontSize: '0.95rem' }}>
-              {contrato.inquilino && Array.isArray(contrato.inquilino) && contrato.inquilino[0]?.apellido
-                ? contrato.inquilino[0].apellido
-                : contrato.inquilino?.apellido || 'Contrato'}
+              {apellido}
             </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
-              {contrato.fechaInicio && contrato.fechaFin
-                ? `${new Date(contrato.fechaInicio).toLocaleDateString('es-ES')} - ${new Date(contrato.fechaFin).toLocaleDateString('es-ES')}`
-                : ''}
-            </Typography>
-            {/* Puedes agregar más detalles del contrato aquí */}
+            {rango ? (
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+                {rango}
+              </Typography>
+            ) : null}
             <Box sx={{ mt: 1 }}>
-              <IconButton size="small" sx={{ p: 0.2 }} onClick={() => {}}>
+              <IconButton size="small" sx={{ p: 0.2 }}>
                 <DescriptionIcon sx={{ fontSize: '1rem', color: 'primary.main' }} />
               </IconButton>
             </Box>
           </Box>
-        ))}
-      </AccordionDetails>
-    </Accordion>
+        );
+      })}
+    </Box>
   );
 };
 

@@ -1,4 +1,3 @@
-export { default as PropiedadCard } from './PropiedadCard';
 export { default as PropiedadForm } from './PropiedadForm';
 export { default as PropiedadDetail } from './PropiedadDetail';
 export { default as TipoPropiedadIcon } from './TipoPropiedadIcon';

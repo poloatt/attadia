@@ -235,13 +235,33 @@ const ICON_OVERRIDE_MAP = {
 // ============================================================================
 
 /**
+ * Normaliza estado a string (p. ej. propiedades guardan `estado` como array).
+ * @param {string|string[]|object|null|undefined} estado
+ * @returns {string|null}
+ */
+export function normalizeEstadoValue(estado) {
+  if (estado == null || estado === '') return null;
+  if (Array.isArray(estado)) {
+    const first = estado.find((e) => e != null && e !== '');
+    return first != null ? String(first) : null;
+  }
+  if (typeof estado === 'object') {
+    const nested = estado.codigo ?? estado.value ?? estado.estado;
+    return nested != null ? String(nested) : null;
+  }
+  return String(estado);
+}
+
+/**
  * Obtiene información completa de un estado (color, icono, texto)
  * @param {string} estado - Nombre del estado (ej: 'PENDIENTE', 'ACTIVO')
  * @param {string} tipo - Tipo de entidad (ej: 'TAREA', 'OBJETIVO')
  * @returns {Object} Objeto con color, icon y text
  */
 export function getEstadoInfo(estado, tipo = 'PROPIEDAD') {
-  if (!estado) {
+  const estadoStr = normalizeEstadoValue(estado);
+
+  if (!estadoStr) {
     return {
       icon: 'PendingActions',
       color: '#bdbdbd',
@@ -250,7 +270,7 @@ export function getEstadoInfo(estado, tipo = 'PROPIEDAD') {
   }
 
   const tipoUpper = tipo.toUpperCase();
-  const estadoUpper = estado.toUpperCase();
+  const estadoUpper = estadoStr.toUpperCase();
 
   // Obtener el estado base mapeado
   const estadoBaseKey = ESTADO_MAP[tipoUpper]?.[estadoUpper];
@@ -261,7 +281,7 @@ export function getEstadoInfo(estado, tipo = 'PROPIEDAD') {
     return {
       icon: 'PendingActions',
       color: '#bdbdbd',
-      text: estado || 'Desconocido'
+      text: estadoStr || 'Desconocido'
     };
   }
 
@@ -270,7 +290,7 @@ export function getEstadoInfo(estado, tipo = 'PROPIEDAD') {
   const icon = iconOverride || estadoBase.icon;
 
   // Obtener texto personalizado
-  const text = TEXT_MAP[tipoUpper]?.[estadoUpper] || estado;
+  const text = TEXT_MAP[tipoUpper]?.[estadoUpper] || estadoStr;
 
   return {
     icon,

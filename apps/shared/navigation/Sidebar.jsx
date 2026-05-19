@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useCallback } from 'react';
+import React from 'react';
 import { 
   Drawer, 
   Box, 
@@ -11,32 +11,82 @@ import {
   IconButton,
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { navigateToAppPath } from '../utils/navigationUtils';
+import { navigateToAppPath, isRouteActive } from '../utils/navigationUtils';
 import { useSidebar } from '../context/SidebarContext';
-import { useUISettings } from '../context/UISettingsContext';
 import SidebarResizer from './SidebarResizer';
 import { DynamicIcon } from '../components/common/DynamicIcon';
 import { SIDEBAR_CONFIG, TRANSITIONS, UI_COLORS, Z_INDEX, SPACING, getChildPadding, NAV_TYPO } from '../config/uiConstants';
-import { getIconByKey, icons } from './menuIcons';
+import { bottomNavigationItems } from './menuStructure';
 
 export default function Sidebar({ moduloActivo, nivel1Activo }) {
   const {
     isOpen,
     isDesktop,
     sidebarWidth,
-    closeSidebar,
-    selectedMain,
-    setSelectedMain,
     handleSidebarResize,
     getSidebarConfig,
-    adjustChildAlignment
   } = useSidebar();
-  const { showEntityToolbarNavigation } = useUISettings();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Si no hay módulo activo, no renderizar nada
-  if (!moduloActivo) return null;
+  if (!isDesktop && !moduloActivo) return null;
+
+  const renderAppSwitcher = () => {
+    if (!isDesktop) return null;
+    const config = getSidebarConfig();
+    const padding = isOpen ? config.parent.paddingUnits : 0;
+
+    return (
+      <Box sx={{ pb: 1 }}>
+        <List disablePadding>
+          {bottomNavigationItems.map((app) => {
+            const isActive = isRouteActive(location.pathname, app.activePaths);
+            return (
+              <ListItem key={app.id} disablePadding sx={{ bgcolor: 'transparent' }}>
+                <ListItemButton
+                  onClick={() => navigateToAppPath(navigate, app.path)}
+                  selected={isActive}
+                  sx={{
+                    minHeight: SIDEBAR_CONFIG.parent.minHeight,
+                    paddingLeft: padding,
+                    paddingRight: isOpen ? 12 : 0,
+                    borderRadius: SIDEBAR_CONFIG.parent.borderRadius,
+                    mb: SIDEBAR_CONFIG.parent.marginBottom,
+                    justifyContent: isOpen ? 'initial' : 'center',
+                    backgroundColor: isActive ? UI_COLORS.backgroundActive.parent : 'transparent',
+                    '&:hover': {
+                      backgroundColor: isActive
+                        ? UI_COLORS.backgroundActive.parent
+                        : UI_COLORS.backgroundHover.default,
+                    },
+                    '&.Mui-selected, &.Mui-selected:hover': {
+                      backgroundColor: UI_COLORS.backgroundActive.parent,
+                      color: '#fff',
+                    },
+                    transition: TRANSITIONS.backgroundChange,
+                  }}
+                >
+                  <ListItemIcon
+                    sx={{
+                      minWidth: config.parent.iconMinWidth,
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      width: isOpen ? 'auto' : '100%',
+                      mx: isOpen ? 0 : 'auto',
+                    }}
+                  >
+                    <DynamicIcon iconKey={app.icon} size="small" />
+                  </ListItemIcon>
+                  {isOpen && <ListItemText primary={app.title} />}
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
+        </List>
+      </Box>
+    );
+  };
 
   // Función recursiva simplificada que usa directamente la estructura de menuStructure.js
   const renderMenuItem = (item, level = 1) => {
@@ -141,12 +191,14 @@ export default function Sidebar({ moduloActivo, nivel1Activo }) {
     );
   };
 
-  // Renderizar la estructura del módulo usando la función recursiva
-  const renderModuleStructure = () => (
-    <List disablePadding>
-      {(moduloActivo.subItems || []).map(item => renderMenuItem(item, 1))}
-    </List>
-  );
+  const renderModuleStructure = () => {
+    if (isDesktop || !moduloActivo?.subItems?.length) return null;
+    return (
+      <List disablePadding>
+        {moduloActivo.subItems.map((item) => renderMenuItem(item, 1))}
+      </List>
+    );
+  };
 
   return (
     <Box sx={{
@@ -199,7 +251,7 @@ export default function Sidebar({ moduloActivo, nivel1Activo }) {
         }}>
           {/* Contenido principal del sidebar */}
           <Box sx={{ flex: 1 }}>
-            {/* Renderizar estructura del módulo usando menuStructure.js */}
+            {renderAppSwitcher()}
             {renderModuleStructure()}
           </Box>
 

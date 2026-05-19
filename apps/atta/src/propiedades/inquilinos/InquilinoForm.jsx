@@ -19,6 +19,7 @@ import {
   Autocomplete
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
+import { getDocumentId, getPropiedadDisplayLabel } from '../habitacionConstants';
 
 const InquilinoForm = ({
   open,
@@ -56,7 +57,8 @@ const InquilinoForm = ({
       });
       
       if (initialData.propiedad) {
-        const prop = propiedades.find(p => p._id === (initialData.propiedad?._id || initialData.propiedad));
+        const propId = getDocumentId(initialData.propiedad);
+        const prop = propiedades.find((p) => getDocumentId(p) === propId);
         setSelectedPropiedad(prop || null);
       }
       
@@ -97,7 +99,7 @@ const InquilinoForm = ({
     setSelectedPropiedad(newValue);
     setFormData(prev => ({
       ...prev,
-      propiedad: newValue?._id || ''
+      propiedad: getDocumentId(newValue)
     }));
   };
 
@@ -260,7 +262,8 @@ const InquilinoForm = ({
               value={selectedPropiedad}
               onChange={handlePropiedadChange}
               options={propiedades}
-              getOptionLabel={(option) => option.titulo || ''}
+              getOptionLabel={(option) => getPropiedadDisplayLabel(option)}
+              isOptionEqualToValue={(option, value) => getDocumentId(option) === getDocumentId(value)}
               renderInput={(params) => (
                 <TextField
                   {...params}

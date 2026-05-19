@@ -38,6 +38,8 @@ import { CuotasProvider } from '@shared/context/CuotasContext';
 import ContratoDetail from '../propiedades/contratos/ContratoDetail';
 
 import useResponsive from '@shared/hooks/useResponsive';
+import { PropiedadesSectionNav } from '../bienes';
+import { attaPageLayoutSx } from '../navigation/attaPageLayoutSx';
 
 export function Contratos() {
   const [contratos, setContratos] = useState([]);
@@ -100,11 +102,11 @@ export function Contratos() {
         monedasRes
       ] = await Promise.all([
         clienteAxios.get('/api/contratos/estado-actual'),
-        clienteAxios.get('/api/propiedades'),
-        clienteAxios.get('/api/inquilinos'),
-        clienteAxios.get('/api/habitaciones'),
-        clienteAxios.get('/api/cuentas'),
-        clienteAxios.get('/api/monedas')
+        clienteAxios.get('/api/propiedades?limit=500'),
+        clienteAxios.get('/api/inquilinos?limit=500'),
+        clienteAxios.get('/api/habitaciones?limit=500'),
+        clienteAxios.get('/api/cuentas?limit=500'),
+        clienteAxios.get('/api/monedas?limit=500')
       ]);
       const contratos = contratosRes.data.docs || [];
       const propiedades = propiedadesRes.data.docs || [];
@@ -347,20 +349,9 @@ export function Contratos() {
     <Box sx={{ px: 0, width: '100%' }}>
       {/* Eliminar <Toolbar /> */}
       
-      <Box
-        sx={{
-          width: '100%',
-          maxWidth: 900,
-          mx: 'auto',
-          px: { xs: 1, sm: 2, md: 3 },
-          py: 2,
-          pb: { xs: 10, sm: 4 },
-          boxSizing: 'border-box',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 0
-        }}
-      >
+      <Box sx={{ ...attaPageLayoutSx, display: 'flex', flexDirection: 'column', gap: 0 }}>
+        <PropiedadesSectionNav variant="strip" />
+
         {/* Mostrar todos los contratos juntos */}
         <Box
           sx={{

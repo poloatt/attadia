@@ -18,8 +18,12 @@ export default function RutinasActionStrip({ targetDate, agendaView = 'ahora' })
   const showLuego = isToday && agendaView === 'luego';
 
   useEffect(() => {
-    if (typeof fetchRutinas === 'function') fetchRutinas();
-    if (typeof fetchHabits === 'function') fetchHabits();
+    if (typeof fetchRutinas === 'function') {
+      fetchRutinas().catch(() => {});
+    }
+    if (typeof fetchHabits === 'function') {
+      fetchHabits().catch(() => {});
+    }
   }, [fetchRutinas, fetchHabits]);
 
   return (

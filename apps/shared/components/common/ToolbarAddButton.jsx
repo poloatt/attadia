@@ -1,0 +1,57 @@
+import React, { memo } from 'react';
+import { IconButton } from '@mui/material';
+import { AddOutlined } from '@mui/icons-material';
+
+/** Tamaño y hover compartidos por botones de toolbar (Foco, Atta, Pulso). */
+export const TOOLBAR_ICON_BUTTON_SX = {
+  width: { xs: 32, sm: 26 },
+  height: { xs: 32, sm: 26 },
+  padding: { xs: 0.25, sm: 0.125 },
+  minWidth: { xs: 32, sm: 26 },
+  minHeight: { xs: 32, sm: 26 },
+  '& .MuiSvgIcon-root': {
+    fontSize: { xs: '1.1rem', sm: '1.1rem' },
+  },
+  '&:hover': { backgroundColor: 'action.hover' },
+};
+
+function mergeToolbarAddSx(buttonSx = {}) {
+  const { '&:hover': hoverOverride, ...rest } = buttonSx;
+  return {
+    ...TOOLBAR_ICON_BUTTON_SX,
+    color: 'primary.main',
+    '&:hover': {
+      color: 'primary.main',
+      backgroundColor: 'action.hover',
+      ...hoverOverride,
+    },
+    ...rest,
+  };
+}
+
+/**
+ * Botón «+» de toolbar (mismo aspecto en Foco, Atta y Pulso).
+ * Marcar como isButtonComponent para usarlo como `icon` en SystemButtons.
+ */
+export const ToolbarAddButton = memo(function ToolbarAddButton({
+  onClick,
+  disabled = false,
+  buttonSx = {},
+  'aria-label': ariaLabel = 'Crear',
+}) {
+  const btn = (
+    <IconButton
+      size="small"
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      sx={mergeToolbarAddSx(buttonSx)}
+    >
+      <AddOutlined />
+    </IconButton>
+  );
+  btn.type.isButtonComponent = true;
+  return btn;
+});
+
+export default ToolbarAddButton;

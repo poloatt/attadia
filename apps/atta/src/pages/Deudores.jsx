@@ -1,17 +1,10 @@
-import React from 'react';
-import { Container, Box } from '@mui/material';
-import { Toolbar } from '@shared/navigation';
-import { 
-  PersonOutlineOutlined as DeudoresIcon
-} from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
-import { CommonDetails } from '@shared/components/common';
-import { CommonConstruction } from '@shared/components/common';
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { Box } from '@mui/material';
+import { CommonDetails, CommonConstruction } from '@shared/components/common';
+import { FinanzasSectionNav } from '../finanzas';
+import { attaPageLayoutSx } from '../navigation/attaPageLayoutSx';
 
 export function Deudores() {
-  const navigate = useNavigate();
-
   useEffect(() => {
     const handleHeaderAdd = (e) => {
       if (e.detail?.type === 'deudores') {
@@ -23,14 +16,14 @@ export function Deudores() {
   }, []);
 
   return (
-    <Box sx={{ px: 0, width: '100%' }}>
-      {/* Eliminar <Toolbar /> */}
+    <Box sx={attaPageLayoutSx}>
+      <FinanzasSectionNav variant="strip" />
 
-      <CommonDetails title="Deudores">
+      <CommonDetails>
         <CommonConstruction />
       </CommonDetails>
     </Box>
   );
 }
 
-export default Deudores; 
+export default Deudores;

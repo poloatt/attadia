@@ -25,6 +25,16 @@ export const agendaRuleCases = [
     title: 'Sin fechas => AHORA, bucket SIN FECHA',
     task: { titulo: 'Sin fechas' },
   },
+  {
+    id: 'tarea_fechaFinFar_futureDueWednesday',
+    title: 'TAREA: fechaFin lejana no cuenta como due; due miércoles => AHORA/LUEGO por due',
+    task: {
+      tipo: 'TAREA',
+      fechaInicio: new Date(Date.now() + 2 * 24 * 3600 * 1000).toISOString(),
+      fechaVencimiento: new Date(Date.now() + 2 * 24 * 3600 * 1000).toISOString(),
+      fechaFin: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
+    },
+  },
 ];
 
 export function evaluateAgendaRuleCases(now = new Date()) {

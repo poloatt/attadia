@@ -4,7 +4,6 @@ export { default as Contratos } from './Contratos.jsx';
 export { default as Cuentas } from './Cuentas.jsx';
 export { default as Deudores } from './Deudores.jsx';
 export { default as Finanzas } from './Finanzas.jsx';
-export { default as Habitaciones } from './Habitaciones.jsx';
 export { default as Inquilinos } from './Inquilinos.jsx';
 export { default as Inventario } from './Inventario.jsx';
 export { default as Inversiones } from './Inversiones.jsx';

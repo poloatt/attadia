@@ -43,7 +43,6 @@ export const attaConfig = {
     recurrente: true,
     inquilinos: true,
     contratos: true,
-    habitaciones: true,
     inventario: true,
     autos: true,
     mercadopago: true,

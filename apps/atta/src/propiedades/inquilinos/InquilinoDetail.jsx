@@ -100,7 +100,7 @@ const ContratoItem = ({ contrato, onContratoClick }) => {
       >
         <DescriptionIcon sx={{ fontSize: 18, color: 'primary.light', flexShrink: 0 }} />
         <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary', minWidth: 80, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {contrato.propiedad?.titulo || contrato.propiedad?.nombre || 'Propiedad'}
+          {contrato.propiedad?.alias || contrato.propiedad?.titulo || contrato.propiedad?.nombre || 'Propiedad'}
         </Typography>
         <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.95em', mx: 0.5 }}>
           •

@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
 import { Box, Typography } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import { Toolbar } from '@shared/navigation';
+import { FinanzasSectionNav } from '../finanzas';
+import { attaPageLayoutSx } from '../navigation/attaPageLayoutSx';
 
 export default function Inversiones() {
   useEffect(() => {
@@ -15,29 +16,24 @@ export default function Inversiones() {
   }, []);
 
   return (
-    <Box sx={{ px: 0, width: '100%' }}>
-      <Box sx={{ 
-        width: '100%',
-        maxWidth: 900,
-        mx: 'auto',
-        px: { xs: 1, sm: 2, md: 3 },
-        py: 2,
-        pb: { xs: 10, sm: 4 },
-        boxSizing: 'border-box',
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        minHeight: '60vh'
-      }}>
-        <TrendingUpIcon sx={{ fontSize: 64, color: 'primary.main', mb: 2 }} />
-        <Typography variant="h5" color="text.secondary" align="center" sx={{ mb: 1 }}>
-          Página de Inversiones en construcción
-        </Typography>
-        <Typography variant="body2" color="text.secondary" align="center">
-          Próximamente podrás gestionar tus inversiones aquí.
+    <Box sx={attaPageLayoutSx}>
+      <FinanzasSectionNav variant="strip" />
+
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '50vh',
+          gap: 2,
+        }}
+      >
+        <TrendingUpIcon sx={{ fontSize: 64, color: 'primary.main' }} />
+        <Typography variant="body2" color="text.secondary" textAlign="center">
+          Próximamente podrás gestionar tu portafolio aquí. Usa las tarjetas de arriba para volver a otras secciones.
         </Typography>
       </Box>
     </Box>
   );
-} 
+}

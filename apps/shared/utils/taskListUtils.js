@@ -1,4 +1,9 @@
-import { isTaskCompleted } from './agendaRules.js';
+function dayKeyFromTaskDate(value) {
+  if (!value) return '';
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 /**
  * Elimina filas duplicadas con el mismo _id (p. ej. paginación o sync).
@@ -13,41 +18,44 @@ export function dedupeTasksById(tasks = []) {
   });
 }
 
-function pickPreferredSerieTask(current, candidate) {
-  if (candidate.googleTasksSync?.googleTaskId && !current.googleTasksSync?.googleTaskId) {
-    return candidate;
-  }
-  if (current.googleTasksSync?.googleTaskId && !candidate.googleTasksSync?.googleTaskId) {
-    return current;
-  }
-  if (isTaskCompleted(current) && !isTaskCompleted(candidate)) return candidate;
-  if (!isTaskCompleted(current) && isTaskCompleted(candidate)) return current;
-  return current;
-}
-
 /**
- * Una fila por serie en listas (ancla Google o la instancia más relevante).
+ * Dedup de instancias materializadas por serie (ancla Google o una por día).
+ * Las ocurrencias virtuales (una por día desde el backend) no se colapsan.
  */
 export function dedupeSerieTasksForList(tasks = []) {
   const list = dedupeTasksById(tasks);
-  const bestBySerie = new Map();
+  const anchorBySerie = new Map();
+  const keptPerSerieDay = new Set();
 
   for (const t of list) {
+    if (t?.virtual) continue;
     if (!t?.serieId) continue;
     const sid = String(t.serieId?._id ?? t.serieId);
-    const current = bestBySerie.get(sid);
-    bestBySerie.set(sid, current ? pickPreferredSerieTask(current, t) : t);
+    if (t.googleTasksSync?.googleTaskId) {
+      anchorBySerie.set(sid, t);
+    }
   }
 
-  if (bestBySerie.size === 0) return list;
-
-  const keepSerieIds = new Set(
-    [...bestBySerie.values()].map((t) => String(t._id ?? t.id)),
-  );
-
   return list.filter((t) => {
+    if (t?.virtual) return true;
     if (!t?.serieId) return true;
-    return keepSerieIds.has(String(t._id ?? t.id));
+
+    const sid = String(t.serieId?._id ?? t.serieId);
+    const anchor = anchorBySerie.get(sid);
+    const id = String(t._id ?? t.id ?? '');
+
+    if (anchor && id === String(anchor._id ?? anchor.id)) {
+      return true;
+    }
+    if (anchor) {
+      return false;
+    }
+
+    const dk = dayKeyFromTaskDate(t.fechaVencimiento || t.fechaInicio);
+    const key = `${sid}|${dk}`;
+    if (keptPerSerieDay.has(key)) return false;
+    keptPerSerieDay.add(key);
+    return true;
   });
 }
 

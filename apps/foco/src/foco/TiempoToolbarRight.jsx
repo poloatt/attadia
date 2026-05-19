@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { SystemButtons } from '@shared/components/common/SystemButtons';
 import { getIconByKey } from '@shared/navigation/menuIcons';
-import { TIEMPO_NAV_TARGETS } from '@shared/navigation/tiempoNavConfig';
+import { getTiempoNavTargets } from '@shared/navigation/tiempoNavConfig';
 import useResponsive from '@shared/hooks/useResponsive';
 import { matchTiempoSection } from './tiempoToolbarPaths';
 
@@ -28,8 +28,10 @@ export default function TiempoToolbarRight() {
   const navActions = useMemo(() => {
     if (isMobile || !section) return [];
 
+    const targets = getTiempoNavTargets();
     const navButton = (key, targetKey) => {
-      const target = TIEMPO_NAV_TARGETS[targetKey];
+      const target = targets[targetKey];
+      if (!target) return null;
       const isActive = section === targetKey;
       const Icon = getIconByKey(target.iconKey);
       return {
@@ -56,7 +58,7 @@ export default function TiempoToolbarRight() {
       navButton('navFoco', 'foco'),
       navButton('navObjetivos', 'objetivos'),
       navButton('navTareas', 'tareas'),
-    ];
+    ].filter(Boolean);
   }, [commonButtonSx, isMobile, navigate, section]);
 
   if (navActions.length === 0) return null;

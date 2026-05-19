@@ -22,6 +22,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import ContratoForm from '../propiedades/contratos/ContratoForm';
 import { useFormManager } from '@shared/context/FormContext';
 import useResponsive from '@shared/hooks/useResponsive';
+import { PropiedadesSectionNav } from '../bienes';
+import { attaPageLayoutSx } from '../navigation/attaPageLayoutSx';
+import { getDocumentId } from '../propiedades/habitacionConstants';
 
 export function Inquilinos() {
   const [inquilinos, setInquilinos] = useState([]);
@@ -35,6 +38,7 @@ export function Inquilinos() {
   const [contratoInitialData, setContratoInitialData] = useState({});
   const [cuentas, setCuentas] = useState([]);
   const [monedas, setMonedas] = useState([]);
+  const [habitaciones, setHabitaciones] = useState([]);
   // --- NUEVO: Contexto de formularios ---
   const { openForm, closeForm, getFormState } = useFormManager();
   const { open, initialData } = getFormState('inquilino');
@@ -87,7 +91,7 @@ export function Inquilinos() {
   // Cargar propiedades
   const fetchPropiedades = async () => {
     try {
-      const response = await clienteAxios.get('/api/propiedades');
+      const response = await clienteAxios.get('/api/propiedades?limit=500');
       setPropiedades(response.data.docs);
     } catch (error) {
       console.error('Error al cargar propiedades:', error);
@@ -117,11 +121,21 @@ export function Inquilinos() {
     }
   };
 
+  const fetchHabitaciones = async () => {
+    try {
+      const response = await clienteAxios.get('/api/habitaciones?limit=500');
+      setHabitaciones(response.data.docs || []);
+    } catch (error) {
+      console.error('Error al cargar habitaciones:', error);
+    }
+  };
+
   useEffect(() => {
     fetchInquilinos();
     fetchPropiedades();
     fetchCuentas();
     fetchMonedas();
+    fetchHabitaciones();
   }, []);
 
   const handleSubmit = async (formData) => {
@@ -163,8 +177,7 @@ export function Inquilinos() {
   };
 
   const handleCreateContract = (inquilino) => {
-    // 1. Buscar la propiedad asociada al inquilino
-    const propiedad = propiedades.find(p => p._id === inquilino.propiedad || p.id === inquilino.propiedad);
+    const propiedad = propiedades.find((p) => getDocumentId(p) === getDocumentId(inquilino.propiedad));
 
     // 2. Buscar la cuenta asociada a la propiedad
     let cuentaObj = null;
@@ -182,9 +195,9 @@ export function Inquilinos() {
 
     // 3. Preparar initialData con los datos correctos
     const initialData = {
-      inquilino: [inquilino._id],
-      propiedad: propiedad?._id || propiedad?.id || '',
-      cuenta: cuentaObj?._id || cuentaObj?.id || '',
+      inquilino: [getDocumentId(inquilino)],
+      propiedad: getDocumentId(propiedad),
+      cuenta: getDocumentId(cuentaObj),
       montoMensual: propiedad?.montoMensual?.toString() || '0',
       deposito: propiedad?.deposito?.toString() || (propiedad?.montoMensual ? (propiedad.montoMensual * 2).toString() : '0'),
       esMantenimiento: false,
@@ -203,18 +216,9 @@ export function Inquilinos() {
     <Box sx={{ px: 0, width: '100%' }}>
       {/* Eliminar <Toolbar /> */}
 
-      <Box sx={{
-        width: '100%',
-        maxWidth: 900,
-        mx: 'auto',
-        px: { xs: 1, sm: 2, md: 3 },
-        py: 2,
-        pb: { xs: 10, sm: 4 },
-        boxSizing: 'border-box',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 0
-      }}>
+      <Box sx={{ ...attaPageLayoutSx, display: 'flex', flexDirection: 'column', gap: 0 }}>
+        <PropiedadesSectionNav variant="strip" />
+
         {/* Filtros de grupos */}
 
         <Box
@@ -261,8 +265,9 @@ export function Inquilinos() {
         {/* Formulario de contrato autopopulado */}
         {openContratoForm && (
           <ContratoForm
+            open={openContratoForm}
             initialData={contratoInitialData}
-            relatedData={{ propiedades, inquilinos, cuentas, monedas }}
+            relatedData={{ propiedades, inquilinos, habitaciones, cuentas, monedas }}
             onClose={() => setOpenContratoForm(false)}
             onSubmit={() => { setOpenContratoForm(false); fetchInquilinos(); }}
           />

@@ -1,10 +1,14 @@
 import {
   appendRecurrenceToNotes,
   buildGoogleSerieKey,
+  cleanDescriptionFromGoogleNotes,
   collectDueDatesFromTasks,
   inferRecurrenceFromGoogleNotes,
+  ensureWeeklyByday,
   inferRruleFromDueDates,
   parseRecurrenceFromNotes,
+  resolveRruleFromNotes,
+  weekdayToRruleByday,
 } from '../recurrenceUtils.js';
 
 describe('recurrenceUtils', () => {
@@ -41,6 +45,22 @@ Subtareas:
     expect(inferRecurrenceFromGoogleNotes('Se repite cada semana')).toMatch(/FREQ=WEEKLY/i);
   });
 
+  test('cleanDescriptionFromGoogleNotes strips recurrence and subtareas', () => {
+    const notes = `Mi nota real
+
+Subtareas:
+☐ Paso 1
+
+Recurrencia:
+RRULE:FREQ=WEEKLY;INTERVAL=1`;
+    expect(cleanDescriptionFromGoogleNotes(notes)).toBe('Mi nota real');
+    expect(resolveRruleFromNotes(notes)).toBe('FREQ=WEEKLY;INTERVAL=1');
+  });
+
+  test('resolveRruleFromNotes infers from Google-style text without RRULE block', () => {
+    expect(resolveRruleFromNotes('Recordatorio\nSe repite cada semana')).toMatch(/FREQ=WEEKLY/i);
+  });
+
   test('collectDueDatesFromTasks merges googleDueHistory', () => {
     const dates = collectDueDatesFromTasks([
       {
@@ -60,5 +80,25 @@ Subtareas:
     const rrule = inferRruleFromDueDates(dates);
     expect(rrule).toBeTruthy();
     expect(rrule).toMatch(/FREQ=WEEKLY/i);
+    expect(rrule).toMatch(/BYDAY=/i);
+  });
+
+  test('inferRruleFromDueDates adds BYDAY=WE for Wednesday-only dates', () => {
+    const dates = [
+      new Date(2026, 4, 6, 12, 0, 0),
+      new Date(2026, 4, 13, 12, 0, 0),
+      new Date(2026, 4, 20, 12, 0, 0),
+    ];
+    const rrule = inferRruleFromDueDates(dates);
+    expect(rrule).toMatch(/BYDAY=WE/i);
+  });
+
+  test('weekdayToRruleByday maps Wednesday', () => {
+    expect(weekdayToRruleByday(new Date(2026, 4, 13))).toBe('WE');
+  });
+
+  test('ensureWeeklyByday adds BYDAY from anchor date', () => {
+    const wed = new Date(2026, 4, 13, 12, 0, 0);
+    expect(ensureWeeklyByday('FREQ=WEEKLY;INTERVAL=1', wed)).toBe('FREQ=WEEKLY;INTERVAL=1;BYDAY=WE');
   });
 });

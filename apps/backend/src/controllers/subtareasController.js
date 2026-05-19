@@ -66,7 +66,7 @@ class SubtareasController extends BaseController {
 
       // Obtener la tarea actualizada con todas sus subtareas
       const Tareas = mongoose.model('Tareas');
-      const tareaActualizada = await Tareas.findById(subtarea.tarea).populate('subtareas');
+      const tareaActualizada = await Tareas.findById(subtarea.tarea);
 
       res.json(tareaActualizada);
     } catch (error) {

@@ -17,77 +17,97 @@ class TransaccionesController extends BaseController {
     this.getResumen = this.getResumen.bind(this);
   }
 
-  // GET /api/transacciones/stats
+  // GET /api/transacciones/stats?fechaInicio&fechaFin&estado
   async getStats(req, res) {
     try {
-      console.log('Usuario actual:', req.user);
-      
       if (!req.user?.id) {
         return res.status(401).json({ error: 'Usuario no autenticado' });
       }
 
-      const query = { 
-        estado: 'COMPLETADA',
-        usuario: new mongoose.Types.ObjectId(req.user.id)
+      const { fechaInicio, fechaFin, estado = 'PAGADO' } = req.query;
+      const now = new Date();
+      const defaultInicio = new Date(now.getFullYear(), now.getMonth(), 1);
+      const defaultFin = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+      const inicio = fechaInicio ? new Date(fechaInicio) : defaultInicio;
+      const fin = fechaFin ? new Date(fechaFin) : defaultFin;
+      if (fechaFin && !fechaFin.includes('T')) {
+        fin.setHours(23, 59, 59, 999);
+      }
+
+      const query = {
+        usuario: new mongoose.Types.ObjectId(req.user.id),
+        estado,
+        fecha: { $gte: inicio, $lte: fin },
       };
 
-      console.log('Query a ejecutar:', JSON.stringify(query, null, 2));
-
-      const pipeline = [
-        { 
-          $match: query
-        },
+      const resultados = await this.Model.aggregate([
+        { $match: query },
         {
           $group: {
-            _id: '$tipo',
-            total: { $sum: { $ifNull: ['$monto', 0] } }
-          }
+            _id: { tipo: '$tipo', moneda: '$moneda' },
+            total: { $sum: { $ifNull: ['$monto', 0] } },
+          },
+        },
+        {
+          $lookup: {
+            from: 'monedas',
+            localField: '_id.moneda',
+            foreignField: '_id',
+            as: 'monedaDoc',
+          },
+        },
+        { $unwind: { path: '$monedaDoc', preserveNullAndEmptyArrays: true } },
+      ]);
+
+      let ingresos = 0;
+      let egresos = 0;
+      const porMonedaMap = new Map();
+
+      for (const row of resultados) {
+        const monto = row.total || 0;
+        const tipo = row._id?.tipo;
+        const monedaId = row._id?.moneda?.toString?.() || row._id?.moneda || 'sin-moneda';
+
+        if (tipo === 'INGRESO') ingresos += monto;
+        else if (tipo === 'EGRESO') egresos += monto;
+
+        if (!porMonedaMap.has(monedaId)) {
+          porMonedaMap.set(monedaId, {
+            monedaId,
+            codigo: row.monedaDoc?.codigo || '—',
+            simbolo: row.monedaDoc?.simbolo || '$',
+            color: row.monedaDoc?.color || '#4CAF50',
+            ingresos: 0,
+            egresos: 0,
+          });
         }
-      ];
+        const entry = porMonedaMap.get(monedaId);
+        if (tipo === 'INGRESO') entry.ingresos += monto;
+        else if (tipo === 'EGRESO') entry.egresos += monto;
+      }
 
-      console.log('Pipeline a ejecutar:', JSON.stringify(pipeline, null, 2));
+      const porMoneda = [...porMonedaMap.values()].map((m) => ({
+        ...m,
+        balance: m.ingresos - m.egresos,
+      }));
 
-      const resultados = await this.Model.aggregate(pipeline);
-      console.log('Resultados de agregación:', resultados);
-
-      const ingresos = resultados.find(r => r._id === 'INGRESO')?.total || 0;
-      const egresos = resultados.find(r => r._id === 'EGRESO')?.total || 0;
-
-      const response = {
+      res.json({
+        ingresos,
+        egresos,
+        balance: ingresos - egresos,
+        fechaInicio: inicio.toISOString().split('T')[0],
+        fechaFin: fin.toISOString().split('T')[0],
+        estado,
+        porMoneda,
+        // Compatibilidad con consumidores antiguos
         ingresosMensuales: ingresos,
         egresosMensuales: egresos,
         balanceTotal: ingresos - egresos,
-        monedaPrincipal: 'USD'
-      };
-
-      console.log('Respuesta a enviar:', response);
-      res.json(response);
+      });
     } catch (error) {
-      console.error('Error detallado en getStats:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-        code: error.code
-      });
-
-      if (error.name === 'MongoError' || error.name === 'MongoServerError') {
-        return res.status(500).json({ 
-          error: 'Error en la base de datos',
-          details: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
-      }
-
-      if (error.name === 'ValidationError') {
-        return res.status(400).json({ 
-          error: 'Error de validación',
-          details: error.message
-        });
-      }
-
-      res.status(500).json({ 
-        error: 'Error interno del servidor',
-        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      });
+      console.error('Error en getStats transacciones:', error);
+      res.status(500).json({ error: error.message });
     }
   }
 

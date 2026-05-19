@@ -30,12 +30,28 @@ class InventariosController extends BaseController {
     };
   }
 
-  // GET /api/inventarios
+  buildUbicacionFilter(ubicacion) {
+    if (ubicacion === 'propiedad') {
+      return { propiedad: { $exists: true, $ne: null } };
+    }
+    if (ubicacion === 'sin') {
+      return {
+        $or: [
+          { propiedad: { $exists: false } },
+          { propiedad: null },
+        ],
+      };
+    }
+    return {};
+  }
+
+  // GET /api/inventarios?ubicacion=propiedad|sin
   async getAll(req, res) {
     try {
       console.log('Obteniendo inventario...');
+      const filter = this.buildUbicacionFilter(req.query.ubicacion);
       const result = await this.Model.paginate(
-        {},
+        filter,
         {
           populate: ['propiedad', 'habitacion'],
           sort: { createdAt: 'desc' }
@@ -63,26 +79,29 @@ class InventariosController extends BaseController {
         valorEstimado: req.body.valorEstimado ? parseFloat(req.body.valorEstimado) : undefined
       };
 
-      // Validar que la propiedad existe
-      if (!data.propiedad) {
-        return res.status(400).json({ error: 'Debes especificar una propiedad válida' });
-      }
-      const Propiedades = require('../models/Propiedades.js').Propiedades;
-      const propiedad = await Propiedades.findById(data.propiedad);
-      if (!propiedad) {
-        return res.status(400).json({ error: 'La propiedad especificada no existe' });
+      if (data.habitacion && !data.propiedad) {
+        return res.status(400).json({ error: 'No puede asignar habitación sin propiedad' });
       }
 
-      // Si se pasa habitacionId, validar que la habitación pertenece a la propiedad
-      if (data.habitacion) {
-        const Habitaciones = require('../models/Habitaciones.js').Habitaciones;
-        const habitacion = await Habitaciones.findById(data.habitacion);
-        if (!habitacion) {
-          return res.status(400).json({ error: 'La habitación especificada no existe' });
+      if (data.propiedad) {
+        const Propiedades = require('../models/Propiedades.js').Propiedades;
+        const propiedad = await Propiedades.findById(data.propiedad);
+        if (!propiedad) {
+          return res.status(400).json({ error: 'La propiedad especificada no existe' });
         }
-        if (String(habitacion.propiedad) !== String(data.propiedad)) {
-          return res.status(400).json({ error: 'La habitación no pertenece a la propiedad especificada' });
+
+        if (data.habitacion) {
+          const Habitaciones = require('../models/Habitaciones.js').Habitaciones;
+          const habitacion = await Habitaciones.findById(data.habitacion);
+          if (!habitacion) {
+            return res.status(400).json({ error: 'La habitación especificada no existe' });
+          }
+          if (String(habitacion.propiedad) !== String(data.propiedad)) {
+            return res.status(400).json({ error: 'La habitación no pertenece a la propiedad especificada' });
+          }
         }
+      } else {
+        data.habitacion = null;
       }
 
       const item = await this.Model.create(data);

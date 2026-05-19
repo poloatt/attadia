@@ -13,7 +13,8 @@ import {
   CardActions
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { Toolbar } from '@shared/navigation';
+import { FinanzasSectionNav } from '../finanzas';
+import { attaPageLayoutSx } from '../navigation/attaPageLayoutSx';
 import { CommonDetails } from '@shared/components/common';
 import { 
   AutorenewOutlined as RecurrentIcon,
@@ -356,11 +357,9 @@ export function Recurrente() {
   }, [enqueueSnackbar, fetchTransacciones]);
 
   return (
-    <Box sx={{ px: 0, width: '100%' }}>
+    <Box sx={attaPageLayoutSx}>
+      <FinanzasSectionNav variant="strip" />
       <CommonDetails
-        title="Transacciones Recurrentes"
-        subtitle="Gestiona tus transacciones periódicas"
-        icon={<RecurrentIcon sx={{ fontSize: 24, color: 'primary.main' }} />}
         action={
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button

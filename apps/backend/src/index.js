@@ -414,12 +414,11 @@ const startServer = async () => {
       console.log('⚠️ Google Tasks AutoSync DESACTIVADO en desarrollo para reducir logs');
     }
     
-    app.listen(config.port, '0.0.0.0', () => {
-      // Asegurarse de que corsOrigins sea un array antes de usar join
-      const corsOriginsStr = Array.isArray(config.corsOrigins) 
+    const server = app.listen(config.port, '0.0.0.0', () => {
+      const corsOriginsStr = Array.isArray(config.corsOrigins)
         ? config.corsOrigins.join(', ')
         : String(config.corsOrigins);
-        
+
       console.log(`
 =================================
 🚀 Servidor iniciado
@@ -431,6 +430,17 @@ const startServer = async () => {
 🔗 Escuchando en: 0.0.0.0:${config.port}
 =================================
       `);
+    });
+
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(
+          `❌ Puerto ${config.port} ya está en uso. Cierra el proceso anterior (p. ej. otra instancia de npm run dev) o define PORT en .env.`,
+        );
+        process.exit(1);
+      }
+      console.error('Error al iniciar el servidor HTTP:', err);
+      process.exit(1);
     });
   } catch (error) {
     console.error('Error fatal al iniciar el servidor:', error);

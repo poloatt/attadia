@@ -2,6 +2,15 @@ import { BaseController } from './BaseController.js';
 import { Propiedades, Habitaciones, Inquilinos, Contratos, Inventarios } from '../models/index.js';
 import statusCache from '../utils/statusCache.js';
 
+/** Normaliza ref de propiedad (ObjectId o doc populado) a id string para agrupar. */
+function resolvePropiedadId(propiedadRef) {
+  if (propiedadRef == null) return null;
+  if (typeof propiedadRef === 'object' && propiedadRef._id != null) {
+    return String(propiedadRef._id);
+  }
+  return String(propiedadRef);
+}
+
 class PropiedadesController extends BaseController {
   constructor() {
     super(Propiedades, {
@@ -158,39 +167,40 @@ class PropiedadesController extends BaseController {
       const contratosPorPropiedad = {};
       const inventariosPorPropiedad = {};
       
-      habitaciones.forEach(h => {
-        if (!habitacionesPorPropiedad[h.propiedad]) {
-          habitacionesPorPropiedad[h.propiedad] = [];
+      habitaciones.forEach((h) => {
+        const propiedadId = resolvePropiedadId(h.propiedad);
+        if (!propiedadId) return;
+        if (!habitacionesPorPropiedad[propiedadId]) {
+          habitacionesPorPropiedad[propiedadId] = [];
         }
-        habitacionesPorPropiedad[h.propiedad].push(h);
+        habitacionesPorPropiedad[propiedadId].push(h);
       });
-      
-      inquilinos.forEach(i => {
-        if (!inquilinosPorPropiedad[i.propiedad]) {
-          inquilinosPorPropiedad[i.propiedad] = [];
+
+      inquilinos.forEach((i) => {
+        const propiedadId = resolvePropiedadId(i.propiedad);
+        if (!propiedadId) return;
+        if (!inquilinosPorPropiedad[propiedadId]) {
+          inquilinosPorPropiedad[propiedadId] = [];
         }
-        inquilinosPorPropiedad[i.propiedad].push(i);
+        inquilinosPorPropiedad[propiedadId].push(i);
       });
-      
-      contratosConEstado.forEach(c => {
-        // El campo propiedad puede ser un objeto (cuando se popula) o un ObjectId
-        const propiedadId = typeof c.propiedad === 'object' && c.propiedad._id 
-          ? c.propiedad._id.toString() 
-          : c.propiedad.toString();
-        
+
+      contratosConEstado.forEach((c) => {
+        const propiedadId = resolvePropiedadId(c.propiedad);
+        if (!propiedadId) return;
         if (!contratosPorPropiedad[propiedadId]) {
           contratosPorPropiedad[propiedadId] = [];
         }
         contratosPorPropiedad[propiedadId].push(c);
       });
-      
 
-      
-      inventarios.forEach(inv => {
-        if (!inventariosPorPropiedad[inv.propiedad]) {
-          inventariosPorPropiedad[inv.propiedad] = [];
+      inventarios.forEach((inv) => {
+        const propiedadId = resolvePropiedadId(inv.propiedad);
+        if (!propiedadId) return;
+        if (!inventariosPorPropiedad[propiedadId]) {
+          inventariosPorPropiedad[propiedadId] = [];
         }
-        inventariosPorPropiedad[inv.propiedad].push(inv);
+        inventariosPorPropiedad[propiedadId].push(inv);
       });
       
       // Combinar datos

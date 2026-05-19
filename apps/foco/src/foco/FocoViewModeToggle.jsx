@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, Tooltip } from '@mui/material';
+import { Button } from '@mui/material';
+import TooltipSpan from '@shared/components/TooltipSpan';
 
 const VIEW_MODE_BUTTON_WIDTH = 64;
 
@@ -27,7 +28,7 @@ export default function FocoViewModeToggle({ disabled = false }) {
   const viewModeTooltip = calendarViewMode === 'week' ? 'Ver día' : 'Ver semana';
 
   return (
-    <Tooltip title={viewModeTooltip}>
+    <TooltipSpan title={viewModeTooltip}>
       <Button
         size="small"
         variant="text"
@@ -49,6 +50,6 @@ export default function FocoViewModeToggle({ disabled = false }) {
       >
         {viewModeLabel}
       </Button>
-    </Tooltip>
+    </TooltipSpan>
   );
 }

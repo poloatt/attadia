@@ -31,7 +31,10 @@ import { EmptyState } from '@shared/components/common';
 import { useValuesVisibility } from '@shared/context/ValuesVisibilityContext';
 import { useAPI } from '@shared/hooks/useAPI';
 import { MercadoPagoConnectButton, BankConnectionForm } from '../finance';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { FinanzasSectionNav } from '../finanzas';
+import { attaPageLayoutSx } from '../navigation/attaPageLayoutSx';
+import { cuentaDetailPath } from '../finance/finanzasDeepLink';
 
 export function Cuentas() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -47,6 +50,9 @@ export function Cuentas() {
   const [isBankConnectionFormOpen, setIsBankConnectionFormOpen] = useState(false);
   const [isProcessingPago, setIsProcessingPago] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const selectedCuentaId = searchParams.get('cuenta');
 
   // Función para restablecer los balances
   const resetBalance = useCallback(() => {
@@ -198,6 +204,17 @@ export function Cuentas() {
       window.history.replaceState({}, document.title);
     }
   }, [location]);
+
+  useEffect(() => {
+    if (!selectedCuentaId || isLoading) return undefined;
+    const timer = setTimeout(() => {
+      document.getElementById(`cuenta-row-${selectedCuentaId}`)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [selectedCuentaId, isLoading, cuentas]);
 
   const handleCreateMoneda = async (data) => {
     try {
@@ -572,7 +589,8 @@ export function Cuentas() {
   };
 
   return (
-    <Box sx={{ px: 0, width: '100%' }}>
+    <Box sx={attaPageLayoutSx}>
+      <FinanzasSectionNav variant="strip" />
       {/* Modal para crear cuenta (manual o MercadoPago) */}
       <BankConnectionForm
         open={isBankConnectionFormOpen}
@@ -666,9 +684,13 @@ export function Cuentas() {
 
                   <Box>
                     {grupo.cuentas.map((cuenta) => {
+                      const cuentaRowId = cuenta._id || cuenta.id;
+                      const isSelected = selectedCuentaId === cuentaRowId;
                       return (
                         <Box
-                          key={cuenta._id || cuenta.id}
+                          key={cuentaRowId}
+                          id={`cuenta-row-${cuentaRowId}`}
+                          onClick={() => navigate(cuentaDetailPath(cuentaRowId), { replace: true })}
                           sx={{
                             display: 'flex',
                             alignItems: 'center',
@@ -677,12 +699,16 @@ export function Cuentas() {
                             py: 1,
                             borderBottom: 1,
                             borderColor: 'divider',
-                            bgcolor: 'background.paper',
+                            cursor: 'pointer',
+                            bgcolor: isSelected ? 'action.selected' : 'background.paper',
+                            outline: isSelected ? '2px solid' : 'none',
+                            outlineColor: 'primary.main',
+                            outlineOffset: -2,
                             '&:last-child': {
                               borderBottom: 0
                             },
                             '&:hover': {
-                              bgcolor: 'action.hover'
+                              bgcolor: isSelected ? 'action.selected' : 'action.hover'
                             }
                           }}
                         >
@@ -711,11 +737,14 @@ export function Cuentas() {
                             />
                           </Box>
                           
-                          <Box sx={{ 
-                            display: 'flex', 
-                            alignItems: 'center',
-                            gap: 2
-                          }}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 2,
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <Typography 
                               variant="body2" 
                               sx={{ 

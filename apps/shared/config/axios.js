@@ -49,10 +49,15 @@ clienteAxios.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
     
-    // Evitar solicitudes duplicadas en intervalos cortos
-    const requestId = `${config.method}:${config.url}`;
-    
-    // Excluir rutas específicas que necesitan ser llamadas con frecuencia
+    // Evitar solicitudes duplicadas en intervalos cortos (incluir params: limit=1 ≠ listado completo)
+    const paramsKey = config.params && Object.keys(config.params).length > 0
+      ? `?${new URLSearchParams(
+        Object.entries(config.params).flatMap(([k, v]) => (v == null ? [] : [[k, String(v)]])),
+      ).toString()}`
+      : '';
+    const requestId = `${config.method}:${config.url}${paramsKey}`;
+
+    // Excluir rutas que se consultan en paralelo (hub de secciones + páginas de detalle)
     const frecuentEndpoints = [
       '/api/auth/check',
       '/api/health',
@@ -61,16 +66,19 @@ clienteAxios.interceptors.request.use(
       '/api/cuentas',
       '/api/inquilinos',
       '/api/contratos',
+      '/api/habitaciones',
+      '/api/inventarios',
       '/api/tareas',
       '/api/objetivos',
       '/api/transacciones',
+      '/api/transaccionesrecurrentes',
       '/api/monedas',
       '/api/users',
       '/api/users/rutinas-config',
       '/api/mediciones',
       '/api/dietas',
       '/api/datacorporal',
-      '/api/lab'
+      '/api/lab',
     ];
     
     const isFrecuentEndpoint = frecuentEndpoints.some(endpoint => config.url.includes(endpoint));
@@ -132,9 +140,15 @@ clienteAxios.interceptors.response.use(
       return Promise.reject(cancelError);
     }
     
-    if (error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
-      // console.error('Error de conexión:', error);
-      throw new Error('Error de conexión con el servidor. Por favor, verifica tu conexión a internet.');
+    if (
+      error.message === 'Network Error'
+      || error.code === 'ERR_NETWORK'
+      || error.code === 'ERR_CONNECTION_REFUSED'
+      || error.code === 'ERR_CONNECTION_RESET'
+    ) {
+      throw new Error(
+        'No se puede conectar con el servidor. Comprueba que el backend esté en ejecución (por ejemplo npm run dev en apps/backend, puerto 5000).',
+      );
     }
 
     // Log detallado en desarrollo
@@ -198,5 +212,10 @@ clienteAxios.interceptors.response.use(
 
 // Asegurarse de que clienteAxios esté disponible globalmente
 window.clienteAxios = clienteAxios;
+
+/** Petición abortada por el control de frecuencia del interceptor (no es fallo de red). */
+export function isAxiosCanceled(error) {
+  return !!(error?.cancelado || error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError');
+}
 
 export default clienteAxios;

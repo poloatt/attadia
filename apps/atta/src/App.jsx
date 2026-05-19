@@ -24,7 +24,6 @@ import Propiedades from './pages/Propiedades';
 import Transacciones from './pages/Transacciones';
 import Cuentas from './pages/Cuentas';
 import Monedas from './pages/Monedas';
-import Habitaciones from './pages/Habitaciones';
 import Inquilinos from './pages/Inquilinos';
 import Contratos from './pages/Contratos';
 import Inventario from './pages/Inventario';
@@ -86,8 +85,13 @@ function App() {
                     <Route path="/propiedades" element={<Propiedades />} />
                     <Route path="/propiedades/inquilinos" element={<Inquilinos />} />
                     <Route path="/propiedades/contratos" element={<Contratos />} />
-                    <Route path="/propiedades/habitaciones" element={<Habitaciones />} />
+                    <Route
+                      path="/propiedades/habitaciones"
+                      element={<Navigate to="/propiedades" replace />}
+                    />
                     <Route path="/propiedades/inventario" element={<Inventario />} />
+                    <Route path="/propiedades/inventario/en-propiedades" element={<Inventario />} />
+                    <Route path="/propiedades/inventario/sin-ubicacion" element={<Inventario />} />
                     <Route path="/propiedades/autos" element={<Autos />} />
                     
                     {/* Configuración */}

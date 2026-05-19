@@ -83,15 +83,6 @@ const attaRoutesMap = {
       getById: (id) => clienteAxios.get(`/api/contratos/${id}`).then(res => res.data)
     }
   },
-  '/propiedades/habitaciones': {
-    entity: 'habitacion',
-    apiService: {
-      create: (data) => clienteAxios.post('/api/habitaciones', data).then(res => res.data),
-      update: (id, data) => clienteAxios.put(`/api/habitaciones/${id}`, data).then(res => res.data),
-      delete: (id) => clienteAxios.delete(`/api/habitaciones/${id}`).then(res => res.data),
-      getById: (id) => clienteAxios.get(`/api/habitaciones/${id}`).then(res => res.data)
-    }
-  },
   '/propiedades/inventario': {
     entity: 'inventario',
     apiService: {

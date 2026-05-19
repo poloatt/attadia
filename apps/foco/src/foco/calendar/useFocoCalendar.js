@@ -6,7 +6,6 @@ import {
   startOfWeek,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { isInAhora, isInLuego } from '@shared/utils/agendaRules';
 import { filterTasksInRange } from './taskCalendarUtils';
 
 /**
@@ -23,14 +22,10 @@ export function useFocoCalendar(tasks, selectedDate, viewMode = 'day', objetivos
     return { start: startOfDay(base), end: endOfDay(base) };
   }, [selectedDate, viewMode]);
 
-  const events = useMemo(() => {
-    const raw = filterTasksInRange(tasks, range.start, range.end, objetivos);
-    const now = new Date();
-    if (agendaView === 'luego') {
-      return raw.filter((ev) => isInLuego(ev.task, now));
-    }
-    return raw.filter((ev) => isInAhora(ev.task, now));
-  }, [tasks, range.start, range.end, objetivos, agendaView]);
+  const events = useMemo(
+    () => filterTasksInRange(tasks, range.start, range.end, objetivos),
+    [tasks, range.start, range.end, objetivos],
+  );
 
   const weekDays = useMemo(() => {
     if (viewMode !== 'week') return [];

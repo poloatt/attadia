@@ -27,6 +27,10 @@ import {
 import ObjetivoForm from './ObjetivoForm';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '@shared/config/axios';
+import {
+  cleanDescriptionForForm,
+  resolveTaskFormRrule,
+} from '../foco/taskRecurrenceFormUtils';
 /**
  * Componente de formulario para crear/editar tareas
  * 
@@ -93,6 +97,8 @@ const TareaForm = ({
       setFormData({
         ...initialFormState,
         ...initialData,
+        descripcion: cleanDescriptionForForm(initialData?.descripcion),
+        rrule: resolveTaskFormRrule(initialData),
         tipo: initialData?.tipo === 'EVENTO' ? 'EVENTO' : 'TAREA',
         fechaInicio: initialData?.fechaInicio ? new Date(initialData.fechaInicio) : new Date(),
         fechaFin: initialData?.fechaFin ? new Date(initialData.fechaFin) : null,
@@ -448,6 +454,7 @@ const TareaForm = ({
                     : 'Habilitar sincronización con Google Tasks'
                 }
               >
+                <span style={{ display: 'inline-flex' }}>
                 <Button
                   variant="text"
                   startIcon={
@@ -479,6 +486,7 @@ const TareaForm = ({
                 >
                   {syncingToGoogle ? 'Sincronizando...' : 'Google'}
                 </Button>
+                </span>
               </Tooltip>
             )}
           </Stack>

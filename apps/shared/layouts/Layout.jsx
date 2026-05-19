@@ -5,7 +5,7 @@ import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import { useAuth } from '../context/AuthContext';
 import { Header, Toolbar, AgendaUnifiedBar } from '../navigation';
-import { isTiempoToolbarPath } from '../navigation/toolbarModules';
+import { isUnifiedToolbarPath } from '../navigation/unifiedBarPaths';
 import { Footer } from '../navigation';
 import { Sidebar, BottomNavigation } from '../navigation';
 import { CustomSnackbarProvider } from '../components/common';
@@ -59,11 +59,11 @@ export function Layout() {
   // Nota UX: el setting "showEntityToolbarNavigation" está pensado SOLO para móvil.
   // En tablet/desktop la Toolbar siempre debe mostrarse (evita que quede "oculta" en pantallas medianas).
   const showToolbar = isMobile ? showEntityToolbarNavigation : true;
-  const agendaUnified = isTiempoToolbarPath(currentPath);
-  const totalTopPadding = calculateTopPadding(showToolbar, agendaUnified);
-  const showHeader = !agendaUnified;
-  const showLegacyToolbar = showToolbar && !agendaUnified;
-  const showAgendaBar = agendaUnified;
+  const unifiedBar = isUnifiedToolbarPath(currentPath);
+  const totalTopPadding = calculateTopPadding(showToolbar, unifiedBar);
+  const showHeader = !unifiedBar;
+  const showLegacyToolbar = showToolbar && !unifiedBar;
+  const showAgendaBar = unifiedBar;
   
   // Padding superior para el main
   const mainTopPadding = totalTopPadding;

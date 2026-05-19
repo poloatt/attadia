@@ -13,7 +13,9 @@ import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import { modulos } from '../../navigation/menuStructure';
 import { getIconByKey } from '../../navigation/menuIcons';
 import { FORM_HEIGHTS } from '../../config/uiConstants';
+import TooltipSpan from '../TooltipSpan';
 import { DynamicIcon } from './DynamicIcon';
+import { ToolbarAddButton } from './ToolbarAddButton';
 import { config } from '../../config/envConfig.js';
 import { navigateToAppPath } from '../../utils/navigationUtils';
 import useResponsive from '../../hooks/useResponsive';
@@ -149,7 +151,10 @@ export const SystemButtons = memo(({
             });
           }
           return (
-            <Tooltip title={action.tooltip || action.label || ''} key={action.key || action.label || idx}>
+            <TooltipSpan
+              title={action.tooltip || action.label || ''}
+              key={action.key || action.label || idx}
+            >
               <IconButton
                 onClick={e => handleAction(action, e)}
                 size={action.size || size}
@@ -169,7 +174,7 @@ export const SystemButtons = memo(({
               >
                 {action.icon}
               </IconButton>
-            </Tooltip>
+            </TooltipSpan>
           );
         })}
       </Box>
@@ -334,30 +339,17 @@ function HeaderAddButton({ entityConfig, buttonSx }) {
 
   if (!entityConfig) return null;
 
+  const addLabel = `Agregar ${entityConfig.name || entityConfig.title}`;
+
   // Si es de tercer nivel (no tiene subItems pero sí canAdd), botón directo
   if (!hasSubItems && canAddSelf) {
     return (
-      <Tooltip title={`Agregar ${entityConfig.name || entityConfig.title}`}>
-        <IconButton
-          size="small"
+      <Tooltip title={addLabel}>
+        <ToolbarAddButton
           onClick={handleCreateSelf}
-          sx={{
-            background: 'none',
-            border: 'none',
-            borderRadius: 1,
-            boxShadow: 'none',
-            padding: 0.5,
-            color: 'text.secondary',
-            '&:hover': {
-              background: 'rgba(255,255,255,0.08)',
-              color: 'inherit',
-              boxShadow: 'none'
-            },
-            ...buttonSx
-          }}
-        >
-          <AddOutlinedIcon sx={buttonSx || { fontSize: 18, color: 'text.secondary' }} />
-        </IconButton>
+          buttonSx={buttonSx}
+          aria-label={addLabel}
+        />
       </Tooltip>
     );
   }
@@ -366,27 +358,12 @@ function HeaderAddButton({ entityConfig, buttonSx }) {
   if (canAddSelf || addableChildren.length > 0) {
     return (
       <>
-        <Tooltip title={`Agregar ${entityConfig.name || entityConfig.title}`}> 
-          <IconButton
-            size="small"
+        <Tooltip title={addLabel}>
+          <ToolbarAddButton
             onClick={handleOpenMenu}
-            sx={{
-              background: 'none',
-              border: 'none',
-              borderRadius: 1,
-              boxShadow: 'none',
-              padding: 0.5,
-              color: 'text.secondary',
-              '&:hover': {
-                background: 'rgba(255,255,255,0.08)',
-                color: 'inherit',
-                boxShadow: 'none'
-              },
-              ...buttonSx
-            }}
-          >
-            <AddOutlinedIcon sx={buttonSx || { fontSize: 18, color: 'text.secondary' }} />
-          </IconButton>
+            buttonSx={buttonSx}
+            aria-label={addLabel}
+          />
         </Tooltip>
         <Menu
           anchorEl={anchorEl}
@@ -867,6 +844,7 @@ export const CollapseIconButton = ({ expanded, onClick, sx = {}, ...props }) => 
 // Exportar subcomponentes
 SystemButtons.MenuButton = HeaderMenuButton;
 SystemButtons.AddButton = HeaderAddButton;
+SystemButtons.ToolbarAddButton = ToolbarAddButton;
 SystemButtons.RefreshButton = HeaderRefreshButton;
 SystemButtons.VisibilityButton = HeaderVisibilityButton;
 SystemButtons.UndoMenu = HeaderUndoMenu;
@@ -927,7 +905,7 @@ function HeaderMultiSelectButton({ onActivate, iconSx }) {
 // HeaderMultiSelectDeleteButton - Botón de delete para selección múltiple
 function HeaderMultiSelectDeleteButton({ onDelete, selectedCount, iconSx }) {
   const btn = (
-    <Tooltip title={selectedCount > 0 ? `Eliminar ${selectedCount} elemento(s)` : 'Selecciona elementos para eliminar'}>
+    <TooltipSpan title={selectedCount > 0 ? `Eliminar ${selectedCount} elemento(s)` : 'Selecciona elementos para eliminar'}>
       <IconButton
         size="small"
         onClick={onDelete}
@@ -942,7 +920,7 @@ function HeaderMultiSelectDeleteButton({ onDelete, selectedCount, iconSx }) {
       >
         <DeleteIcon />
       </IconButton>
-    </Tooltip>
+    </TooltipSpan>
   );
   btn.type.isButtonComponent = true;
   return btn;

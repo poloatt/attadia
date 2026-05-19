@@ -349,16 +349,7 @@ tareaSchema.pre('save', function(next) {
   next();
 });
 
-// Middleware para poblar subtareas con validación de usuario
-tareaSchema.pre(['find', 'findOne'], function() {
-  if (this._conditions.usuario) {
-    const userId = this._conditions.usuario;
-    this.populate({
-      path: 'subtareas',
-      match: { usuario: userId }
-    });
-  }
-});
+// subtareas están embebidas en el documento Tareas (no son ref); no usar populate.
 
 // Middleware para validar actualizaciones parciales
 tareaSchema.pre('findOneAndUpdate', async function() {
@@ -558,7 +549,7 @@ tareaSchema.post('save', async function() {
   }
 });
 
-/** Fecha de Google Tasks (suele ser YYYY-MM-DD en UTC) → mediodía local para la agenda. */
+/** Fecha de Google Tasks → instante local (date-only a mediodía para evitar saltos de día UTC). */
 tareaSchema.statics.parseGoogleDueDate = function parseGoogleDueDate(due) {
   if (!due) return null;
   const raw = String(due);
@@ -567,7 +558,13 @@ tareaSchema.statics.parseGoogleDueDate = function parseGoogleDueDate(due) {
     const y = Number(match[1]);
     const m = Number(match[2]);
     const d = Number(match[3]);
-    return new Date(y, m - 1, d, 12, 0, 0, 0);
+    const isDateOnly =
+      raw.length === 10
+      || /T00:00:00(\.000)?Z?$/i.test(raw)
+      || /T00:00:00(\.000)?([+-]\d{2}:?\d{2})?$/i.test(raw);
+    if (isDateOnly) {
+      return new Date(y, m - 1, d, 12, 0, 0, 0);
+    }
   }
   const dt = new Date(due);
   return isNaN(dt.getTime()) ? null : dt;

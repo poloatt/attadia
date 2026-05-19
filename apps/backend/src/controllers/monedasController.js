@@ -19,6 +19,37 @@ class MonedasController extends BaseController {
     this.getSelectOptions = this.getSelectOptions.bind(this);
     this.getColores = this.getColores.bind(this);
     this.getBalance = this.getBalance.bind(this);
+    this.reorder = this.reorder.bind(this);
+  }
+
+  // GET /api/monedas — orden personalizado por defecto
+  getAll(req, res) {
+    if (!req.query.sort) {
+      req.query.sort = 'orden';
+    }
+    return super.getAll(req, res);
+  }
+
+  // PUT /api/monedas/reorder  body: { order: string[] }
+  async reorder(req, res) {
+    try {
+      const { order } = req.body;
+      if (!Array.isArray(order) || order.length === 0) {
+        return res.status(400).json({ message: 'order debe ser un array de IDs' });
+      }
+
+      await Promise.all(
+        order.map((id, index) =>
+          this.Model.findByIdAndUpdate(id, { orden: index }),
+        ),
+      );
+
+      const monedas = await this.Model.find({ _id: { $in: order } }).sort({ orden: 1, codigo: 1 });
+      res.json({ order, monedas });
+    } catch (error) {
+      console.error('Error en reorder monedas:', error);
+      res.status(500).json({ error: error.message });
+    }
   }
 
   // GET /api/monedas/by-code/:codigo
@@ -43,8 +74,8 @@ class MonedasController extends BaseController {
   // GET /api/monedas/active
   getActive(req, res) {
     console.log('MonedasController.getActive called');
-    return this.Model.find({ activa: true }) // Corregido: usar 'activa' en lugar de 'activo'
-      .sort('codigo')
+    return this.Model.find({ activa: true })
+      .sort({ orden: 1, codigo: 1 })
       .then(monedas => res.json(monedas))
       .catch(error => {
         console.error('Error en getActive:', error);
@@ -77,13 +108,17 @@ class MonedasController extends BaseController {
           });
         }
 
-        const moneda = new this.Model({
-          ...req.body,
-          codigo: codigo.toUpperCase(),
-          activa: true // Asegurar que se use 'activa'
-        });
-        
-        return moneda.save()
+        return this.Model.findOne().sort('-orden').select('orden').lean()
+          .then((last) => {
+            const nextOrden = (last?.orden ?? -1) + 1;
+            const moneda = new this.Model({
+              ...req.body,
+              codigo: codigo.toUpperCase(),
+              activa: true,
+              orden: nextOrden,
+            });
+            return moneda.save();
+          })
           .then(savedMoneda => {
             console.log('Moneda creada exitosamente:', savedMoneda);
             res.status(201).json(savedMoneda);

@@ -58,15 +58,24 @@ const SYNC_DIRECTION_LABELS = {
 
 function parseSyncResults(results) {
   if (!results) return null;
+  const fromGoogle = results.tareas?.fromGoogle || {};
+  let skippedLists = fromGoogle.skippedTaskLists ?? 0;
+  let skippedTasks = fromGoogle.skippedTasks ?? 0;
+  if (fromGoogle.skippedTaskLists == null && fromGoogle.skippedTasks == null && fromGoogle.skipped) {
+    skippedLists = fromGoogle.skipped;
+    skippedTasks = 0;
+  }
+
   return {
     objetivosCreated: results.objetivos?.created || 0,
     objetivosUpdated: results.objetivos?.updated || 0,
     toGoogle: results.tareas?.toGoogle?.success || 0,
-    fromCreated: results.tareas?.fromGoogle?.created || 0,
-    fromUpdated: results.tareas?.fromGoogle?.updated || 0,
-    fromSkipped: results.tareas?.fromGoogle?.skipped || 0,
-    seriesCreated: results.series?.seriesCreated || results.tareas?.fromGoogle?.series?.seriesCreated || 0,
-    seriesUpdated: results.series?.seriesUpdated || results.tareas?.fromGoogle?.series?.seriesUpdated || 0,
+    fromCreated: fromGoogle.created || 0,
+    fromUpdated: fromGoogle.updated || 0,
+    fromSkippedLists: skippedLists,
+    fromSkippedTasks: skippedTasks,
+    seriesCreated: results.series?.seriesCreated || fromGoogle.series?.seriesCreated || 0,
+    seriesUpdated: results.series?.seriesUpdated || fromGoogle.series?.seriesUpdated || 0,
     instancesLinked: results.series?.instancesLinked || results.tareas?.fromGoogle?.series?.instancesLinked || 0,
     expandCreated:
       (results.seriesExpandLocal?.instancesCreated || 0)
@@ -94,13 +103,21 @@ function SyncResultPanel({ summary, onDismiss }) {
     b.tareasFromGoogleCreated > 0 && { icon: <ImportIcon fontSize="small" />, text: `${b.tareasFromGoogleCreated} tarea(s) importada(s) desde Google` },
     b.tareasFromGoogleUpdated > 0 && { icon: <ImportIcon fontSize="small" />, text: `${b.tareasFromGoogleUpdated} tarea(s) actualizada(s) desde Google` },
     b.tareasToGoogle > 0 && { icon: <ExportIcon fontSize="small" />, text: `${b.tareasToGoogle} tarea(s) enviada(s) a Google` },
-    b.tareasFromGoogleSkipped > 0 && {
+    b.tareasFromGoogleSkippedLists > 0 && {
       icon: <CloudOffIcon fontSize="small" color="info" />,
-      text: `${b.tareasFromGoogleSkipped} lista(s) de Google omitida(s) (sin objetivo vinculado)`,
+      text: `${b.tareasFromGoogleSkippedLists} lista(s) de Google sin objetivo vinculado (no importadas)`,
     },
-    (b.seriesCreated + b.seriesUpdated) > 0 && {
-      icon: <FolderIcon fontSize="small" />,
-      text: `${b.seriesCreated + b.seriesUpdated} serie(s) recurrente(s) detectada(s)`,
+    b.tareasFromGoogleSkippedTasks > 0 && {
+      icon: <CloudOffIcon fontSize="small" color="disabled" />,
+      text: `${b.tareasFromGoogleSkippedTasks} tarea(s) en listas vinculadas ya estaban al día`,
+    },
+    b.seriesCreated > 0 && {
+      icon: <ScheduleIcon fontSize="small" />,
+      text: `${b.seriesCreated} serie(s) recurrente(s) nueva(s)`,
+    },
+    b.seriesUpdated > 0 && {
+      icon: <ScheduleIcon fontSize="small" />,
+      text: `${b.seriesUpdated} serie(s) recurrente(s) actualizada(s)`,
     },
     b.instancesLinked > 0 && {
       icon: <ImportIcon fontSize="small" />,
@@ -140,7 +157,8 @@ function SyncResultPanel({ summary, onDismiss }) {
         </List>
       ) : (
         <Typography variant="body2" color="text.secondary">
-          Vincula cada lista de Google a un objetivo en Attadia, o revisa la semana correcta en el calendario.
+          Vincula cada lista de Google Tasks a un objetivo en Attadia (mismo nombre o ID guardado).
+          Los eventos nativos de Google Calendar no se importan; solo tareas de Google Tasks.
         </Typography>
       )}
       {!hasChanges && (
@@ -390,7 +408,8 @@ const GoogleTasksConfig = ({ open, onClose }) => {
           tareasToGoogle: parsed.toGoogle,
           tareasFromGoogleCreated: parsed.fromCreated,
           tareasFromGoogleUpdated: parsed.fromUpdated,
-          tareasFromGoogleSkipped: parsed.fromSkipped,
+          tareasFromGoogleSkippedLists: parsed.fromSkippedLists,
+          tareasFromGoogleSkippedTasks: parsed.fromSkippedTasks,
           seriesCreated: parsed.seriesCreated,
           seriesUpdated: parsed.seriesUpdated,
           instancesLinked: parsed.instancesLinked,
@@ -400,9 +419,9 @@ const GoogleTasksConfig = ({ open, onClose }) => {
         },
       });
 
-    if (totalSuccess === 0 && parsed.fromSkipped > 0) {
+    if (totalSuccess === 0 && parsed.fromSkippedLists > 0) {
       enqueueSnackbar(
-        `${parsed.fromSkipped} lista(s) sin objetivo vinculado. Crea el objetivo con el mismo nombre que en Google.`,
+        `${parsed.fromSkippedLists} lista(s) de Google sin objetivo vinculado. Crea el objetivo con el mismo nombre que la lista.`,
         { variant: 'info', autoHideDuration: 8000 },
       );
     } else if (totalSuccess > 0) {
@@ -557,16 +576,22 @@ const GoogleTasksConfig = ({ open, onClose }) => {
                     </FormControl>
                   </Box>
                   <Tooltip title="Desconectar cuenta de Google">
-                    <IconButton size="small" onClick={handleDisableGoogleTasks} disabled={loading || syncing}>
-                      <LinkOffIcon fontSize="small" />
-                    </IconButton>
+                    <span style={{ display: 'inline-flex' }}>
+                      <IconButton size="small" onClick={handleDisableGoogleTasks} disabled={loading || syncing}>
+                        <LinkOffIcon fontSize="small" />
+                      </IconButton>
+                    </span>
                   </Tooltip>
                 </Stack>
                 <Divider sx={{ my: 1.5 }} />
                 <Box sx={{ pl: 4.25 }}>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                    <strong>Alcance:</strong> solo tareas y eventos con <strong>objetivo</strong> asignado
-                    se sincronizan con Google Tasks (Objetivo ↔ lista, tarea ↔ task).
+                    <strong>Alcance:</strong> Google <strong>Tasks</strong> (listas ↔ objetivos), no eventos
+                    del calendario de Google. Lo que ves en Google Calendar puede incluir citas que Attadia
+                    no importa; las tareas con hora sí se sincronizan si la lista está vinculada.
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                    Solo se importan listas con un <strong>objetivo</strong> vinculado (mismo nombre o ID guardado).
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                     Las <strong>subtareas</strong> se guardan en el campo <em>notas</em> de Google, no como

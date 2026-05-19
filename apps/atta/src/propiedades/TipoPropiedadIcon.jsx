@@ -1,27 +1,25 @@
 import React from 'react';
 import { getTipoPropiedadIconComponent } from '@shared/utils/propiedadUtils';
 
+function isRenderableComponent(Component) {
+  if (!Component) return false;
+  if (typeof Component === 'function') return true;
+  // MUI icons suelen venir envueltos en memo/forwardRef (objeto con $$typeof)
+  return typeof Component === 'object' && Component.$$typeof != null;
+}
+
 const TipoPropiedadIcon = ({ tipo, sx = {}, ...props }) => {
-  // Validar que tipo sea un string válido
   if (!tipo || typeof tipo !== 'string') {
-    console.warn(`TipoPropiedadIcon: tipo inválido recibido:`, tipo);
     return null;
   }
 
-  try {
-    const { IconComponent, props: defaultProps } = getTipoPropiedadIconComponent(tipo, { sx, ...props });
-    
-    // Validación más robusta del IconComponent
-    if (!IconComponent || typeof IconComponent !== 'function' || !IconComponent.$$typeof) {
-      console.warn(`TipoPropiedadIcon: IconComponent no es válido para tipo: ${tipo}`, IconComponent);
-      return null;
-    }
-    
-    return <IconComponent {...defaultProps} />;
-  } catch (error) {
-    console.error(`TipoPropiedadIcon: Error al renderizar icono para tipo: ${tipo}`, error);
+  const { IconComponent, props: defaultProps } = getTipoPropiedadIconComponent(tipo, { sx, ...props });
+
+  if (!isRenderableComponent(IconComponent)) {
     return null;
   }
+
+  return <IconComponent {...defaultProps} />;
 };
 
 export default TipoPropiedadIcon; 

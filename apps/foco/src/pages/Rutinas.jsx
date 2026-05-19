@@ -68,8 +68,8 @@ const RutinasWithContext = () => {
     if (!initialFetchDone.current) {
       // Log eliminado para mejor rendimiento
       initialFetchDone.current = true;
-      fetchRutinas();
-      fetchHabits();
+      fetchRutinas().catch(() => {});
+      fetchHabits().catch(() => {});
     }
   }, [fetchRutinas, fetchHabits]); // Dependencias necesarias
   

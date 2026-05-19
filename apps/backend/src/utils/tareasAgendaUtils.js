@@ -5,6 +5,15 @@ import {
   loadSeriesForAgenda,
 } from './calendarVirtualUtils.js';
 
+const LIST_VIRTUAL_LOOKBACK_DAYS = parseInt(
+  process.env.GTASKS_LIST_VIRTUAL_LOOKBACK_DAYS || '14',
+  10,
+);
+const LIST_VIRTUAL_HORIZON_DAYS = parseInt(
+  process.env.GTASKS_LIST_VIRTUAL_HORIZON_DAYS || '120',
+  10,
+);
+
 function buildOverlapQuery(userId, from, to) {
   return {
     usuario: userId,
@@ -12,16 +21,9 @@ function buildOverlapQuery(userId, from, to) {
       { fechaVencimiento: { $gte: from, $lte: to } },
       { fechaInicio: { $gte: from, $lte: to } },
       {
+        tipo: 'EVENTO',
         fechaInicio: { $lte: to },
-        fechaVencimiento: { $gte: from },
-      },
-      {
-        fechaInicio: { $lte: to },
-        fechaVencimiento: { $exists: false },
-      },
-      {
-        fechaInicio: { $lte: to },
-        fechaVencimiento: null,
+        fechaFin: { $gte: from },
       },
     ],
   };
@@ -40,7 +42,6 @@ export async function getTareasForAgendaRange(userId, rangeFrom, rangeTo) {
 
   const realDocs = await Tareas.find(buildOverlapQuery(userId, from, to))
     .populate('objetivo', 'nombre estado')
-    .populate('subtareas', 'titulo completada orden')
     .sort({ fechaInicio: 1 })
     .lean({ virtuals: true });
 
@@ -74,6 +75,34 @@ export async function getTareasForAgendaRange(userId, rangeFrom, rangeTo) {
       googleTasksSyncStatus: doc.googleTasksSync?.syncStatus || null,
     };
   });
+}
+
+/**
+ * Añade ocurrencias virtuales de series activas a la lista de tareas (/tareas).
+ */
+export async function appendVirtualRecurrenceTasks(userId, realDocs = []) {
+  const list = Array.isArray(realDocs) ? realDocs : [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const from = new Date(today);
+  from.setDate(from.getDate() - LIST_VIRTUAL_LOOKBACK_DAYS);
+  const to = new Date(today);
+  to.setDate(to.getDate() + LIST_VIRTUAL_HORIZON_DAYS);
+  to.setHours(23, 59, 59, 999);
+
+  const series = await loadSeriesForAgenda(userId);
+  const deduped = dedupeSerieInstancesForAgenda(list);
+  const virtual = buildVirtualTasksForRange(series, from, to, deduped);
+
+  const seenIds = new Set(list.map((d) => String(d._id)));
+  const merged = [...list];
+  for (const v of virtual) {
+    const id = String(v._id);
+    if (seenIds.has(id)) continue;
+    seenIds.add(id);
+    merged.push(v);
+  }
+  return merged;
 }
 
 export { buildOverlapQuery };

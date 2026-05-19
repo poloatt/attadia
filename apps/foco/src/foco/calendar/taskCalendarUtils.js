@@ -1,4 +1,4 @@
-import { addHours, addMinutes, endOfDay, isSameDay, startOfDay } from 'date-fns';
+import { addHours, addMinutes, endOfDay, isSameDay, startOfDay, format } from 'date-fns';
 import {
   getAnchorDate,
   getTaskDue,
@@ -13,14 +13,22 @@ import {
   DEFAULT_DURATION_MINUTES,
 } from './calendarLayout';
 
+/** Máx. columnas solapadas en la rejilla horaria (evita “código de barras”). */
+export const MAX_OVERLAP_COLUMNS = 6;
+
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+const calendarDayKey = (date) => format(date, 'yyyy-MM-dd');
+
 const isDateOnlyString = (value) =>
   typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
 
 export const isAllDayTask = (task) => {
-  if (task?.virtual) return true;
-
   const rawStart = task?.fechaInicio || task?.inicio || task?.start;
-  const rawDue = task?.fechaVencimiento || task?.fechaFin || task?.vencimiento;
+  const tipoEarly = String(task?.tipo || 'TAREA').toUpperCase();
+  const rawDue = tipoEarly === 'EVENTO'
+    ? (task?.fechaVencimiento || task?.fechaFin || task?.vencimiento)
+    : (task?.fechaVencimiento || task?.vencimiento);
   if (isDateOnlyString(rawStart) || isDateOnlyString(rawDue)) return true;
 
   const tipo = String(task?.tipo || 'TAREA').toUpperCase();
@@ -48,7 +56,7 @@ export const isAllDayTask = (task) => {
 export const getObjetivoMeta = (task, objetivos = []) => {
   const objetivoId = task?.objetivo?._id || task?.objetivo;
   if (!objetivoId) return null;
-  const found = objetivos.find((p) => p._id === objetivoId);
+  const found = objetivos.find((p) => String(p._id) === String(objetivoId));
   return found
     ? { id: found._id, nombre: found.nombre || found.titulo, color: found.color }
     : { id: objetivoId, nombre: 'OBJETIVO', color: null };
@@ -67,9 +75,24 @@ export const taskToCalendarEvent = (task, objetivos = []) => {
   if (!start) return null;
 
   const allDay = isAllDayTask(task);
-  let end = tipo === 'EVENTO'
-    ? (parseTaskDate(task?.fechaFin) || parseTaskDate(task?.fechaVencimiento))
-    : (parseTaskDate(task?.fechaFin) || parseTaskDate(task?.fechaVencimiento));
+  const endFromFin = parseTaskDate(task?.fechaFin);
+  const endFromDue = parseTaskDate(task?.fechaVencimiento);
+
+  let end;
+  if (tipo === 'EVENTO') {
+    end = endFromFin || endFromDue;
+  } else {
+    // TAREA: fechaFin suele ser fin de ventana/recurrencia, no la hora del bloque.
+    end = endFromDue;
+    if (
+      endFromFin
+      && endFromFin > start
+      && isSameDay(endFromFin, start)
+      && endFromFin.getTime() - start.getTime() <= ONE_DAY_MS
+    ) {
+      end = endFromFin;
+    }
+  }
 
   if (!end || end <= start) {
     end = allDay
@@ -101,6 +124,39 @@ export const taskToCalendarEvent = (task, objetivos = []) => {
 export const eventsOverlapRange = (event, rangeStart, rangeEnd) =>
   event.start < rangeEnd && event.end > rangeStart;
 
+const pickPreferredCalendarEvent = (current, candidate) => {
+  const cur = current.task;
+  const cand = candidate.task;
+  if (cand.googleTasksSync?.googleTaskId && !cur.googleTasksSync?.googleTaskId) {
+    return candidate;
+  }
+  if (cur.googleTasksSync?.googleTaskId && !cand.googleTasksSync?.googleTaskId) {
+    return current;
+  }
+  if (!cand.virtual && cur.virtual) return candidate;
+  if (cand.virtual && !cur.virtual) return current;
+  return current;
+};
+
+/** Una ocurrencia visible por serie y día (evita cientos de instancias materializadas). */
+export const dedupeCalendarEventsByOccurrence = (events = []) => {
+  const byKey = new Map();
+
+  for (const ev of events) {
+    const task = ev.task;
+    const sid = String(task?.serieId?._id ?? task?.serieId ?? '');
+    const key = sid
+      ? `${sid}|${calendarDayKey(ev.start)}`
+      : String(task?._id ?? task?.id ?? '');
+
+    if (!key) continue;
+    const prev = byKey.get(key);
+    byKey.set(key, prev ? pickPreferredCalendarEvent(prev, ev) : ev);
+  }
+
+  return [...byKey.values()];
+};
+
 export const filterTasksInRange = (tasks, rangeStart, rangeEnd, objetivos = []) => {
   const list = dedupeTasksById(Array.isArray(tasks) ? tasks : []);
   const events = [];
@@ -115,13 +171,20 @@ export const filterTasksInRange = (tasks, rangeStart, rangeEnd, objetivos = []) 
     events.push(ev);
   }
 
-  return events;
+  return dedupeCalendarEventsByOccurrence(events);
 };
 
 export const splitEventsByDay = (events, day) => {
   const dayStart = startOfDay(day);
   const dayEnd = endOfDay(day);
-  return events.filter((ev) => eventsOverlapRange(ev, dayStart, dayEnd));
+  return events.filter((ev) => {
+    if (!eventsOverlapRange(ev, dayStart, dayEnd)) return false;
+    const tipo = String(ev.task?.tipo || 'TAREA').toUpperCase();
+    if (!ev.allDay && tipo !== 'EVENTO') {
+      return isSameDay(ev.start, day);
+    }
+    return true;
+  });
 };
 
 /**
@@ -137,15 +200,23 @@ export const layoutTimedEventsForDay = (events = []) => {
     const endMs = event.end.getTime();
     let column = columnEnds.findIndex((end) => end <= startMs);
     if (column === -1) {
-      column = columnEnds.length;
-      columnEnds.push(endMs);
+      if (columnEnds.length >= MAX_OVERLAP_COLUMNS) {
+        column = MAX_OVERLAP_COLUMNS - 1;
+        columnEnds[column] = Math.max(columnEnds[column], endMs);
+      } else {
+        column = columnEnds.length;
+        columnEnds.push(endMs);
+      }
     } else {
       columnEnds[column] = Math.max(columnEnds[column], endMs);
     }
     placed.push({ event, column });
   }
 
-  const totalColumns = Math.max(1, columnEnds.length);
+  const totalColumns = Math.min(
+    Math.max(1, columnEnds.length),
+    MAX_OVERLAP_COLUMNS,
+  );
   const gapPx = 2;
 
   return placed.map(({ event, column }) => {

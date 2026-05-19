@@ -6,7 +6,10 @@ import logger from '../utils/logger.js';
 import { randomUUID } from 'crypto';
 import {
   appendRecurrenceToNotes,
+  cleanDescriptionFromGoogleNotes,
+  inferRecurrenceFromGoogleNotes,
   parseRecurrenceFromNotes,
+  resolveRruleFromNotes,
 } from '../utils/recurrenceUtils.js';
 import {
   reconcileSeriesFromGoogle,
@@ -951,7 +954,10 @@ class GoogleTasksService {
         created: 0,
         updated: 0,
         errors: [],
+        /** @deprecated use skippedTaskLists + skippedTasks */
         skipped: 0,
+        skippedTaskLists: 0,
+        skippedTasks: 0,
         deletedLocalNotInGoogle: 0,
         dedupLocalGroups: 0,
         dedupLocalRemoved: 0,
@@ -983,6 +989,7 @@ class GoogleTasksService {
           );
 
           if (!objetivo) {
+            syncResults.skippedTaskLists++;
             syncResults.skipped++;
             logger.sync(
               `⏭️ Omitida TaskList sin objetivo vinculado: "${taskList.title}" (crea un Objetivo con el mismo nombre o activa GTASKS_AUTO_CREATE_OBJETIVOS)`,
@@ -1027,13 +1034,14 @@ class GoogleTasksService {
               });
 
               if (tarea) {
-                if (this.shouldApplyGoogleUpdate(tarea, googleTask)) {
+                if (this.shouldImportFromGoogle(tarea, googleTask)) {
                   this.applyNotesFromGoogle(tarea, googleTask);
                   tarea.titulo = this.cleanTitle(tarea.titulo || googleTask.title);
                   await tarea.save();
                   syncResults.updated++;
-                  logger.sync(`📝 Actualizada tarea: "${googleTask.title}"`);
+                  logger.sync(`📝 Actualizada tarea desde Google: "${googleTask.title}"`);
                 } else {
+                  syncResults.skippedTasks++;
                   syncResults.skipped++;
                 }
               } else {
@@ -1044,6 +1052,7 @@ class GoogleTasksService {
                   titulo: tituloLimpio,
                   usuario: userId,
                   fechaInicio: fechaDesdeGoogle,
+                  fechaVencimiento: fechaDesdeGoogle,
                   prioridad: 'BAJA',
                   objetivo: objetivo._id
                 });
@@ -1622,6 +1631,44 @@ class GoogleTasksService {
 
   // Métodos auxiliares
 
+  shouldRefreshGoogleDueDate(tarea, googleTask) {
+    if (!googleTask?.due) return false;
+    const due = Tareas.parseGoogleDueDate(googleTask.due);
+    if (!due) return false;
+    const local = tarea.fechaVencimiento || tarea.fechaInicio;
+    if (!local) return true;
+    const localDt = local instanceof Date ? local : new Date(local);
+    if (Number.isNaN(localDt.getTime())) return true;
+    return Math.abs(localDt.getTime() - due.getTime()) > 60_000;
+  }
+
+  shouldRefreshGoogleNotes(tarea, googleTask) {
+    const googleNotes = String(googleTask?.notes || '');
+    if (!googleNotes.trim()) return false;
+
+    const localNotes = String(tarea.descripcion || '');
+    const googleRrule = resolveRruleFromNotes(googleNotes);
+    const localRrule = resolveRruleFromNotes(localNotes);
+    if (googleRrule && googleRrule !== localRrule) return true;
+
+    const googleHint = inferRecurrenceFromGoogleNotes(googleNotes);
+    const localHint = inferRecurrenceFromGoogleNotes(localNotes);
+    if (googleHint && googleHint !== localHint) return true;
+
+    const cleanedGoogle = cleanDescriptionFromGoogleNotes(googleNotes);
+    if (cleanedGoogle !== localNotes.trim()) return true;
+
+    return false;
+  }
+
+  shouldImportFromGoogle(tarea, googleTask) {
+    return (
+      this.shouldApplyGoogleUpdate(tarea, googleTask)
+      || this.shouldRefreshGoogleDueDate(tarea, googleTask)
+      || this.shouldRefreshGoogleNotes(tarea, googleTask)
+    );
+  }
+
   shouldApplyGoogleUpdate(tarea, googleTask) {
     const sync = tarea.googleTasksSync || {};
     if (sync.needsSync === true || sync.syncStatus === 'pending') {
@@ -1672,15 +1719,10 @@ class GoogleTasksService {
   }
 
   applyNotesFromGoogle(tarea, googleTask) {
-    const { rrule, descripcionSinRecurrencia } = parseRecurrenceFromNotes(googleTask.notes || '');
-    const parsed = this.parseSubtasksFromNotes(descripcionSinRecurrencia || googleTask.notes || '');
-    if (rrule && descripcionSinRecurrencia) {
-      parsed.descripcion = descripcionSinRecurrencia;
-    }
+    const notes = googleTask.notes || '';
+    const parsed = this.parseSubtasksFromNotes(notes);
+    parsed.descripcion = cleanDescriptionFromGoogleNotes(notes);
     tarea.updateFromGoogleTask(googleTask, parsed);
-    if (rrule) {
-      tarea.descripcion = appendRecurrenceToNotes(descripcionSinRecurrencia, rrule);
-    }
   }
 
   buildTaskNotes(tarea, rrule = null) {

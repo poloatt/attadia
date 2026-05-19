@@ -46,8 +46,16 @@ export const isTaskCompleted = (t) => {
 export const getTaskStart = (t) =>
   parseTaskDate(t?.fechaInicio || t?.inicio || t?.start);
 
-export const getTaskDue = (t) =>
-  parseTaskDate(t?.fechaVencimiento || t?.fechaFin || t?.vencimiento || t?.dueDate || t?.fecha);
+export const getTaskDue = (t) => {
+  const due = parseTaskDate(
+    t?.fechaVencimiento || t?.vencimiento || t?.dueDate || t?.fecha,
+  );
+  if (due) return due;
+  if (String(t?.tipo || '').toUpperCase() === 'EVENTO') {
+    return parseTaskDate(t?.fechaFin);
+  }
+  return null;
+};
 
 export const getStartOfToday = (now = new Date()) =>
   new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);

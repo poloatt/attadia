@@ -4,6 +4,12 @@ import { Home, SingleBed, Person, AttachMoney } from '@mui/icons-material';
 import { StyledTextField, FormSection, StyledToggleButton } from '@shared/components/common/CommonFormStyles';
 import { getCuentaYMoneda } from '@shared/utils/contratoUtils';
 import { SeccionUbicacion } from '../SeccionesPropiedad';
+import {
+  getDocumentId,
+  getPropiedadDisplayLabel,
+  getHabitacionTipoLabel,
+  habitacionMatchesPropiedad,
+} from '../habitacionConstants';
 
 // --- TIPO_ALQUILER ---
 export const TIPO_ALQUILER = [
@@ -27,7 +33,8 @@ export const ContratoPropiedadSection = ({
         value={selectedPropiedad}
         onChange={(_, newValue) => onPropiedadChange(newValue)}
         options={relatedData.propiedades || []}
-        getOptionLabel={(option) => option.alias || ''}
+        getOptionLabel={(option) => getPropiedadDisplayLabel(option)}
+        isOptionEqualToValue={(option, value) => getDocumentId(option) === getDocumentId(value)}
         renderInput={(params) => (
           <StyledTextField
             {...params}
@@ -88,8 +95,9 @@ export const ContratoHabitacionSection = ({
       <Autocomplete
         value={selectedHabitacion}
         onChange={(_, newValue) => onHabitacionChange(newValue)}
-        options={relatedData.habitaciones?.filter(h => h.propiedad === formData.propiedad) || []}
-        getOptionLabel={(option) => option.nombre || ''}
+        options={relatedData.habitaciones?.filter((h) => habitacionMatchesPropiedad(h, formData.propiedad)) || []}
+        getOptionLabel={(option) => getHabitacionTipoLabel(option.tipo, option.nombrePersonalizado)}
+        isOptionEqualToValue={(option, value) => getDocumentId(option) === getDocumentId(value)}
         disabled={!formData.propiedad}
         renderInput={(params) => (
           <StyledTextField
@@ -124,8 +132,9 @@ export const ContratoInquilinosSection = ({
         options={relatedData.inquilinos || []}
         getOptionLabel={(option) => 
           option && typeof option === 'object' ? 
-            `${option.nombre || ''} ${option.apellido || ''}` : ''
+            `${option.nombre || ''} ${option.apellido || ''}`.trim() : ''
         }
+        isOptionEqualToValue={(option, value) => getDocumentId(option) === getDocumentId(value)}
         renderInput={(params) => (
           <StyledTextField
             {...params}

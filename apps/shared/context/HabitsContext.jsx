@@ -48,9 +48,15 @@ export const HabitsProvider = ({ children }) => {
       return response.data;
     } catch (error) {
       console.error('[HabitsContext] Error al obtener hábitos:', error);
-      setError(error.response?.data?.error || 'Error al obtener hábitos');
-      enqueueSnackbar('Error al cargar hábitos', { variant: 'error' });
-      throw error;
+      const isOffline =
+        !error.response
+        || error.message?.includes('conexión')
+        || error.message?.includes('servidor');
+      setError(error.response?.data?.error || error.message || 'Error al obtener hábitos');
+      if (!isOffline) {
+        enqueueSnackbar('Error al cargar hábitos', { variant: 'error' });
+      }
+      return null;
     } finally {
       setLoading(false);
     }

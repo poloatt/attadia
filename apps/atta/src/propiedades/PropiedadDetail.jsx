@@ -1,16 +1,64 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Typography, DialogContent } from '@mui/material';
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogContent,
+  IconButton,
+  Tooltip,
+  Typography,
+} from '@mui/material';
+import {
+  EditOutlined as EditIcon,
+  DeleteOutlined as DeleteIcon,
+  LocationOnOutlined as LocationIcon,
+  PeopleOutlined as PeopleIcon,
+  MeetingRoomOutlined as AmbientesIcon,
+  DescriptionOutlined as ContratosIcon,
+  FolderOutlined as DocumentosIcon,
+} from '@mui/icons-material';
 import { useResponsive } from '@shared/hooks';
-import { GeometricDialog, GeometricModalHeader, EstadoChip, EntityDetailSection, EntityDetailGrid, CollapsibleSection, EntityDetailSections } from '@shared/components/common/CommonDetails';
+import { TaskFormHeader } from '../../../foco/src/foco/taskFormUi';
+import { getEstadoColor, getEstadoText } from '@shared/components/common/StatusSystem';
 import clienteAxios from '@shared/config/axios';
 import { toast } from 'react-hot-toast';
 import TipoPropiedadIcon from './TipoPropiedadIcon';
-import { SeccionInquilinos, SeccionHabitaciones, SeccionDocumentos, SeccionUbicacion, SeccionContratos } from './SeccionesPropiedad';
-import CommonActions from '@shared/components/common/CommonActions';
+import { SeccionInquilinos, SeccionDocumentos, SeccionUbicacion, SeccionContratos } from './SeccionesPropiedad';
+import PropiedadHabitacionesSection from './PropiedadHabitacionesSection';
+import PropiedadDetailSections from './PropiedadDetailSections';
 import ContratoDetail from './contratos/ContratoDetail';
+import {
+  getPropiedadDetailPaperSx,
+  propiedadDetailContentSx,
+  propiedadDetailHeaderTitleSx,
+  propiedadDetailHeaderMetaSx,
+  propiedadDetailHeaderSubtitleSx,
+  getPropiedadDetailEstadoPillSx,
+  propiedadDetailFooterSx,
+  propiedadDetailFooterActionSx,
+  propiedadDetailCloseButtonSx,
+} from './propiedadDetailStyles';
 
-const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
-  const { isMobile, theme } = useResponsive();
+function PropiedadEstadoPill({ estado }) {
+  const color = getEstadoColor(estado, 'PROPIEDAD');
+  return (
+    <Box component="span" sx={getPropiedadDetailEstadoPillSx(color)}>
+      {getEstadoText(estado, 'PROPIEDAD')}
+    </Box>
+  );
+}
+
+const PropiedadDetail = ({
+  propiedad,
+  open,
+  onClose,
+  onEdit,
+  onDelete,
+  propiedades = [],
+  initialExpandedSection,
+  initialHabitacionId = null,
+}) => {
+  const { isMobile } = useResponsive();
 
   const [propiedadCompleta, setPropiedadCompleta] = useState(propiedad);
   const [contratoDetailOpen, setContratoDetailOpen] = useState(false);
@@ -28,12 +76,12 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
       const response = await clienteAxios.get(`/api/propiedades/${propiedad._id}`, {
         params: {
           populate: 'inquilinos,contratos,habitaciones,inventarios,cuenta,moneda,documentos',
-          _t: Date.now()
+          _t: Date.now(),
         },
         headers: {
           'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
+          Pragma: 'no-cache',
+        },
       });
       setPropiedadCompleta(response.data);
     } catch (error) {
@@ -42,7 +90,6 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
     }
   };
 
-  // Memoizar datos para evitar re-renderizados innecesarios
   const habitaciones = useMemo(() => propiedadCompleta?.habitaciones || [], [propiedadCompleta]);
   const inquilinos = useMemo(() => propiedadCompleta?.inquilinos || [], [propiedadCompleta]);
   const inventarios = useMemo(() => propiedadCompleta?.inventarios || [], [propiedadCompleta]);
@@ -50,62 +97,67 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
   const contratos = useMemo(() => propiedadCompleta?.contratos || [], [propiedadCompleta]);
   const estadoPropiedad = useMemo(() => propiedadCompleta?.estado || 'DISPONIBLE', [propiedadCompleta]);
 
-  // Definición modular de secciones
-  const getPropiedadDetailSections = () => ([
+  const expandHabitaciones = initialExpandedSection === 'habitaciones' || !!initialHabitacionId;
+
+  const getPropiedadDetailSections = () => [
     {
       key: 'ubicacion',
       title: 'Ubicación',
-      icon: TipoPropiedadIcon,
-      defaultExpanded: true,
-      children: <SeccionUbicacion propiedad={propiedadCompleta} />
+      icon: LocationIcon,
+      defaultExpanded: !expandHabitaciones,
+      children: <SeccionUbicacion propiedad={propiedadCompleta} variant="detail" />,
     },
     {
       key: 'inquilinos',
       title: 'Inquilinos',
-      icon: undefined,
+      icon: PeopleIcon,
       defaultExpanded: false,
-      children: <SeccionInquilinos propiedad={propiedadCompleta} inquilinos={inquilinos} />
+      children: <SeccionInquilinos propiedad={propiedadCompleta} inquilinos={inquilinos} variant="detail" />,
     },
     {
       key: 'habitaciones',
-      title: 'Habitaciones',
-      icon: undefined,
-      defaultExpanded: false,
-      children: <SeccionHabitaciones habitaciones={habitaciones} inventarios={inventarios} />
+      title: 'Ambientes',
+      icon: AmbientesIcon,
+      defaultExpanded: expandHabitaciones,
+      children: (
+        <PropiedadHabitacionesSection
+          propiedadId={propiedadCompleta?._id || propiedadCompleta?.id}
+          habitaciones={habitaciones}
+          inventarios={inventarios}
+          propiedades={propiedades.length ? propiedades : [propiedadCompleta]}
+          onChanged={fetchPropiedadCompleta}
+          initialHabitacionId={initialHabitacionId}
+        />
+      ),
     },
     {
       key: 'contratos',
       title: 'Contratos',
-      icon: undefined,
+      icon: ContratosIcon,
       defaultExpanded: false,
-      children: <SeccionContratos contratos={contratos} />
+      children: <SeccionContratos contratos={contratos} variant="detail" />,
     },
     {
       key: 'documentos',
       title: 'Documentos',
-      icon: undefined,
+      icon: DocumentosIcon,
       defaultExpanded: false,
-      children: <SeccionDocumentos documentos={documentos} propiedad={propiedadCompleta} />
-    }
-  ]);
+      children: <SeccionDocumentos documentos={documentos} propiedad={propiedadCompleta} variant="detail" />,
+    },
+  ];
 
-  // Handlers para modal de contrato
-  const handleOpenContratoDetail = (contrato) => {
-    setSelectedContrato(contrato);
-    setContratoDetailOpen(true);
-  };
   const handleCloseContratoDetail = () => {
     setContratoDetailOpen(false);
     setSelectedContrato(null);
   };
 
-  // Handlers para acciones
   const handleEditPropiedad = () => {
     if (onClose) onClose();
     setTimeout(() => {
       if (onEdit) onEdit(propiedadCompleta);
     }, 200);
   };
+
   const handleDeletePropiedad = () => {
     if (window.confirm('¿Seguro que deseas eliminar esta propiedad?')) {
       if (onDelete) onDelete(propiedadCompleta);
@@ -113,39 +165,77 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
     }
   };
 
+  const tipoCiudad = [propiedadCompleta?.tipo, propiedadCompleta?.ciudad].filter(Boolean).join(' • ');
+
   return (
-    <GeometricDialog
+    <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="lg"
+      maxWidth="sm"
       fullWidth
       fullScreen={isMobile}
-      actions={
-        <CommonActions
-          onEdit={handleEditPropiedad}
-          onDelete={handleDeletePropiedad}
-          itemName={propiedadCompleta?.alias || 'esta propiedad'}
-          size="medium"
-          direction="row"
-          showDelete={true}
-          showEdit={true}
-          disabled={false}
-        />
-      }
+      PaperProps={{ sx: getPropiedadDetailPaperSx(isMobile) }}
     >
-      <GeometricModalHeader
-        icon={TipoPropiedadIcon}
-        title={propiedadCompleta?.alias || 'Sin alias'}
-        chip={<EstadoChip estado={estadoPropiedad} tipo="PROPIEDAD" />}
-        onClose={onClose}
-      >
-        <Typography variant="body2" color="text.secondary">
-          {propiedadCompleta?.tipo} • {propiedadCompleta?.ciudad}
-        </Typography>
-      </GeometricModalHeader>
-      <DialogContent sx={{ p: 2, pt: 1, backgroundColor: theme.palette.collapseHeader.background }}>
-        <EntityDetailSections sections={getPropiedadDetailSections()} />
+      <TaskFormHeader onClose={onClose} sx={{ pb: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, pr: 3 }}>
+          <TipoPropiedadIcon
+            tipo={propiedadCompleta?.tipo}
+            sx={{ fontSize: 28, color: 'text.secondary', mt: 0.25, flexShrink: 0 }}
+          />
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography sx={propiedadDetailHeaderTitleSx}>
+              {propiedadCompleta?.alias || 'Sin alias'}
+            </Typography>
+            <Box sx={propiedadDetailHeaderMetaSx}>
+              {tipoCiudad ? (
+                <Typography component="span" sx={propiedadDetailHeaderSubtitleSx}>
+                  {tipoCiudad}
+                </Typography>
+              ) : null}
+              <PropiedadEstadoPill estado={estadoPropiedad} />
+            </Box>
+          </Box>
+        </Box>
+      </TaskFormHeader>
+
+      <DialogContent sx={propiedadDetailContentSx}>
+        <PropiedadDetailSections
+          key={`${propiedadCompleta?._id || 'new'}-${initialExpandedSection || ''}-${initialHabitacionId || ''}`}
+          sections={getPropiedadDetailSections()}
+        />
       </DialogContent>
+
+      <Box sx={propiedadDetailFooterSx}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+          <Tooltip title="Editar">
+            <IconButton
+              size="small"
+              onClick={handleEditPropiedad}
+              aria-label="Editar propiedad"
+              sx={propiedadDetailFooterActionSx}
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Eliminar">
+            <IconButton
+              size="small"
+              onClick={handleDeletePropiedad}
+              aria-label="Eliminar propiedad"
+              sx={{
+                ...propiedadDetailFooterActionSx,
+                '&:hover': { bgcolor: 'action.hover', color: 'error.main' },
+              }}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+        <Button onClick={onClose} sx={propiedadDetailCloseButtonSx}>
+          Cerrar
+        </Button>
+      </Box>
+
       <ContratoDetail
         open={contratoDetailOpen}
         onClose={handleCloseContratoDetail}
@@ -154,8 +244,8 @@ const PropiedadDetail = ({ propiedad, open, onClose, onEdit, onDelete }) => {
         onEdit={() => {}}
         onDelete={() => {}}
       />
-    </GeometricDialog>
+    </Dialog>
   );
 };
 
-export default PropiedadDetail; 
+export default PropiedadDetail;

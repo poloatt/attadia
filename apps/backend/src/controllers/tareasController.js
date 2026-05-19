@@ -7,15 +7,15 @@ class TareasController extends BaseController {
     super(Tareas, {
       searchFields: ['titulo', 'descripcion'],
       defaultPopulate: [
-        { 
+        {
           path: 'objetivo',
-          select: 'nombre descripcion estado'
+          select: 'nombre descripcion estado',
         },
         {
-          path: 'subtareas',
-          select: 'titulo descripcion estado completada orden'
-        }
-      ]
+          path: 'serieId',
+          select: 'rrule activa dtstart',
+        },
+      ],
     });
 
     // Bind de los métodos al contexto de la instancia
@@ -237,14 +237,10 @@ class TareasController extends BaseController {
 
       await tarea.save();
       await tarea.populate([
-        { 
-          path: 'objetivo',
-          select: 'nombre descripcion estado googleTasksSync'
-        },
         {
-          path: 'subtareas',
-          select: 'titulo descripcion estado completada orden'
-        }
+          path: 'objetivo',
+          select: 'nombre descripcion estado googleTasksSync',
+        },
       ]);
       
       res.status(201).json({
@@ -331,10 +327,10 @@ class TareasController extends BaseController {
       const { subtareaId, completada } = req.body;
 
       // Verificar que la tarea exista y pertenezca al usuario
-      const tarea = await this.Model.findOne({ 
-        _id: id, 
-        usuario: req.user.id 
-      }).populate('subtareas');
+      const tarea = await this.Model.findOne({
+        _id: id,
+        usuario: req.user.id,
+      });
 
       if (!tarea) {
         return res.status(404).json({ error: 'Tarea no encontrada' });
@@ -372,17 +368,12 @@ class TareasController extends BaseController {
         await tarea.save();
 
         // Obtener la tarea actualizada con todas sus relaciones
-        const tareaActualizada = await this.Model.findById(id)
-          .populate([
-            { 
-              path: 'objetivo',
-              select: 'nombre descripcion estado'
-            },
-            {
-              path: 'subtareas',
-              select: 'titulo descripcion estado completada orden'
-            }
-          ]);
+        const tareaActualizada = await this.Model.findById(id).populate([
+          {
+            path: 'objetivo',
+            select: 'nombre descripcion estado',
+          },
+        ]);
 
         // Actualizar el objetivo si es necesario
         const Objetivos = mongoose.model('Objetivos');
@@ -410,17 +401,12 @@ class TareasController extends BaseController {
       tarea.subtareas = subtareas;
       await tarea.save();
 
-      const tareaActualizada = await this.Model.findById(id)
-        .populate([
-          { 
-            path: 'objetivo',
-            select: 'nombre descripcion estado'
-          },
-          {
-            path: 'subtareas',
-            select: 'titulo descripcion estado completada orden'
-          }
-        ]);
+      const tareaActualizada = await this.Model.findById(id).populate([
+        {
+          path: 'objetivo',
+          select: 'nombre descripcion estado',
+        },
+      ]);
 
       res.json(tareaActualizada);
     } catch (error) {
@@ -526,28 +512,36 @@ class TareasController extends BaseController {
         limit: parseInt(limit),
         sort,
         populate: [
-          { 
-            path: 'objetivo',
-            select: 'nombre estado' // Reducir campos innecesarios
-          },
           {
-            path: 'subtareas',
-            select: 'titulo completada orden' // Reducir campos innecesarios
-          }
+            path: 'objetivo',
+            select: 'nombre estado',
+          },
         ],
         lean: true,
         leanWithId: true
       };
 
       const result = await this.Model.paginate(query, options);
-      
-      const transformedDocs = result.docs.map(doc => ({
+
+      let docs = result.docs;
+      if (!periodo) {
+        const { dedupeSerieInstancesForAgenda } = await import('../utils/calendarVirtualUtils.js');
+        const { appendVirtualRecurrenceTasks } = await import('../utils/tareasAgendaUtils.js');
+        docs = await appendVirtualRecurrenceTasks(
+          req.user.id,
+          dedupeSerieInstancesForAgenda(docs),
+        );
+      }
+
+      const transformedDocs = docs.map((doc) => ({
         ...doc,
-        id: doc._id.toString(),
-        objetivo: doc.objetivo ? {
-          ...doc.objetivo,
-          id: doc.objetivo._id.toString()
-        } : null,
+        id: doc._id != null ? String(doc._id) : doc.id,
+        objetivo: doc.objetivo && doc.objetivo._id != null
+          ? {
+              ...doc.objetivo,
+              id: String(doc.objetivo._id),
+            }
+          : null,
         // Solo incluir información esencial de sincronización
         isGoogleTasksEnabled: doc.googleTasksSync?.enabled || false,
         googleTasksSyncStatus: doc.googleTasksSync?.syncStatus || null
@@ -556,7 +550,8 @@ class TareasController extends BaseController {
 
       res.json({
         ...result,
-        docs: transformedDocs
+        docs: transformedDocs,
+        totalDocs: transformedDocs.length,
       });
     } catch (error) {
       console.error('Error en getAll:', error);
