@@ -33,11 +33,6 @@ export function getAttaBranchInventario() {
   return getAttaBranches().find((b) => b.id === 'inventario');
 }
 
-/** @deprecated Use getAttaBranchPropiedades */
-export function getAttaBranchBienes() {
-  return getAttaBranchPropiedades();
-}
-
 export function getAttaFinanzasNav() {
   return getFinanzasBranchPages();
 }
@@ -48,9 +43,4 @@ export function getAttaPropiedadesNav() {
 
 export function getAttaInventarioNav() {
   return getInventarioBranchPages();
-}
-
-/** @deprecated Use getAttaPropiedadesNav */
-export function getAttaBienesNav() {
-  return getAttaPropiedadesNav();
 }

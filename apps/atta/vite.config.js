@@ -19,6 +19,7 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@shared': path.resolve(__dirname, '../shared'),
         '@': path.resolve(__dirname, './src'),
+        '@atta/hub': path.resolve(__dirname, './src/hub'),
       },
       dedupe: ['react', 'react-dom']
     },
@@ -98,7 +99,9 @@ export default defineConfig(({ mode }) => {
       ),
       // Combinar variables de entorno específicas de la app
       ...Object.keys(appEnv).reduce((prev, key) => {
-        prev[`process.env.${key}`] = JSON.stringify(appEnv[key])
+        if (key.startsWith('VITE_')) {
+          prev[`process.env.${key}`] = JSON.stringify(appEnv[key])
+        }
         return prev
       }, {})
     }

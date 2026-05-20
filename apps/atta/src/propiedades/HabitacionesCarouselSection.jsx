@@ -1,7 +1,7 @@
 import React from 'react';
 import { Typography } from '@mui/material';
-import MonedasCarousel from '../finance/monedas/MonedasCarousel';
-import HabitacionTile from '../bienes/hub/HabitacionTile';
+import { MonedasCarousel } from '../finanzas/monedas';
+import HabitacionTile from './hub/HabitacionTile';
 import { getHabitacionTipoLabel } from './habitacionConstants';
 import { contarItemsPorHabitacion } from '@shared/utils/propiedadUtils';
 

@@ -1,23 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Container, Box, Button, Fab } from '@shared/utils/materialImports';
-
-import { 
-  AccountBalanceOutlined as BankIcon,
-  CurrencyExchangeOutlined as MoneyIcon,
-  AutorenewOutlined as RecurrentIcon
-} from '@mui/icons-material';
-import { FabNuevaTransaccion } from '../finance';
-import { Toolbar } from '@shared/navigation';
-
+import { Box } from '@shared/utils/materialImports';
+import {
+  FabNuevaTransaccion,
+  TransaccionTable,
+  TransaccionForm,
+  FinanzasSectionNav,
+} from '../finanzas';
 import clienteAxios from '@shared/config/axios';
 import { useSnackbar } from 'notistack';
 import { EmptyState } from '@shared/components/common';
-import { TransaccionTable, TransaccionForm } from '../finance';
 import { useValuesVisibility } from '@shared/context/ValuesVisibilityContext';
 import { useAPI } from '@shared/hooks/useAPI';
-import { modulos } from '@shared/navigation/menuStructure';
 import { useLocation } from 'react-router-dom';
-import { FinanzasSectionNav } from '../finanzas';
 import { attaPageLayoutSx } from '../navigation/attaPageLayoutSx';
 
 export function Transacciones() {

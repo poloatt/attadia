@@ -26,7 +26,7 @@ import {
   getAttaHubSectionCardSx,
   hubGridContainerSx,
   hubGridItemSx,
-} from './attaHubSectionStyles';
+} from '../hub/styles/attaHubSectionStyles';
 
 function resolveActiveSectionId(pathname, pages) {
   const match = [...pages]
@@ -333,7 +333,7 @@ export default function AttaBranchSectionNav({
         </>
       ) : (
         <Grid container spacing={1.5} sx={usesHubCardLayout ? hubGridContainerSx : undefined}>
-          {pages.map((page) => (
+          {(isStrip ? pages : hubPages).map((page) => (
             <Grid
               item
               key={page.id}

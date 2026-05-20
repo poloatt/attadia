@@ -1,44 +1,29 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { 
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {
   Box,
   Typography,
-  IconButton,
-  Collapse,
   Button,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  FormControlLabel,
-  Switch
 } from '@mui/material';
-import { ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon } from '@mui/icons-material';
-import { 
+import {
   DescriptionOutlined as DescriptionIcon,
-  CalendarTodayOutlined as CalendarIcon,
-  AttachMoneyOutlined as MoneyIcon,
-  HomeWorkOutlined as HomeIcon,
-  PersonOutlineOutlined as PersonIcon,
   AutoAwesome as WizardIcon,
   Edit as EditIcon
 } from '@mui/icons-material';
 
-import ContratoForm from '../propiedades/contratos/ContratoForm';
+import { ContratoForm, ContratoDetail } from '../propiedades/contratos';
 // import { ContratoWizard } from '../propiedades/contratos'; // Eliminado porque ya no existe
 import { useSnackbar } from 'notistack';
 import clienteAxios from '@shared/config/axios';
 import { EmptyState } from '@shared/components/common';
-import { PropiedadContent } from '../propiedades';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { calcularAlquilerMensualPromedio } from '@shared/utils/contratoUtils';
-import { Toolbar } from '@shared/navigation';
 import { useFormManager } from '@shared/context/FormContext';
 import ContratoCard from '../propiedades/contratos/ContratoCard';
-import { CuotasProvider } from '@shared/context/CuotasContext';
-import ContratoDetail from '../propiedades/contratos/ContratoDetail';
-
 import useResponsive from '@shared/hooks/useResponsive';
-import { PropiedadesSectionNav } from '../bienes';
+import { PropiedadesSectionNav } from '../propiedades';
 import { attaPageLayoutSx } from '../navigation/attaPageLayoutSx';
 
 export function Contratos() {
@@ -343,7 +328,7 @@ export function Contratos() {
     getIcon: () => DescriptionIcon,
   };
 
-  const { theme, isDesktop } = useResponsive();
+  const { isDesktop } = useResponsive();
 
   return (
     <Box sx={{ px: 0, width: '100%' }}>

@@ -1,5 +1,14 @@
 import { alpha } from '@mui/material/styles';
-import { getPropiedadEstadoChipSx, PROPIEDAD_HUB } from '../bienes/hub/propiedadesHubStyles';
+import {
+  ATTA_HUB,
+  ATTA_HUB_SUBSECTION,
+  getPropiedadEstadoChipSx,
+} from '../hub/styles/attaHubSectionStyles';
+
+const PROPIEDAD_HUB = {
+  ...ATTA_HUB,
+  blockRadius: ATTA_HUB_SUBSECTION.borderRadius,
+};
 import { taskFormGooglePaperSx } from '../../../foco/src/foco/taskFormUi';
 
 export { taskFormGooglePaperSx };

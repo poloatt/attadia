@@ -27,6 +27,7 @@ import { useResponsive } from '@shared/hooks';
 import { SeccionContratos } from '../SeccionesPropiedad';
 import ContratoCard from '../contratos/ContratoCard';
 import { CuotasProvider } from '../contratos';
+import AgregarContratoButton from '../contratos/AgregarContratoButton';
 
 const getStatusColor = (status) => {
   const color = getEstadoColor(status, 'INQUILINO');
@@ -147,7 +148,7 @@ const ContratoItem = ({ contrato, onContratoClick }) => {
   );
 };
 
-const InquilinoDetail = ({ open, onClose, inquilino, onEdit, onDelete, onContratoClick }) => {
+const InquilinoDetail = ({ open, onClose, inquilino, onEdit, onDelete, onContratoClick, onCreateContract }) => {
   if (!inquilino) return null;
   const { nombre, apellido, email, telefono, dni, estado = 'PENDIENTE', contratosClasificados = {} } = inquilino;
   const navigate = useNavigate();
@@ -253,17 +254,30 @@ const InquilinoDetail = ({ open, onClose, inquilino, onEdit, onDelete, onContrat
                   </Typography>
                 </CollapsibleSection>
               )}
-              {/* Sección Contratos: muestra todos los contratos del inquilino si existen */}
-              {inquilino?.contratos?.length > 0 && (
-                <CollapsibleSection title="Contratos" icon={DescriptionIcon} defaultExpanded={true}>
-                  {inquilino.contratos.map((contrato, idx) => (
-                    <CuotasProvider key={contrato._id || contrato.id || idx} contratoId={contrato._id || contrato.id} formData={contrato} relatedData={{ inquilino, propiedad: contrato.propiedad }}>
+              {/* Contratos del inquilino */}
+              <CollapsibleSection title="Contratos" icon={DescriptionIcon} defaultExpanded={true}>
+                {inquilino?.contratos?.length > 0 ? (
+                  inquilino.contratos.map((contrato, idx) => (
+                    <CuotasProvider
+                      key={contrato._id || contrato.id || idx}
+                      contratoId={contrato._id || contrato.id}
+                      formData={contrato}
+                      relatedData={{ inquilino, propiedad: contrato.propiedad }}
+                    >
                       <ContratoCard contrato={contrato} />
                     </CuotasProvider>
-                  ))}
-                </CollapsibleSection>
-              )}
-              <SeccionContratos inquilino={inquilino} />
+                  ))
+                ) : onCreateContract ? (
+                  <AgregarContratoButton
+                    onClick={() => onCreateContract(inquilino)}
+                    sx={{ mt: 0.5 }}
+                  />
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    Sin contratos
+                  </Typography>
+                )}
+              </CollapsibleSection>
               {/* Aquí podrías agregar una sección de documentos si existe en el modelo */}
             </EntityDetailGrid>
           </Box>

@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Container, 
+import {
   Button,
   Box,
   Typography,
-  Paper,
   Chip,
   IconButton,
   Grid,
@@ -12,8 +10,7 @@ import {
   CardContent,
   CardActions
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import { FinanzasSectionNav } from '../finanzas';
+import { FinanzasSectionNav, TransaccionRecurrenteForm } from '../finanzas';
 import { attaPageLayoutSx } from '../navigation/attaPageLayoutSx';
 import { CommonDetails } from '@shared/components/common';
 import { 
@@ -27,7 +24,6 @@ import {
 import clienteAxios from '@shared/config/axios';
 import { useSnackbar } from 'notistack';
 import { EmptyState } from '@shared/components/common';
-import { TransaccionRecurrenteForm } from '../finance';
 import { useValuesVisibility } from '@shared/context/ValuesVisibilityContext';
 import { api } from '@shared/services/api';
 
@@ -151,8 +147,7 @@ export function Recurrente() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTransaccion, setEditingTransaccion] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
-  const { showValues, toggleValuesVisibility } = useValuesVisibility();
-  const navigate = useNavigate();
+  const { showValues } = useValuesVisibility();
 
   const fetchTransacciones = useCallback(async () => {
     try {

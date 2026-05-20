@@ -1,4 +1,4 @@
-import { getHabitacionLabel, getPropiedadLabel, normalizeDocId } from '../../bienes/hub/bienesHubUtils';
+import { getHabitacionLabel, getPropiedadLabel, normalizeDocId } from '../../propiedades/hub/propiedadesHubUtils';
 
 export function normalizeInventarioItem(item) {
   return {

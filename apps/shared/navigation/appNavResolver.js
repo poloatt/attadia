@@ -4,7 +4,7 @@
  * Niveles Atta (assets):
  * - app: Atta (assets)
  * - branch: Finanzas | Propiedades | Inventario (nivel 1 bajo app)
- * - page: Transacciones, Cuentas, Habitaciones… (nivel 2)
+ * - page: Transacciones, Cuentas, Propiedades… (nivel 2)
  *
  * Foco/Pulso: subItems del módulo = páginas planas (sin rama intermedia).
  */
@@ -109,11 +109,6 @@ export function getPropiedadesBranchPages() {
 export function getInventarioBranchPages() {
   const exclude = new Set(INVENTARIO_TOOLBAR_EXCLUDE_PAGE_IDS);
   return getAttaBranchPages('inventario').filter((page) => !exclude.has(page.id));
-}
-
-/** @deprecated Use getPropiedadesBranchPages */
-export function getBienesBranchPages() {
-  return getPropiedadesBranchPages();
 }
 
 export function getAttaBranchById(branchId) {

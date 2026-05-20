@@ -1,30 +1,16 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import {
-  Container,
-  Box,
-  Chip
-} from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box } from '@mui/material';
 import { useSnackbar } from 'notistack';
-import { InquilinoList, InquilinoForm } from '../propiedades/inquilinos';
-import { InquilinoDetail } from '../propiedades/inquilinos';
-
-import { CommonDetails, CommonActions } from '@shared/components/common';
-import { Toolbar } from '@shared/navigation';
-
-import {
-  ApartmentOutlined as BuildingIcon,
-  BedOutlined as BedIcon,
-  DescriptionOutlined as ContratosIcon,
-  Inventory2Outlined as InventoryIcon
-} from '@mui/icons-material';
+import { InquilinoList, InquilinoForm, InquilinoDetail } from '../propiedades/inquilinos';
+import { CommonDetails } from '@shared/components/common';
 import clienteAxios from '@shared/config/axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ContratoForm from '../propiedades/contratos/ContratoForm';
+import { buildContratoInitialDataForInquilino } from '../propiedades/contratos/buildContratoInitialDataForInquilino';
 import { useFormManager } from '@shared/context/FormContext';
 import useResponsive from '@shared/hooks/useResponsive';
-import { PropiedadesSectionNav } from '../bienes';
+import { PropiedadesSectionNav } from '../propiedades';
 import { attaPageLayoutSx } from '../navigation/attaPageLayoutSx';
-import { getDocumentId } from '../propiedades/habitacionConstants';
 
 export function Inquilinos() {
   const [inquilinos, setInquilinos] = useState([]);
@@ -177,38 +163,22 @@ export function Inquilinos() {
   };
 
   const handleCreateContract = (inquilino) => {
-    const propiedad = propiedades.find((p) => getDocumentId(p) === getDocumentId(inquilino.propiedad));
-
-    // 2. Buscar la cuenta asociada a la propiedad
-    let cuentaObj = null;
-    if (propiedad?.cuenta && cuentas && cuentas.length > 0) {
-      if (typeof propiedad.cuenta === 'object') {
-        cuentaObj = propiedad.cuenta;
-      } else {
-        cuentaObj = cuentas.find(c => c._id === propiedad.cuenta || c.id === propiedad.cuenta) || '';
-      }
-    }
-    // Si no hay cuenta, busca una por defecto
-    if (!cuentaObj && cuentas && cuentas.length > 0) {
-      cuentaObj = cuentas.find(c => c.activo !== false) || cuentas[0];
-    }
-
-    // 3. Preparar initialData con los datos correctos
-    const initialData = {
-      inquilino: [getDocumentId(inquilino)],
-      propiedad: getDocumentId(propiedad),
-      cuenta: getDocumentId(cuentaObj),
-      montoMensual: propiedad?.montoMensual?.toString() || '0',
-      deposito: propiedad?.deposito?.toString() || (propiedad?.montoMensual ? (propiedad.montoMensual * 2).toString() : '0'),
-      esMantenimiento: false,
-      tipoContrato: 'ALQUILER'
-    };
-
-    console.log('initialData para contrato:', initialData, { propiedad, cuentaObj, inquilino });
-
-    setContratoInitialData(initialData);
+    setContratoInitialData(
+      buildContratoInitialDataForInquilino(inquilino, propiedades, cuentas),
+    );
     setOpenContratoForm(true);
   };
+
+  useEffect(() => {
+    const inquilinoId = location.state?.openContratoForInquilinoId;
+    if (!inquilinoId || inquilinos.length === 0 || propiedades.length === 0) return;
+    const found = inquilinos.find(
+      (i) => String(i._id || i.id) === String(inquilinoId),
+    );
+    if (!found) return;
+    handleCreateContract(found);
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.state?.openContratoForInquilinoId, inquilinos, propiedades, navigate, location.pathname]);
 
   const { theme, isDesktop } = useResponsive();
 
@@ -249,6 +219,7 @@ export function Inquilinos() {
                 inquilino={selectedInquilino}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                onCreateContract={handleCreateContract}
               />
             </Box>
           )}

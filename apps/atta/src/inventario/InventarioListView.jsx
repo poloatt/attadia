@@ -16,7 +16,7 @@ import { useSnackbar } from 'notistack';
 import clienteAxios, { isAxiosCanceled } from '@shared/config/axios';
 import { EmptyState } from '@shared/components/common';
 import { CommonForm } from '@shared/components/common';
-import { getPropiedadLabel, getHabitacionLabel, normalizeDocId } from '../bienes/hub/bienesHubUtils';
+import { getPropiedadLabel, getHabitacionLabel, normalizeDocId } from '../propiedades/hub/propiedadesHubUtils';
 import { INVENTARIO_UBICACION } from './hub/inventarioHubConstants';
 
 const ESTADO_OPTIONS = [

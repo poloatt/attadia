@@ -1,31 +1,20 @@
 import React from 'react';
-import { getFinanzasBranchPages } from '@shared/navigation/appNavResolver';
 import AttaBranchSectionNav from '../navigation/AttaBranchSectionNav';
-import { CuentasHubSection } from '../finance/cuentas';
-import { MonedasHubSection } from '../finance/monedas';
-import { TransaccionesHubSection } from '../finance/transacciones';
-import DeudoresHubSection from './DeudoresHubSection';
-import InversionesHubSection from './InversionesHubSection';
-import { FINANZAS_SECTION_META, FINANZAS_STATS_ENDPOINTS } from './finanzasSectionMeta';
+import { getAttaHubBranchConfig } from '../hub/config/attaHubBranchConfig';
 
-const FINANZAS_HUB_CARDS = {
-  transacciones: TransaccionesHubSection,
-  cuentas: CuentasHubSection,
-  monedas: MonedasHubSection,
-  inversiones: InversionesHubSection,
-  deudores: DeudoresHubSection,
-};
+const config = getAttaHubBranchConfig('finanzas');
 
-/** Navegación contextual Finanzas (mismo patrón que Propiedades). */
+/** Navegación contextual Finanzas. */
 export default function FinanzasSectionNav({ variant = 'hub' }) {
   return (
     <AttaBranchSectionNav
-      branchId="finanzas"
-      sectionMeta={FINANZAS_SECTION_META}
-      statsEndpoints={FINANZAS_STATS_ENDPOINTS}
-      hubSectionCards={variant === 'hub' ? FINANZAS_HUB_CARDS : undefined}
-      stripPages={variant === 'strip' ? getFinanzasBranchPages : undefined}
-      ariaLabel="Secciones de Finanzas"
+      branchId={config.branchId}
+      sectionMeta={config.sectionMeta}
+      statsEndpoints={config.statsEndpoints}
+      hubSectionCards={variant === 'hub' ? config.hubSectionCards : undefined}
+      hubExcludePageIds={variant === 'hub' ? config.hubExcludePageIds : undefined}
+      stripPages={variant === 'strip' ? config.getStripPages : undefined}
+      ariaLabel={config.ariaLabel}
       variant={variant}
     />
   );

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  Container, 
+import {
   Box,
   Typography,
   Paper,
@@ -13,12 +12,7 @@ import {
   DialogTitle,
   Button,
   Tooltip,
-  LinearProgress,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
 } from '@mui/material';
-import { Toolbar } from '@shared/navigation';
 import { CommonForm, CommonActions } from '@shared/components/common';
 import { 
   AccountBalanceOutlined as BankIcon,
@@ -30,11 +24,14 @@ import { useSnackbar } from 'notistack';
 import { EmptyState } from '@shared/components/common';
 import { useValuesVisibility } from '@shared/context/ValuesVisibilityContext';
 import { useAPI } from '@shared/hooks/useAPI';
-import { MercadoPagoConnectButton, BankConnectionForm } from '../finance';
+import {
+  MercadoPagoConnectButton,
+  BankConnectionForm,
+  FinanzasSectionNav,
+  cuentaDetailPath,
+} from '../finanzas';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { FinanzasSectionNav } from '../finanzas';
 import { attaPageLayoutSx } from '../navigation/attaPageLayoutSx';
-import { cuentaDetailPath } from '../finance/finanzasDeepLink';
 
 export function Cuentas() {
   const [isFormOpen, setIsFormOpen] = useState(false);

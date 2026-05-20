@@ -1,9 +1,12 @@
 import React from 'react';
 import { Box } from '@mui/material';
 import { useLocation } from 'react-router-dom';
-import { InventarioSectionNav } from '../bienes';
+import {
+  InventarioSectionNav,
+  INVENTARIO_HUB_PATHS,
+  INVENTARIO_UBICACION,
+} from '../inventario';
 import InventarioListView from '../inventario/InventarioListView';
-import { INVENTARIO_HUB_PATHS, INVENTARIO_UBICACION } from '../inventario/hub';
 import { attaPageLayoutSx } from '../navigation/attaPageLayoutSx';
 
 function resolveInventarioView(pathname) {

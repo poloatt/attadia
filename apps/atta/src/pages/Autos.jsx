@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-import { InventarioSectionNav } from '../bienes';
+import { InventarioSectionNav } from '../inventario';
 import { attaPageLayoutSx } from '../navigation/attaPageLayoutSx';
 
 export default function Autos() {

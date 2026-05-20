@@ -3,10 +3,15 @@ import { Box, Alert } from '@mui/material';
 import { snackbar } from '@shared/components/common';
 import { useLocation } from 'react-router-dom';
 import clienteAxios from '@shared/config/axios';
-import PropiedadForm from '../propiedades/PropiedadForm';
-import PropiedadDetail from '../propiedades/PropiedadDetail';
+import {
+  PropiedadForm,
+  PropiedadDetail,
+  PropiedadesSectionNav,
+} from '../propiedades';
+import { InquilinoForm } from '../propiedades/inquilinos';
+import ContratoForm from '../propiedades/contratos/ContratoForm';
+import { useContratoFormLauncher } from '../propiedades/contratos/useContratoFormLauncher';
 import { usePageWithHistory } from '@shared/hooks/useGlobalActionHistory';
-import { PropiedadesSectionNav } from '../bienes';
 import { attaPageLayoutSx } from '../navigation/attaPageLayoutSx';
 
 export function Propiedades() {
@@ -18,6 +23,12 @@ export function Propiedades() {
   const [detailPropiedad, setDetailPropiedad] = useState(null);
   const [focusHabitacionId, setFocusHabitacionId] = useState(null);
   const [deepLinkConsumed, setDeepLinkConsumed] = useState(false);
+  const [openInquilinoForm, setOpenInquilinoForm] = useState(false);
+
+  const contratoLauncher = useContratoFormLauncher({
+    onSubmitted: () => fetchPropiedadesRef.current?.(),
+  });
+  const { openBlank: openBlankContratoForm } = contratoLauncher;
 
   const location = useLocation();
   const fetchPropiedadesRef = useRef();
@@ -103,16 +114,30 @@ export function Propiedades() {
 
   useEffect(() => {
     const handleHeaderAddButton = (event) => {
+      const onHub = window.location.pathname === '/propiedades';
+      const type = event.detail?.type;
       const isSamePath = event.detail?.path && event.detail.path === window.location.pathname;
-      const isPropiedadType = event.detail?.type === 'propiedad' || event.detail?.type === 'propiedades';
-      if (isSamePath || isPropiedadType) {
+
+      if (!onHub && !isSamePath && type !== 'propiedad' && type !== 'propiedades') {
+        return;
+      }
+
+      if (type === 'inquilinos' || type === 'inquilino') {
+        if (onHub || isSamePath) setOpenInquilinoForm(true);
+        return;
+      }
+      if (type === 'contratos' || type === 'contrato') {
+        if (onHub) openBlankContratoForm();
+        return;
+      }
+      if (type === 'propiedad' || type === 'propiedades' || isSamePath) {
         setEditingPropiedad(null);
         setIsFormOpen(true);
       }
     };
     window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
     return () => window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
-  }, []);
+  }, [openBlankContratoForm]);
 
   useEffect(() => {
     const handleEntityUpdate = (event) => {
@@ -210,6 +235,28 @@ export function Propiedades() {
           createWithHistory={createWithHistory}
           updateWithHistory={updateWithHistory}
         />
+
+        <InquilinoForm
+          open={openInquilinoForm}
+          onClose={() => setOpenInquilinoForm(false)}
+          onSubmit={async (formData) => {
+            await clienteAxios.post('/api/inquilinos', formData);
+            snackbar.success('Inquilino creado correctamente');
+            setOpenInquilinoForm(false);
+            await fetchPropiedades();
+          }}
+          propiedades={propiedades}
+        />
+
+        {contratoLauncher.open && (
+          <ContratoForm
+            open={contratoLauncher.open}
+            initialData={contratoLauncher.initialData}
+            relatedData={contratoLauncher.relatedData}
+            onClose={contratoLauncher.close}
+            onSubmit={contratoLauncher.handleSubmitted}
+          />
+        )}
       </Box>
     </Box>
   );

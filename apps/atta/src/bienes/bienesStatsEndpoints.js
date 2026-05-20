@@ -1,8 +1,0 @@
-import { PROPIEDADES_STATS_ENDPOINTS } from './propiedadesStatsEndpoints';
-import { INVENTARIO_STATS_ENDPOINTS } from './inventarioStatsEndpoints';
-
-/** @deprecated Use PROPIEDADES_STATS_ENDPOINTS / INVENTARIO_STATS_ENDPOINTS */
-export const BIENES_STATS_ENDPOINTS = {
-  ...PROPIEDADES_STATS_ENDPOINTS,
-  ...INVENTARIO_STATS_ENDPOINTS,
-};

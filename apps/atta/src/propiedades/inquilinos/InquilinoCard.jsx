@@ -39,6 +39,7 @@ import TipoPropiedadIcon from '../TipoPropiedadIcon';
 import { formatFecha } from '@shared/utils/contratoUtils';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import PropiedadDetail from '../PropiedadDetail';
+import AgregarContratoButton from '../contratos/AgregarContratoButton';
 
 // Componentes estilizados siguiendo la estética geométrica
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -242,6 +243,13 @@ const InquilinoCard = ({
               titleWeight={600}
               gap={1}
             />
+            {!contratoActual && onCreateContract && (
+              <Box sx={{ mt: 0.75 }} onClick={(e) => e.stopPropagation()}>
+                <AgregarContratoButton
+                  onClick={() => onCreateContract(inquilino)}
+                />
+              </Box>
+            )}
           </Box>
           {/* Iconos de contacto en el margen superior derecho */}
           <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', mt: 0.2 }}>
@@ -259,6 +267,7 @@ const InquilinoCard = ({
         inquilino={inquilino}
         onEdit={onEdit}
         onDelete={onDelete}
+        onCreateContract={onCreateContract}
       />
       {/* Modal de detalle de contrato */}
       {contratoActual && (

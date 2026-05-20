@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button, Box, Tooltip, IconButton } from '@mui/material';
-import { FinanzasSectionNav } from '../finanzas';
+import {
+  FinanzasSectionNav,
+  MonedaTile,
+  MonedasCarousel,
+  MonedasSortableList,
+  MonedaTileSkeleton,
+  COLORES_MONEDA,
+  normalizeMoneda,
+  sortMonedasByOrden,
+  monedaDetailPath,
+} from '../finanzas';
 import { attaPageLayoutSx } from '../navigation/attaPageLayoutSx';
 import { CommonDetails, CommonForm } from '@shared/components/common';
 import { AddOutlined as AddIcon, RefreshOutlined as RefreshIcon } from '@mui/icons-material';
@@ -9,16 +19,6 @@ import { useSnackbar } from 'notistack';
 import { EmptyState } from '@shared/components/common';
 import { useAPI, useResponsive } from '@shared/hooks';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  MonedaTile,
-  MonedasCarousel,
-  MonedasSortableList,
-  MonedaTileSkeleton,
-  COLORES_MONEDA,
-  normalizeMoneda,
-  sortMonedasByOrden,
-} from '../finance/monedas';
-import { monedaDetailPath } from '../finance/finanzasDeepLink';
 
 export function Monedas() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -28,7 +28,7 @@ export function Monedas() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const selectedMonedaId = searchParams.get('id');
-  const { isMobile } = useResponsive();
+  const { isDesktop } = useResponsive();
 
   // Usar nuestro hook personalizado para cargar monedas - Optimizaciones
   const { 
@@ -279,6 +279,7 @@ export function Monedas() {
       <MonedaTile
         moneda={normalizeMoneda(moneda)}
         variant="full"
+        fullWidth={isDesktop}
         selected={selectedMonedaId === monedaId}
         onSelect={(id) => navigate(monedaDetailPath(id), { replace: true })}
         onEdit={handleEdit}
@@ -286,7 +287,7 @@ export function Monedas() {
         onToggleActive={handleToggleActive}
       />
     );
-  }, [selectedMonedaId, navigate, handleEdit, handleDelete, handleToggleActive]);
+  }, [isDesktop, selectedMonedaId, navigate, handleEdit, handleDelete, handleToggleActive]);
 
   const formFields = [
     {
@@ -366,9 +367,9 @@ export function Monedas() {
         }
       >
         {isLoading ? (
-          isMobile ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.625 }}>
-              <MonedaTileSkeleton count={3} width="100%" />
+          isDesktop ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.625, width: '100%' }}>
+              <MonedaTileSkeleton count={4} width="100%" />
             </Box>
           ) : (
             <MonedasCarousel>
@@ -385,7 +386,7 @@ export function Monedas() {
           <MonedasSortableList
             monedas={monedas}
             onReorder={handleReorderMonedas}
-            layout={isMobile ? 'column' : 'carousel'}
+            layout={isDesktop ? 'column' : 'carousel'}
             renderTile={renderMonedaTile}
           />
         )}
