@@ -10,7 +10,7 @@ import { Login } from '@shared/pages/Login';
 import { Register } from '@shared/pages/Register';
 import AuthCallback from '@shared/components/auth/AuthCallback';
 import AuthError from '@shared/components/auth/AuthError';
-import { ErrorBoundary } from '@shared/components/common';
+import { AppLoadingScreen, ErrorBoundary } from '@shared/components/common';
 import theme from '@shared/context/ThemeContext';
 import { ValuesVisibilityProvider } from '@shared/context/ValuesVisibilityContext';
 import { NavigationBarProvider } from '@shared/context/NavigationBarContext';
@@ -40,7 +40,7 @@ function AppContent() {
   }
 
   if (loading) {
-    return <div>Cargando Foco...</div>;
+    return <AppLoadingScreen />;
   }
 
   return (

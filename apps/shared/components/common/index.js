@@ -1,5 +1,7 @@
 // Exportar componentes comunes
 export { default as ErrorBoundary } from './ErrorBoundary.jsx';
+export { default as AppLoadingScreen, APP_LOADING_BG } from './AppLoadingScreen.jsx';
+export { default as GoogleLoader } from './GoogleLoader.jsx';
 export { default as CommonActions } from './CommonActions.jsx';
 export { default as CommonConstruction } from './CommonConstruction.jsx';
 export { default as CommonDate } from './CommonDate.jsx';

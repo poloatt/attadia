@@ -133,7 +133,18 @@ function findMenuItemByPath(path, items = modulos, parent = null) {
       if (nested.item) return nested;
     }
     // Si no se encontró en hijos, comparar el propio item
-    if (item.path === path) return { item, parent };
+    if (item.path === path) {
+      // Hub compartido padre/hijo (p. ej. /propiedades): usar rama con subItems agregables
+      if (
+        parent &&
+        parent.path === path &&
+        Array.isArray(parent.subItems) &&
+        parent.subItems.length > 0
+      ) {
+        return { item: parent, parent: null };
+      }
+      return { item, parent };
+    }
   }
   return { item: null, parent: null };
 }
@@ -150,7 +161,7 @@ export function useEntityActions() {
   if (item) {
     const canAddSelf = !!item.canAdd;
     const addableChildren = Array.isArray(item.subItems)
-      ? item.subItems.filter(sub => sub.canAdd)
+      ? item.subItems.filter((sub) => sub.canAdd && sub.path !== item.path)
       : [];
     if (canAddSelf || addableChildren.length > 0) {
       showAddButton = true;

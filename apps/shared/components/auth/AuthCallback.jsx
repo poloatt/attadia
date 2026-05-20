@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import clienteAxios from '../../config/axios.js';
 import { useAppConfig } from '../../hooks/useAppDetection.js';
+import AppLoadingScreen from '../common/AppLoadingScreen.jsx';
 
 // Constantes
 const ERROR_MESSAGES = {
@@ -215,14 +216,7 @@ function AuthCallback() {
     handleCallback();
   }, [navigate, location.search, checkAuth]);
 
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <h2 className="text-2xl font-semibold mb-4">Procesando autenticación...</h2>
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-      </div>
-    </div>
-  );
+  return <AppLoadingScreen message="Procesando autenticación…" />;
 }
 
 export default AuthCallback; 

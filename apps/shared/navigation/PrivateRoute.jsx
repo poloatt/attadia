@@ -1,8 +1,8 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { CircularProgress } from '@mui/material';
 import { useEffect } from 'react';
+import { AppLoadingScreen } from '../components/common';
 import { toast } from 'react-hot-toast';
 
 export function PrivateRoute() {
@@ -16,7 +16,7 @@ export function PrivateRoute() {
   }, [error]);
 
   if (loading) {
-    return <LoadingScreen />;
+    return <AppLoadingScreen />;
   }
 
   if (user) {
@@ -26,17 +26,4 @@ export function PrivateRoute() {
   return <Navigate to="/login" state={{ from: location.pathname }} replace />;
 }
 
-const LoadingScreen = () => {
-  return (
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      height: '100vh' 
-    }}>
-      <CircularProgress />
-    </div>
-  );
-};
-
-export default PrivateRoute; 
+export default PrivateRoute;

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, CircularProgress, Alert } from '@mui/material';
+import { Box, Typography, Alert } from '@mui/material';
+import { AppLoadingScreen } from '../components/common';
 import { useMercadoPago } from '../hooks/useMercadoPago';
 import { isMercadoPagoEnabled } from '../config/mercadopago';
 
@@ -64,17 +65,7 @@ export function MercadoPagoCallbackPage() {
   const renderContent = () => {
     switch (status) {
       case 'processing':
-        return (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <CircularProgress size={48} sx={{ mb: 2 }} />
-            <Typography variant="h6" sx={{ mb: 1 }}>
-              Conectando con MercadoPago...
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Por favor espera mientras procesamos tu autorización
-            </Typography>
-          </Box>
-        );
+        return null;
       
       case 'success':
         return (
@@ -131,6 +122,10 @@ export function MercadoPagoCallbackPage() {
       return () => clearTimeout(timer);
     }
   }, [status, navigate]);
+
+  if (status === 'processing') {
+    return <AppLoadingScreen message="Conectando con MercadoPago…" />;
+  }
 
   if (!isMercadoPagoEnabled()) {
     return (
