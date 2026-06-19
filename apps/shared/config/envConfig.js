@@ -53,26 +53,31 @@ export const logEnvironment = () => {
 // Función para obtener la URL de la app actual
 export const getCurrentAppUrl = () => {
   if (typeof window === 'undefined') return null;
-  
-  const hostname = window.location.hostname;
-  const port = window.location.port;
-  
+
+  const { hostname, port, origin } = window.location;
+
+  // Previews de Vercel u otros hosts temporales: usar el origin real del navegador
+  if (hostname.endsWith('.vercel.app')) {
+    return origin;
+  }
+
   // Desarrollo
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     switch (port) {
       case '5173': return currentConfig.frontendUrls.foco;
       case '5174': return currentConfig.frontendUrls.atta;
       case '5175': return currentConfig.frontendUrls.pulso;
-      default: return currentConfig.frontendUrls.foco;
+      default: return origin;
     }
   }
-  
+
   // Producción
   if (hostname === 'foco.attadia.com') return currentConfig.frontendUrls.foco;
   if (hostname === 'atta.attadia.com') return currentConfig.frontendUrls.atta;
   if (hostname === 'pulso.attadia.com') return currentConfig.frontendUrls.pulso;
-  
-  return currentConfig.frontendUrls.foco; // fallback
+
+  // Staging u otros dominios: origin actual
+  return origin;
 };
 
 // Exportar configuración actual

@@ -163,8 +163,11 @@ router.get('/google/url', (req, res) => {
     // Fallback a orígenes por defecto
     allowedOrigins = ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'];
   }
-  
-  if (!allowedOrigins.includes(origin)) {
+
+  const isVercelPreview = typeof origin === 'string' && origin.includes('vercel.app');
+  const isAllowedOrigin = allowedOrigins.includes(origin) || isVercelPreview;
+
+  if (!isAllowedOrigin) {
     console.error('Origen no permitido:', {
       origin,
       allowedOrigins,
