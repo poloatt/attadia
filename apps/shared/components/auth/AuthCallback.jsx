@@ -22,7 +22,6 @@ const ERROR_MESSAGES = {
 };
 
 const TIMEOUT_DURATION = 20000; // Debe superar el timeout interno de checkAuth (15s)
-const WELCOME_DELAY = 100; // 100ms
 
 // Utilidades
 const isDevelopment = process.env.NODE_ENV === 'development';
@@ -180,13 +179,7 @@ function AuthCallback() {
 
       // Verificar con el backend en segundo plano (la sesión ya está establecida localmente)
       await updateAuthContext(tokenPayload);
-      
-      // Mostrar mensaje de bienvenida y redirigir
-      toast.dismiss();
-      setTimeout(() => {
-        toast.success(`¡Bienvenido a ${appTitle}!`, { id: 'welcome-message' });
-      }, WELCOME_DELAY);
-      
+
       // Si viene redirect, respetarlo; si no, ir a la home de la app detectada
       const target = redirect && redirect.startsWith('/') ? redirect : appPath;
       navigate(target, { replace: true });

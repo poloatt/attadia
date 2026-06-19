@@ -19,6 +19,7 @@ import { ToolbarAddButton } from './ToolbarAddButton';
 import { config } from '../../config/envConfig.js';
 import { navigateToAppPath } from '../../utils/navigationUtils';
 import useResponsive from '../../hooks/useResponsive';
+import { isStandalonePwa } from '../../hooks/usePwaInstall';
 
 // Diálogo de confirmación para eliminar
 const DeleteConfirmDialog = memo(({ open, onClose, onConfirm, itemName }) => (
@@ -773,6 +774,14 @@ function HeaderAppsButton({ iconSx }) {
           }
         }}
       >
+        {isStandalonePwa() && (
+          <Box sx={{ px: 2, py: 1, maxWidth: 260 }}>
+            <Typography variant="caption" color="text.secondary">
+              Para usar varias apps a la vez, ábrelas desde la barra de tareas.
+            </Typography>
+          </Box>
+        )}
+        {isStandalonePwa() && <Divider />}
         {modulesList.map((modulo) => {
           const IconComponent = getIconByKey(modulo.icon);
           const isCurrentModule = location.pathname.startsWith(modulo.path) || 

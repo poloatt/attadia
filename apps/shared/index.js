@@ -39,4 +39,6 @@ export * from './config/envConfig.js';
 export * from './config/api.js';
 export * from './config/axios.js';
 export * from './config/uiConstants.js';
+export * from './config/pwaConfig.js';
+export * from './pwa/index.js';
 export * from './config/mercadopago.js';

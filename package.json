@@ -22,7 +22,7 @@
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "install:all": "npm install",
-    "generate:icons": "node scripts/generate-icons.js"
+    "generate:icons": "node scripts/generate-icons.cjs"
   },
   "workspaces": [
     "apps/*"

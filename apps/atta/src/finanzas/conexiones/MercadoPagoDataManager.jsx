@@ -33,6 +33,7 @@ import { api } from '@shared/services/api';
 
 export default function MercadoPagoDataManager({ conexionId, onDataProcessed }) {
   const [datos, setDatos] = useState(null);
+  const [avisos, setAvisos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null);
@@ -45,7 +46,11 @@ export default function MercadoPagoDataManager({ conexionId, onDataProcessed }) 
       setError(null);
       
       const response = await api.get(`/api/bankconnections/mercadopago/datos-completos/${conexionId}`);
-      setDatos(response.data);
+      setDatos({
+        ...response.data.datos,
+        resumen: response.data.resumen
+      });
+      setAvisos(response.data.avisos || []);
       setSuccess('Datos cargados exitosamente');
     } catch (err) {
       console.error('Error cargando datos:', err);
@@ -163,6 +168,16 @@ export default function MercadoPagoDataManager({ conexionId, onDataProcessed }) 
       </Card>
 
       {/* Alertas */}
+      {avisos.length > 0 && (
+        <Alert severity="info" icon={<WarningIcon />} sx={{ mb: 2 }}>
+          {avisos.map((aviso, index) => (
+            <Typography key={index} variant="body2" component="div">
+              {aviso}
+            </Typography>
+          ))}
+        </Alert>
+      )}
+
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
@@ -371,6 +386,10 @@ export default function MercadoPagoDataManager({ conexionId, onDataProcessed }) 
           <Typography variant="h6">Órdenes de Comerciante ({datos?.ordenesComerciante?.length || 0})</Typography>
         </AccordionSummary>
         <AccordionDetails>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Mercado Pago limita la búsqueda masiva de órdenes de comerciante a los últimos 90 días.
+            Si solicitas un rango mayor, los resultados pueden quedar truncados.
+          </Alert>
           {datos?.ordenesComerciante && datos.ordenesComerciante.length > 0 ? (
             <TableContainer component={Paper}>
               <Table size="small">

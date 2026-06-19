@@ -715,8 +715,9 @@ class BankConnectionController extends BaseController {
       });
 
       // Obtener datos completos
+      const fechaDesdeEfectiva = fechaDesde || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
       const datosCompletos = await mpDataService.obtenerDatosCompletos({
-        fechaDesde: fechaDesde || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        fechaDesde: fechaDesdeEfectiva,
         limit: parseInt(limit)
       });
 
@@ -728,7 +729,11 @@ class BankConnectionController extends BaseController {
           totalMovimientos: datosCompletos.movimientosCuenta.length,
           totalOrdenes: datosCompletos.ordenesComerciante.length,
           errores: datosCompletos.errores.length
-        }
+        },
+        avisos: [
+          'Mercado Pago limita la búsqueda masiva de órdenes de comerciante a los últimos 90 días. Rangos mayores devolverán resultados truncados.'
+        ],
+        fechaDesde: fechaDesdeEfectiva
       });
 
     } catch (error) {
@@ -773,8 +778,8 @@ class BankConnectionController extends BaseController {
         usuarioId: req.user.id
       });
 
-      // Obtener datos completos (últimos 30 días)
-      const fechaDesde = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      // Obtener datos completos (últimos 90 días, límite de Merchant Orders search)
+      const fechaDesde = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
       const datosCompletos = await mpDataService.obtenerDatosCompletos({
         fechaDesde: fechaDesde.toISOString(),
         limit: 100

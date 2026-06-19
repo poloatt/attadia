@@ -2,12 +2,27 @@
   "name": "Atta",
   "short_name": "Atta",
   "description": "Gestión integral de propiedades inmobiliarias",
-  "id": "/",
+  "id": "https://atta.attadia.com/",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
   "background_color": "#181818",
-  "theme_color": "#181818",
+  "theme_color": "#16a34a",
+  "categories": ["finance", "business"],
+  "shortcuts": [
+    {
+      "name": "Finanzas",
+      "short_name": "Finanzas",
+      "url": "/finanzas?source=pwa",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Propiedades",
+      "short_name": "Propiedades",
+      "url": "/propiedades?source=pwa",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ],
   "icons": [
     {
       "src": "/icons/icon-72x72.png",

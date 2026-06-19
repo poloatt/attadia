@@ -1,10 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Ícono estilo Material: reloj -->
-  <!-- Fondo para que el favicon no quede blanco sobre blanco -->
+  <!-- Reloj circular simple — misma estética que Atta y Pulso -->
   <circle cx="256" cy="256" r="148" fill="#181818"/>
-  <!-- Aro blanco encima del fondo -->
   <circle cx="256" cy="256" r="148" fill="none" stroke="#ffffff" stroke-width="28"/>
-  <g transform="translate(256 256) scale(1.0) translate(-256 -256)">
-    <path d="M256 180v92l64 36" fill="none" stroke="#ffffff" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
-  </g>
+  <!-- Manecillas en posición 10:10 (convención estándar de iconos de reloj) -->
+  <line x1="256" y1="256" x2="210" y2="196" stroke="#ffffff" stroke-width="26" stroke-linecap="round"/>
+  <line x1="256" y1="256" x2="318" y2="208" stroke="#ffffff" stroke-width="20" stroke-linecap="round"/>
+  <circle cx="256" cy="256" r="12" fill="#ffffff"/>
 </svg>

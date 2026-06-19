@@ -16,6 +16,7 @@ export { default as EmptyState } from './EmptyState.jsx';
 export { default as EstadoIcon } from './EstadoIcon.jsx';
 export { default as PageContainer } from './PageContainer.jsx';
 export { default as SystemButtons } from './SystemButtons.jsx';
+export { PwaInstallBanner, DesktopAppsSection } from '../pwa/index.js';
 export { ToolbarAddButton, TOOLBAR_ICON_BUTTON_SX } from './ToolbarAddButton.jsx';
 export * from './snackbarUtils.jsx';
 export * from './StatusSystem.js';

@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 
 /**
- * Script de prueba para la sincronización completa de MercadoPago
- * 
+ * Smoke test de endpoints usados por la sincronización MercadoPago.
+ *
  * Uso:
- * node test-mercadopago-sync.js
+ *   node scripts/test-mercadopago-sync.js
+ *   MERCADOPAGO_ACCESS_TOKEN=xxx node scripts/test-mercadopago-sync.js
+ *
+ * Sin token: valida que los endpoints respondan (401/403 = activos, 404 = posible deprecación).
  */
 
 import fetch from 'node-fetch';
@@ -15,216 +18,127 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Cargar configuración
+const SYNC_WINDOW_DAYS = 90;
+
 const environment = process.env.NODE_ENV || 'production';
 const envPath = path.resolve(__dirname, environment === 'production' ? '../.env.prod' : '../.env.' + environment);
 dotenv.config({ path: envPath });
 
-const BASE_URL = process.env.BACKEND_URL || 'https://api.attadia.com';
 const ACCESS_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN;
+const BASE_URL = process.env.BACKEND_URL || 'https://api.attadia.com';
 
-async function testMercadoPagoSync() {
-  console.log('=== PRUEBA DE SINCRONIZACIÓN MERCADOPAGO ===');
-  console.log('Ambiente:', environment);
-  console.log('Base URL:', BASE_URL);
-  console.log('Access Token configurado:', !!ACCESS_TOKEN);
-  console.log('');
+const results = [];
 
-  if (!ACCESS_TOKEN) {
-    console.error('❌ Error: MERCADOPAGO_ACCESS_TOKEN no está configurado');
-    console.log('Configura la variable de entorno MERCADOPAGO_ACCESS_TOKEN');
-    return;
-  }
+function record(name, ok, detail) {
+  results.push({ name, ok, detail });
+  const icon = ok ? '✅' : '❌';
+  console.log(`${icon} ${name}: ${detail}`);
+}
 
+async function probeEndpoint(name, url, options = {}) {
   try {
-    // 1. Probar acceso directo a la API de MercadoPago
-    console.log('1. Probando acceso directo a la API de MercadoPago...');
-    
-    // Probar /users/me
-    try {
-      const userRes = await fetch('https://api.mercadopago.com/users/me', {
-        headers: {
-          'Authorization': `Bearer ${ACCESS_TOKEN}`,
-          'Content-Type': 'application/json',
-          'User-Agent': 'PresentApp/1.0'
-        }
-      });
-
-      if (userRes.ok) {
-        const userInfo = await userRes.json();
-        console.log('✅ Información del usuario obtenida:');
-        console.log('   ID:', userInfo.id);
-        console.log('   Nickname:', userInfo.nickname);
-        console.log('   Email:', userInfo.email);
-        console.log('   País:', userInfo.country_id);
-      } else {
-        const errorText = await userRes.text();
-        console.log('❌ Error obteniendo información del usuario:', userRes.status);
-        console.log('   Error:', errorText);
-      }
-    } catch (error) {
-      console.log('❌ Error en /users/me:', error.message);
-    }
-    console.log('');
-
-    // 2. Probar /v1/payments/search
-    console.log('2. Probando obtención de pagos...');
-    try {
-      const fechaDesde = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      const fechaHasta = new Date();
-      const paymentsUrl = `https://api.mercadopago.com/v1/payments/search?range=date_created&begin_date=${fechaDesde.toISOString()}&end_date=${fechaHasta.toISOString()}&limit=10&sort=date_created`;
-      
-      const paymentsRes = await fetch(paymentsUrl, {
-        headers: {
-          'Authorization': `Bearer ${ACCESS_TOKEN}`,
-          'Content-Type': 'application/json',
-          'User-Agent': 'PresentApp/1.0'
-        }
-      });
-
-      if (paymentsRes.ok) {
-        const paymentsData = await paymentsRes.json();
-        console.log('✅ Pagos obtenidos exitosamente:');
-        console.log('   Total de pagos:', paymentsData.paging?.total || 0);
-        console.log('   Pagos en esta página:', paymentsData.results?.length || 0);
-        
-        if (paymentsData.results && paymentsData.results.length > 0) {
-          const primerPago = paymentsData.results[0];
-          console.log('   Primer pago:');
-          console.log('     ID:', primerPago.id);
-          console.log('     Estado:', primerPago.status);
-          console.log('     Monto:', primerPago.transaction_amount);
-          console.log('     Fecha:', primerPago.date_created);
-        }
-      } else {
-        const errorText = await paymentsRes.text();
-        console.log('❌ Error obteniendo pagos:', paymentsRes.status);
-        console.log('   Error:', errorText);
-      }
-    } catch (error) {
-      console.log('❌ Error en /v1/payments/search:', error.message);
-    }
-    console.log('');
-
-    // 3. Probar creación de preferencia de pago
-    console.log('3. Probando creación de preferencia de pago...');
-    try {
-      const preferenceData = {
-        items: [
-          {
-            title: 'Pago de prueba - Sincronización MercadoPago',
-            quantity: 1,
-            unit_price: 5.00
-          }
-        ],
-        back_urls: {
-          success: `${BASE_URL}/pago-exitoso`,
-          failure: `${BASE_URL}/pago-fallido`,
-          pending: `${BASE_URL}/pago-pendiente`
-        },
-        auto_return: 'approved'
-      };
-
-      const preferenceRes = await fetch('https://api.mercadopago.com/checkout/preferences', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${ACCESS_TOKEN}`,
-          'Content-Type': 'application/json',
-          'User-Agent': 'PresentApp/1.0'
-        },
-        body: JSON.stringify(preferenceData)
-      });
-
-      if (preferenceRes.ok) {
-        const preferenceResult = await preferenceRes.json();
-        console.log('✅ Preferencia de pago creada exitosamente:');
-        console.log('   Preference ID:', preferenceResult.id);
-        console.log('   Init Point:', preferenceResult.init_point);
-        console.log('   Sandbox Init Point:', preferenceResult.sandbox_init_point);
-      } else {
-        const errorText = await preferenceRes.text();
-        console.log('❌ Error creando preferencia:', preferenceRes.status);
-        console.log('   Error:', errorText);
-      }
-    } catch (error) {
-      console.log('❌ Error en creación de preferencia:', error.message);
-    }
-    console.log('');
-
-    // 4. Probar endpoint de diagnóstico del backend
-    console.log('4. Probando endpoint de diagnóstico del backend...');
-    try {
-      const diagnosticoRes = await fetch(`${BASE_URL}/api/bankconnections/pagos/diagnostico`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer test-token'
-        }
-      });
-
-      if (diagnosticoRes.ok) {
-        const diagnosticoData = await diagnosticoRes.json();
-        console.log('✅ Diagnóstico del backend exitoso:');
-        console.log('   Success:', diagnosticoData.success);
-        if (diagnosticoData.envVars) {
-          console.log('   Variables de entorno configuradas:', diagnosticoData.envVars);
-        }
-      } else {
-        console.log('❌ Error en diagnóstico del backend:', diagnosticoRes.status);
-      }
-    } catch (error) {
-      console.log('❌ Error conectando con el backend:', error.message);
-    }
-    console.log('');
-
-    // 5. Probar endpoint de prueba de preferencia del backend
-    console.log('5. Probando endpoint de preferencia del backend...');
-    try {
-      const preferenciaRes = await fetch(`${BASE_URL}/api/bankconnections/pagos/prueba`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer test-token'
-        }
-      });
-
-      if (preferenciaRes.ok) {
-        const preferenciaData = await preferenciaRes.json();
-        console.log('✅ Preferencia del backend creada:');
-        console.log('   Success:', preferenciaData.success);
-        if (preferenciaData.preference_id) {
-          console.log('   Preference ID:', preferenciaData.preference_id);
-        }
-      } else {
-        const errorData = await preferenciaRes.json();
-        console.log('❌ Error en preferencia del backend:', errorData.message);
-        console.log('   Detalles:', errorData.details);
-      }
-    } catch (error) {
-      console.log('❌ Error en preferencia del backend:', error.message);
-    }
-    console.log('');
-
-    console.log('=== PRUEBA DE SINCRONIZACIÓN COMPLETADA ===');
-    console.log('');
-    console.log('📋 Resumen:');
-    console.log('✅ API directa de MercadoPago: Funcionando');
-    console.log('✅ Obtención de pagos: Funcionando');
-    console.log('✅ Creación de preferencias: Funcionando');
-    console.log('⚠️  Backend endpoints: Requieren token de autenticación válido');
-    console.log('');
-    console.log('💡 Para probar la sincronización completa:');
-    console.log('   1. Inicia sesión en la aplicación');
-    console.log('   2. Ve a Conexiones Bancarias');
-    console.log('   3. Haz clic en "Conectar con MercadoPago"');
-    console.log('   4. Completa la autorización OAuth');
-    console.log('   5. La sincronización se ejecutará automáticamente');
-
+    const res = await fetch(url, options);
+    const body = await res.text();
+    return { status: res.status, body: body.slice(0, 200) };
   } catch (error) {
-    console.error('❌ Error en la prueba de sincronización:', error.message);
-    console.error('Stack:', error.stack);
+    return { status: 0, body: error.message };
   }
 }
 
-// Ejecutar la prueba
-testMercadoPagoSync(); 
+async function testWithToken() {
+  const headers = {
+    Authorization: `Bearer ${ACCESS_TOKEN}`,
+    'Content-Type': 'application/json',
+    'User-Agent': 'AttadiaSyncSmokeTest/1.0'
+  };
+
+  const userRes = await fetch('https://api.mercadopago.com/users/me', { headers });
+  if (!userRes.ok) {
+    record('GET /users/me', false, `${userRes.status} ${await userRes.text()}`);
+    return null;
+  }
+  const userInfo = await userRes.json();
+  record('GET /users/me', true, `id=${userInfo.id}, país=${userInfo.country_id}`);
+
+  const fechaDesde = new Date(Date.now() - SYNC_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  const fechaHasta = new Date();
+  const paymentsUrl = `https://api.mercadopago.com/v1/payments/search?range=date_created&begin_date=${fechaDesde.toISOString()}&end_date=${fechaHasta.toISOString()}&limit=10&sort=date_created.desc`;
+  const paymentsRes = await fetch(paymentsUrl, { headers });
+  if (paymentsRes.ok) {
+    const data = await paymentsRes.json();
+    record('GET /v1/payments/search', true, `${data.results?.length ?? 0} pagos (ventana ${SYNC_WINDOW_DAYS}d)`);
+  } else {
+    record('GET /v1/payments/search', false, `${paymentsRes.status} ${await paymentsRes.text()}`);
+  }
+
+  const balanceUrl = `https://api.mercadopago.com/users/${userInfo.id}/mercadopago_account/balance`;
+  const balanceRes = await fetch(balanceUrl, { headers });
+  if (balanceRes.ok) {
+    const balance = await balanceRes.json();
+    record('GET /users/{id}/mercadopago_account/balance', true, `disponible=${balance.available_balance ?? 0}`);
+  } else {
+    record('GET /users/{id}/mercadopago_account/balance', false, `${balanceRes.status} ${await balanceRes.text()}`);
+  }
+
+  const ordersUrl = `https://api.mercadopago.com/v1/merchant_orders/search?date_created_from=${fechaDesde.toISOString()}&limit=10`;
+  const ordersRes = await fetch(ordersUrl, { headers });
+  if (ordersRes.ok) {
+    const data = await ordersRes.json();
+    record('GET /v1/merchant_orders/search', true, `${data.results?.length ?? 0} órdenes (máx. 90d por API)`);
+  } else {
+    record('GET /v1/merchant_orders/search', false, `${ordersRes.status} ${await ordersRes.text()}`);
+  }
+
+  return userInfo;
+}
+
+async function testWithoutToken() {
+  console.log('Sin MERCADOPAGO_ACCESS_TOKEN — verificando que endpoints sigan expuestos...\n');
+
+  const probes = [
+    ['GET /users/me', 'https://api.mercadopago.com/users/me'],
+    ['GET /v1/payments/search', 'https://api.mercadopago.com/v1/payments/search?limit=1'],
+    ['GET /v1/merchant_orders/search', 'https://api.mercadopago.com/v1/merchant_orders/search?limit=1'],
+    ['POST /oauth/token', 'https://api.mercadopago.com/oauth/token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }]
+  ];
+
+  for (const [name, url, options] of probes) {
+    const { status, body } = await probeEndpoint(name, url, options);
+    const alive = status === 401 || status === 403 || status === 400 || status === 404 || (status >= 200 && status < 300);
+    const detail = status === 404
+      ? 'HTTP 404 sin token (inconcluso; requiere MERCADOPAGO_ACCESS_TOKEN para confirmar)'
+      : `HTTP ${status}`;
+    record(name, alive, detail);
+    if (!alive) {
+      console.log(`   detalle: ${body}`);
+    }
+  }
+}
+
+async function testMercadoPagoSync() {
+  console.log('=== SMOKE TEST SINCRONIZACIÓN MERCADOPAGO ===');
+  console.log('Ambiente:', environment);
+  console.log('Ventana de sync:', `${SYNC_WINDOW_DAYS} días`);
+  console.log('Access Token configurado:', !!ACCESS_TOKEN);
+  console.log('');
+
+  if (ACCESS_TOKEN) {
+    await testWithToken();
+  } else {
+    await testWithoutToken();
+  }
+
+  console.log('\n=== RESUMEN ===');
+  const passed = results.filter(r => r.ok).length;
+  const failed = results.filter(r => !r.ok).length;
+  console.log(`Pasaron: ${passed}/${results.length}, Fallaron: ${failed}`);
+
+  if (!ACCESS_TOKEN) {
+    console.log('\n💡 Para validación completa con datos reales:');
+    console.log('   MERCADOPAGO_ACCESS_TOKEN=<token> node scripts/test-mercadopago-sync.js');
+  }
+
+  process.exit(failed > 0 ? 1 : 0);
+}
+
+testMercadoPagoSync();

@@ -15,6 +15,7 @@ export * from './usePerformanceOptimizer.js';
 export * from './usePropiedadDatos.js';
 export * from './useRelationalData.js';
 export { default as useResponsive } from './useResponsive.js';
+export { default as usePwaInstall, isStandalonePwa, isPwaInstallDismissed, dismissPwaInstall } from './usePwaInstall.js';
 export * from './useRutinasCRUD.js';
 export * from './useStatusOptimizer.js';
 export * from './useTimezone.js';

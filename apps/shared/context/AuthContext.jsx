@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import clienteAxios from '../config/axios';
 import currentConfig, { getCurrentAppUrl } from '../config/envConfig';
+import { isStandalonePwa } from '../hooks/usePwaInstall';
 import { useAppConfig } from '../hooks/useAppDetection.js';
 
 const AuthContext = createContext();
@@ -380,11 +381,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   // Detectar si estamos en PWA/móvil
-  const isPWA = typeof window !== 'undefined' && (
-    window.matchMedia('(display-mode: standalone)').matches ||
-    (window.navigator?.standalone === true) ||
-    (document.referrer && document.referrer.includes('android-app://'))
-  );
+  const isPWA = isStandalonePwa();
 
   // Detectar si estamos en móvil
   const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);

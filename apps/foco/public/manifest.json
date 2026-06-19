@@ -2,12 +2,33 @@
   "name": "Foco",
   "short_name": "Foco",
   "description": "Gestión de hábitos y rutinas",
-  "id": "/",
+  "id": "https://foco.attadia.com/",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
   "background_color": "#181818",
-  "theme_color": "#181818",
+  "theme_color": "#2563eb",
+  "categories": ["productivity", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "Agenda",
+      "short_name": "Agenda",
+      "url": "/foco?source=pwa",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Objetivos",
+      "short_name": "Objetivos",
+      "url": "/objetivos?source=pwa",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Tareas",
+      "short_name": "Tareas",
+      "url": "/tareas?source=pwa",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ],
   "icons": [
     {
       "src": "/icons/icon-72x72.png",
@@ -71,4 +92,3 @@
     }
   ]
 }
-

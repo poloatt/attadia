@@ -9,6 +9,7 @@ import { isUnifiedToolbarPath } from '../navigation/unifiedBarPaths';
 import { Footer } from '../navigation';
 import { Sidebar, BottomNavigation } from '../navigation';
 import { CustomSnackbarProvider } from '../components/common';
+import { PwaInstallBanner } from '../components/pwa';
 import { FormManagerProvider } from '../context/FormContext';
 import { GlobalFormEventListener } from '../context/GlobalFormEventListener';
 import useResponsive from '../hooks/useResponsive';
@@ -265,6 +266,7 @@ export function Layout() {
         <Box sx={{ position: 'fixed', left: 0, bottom: 0, width: '100vw', zIndex: 1300, height: `${FOOTER_CONFIG.height}px` }}>
           <Footer isDesktop={isDesktop} isSidebarOpen={isOpen && isDesktop} />
         </Box>
+        <PwaInstallBanner />
       </Box>
     </FormManagerProvider>
   );

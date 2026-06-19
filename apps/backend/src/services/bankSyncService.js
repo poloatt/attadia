@@ -6,6 +6,9 @@ import { refreshAccessToken } from '../oauth/mercadoPagoOAuth.js';
 import fetch from 'node-fetch';
 import config from '../config/config.js';
 
+/** Ventana de sync alineada con el límite de búsqueda de Merchant Orders (90 días). */
+const MERCADOPAGO_SYNC_WINDOW_DAYS = 90;
+
 export class BankSyncService {
   constructor() {
     this.encryptionKey = process.env.ENCRYPTION_KEY || 'default-key-change-in-production';
@@ -323,7 +326,7 @@ export class BankSyncService {
       console.log('Usuario MercadoPago verificado:', userInfo.nickname || userInfo.email);
 
       // Obtener pagos recientes usando OAuth (cada usuario ve sus propios pagos)
-      const fechaDesde = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const fechaDesde = new Date(Date.now() - MERCADOPAGO_SYNC_WINDOW_DAYS * 24 * 60 * 60 * 1000);
       let pagos = [];
       
       try {

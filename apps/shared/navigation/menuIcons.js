@@ -53,7 +53,7 @@ export const icons = {
   monitorHeart: MonitorHeartOutlined, // monitor heart para data corporal
   science: ScienceOutlined,
   restaurant: RestaurantOutlined,
-  accessTime: AccessTimeOutlined,
+  accessTime: AccessTimeOutlined, // reloj — marca app Foco (PWA / switcher)
   calendarToday: CalendarTodayOutlined,
   agenda: CalendarTodayOutlined, // alias Agenda (módulo Tiempo)
   folder: FolderOutlined,
