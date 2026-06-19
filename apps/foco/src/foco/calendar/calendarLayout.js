@@ -5,6 +5,8 @@ export const DEFAULT_DURATION_MINUTES = 60;
 export const ALL_DAY_ROW_MIN_HEIGHT = 36;
 /** Máximo de chips “todo el día” visibles antes de “+N más” (estilo Google Calendar). */
 export const ALL_DAY_MAX_VISIBLE = 2;
+/** Máximo de bloques con hora visibles por día (evita “código de barras” al apilar cientos). */
+export const MAX_TIMED_EVENTS_VISIBLE = 8;
 export const TIME_COLUMN_WIDTH = 52;
 
 /** Fixed chrome heights so day ↔ week toggles do not shift the time grid. */

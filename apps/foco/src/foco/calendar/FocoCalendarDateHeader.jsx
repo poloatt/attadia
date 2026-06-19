@@ -66,6 +66,7 @@ export default function FocoCalendarDateHeader({ date, viewMode = 'day' }) {
     >
       <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>
         <Tooltip title={viewMode === 'week' ? 'Ver día' : 'Ver semana'}>
+          <span style={{ display: 'inline-flex', flex: 1, minWidth: 0 }}>
           <ButtonBase
             onClick={handleToggleView}
             aria-label={viewMode === 'week' ? 'Cambiar a vista diaria' : 'Cambiar a vista semanal'}
@@ -115,6 +116,7 @@ export default function FocoCalendarDateHeader({ date, viewMode = 'day' }) {
               </Box>
             </Box>
           </ButtonBase>
+          </span>
         </Tooltip>
         {showPickerActions && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0 }}>

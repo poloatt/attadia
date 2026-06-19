@@ -117,6 +117,20 @@ const getPeriodo = (tarea, isArchive = false, agendaView = 'ahora') => {
   }
 };
 
+const formatTaskScheduleLabel = (tarea, isMobile) => {
+  const raw = tarea?.fechaVencimiento || tarea?.fechaInicio;
+  const d = parseTaskDate(raw);
+  if (!d) return '---';
+  const isDateOnly =
+    typeof raw === 'string'
+    && (/^\d{4}-\d{2}-\d{2}$/.test(raw) || /T00:00:00/i.test(raw));
+  const showTime = !isDateOnly && (d.getHours() !== 12 || d.getMinutes() !== 0);
+  if (showTime) {
+    return format(d, isMobile ? 'dd/MM HH:mm' : 'dd MMM HH:mm', { locale: es }).toUpperCase();
+  }
+  return format(d, isMobile ? 'dd/MM' : 'dd MMM', { locale: es }).toUpperCase();
+};
+
 const ordenarTareas = (tareas) => {
   return tareas.sort((a, b) => {
     const aRef = getAgendaSortKey(a);
@@ -336,7 +350,14 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
       // Guardar el estado original ANTES de cualquier cambio
       const tareaOriginal = { ...tarea };
       
-      const response = await updateWithHistory(tarea._id, { estado: nuevoEstado }, tareaOriginal);
+      const response = await updateWithHistory(
+        tarea._id,
+        {
+          estado: nuevoEstado,
+          completada: nuevoEstado === 'COMPLETADA',
+        },
+        tareaOriginal,
+      );
       
       if (onUpdateEstado) {
         onUpdateEstado(response);
@@ -782,12 +803,18 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
-                  // Un toque más grande (sin volver a inflar la altura de la row)
                   fontSize: isMobile ? '0.76rem' : '0.82rem',
-                  lineHeight: 1.02
+                  lineHeight: 1.02,
+                  textDecoration: isTaskCompleted(tarea) ? 'line-through' : 'none',
+                  opacity: isTaskCompleted(tarea) ? 0.72 : 1,
                 }}
               >
                 {showValues ? tarea.titulo : maskText(tarea.titulo)}
+                {(tarea.serieId || tarea.esRecurrente || tarea.virtual) && (
+                  <Typography component="span" variant="caption" sx={{ ml: 0.5, opacity: 0.7 }}>
+                    ↻
+                  </Typography>
+                )}
               </Typography>
             </Box>
           </Box>
@@ -801,7 +828,7 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
               lineHeight: 1.1
             }}
           >
-            {tarea.fechaVencimiento ? format(new Date(tarea.fechaVencimiento), isMobile ? 'dd/MM' : 'dd MMM', { locale: es }).toUpperCase() : '---'}
+            {formatTaskScheduleLabel(tarea, isMobile)}
           </Typography>
         </TableCell>
       </TableRow>
@@ -1055,7 +1082,7 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
   );
 };
 
-const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea, onActivateMultiSelect, groupingEnabled = true, agendaView = 'ahora', onRefreshData }) => {
+const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea, onActivateMultiSelect, groupingEnabled = true, agendaView = 'ahora', showCompleted = false, onRefreshData }) => {
   const [openTareaId, setOpenTareaId] = useState(null);
   const { isMobile, theme } = useResponsive();
   const { maskText } = useValuesVisibility();
@@ -1072,14 +1099,12 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
     setOpenTareaId(prevId => prevId === tareaId ? null : tareaId);
   };
 
-  // Importante:
-  // - En la vista principal (Tareas.jsx) ya filtramos (AHORA/LUEGO + mostrar completadas) con `useAgendaFilter`.
-  // - Si aquí re-filtramos completadas, rompemos el toggle de "mostrar completadas".
-  // Por eso, solo filtramos en "Archivo" y, en caso normal, respetamos la lista entrante.
   const tareasAMostrar = normalizeTaskList(
     isArchive
       ? (Array.isArray(tareas) ? tareas.filter((tarea) => isTaskCompleted(tarea)) : [])
-      : (Array.isArray(tareas) ? tareas : []),
+      : (Array.isArray(tareas)
+        ? tareas.filter((tarea) => showCompleted || !isTaskCompleted(tarea))
+        : []),
   );
 
   const taskRowKey = (tarea) => String(tarea?._id ?? tarea?.id ?? '');

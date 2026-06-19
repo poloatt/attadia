@@ -13,14 +13,15 @@ router.use(checkAuth);
 
 // Rutas base del controlador
 router.get('/', tareasController.getAll);
+router.get('/list', tareasController.getList);
 router.get('/agenda', tareasController.getAgenda);
+router.get('/objetivo/:objetivoId', tareasController.getByObjetivo);
 router.post('/', tareasController.create);
 router.get('/:id', tareasController.getById);
 router.put('/:id', checkOwnership(Tareas), tareasController.update);
 router.delete('/:id', checkOwnership(Tareas), tareasController.delete);
 
 // Rutas específicas
-router.get('/objetivo/:objetivoId', tareasController.getByObjetivo);
 router.patch('/:id/estado', checkOwnership(Tareas), tareasController.updateEstado);
 router.put('/:id/estado', checkOwnership(Tareas), tareasController.updateEstado);
 

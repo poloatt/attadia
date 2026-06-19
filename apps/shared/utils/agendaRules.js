@@ -39,8 +39,14 @@ export const parseTaskDate = (value) => {
 };
 
 export const isTaskCompleted = (t) => {
-  const estado = String(t?.estado || '').toLowerCase();
-  return estado === 'completada' || t?.completada === true;
+  if (!t) return false;
+  if (t.completada === true || t.completada === 'true') return true;
+  const estado = String(t.estado || '').toUpperCase();
+  if (estado === 'COMPLETADA') return true;
+  const gCompleted = t.googleTasksSync?.completed;
+  if (gCompleted instanceof Date) return !Number.isNaN(gCompleted.getTime());
+  if (typeof gCompleted === 'string' && gCompleted.trim()) return true;
+  return false;
 };
 
 export const getTaskStart = (t) =>

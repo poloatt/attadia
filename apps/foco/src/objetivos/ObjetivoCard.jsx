@@ -38,7 +38,7 @@ const ObjetivoCard = ({ objetivo, onEdit, onDelete }) => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <TaskIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
           <Typography variant="body2" color="text.secondary">
-            {objetivo.tareas?.length || 0} tareas
+            {Array.isArray(objetivo.tareas) ? objetivo.tareas.length : 0} tareas
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>

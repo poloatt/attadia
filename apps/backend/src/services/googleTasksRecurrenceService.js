@@ -229,10 +229,29 @@ export async function reconcileSeriesFromGoogle(userId, objetivoId, taskListId, 
           const localDt = local instanceof Date ? local : new Date(local);
           return Math.abs(localDt.getTime() - dueFromGoogle.getTime()) > 60_000;
         })();
+      const gt = googleById.get(t.googleTasksSync?.googleTaskId);
+      let needsStatusSync = false;
+      if (gt) {
+        const googleCompleted = gt.status === 'completed';
+        const localCompleted =
+          Boolean(t.completada)
+          || String(t.estado || '').toUpperCase() === 'COMPLETADA';
+        needsStatusSync = googleCompleted !== localCompleted;
+        if (needsStatusSync) {
+          t.completada = googleCompleted;
+          t.estado = googleCompleted ? 'COMPLETADA' : 'PENDIENTE';
+          if (gt.completed) {
+            t.googleTasksSync = t.googleTasksSync || {};
+            t.googleTasksSync.completed = new Date(gt.completed);
+          }
+        }
+      }
+
       const needsSave =
         !wasLinked
         || (t.descripcion || '') !== cleaned
-        || needsDueSync;
+        || needsDueSync
+        || needsStatusSync;
 
       if (!needsSave) continue;
 

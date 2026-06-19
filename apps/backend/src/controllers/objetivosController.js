@@ -29,8 +29,12 @@ class ObjetivosController extends BaseController {
         limit = 10,
         sort = '-createdAt',
         search,
-        filter
+        filter,
+        light,
       } = req.query;
+
+      const isLight =
+        light === 'true' || light === true || light === '1';
 
       const query = {
         usuario: req.user.id
@@ -46,17 +50,23 @@ class ObjetivosController extends BaseController {
         Object.assign(query, JSON.parse(filter));
       }
 
-      const objetivos = await this.Model.find(query).lean();
+      const objetivos = await this.Model.find(query)
+        .select(isLight ? '_id nombre estado color googleTasksSync' : undefined)
+        .lean();
 
-      for (const objetivo of objetivos) {
-        const tareasDelObjetivo = await Tareas.find({
-          objetivo: objetivo._id,
-          usuario: req.user.id
-        })
-          .select('titulo descripcion estado fechaInicio fechaVencimiento fechaFin prioridad completada subtareas googleTasksSync')
-          .lean();
+      if (!isLight) {
+        for (const objetivo of objetivos) {
+          const tareasDelObjetivo = await Tareas.find({
+            objetivo: objetivo._id,
+            usuario: req.user.id,
+          })
+            .select(
+              'titulo descripcion estado fechaInicio fechaVencimiento fechaFin prioridad completada subtareas googleTasksSync',
+            )
+            .lean();
 
-        objetivo.tareas = tareasDelObjetivo;
+          objetivo.tareas = tareasDelObjetivo;
+        }
       }
 
       const total = await this.Model.countDocuments(query);

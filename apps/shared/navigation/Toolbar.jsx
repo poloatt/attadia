@@ -8,6 +8,7 @@ import CenteredTrack from '../components/common/CenteredTrack.jsx';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getIconByKey, icons } from './menuIcons';
 import { SystemButtons } from '../components/common/SystemButtons';
+import TooltipSpan from '../components/TooltipSpan';
 import { useEntityActions } from '../components/common/CommonActions';
 import { useUISettings } from '../context/UISettingsContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -393,14 +394,11 @@ export default function Toolbar({
           {!shouldShowSpecificNavigation() && <SystemButtons.UndoMenu />}
           
           {/* Acciones adicionales */}
-          {!isMobile && additionalActions && additionalActions.map((action, idx) => {
-            const isButton = action.icon && action.icon.type && (action.icon.type.displayName === 'IconButton' || action.icon.type.muiName === 'IconButton' || action.icon.type.isButtonComponent);
-            return (
-              <Tooltip key={idx} title={action.tooltip || action.label}>
-                {isButton ? action.icon : <span>{action.icon}</span>}
-              </Tooltip>
-            );
-          })}
+          {!isMobile && additionalActions && additionalActions.map((action, idx) => (
+              <TooltipSpan key={idx} title={action.tooltip || action.label}>
+                {action.icon}
+              </TooltipSpan>
+          ))}
           {/* Children */}
           {!isMobile && children}
 

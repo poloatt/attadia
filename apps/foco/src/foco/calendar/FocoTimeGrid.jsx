@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, ButtonBase, Typography } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { isSameDay, isToday } from 'date-fns';
 import {
@@ -129,27 +129,54 @@ export default function FocoTimeGrid({
 
         {showNowIndicator && isDayToday && <NowIndicator />}
 
-        {layoutTimedEventsForDay(dayTimed).map(({ event: ev, style }, idx) => (
-          <Box
-            key={`${ev.task._id || ev.task.id || 'ev'}-${idx}`}
-            sx={{
-              position: 'absolute',
-              top: style.top,
-              height: style.height,
-              left: style.left,
-              width: style.width,
-              zIndex: 1,
-              overflow: 'hidden',
-            }}
-          >
-            <FocoEventBlock
-              event={ev}
-              compact
-              onClick={onEventClick}
-              onToggleComplete={onToggleComplete}
-            />
-          </Box>
-        ))}
+        {(() => {
+          const { items, hiddenCount } = layoutTimedEventsForDay(dayTimed);
+          return (
+            <>
+              {items.map(({ event: ev, style }, idx) => (
+                <Box
+                  key={`${ev.task._id || ev.task.id || 'ev'}-${idx}`}
+                  sx={{
+                    position: 'absolute',
+                    top: style.top,
+                    height: style.height,
+                    left: style.left,
+                    width: style.width,
+                    zIndex: 1,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <FocoEventBlock
+                    event={ev}
+                    compact
+                    onClick={onEventClick}
+                    onToggleComplete={onToggleComplete}
+                  />
+                </Box>
+              ))}
+              {hiddenCount > 0 && (
+                <ButtonBase
+                  sx={{
+                    position: 'absolute',
+                    top: 4,
+                    right: 4,
+                    zIndex: 3,
+                    borderRadius: 1,
+                    px: 0.75,
+                    py: 0.25,
+                    bgcolor: alpha(theme.palette.warning.main, 0.2),
+                    minHeight: 22,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.65rem' }}>
+                    +{hiddenCount} más
+                  </Typography>
+                </ButtonBase>
+              )}
+            </>
+          );
+        })()}
       </Box>
     </Box>
   );

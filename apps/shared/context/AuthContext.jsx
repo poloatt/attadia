@@ -18,6 +18,21 @@ const useAuth = () => {
 clienteAxios.defaults.baseURL = currentConfig.baseUrl;
 clienteAxios.defaults.withCredentials = true;
 
+/** Despierta el backend (p. ej. Render tras inactividad) antes de OAuth. */
+async function waitForBackendReady(maxAttempts = 4) {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      await clienteAxios.get('/api/health', { timeout: 12_000 });
+      return;
+    } catch {
+      if (attempt === maxAttempts - 1) {
+        throw new Error('El servidor no responde. Espera unos segundos e intenta de nuevo.');
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2000 * (attempt + 1)));
+    }
+  }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,8 +46,9 @@ export function AuthProvider({ children }) {
   const lastVerificationAttempt = useRef(0); // Para debounce de verificaciones desde PWA
 
   // Función simplificada para verificar autenticación
-  const checkAuth = useCallback(async () => {
-    if (isChecking.current) {
+  const checkAuth = useCallback(async (options = {}) => {
+    const { force = false } = options;
+    if (isChecking.current && !force) {
       return isAuthenticated;
     }
 
@@ -209,16 +225,37 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  // Establecer sesión local sin depender de /check (útil tras OAuth si el backend está lento)
+  const establishSession = useCallback((token, refreshToken, userData) => {
+    if (!token) return;
+
+    localStorage.setItem('token', token);
+    if (refreshToken) {
+      localStorage.setItem('refreshToken', refreshToken);
+    }
+    clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+    if (userData) {
+      setUser(userData);
+      setIsAuthenticated(true);
+    }
+    setError(null);
+    setLoading(false);
+  }, []);
+
   // Login con Google
   const loginWithGoogle = useCallback(async (options = {}) => {
     const { forceSelectAccount = false, loginHint } = options || {};
     try {
       setLoading(true);
       setError(null);
+
+      // Despertar el backend antes de iniciar OAuth (evita fallos por cold start)
+      await waitForBackendReady();
       
       // Timeout optimizado para Google OAuth
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout: La petición tardó demasiado')), 20000)
+        setTimeout(() => reject(new Error('Timeout: La petición tardó demasiado')), 30000)
       );
       
       // Usar un origin web válido para apps (foco/atta/pulso) incluso en contenedores nativos
@@ -590,6 +627,7 @@ export function AuthProvider({ children }) {
     logout,
     loginWithGoogle,
     handleGoogleCallback,
+    establishSession,
     checkAuth
   };
 

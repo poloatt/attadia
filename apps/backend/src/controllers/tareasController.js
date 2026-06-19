@@ -28,6 +28,57 @@ class TareasController extends BaseController {
     this.create = this.create.bind(this);
     this.updateEstado = this.updateEstado.bind(this);
     this.getAgenda = this.getAgenda.bind(this);
+    this.getList = this.getList.bind(this);
+  }
+
+  // GET /api/tareas/list — lista Ahora/Luego acotada (sin paginar todo el universo)
+  async getList(req, res) {
+    try {
+      const { from, to, view, includeCompleted } = req.query;
+      const { getTareasForListRange, getDefaultListRange } = await import(
+        '../utils/tareasAgendaUtils.js',
+      );
+
+      let rangeFrom;
+      let rangeTo;
+      if (from && to) {
+        rangeFrom = new Date(from);
+        rangeTo = new Date(to);
+        if (Number.isNaN(rangeFrom.getTime()) || Number.isNaN(rangeTo.getTime())) {
+          return res.status(400).json({ error: 'Fechas from/to no válidas' });
+        }
+      } else {
+        const def = getDefaultListRange();
+        rangeFrom = def.from;
+        rangeTo = def.to;
+      }
+
+      const normalizedView =
+        view === 'ahora' || view === 'luego' ? view : undefined;
+      const include =
+        includeCompleted === 'true'
+        || includeCompleted === true
+        || includeCompleted === '1';
+
+      const docs = await getTareasForListRange(
+        req.user.id,
+        rangeFrom,
+        rangeTo,
+        { view: normalizedView, includeCompleted: include },
+      );
+
+      res.json({
+        docs,
+        totalDocs: docs.length,
+        range: {
+          from: rangeFrom.toISOString(),
+          to: rangeTo.toISOString(),
+        },
+      });
+    } catch (error) {
+      console.error('Error getList:', error);
+      res.status(500).json({ error: error.message });
+    }
   }
 
   // GET /api/tareas/agenda?from=ISO&to=ISO — tareas + instancias de series en el rango visible
@@ -524,7 +575,8 @@ class TareasController extends BaseController {
       const result = await this.Model.paginate(query, options);
 
       let docs = result.docs;
-      if (!periodo) {
+      // Virtuales solo en usos legacy con `periodo` explícito; lista/calendario usan /list y /agenda.
+      if (periodo) {
         const { dedupeSerieInstancesForAgenda } = await import('../utils/calendarVirtualUtils.js');
         const { appendVirtualRecurrenceTasks } = await import('../utils/tareasAgendaUtils.js');
         docs = await appendVirtualRecurrenceTasks(
@@ -551,7 +603,6 @@ class TareasController extends BaseController {
       res.json({
         ...result,
         docs: transformedDocs,
-        totalDocs: transformedDocs.length,
       });
     } catch (error) {
       console.error('Error en getAll:', error);

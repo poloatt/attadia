@@ -428,6 +428,7 @@ const RutinaNavigation = ({
 
   const dateLabelButton = !hideCompactDateInBar ? (
     <Tooltip title="Elegir fecha">
+      <span style={{ display: 'inline-flex', minWidth: 0 }}>
       <ButtonBase
         onClick={handleDateClick}
         disabled={loading}
@@ -484,6 +485,7 @@ const RutinaNavigation = ({
           </Typography>
         )}
       </ButtonBase>
+      </span>
     </Tooltip>
   ) : null;
 

@@ -144,11 +144,19 @@ export const SystemButtons = memo(({
                 }
               });
             }
-            return React.cloneElement(action.icon, {
+            const cloned = React.cloneElement(action.icon, {
               key: action.key || action.label || idx,
               disabled: disabled || action.disabled,
               sx: mergedSx
             });
+            if (disabled || action.disabled) {
+              return (
+                <TooltipSpan title={action.tooltip || action.label || ''} key={action.key || action.label || idx}>
+                  {cloned}
+                </TooltipSpan>
+              );
+            }
+            return cloned;
           }
           return (
             <TooltipSpan
@@ -344,13 +352,13 @@ function HeaderAddButton({ entityConfig, buttonSx }) {
   // Si es de tercer nivel (no tiene subItems pero sí canAdd), botón directo
   if (!hasSubItems && canAddSelf) {
     return (
-      <Tooltip title={addLabel}>
+      <TooltipSpan title={addLabel}>
         <ToolbarAddButton
           onClick={handleCreateSelf}
           buttonSx={buttonSx}
           aria-label={addLabel}
         />
-      </Tooltip>
+      </TooltipSpan>
     );
   }
 
@@ -358,13 +366,13 @@ function HeaderAddButton({ entityConfig, buttonSx }) {
   if (canAddSelf || addableChildren.length > 0) {
     return (
       <>
-        <Tooltip title={addLabel}>
+        <TooltipSpan title={addLabel}>
           <ToolbarAddButton
             onClick={handleOpenMenu}
             buttonSx={buttonSx}
             aria-label={addLabel}
           />
-        </Tooltip>
+        </TooltipSpan>
         <Menu
           anchorEl={anchorEl}
           open={Boolean(anchorEl)}

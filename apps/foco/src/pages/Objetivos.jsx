@@ -21,17 +21,17 @@ import {
   AccessTimeOutlined as TimeIcon,
 } from '@mui/icons-material';
 import clienteAxios from '@shared/config/axios';
+import { fetchObjetivosLight, fetchTasksByObjetivo } from '../features/tasks/api/tasksApi';
 import { useSnackbar } from 'notistack';
 import ObjetivosGrid from '../objetivos/ObjetivosGrid';
 import ObjetivoForm from '../objetivos/ObjetivoForm';
 import { useNavigationBar } from '@shared/context';
-import TareaForm from '../objetivos/TareaForm';
+import { TareaForm, GoogleTasksConfig } from '../features/tasks/form';
+import { HabitsManagerHost } from '../features/habits';
 import { useValuesVisibility } from '@shared/context';
 import { usePageWithHistory, useGlobalActionHistory } from '@shared/hooks';
 import { useNavigate } from 'react-router-dom';
 import { SystemButtons } from '@shared/components/common/SystemButtons';
-import GoogleTasksConfig from '../objetivos/GoogleTasksConfig';
-import HabitsManagerHost from '../foco/HabitsManagerHost';
 
 export function Objetivos() {
   const [objetivos, setObjetivos] = useState([]);
@@ -61,10 +61,10 @@ export function Objetivos() {
       fetchObjetivosRef.current = setTimeout(async () => {
         try {
           // Agregar timestamp para evitar cache
-          const response = await clienteAxios.get(`/api/objetivos?populate=tareas&_t=${Date.now()}`);
-          setObjetivos(response.data.docs || []);
+          const docs = await fetchObjetivosLight();
+          setObjetivos(docs.map((o) => ({ ...o, tareas: o.tareas || [] })));
           setLoading(false);
-          resolve(response.data);
+          resolve({ docs });
         } catch (error) {
           console.error('Error:', error);
           enqueueSnackbar('Error al cargar Objetivos', { variant: 'error' });
@@ -79,10 +79,10 @@ export function Objetivos() {
   // Función estable para el historial
   const fetchObjetivosStable = useCallback(async () => {
     try {
-      const response = await clienteAxios.get(`/api/objetivos?populate=tareas&_t=${Date.now()}`);
-      setObjetivos(response.data.docs || []);
+      const docs = await fetchObjetivosLight();
+      setObjetivos(docs.map((o) => ({ ...o, tareas: o.tareas || [] })));
       setLoading(false);
-      return response.data;
+      return { docs };
     } catch (error) {
       console.error('Error:', error);
       enqueueSnackbar('Error al cargar Objetivos', { variant: 'error' });
@@ -432,21 +432,35 @@ export function Objetivos() {
     }
   }, [deleteWithHistory, enqueueSnackbar, fetchObjetivos]);
 
+  const handleLoadObjetivoTareas = useCallback(async (objetivoId) => {
+    const existing = objetivos.find((o) => String(o._id || o.id) === String(objetivoId));
+    if (existing?.tareas?.length) return;
+    try {
+      const tareas = await fetchTasksByObjetivo(objetivoId);
+      setObjetivos((prev) => prev.map((o) => (
+        String(o._id || o.id) === String(objetivoId) ? { ...o, tareas } : o
+      )));
+    } catch (error) {
+      console.error('Error al cargar tareas del objetivo:', error);
+      enqueueSnackbar('Error al cargar tareas del objetivo', { variant: 'error' });
+    }
+  }, [objetivos, enqueueSnackbar]);
+
   const handleUpdateTarea = useCallback((tareaActualizada) => {
-    setObjetivos(prevObjetivos =>
-      prevObjetivos.map(objetivo => {
-        // Soportar tanto _id como id en objetivo de la tarea actualizada
+    setObjetivos((prevObjetivos) =>
+      prevObjetivos.map((objetivo) => {
         const objetivoIdTarea = tareaActualizada.objetivo?._id || tareaActualizada.objetivo;
         if (objetivo._id === objetivoIdTarea) {
+          const tareas = Array.isArray(objetivo.tareas) ? objetivo.tareas : [];
           return {
             ...objetivo,
-            tareas: objetivo.tareas.map(tarea =>
-              tarea._id === tareaActualizada._id ? tareaActualizada : tarea
-            )
+            tareas: tareas.map((tarea) =>
+              (tarea._id === tareaActualizada._id ? tareaActualizada : tarea),
+            ),
           };
         }
         return objetivo;
-      })
+      }),
     );
   }, []);
 
@@ -462,11 +476,18 @@ export function Objetivos() {
         objetivo: selectedObjetivo._id
       };
 
-      const response = await clienteAxios.post('/api/tareas', datosAEnviar);
+      await clienteAxios.post('/api/tareas', datosAEnviar);
       enqueueSnackbar('Tarea creada exitosamente', { variant: 'success' });
+      const objetivoId = selectedObjetivo?._id || selectedObjetivo?.id;
       setIsTareaFormOpen(false);
       setSelectedObjetivo(null);
       await fetchObjetivos();
+      if (objetivoId) {
+        const tareas = await fetchTasksByObjetivo(objetivoId);
+        setObjetivos((prev) => prev.map((o) => (
+          String(o._id || o.id) === String(objetivoId) ? { ...o, tareas } : o
+        )));
+      }
     } catch (error) {
       console.error('Error al crear tarea:', error);
       enqueueSnackbar('Error al crear la tarea', { variant: 'error' });
@@ -515,6 +536,7 @@ export function Objetivos() {
                 setIsFormOpen(true);
               }}
               onUpdateTarea={handleUpdateTarea}
+              onLoadObjetivoTareas={handleLoadObjetivoTareas}
               onAddTarea={handleAddTarea}
               showValues={showValues}
               updateWithHistory={updateWithHistory}

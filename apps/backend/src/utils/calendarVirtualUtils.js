@@ -1,4 +1,5 @@
 import { Tareas, TareaSeries } from '../models/index.js';
+import { isTaskCompleted } from './agendaListRules.js';
 import { expandSerie } from './recurrenceUtils.js';
 
 function dayKey(date) {
@@ -74,7 +75,24 @@ export function dedupeSerieInstancesForAgenda(tasks = []) {
     const raw = t.fechaVencimiento || t.fechaInicio;
     const key = `${sid}|${dayKey(raw)}`;
     if (keptPerSerieDay.has(key)) return false;
-    keptPerSerieDay.set(key);
+    keptPerSerieDay.add(key);
+    return true;
+  });
+}
+
+/** Misma tarea de Google repetida en BD (sin serieId): una fila por googleTaskId y día. */
+export function dedupeAgendaTasksByGoogleDay(tasks = []) {
+  const list = Array.isArray(tasks) ? tasks : [];
+  const seen = new Set();
+  return list.filter((t) => {
+    if (t?.virtual) return true;
+    const gtid = t?.googleTasksSync?.googleTaskId;
+    if (!gtid) return true;
+    const raw = t.fechaVencimiento || t.fechaInicio;
+    if (!raw) return true;
+    const key = `${gtid}|${dayKey(raw)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
     return true;
   });
 }
@@ -89,12 +107,16 @@ export function buildVirtualTasksForRange(series = [], rangeFrom, rangeTo, exist
   to.setHours(23, 59, 59, 999);
 
   const occupied = new Set();
+  const anchorBySerie = new Map();
 
   for (const t of existingTasks) {
     const sid = serieIdStr(t.serieId);
     if (!sid) continue;
     const d = t.fechaVencimiento || t.fechaInicio;
     if (d) occupied.add(`${sid}|${dayKey(d)}`);
+    if (t.googleTasksSync?.googleTaskId) {
+      anchorBySerie.set(sid, t);
+    }
   }
 
   const virtual = [];
@@ -103,6 +125,8 @@ export function buildVirtualTasksForRange(series = [], rangeFrom, rangeTo, exist
     if (!serie?.activa || !serie.rrule) continue;
 
     const sid = String(serie._id);
+    const anchor = anchorBySerie.get(sid);
+    if (anchor && isTaskCompleted(anchor)) continue;
 
     const dtstart = new Date(serie.dtstart);
     if (Number.isNaN(dtstart.getTime())) continue;

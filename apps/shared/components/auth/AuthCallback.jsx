@@ -21,7 +21,7 @@ const ERROR_MESSAGES = {
   'default': 'Error desconocido en la autenticación'
 };
 
-const TIMEOUT_DURATION = 10000; // 10 segundos
+const TIMEOUT_DURATION = 20000; // Debe superar el timeout interno de checkAuth (15s)
 const WELCOME_DELAY = 100; // 100ms
 
 // Utilidades
@@ -42,15 +42,6 @@ const clearAuthState = () => {
   localStorage.removeItem('token');
   localStorage.removeItem('refreshToken');
   delete clienteAxios.defaults.headers.common['Authorization'];
-};
-
-// Función para configurar tokens
-const setAuthTokens = (token, refreshToken) => {
-  localStorage.setItem('token', token);
-  if (refreshToken) {
-    localStorage.setItem('refreshToken', refreshToken);
-  }
-  clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 };
 
 // Función simplificada para extraer parámetros de URL
@@ -85,7 +76,7 @@ const validateJWTToken = (token) => {
 function AuthCallback() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { checkAuth } = useAuth();
+  const { checkAuth, establishSession } = useAuth();
   const { appName, appTitle, appPath } = useAppConfig();
   const hasProcessed = useRef(false);
 
@@ -120,7 +111,7 @@ function AuthCallback() {
     );
     
     try {
-      await Promise.race([checkAuth(), timeoutPromise]);
+      await Promise.race([checkAuth({ force: true }), timeoutPromise]);
       log('Contexto de autenticación actualizado exitosamente');
     } catch (authError) {
       console.warn('Error al actualizar contexto (continuando):', authError.message);
@@ -166,8 +157,8 @@ function AuthCallback() {
         return;
       }
 
-      // Configurar tokens en el estado de la aplicación
-      setAuthTokens(token, refreshToken);
+      // Configurar tokens y sesión local de inmediato (no depender solo de /check)
+      establishSession(token, refreshToken, tokenPayload.user ?? null);
 
       // Guardar información del último usuario de Google para mostrar en el botón de login
       if (tokenPayload.user?.googleId) {
@@ -187,7 +178,7 @@ function AuthCallback() {
         }
       }
 
-      // Actualizar contexto de autenticación
+      // Verificar con el backend en segundo plano (la sesión ya está establecida localmente)
       await updateAuthContext(tokenPayload);
       
       // Mostrar mensaje de bienvenida y redirigir
@@ -214,7 +205,7 @@ function AuthCallback() {
 
     log('🔍 AuthCallback useEffect ejecutado');
     handleCallback();
-  }, [navigate, location.search, checkAuth]);
+  }, [navigate, location.search, checkAuth, establishSession]);
 
   return <AppLoadingScreen message="Procesando autenticación…" />;
 }

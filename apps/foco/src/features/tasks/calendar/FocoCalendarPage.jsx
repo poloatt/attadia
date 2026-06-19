@@ -1,0 +1,413 @@
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Box, CircularProgress } from '@mui/material';
+import { useSnackbar } from 'notistack';
+import { startOfDay } from 'date-fns';
+import { useResponsive } from '@shared/hooks';
+import { useNavigationBar } from '@shared/context';
+import { useHabits, useRutinas } from '@shared/context';
+import { usePageWithHistory } from '@shared/hooks';
+import { getNormalizedToday } from '@shared/utils/dateUtils';
+import { TareaForm, GoogleTasksConfig, buildTareaPayload, syncTareaToGoogleAfterSave } from '../form';
+import { useAgendaFilter } from '../hooks/useAgendaFilter';
+import { useObjetivosLight } from '../hooks/useObjetivosLight';
+import { useTasksForCalendar } from '../hooks/useTasksForCalendar';
+import { HabitsManagerHost } from '../../habits';
+import HabitFormDialog from '@shared/components/HabitFormDialog';
+import { ensureRutinaForDate } from '../../../foco/ensureRutinaForDate';
+import FocoDayView from '../../../foco/calendar/FocoDayView';
+import FocoWeekView from '../../../foco/calendar/FocoWeekView';
+import { useFocoCalendar } from '../../../foco/calendar/useFocoCalendar';
+import FocoQuickCreate from '../../../foco/FocoQuickCreate';
+import { saveHabitFromForm } from '../../../foco/saveHabitFromForm';
+
+export default function FocoCalendarPage() {
+  const { isMobile } = useResponsive();
+  const { setTitle } = useNavigationBar();
+  const { enqueueSnackbar } = useSnackbar();
+  const { rutinas, fetchRutinas, getRutinaById, updateUserHabitPreference } = useRutinas();
+  const { habits, addHabit, fetchHabits } = useHabits();
+
+  const [selectedDate, setSelectedDate] = useState(() => startOfDay(new Date()));
+  const [viewMode, setViewMode] = useState(() => (isMobile ? 'day' : 'week'));
+  const { objetivos, refetch: refetchObjetivos } = useObjetivosLight();
+  const {
+    tasks: tareas,
+    setTasks: setTareas,
+    loading,
+    refetch: refetchCalendarTasks,
+  } = useTasksForCalendar(selectedDate, viewMode);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingTarea, setEditingTarea] = useState(null);
+  const [isGoogleTasksConfigOpen, setIsGoogleTasksConfigOpen] = useState(false);
+  const [selectedTareas, setSelectedTareas] = useState([]);
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false);
+  const [quickCreateAnchor, setQuickCreateAnchor] = useState(null);
+  const [quickCreateInitialStart, setQuickCreateInitialStart] = useState(null);
+  const quickCreateFallbackRef = useRef(null);
+  const [quickCreateTipo, setQuickCreateTipo] = useState('EVENTO');
+  const [habitFormOpen, setHabitFormOpen] = useState(false);
+  const [habitFormDraft, setHabitFormDraft] = useState(null);
+
+  const { agendaView } = useAgendaFilter(tareas);
+
+  const calendarTasks = useMemo(() => (Array.isArray(tareas) ? tareas : []), [tareas]);
+
+  useEffect(() => {
+    setViewMode(isMobile ? 'day' : 'week');
+  }, [isMobile]);
+
+  useEffect(() => {
+    const handleToggleViewMode = () => {
+      setViewMode((prev) => (prev === 'day' ? 'week' : 'day'));
+    };
+    window.addEventListener('focoToggleViewMode', handleToggleViewMode);
+    return () => window.removeEventListener('focoToggleViewMode', handleToggleViewMode);
+  }, []);
+
+  const { events, weekDays } = useFocoCalendar(
+    calendarTasks,
+    selectedDate,
+    viewMode,
+    objetivos,
+    agendaView,
+  );
+
+  const fetchDataStable = useCallback(async () => {
+    await Promise.all([refetchObjetivos(), refetchCalendarTasks()]);
+  }, [refetchObjetivos, refetchCalendarTasks]);
+
+  const {
+    createWithHistory,
+    updateWithHistory,
+    deleteWithHistory,
+  } = usePageWithHistory(fetchDataStable, (error) => {
+    console.error('Error al revertir acción:', error);
+    enqueueSnackbar('Error al revertir la acción', { variant: 'error' });
+  });
+
+  useEffect(() => {
+    setTitle('Agenda');
+  }, [setTitle]);
+
+  useEffect(() => {
+    fetchRutinas?.();
+    ensureRutinaForDate(getNormalizedToday(), {
+      rutinas: [],
+      getRutinaById,
+      fetchRutinas,
+    }).catch(() => {});
+  }, []);
+
+  const syncRutinaForDate = useCallback(async (date) => {
+    const normalized = startOfDay(date);
+    setSelectedDate(normalized);
+
+    try {
+      await ensureRutinaForDate(normalized, {
+        rutinas,
+        getRutinaById,
+        fetchRutinas,
+      });
+    } catch {
+      // noop
+    }
+  }, [rutinas, getRutinaById, fetchRutinas]);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('focoCalendarState', {
+      detail: {
+        date: selectedDate.toISOString(),
+        viewMode,
+      },
+    }));
+  }, [selectedDate, viewMode]);
+
+  useEffect(() => {
+    const handleNavigateEvent = async (event) => {
+      const { date } = event.detail || {};
+      if (!date) return;
+      try {
+        await syncRutinaForDate(new Date(date));
+      } catch {
+        // noop
+      }
+    };
+
+    window.addEventListener('navigate', handleNavigateEvent);
+    return () => window.removeEventListener('navigate', handleNavigateEvent);
+  }, [syncRutinaForDate]);
+
+  const openQuickCreate = useCallback((anchorEl, initialStart = null, tipo = 'EVENTO') => {
+    setEditingTarea(null);
+    setQuickCreateInitialStart(initialStart);
+    setQuickCreateTipo(tipo);
+    setQuickCreateAnchor(anchorEl || quickCreateFallbackRef.current);
+    setQuickCreateOpen(true);
+  }, []);
+
+  useEffect(() => {
+    const handleAddTask = (event) => {
+      const { anchorEl, initialStart, tipo } = event.detail || {};
+      openQuickCreate(anchorEl, initialStart, tipo || 'TAREA');
+    };
+    const handleOpenGoogleTasksConfig = () => setIsGoogleTasksConfigOpen(true);
+    const handleGoogleTasksSyncCompleted = () => fetchDataStable();
+    const handleDeleteSelectedTasks = async () => {
+      if (selectedTareas.length === 0) return;
+      try {
+        await Promise.allSettled(selectedTareas.map((id) => deleteWithHistory(id)));
+        setSelectedTareas([]);
+        window.dispatchEvent(new CustomEvent('selectionChanged', { detail: { hasSelections: false } }));
+        await fetchDataStable();
+        enqueueSnackbar('Tareas eliminadas', { variant: 'success' });
+      } catch {
+        enqueueSnackbar('Error al eliminar tareas', { variant: 'error' });
+      }
+    };
+
+    window.addEventListener('addTask', handleAddTask);
+    window.addEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
+    window.addEventListener('googleTasksSyncCompleted', handleGoogleTasksSyncCompleted);
+    window.addEventListener('deleteSelectedTasks', handleDeleteSelectedTasks);
+
+    return () => {
+      window.removeEventListener('addTask', handleAddTask);
+      window.removeEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
+      window.removeEventListener('googleTasksSyncCompleted', handleGoogleTasksSyncCompleted);
+      window.removeEventListener('deleteSelectedTasks', handleDeleteSelectedTasks);
+    };
+  }, [selectedTareas, deleteWithHistory, fetchDataStable, enqueueSnackbar, openQuickCreate]);
+
+  const resolveAgendaTask = useCallback((tarea) => {
+    if (!tarea?.virtual) return tarea;
+    const sid = String(tarea.serieId?._id || tarea.serieId || '');
+    if (!sid) return tarea;
+    const anchor = tareas.find(
+      (t) => !t.virtual
+        && String(t.serieId?._id || t.serieId) === sid
+        && t.googleTasksSync?.googleTaskId,
+    ) || tareas.find(
+      (t) => !t.virtual && String(t.serieId?._id || t.serieId) === sid,
+    );
+    return anchor || tarea;
+  }, [tareas]);
+
+  const handleEdit = useCallback((tarea) => {
+    setEditingTarea(resolveAgendaTask(tarea));
+    setIsFormOpen(true);
+  }, [resolveAgendaTask]);
+
+  const handleToggleComplete = useCallback(async (tarea, markComplete) => {
+    const target = resolveAgendaTask(tarea);
+    if (target?.virtual) {
+      enqueueSnackbar('No se puede completar esta ocurrencia sin ancla en la serie', { variant: 'warning' });
+      return;
+    }
+    try {
+      const original = { ...target };
+      const updateData = markComplete
+        ? { estado: 'COMPLETADA', completada: true }
+        : { estado: 'PENDIENTE', completada: false };
+      const updated = await updateWithHistory(target._id, updateData, original);
+      setTareas((prev) => prev.map((t) => {
+        const sid = String(t.serieId?._id || t.serieId || '');
+        const targetSid = String(target.serieId?._id || target.serieId || '');
+        if (t._id === target._id || (sid && sid === targetSid)) {
+          return { ...t, ...updated, virtual: t.virtual };
+        }
+        return t;
+      }));
+      await fetchDataStable();
+    } catch (error) {
+      console.error('Error al actualizar tarea:', error);
+      enqueueSnackbar('Error al actualizar la tarea', { variant: 'error' });
+    }
+  }, [resolveAgendaTask, updateWithHistory, enqueueSnackbar, fetchDataStable, setTareas]);
+
+  const handleSlotClick = useCallback((day, hour) => {
+    const start = new Date(day);
+    start.setHours(hour, 0, 0, 0);
+    openQuickCreate(quickCreateFallbackRef.current, start, 'EVENTO');
+  }, [openQuickCreate]);
+
+  const handleQuickSave = useCallback(async (data) => {
+    try {
+      if (data.tipo === 'HABITO') {
+        await saveHabitFromForm({
+          label: data.titulo,
+          section: data.section || 'bodyCare',
+          icon: data.icon,
+          config: data.config,
+          habits,
+          addHabit,
+          updateUserHabitPreference,
+          fetchHabits,
+        });
+        enqueueSnackbar('Hábito creado', { variant: 'success' });
+        return;
+      }
+
+      const payload = buildTareaPayload({
+        titulo: data.titulo,
+        descripcion: data.descripcion,
+        estado: data.estado,
+        tipo: data.tipo,
+        fechaInicio: data.fechaInicio,
+        fechaFin: data.fechaFin,
+        fechaVencimiento: data.fechaVencimiento,
+        prioridad: data.prioridad,
+        objetivo: data.objetivo,
+        subtareas: data.subtareas,
+      });
+      await createWithHistory(payload);
+      enqueueSnackbar(payload.tipo === 'EVENTO' ? 'Evento creado' : 'Tarea creada', { variant: 'success' });
+      await fetchDataStable();
+    } catch (error) {
+      enqueueSnackbar(
+        error.response?.data?.error || 'Error al crear la tarea',
+        { variant: 'error' },
+      );
+      throw error;
+    }
+  }, [
+    addHabit,
+    createWithHistory,
+    enqueueSnackbar,
+    fetchDataStable,
+    fetchHabits,
+    habits,
+    updateUserHabitPreference,
+  ]);
+
+  const handleFormSubmit = async (formData) => {
+    try {
+      const datosAEnviar = buildTareaPayload(formData, { editingTarea, objetivos });
+      let saved;
+
+      if (editingTarea?._id) {
+        saved = await updateWithHistory(editingTarea._id, datosAEnviar, editingTarea);
+        enqueueSnackbar('Tarea actualizada', { variant: 'success' });
+      } else {
+        saved = await createWithHistory(datosAEnviar);
+        enqueueSnackbar('Tarea creada', { variant: 'success' });
+      }
+
+      try {
+        const { synced } = await syncTareaToGoogleAfterSave(saved || datosAEnviar);
+        if (synced) {
+          enqueueSnackbar('Sincronizada con Google Tasks', { variant: 'info' });
+        }
+      } catch (syncErr) {
+        enqueueSnackbar(
+          syncErr.response?.data?.error || 'Tarea guardada; no se pudo sincronizar con Google',
+          { variant: 'warning' },
+        );
+      }
+
+      setIsFormOpen(false);
+      setEditingTarea(null);
+      await fetchDataStable();
+    } catch (error) {
+      enqueueSnackbar(
+        error.response?.data?.error || 'Error al guardar la tarea',
+        { variant: 'error' },
+      );
+    }
+  };
+
+  const initialFormData = useMemo(() => {
+    if (!editingTarea) return null;
+    return editingTarea;
+  }, [editingTarea]);
+
+  return (
+    <Box
+      sx={{
+        position: 'relative',
+        px: { xs: 0, sm: 1, md: 2 },
+        width: '100%',
+        height: isMobile ? 'calc(100vh - 160px)' : 'calc(100vh - 170px)',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
+      <Box ref={quickCreateFallbackRef} sx={{ position: 'absolute', top: 8, right: 16, width: 1, height: 1 }} />
+
+      <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50%' }}>
+            <CircularProgress />
+          </Box>
+        ) : viewMode === 'day' ? (
+          <FocoDayView
+            date={selectedDate}
+            events={events}
+            agendaView={agendaView}
+            viewMode={viewMode}
+            showRutinaStrip
+            onEventClick={handleEdit}
+            onToggleComplete={handleToggleComplete}
+            onSlotClick={handleSlotClick}
+          />
+        ) : (
+          <FocoWeekView
+            weekDays={weekDays}
+            events={events}
+            selectedDate={selectedDate}
+            agendaView={agendaView}
+            onEventClick={handleEdit}
+            onToggleComplete={handleToggleComplete}
+            onSlotClick={handleSlotClick}
+          />
+        )}
+      </Box>
+
+      <FocoQuickCreate
+        open={quickCreateOpen}
+        anchorEl={quickCreateAnchor}
+        isMobile={isMobile}
+        onClose={() => {
+          setQuickCreateOpen(false);
+          setQuickCreateInitialStart(null);
+        }}
+        selectedDate={selectedDate}
+        initialStart={quickCreateInitialStart}
+        objetivos={objetivos}
+        defaultTipo={quickCreateTipo}
+        onSave={handleQuickSave}
+      />
+
+      <HabitsManagerHost />
+      <HabitFormDialog
+        open={habitFormOpen}
+        onClose={() => {
+          setHabitFormOpen(false);
+          setHabitFormDraft(null);
+        }}
+        initialDraft={habitFormDraft}
+      />
+
+      {isFormOpen && (
+        <TareaForm
+          open={isFormOpen}
+          onClose={() => {
+            setIsFormOpen(false);
+            setEditingTarea(null);
+          }}
+          onSubmit={handleFormSubmit}
+          isEditing={!!editingTarea?._id}
+          initialData={initialFormData}
+          objetivos={objetivos}
+          onObjetivosUpdate={refetchObjetivos}
+          updateWithHistory={updateWithHistory}
+        />
+      )}
+
+      <GoogleTasksConfig
+        open={isGoogleTasksConfigOpen}
+        onClose={() => setIsGoogleTasksConfigOpen(false)}
+      />
+    </Box>
+  );
+}

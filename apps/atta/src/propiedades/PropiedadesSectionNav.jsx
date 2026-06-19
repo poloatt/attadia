@@ -2,10 +2,11 @@ import React from 'react';
 import AttaBranchSectionNav from '../navigation/AttaBranchSectionNav';
 import { getAttaHubBranchConfig } from '../hub/config/attaHubBranchConfig';
 
-const config = getAttaHubBranchConfig('propiedades');
+const BRANCH_ID = 'propiedades';
 
 /** Navegación contextual rama Propiedades. */
 export default function PropiedadesSectionNav({ variant = 'hub' }) {
+  const config = getAttaHubBranchConfig(BRANCH_ID);
   return (
     <AttaBranchSectionNav
       branchId={config.branchId}

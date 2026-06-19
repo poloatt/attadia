@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { forwardRef, memo } from 'react';
 import { IconButton } from '@mui/material';
 import { AddOutlined } from '@mui/icons-material';
 
@@ -31,27 +31,35 @@ function mergeToolbarAddSx(buttonSx = {}) {
 
 /**
  * Botón «+» de toolbar (mismo aspecto en Foco, Atta y Pulso).
- * Marcar como isButtonComponent para usarlo como `icon` en SystemButtons.
+ * forwardRef para uso dentro de MUI Tooltip (HeaderAddButton).
  */
-export const ToolbarAddButton = memo(function ToolbarAddButton({
-  onClick,
-  disabled = false,
-  buttonSx = {},
-  'aria-label': ariaLabel = 'Crear',
-}) {
-  const btn = (
-    <IconButton
-      size="small"
-      onClick={disabled ? undefined : onClick}
-      disabled={disabled}
-      aria-label={ariaLabel}
-      sx={mergeToolbarAddSx(buttonSx)}
-    >
-      <AddOutlined />
-    </IconButton>
-  );
-  btn.type.isButtonComponent = true;
-  return btn;
-});
+export const ToolbarAddButton = memo(
+  forwardRef(function ToolbarAddButton(
+    {
+      onClick,
+      disabled = false,
+      buttonSx = {},
+      'aria-label': ariaLabel = 'Crear',
+      ...other
+    },
+    ref
+  ) {
+    return (
+      <IconButton
+        ref={ref}
+        size="small"
+        {...other}
+        onClick={disabled ? undefined : onClick}
+        disabled={disabled}
+        aria-label={ariaLabel}
+        sx={mergeToolbarAddSx(buttonSx)}
+      >
+        <AddOutlined />
+      </IconButton>
+    );
+  })
+);
+
+ToolbarAddButton.isButtonComponent = true;
 
 export default ToolbarAddButton;

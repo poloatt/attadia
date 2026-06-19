@@ -12,4 +12,5 @@ export { default as HubMetricsRow, MetricChip, hubMetricsRowSx } from './compone
 
 export { useHubPreviewSlice } from './hooks/useHubPreviewSlice';
 
-export { ATTA_HUB_BRANCHES, getAttaHubBranchConfig } from './config/attaHubBranchConfig';
+// Branch registry: import from `./config/attaHubBranchConfig` (not this barrel) to avoid
+// circular init with domain *HubSection modules that import from `../../hub`.

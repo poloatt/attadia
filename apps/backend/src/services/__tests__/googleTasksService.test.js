@@ -99,6 +99,36 @@ Subtareas:
     expect(googleTasksService.shouldRefreshGoogleNotes(tarea, googleTask)).toBe(true);
   });
 
+  test('shouldRefreshGoogleStatus when Google completed differs from local', () => {
+    const googleTask = { status: 'completed', updated: '2026-05-18T10:00:00.000Z' };
+    const tarea = {
+      completada: false,
+      estado: 'PENDIENTE',
+      googleTasksSync: { needsSync: false },
+    };
+    expect(googleTasksService.shouldRefreshGoogleStatus(tarea, googleTask)).toBe(true);
+    expect(googleTasksService.shouldImportFromGoogle(tarea, googleTask)).toBe(true);
+  });
+
+  test('applyGoogleStatusAndDue sets completada and fecha from Google', () => {
+    const tarea = new Tareas({
+      titulo: 'Test',
+      usuario: '507f1f77bcf86cd799439011',
+      estado: 'PENDIENTE',
+      completada: false,
+    });
+    googleTasksService.applyGoogleStatusAndDue(tarea, {
+      id: 'gt-1',
+      status: 'completed',
+      due: '2026-05-20T15:30:00.000Z',
+      completed: '2026-05-19T12:00:00.000Z',
+      updated: '2026-05-19T12:00:00.000Z',
+    });
+    expect(tarea.completada).toBe(true);
+    expect(tarea.estado).toBe('COMPLETADA');
+    expect(tarea.fechaVencimiento.getUTCHours()).toBe(15);
+  });
+
   test('shouldImportFromGoogle when due or notes differ', () => {
     const googleTask = {
       due: '2026-05-20T16:45:00.000Z',

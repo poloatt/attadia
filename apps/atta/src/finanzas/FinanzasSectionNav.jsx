@@ -2,10 +2,11 @@ import React from 'react';
 import AttaBranchSectionNav from '../navigation/AttaBranchSectionNav';
 import { getAttaHubBranchConfig } from '../hub/config/attaHubBranchConfig';
 
-const config = getAttaHubBranchConfig('finanzas');
+const BRANCH_ID = 'finanzas';
 
 /** Navegación contextual Finanzas. */
 export default function FinanzasSectionNav({ variant = 'hub' }) {
+  const config = getAttaHubBranchConfig(BRANCH_ID);
   return (
     <AttaBranchSectionNav
       branchId={config.branchId}

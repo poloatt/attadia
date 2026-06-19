@@ -1034,12 +1034,16 @@ class GoogleTasksService {
               });
 
               if (tarea) {
+                this.applyGoogleStatusAndDue(tarea, googleTask);
                 if (this.shouldImportFromGoogle(tarea, googleTask)) {
                   this.applyNotesFromGoogle(tarea, googleTask);
                   tarea.titulo = this.cleanTitle(tarea.titulo || googleTask.title);
                   await tarea.save();
                   syncResults.updated++;
                   logger.sync(`📝 Actualizada tarea desde Google: "${googleTask.title}"`);
+                } else if (tarea.isModified()) {
+                  await tarea.save();
+                  syncResults.updated++;
                 } else {
                   syncResults.skippedTasks++;
                   syncResults.skipped++;
@@ -1058,6 +1062,7 @@ class GoogleTasksService {
                 });
                 
                 this.applyNotesFromGoogle(nuevaTarea, googleTask);
+                this.applyGoogleStatusAndDue(nuevaTarea, googleTask);
                 nuevaTarea.googleTasksSync.googleTaskListId = taskList.id;
                 
                 await nuevaTarea.save();
@@ -1661,12 +1666,50 @@ class GoogleTasksService {
     return false;
   }
 
+  shouldRefreshGoogleStatus(tarea, googleTask) {
+    if (tarea.googleTasksSync?.needsSync === true) return false;
+    const googleCompleted = googleTask?.status === 'completed';
+    const localCompleted =
+      Boolean(tarea.completada)
+      || String(tarea.estado || '').toUpperCase() === 'COMPLETADA';
+    return googleCompleted !== localCompleted;
+  }
+
   shouldImportFromGoogle(tarea, googleTask) {
     return (
       this.shouldApplyGoogleUpdate(tarea, googleTask)
       || this.shouldRefreshGoogleDueDate(tarea, googleTask)
       || this.shouldRefreshGoogleNotes(tarea, googleTask)
+      || this.shouldRefreshGoogleStatus(tarea, googleTask)
     );
+  }
+
+  /** Estado, due y metadatos Google — siempre en import (aunque notes/título no cambien). */
+  applyGoogleStatusAndDue(tarea, googleTask) {
+    if (!tarea.googleTasksSync) tarea.googleTasksSync = {};
+    tarea.completada = googleTask.status === 'completed';
+    tarea.estado = googleTask.status === 'completed' ? 'COMPLETADA' : 'PENDIENTE';
+    if (googleTask.due) {
+      const dueDate = Tareas.parseGoogleDueDate(googleTask.due);
+      if (dueDate) {
+        if (typeof tarea.recordGoogleDueSnapshot === 'function') {
+          tarea.recordGoogleDueSnapshot(dueDate);
+        }
+        tarea.fechaVencimiento = dueDate;
+        tarea.fechaInicio = dueDate;
+      }
+    }
+    tarea.googleTasksSync.googleTaskId = googleTask.id;
+    tarea.googleTasksSync.updated = googleTask.updated
+      ? new Date(googleTask.updated)
+      : new Date();
+    tarea.googleTasksSync.completed = googleTask.completed
+      ? new Date(googleTask.completed)
+      : null;
+    tarea.googleTasksSync.enabled = true;
+    tarea.googleTasksSync.syncStatus = 'synced';
+    tarea.googleTasksSync.needsSync = false;
+    tarea.googleTasksSync.syncingStartedAt = null;
   }
 
   shouldApplyGoogleUpdate(tarea, googleTask) {

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, IconButton, Tooltip } from '@mui/material';
+import { Box, IconButton } from '@mui/material';
+import TooltipSpan from '@shared/components/TooltipSpan';
 import { NavigateBefore, NavigateNext } from '@mui/icons-material';
 import { useFocoCalendarNavChevrons } from './useFocoCalendarNavChevrons';
 
@@ -32,7 +33,7 @@ export default function FocoCalendarNavChevrons({ viewMode, compact = false }) {
 
   return (
     <Box sx={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
-      <Tooltip title={prevTooltip}>
+      <TooltipSpan title={prevTooltip}>
         <IconButton
           size="small"
           onClick={onPrevious}
@@ -42,8 +43,8 @@ export default function FocoCalendarNavChevrons({ viewMode, compact = false }) {
         >
           <NavigateBefore fontSize="small" />
         </IconButton>
-      </Tooltip>
-      <Tooltip title={nextTooltip}>
+      </TooltipSpan>
+      <TooltipSpan title={nextTooltip}>
         <IconButton
           size="small"
           onClick={onNext}
@@ -53,7 +54,7 @@ export default function FocoCalendarNavChevrons({ viewMode, compact = false }) {
         >
           <NavigateNext fontSize="small" />
         </IconButton>
-      </Tooltip>
+      </TooltipSpan>
     </Box>
   );
 }

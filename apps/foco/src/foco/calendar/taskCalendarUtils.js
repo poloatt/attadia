@@ -6,11 +6,12 @@ import {
   isTaskCompleted,
   parseTaskDate,
 } from '@shared/utils/agendaRules';
-import { dedupeTasksById } from '@shared/utils/taskListUtils';
+import { normalizeTaskList } from '@shared/utils/taskListUtils';
 import {
   DAY_END_HOUR,
   DAY_START_HOUR,
   DEFAULT_DURATION_MINUTES,
+  MAX_TIMED_EVENTS_VISIBLE,
 } from './calendarLayout';
 
 /** Máx. columnas solapadas en la rejilla horaria (evita “código de barras”). */
@@ -23,6 +24,19 @@ const calendarDayKey = (date) => format(date, 'yyyy-MM-dd');
 const isDateOnlyString = (value) =>
   typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
 
+/** Google Tasks date-only due se guarda a mediodía local → tratar como todo el día. */
+function isGoogleDateOnlyDue(task) {
+  const raw = task?.fechaVencimiento || task?.vencimiento;
+  if (!raw) return false;
+  const s = String(raw);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return true;
+  if (/T00:00:00(\.000)?Z?$/i.test(s)) return true;
+  if (/T00:00:00(\.000)?([+-]\d{2}:?\d{2})?$/i.test(s)) return true;
+  const d = parseTaskDate(raw);
+  if (!d) return false;
+  return d.getHours() === 12 && d.getMinutes() === 0;
+}
+
 export const isAllDayTask = (task) => {
   const rawStart = task?.fechaInicio || task?.inicio || task?.start;
   const tipoEarly = String(task?.tipo || 'TAREA').toUpperCase();
@@ -30,6 +44,7 @@ export const isAllDayTask = (task) => {
     ? (task?.fechaVencimiento || task?.fechaFin || task?.vencimiento)
     : (task?.fechaVencimiento || task?.vencimiento);
   if (isDateOnlyString(rawStart) || isDateOnlyString(rawDue)) return true;
+  if (tipoEarly !== 'EVENTO' && isGoogleDateOnlyDue(task)) return true;
 
   const tipo = String(task?.tipo || 'TAREA').toUpperCase();
   const start = tipo === 'EVENTO'
@@ -138,17 +153,25 @@ const pickPreferredCalendarEvent = (current, candidate) => {
   return current;
 };
 
-/** Una ocurrencia visible por serie y día (evita cientos de instancias materializadas). */
+const calendarOccurrenceKey = (ev) => {
+  const task = ev.task;
+  const day = calendarDayKey(ev.start);
+  const sid = String(task?.serieId?._id ?? task?.serieId ?? '');
+  if (sid) return `s:${sid}|${day}`;
+  const gtid = task?.googleTasksSync?.googleTaskId;
+  if (gtid) return `g:${gtid}|${day}`;
+  const oid = String(task?.objetivo?._id ?? task?.objetivo ?? '');
+  const title = String(task?.titulo || '').trim().toLowerCase().slice(0, 80);
+  if (title) return `t:${oid}|${day}|${title}`;
+  return String(task?._id ?? task?.id ?? '');
+};
+
+/** Una ocurrencia visible por serie/día, Google task/día o título/día. */
 export const dedupeCalendarEventsByOccurrence = (events = []) => {
   const byKey = new Map();
 
   for (const ev of events) {
-    const task = ev.task;
-    const sid = String(task?.serieId?._id ?? task?.serieId ?? '');
-    const key = sid
-      ? `${sid}|${calendarDayKey(ev.start)}`
-      : String(task?._id ?? task?.id ?? '');
-
+    const key = calendarOccurrenceKey(ev);
     if (!key) continue;
     const prev = byKey.get(key);
     byKey.set(key, prev ? pickPreferredCalendarEvent(prev, ev) : ev);
@@ -158,7 +181,7 @@ export const dedupeCalendarEventsByOccurrence = (events = []) => {
 };
 
 export const filterTasksInRange = (tasks, rangeStart, rangeEnd, objetivos = []) => {
-  const list = dedupeTasksById(Array.isArray(tasks) ? tasks : []);
+  const list = normalizeTaskList(Array.isArray(tasks) ? tasks : []);
   const events = [];
   const seen = new Set();
 
@@ -192,10 +215,12 @@ export const splitEventsByDay = (events, day) => {
  */
 export const layoutTimedEventsForDay = (events = []) => {
   const sorted = [...events].sort((a, b) => a.start.getTime() - b.start.getTime());
+  const hiddenCount = Math.max(0, sorted.length - MAX_TIMED_EVENTS_VISIBLE);
+  const toPlace = hiddenCount > 0 ? sorted.slice(0, MAX_TIMED_EVENTS_VISIBLE) : sorted;
   const columnEnds = [];
   const placed = [];
 
-  for (const event of sorted) {
+  for (const event of toPlace) {
     const startMs = event.start.getTime();
     const endMs = event.end.getTime();
     let column = columnEnds.findIndex((end) => end <= startMs);
@@ -219,7 +244,7 @@ export const layoutTimedEventsForDay = (events = []) => {
   );
   const gapPx = 2;
 
-  return placed.map(({ event, column }) => {
+  const items = placed.map(({ event, column }) => {
     const pos = getTimedPosition(event.start, event.end);
     const widthPct = 100 / totalColumns;
     const leftPct = column * widthPct;
@@ -233,6 +258,8 @@ export const layoutTimedEventsForDay = (events = []) => {
       },
     };
   });
+
+  return { items, hiddenCount };
 };
 
 export const getTimedPosition = (start, end) => {

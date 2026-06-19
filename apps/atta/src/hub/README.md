@@ -16,6 +16,8 @@ import {
 
 Estilos de tarjeta/chip: `@/hub/styles/attaHubSectionStyles` o `@/hub/styles/attaHubChipStyles`. **No** usar shims en `navigation/` ni re-exports deprecados en dominio.
 
+Registro de ramas: `getAttaHubBranchConfig` desde `@/hub/config/attaHubBranchConfig` (**no** desde `@/hub`), para no crear dependencia circular con `*HubSection`.
+
 ## Checklist PR3 (sin shims)
 
 - [x] `finance/` y `bienes/` eliminados; dominios en `finanzas/`, `propiedades/`, `inventario/`

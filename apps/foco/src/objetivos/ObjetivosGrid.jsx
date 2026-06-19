@@ -549,7 +549,8 @@ const ObjetivoItem = ({
   onEdit, 
   onDelete, 
   onUpdateTarea, 
-  onAddTarea, 
+  onAddTarea,
+  onLoadObjetivoTareas,
   showValues, 
   updateWithHistory, 
   updateTareaWithHistory,
@@ -559,6 +560,8 @@ const ObjetivoItem = ({
 }) => {
   const { enqueueSnackbar } = useSnackbar();
   const [expanded, setExpanded] = useState(false);
+  const [tareasLoading, setTareasLoading] = useState(false);
+  const tareas = Array.isArray(objetivo.tareas) ? objetivo.tareas : [];
   const [anchorEl, setAnchorEl] = useState(null);
   const [longPressTimer, setLongPressTimer] = useState(null);
   const [longPressActivated, setLongPressActivated] = useState(false);
@@ -621,8 +624,12 @@ const ObjetivoItem = ({
       return;
     }
     
-    // Comportamiento normal: expandir/contraer
-    setExpanded(!expanded);
+    const nextExpanded = !expanded;
+    setExpanded(nextExpanded);
+    if (nextExpanded && onLoadObjetivoTareas && tareas.length === 0) {
+      setTareasLoading(true);
+      Promise.resolve(onLoadObjetivoTareas(objetivoId)).finally(() => setTareasLoading(false));
+    }
   };
 
   const handleEdit = (event) => {
@@ -724,7 +731,7 @@ const ObjetivoItem = ({
         <Stack direction="row" spacing={1} alignItems="center">
           <Chip
             size="small"
-            label={`${objetivo.tareas.filter(t => !t.completada).length}`}
+            label={tareasLoading ? '…' : `${tareas.filter((t) => !t.completada).length}`}
             sx={{
               height: 20,
               backgroundColor: 'grey.800',
@@ -804,11 +811,15 @@ const ObjetivoItem = ({
             backgroundColor: 'rgba(0,0,0,0.3)',
           },
         }}>
-          {Array.isArray(objetivo.tareas) && objetivo.tareas.length > 0 ? (
+          {tareasLoading ? (
+            <Typography variant="body2" color="text.secondary" align="center">
+              Cargando tareas…
+            </Typography>
+          ) : tareas.length > 0 ? (
             <TableContainer component={Box} sx={{ width: '100%' }}>
               <Table sx={{ width: '100%' }} size="small">
                 <TableBody>
-              {[...objetivo.tareas]
+              {[...tareas]
                     .filter(t => !t.completada)
                 .sort((a, b) => {
                       const estadoOrden = { 'EN_PROGRESO': 0, 'PENDIENTE': 1, 'COMPLETADA': 2 };
@@ -855,7 +866,8 @@ const ObjetivosGrid = ({
   onDelete, 
   onAdd, 
   onUpdateTarea, 
-  onAddTarea, 
+  onAddTarea,
+  onLoadObjetivoTareas,
   showValues, 
   updateWithHistory, 
   updateTareaWithHistory,
@@ -883,6 +895,7 @@ const ObjetivosGrid = ({
           onDelete={onDelete}
           onUpdateTarea={onUpdateTarea}
           onAddTarea={onAddTarea}
+          onLoadObjetivoTareas={onLoadObjetivoTareas}
           showValues={showValues}
           updateWithHistory={updateWithHistory}
           updateTareaWithHistory={updateTareaWithHistory}
