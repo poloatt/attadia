@@ -65,6 +65,12 @@ export function Transacciones() {
     }
   }, [monedasError, cuentasError, transaccionesError, enqueueSnackbar]);
 
+  useEffect(() => {
+    const handleFinanzasUpdated = () => refetchTransacciones();
+    window.addEventListener('finanzasDataUpdated', handleFinanzasUpdated);
+    return () => window.removeEventListener('finanzasDataUpdated', handleFinanzasUpdated);
+  }, [refetchTransacciones]);
+
   const handleCreateMoneda = useCallback(async (data) => {
     try {
       const response = await clienteAxios.post('/api/monedas', data);

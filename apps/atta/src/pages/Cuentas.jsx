@@ -32,6 +32,7 @@ import {
 } from '../finanzas';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { attaPageLayoutSx } from '../navigation/attaPageLayoutSx';
+import { balanceFromTransactions, resolveCuentaDisplayBalance } from '../finanzas/cuentas/cuentaBalanceUtils';
 
 export function Cuentas() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -122,9 +123,8 @@ export function Cuentas() {
         });
         
         const transacciones = response.data?.docs || [];
-        const balance = transacciones.reduce((acc, trans) => {
-          return trans.tipo === 'INGRESO' ? acc + trans.monto : acc - trans.monto;
-        }, 0);
+        const txBalance = balanceFromTransactions(transacciones);
+        const balance = resolveCuentaDisplayBalance(cuenta, txBalance);
         
         // Guardar balance de la cuenta
         balancesTemp[cuentaId] = balance;
@@ -155,6 +155,16 @@ export function Cuentas() {
       fetchBalancesCuentas();
     }
   }, [cuentas, isLoading, fetchBalancesCuentas]);
+
+  // Recargar balances tras sincronización MercadoPago u otras actualizaciones de finanzas
+  useEffect(() => {
+    const handleFinanzasUpdated = () => {
+      refetchCuentas();
+      fetchBalancesCuentas();
+    };
+    window.addEventListener('finanzasDataUpdated', handleFinanzasUpdated);
+    return () => window.removeEventListener('finanzasDataUpdated', handleFinanzasUpdated);
+  }, [refetchCuentas, fetchBalancesCuentas]);
 
   // Establecer monedas expandidas
   useEffect(() => {

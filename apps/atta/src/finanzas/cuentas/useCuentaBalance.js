@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAPI } from '@shared/hooks/useAPI';
+import { balanceFromTransactions } from './cuentaBalanceUtils';
 
 export function useCuentaBalance(cuentaId) {
   const [balance, setBalance] = useState(0);
@@ -21,11 +22,7 @@ export function useCuentaBalance(cuentaId) {
 
   useEffect(() => {
     const docs = data?.docs ?? [];
-    const total = docs.reduce((acc, trans) => {
-      const monto = parseFloat(trans.monto) || 0;
-      return trans.tipo === 'INGRESO' ? acc + monto : acc - monto;
-    }, 0);
-    setBalance(total);
+    setBalance(balanceFromTransactions(docs));
   }, [data]);
 
   return { balance, loading: loading && !!cuentaId, error };
