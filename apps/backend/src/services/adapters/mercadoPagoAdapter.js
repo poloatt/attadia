@@ -1,4 +1,5 @@
 import fetch from 'node-fetch';
+import { deduplicarPagos, mpAuthHeaders } from '../mercadoPagoUtils.js';
 
 export class MercadoPagoAdapter {
   constructor({ accessToken, refreshToken, userId }) {
@@ -44,11 +45,7 @@ export class MercadoPagoAdapter {
       console.log('Obteniendo información de usuario MercadoPago...');
       
       const response = await fetch('https://api.mercadopago.com/users/me', {
-        headers: { 
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json',
-          'User-Agent': 'PresentApp/1.0' // Identificar la aplicación (buena práctica)
-        }
+        headers: mpAuthHeaders(this.accessToken)
       });
       
       if (!response.ok) {
@@ -88,81 +85,85 @@ export class MercadoPagoAdapter {
     });
   }
 
-  async getMovimientos({ since, limit = 100 }) {
+  async searchPayments({ since, limit = 100, filter = null }) {
     return this.withRetry(async () => {
-      console.log('Obteniendo movimientos de MercadoPago...', {
-        since: since || 'sin filtro de fecha',
-        limit,
-        userId: this.userId
-      });
-      
-      // Construir URL con filtros de fecha si se proporciona
-      let url = 'https://api.mercadopago.com/v1/payments/search';
       const params = new URLSearchParams();
-      
       if (since) {
-        // Usar los parámetros correctos para el endpoint /v1/payments/search
-        // Según la documentación oficial de Mercado Pago
         params.append('range', 'date_created');
         params.append('begin_date', since);
-        // end_date se puede omitir para obtener hasta la fecha actual
+        params.append('end_date', new Date().toISOString());
       }
-      
-      // Agregar límite para evitar respuestas muy grandes
       params.append('limit', limit.toString());
-      
-      // Ordenar por fecha de creación descendente (más recientes primero)
       params.append('sort', 'date_created.desc');
-      
-      if (params.toString()) {
-        url += `?${params.toString()}`;
+
+      if (filter?.collectorId) {
+        params.append('collector.id', String(filter.collectorId));
       }
-      
+      if (filter?.payerId) {
+        params.append('payer.id', String(filter.payerId));
+      }
+
+      const url = `https://api.mercadopago.com/v1/payments/search?${params.toString()}`;
       console.log('URL de consulta MercadoPago:', url);
-      
-      const response = await fetch(url, {
-        headers: { 
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json',
-          'User-Agent': 'PresentApp/1.0'
-        }
-      });
-      
+
+      const response = await fetch(url, { headers: mpAuthHeaders(this.accessToken) });
+
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Error response from MercadoPago payments:', {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorText,
-          userId: this.userId,
-          url
-        });
-        
-        // Manejar errores específicos de MercadoPago
-        if (response.status === 401) {
-          throw new Error('Token de acceso expirado o inválido');
-        } else if (response.status === 403) {
-          throw new Error('Acceso denegado - verificar permisos de la aplicación');
-        } else if (response.status === 429) {
-          throw new Error('Rate limit excedido - intentar más tarde');
-        }
-        
-        throw new Error(`Error obteniendo movimientos: ${response.status} - ${errorText}`);
+        if (response.status === 401) throw new Error('Token de acceso expirado o inválido');
+        if (response.status === 403) throw new Error('Acceso denegado - verificar permisos de la aplicación');
+        if (response.status === 429) throw new Error('Rate limit excedido - intentar más tarde');
+        throw new Error(`Error obteniendo pagos: ${response.status} - ${errorText}`);
       }
-      
+
       const data = await response.json();
-      const results = data.results || [];
-      
-      console.log(`Movimientos obtenidos: ${results.length}`, {
-        userId: this.userId,
-        since,
-        limit,
-        totalResults: results.length,
-        hasPaging: !!data.paging
-      });
-      
-      return results;
+      return data.results || [];
     });
+  }
+
+  async getMovimientos({ since, limit = 100 }) {
+    return this.getAllPayments({ since, limit });
+  }
+
+  async getAllPayments({ since, limit = 100 }) {
+    const mpUserId = this.userId;
+    const results = await Promise.allSettled([
+      this.searchPayments({ since, limit, filter: { collectorId: mpUserId } }),
+      this.searchPayments({ since, limit, filter: { payerId: mpUserId } })
+    ]);
+
+    const all = [];
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        all.push(...result.value);
+      } else {
+        console.warn('[MP] Búsqueda parcial de pagos falló:', result.reason?.message);
+      }
+    }
+
+    const deduped = deduplicarPagos(all);
+    console.log(`Pagos obtenidos (collector + payer): ${deduped.length}`, { userId: mpUserId, since, limit });
+    return deduped;
+  }
+
+  async getAccountBalance() {
+    if (!this.userId) return { available: 0, unavailable: 0 };
+
+    return this.withRetry(async () => {
+      const url = `https://api.mercadopago.com/users/${this.userId}/mercadopago_account/balance`;
+      const response = await fetch(url, { headers: mpAuthHeaders(this.accessToken) });
+
+      if (!response.ok) {
+        console.warn('[MP] Balance no disponible:', response.status);
+        return { available: 0, unavailable: 0, error: response.status };
+      }
+
+      const data = await response.json();
+      return {
+        available: data.available_balance || 0,
+        unavailable: data.unavailable_balance || 0
+      };
+    }).catch(() => ({ available: 0, unavailable: 0 }));
   }
 
   // Método para obtener movimientos usando el endpoint de account/movements (alternativo)
@@ -193,13 +194,7 @@ export class MercadoPagoAdapter {
       
       console.log('URL de consulta movimientos de cuenta:', url);
       
-      const response = await fetch(url, {
-        headers: { 
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json',
-          'User-Agent': 'PresentApp/1.0'
-        }
-      });
+      const response = await fetch(url, { headers: mpAuthHeaders(this.accessToken) });
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -266,13 +261,7 @@ export class MercadoPagoAdapter {
       
       console.log('URL de consulta órdenes de comerciante:', url);
       
-      const response = await fetch(url, {
-        headers: { 
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json',
-          'User-Agent': 'PresentApp/1.0'
-        }
-      });
+      const response = await fetch(url, { headers: mpAuthHeaders(this.accessToken) });
       
       if (!response.ok) {
         const errorText = await response.text();

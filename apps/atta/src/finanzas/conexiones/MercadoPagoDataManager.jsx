@@ -25,19 +25,52 @@ import {
   ExpandMore as ExpandMoreIcon,
   Refresh as RefreshIcon,
   Download as DownloadIcon,
+  Upload as UploadIcon,
   Warning as WarningIcon,
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon
 } from '@mui/icons-material';
 import { api } from '@shared/services/api';
+import { MercadoPagoPartialSyncAlert } from './MercadoPagoPartialSyncBanner';
 
 export default function MercadoPagoDataManager({ conexionId, onDataProcessed }) {
   const [datos, setDatos] = useState(null);
-  const [avisos, setAvisos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = React.useRef(null);
+  const csvSectionRef = React.useRef(null);
+
+  const importarCsv = async (file) => {
+    if (!file) return;
+    try {
+      setImporting(true);
+      setError(null);
+      const csvContent = await file.text();
+      const response = await api.post(
+        `/api/bankconnections/mercadopago/importar-csv/${conexionId}`,
+        { csvContent }
+      );
+      setSuccess(
+        `CSV importado: ${response.data.nuevas || 0} transacciones nuevas de ${response.data.movimientosProcesados || 0} filas`
+      );
+      if (onDataProcessed) onDataProcessed(response.data);
+      await cargarDatos();
+    } catch (err) {
+      console.error('Error importando CSV:', err);
+      setError(err.response?.data?.message || 'Error importando CSV de Mercado Pago');
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleFileSelect = (event) => {
+    const file = event.target.files?.[0];
+    if (file) importarCsv(file);
+  };
 
   // Cargar datos completos
   const cargarDatos = async () => {
@@ -46,11 +79,7 @@ export default function MercadoPagoDataManager({ conexionId, onDataProcessed }) 
       setError(null);
       
       const response = await api.get(`/api/bankconnections/mercadopago/datos-completos/${conexionId}`);
-      setDatos({
-        ...response.data.datos,
-        resumen: response.data.resumen
-      });
-      setAvisos(response.data.avisos || []);
+      setDatos(response.data);
       setSuccess('Datos cargados exitosamente');
     } catch (err) {
       console.error('Error cargando datos:', err);
@@ -141,7 +170,7 @@ export default function MercadoPagoDataManager({ conexionId, onDataProcessed }) 
                 Gestión de Datos Mercado Pago
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Obtén y procesa todos los datos de tu cuenta de Mercado Pago
+                Sincronización parcial vía OAuth + reporte Account Money. Podés importar CSV manual desde el panel MP.
               </Typography>
             </Grid>
             <Grid item>
@@ -153,6 +182,22 @@ export default function MercadoPagoDataManager({ conexionId, onDataProcessed }) 
                 sx={{ mr: 1 }}
               >
                 Recargar
+              </Button>
+              <Button
+                variant="outlined"
+                component="label"
+                startIcon={<UploadIcon />}
+                disabled={importing}
+                sx={{ mr: 1 }}
+              >
+                Importar CSV
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  hidden
+                  onChange={handleFileSelect}
+                />
               </Button>
               <Button
                 variant="contained"
@@ -167,17 +212,22 @@ export default function MercadoPagoDataManager({ conexionId, onDataProcessed }) 
         </CardContent>
       </Card>
 
-      {/* Alertas */}
-      {avisos.length > 0 && (
-        <Alert severity="info" icon={<WarningIcon />} sx={{ mb: 2 }}>
-          {avisos.map((aviso, index) => (
-            <Typography key={index} variant="body2" component="div">
-              {aviso}
-            </Typography>
-          ))}
-        </Alert>
+      {/* Sync parcial / settlement pendiente */}
+      {(datos?.conexion || datos?.reportePendiente) && (
+        <MercadoPagoPartialSyncAlert
+          conexion={{
+            syncParcial: datos.conexion?.syncParcial || datos.reportePendiente,
+            ultimoErrorSettlement: datos.conexion?.ultimoErrorSettlement,
+            reportePendiente: datos.conexion?.reportePendiente || datos.reportePendiente
+          }}
+          onImportClick={() => {
+            csvSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+            fileInputRef.current?.click();
+          }}
+        />
       )}
 
+      {/* Alertas */}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
@@ -250,15 +300,26 @@ export default function MercadoPagoDataManager({ conexionId, onDataProcessed }) 
             <Card>
               <CardContent>
                 <Typography variant="h6" color="info.main">
-                  {datos.resumen.totalOrdenes}
+                  {datos.resumen.reportePendiente ? 'Pendiente' : datos.resumen.totalMovimientos}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Órdenes
+                  {datos.resumen.reportePendiente ? 'Reporte en generación' : 'Movimientos reporte'}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
         </Grid>
+      )}
+
+      {/* Errores y avisos diagnóstico */}
+      {datos?.avisos?.length > 0 && (
+        <Box sx={{ mb: 2 }}>
+          {datos.avisos.map((aviso, index) => (
+            <Alert key={index} severity="info" sx={{ mb: 1 }}>
+              {aviso.mensaje}
+            </Alert>
+          ))}
+        </Box>
       )}
 
       {/* Errores */}
@@ -329,7 +390,9 @@ export default function MercadoPagoDataManager({ conexionId, onDataProcessed }) 
 
       <Accordion>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="h6">Movimientos de Cuenta ({datos?.movimientosCuenta?.length || 0})</Typography>
+          <Typography variant="h6">
+            Movimientos Account Money ({datos?.movimientosCuenta?.length || 0})
+          </Typography>
         </AccordionSummary>
         <AccordionDetails>
           {datos?.movimientosCuenta && datos.movimientosCuenta.length > 0 ? (
@@ -383,53 +446,43 @@ export default function MercadoPagoDataManager({ conexionId, onDataProcessed }) 
 
       <Accordion>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography variant="h6">Órdenes de Comerciante ({datos?.ordenesComerciante?.length || 0})</Typography>
+          <Typography variant="h6" color="text.secondary">
+            Órdenes de comerciante (no aplica wallet personal)
+          </Typography>
         </AccordionSummary>
         <AccordionDetails>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Mercado Pago limita la búsqueda masiva de órdenes de comerciante a los últimos 90 días.
-            Si solicitas un rango mayor, los resultados pueden quedar truncados.
-          </Alert>
-          {datos?.ordenesComerciante && datos.ordenesComerciante.length > 0 ? (
-            <TableContainer component={Paper}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>ID</TableCell>
-                    <TableCell>Descripción</TableCell>
-                    <TableCell>Monto</TableCell>
-                    <TableCell>Estado</TableCell>
-                    <TableCell>Fecha</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {datos.ordenesComerciante.slice(0, 10).map((orden) => (
-                    <TableRow key={orden.id}>
-                      <TableCell>{orden.id}</TableCell>
-                      <TableCell>{orden.preference_id || 'Sin descripción'}</TableCell>
-                      <TableCell>
-                        {formatearMonto(orden.total_amount, orden.currency_id)}
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={orden.status}
-                          color={getEstadoColor(orden.status, 'ORDEN')}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{formatearFecha(orden.date_created)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          ) : (
-            <Typography variant="body2" color="text.secondary">
-              No hay órdenes disponibles
-            </Typography>
-          )}
+          <Typography variant="body2" color="text.secondary">
+            Las órdenes de comerciante no aplican a wallet personal AR. Usá movimientos del reporte Account Money.
+          </Typography>
         </AccordionDetails>
       </Accordion>
+
+      {/* Importación manual CSV */}
+      <Card sx={{ mt: 2 }} ref={csvSectionRef}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Importar reporte CSV manual
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Descargá el reporte &quot;Dinero en cuenta&quot; desde Mercado Pago
+            (Ventas y facturación → Reportes → Dinero en cuenta) y subilo acá.
+          </Typography>
+          <Button
+            variant="contained"
+            component="label"
+            startIcon={importing ? <CircularProgress size={18} /> : <UploadIcon />}
+            disabled={importing}
+          >
+            Seleccionar archivo CSV
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              hidden
+              onChange={handleFileSelect}
+            />
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Opciones de procesamiento */}
       <Card sx={{ mt: 2 }}>

@@ -1,6 +1,6 @@
 import { BaseController } from './BaseController.js';
 import { Monedas, COLORES_MONEDA, Transacciones } from '../models/index.js';
-import { buildEstadoQuery } from '../utils/transaccionEstados.js';
+import { buildEstadoFilter } from '../utils/transaccionEstado.js';
 
 class MonedasController extends BaseController {
   constructor() {
@@ -260,7 +260,7 @@ class MonedasController extends BaseController {
       }
 
       if (estado) {
-        query.estado = buildEstadoQuery(estado);
+        query.estado = buildEstadoFilter(estado);
       }
 
       console.log('Query de transacciones:', query);

@@ -31,6 +31,7 @@ import MercadoPagoConnectButton from './MercadoPagoConnectButton';
 import { isMercadoPagoEnabled } from '@shared/config/mercadopago';
 import MercadoPagoStatusIndicator from './MercadoPagoStatusIndicator';
 import MercadoPagoDataManager from './MercadoPagoDataManager';
+import { MercadoPagoPartialSyncAlert } from './MercadoPagoPartialSyncBanner';
 
 export default function MercadoPagoConnectionManager({ connectionId, onConnectionUpdate }) {
   const {
@@ -56,6 +57,7 @@ export default function MercadoPagoConnectionManager({ connectionId, onConnectio
     procesarMovimientos: true
   });
   const [lastSync, setLastSync] = useState(null);
+  const [syncParcial, setSyncParcial] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
@@ -77,9 +79,18 @@ export default function MercadoPagoConnectionManager({ connectionId, onConnectio
     try {
       setError(null);
       const result = await syncConnection(connectionId, syncOptions);
-      setSuccess('Sincronización completada exitosamente');
+      const parcial = result?.resultado?.syncParcial;
+      setSyncParcial(Boolean(parcial));
+      setSuccess(
+        parcial
+          ? 'Sincronización parcial: revisá movimientos o importá CSV manual'
+          : 'Sincronización completada exitosamente'
+      );
       setLastSync(new Date().toISOString());
       setShowSyncDialog(false);
+      if (parcial) {
+        setShowDataManager(true);
+      }
       
       if (onConnectionUpdate) {
         onConnectionUpdate(result);
@@ -242,9 +253,16 @@ export default function MercadoPagoConnectionManager({ connectionId, onConnectio
           )}
 
           {success && (
-            <Alert severity="success" sx={{ mt: 2 }} onClose={() => setSuccess(null)}>
+            <Alert severity={syncParcial ? 'warning' : 'success'} sx={{ mt: 2 }} onClose={() => setSuccess(null)}>
               {success}
             </Alert>
+          )}
+
+          {syncParcial && connectionId && (
+            <MercadoPagoPartialSyncAlert
+              conexion={{ syncParcial: true }}
+              onImportClick={() => setShowDataManager(true)}
+            />
           )}
 
           {/* Indicadores de estado */}

@@ -12,7 +12,13 @@ import { normalizeDocId } from './propiedadesHubUtils';
 
 const PATH = '/propiedades';
 
-function PropiedadesHubSkeleton() {
+function PropiedadesHubSkeleton({ showHabitaciones = true }) {
+  if (!showHabitaciones) {
+    return (
+      <Skeleton height={36} animation="wave" sx={{ borderRadius: 1.5, bgcolor: 'action.hover' }} />
+    );
+  }
+
   return (
     <Box>
       <Skeleton height={36} animation="wave" sx={{ borderRadius: 1.5, bgcolor: 'action.hover', mb: 1 }} />
@@ -25,7 +31,7 @@ function PropiedadesHubSkeleton() {
   );
 }
 
-export default function PropiedadesHubSection() {
+export default function PropiedadesHubSection({ showHabitaciones = true }) {
   const { pathname } = useLocation();
   const isActive = isPathActive(pathname, PATH);
 
@@ -52,7 +58,7 @@ export default function PropiedadesHubSection() {
   return (
     <AttaHubSectionCard title="Propiedades" iconKey="apartment" path={PATH} isActive={isActive}>
       {loading ? (
-        <PropiedadesHubSkeleton />
+        <PropiedadesHubSkeleton showHabitaciones={showHabitaciones} />
       ) : propiedades.length === 0 ? (
         <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem', px: 0.25 }}>
           Sin propiedades
@@ -64,6 +70,7 @@ export default function PropiedadesHubSection() {
               key={propiedad.id}
               propiedad={propiedad}
               isLast={!hasMore && index === preview.length - 1}
+              showHabitaciones={showHabitaciones}
             />
           ))}
           {hasMore && (
@@ -75,6 +82,7 @@ export default function PropiedadesHubSection() {
                       key={propiedad.id}
                       propiedad={propiedad}
                       isLast={index === rest.length - 1}
+                      showHabitaciones={showHabitaciones}
                     />
                   ))}
                 </Box>

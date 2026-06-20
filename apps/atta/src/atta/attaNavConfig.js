@@ -6,7 +6,8 @@ export {
   getAttaBranchPages,
   getFinanzasBranchPages,
   getPropiedadesBranchPages,
-  getInventarioBranchPages,
+  getPropiedadesSectionPages,
+  getInventarioSectionPages,
   getAttaBranchById,
   resolveAttaToolbarCenter,
   resolveAttaToolbarRight,
@@ -18,19 +19,20 @@ import {
   getAttaBranches,
   getFinanzasBranchPages,
   getPropiedadesBranchPages,
-  getInventarioBranchPages,
+  getPropiedadesSectionPages,
+  getInventarioSectionPages,
 } from '@shared/navigation/appNavResolver';
 
 export function getAttaBranchFinanzas() {
-  return getAttaBranches().find((b) => b.id === 'finanzas');
+  return { id: 'finanzas', path: '/finanzas', label: 'Finanzas' };
 }
 
 export function getAttaBranchPropiedades() {
-  return getAttaBranches().find((b) => b.id === 'propiedades');
+  return getPropiedadesSectionPages()[0] ?? null;
 }
 
 export function getAttaBranchInventario() {
-  return getAttaBranches().find((b) => b.id === 'inventario');
+  return getInventarioSectionPages()[0] ?? null;
 }
 
 export function getAttaFinanzasNav() {
@@ -38,9 +40,9 @@ export function getAttaFinanzasNav() {
 }
 
 export function getAttaPropiedadesNav() {
-  return getPropiedadesBranchPages();
+  return getPropiedadesSectionPages();
 }
 
 export function getAttaInventarioNav() {
-  return getInventarioBranchPages();
+  return getInventarioSectionPages();
 }

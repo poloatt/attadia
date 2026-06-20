@@ -1,144 +1,191 @@
 #!/usr/bin/env node
 
 /**
- * Smoke test de endpoints usados por la sincronización MercadoPago.
+ * Script de diagnóstico para sincronización wallet Mercado Pago (Argentina).
  *
  * Uso:
- *   node scripts/test-mercadopago-sync.js
- *   MERCADOPAGO_ACCESS_TOKEN=xxx node scripts/test-mercadopago-sync.js
+ *   MERCADOPAGO_ACCESS_TOKEN=APP_USR-... node apps/backend/scripts/test-mercadopago-sync.js
+ *   MERCADOPAGO_ACCESS_TOKEN=APP_USR-... node apps/backend/scripts/test-mercadopago-sync.js --full
  *
- * Sin token: valida que los endpoints respondan (401/403 = activos, 404 = posible deprecación).
+ * --full  Solicita reporte settlement, hace poll completo y descarga CSV (puede tardar 2+ min).
  */
 
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { MercadoPagoAdapter } from '../src/services/adapters/mercadoPagoAdapter.js';
+import {
+  MercadoPagoReportService,
+  getSettlementPollConfig
+} from '../src/services/mercadoPagoReportService.js';
+import { mpAuthHeaders } from '../src/services/mercadoPagoUtils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const SYNC_WINDOW_DAYS = 90;
-
+const FULL_MODE = process.argv.includes('--full');
 const environment = process.env.NODE_ENV || 'production';
-const envPath = path.resolve(__dirname, environment === 'production' ? '../.env.prod' : '../.env.' + environment);
+const envPath = path.resolve(__dirname, environment === 'production' ? '../.env.prod' : `../.env.${environment}`);
 dotenv.config({ path: envPath });
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const ACCESS_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN;
-const BASE_URL = process.env.BACKEND_URL || 'https://api.attadia.com';
 
-const results = [];
-
-function record(name, ok, detail) {
-  results.push({ name, ok, detail });
-  const icon = ok ? '✅' : '❌';
-  console.log(`${icon} ${name}: ${detail}`);
-}
-
-async function probeEndpoint(name, url, options = {}) {
+async function testEndpoint(name, fn) {
+  console.log(`\n--- ${name} ---`);
   try {
-    const res = await fetch(url, options);
-    const body = await res.text();
-    return { status: res.status, body: body.slice(0, 200) };
+    const result = await fn();
+    console.log('✅ OK', typeof result === 'object' ? JSON.stringify(result, null, 2) : result);
+    return { success: true, result };
   } catch (error) {
-    return { status: 0, body: error.message };
+    console.log('❌ FAIL', error.message);
+    return { success: false, error: error.message };
   }
 }
 
-async function testWithToken() {
-  const headers = {
-    Authorization: `Bearer ${ACCESS_TOKEN}`,
-    'Content-Type': 'application/json',
-    'User-Agent': 'AttadiaSyncSmokeTest/1.0'
-  };
-
-  const userRes = await fetch('https://api.mercadopago.com/users/me', { headers });
-  if (!userRes.ok) {
-    record('GET /users/me', false, `${userRes.status} ${await userRes.text()}`);
-    return null;
-  }
-  const userInfo = await userRes.json();
-  record('GET /users/me', true, `id=${userInfo.id}, país=${userInfo.country_id}`);
-
-  const fechaDesde = new Date(Date.now() - SYNC_WINDOW_DAYS * 24 * 60 * 60 * 1000);
-  const fechaHasta = new Date();
-  const paymentsUrl = `https://api.mercadopago.com/v1/payments/search?range=date_created&begin_date=${fechaDesde.toISOString()}&end_date=${fechaHasta.toISOString()}&limit=10&sort=date_created.desc`;
-  const paymentsRes = await fetch(paymentsUrl, { headers });
-  if (paymentsRes.ok) {
-    const data = await paymentsRes.json();
-    record('GET /v1/payments/search', true, `${data.results?.length ?? 0} pagos (ventana ${SYNC_WINDOW_DAYS}d)`);
-  } else {
-    record('GET /v1/payments/search', false, `${paymentsRes.status} ${await paymentsRes.text()}`);
-  }
-
-  const balanceUrl = `https://api.mercadopago.com/users/${userInfo.id}/mercadopago_account/balance`;
-  const balanceRes = await fetch(balanceUrl, { headers });
-  if (balanceRes.ok) {
-    const balance = await balanceRes.json();
-    record('GET /users/{id}/mercadopago_account/balance', true, `disponible=${balance.available_balance ?? 0}`);
-  } else {
-    record('GET /users/{id}/mercadopago_account/balance', false, `${balanceRes.status} ${await balanceRes.text()}`);
-  }
-
-  const ordersUrl = `https://api.mercadopago.com/v1/merchant_orders/search?date_created_from=${fechaDesde.toISOString()}&limit=10`;
-  const ordersRes = await fetch(ordersUrl, { headers });
-  if (ordersRes.ok) {
-    const data = await ordersRes.json();
-    record('GET /v1/merchant_orders/search', true, `${data.results?.length ?? 0} órdenes (máx. 90d por API)`);
-  } else {
-    record('GET /v1/merchant_orders/search', false, `${ordersRes.status} ${await ordersRes.text()}`);
-  }
-
-  return userInfo;
-}
-
-async function testWithoutToken() {
-  console.log('Sin MERCADOPAGO_ACCESS_TOKEN — verificando que endpoints sigan expuestos...\n');
-
-  const probes = [
-    ['GET /users/me', 'https://api.mercadopago.com/users/me'],
-    ['GET /v1/payments/search', 'https://api.mercadopago.com/v1/payments/search?limit=1'],
-    ['GET /v1/merchant_orders/search', 'https://api.mercadopago.com/v1/merchant_orders/search?limit=1'],
-    ['POST /oauth/token', 'https://api.mercadopago.com/oauth/token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }]
-  ];
-
-  for (const [name, url, options] of probes) {
-    const { status, body } = await probeEndpoint(name, url, options);
-    const alive = status === 401 || status === 403 || status === 400 || status === 404 || (status >= 200 && status < 300);
-    const detail = status === 404
-      ? 'HTTP 404 sin token (inconcluso; requiere MERCADOPAGO_ACCESS_TOKEN para confirmar)'
-      : `HTTP ${status}`;
-    record(name, alive, detail);
-    if (!alive) {
-      console.log(`   detalle: ${body}`);
-    }
-  }
-}
-
-async function testMercadoPagoSync() {
-  console.log('=== SMOKE TEST SINCRONIZACIÓN MERCADOPAGO ===');
+async function main() {
+  const pollConfig = getSettlementPollConfig();
+  console.log('=== DIAGNÓSTICO MERCADOPAGO WALLET AR ===');
   console.log('Ambiente:', environment);
-  console.log('Ventana de sync:', `${SYNC_WINDOW_DAYS} días`);
-  console.log('Access Token configurado:', !!ACCESS_TOKEN);
-  console.log('');
+  console.log('Modo:', FULL_MODE ? 'completo (poll + descarga)' : 'rápido (sin poll prolongado)');
+  console.log('Token configurado:', !!ACCESS_TOKEN);
+  console.log('Poll config:', pollConfig);
 
-  if (ACCESS_TOKEN) {
-    await testWithToken();
+  if (!ACCESS_TOKEN) {
+    console.error('\n❌ MERCADOPAGO_ACCESS_TOKEN no configurado');
+    console.log('Obtené un token OAuth de usuario con: node apps/backend/scripts/test-mercadopago-oauth.js');
+    process.exit(1);
+  }
+
+  const results = {};
+
+  results.usersMe = await testEndpoint('/users/me', async () => {
+    const res = await fetch('https://api.mercadopago.com/users/me', {
+      headers: mpAuthHeaders(ACCESS_TOKEN)
+    });
+    if (!res.ok) throw new Error(`${res.status} - ${await res.text()}`);
+    const data = await res.json();
+    return { id: data.id, email: data.email, nickname: data.nickname, country: data.country_id };
+  });
+
+  const userId = results.usersMe.result?.id;
+  if (!userId) {
+    console.log('\n⚠️ No se pudo obtener userId, abortando pruebas dependientes');
+    process.exit(1);
+  }
+
+  if (results.usersMe.result?.country && results.usersMe.result.country !== 'AR') {
+    console.warn(`\n⚠️ Cuenta no es MLA (country=${results.usersMe.result.country}). Validación orientada a wallet AR.`);
+  }
+
+  const adapter = new MercadoPagoAdapter({ accessToken: ACCESS_TOKEN, userId });
+  const fechaDesde = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  results.paymentsCollector = await testEndpoint('/v1/payments/search (collector.id)', async () => {
+    const pagos = await adapter.searchPayments({
+      since: fechaDesde,
+      limit: 5,
+      filter: { collectorId: userId }
+    });
+    return { count: pagos.length, sample: pagos[0]?.id };
+  });
+
+  results.paymentsPayer = await testEndpoint('/v1/payments/search (payer.id)', async () => {
+    const pagos = await adapter.searchPayments({
+      since: fechaDesde,
+      limit: 5,
+      filter: { payerId: userId }
+    });
+    return { count: pagos.length, sample: pagos[0]?.id };
+  });
+
+  results.paymentsAll = await testEndpoint('/v1/payments/search (dual deduplicado)', async () => {
+    const pagos = await adapter.getAllPayments({ since: fechaDesde, limit: 10 });
+    return { count: pagos.length };
+  });
+
+  results.balance = await testEndpoint('/users/{id}/mercadopago_account/balance', async () => {
+    const res = await fetch(
+      `https://api.mercadopago.com/users/${userId}/mercadopago_account/balance`,
+      { headers: mpAuthHeaders(ACCESS_TOKEN) }
+    );
+    if (!res.ok) throw new Error(`${res.status} - ${await res.text()}`);
+    return res.json();
+  });
+
+  results.settlementConfig = await testEndpoint('settlement_report/config', async () => {
+    const service = new MercadoPagoReportService({ accessToken: ACCESS_TOKEN, userId });
+    return service.configureReport();
+  });
+
+  results.settlementList = await testEndpoint('settlement_report/list', async () => {
+    const service = new MercadoPagoReportService({ accessToken: ACCESS_TOKEN, userId });
+    const reports = await service.listReports();
+    return { total: reports.length, latest: reports[0]?.file_name };
+  });
+
+  const begin = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const end = new Date().toISOString();
+
+  results.settlementCreate = await testEndpoint('settlement_report/create (últimos 7 días)', async () => {
+    const service = new MercadoPagoReportService({ accessToken: ACCESS_TOKEN, userId });
+    const created = await service.createReport(begin, end);
+    const validStatus = [200, 202, 203].includes(created.status);
+    if (!validStatus) {
+      throw new Error(`Status inesperado: ${created.status}`);
+    }
+    return {
+      httpStatus: created.status,
+      expected: '202 Accepted (async) o 200/203',
+      data: created.data
+    };
+  });
+
+  if (FULL_MODE) {
+    results.settlementPoll = await testEndpoint('settlement_report/poll + download', async () => {
+      const service = new MercadoPagoReportService({ accessToken: ACCESS_TOKEN, userId });
+      const report = await service.fetchSettlementMovements(begin, end);
+      if (report.pending) {
+        throw new Error('Reporte aún pendiente tras poll completo — MP puede tardar más; reintentar o importar CSV manual');
+      }
+      return {
+        fileName: report.fileName,
+        rows: report.total,
+        sampleSourceId: report.rows?.[0]?.sourceId
+      };
+    });
   } else {
-    await testWithoutToken();
+    console.log('\n--- settlement_report/poll + download ---');
+    console.log('⏭️  Omitido (usar --full para validar poll y descarga CSV)');
+    results.settlementPoll = { success: null, skipped: true };
   }
 
   console.log('\n=== RESUMEN ===');
-  const passed = results.filter(r => r.ok).length;
-  const failed = results.filter(r => !r.ok).length;
-  console.log(`Pasaron: ${passed}/${results.length}, Fallaron: ${failed}`);
-
-  if (!ACCESS_TOKEN) {
-    console.log('\n💡 Para validación completa con datos reales:');
-    console.log('   MERCADOPAGO_ACCESS_TOKEN=<token> node scripts/test-mercadopago-sync.js');
+  let failures = 0;
+  for (const [key, val] of Object.entries(results)) {
+    if (val.skipped) {
+      console.log(`⏭️  ${key} (omitido)`);
+    } else if (val.success) {
+      console.log(`✅ ${key}`);
+    } else {
+      console.log(`❌ ${key}`);
+      failures += 1;
+    }
   }
 
-  process.exit(failed > 0 ? 1 : 0);
+  console.log('\n=== CRITERIOS DE VALIDACIÓN MLA ===');
+  console.log('- settlement_report/create debe responder 202 (o 200/203)');
+  console.log('- settlement_report/list debe ser accesible con token OAuth read');
+  console.log('- Con --full: poll debe encontrar file_name y CSV parseable');
+  console.log('- Si settlement falla: usar import CSV manual (no email parsing)');
+
+  console.log('\n💡 Sync en Attadia: OAuth → sincronizar → si movimientos=0, importar CSV desde panel MP.');
+
+  process.exit(failures > 0 ? 1 : 0);
 }
 
-testMercadoPagoSync();
+main().catch((err) => {
+  console.error('Error fatal:', err);
+  process.exit(1);
+});

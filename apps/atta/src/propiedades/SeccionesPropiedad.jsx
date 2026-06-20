@@ -25,7 +25,6 @@ import { getStatusIconComponent, getEstadoColor } from '@shared/components/commo
 import { getEstadoContrato, formatMesAnio } from '@shared/utils/contratoUtils';
 import { useResponsive } from '@shared/hooks';
 import {
-  propiedadDetailUbicacionCardSx,
   propiedadDetailRowIconSx,
   propiedadDetailPrimaryTextSx,
   propiedadDetailSecondaryTextSx,
@@ -223,7 +222,11 @@ export const SeccionUbicacion = ({ propiedad, variant }) => {
   );
 
   if (isDetail) {
-    return <Box sx={propiedadDetailUbicacionCardSx}>{content}</Box>;
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.25, width: '100%' }}>
+        {content}
+      </Box>
+    );
   }
 
   return (

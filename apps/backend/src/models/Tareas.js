@@ -561,6 +561,7 @@ tareaSchema.statics.parseGoogleDueDate = function parseGoogleDueDate(due) {
     const isDateOnly =
       raw.length === 10
       || /T00:00:00(\.000)?Z?$/i.test(raw)
+      || /T12:00:00(\.000)?Z?$/i.test(raw)
       || /T00:00:00(\.000)?([+-]\d{2}:?\d{2})?$/i.test(raw);
     if (isDateOnly) {
       return new Date(y, m - 1, d, 12, 0, 0, 0);

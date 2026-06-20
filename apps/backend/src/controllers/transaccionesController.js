@@ -1,7 +1,7 @@
 import { BaseController } from './BaseController.js';
 import { Transacciones, Cuentas } from '../models/index.js';
 import mongoose from 'mongoose';
-import { buildEstadoQuery, ESTADOS_BALANCE } from '../utils/transaccionEstados.js';
+import { buildEstadoFilter } from '../utils/transaccionEstado.js';
 
 class TransaccionesController extends BaseController {
   constructor() {
@@ -38,9 +38,10 @@ class TransaccionesController extends BaseController {
 
       const query = {
         usuario: new mongoose.Types.ObjectId(req.user.id),
-        estado: buildEstadoQuery(estado),
         fecha: { $gte: inicio, $lte: fin },
       };
+      const estadoFilter = buildEstadoFilter(estado);
+      if (estadoFilter) query.estado = estadoFilter;
 
       const resultados = await this.Model.aggregate([
         { $match: query },
@@ -136,19 +137,9 @@ class TransaccionesController extends BaseController {
         fechaFin
       } = req.query;
 
-      const cuenta = await Cuentas.findOne({
-        _id: req.params.cuentaId,
-        usuario: req.user.id
-      });
-
-      if (!cuenta) {
-        return res.status(404).json({ error: 'Cuenta no encontrada' });
-      }
-
       const query = { cuenta: req.params.cuentaId };
 
-      const estadoQuery = buildEstadoQuery(estado);
-      if (estadoQuery) query.estado = estadoQuery;
+      if (estado) query.estado = buildEstadoFilter(estado);
       if (tipo) query.tipo = tipo;
       if (categoria) query.categoria = categoria;
       if (fechaInicio || fechaFin) {
@@ -250,7 +241,7 @@ class TransaccionesController extends BaseController {
       const { fechaInicio, fechaFin } = req.query;
       const query = { 
         usuario: req.user.id,
-        estado: { $in: ESTADOS_BALANCE }
+        estado: 'COMPLETADA'
       };
 
       if (fechaInicio || fechaFin) {
@@ -312,8 +303,7 @@ class TransaccionesController extends BaseController {
 
       const query = { usuario: req.user.id };
 
-      const estadoQuery = buildEstadoQuery(estado);
-      if (estadoQuery) query.estado = estadoQuery;
+      if (estado) query.estado = buildEstadoFilter(estado);
       if (tipo) query.tipo = tipo;
       if (categoria) query.categoria = categoria;
       if (fechaInicio || fechaFin) {

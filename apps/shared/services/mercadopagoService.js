@@ -149,7 +149,7 @@ class MercadoPagoService {
       }
       
       const { data } = await clienteAxios.post(`/api/bankconnections/sync/${connectionId}`, options, {
-        timeout: this.timeout * 2 // Doble timeout para sincronización
+        timeout: 180000 // 3 min — settlement report poll puede tardar
       });
       
       return data;

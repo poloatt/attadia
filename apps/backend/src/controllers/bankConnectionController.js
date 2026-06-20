@@ -291,8 +291,14 @@ class BankConnectionController extends BaseController {
 
       const resultado = await this.bankSyncService.sincronizarConexion(conexion);
 
+      const syncParcial = resultado?.syncParcial || resultado?.detalles?.errores?.some(
+        (e) => e.tipo === 'settlement_report'
+      );
+
       res.json({
-        message: 'Sincronización completada',
+        message: syncParcial
+          ? 'Sincronización parcial: pagos OK, movimientos incompletos. Importá CSV manual si hace falta.'
+          : 'Sincronización completada',
         resultado
       });
 
@@ -661,8 +667,17 @@ class BankConnectionController extends BaseController {
           id: conexion._id,
           nombre: conexion.nombre,
           tipo: conexion.tipo,
-          estado: conexion.estado
+          estado: conexion.estado,
+          mercadopago: conexion.mercadopago
         },
+        sync: syncResult
+          ? {
+              syncParcial: syncResult.syncParcial,
+              transaccionesNuevas: syncResult.transaccionesNuevas,
+              transaccionesActualizadas: syncResult.transaccionesActualizadas,
+              detalles: syncResult.detalles
+            }
+          : null,
         cuenta: {
           id: cuenta._id,
           nombre: cuenta.nombre,
@@ -685,7 +700,7 @@ class BankConnectionController extends BaseController {
   async obtenerDatosCompletosMercadoPago(req, res) {
     try {
       const { conexionId } = req.params;
-      const { fechaDesde, limit = 100 } = req.query;
+      const { fechaDesde, limit = 100, incluirReporte = 'true' } = req.query;
 
       // Verificar que la conexión existe y pertenece al usuario
       const conexion = await BankConnection.findOne({
@@ -715,25 +730,28 @@ class BankConnectionController extends BaseController {
       });
 
       // Obtener datos completos
-      const fechaDesdeEfectiva = fechaDesde || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
       const datosCompletos = await mpDataService.obtenerDatosCompletos({
-        fechaDesde: fechaDesdeEfectiva,
-        limit: parseInt(limit)
+        fechaDesde: fechaDesde || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        limit: parseInt(limit),
+        incluirReporte: incluirReporte !== 'false'
       });
 
       res.json({
-        message: 'Datos completos obtenidos exitosamente',
-        datos: datosCompletos,
+        message: 'Datos de diagnóstico obtenidos exitosamente',
+        ...datosCompletos,
         resumen: {
           totalPagos: datosCompletos.pagos.length,
           totalMovimientos: datosCompletos.movimientosCuenta.length,
-          totalOrdenes: datosCompletos.ordenesComerciante.length,
-          errores: datosCompletos.errores.length
+          totalOrdenes: 0,
+          errores: datosCompletos.errores.length,
+          reportePendiente: datosCompletos.reportePendiente
         },
-        avisos: [
-          'Mercado Pago limita la búsqueda masiva de órdenes de comerciante a los últimos 90 días. Rangos mayores devolverán resultados truncados.'
-        ],
-        fechaDesde: fechaDesdeEfectiva
+        conexion: {
+          id: conexion._id,
+          syncParcial: conexion.mercadopago?.syncParcial || false,
+          ultimoErrorSettlement: conexion.mercadopago?.ultimoErrorSettlement,
+          reportePendiente: conexion.mercadopago?.reportePendiente
+        }
       });
 
     } catch (error) {
@@ -778,11 +796,12 @@ class BankConnectionController extends BaseController {
         usuarioId: req.user.id
       });
 
-      // Obtener datos completos (últimos 90 días, límite de Merchant Orders search)
-      const fechaDesde = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      // Obtener datos completos (últimos 30 días)
+      const fechaDesde = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       const datosCompletos = await mpDataService.obtenerDatosCompletos({
         fechaDesde: fechaDesde.toISOString(),
-        limit: 100
+        limit: 100,
+        incluirReporte: true
       });
 
       const resultados = {
@@ -800,13 +819,26 @@ class BankConnectionController extends BaseController {
         resultados.pagos = resultadoPagos;
       }
 
-      // Procesar movimientos si se solicita
+      // Procesar movimientos del reporte settlement (wallet AR)
       if (procesarMovimientos) {
-        const resultadoMovimientos = await mpDataService.procesarMovimientosCuenta(
-          datosCompletos.movimientosCuenta, 
-          conexion.cuenta
-        );
-        resultados.movimientos = resultadoMovimientos;
+        const cuenta = await Cuentas.findById(conexion.cuenta);
+        if (datosCompletos.movimientosReporte?.length && cuenta) {
+          const movResult = await this.bankSyncService.procesarMovimientosReporte(
+            datosCompletos.movimientosReporte,
+            conexion,
+            cuenta
+          );
+          resultados.movimientos = {
+            nuevas: movResult.nuevas,
+            actualizadas: movResult.actualizadas
+          };
+        } else {
+          const resultadoMovimientos = await mpDataService.procesarMovimientosCuenta(
+            datosCompletos.movimientosCuenta, 
+            conexion.cuenta
+          );
+          resultados.movimientos = resultadoMovimientos;
+        }
       }
 
       // Actualizar estado de la conexión
@@ -834,6 +866,60 @@ class BankConnectionController extends BaseController {
       res.status(500).json({ 
         message: 'Error procesando datos',
         error: error.message 
+      });
+    }
+  }
+
+  // GET /api/bankconnections/mercadopago/sfa-status
+  async getMercadoPagoSfaStatus(req, res) {
+    try {
+      const { getSfaMonitorStatus } = await import('../services/sfaMonitorService.js');
+      const status = await getSfaMonitorStatus();
+      res.json({
+        message: 'Estado Open Finance Argentina (SFA)',
+        ...status
+      });
+    } catch (error) {
+      console.error('Error obteniendo estado SFA:', error);
+      res.status(500).json({
+        message: 'Error obteniendo estado SFA',
+        error: error.message
+      });
+    }
+  }
+
+  // POST /api/bankconnections/mercadopago/importar-csv/:conexionId
+  async importarCsvMercadoPago(req, res) {
+    try {
+      const { conexionId } = req.params;
+      const { csvContent } = req.body;
+
+      if (!csvContent || typeof csvContent !== 'string') {
+        return res.status(400).json({ message: 'csvContent es requerido (texto del reporte CSV)' });
+      }
+
+      const conexion = await BankConnection.findOne({
+        _id: conexionId,
+        usuario: req.user.id,
+        tipo: 'MERCADOPAGO'
+      });
+
+      if (!conexion) {
+        return res.status(404).json({ message: 'Conexión MercadoPago no encontrada' });
+      }
+
+      const resultado = await this.bankSyncService.importarCsvMercadoPago(conexion, csvContent);
+
+      res.json({
+        success: true,
+        message: 'CSV importado exitosamente',
+        ...resultado
+      });
+    } catch (error) {
+      console.error('Error importando CSV MercadoPago:', error);
+      res.status(500).json({
+        message: 'Error importando CSV',
+        error: error.message
       });
     }
   }
@@ -1056,31 +1142,34 @@ class BankConnectionController extends BaseController {
         };
       }
 
-      // 2. Probar /v1/payments/search
+      // 2. Probar /v1/payments/search (collector + payer)
       try {
-        const paymentsRes = await fetch('https://api.mercadopago.com/v1/payments/search?limit=1', {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-            'User-Agent': 'PresentApp/1.0'
-          }
-        });
+        const userId = resultados.users_me?.data?.id;
+        const headers = {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'User-Agent': 'Attadia/1.0'
+        };
 
-        if (paymentsRes.ok) {
-          const paymentsData = await paymentsRes.json();
-          resultados.payments_search = {
-            success: true,
-            total: paymentsData.paging?.total || 0,
-            results: paymentsData.results?.length || 0
-          };
-        } else {
-          const errorText = await paymentsRes.text();
-          resultados.payments_search = {
-            success: false,
-            status: paymentsRes.status,
-            error: errorText
-          };
-        }
+        const collectorRes = await fetch(
+          `https://api.mercadopago.com/v1/payments/search?limit=1&collector.id=${userId}`,
+          { headers }
+        );
+        const payerRes = await fetch(
+          `https://api.mercadopago.com/v1/payments/search?limit=1&payer.id=${userId}`,
+          { headers }
+        );
+
+        resultados.payments_search_collector = {
+          success: collectorRes.ok,
+          status: collectorRes.status,
+          total: collectorRes.ok ? (await collectorRes.json()).paging?.total : null
+        };
+        resultados.payments_search_payer = {
+          success: payerRes.ok,
+          status: payerRes.status,
+          total: payerRes.ok ? (await payerRes.json()).paging?.total : null
+        };
       } catch (error) {
         resultados.payments_search = {
           success: false,
@@ -1088,37 +1177,68 @@ class BankConnectionController extends BaseController {
         };
       }
 
-      // 3. Probar /checkout/preferences (solo lectura)
+      // 3. Probar settlement_report/list
       try {
-        const preferencesRes = await fetch('https://api.mercadopago.com/checkout/preferences?limit=1', {
+        const settlementRes = await fetch('https://api.mercadopago.com/v1/account/settlement_report/list', {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
-            'User-Agent': 'PresentApp/1.0'
+            'User-Agent': 'Attadia/1.0'
           }
         });
 
-        if (preferencesRes.ok) {
-          const preferencesData = await preferencesRes.json();
-          resultados.preferences = {
+        if (settlementRes.ok) {
+          const settlementData = await settlementRes.json();
+          const reports = Array.isArray(settlementData) ? settlementData : (settlementData.results || []);
+          resultados.settlement_report = {
             success: true,
-            total: preferencesData.paging?.total || 0,
-            results: preferencesData.results?.length || 0
+            total: reports.length,
+            latest: reports[0]?.file_name
           };
         } else {
-          const errorText = await preferencesRes.text();
-          resultados.preferences = {
+          const errorText = await settlementRes.text();
+          resultados.settlement_report = {
             success: false,
-            status: preferencesRes.status,
+            status: settlementRes.status,
             error: errorText
           };
         }
       } catch (error) {
-        resultados.preferences = {
+        resultados.settlement_report = {
           success: false,
           error: error.message
         };
       }
+
+      // 4. Probar balance (puede fallar 403 en cuentas personales)
+      try {
+        const userId = resultados.users_me?.data?.id;
+        const balanceRes = await fetch(
+          `https://api.mercadopago.com/users/${userId}/mercadopago_account/balance`,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+              'User-Agent': 'Attadia/1.0'
+            }
+          }
+        );
+
+        if (balanceRes.ok) {
+          resultados.balance = { success: true, data: await balanceRes.json() };
+        } else {
+          resultados.balance = {
+            success: false,
+            status: balanceRes.status,
+            error: await balanceRes.text()
+          };
+        }
+      } catch (error) {
+        resultados.balance = { success: false, error: error.message };
+      }
+
+      // Legacy: checkout preferences (requiere scope write, omitido en wallet mode)
+      resultados.preferences = { skipped: true, reason: 'Wallet mode: scope write removido' };
 
       console.log('Resultados de prueba de permisos:', resultados);
 
@@ -1127,8 +1247,10 @@ class BankConnectionController extends BaseController {
         resultados,
         resumen: {
           users_me: resultados.users_me?.success ? 'OK' : 'ERROR',
-          payments_search: resultados.payments_search?.success ? 'OK' : 'ERROR',
-          preferences: resultados.preferences?.success ? 'OK' : 'ERROR'
+          payments_collector: resultados.payments_search_collector?.success ? 'OK' : 'ERROR',
+          payments_payer: resultados.payments_search_payer?.success ? 'OK' : 'ERROR',
+          settlement_report: resultados.settlement_report?.success ? 'OK' : 'ERROR',
+          balance: resultados.balance?.success ? 'OK' : 'ERROR'
         }
       });
 

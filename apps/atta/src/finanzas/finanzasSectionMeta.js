@@ -3,6 +3,8 @@ export const FINANZAS_STATS_ENDPOINTS = {
   cuentas: '/api/cuentas',
   monedas: '/api/monedas',
   recurrente: '/api/transaccionesrecurrentes',
+  propiedades: '/api/propiedades',
+  inventario: '/api/inventarios',
 };
 
 /** Textos y acentos para tarjetas del hub Finanzas. */
@@ -30,5 +32,13 @@ export const FINANZAS_SECTION_META = {
   deudores: {
     description: 'Préstamos, deudas y cobros pendientes',
     accent: '#F44336',
+  },
+  propiedades: {
+    description: 'Inmuebles, rentas y estado de cada unidad',
+    accent: '#42A5F5',
+  },
+  inventario: {
+    description: 'Mobiliario, objetos y bienes en propiedades',
+    accent: '#26A69A',
   },
 };

@@ -5,11 +5,11 @@ import { TIEMPO_ICON_KEYS, TIEMPO_MODULE_ICON_KEY } from './tiempoIconKeys.js';
 /**
  * Niveles de navegación:
  * - App (Atta/Pulso/Agenda): cambio en sidebar / AppsButton
- * - Branch (solo Atta): Finanzas | Propiedades | Inventario — conmutadores en toolbar
+ * - Branch (solo Atta): Finanzas — hub único con secciones in-page
  * - Page: destinos hoja (toolbar/bottom nav en la rama activa)
  * - Subpage (opcional): hijos de una page (p. ej. recurrentes bajo Transacciones)
  *
- * Propiedades usa /propiedades como hub; Inventario es rama hermana en /propiedades/inventario.
+ * Propiedades e Inventario viven bajo Finanzas (cards en hub /finanzas).
  */
 export const modulos = [
   {
@@ -44,49 +44,48 @@ export const modulos = [
           { id: 'monedas', title: 'Monedas', path: '/finanzas/monedas', icon: 'currency', canAdd: true },
           { id: 'inversiones', title: 'Inversiones', path: '/finanzas/inversiones', icon: 'inversiones', isUnderConstruction: true },
           { id: 'deudores', title: 'Deudores', path: '/finanzas/deudores', icon: 'personSearch', isUnderConstruction: true },
-        ]
-      },
-      {
-        id: 'propiedades',
-        title: 'Propiedades',
-        icon: 'apartment',
-        path: '/propiedades',
-        canAdd: true,
-        subItems: [
-          { id: 'propiedades', title: 'Propiedades', path: '/propiedades', icon: 'apartment', canAdd: true },
-          { id: 'contratos', title: 'Contratos', path: '/propiedades/contratos', icon: 'description', canAdd: true },
-          { id: 'inquilinos', title: 'Inquilinos', path: '/propiedades/inquilinos', icon: 'person', canAdd: true },
-        ],
-      },
-      {
-        id: 'inventario',
-        title: 'Inventario',
-        icon: 'inventario',
-        path: '/propiedades/inventario',
-        canAdd: true,
-        subItems: [
           {
-            id: 'inventario-en-propiedades',
-            title: 'En propiedades',
-            path: '/propiedades/inventario/en-propiedades',
+            id: 'propiedades',
+            title: 'Propiedades',
             icon: 'apartment',
+            path: '/propiedades',
             canAdd: true,
+            subItems: [
+              { id: 'contratos', title: 'Contratos', path: '/propiedades/contratos', icon: 'description', canAdd: true },
+              { id: 'inquilinos', title: 'Inquilinos', path: '/propiedades/inquilinos', icon: 'person', canAdd: true },
+            ],
           },
           {
-            id: 'vehiculos',
-            title: 'Autos',
-            path: '/propiedades/autos',
-            icon: 'auto',
-            isUnderConstruction: true,
-          },
-          {
-            id: 'inventario-sin-ubicacion',
-            title: 'Sin locación',
-            path: '/propiedades/inventario/sin-ubicacion',
+            id: 'inventario',
+            title: 'Inventario',
             icon: 'inventario',
+            path: '/propiedades/inventario',
             canAdd: true,
+            subItems: [
+              {
+                id: 'inventario-en-propiedades',
+                title: 'En propiedades',
+                path: '/propiedades/inventario/en-propiedades',
+                icon: 'apartment',
+                canAdd: true,
+              },
+              {
+                id: 'vehiculos',
+                title: 'Autos',
+                path: '/propiedades/autos',
+                icon: 'auto',
+                isUnderConstruction: true,
+              },
+              {
+                id: 'inventario-sin-ubicacion',
+                title: 'Sin locación',
+                path: '/propiedades/inventario/sin-ubicacion',
+                icon: 'inventario',
+                canAdd: true,
+              },
+            ],
           },
-        ],
+        ]
       },
     ]
   },

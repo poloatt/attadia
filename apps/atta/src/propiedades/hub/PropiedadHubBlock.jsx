@@ -20,7 +20,7 @@ import {
   propiedadHubTitleSx,
 } from '../../hub/styles/attaHubSectionStyles';
 
-export default function PropiedadHubBlock({ propiedad, isLast = false }) {
+export default function PropiedadHubBlock({ propiedad, isLast = false, showHabitaciones = true }) {
   const navigate = useNavigate();
   const estado = getPropiedadEstado(propiedad);
   const habitaciones = propiedad.habitaciones || [];
@@ -63,27 +63,29 @@ export default function PropiedadHubBlock({ propiedad, isLast = false }) {
         </Box>
       </Box>
 
-      {habitaciones.length === 0 ? (
-        <Typography sx={propiedadHubEmptySx}>Sin ambientes</Typography>
-      ) : (
-        <Box sx={propiedadHubCarouselAreaSx}>
-          <MonedasCarousel sx={propiedadHubCarouselSx}>
-            {habitaciones.map((hab) => (
-              <HabitacionTile
-                key={hab.id || hab._id}
-                habitacion={hab}
-                onSelect={() =>
-                  navigate(PROPIEDADES_PATH, {
-                    state: propiedadDetailState(propiedad.id || propiedad._id, {
-                      habitacionId: hab.id || hab._id,
-                    }),
-                  })
-                }
-              />
-            ))}
-          </MonedasCarousel>
-        </Box>
-      )}
+      {showHabitaciones ? (
+        habitaciones.length === 0 ? (
+          <Typography sx={propiedadHubEmptySx}>Sin ambientes</Typography>
+        ) : (
+          <Box sx={propiedadHubCarouselAreaSx}>
+            <MonedasCarousel sx={propiedadHubCarouselSx}>
+              {habitaciones.map((hab) => (
+                <HabitacionTile
+                  key={hab.id || hab._id}
+                  habitacion={hab}
+                  onSelect={() =>
+                    navigate(PROPIEDADES_PATH, {
+                      state: propiedadDetailState(propiedad.id || propiedad._id, {
+                        habitacionId: hab.id || hab._id,
+                      }),
+                    })
+                  }
+                />
+              ))}
+            </MonedasCarousel>
+          </Box>
+        )
+      ) : null}
     </Box>
   );
 }

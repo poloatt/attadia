@@ -1,22 +1,17 @@
 import React, { useState } from 'react';
-import { Box, Collapse, Divider, Typography } from '@mui/material';
+import { Box, Collapse, Typography } from '@mui/material';
 import { KeyboardArrowDown as ChevronDownIcon } from '@mui/icons-material';
 import {
-  propiedadDetailSectionListSx,
-  propiedadDetailSectionHeaderSx,
-  propiedadDetailSectionTitleSx,
-  propiedadDetailSectionIconSx,
-  propiedadDetailSectionChevronSx,
-  propiedadDetailSectionBodySx,
-  propiedadDetailSectionDividerSx,
-} from './propiedadDetailStyles';
+  TaskFormSecondaryLine,
+  taskFormRowIconSx,
+} from '../../../foco/src/foco/taskFormUi';
 
 /**
- * Google Tasks–style expandable section list (single rounded container, hairline dividers).
+ * Filas expandibles estilo Google Calendar (sin contenedor tipo acordeón).
  */
 export default function PropiedadDetailSections({ sections = [] }) {
   const [expandedKey, setExpandedKey] = useState(
-    () => sections.find((s) => s.defaultExpanded)?.key ?? sections[0]?.key ?? null,
+    () => sections.find((section) => section.defaultExpanded)?.key ?? null,
   );
 
   const handleToggle = (key) => {
@@ -26,12 +21,11 @@ export default function PropiedadDetailSections({ sections = [] }) {
   if (!sections.length) return null;
 
   return (
-    <Box sx={propiedadDetailSectionListSx}>
-      {sections.map((section, idx) => {
-        const key = section.key ?? idx;
+    <Box>
+      {sections.map((section) => {
+        const key = section.key;
         const expanded = expandedKey === key;
         const Icon = section.icon;
-        const isLast = idx === sections.length - 1;
 
         return (
           <Box key={key}>
@@ -40,18 +34,62 @@ export default function PropiedadDetailSections({ sections = [] }) {
               type="button"
               onClick={() => handleToggle(key)}
               aria-expanded={expanded}
-              sx={propiedadDetailSectionHeaderSx}
+              sx={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 2,
+                width: '100%',
+                minHeight: 44,
+                py: 1.25,
+                px: 0,
+                border: 'none',
+                bgcolor: 'transparent',
+                cursor: 'pointer',
+                textAlign: 'left',
+                font: 'inherit',
+                color: 'text.primary',
+                borderBottom: 1,
+                borderColor: 'divider',
+                '&:hover': { opacity: 0.92 },
+              }}
             >
-              {Icon ? <Icon sx={propiedadDetailSectionIconSx} /> : null}
-              <Typography component="span" sx={propiedadDetailSectionTitleSx}>
-                {section.title}
-              </Typography>
-              <ChevronDownIcon sx={propiedadDetailSectionChevronSx(expanded)} />
+              {Icon ? <Icon sx={taskFormRowIconSx} /> : <Box sx={{ width: 20, flexShrink: 0 }} />}
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography
+                  component="span"
+                  sx={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, lineHeight: 1.45 }}
+                >
+                  {section.title}
+                </Typography>
+                {!expanded && section.summary ? (
+                  <TaskFormSecondaryLine>{section.summary}</TaskFormSecondaryLine>
+                ) : null}
+              </Box>
+              <ChevronDownIcon
+                sx={{
+                  fontSize: 20,
+                  color: 'text.secondary',
+                  flexShrink: 0,
+                  mt: 0.25,
+                  transition: 'transform 0.2s ease',
+                  transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                }}
+              />
             </Box>
-            <Collapse in={expanded} timeout="auto" unmountOnExit={false}>
-              <Box sx={propiedadDetailSectionBodySx}>{section.children}</Box>
+            <Collapse in={expanded} timeout="auto" unmountOnExit>
+              <Box
+                sx={{
+                  pl: 4.5,
+                  pr: 0,
+                  pt: 0.5,
+                  pb: 1.25,
+                  borderBottom: 1,
+                  borderColor: 'divider',
+                }}
+              >
+                {section.children}
+              </Box>
             </Collapse>
-            {!isLast ? <Divider sx={propiedadDetailSectionDividerSx} /> : null}
           </Box>
         );
       })}

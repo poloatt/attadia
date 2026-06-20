@@ -85,6 +85,16 @@ const bankConnectionSchema = createSchema({
     saldoActual: Number,
     saldoDisponible: Number
   },
+  // Estado específico Mercado Pago (wallet AR)
+  mercadopago: {
+    syncParcial: { type: Boolean, default: false },
+    ultimoErrorSettlement: String,
+    reportePendiente: {
+      beginDate: String,
+      endDate: String,
+      solicitadoEn: Date
+    }
+  },
   // Historial de sincronizaciones
   historialSincronizacion: [{
     fecha: {

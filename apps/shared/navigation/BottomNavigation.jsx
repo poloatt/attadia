@@ -8,7 +8,7 @@ import useResponsive from '../hooks/useResponsive';
 
 /**
  * Navegación inferior móvil.
- * Atta: ramas Finanzas | Propiedades | Inventario (páginas en toolbar centro).
+ * Atta: sin ramas en bottom nav (hub Finanzas único).
  * Foco/Pulso: secciones planas del módulo.
  */
 export default function BottomNavigation() {

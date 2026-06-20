@@ -13,11 +13,10 @@ export function getAuthUrl(redirectUri, state = null) {
   // Generar state aleatorio si no se proporciona (recomendado por MercadoPago)
   const stateParam = state || crypto.randomBytes(32).toString('hex');
   
-  // Scopes necesarios para acceder a información del usuario y pagos
+  // Scopes de lectura para wallet personal (sin write/checkout)
   const scopes = [
-    'read',           // Permite leer información básica del usuario
-    'offline_access', // Permite obtener refresh_token
-    'write'           // Permite crear preferencias de pago
+    'read',
+    'offline_access'
   ].join(' ');
   
   const authUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&redirect_uri=${encodeURIComponent(redirectUri)}&state=${stateParam}&scope=${encodeURIComponent(scopes)}&prompt=consent`;
@@ -111,7 +110,7 @@ export async function exchangeCodeForToken({ code, redirectUri }) {
     
     // Log adicional para diagnosticar el problema de scopes
     console.log('=== DIAGNÓSTICO DE SCOPES ===');
-    console.log('Scopes solicitados:', 'read offline_access write');
+    console.log('Scopes solicitados:', 'read offline_access');
     console.log('Scopes recibidos:', data.scope);
     console.log('Access token recibido:', data.access_token ? data.access_token.substring(0, 20) + '...' : 'NO RECIBIDO');
     console.log('User ID recibido:', data.user_id);

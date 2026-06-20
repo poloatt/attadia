@@ -13,6 +13,12 @@ describe('Tareas.parseGoogleDueDate', () => {
     expect(d.getHours()).toBe(12);
   });
 
+  test('UTC noon marker is treated as date-only (local noon)', () => {
+    const d = Tareas.parseGoogleDueDate('2026-05-20T12:00:00.000Z');
+    expect(d.getHours()).toBe(12);
+    expect(d.getDate()).toBe(20);
+  });
+
   test('RFC3339 with time preserves instant', () => {
     const d = Tareas.parseGoogleDueDate('2026-05-20T16:45:00.000Z');
     expect(d.getUTCHours()).toBe(16);

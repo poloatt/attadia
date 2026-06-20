@@ -170,9 +170,8 @@ export function Propiedades() {
     setEditingPropiedad({
       ...propiedad,
       _id: propiedad._id || propiedad.id,
-      moneda: propiedad.moneda?._id || propiedad.moneda?.id || propiedad.moneda,
+      alias: propiedad.alias || propiedad.titulo || '',
       cuenta: propiedad.cuenta?._id || propiedad.cuenta?.id || propiedad.cuenta,
-      caracteristicas: propiedad.caracteristicas || [],
     });
     setIsFormOpen(true);
   }, []);
@@ -230,7 +229,7 @@ export function Propiedades() {
             setIsFormOpen(false);
             setEditingPropiedad(null);
           }}
-          initialData={editingPropiedad || {}}
+          initialData={editingPropiedad}
           isEditing={!!editingPropiedad}
           createWithHistory={createWithHistory}
           updateWithHistory={updateWithHistory}

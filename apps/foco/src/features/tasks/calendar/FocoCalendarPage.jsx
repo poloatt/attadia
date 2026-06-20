@@ -48,9 +48,12 @@ export default function FocoCalendarPage() {
   const [habitFormOpen, setHabitFormOpen] = useState(false);
   const [habitFormDraft, setHabitFormDraft] = useState(null);
 
-  const { agendaView } = useAgendaFilter(tareas);
+  const { filteredTasks, agendaView } = useAgendaFilter(tareas);
 
-  const calendarTasks = useMemo(() => (Array.isArray(tareas) ? tareas : []), [tareas]);
+  const calendarTasks = useMemo(
+    () => (Array.isArray(filteredTasks) ? filteredTasks : []),
+    [filteredTasks],
+  );
 
   useEffect(() => {
     setViewMode(isMobile ? 'day' : 'week');

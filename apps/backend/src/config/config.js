@@ -57,7 +57,17 @@ const baseConfig = {
     clientId: process.env.MERCADOPAGO_CLIENT_ID,
     clientSecret: process.env.MERCADOPAGO_CLIENT_SECRET,
     accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN,
-    publicKey: process.env.MERCADOPAGO_PUBLIC_KEY
+    publicKey: process.env.MERCADOPAGO_PUBLIC_KEY,
+    settlementPollIntervalMs: parseInt(process.env.MP_SETTLEMENT_POLL_INTERVAL_MS || '3000', 10),
+    settlementMaxPollAttempts: parseInt(process.env.MP_SETTLEMENT_MAX_POLL_ATTEMPTS || '40', 10),
+    settlementPendingMaxAgeMs: parseInt(
+      process.env.MP_SETTLEMENT_PENDING_MAX_AGE_MS || String(24 * 60 * 60 * 1000),
+      10
+    )
+  },
+  openFinance: {
+    sfaEnabled: process.env.OPEN_FINANCE_SFA_ENABLED === 'true',
+    monitorIntervalHours: parseInt(process.env.OPEN_FINANCE_MONITOR_INTERVAL_HOURS || '168', 10)
   }
 };
 

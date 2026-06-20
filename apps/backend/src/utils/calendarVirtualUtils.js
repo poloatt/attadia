@@ -7,6 +7,12 @@ function dayKey(date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function isDateOnlySerieAnchor(anchor) {
+  if (!anchor || Number.isNaN(anchor.getTime())) return false;
+  if (anchor.getMinutes() !== 0 || anchor.getSeconds() !== 0) return false;
+  return anchor.getHours() === 12 || anchor.getHours() === 0;
+}
+
 /** Aplica la hora de la serie (p. ej. due de Google) a cada ocurrencia del RRULE. */
 function occurrenceWithSerieTime(occ, serieDtstart) {
   const occDate = occ instanceof Date ? new Date(occ.getTime()) : new Date(occ);
@@ -14,12 +20,16 @@ function occurrenceWithSerieTime(occ, serieDtstart) {
 
   const anchor = serieDtstart ? new Date(serieDtstart) : null;
   if (anchor && !Number.isNaN(anchor.getTime())) {
-    occDate.setHours(
-      anchor.getHours(),
-      anchor.getMinutes(),
-      anchor.getSeconds(),
-      anchor.getMilliseconds(),
-    );
+    if (isDateOnlySerieAnchor(anchor)) {
+      occDate.setHours(12, 0, 0, 0);
+    } else {
+      occDate.setHours(
+        anchor.getHours(),
+        anchor.getMinutes(),
+        anchor.getSeconds(),
+        anchor.getMilliseconds(),
+      );
+    }
   } else if (occDate.getHours() === 0 && occDate.getMinutes() === 0) {
     occDate.setHours(12, 0, 0, 0);
   }
@@ -31,7 +41,11 @@ export function applySerieTimeToOccurrence(occ, dtstart) {
   const d = new Date(occ);
   const ref = dtstart instanceof Date ? dtstart : new Date(dtstart);
   if (!Number.isNaN(ref.getTime())) {
-    d.setHours(ref.getHours(), ref.getMinutes(), ref.getSeconds(), ref.getMilliseconds());
+    if (isDateOnlySerieAnchor(ref)) {
+      d.setHours(12, 0, 0, 0);
+    } else {
+      d.setHours(ref.getHours(), ref.getMinutes(), ref.getSeconds(), ref.getMilliseconds());
+    }
   } else {
     d.setHours(12, 0, 0, 0);
   }

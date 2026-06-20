@@ -63,7 +63,6 @@ export const useMercadoPago = () => {
       setConnectionStatus('connected');
       
       enqueueSnackbar('¡Conexión MercadoPago exitosa!', { variant: 'success' });
-      window.dispatchEvent(new CustomEvent('finanzasDataUpdated', { detail: { source: 'mercadopago-oauth' } }));
       return result;
     } catch (error) {
       console.error('Error procesando callback MercadoPago:', error);
@@ -83,8 +82,15 @@ export const useMercadoPago = () => {
     setLoading(true);
     try {
       const result = await mercadopagoService.syncConnection(connectionId, options);
-      enqueueSnackbar('Sincronización completada exitosamente', { variant: 'success' });
-      window.dispatchEvent(new CustomEvent('finanzasDataUpdated', { detail: { source: 'mercadopago-sync' } }));
+      const syncParcial = result?.resultado?.syncParcial || result?.syncParcial;
+      if (syncParcial) {
+        enqueueSnackbar(
+          'Sync parcial: pagos OK. Importá CSV manual si faltan movimientos.',
+          { variant: 'warning', autoHideDuration: 8000 }
+        );
+      } else {
+        enqueueSnackbar('Sincronización completada exitosamente', { variant: 'success' });
+      }
       return result;
     } catch (error) {
       console.error('Error sincronizando conexión MercadoPago:', error);
@@ -139,7 +145,6 @@ export const useMercadoPago = () => {
     try {
       const result = await mercadopagoService.processData(connectionId, options);
       enqueueSnackbar('Datos procesados exitosamente', { variant: 'success' });
-      window.dispatchEvent(new CustomEvent('finanzasDataUpdated', { detail: { source: 'mercadopago-process' } }));
       return result;
     } catch (error) {
       console.error('Error procesando datos de MercadoPago:', error);

@@ -6,6 +6,7 @@ import {
 import {
   CuentasHubSection,
   DeudoresHubSection,
+  FinanzasPropiedadesHubSection,
   InversionesHubSection,
   MonedasHubSection,
   TransaccionesHubSection,
@@ -19,6 +20,7 @@ import { PROPIEDADES_STATS_ENDPOINTS } from '../../propiedades/propiedadesStatsE
 import {
   AutosHubSection,
   InventarioEnPropiedadesHubSection,
+  InventarioHubSection,
   InventarioSinUbicacionHubSection,
 } from '../../inventario/hub';
 
@@ -35,6 +37,8 @@ export const ATTA_HUB_BRANCHES = {
       monedas: MonedasHubSection,
       inversiones: InversionesHubSection,
       deudores: DeudoresHubSection,
+      propiedades: FinanzasPropiedadesHubSection,
+      inventario: InventarioHubSection,
     },
     hubExcludePageIds: [],
     getStripPages: getFinanzasBranchPages,

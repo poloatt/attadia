@@ -3,7 +3,10 @@ import {
   getAnchorDate,
   getTaskDue,
   getTaskStart,
+  isDateOnlyDueInstant,
+  isDateOnlyDueRaw,
   isTaskCompleted,
+  normalizeDateOnlyDue,
   parseTaskDate,
 } from '@shared/utils/agendaRules';
 import { normalizeTaskList } from '@shared/utils/taskListUtils';
@@ -24,17 +27,27 @@ const calendarDayKey = (date) => format(date, 'yyyy-MM-dd');
 const isDateOnlyString = (value) =>
   typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
 
-/** Google Tasks date-only due se guarda a mediodía local → tratar como todo el día. */
+const isGoogleTaskOrigin = (task) => Boolean(
+  task?.googleTasksSync?.googleTaskId
+  || task?.googleTasksSync?.enabled
+  || task?.googleTasksSync?.googleTaskListId,
+);
+
+/** Google Tasks no tiene hora en due; legacy UTC puede caer a las 9:00 local. */
 function isGoogleDateOnlyDue(task) {
-  const raw = task?.fechaVencimiento || task?.vencimiento;
-  if (!raw) return false;
-  const s = String(raw);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return true;
-  if (/T00:00:00(\.000)?Z?$/i.test(s)) return true;
-  if (/T00:00:00(\.000)?([+-]\d{2}:?\d{2})?$/i.test(s)) return true;
-  const d = parseTaskDate(raw);
+  const rawDue = task?.fechaVencimiento || task?.vencimiento;
+  const rawStart = task?.fechaInicio || task?.inicio || task?.start;
+  for (const raw of [rawDue, rawStart]) {
+    if (!raw) continue;
+    if (isDateOnlyDueRaw(raw)) return true;
+    const d = parseTaskDate(raw);
+    if (d && isDateOnlyDueInstant(raw, d)) return true;
+  }
+  if (!isGoogleTaskOrigin(task)) return false;
+  const d = parseTaskDate(rawDue || rawStart);
   if (!d) return false;
-  return d.getHours() === 12 && d.getMinutes() === 0;
+  // Sin minutos/segundos → due de Google (incluye 9:00 por T12:00:00Z en UTC-3).
+  return d.getMinutes() === 0 && d.getSeconds() === 0 && d.getMilliseconds() === 0;
 }
 
 export const isAllDayTask = (task) => {
@@ -84,12 +97,17 @@ export const taskToCalendarEvent = (task, objetivos = []) => {
   if (!task) return null;
 
   const tipo = String(task?.tipo || 'TAREA').toUpperCase();
-  const start = tipo === 'EVENTO'
+  const allDay = isAllDayTask(task);
+  const rawAnchor = tipo === 'EVENTO'
+    ? (task?.fechaInicio || task?.inicio || task?.start || task?.fechaVencimiento || task?.vencimiento)
+    : (task?.fechaVencimiento || task?.vencimiento || task?.fechaInicio || task?.inicio || task?.start);
+  let start = tipo === 'EVENTO'
     ? (getTaskStart(task) || getTaskDue(task))
     : (getAnchorDate(task) || getTaskStart(task) || getTaskDue(task));
   if (!start) return null;
-
-  const allDay = isAllDayTask(task);
+  if (allDay) {
+    start = normalizeDateOnlyDue(rawAnchor) || startOfDay(start);
+  }
   const endFromFin = parseTaskDate(task?.fechaFin);
   const endFromDue = parseTaskDate(task?.fechaVencimiento);
 

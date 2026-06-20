@@ -102,6 +102,22 @@ router.post('/mercadopago/procesar-datos/:conexionId',
   }
 );
 
+router.post('/mercadopago/importar-csv/:conexionId',
+  mercadopagoLimiter,
+  (req, res) => {
+    const controller = new BankConnectionController();
+    controller.importarCsvMercadoPago(req, res);
+  }
+);
+
+router.get('/mercadopago/sfa-status',
+  mercadopagoLimiter,
+  (req, res) => {
+    const controller = new BankConnectionController();
+    controller.getMercadoPagoSfaStatus(req, res);
+  }
+);
+
 // Rutas de sincronización con rate limiting y validación
 router.post('/sync/:id', 
   syncLimiter, 

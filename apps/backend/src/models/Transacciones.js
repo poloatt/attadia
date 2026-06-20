@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import { createSchema, commonFields } from './BaseSchema.js';
-import { ESTADOS_BALANCE } from '../utils/transaccionEstados.js';
 
 const transaccionSchema = createSchema({
   descripcion: {
@@ -187,7 +186,7 @@ transaccionSchema.methods.getLabel = function() {
 // Método para obtener el balance de una cuenta
 transaccionSchema.statics.getBalance = async function(cuentaId) {
   const result = await this.aggregate([
-    { $match: { cuenta: new mongoose.Types.ObjectId(cuentaId), estado: { $in: ESTADOS_BALANCE } } },
+    { $match: { cuenta: new mongoose.Types.ObjectId(cuentaId), estado: 'COMPLETADA' } },
     { $group: {
       _id: null,
       ingresos: { 
