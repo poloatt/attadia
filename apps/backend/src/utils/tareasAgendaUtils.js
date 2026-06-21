@@ -42,13 +42,18 @@ export async function getTareasForAgendaRange(userId, rangeFrom, rangeTo) {
   from.setHours(0, 0, 0, 0);
   to.setHours(23, 59, 59, 999);
 
-  const series = await loadSeriesForAgenda(userId, { from, to });
-
-  const realDocs = await Tareas.find(buildOverlapQuery(userId, from, to))
-    .populate('objetivo', 'nombre estado')
-    .populate('serieId', 'rrule activa dtstart')
-    .sort({ fechaInicio: 1 })
-    .lean({ virtuals: true });
+  // Series y tareas reales son independientes: se cargan en paralelo.
+  // El frontend solo usa el id de serieId (no rrule/activa/dtstart), por eso no
+  // se popula serieId. Se excluyen campos pesados no usados por el calendario
+  // (subtareas SÍ se conservan: el form de edición las necesita).
+  const [series, realDocs] = await Promise.all([
+    loadSeriesForAgenda(userId, { from, to }),
+    Tareas.find(buildOverlapQuery(userId, from, to))
+      .select('-googleDueHistory -archivos -googleTasksSync.syncErrors')
+      .populate('objetivo', 'nombre estado')
+      .sort({ fechaInicio: 1 })
+      .lean({ virtuals: true }),
+  ]);
 
   const deduped = dedupeAgendaTasksByGoogleDay(dedupeSerieInstancesForAgenda(realDocs));
   const anchorsBySerie = await loadGoogleAnchorsBySerie(

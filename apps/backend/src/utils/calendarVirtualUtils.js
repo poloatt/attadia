@@ -128,7 +128,9 @@ export async function loadGoogleAnchorsBySerie(userId, serieIds = []) {
     usuario: userId,
     serieId: { $in: ids },
     'googleTasksSync.googleTaskId': { $exists: true, $ne: null },
-  }).lean();
+  })
+    .select('serieId completada estado googleTasksSync.googleTaskId googleTasksSync.completed')
+    .lean();
 
   const map = new Map();
   for (const t of anchors) {

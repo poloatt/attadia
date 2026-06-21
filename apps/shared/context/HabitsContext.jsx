@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '../config/axios';
 
@@ -26,39 +26,54 @@ export const HabitsProvider = ({ children }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
+  // Deduplica llamadas concurrentes a fetchHabits (varios componentes la disparan al montar)
+  const fetchHabitsInFlightRef = useRef(null);
+
   const { enqueueSnackbar } = useSnackbar();
 
   /**
    * Obtener hábitos personalizados del usuario
    */
   const fetchHabits = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await clienteAxios.get('/api/users/habits');
-      setHabits(response.data || {
-        bodyCare: [],
-        nutricion: [],
-        ejercicio: [],
-        cleaning: []
-      });
-      
-      return response.data;
-    } catch (error) {
-      console.error('[HabitsContext] Error al obtener hábitos:', error);
-      const isOffline =
-        !error.response
-        || error.message?.includes('conexión')
-        || error.message?.includes('servidor');
-      setError(error.response?.data?.error || error.message || 'Error al obtener hábitos');
-      if (!isOffline) {
-        enqueueSnackbar('Error al cargar hábitos', { variant: 'error' });
+    if (fetchHabitsInFlightRef.current) {
+      return fetchHabitsInFlightRef.current;
+    }
+
+    const run = (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await clienteAxios.get('/api/users/habits');
+        setHabits(response.data || {
+          bodyCare: [],
+          nutricion: [],
+          ejercicio: [],
+          cleaning: []
+        });
+
+        return response.data;
+      } catch (error) {
+        console.error('[HabitsContext] Error al obtener hábitos:', error);
+        const isOffline =
+          !error.response
+          || error.message?.includes('conexión')
+          || error.message?.includes('servidor');
+        setError(error.response?.data?.error || error.message || 'Error al obtener hábitos');
+        if (!isOffline) {
+          enqueueSnackbar('Error al cargar hábitos', { variant: 'error' });
+        }
+        return null;
+      } finally {
+        setLoading(false);
       }
-      return null;
+    })();
+
+    fetchHabitsInFlightRef.current = run;
+    try {
+      return await run;
     } finally {
-      setLoading(false);
+      fetchHabitsInFlightRef.current = null;
     }
   }, [enqueueSnackbar]);
 

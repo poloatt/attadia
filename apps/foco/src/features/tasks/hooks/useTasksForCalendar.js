@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { endOfDay, endOfWeek, startOfDay, startOfWeek } from 'date-fns';
+import { addDays, addWeeks, endOfDay, endOfWeek, startOfDay, startOfWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useSnackbar } from 'notistack';
 import { normalizeTaskList } from '@shared/utils/taskListUtils';
@@ -28,6 +28,32 @@ function loadAgendaRange(rangeKey, { from, to, includeCompleted, force = false }
   return promise;
 }
 
+function computeRange(base, viewMode) {
+  if (viewMode === 'week') {
+    const start = startOfWeek(base, { weekStartsOn: 1, locale: es });
+    const end = endOfWeek(base, { weekStartsOn: 1, locale: es });
+    return { start: startOfDay(start), end: endOfDay(end) };
+  }
+  return { start: startOfDay(base), end: endOfDay(base) };
+}
+
+function rangeKeyOf(range, includeCompleted) {
+  return `${range.start.getTime()}|${range.end.getTime()}|${includeCompleted}`;
+}
+
+// Prefetch en background: calienta la caché sin tocar loading/tasks del rango actual.
+function prefetchAgendaRange(range, includeCompleted) {
+  const key = rangeKeyOf(range, includeCompleted);
+  const cached = agendaCache.get(key);
+  if (cached && Date.now() - cached.timestamp < AGENDA_TTL_MS) return;
+  if (agendaInFlight.has(key)) return;
+  loadAgendaRange(key, {
+    from: range.start,
+    to: range.end,
+    includeCompleted,
+  }).catch(() => {});
+}
+
 export function useTasksForCalendar(selectedDate, viewMode = 'week') {
   const { enqueueSnackbar } = useSnackbar();
   const [tasks, setTasks] = useState([]);
@@ -43,15 +69,10 @@ export function useTasksForCalendar(selectedDate, viewMode = 'week') {
     return () => window.removeEventListener('setShowCompleted', handleSetShowCompleted);
   }, []);
 
-  const range = useMemo(() => {
-    const base = selectedDate || new Date();
-    if (viewMode === 'week') {
-      const start = startOfWeek(base, { weekStartsOn: 1, locale: es });
-      const end = endOfWeek(base, { weekStartsOn: 1, locale: es });
-      return { start: startOfDay(start), end: endOfDay(end) };
-    }
-    return { start: startOfDay(base), end: endOfDay(base) };
-  }, [selectedDate, viewMode]);
+  const range = useMemo(
+    () => computeRange(selectedDate || new Date(), viewMode),
+    [selectedDate, viewMode],
+  );
 
   const rangeKey = useMemo(
     () => `${range.start.getTime()}|${range.end.getTime()}|${includeCompleted}`,
@@ -125,6 +146,31 @@ export function useTasksForCalendar(selectedDate, viewMode = 'week') {
 
     return () => { cancelled = true; };
   }, [rangeKey, enqueueSnackbar, range.start, range.end, includeCompleted]);
+
+  // Prefetch en background (en idle) del rango adyacente y del "otro modo de vista"
+  // para que avanzar semana/día o alternar día/semana sea instantáneo la primera vez.
+  useEffect(() => {
+    const base = selectedDate || new Date();
+    const runPrefetch = () => {
+      const step = viewMode === 'week' ? addWeeks : addDays;
+      prefetchAgendaRange(computeRange(step(base, 1), viewMode), includeCompleted);
+      prefetchAgendaRange(computeRange(step(base, -1), viewMode), includeCompleted);
+      const otherMode = viewMode === 'week' ? 'day' : 'week';
+      prefetchAgendaRange(computeRange(base, otherMode), includeCompleted);
+    };
+
+    const ric = typeof window !== 'undefined' && window.requestIdleCallback;
+    const id = ric
+      ? window.requestIdleCallback(runPrefetch, { timeout: 1500 })
+      : setTimeout(runPrefetch, 400);
+    return () => {
+      if (ric && typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(id);
+      } else {
+        clearTimeout(id);
+      }
+    };
+  }, [selectedDate, viewMode, includeCompleted]);
 
   return { tasks, setTasks, loading, range, refetch, includeCompleted };
 }

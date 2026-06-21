@@ -130,4 +130,7 @@ objetivoSchema.pre('save', function(next) {
   next();
 });
 
+// Índice para la query principal del panel de Objetivos ({ usuario } / { usuario, estado })
+objetivoSchema.index({ usuario: 1, estado: 1 });
+
 export const Objetivos = mongoose.model('Objetivos', objetivoSchema);

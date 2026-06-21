@@ -608,7 +608,11 @@ tareaSchema.statics.formatGoogleDueDateOnly = function formatGoogleDueDateOnly(d
 tareaSchema.index({ usuario: 1, fechaVencimiento: 1 });
 tareaSchema.index({ usuario: 1, fechaInicio: 1 });
 tareaSchema.index({ usuario: 1, estado: 1, fechaVencimiento: 1 });
+// Rama EVENTO del overlap query de la agenda (fechaInicio <= to, fechaFin >= from)
+tareaSchema.index({ usuario: 1, tipo: 1, fechaInicio: 1 });
 tareaSchema.index({ serieId: 1 });
+// Tareas por objetivo (panel de Objetivos): { objetivo, usuario }
+tareaSchema.index({ usuario: 1, objetivo: 1 });
 tareaSchema.index({ objetivo: 1 });
 // Búsqueda directa por id de Google Tasks durante la sincronización
 tareaSchema.index({ 'googleTasksSync.googleTaskId': 1 });

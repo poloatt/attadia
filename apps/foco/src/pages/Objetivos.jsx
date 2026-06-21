@@ -49,31 +49,35 @@ export function Objetivos() {
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
   const navigate = useNavigate();
 
-  // 1. Definir fetchObjetivos primero con debounce
-  const fetchObjetivosRef = useRef(null);
+  // 1. fetchObjetivos: fetch directo (sin debounce artificial) con dedup in-flight
+  //    para coalescer llamadas concurrentes (montaje + eventos) sin añadir latencia.
+  const fetchObjetivosInFlightRef = useRef(null);
   const fetchObjetivos = useCallback(async () => {
-    // Cancelar llamada anterior si existe
-    if (fetchObjetivosRef.current) {
-      clearTimeout(fetchObjetivosRef.current);
+    if (fetchObjetivosInFlightRef.current) {
+      return fetchObjetivosInFlightRef.current;
     }
-    
-    return new Promise((resolve, reject) => {
-      fetchObjetivosRef.current = setTimeout(async () => {
-        try {
-          // Agregar timestamp para evitar cache
-          const docs = await fetchObjetivosLight();
-          setObjetivos(docs.map((o) => ({ ...o, tareas: o.tareas || [] })));
-          setLoading(false);
-          resolve({ docs });
-        } catch (error) {
-          console.error('Error:', error);
-          enqueueSnackbar('Error al cargar Objetivos', { variant: 'error' });
-          setObjetivos([]);
-          setLoading(false);
-          reject(error);
-        }
-      }, 100); // Debounce de 100ms
-    });
+
+    const run = (async () => {
+      try {
+        const docs = await fetchObjetivosLight();
+        setObjetivos(docs.map((o) => ({ ...o, tareas: o.tareas || [] })));
+        setLoading(false);
+        return { docs };
+      } catch (error) {
+        console.error('Error:', error);
+        enqueueSnackbar('Error al cargar Objetivos', { variant: 'error' });
+        setObjetivos([]);
+        setLoading(false);
+        throw error;
+      }
+    })();
+
+    fetchObjetivosInFlightRef.current = run;
+    try {
+      return await run;
+    } finally {
+      fetchObjetivosInFlightRef.current = null;
+    }
   }, [enqueueSnackbar]);
 
   // Función estable para el historial
@@ -373,11 +377,6 @@ export function Objetivos() {
       window.removeEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
       window.removeEventListener('googleTasksSyncCompleted', handleGoogleTasksSyncCompleted);
     };
-  }, []);
-
-  // Cargar datos iniciales
-  useEffect(() => {
-    fetchObjetivos();
   }, []);
 
   const handleFormSubmit = async (formData) => {

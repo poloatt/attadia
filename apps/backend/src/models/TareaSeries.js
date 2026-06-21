@@ -57,5 +57,7 @@ const tareaSeriesSchema = createSchema({
 
 tareaSeriesSchema.index({ usuario: 1, googleSerieKey: 1 });
 tareaSeriesSchema.index({ usuario: 1, objetivo: 1, activa: 1 });
+// Carga de series activas por rango (loadSeriesForAgenda: activa + dtstart <= to)
+tareaSeriesSchema.index({ usuario: 1, activa: 1, dtstart: 1 });
 
 export const TareaSeries = mongoose.model('TareaSeries', tareaSeriesSchema);

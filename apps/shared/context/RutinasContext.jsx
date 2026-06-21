@@ -77,6 +77,8 @@ export const RutinasProvider = ({ children }) => {
   // Mantener una referencia estable al array de rutinas para evitar dependencias reactivas
   const rutinasRef = React.useRef([]);
   const ensureTodayAttemptedRef = React.useRef(false);
+  // Deduplica llamadas concurrentes a fetchRutinas (FocoCalendarPage + RutinasActionStrip + RutinasPendientesHoy la disparan al montar)
+  const fetchRutinasInFlightRef = React.useRef(null);
   useEffect(() => {
     rutinasRef.current = rutinas;
   }, [rutinas]);
@@ -90,6 +92,11 @@ export const RutinasProvider = ({ children }) => {
 
   // Cargar rutinas
   const fetchRutinas = useCallback(async (forceReload = false) => {
+    if (!forceReload && fetchRutinasInFlightRef.current) {
+      return fetchRutinasInFlightRef.current;
+    }
+
+    const run = (async () => {
     try {
       setLoading(true);
       setError(null);
@@ -185,6 +192,14 @@ export const RutinasProvider = ({ children }) => {
       }
     } finally {
       setLoading(false);
+    }
+    })();
+
+    fetchRutinasInFlightRef.current = run;
+    try {
+      return await run;
+    } finally {
+      fetchRutinasInFlightRef.current = null;
     }
   }, [enqueueSnackbar]);
 

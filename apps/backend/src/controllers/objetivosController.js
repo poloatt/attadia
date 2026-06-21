@@ -51,7 +51,7 @@ class ObjetivosController extends BaseController {
       }
 
       const objetivos = await this.Model.find(query)
-        .select(isLight ? '_id nombre estado color googleTasksSync' : undefined)
+        .select(isLight ? '_id nombre descripcion estado color googleTasksSync' : undefined)
         .lean();
 
       if (!isLight) {
@@ -69,7 +69,11 @@ class ObjetivosController extends BaseController {
         }
       }
 
-      const total = await this.Model.countDocuments(query);
+      // En light devolvemos todos los objetivos del usuario sin paginar, así que
+      // el total es la longitud ya cargada (evita un countDocuments extra).
+      const total = isLight
+        ? objetivos.length
+        : await this.Model.countDocuments(query);
 
       res.json({
         docs: objetivos,

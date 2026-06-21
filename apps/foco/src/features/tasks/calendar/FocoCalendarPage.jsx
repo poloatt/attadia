@@ -8,7 +8,6 @@ import { useHabits, useRutinas } from '@shared/context';
 import { usePageWithHistory } from '@shared/hooks';
 import { applyTimedMoveToTask } from '../../../foco/calendar/dnd/calendarDragUtils';
 import { isTaskCompleted } from '@shared/utils/agendaRules';
-import { getNormalizedToday } from '@shared/utils/dateUtils';
 import { TareaForm, GoogleTasksConfig, buildTareaPayload, syncTareaToGoogleInBackground } from '../form';
 import { useCalendarTaskFilter } from '../hooks/useCalendarTaskFilter';
 import { useHabitsAgendaView } from '../hooks/useHabitsAgendaView';
@@ -92,12 +91,10 @@ export default function FocoCalendarPage() {
   }, [setTitle]);
 
   useEffect(() => {
+    // fetchRutinas es el único responsable de "asegurar la rutina de hoy":
+    // auto-crea (guard ensureTodayAttemptedRef) y la selecciona. Evita la carrera
+    // de doble POST y el GET /verify redundante de un ensureRutinaForDate extra.
     fetchRutinas?.();
-    ensureRutinaForDate(getNormalizedToday(), {
-      rutinas: [],
-      getRutinaById,
-      fetchRutinas,
-    }).catch(() => {});
   }, []);
 
   const syncRutinaForDate = useCallback(async (date) => {

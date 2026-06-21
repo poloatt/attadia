@@ -140,7 +140,10 @@ class TareasController extends BaseController {
         page: parseInt(page),
         limit: parseInt(limit),
         sort,
-        populate: ['objetivo']
+        lean: true,
+        // El panel ya conoce el objetivo (no populate); se excluyen campos pesados.
+        // subtareas se conserva: el form de edición las necesita.
+        select: '-googleDueHistory -archivos -googleTasksSync.syncErrors',
       };
 
       const result = await this.Model.paginate(query, options);
