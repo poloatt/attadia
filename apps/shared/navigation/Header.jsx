@@ -158,9 +158,11 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
               }}>
                 {/* Izquierda: primero Menú y luego Atrás */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, height: '100%' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: HEADER_CONFIG.height, height: HEADER_CONFIG.height }}>
-                    <MenuButton />
-                  </Box>
+                  {!isMobileOrTablet && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: HEADER_CONFIG.height, height: HEADER_CONFIG.height }}>
+                      <MenuButton />
+                    </Box>
+                  )}
                   {shouldShowBackButton && (
                     <IconButton onClick={handleBack} size="small" aria-label="Volver" sx={{ width: HEADER_CONFIG.height, height: HEADER_CONFIG.height }}>
                       {icons.arrowBack ? <icons.arrowBack sx={{ fontSize: 18 }} /> : <span>&larr;</span>}
@@ -210,9 +212,10 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
           ) : (
             <>
               {/* MenuButton fijo - solo en desktop */}
-              <Box sx={{ 
+              {!isMobileOrTablet && (
+                <Box sx={{ 
                   position: 'absolute',
-                  left: { xs: -1, sm: -2, md: -3 }, // Compensar padding del Toolbar
+                  left: { xs: -1, sm: -2, md: -3 },
                   top: 0,
                   width: collapsedWidth,
                   height: HEADER_CONFIG.height,
@@ -223,6 +226,7 @@ import { DynamicIcon } from '../components/common/DynamicIcon';
                 }} ref={leftWidthRef}>
                   <MenuButton />
                 </Box>
+              )}
 
                 {/* Sección de navegación alineada con main content */}
                 <Box sx={{ 

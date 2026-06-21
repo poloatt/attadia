@@ -3,7 +3,6 @@ import { Box, CircularProgress } from '@mui/material';
 import { useSnackbar } from 'notistack';
 import { startOfDay } from 'date-fns';
 import { useResponsive } from '@shared/hooks';
-import { useNavigationBar } from '@shared/context';
 import { useHabits, useRutinas } from '@shared/context';
 import { usePageWithHistory } from '@shared/hooks';
 import { applyTimedMoveToTask } from './dnd/calendarDragUtils';
@@ -25,7 +24,6 @@ import { saveHabitFromForm } from '../habits/templates/saveHabitFromForm';
 
 export default function AgendaCalendarPage() {
   const { isMobile } = useResponsive();
-  const { setTitle } = useNavigationBar();
   const { enqueueSnackbar } = useSnackbar();
   const { rutinas, fetchRutinas, getRutinaById, updateUserHabitPreference } = useRutinas();
   const { habits, addHabit, fetchHabits } = useHabits();
@@ -62,8 +60,16 @@ export default function AgendaCalendarPage() {
     const handleToggleViewMode = () => {
       setViewMode((prev) => (prev === 'day' ? 'week' : 'day'));
     };
+    const handleSetViewMode = (event) => {
+      const { viewMode: vm } = event.detail || {};
+      if (vm === 'day' || vm === 'week') setViewMode(vm);
+    };
     window.addEventListener('agendaToggleViewMode', handleToggleViewMode);
-    return () => window.removeEventListener('agendaToggleViewMode', handleToggleViewMode);
+    window.addEventListener('agendaSetViewMode', handleSetViewMode);
+    return () => {
+      window.removeEventListener('agendaToggleViewMode', handleToggleViewMode);
+      window.removeEventListener('agendaSetViewMode', handleSetViewMode);
+    };
   }, []);
 
   const { events, weekDays } = useAgendaCalendar(
@@ -86,10 +92,6 @@ export default function AgendaCalendarPage() {
     console.error('Error al revertir acción:', error);
     enqueueSnackbar('Error al revertir la acción', { variant: 'error' });
   });
-
-  useEffect(() => {
-    setTitle('Agenda');
-  }, [setTitle]);
 
   useEffect(() => {
     // fetchRutinas es el único responsable de "asegurar la rutina de hoy":

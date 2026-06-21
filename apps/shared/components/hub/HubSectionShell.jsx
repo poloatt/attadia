@@ -16,6 +16,7 @@ export default function HubSectionShell({
   shellSx,
   headerSx,
   bodySx,
+  titleOnly = false,
 }) {
   return (
     <Box sx={{ ...hubSectionShellSx, ...shellSx }}>
@@ -26,7 +27,9 @@ export default function HubSectionShell({
         isActive={isActive}
         headerSx={headerSx}
       />
-      <Box sx={{ ...hubSectionShellBodySx, ...bodySx }}>{children}</Box>
+      {!titleOnly && (
+        <Box sx={{ ...hubSectionShellBodySx, ...bodySx }}>{children}</Box>
+      )}
     </Box>
   );
 }

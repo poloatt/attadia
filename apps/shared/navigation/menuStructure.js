@@ -110,7 +110,8 @@ export const modulos = [
     icon: TIEMPO_MODULE_ICON_KEY,
     path: '/foco',
     subItems: [
-      { id: 'foco', title: 'Agenda', icon: TIEMPO_ICON_KEYS.foco, path: '/foco', canAdd: true },
+      { id: 'foco', title: 'Inicio', icon: TIEMPO_ICON_KEYS.foco, path: '/foco', canAdd: true },
+      { id: 'agenda', title: 'Agenda', icon: TIEMPO_ICON_KEYS.agenda, path: '/agenda', canAdd: true },
       { id: 'objetivos', title: 'Objetivos', icon: TIEMPO_ICON_KEYS.objetivos, path: '/objetivos', canAdd: true },
       { id: 'tareas', title: 'Tareas', icon: TIEMPO_ICON_KEYS.tareas, path: '/tareas', canAdd: true },
     ]
@@ -127,7 +128,7 @@ export const modulos = [
   }
 ];
 
-// Navegación inferior adaptada a la nueva estructura
+// Switcher de apps (sidebar desktop + bottom nav móvil) → hub de cada app
 export const bottomNavigationItems = [
   {
     id: 'assets',
@@ -154,7 +155,7 @@ export const bottomNavigationItems = [
     icon: TIEMPO_MODULE_ICON_KEY,
     path: '/foco',
     type: 'module',
-    activePaths: ['/foco', '/rutinas', '/objetivos', '/tareas', '/archivo']
+    activePaths: ['/foco', '/agenda', '/rutinas', '/objetivos', '/tareas', '/archivo']
   }
 ];
 

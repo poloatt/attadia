@@ -1,1 +1,1 @@
-export { default } from '../features/agenda/AgendaCalendarPage';
+export { default } from '../features/hub/FocoHubPage';

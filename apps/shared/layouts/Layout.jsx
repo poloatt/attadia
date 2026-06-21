@@ -69,8 +69,8 @@ export function Layout() {
   // Padding superior para el main
   const mainTopPadding = totalTopPadding;
 
-  // Determinar si se debe renderizar la sidebar
-  const shouldRenderSidebar = !isMobileOrTablet || (isMobileOrTablet && showSidebarCollapsed && isOpen);
+  // Sidebar solo en desktop; en móvil/tablet se usa BottomNavigation
+  const shouldRenderSidebar = !isMobileOrTablet;
 
   // Calcular el margen para el contenido principal en desktop
   const getMainContentMargin = () => {

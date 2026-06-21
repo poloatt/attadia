@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { useValuesVisibility } from '@shared/context/ValuesVisibilityContext';
 import { cuentaDetailPath } from '../finanzasDeepLink';
 import getCuentaTipoIcon from './getCuentaTipoIcon';
-import { getHubListRowSx, hubLabelSx, hubValueSx, getAttaHubSubsectionSx } from '../../hub';
+import { getHubSubsectionSx } from '@shared/styles/hubSectionStyles';
+import { getHubListRowSx, hubLabelSx, hubValueSx } from '../../hub';
 import { CUENTA_HUB_ROW, getMonedaFromCuenta } from './cuentaConstants';
 import { useCuentaBalance } from './useCuentaBalance';
 
@@ -24,7 +25,7 @@ export function CuentaRowSkeleton() {
       height={CUENTA_HUB_ROW.minHeight}
       animation="wave"
       sx={{
-        ...getAttaHubSubsectionSx(),
+        ...getHubSubsectionSx(),
         mb: CUENTA_HUB_ROW.mb,
         minHeight: CUENTA_HUB_ROW.minHeight,
       }}

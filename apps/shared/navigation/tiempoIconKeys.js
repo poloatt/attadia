@@ -4,7 +4,8 @@
  * - foco: calendario (página Agenda dentro de la app)
  */
 export const TIEMPO_ICON_KEYS = {
-  foco: 'calendarToday',
+  foco: 'eventNote',
+  agenda: 'calendarToday',
   objetivos: 'objetivo',
   tareas: 'task',
 };

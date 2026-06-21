@@ -1,25 +1,22 @@
 import React, { useMemo } from 'react';
 import { Box, Paper, Typography } from '@mui/material';
 import { NAV_TYPO, SPACING } from '../config/uiConstants';
-import { useLocation, Link } from 'react-router-dom';
-import { resolveBottomNavItems, isAttaBranchActive, isPathActive } from './appNavResolver';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { resolveBottomNavItems } from './appNavResolver';
 import { DynamicIcon } from '../components/common/DynamicIcon';
 import useResponsive from '../hooks/useResponsive';
+import { isRouteActive, navigateToAppPath, prefetchAppForPath } from '../utils/navigationUtils';
 
 /**
- * Navegación inferior móvil.
- * Atta: ramas Finanzas | Propiedades | Inventario.
- * Foco/Pulso: secciones planas del módulo.
+ * Navegación inferior móvil: switcher Atta | Pulso | Agenda (hub de cada app).
  */
 export default function BottomNavigation() {
   const { theme } = useResponsive();
+  const navigate = useNavigate();
   const location = useLocation();
   const currentPath = location.pathname;
 
-  const navItems = useMemo(
-    () => resolveBottomNavItems(currentPath),
-    [currentPath],
-  );
+  const navItems = useMemo(() => resolveBottomNavItems(), []);
 
   if (navItems.length === 0) return null;
 
@@ -77,15 +74,16 @@ export default function BottomNavigation() {
             }}
           >
           {navItems.map((item) => {
-            const isActive = item.isBranchSwitcher
-              ? isAttaBranchActive(currentPath, item)
-              : isPathActive(currentPath, item.path);
+            const isActive = isRouteActive(currentPath, item.activePaths || item.path);
 
             return (
               <React.Fragment key={`${item.id}-${item.path}`}>
                 <Box
-                  component={Link}
-                  to={item.path}
+                  component="button"
+                  type="button"
+                  onClick={() => navigateToAppPath(navigate, item.path)}
+                  onMouseEnter={() => prefetchAppForPath(item.path)}
+                  onFocus={() => prefetchAppForPath(item.path)}
                   sx={{
                     display: 'flex',
                     flexDirection: 'column',
@@ -96,6 +94,9 @@ export default function BottomNavigation() {
                     py: 1,
                     px: 1.5,
                     borderRadius: 1,
+                    border: 'none',
+                    bgcolor: 'transparent',
+                    cursor: 'pointer',
                     opacity: item.isUnderConstruction ? 0.5 : 1,
                     pointerEvents: item.isUnderConstruction ? 'none' : 'auto',
                     '&:hover': {

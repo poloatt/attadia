@@ -54,6 +54,7 @@ export const icons = {
   science: ScienceOutlined,
   restaurant: RestaurantOutlined,
   accessTime: AccessTimeOutlined, // reloj — marca app Foco (PWA / switcher)
+  eventNote: EventNoteOutlined,
   calendarToday: CalendarTodayOutlined,
   agenda: CalendarTodayOutlined, // alias Agenda (módulo Tiempo)
   folder: FolderOutlined,

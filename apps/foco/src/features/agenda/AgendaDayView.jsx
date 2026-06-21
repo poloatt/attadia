@@ -74,20 +74,6 @@ export default function AgendaDayView({
 
         <AgendaCalendarDateHeader date={date} viewMode={viewMode} />
 
-        <AgendaAllDayLane
-
-          events={allDayEvents}
-
-          maxVisible={ALL_DAY_MAX_VISIBLE}
-
-          onEventClick={onEventClick}
-
-          onToggleComplete={onToggleComplete}
-
-          compact
-
-        />
-
       </Box>
 
 
@@ -95,6 +81,44 @@ export default function AgendaDayView({
       {showRutinaStrip && (
 
         <AgendaCalendarContextBar targetDate={date} agendaView={agendaView} />
+
+      )}
+
+
+
+      {allDayEvents.length > 0 && (
+
+        <Box
+
+          sx={{
+
+            flexShrink: 0,
+
+            borderBottom: 1,
+
+            borderColor: 'divider',
+
+            bgcolor: 'background.default',
+
+          }}
+
+        >
+
+          <AgendaAllDayLane
+
+            events={allDayEvents}
+
+            maxVisible={ALL_DAY_MAX_VISIBLE}
+
+            onEventClick={onEventClick}
+
+            onToggleComplete={onToggleComplete}
+
+            compact
+
+          />
+
+        </Box>
 
       )}
 

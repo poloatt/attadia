@@ -1,4 +1,4 @@
-import { isTiempoToolbarPath } from './tiempoToolbarPaths.js';
+import { isFocoToolbarPath } from './tiempoToolbarPaths.js';
 
 const ATTA_PATH_PREFIXES = ['/finanzas', '/propiedades'];
 const PULSO_PATH_PREFIXES = ['/datacorporal', '/dieta', '/lab', '/salud'];
@@ -11,7 +11,9 @@ export function isPulsoToolbarPath(path = '') {
   return PULSO_PATH_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));
 }
 
+export { isFocoToolbarPath } from './tiempoToolbarPaths.js';
+
 /** Rutas que usan barra superior unificada (sin header + toolbar legacy). */
 export function isUnifiedToolbarPath(path = '') {
-  return isTiempoToolbarPath(path) || isAttaToolbarPath(path) || isPulsoToolbarPath(path);
+  return isFocoToolbarPath(path) || isAttaToolbarPath(path) || isPulsoToolbarPath(path);
 }

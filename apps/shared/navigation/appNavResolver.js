@@ -9,7 +9,7 @@
  * Foco/Pulso: subItems del módulo = páginas planas (sin rama intermedia).
  */
 
-import { modulos } from './menuStructure';
+import { modulos, bottomNavigationItems } from './menuStructure';
 import {
   findActiveModule,
   findActiveLevel1,
@@ -153,31 +153,19 @@ export function getAttaBranchById(branchId) {
 }
 
 /**
- * Ítems para bottom nav móvil según módulo y ruta.
- * Atta: ramas Finanzas | Propiedades | Inventario.
- * Foco/Pulso: subItems del módulo (secciones planas).
+ * Ítems para bottom nav móvil: switcher de las 3 apps → hub de cada una.
+ * Atta → /finanzas, Pulso → /datacorporal, Foco → /foco.
  */
-export function resolveBottomNavItems(currentPath) {
-  const moduloActivo = findActiveModule(currentPath);
-  if (!moduloActivo) return [];
-
-  if (moduloActivo.id === 'assets') {
-    return getAttaBranches();
-  }
-
-  const orderMap = {
-    foco: 1,
-    objetivos: 2,
-    tareas: 3,
-    rutinas: 4,
-    datacorporal: 1,
-    dieta: 2,
-    lab: 3,
-  };
-
-  return resolveFlatModulePages(moduloActivo.id).sort(
-    (a, b) => (orderMap[a.id] || 999) - (orderMap[b.id] || 999),
-  );
+export function resolveBottomNavItems() {
+  return bottomNavigationItems.map((app) => ({
+    id: app.id,
+    path: app.path,
+    label: app.title,
+    iconKey: app.icon,
+    navLevel: 'app',
+    appKey: app.appKey,
+    activePaths: app.activePaths,
+  }));
 }
 
 /** Toolbar derecha Atta (desktop): Finanzas | Propiedades | Inventario. */
@@ -345,6 +333,43 @@ export function resolveAttaBranchHubLabel(pathname) {
   if (hubPath === '/propiedades') return 'Propiedades';
   if (hubPath === '/propiedades/inventario') return 'Inventario';
   return 'Volver';
+}
+
+const FOCO_HUB_PATH = '/foco';
+
+/**
+ * Hub Foco para botón «atrás» en subpáginas (Agenda, Tareas, Hábitos, etc.).
+ * En /foco no hay destino de vuelta.
+ */
+export function resolveFocoBranchHubPath(pathname) {
+  if (!pathname || pathname === FOCO_HUB_PATH || pathname.startsWith(`${FOCO_HUB_PATH}/`)) {
+    return null;
+  }
+
+  const focoSubPrefixes = [
+    '/agenda',
+    '/tareas',
+    '/objetivos',
+    '/rutinas',
+    '/archivo',
+    '/proyectos',
+    '/tiempo/objetivos',
+    '/tiempo/tareas',
+    '/tiempo/rutinas',
+    '/tiempo/proyectos',
+  ];
+
+  if (focoSubPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) {
+    return FOCO_HUB_PATH;
+  }
+
+  return null;
+}
+
+/** Etiqueta del hub Foco (tooltip del botón atrás). */
+export function resolveFocoBranchHubLabel(pathname) {
+  if (!resolveFocoBranchHubPath(pathname)) return null;
+  return 'Foco';
 }
 
 export function isAttaBranchActive(pathname, branch) {

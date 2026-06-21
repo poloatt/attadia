@@ -1,22 +1,31 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
+  CalendarTodayOutlined,
   DeleteOutlined,
   Google as GoogleIcon,
   TuneOutlined,
 } from '@mui/icons-material';
 import { SystemButtons } from '@shared/components/common/SystemButtons';
 import { ToolbarAddButton } from '@shared/components/common/ToolbarAddButton';
+import { getIconByKey } from '@shared/navigation/menuIcons';
 import { matchTiempoSection } from '@shared/navigation/tiempoToolbarPaths';
+import { TIEMPO_ICON_KEYS } from '@shared/navigation/tiempoIconKeys';
+import focoConfig from '../../config/app';
+
+const TareasMenuIcon = getIconByKey(TIEMPO_ICON_KEYS.tareas);
 
 /**
  * Acciones de contexto del módulo Tiempo (no navegación).
- * Usar en RutinaNavigation (/foco) o en el centro de Objetivos/Tareas en desktop.
+ * Usar en overlay móvil del Hub/Agenda o en el centro de Objetivos/Tareas en desktop.
  */
 export default function TiempoToolbarActions({ section: sectionProp, dense = false }) {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const section = sectionProp || matchTiempoSection(pathname);
   const [hasSelectedItems, setHasSelectedItems] = useState(false);
+
+  const isQuickCreateSection = section === 'hub' || section === 'agenda' || section === 'foco';
 
   useEffect(() => {
     const handleSelectionChange = (event) => {
@@ -60,6 +69,22 @@ export default function TiempoToolbarActions({ section: sectionProp, dense = fal
         buttonSx: commonButtonSx,
         onClick: () => window.dispatchEvent(new CustomEvent('openGoogleTasksConfig')),
       },
+      ...(section === 'hub' || section === 'tareas' ? [{
+        key: 'navAgenda',
+        icon: <CalendarTodayOutlined />,
+        label: 'Ir a Agenda',
+        tooltip: 'Ir a Agenda',
+        buttonSx: commonButtonSx,
+        onClick: () => navigate(focoConfig.routes.agenda),
+      }] : []),
+      ...(section === 'agenda' ? [{
+        key: 'navTareas',
+        icon: <TareasMenuIcon />,
+        label: 'Ir a Tareas',
+        tooltip: 'Ir a Tareas',
+        buttonSx: commonButtonSx,
+        onClick: () => navigate(focoConfig.routes.tareas),
+      }] : []),
       {
         key: 'deleteSelected',
         icon: <DeleteOutlined />,
@@ -81,7 +106,7 @@ export default function TiempoToolbarActions({ section: sectionProp, dense = fal
 
     const addTooltip = section === 'objetivos'
       ? 'Nuevo objetivo'
-      : section === 'foco'
+      : isQuickCreateSection
         ? 'Crear evento, tarea o hábito'
         : 'Nueva tarea';
 
@@ -96,7 +121,7 @@ export default function TiempoToolbarActions({ section: sectionProp, dense = fal
               window.dispatchEvent(new CustomEvent('addObjetivo'));
             } else {
               window.dispatchEvent(new CustomEvent('addTask', {
-                detail: section === 'foco' ? { anchorEl: e?.currentTarget } : {},
+                detail: isQuickCreateSection ? { anchorEl: e?.currentTarget } : {},
               }));
             }
           }}
@@ -106,7 +131,7 @@ export default function TiempoToolbarActions({ section: sectionProp, dense = fal
     });
 
     return list;
-  }, [commonButtonSx, hasSelectedItems, section]);
+  }, [commonButtonSx, hasSelectedItems, isQuickCreateSection, navigate, section]);
 
   if (!section) return null;
 

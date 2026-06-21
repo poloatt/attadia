@@ -17,6 +17,7 @@ import { useAnchorWidths } from '../hooks/useAnchorWidths';
 import { getMainModules, reorderModulesWithActiveFirst, findActiveModule, navigateToAppPath, prefetchAppForPath } from '../utils/navigationUtils';
 import { DynamicIcon, ClickableIcon, IconWithText } from '../components/common/DynamicIcon';
 import { getRutinaNavigation } from './toolbarRegistry';
+import { isAgendaCalendarPath } from './tiempoToolbarPaths';
 import { useRutinas } from '../context/RutinasContext';
 import { calculateCompletionPercentage } from '../utils/rutinaCalculations';
 import { ToggleButton, ToggleButtonGroup, Menu, MenuItem } from '@mui/material';
@@ -66,7 +67,7 @@ export default function Toolbar({
     const specificNavigationRoutes = [
       '/tiempo/rutinas',
       '/rutinas',
-      '/foco',
+      '/agenda',
     ];
     return specificNavigationRoutes.some(route => currentPath.startsWith(route));
   };
@@ -82,7 +83,7 @@ export default function Toolbar({
     const RutinaNavigation = getRutinaNavigation();
     if (
       !RutinaNavigation
-      || !(currentPath.startsWith('/rutinas') || currentPath.startsWith('/tiempo/rutinas') || currentPath.startsWith('/foco'))
+      || !(currentPath.startsWith('/rutinas') || currentPath.startsWith('/tiempo/rutinas') || isAgendaCalendarPath(currentPath))
     ) {
       return null;
     }
@@ -124,8 +125,8 @@ export default function Toolbar({
         currentPage={currentPage}
         totalPages={totalPages}
         onAdd={handleAdd}
-        onSettingsClick={currentPath.startsWith('/foco') ? undefined : handleSettings}
-        navigationMode={currentPath.startsWith('/foco') ? 'week' : 'rutina'}
+        onSettingsClick={isAgendaCalendarPath(currentPath) ? undefined : handleSettings}
+        navigationMode={isAgendaCalendarPath(currentPath) ? 'week' : 'rutina'}
       />
     );
   };
@@ -451,21 +452,40 @@ export default function Toolbar({
                currentPath.startsWith('/tiempo/tareas') || 
                currentPath.startsWith('/objetivos') || 
                currentPath.startsWith('/tareas') ||
-               currentPath.startsWith('/foco'))
+               currentPath.startsWith('/foco') ||
+               isAgendaCalendarPath(currentPath))
             ) {
               
               const getSmartAddButton = () => {
-                const handleSmartAdd = () => {
+                const handleSmartAdd = (e) => {
                   if (currentPath === '/tiempo/objetivos' || currentPath === '/objetivos') {
                     window.dispatchEvent(new CustomEvent('addObjetivo'));
-                  } else if (currentPath === '/tiempo/tareas' || currentPath === '/tareas' || currentPath === '/foco') {
-                    window.dispatchEvent(new CustomEvent('addTask'));
+                  } else if (
+                    currentPath === '/tiempo/tareas'
+                    || currentPath === '/tareas'
+                    || currentPath.startsWith('/foco')
+                    || isAgendaCalendarPath(currentPath)
+                  ) {
+                    window.dispatchEvent(new CustomEvent('addTask', {
+                      detail: (currentPath.startsWith('/foco') || isAgendaCalendarPath(currentPath))
+                        ? { anchorEl: e?.currentTarget }
+                        : {},
+                    }));
                   }
                 };
 
                 const getTooltip = () => {
                   if (currentPath === '/tiempo/objetivos' || currentPath === '/objetivos') return 'Nuevo objetivo';
-                  if (currentPath === '/tiempo/tareas' || currentPath === '/tareas' || currentPath === '/foco') return 'Nueva Tarea';
+                  if (
+                    currentPath === '/tiempo/tareas'
+                    || currentPath === '/tareas'
+                    || currentPath.startsWith('/foco')
+                    || isAgendaCalendarPath(currentPath)
+                  ) {
+                    return currentPath.startsWith('/foco') || isAgendaCalendarPath(currentPath)
+                      ? 'Crear evento, tarea o hábito'
+                      : 'Nueva Tarea';
+                  }
                   return 'Agregar';
                 };
 

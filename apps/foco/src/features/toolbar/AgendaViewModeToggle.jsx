@@ -1,14 +1,18 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button } from '@mui/material';
-import TooltipSpan from '@shared/components/TooltipSpan';
+import { Box, Typography } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 
-const VIEW_MODE_BUTTON_WIDTH = 64;
+const OPTIONS = [
+  { value: 'week', label: 'Semana' },
+  { value: 'day', label: 'Día' },
+];
 
 /**
- * Botón Día/Semana para la barra unificada de Agenda en /foco (desktop).
- * Estado sincronizado vía agendaCalendarState; alterna con agendaToggleViewMode.
+ * Selector "Semana | Día" para Agenda en la barra unificada (mismo slot que Ahora/Luego).
+ * Estado sincronizado vía agendaCalendarState; cambia con agendaSetViewMode.
  */
-export default function AgendaViewModeToggle({ disabled = false }) {
+export default function AgendaViewModeToggle() {
+  const theme = useTheme();
   const [calendarViewMode, setCalendarViewMode] = useState('week');
 
   useEffect(() => {
@@ -20,36 +24,70 @@ export default function AgendaViewModeToggle({ disabled = false }) {
     return () => window.removeEventListener('agendaCalendarState', handleAgendaCalendarState);
   }, []);
 
-  const handleToggleViewMode = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('agendaToggleViewMode'));
-  }, []);
+  const handleSelect = useCallback((viewMode) => {
+    if (viewMode === calendarViewMode) return;
+    setCalendarViewMode(viewMode);
+    window.dispatchEvent(new CustomEvent('agendaSetViewMode', { detail: { viewMode } }));
+  }, [calendarViewMode]);
 
-  const viewModeLabel = calendarViewMode === 'week' ? 'Día' : 'Semana';
-  const viewModeTooltip = calendarViewMode === 'week' ? 'Ver día' : 'Ver semana';
+  const inactiveColor = alpha(theme.palette.text.secondary, 0.55);
 
   return (
-    <TooltipSpan title={viewModeTooltip}>
-      <Button
-        size="small"
-        variant="text"
-        onClick={handleToggleViewMode}
-        disabled={disabled}
-        sx={{
-          textTransform: 'none',
-          fontWeight: 600,
-          minWidth: VIEW_MODE_BUTTON_WIDTH,
-          width: VIEW_MODE_BUTTON_WIDTH,
-          flexShrink: 0,
-          px: 0.75,
-          py: 0.25,
-          lineHeight: 1.2,
-          color: 'text.secondary',
-          '&:hover': { color: 'text.primary' },
-        }}
-        aria-label={viewModeTooltip}
-      >
-        {viewModeLabel}
-      </Button>
-    </TooltipSpan>
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 0.75,
+        flexShrink: 0,
+        userSelect: 'none',
+      }}
+      role="group"
+      aria-label="Vista de calendario"
+    >
+      {OPTIONS.map((option, index) => (
+        <React.Fragment key={option.value}>
+          {index > 0 && (
+            <Typography
+              component="span"
+              sx={{
+                fontSize: '0.75rem',
+                lineHeight: 1,
+                color: alpha(theme.palette.text.secondary, 0.35),
+                fontWeight: 300,
+              }}
+              aria-hidden
+            >
+              |
+            </Typography>
+          )}
+          <Box
+            component="button"
+            type="button"
+            onClick={() => handleSelect(option.value)}
+            aria-pressed={calendarViewMode === option.value}
+            sx={{
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              p: 0,
+              m: 0,
+              font: 'inherit',
+              fontSize: '0.75rem',
+              lineHeight: 1.2,
+              fontWeight: calendarViewMode === option.value ? 700 : 400,
+              color: calendarViewMode === option.value ? 'text.primary' : inactiveColor,
+              opacity: calendarViewMode === option.value ? 1 : 0.85,
+              transition: 'color 0.15s ease, opacity 0.15s ease',
+              '&:hover': {
+                color: calendarViewMode === option.value ? 'text.primary' : 'text.secondary',
+                opacity: 1,
+              },
+            }}
+          >
+            {option.label}
+          </Box>
+        </React.Fragment>
+      ))}
+    </Box>
   );
 }

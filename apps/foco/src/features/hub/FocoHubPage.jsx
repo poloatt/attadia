@@ -1,14 +1,19 @@
 import React from 'react';
 import { Box, CircularProgress } from '@mui/material';
-import TareasTable from './TareasTable';
-import { useTareasPageController } from './useTareasPageController';
-import TareasPageOverlays from './TareasPageOverlays';
+import { useNavigate } from 'react-router-dom';
+import { HubSectionShell } from '@shared/components/hub';
+import { HabitCarouselAhora, HabitCarouselLuego } from '../habits';
+import ObjetivosPreviewSection from '../objetivos/ObjetivosPreviewSection';
+import TareasHubSection from '../tasks/list/TareasHubSection';
+import { useTareasPageController } from '../tasks/list/useTareasPageController';
+import TareasPageOverlays from '../tasks/list/TareasPageOverlays';
+import focoConfig from '../../config/app';
 
 const scrollContainerSx = {
   py: { xs: 1, sm: 2 },
   px: { xs: 0, sm: 1 },
   height: { xs: 'calc(100vh - 160px)', sm: 'calc(100vh - 170px)' },
-  overflowY: { xs: 'auto', sm: 'hidden' },
+  overflowY: 'auto',
   overflowX: 'hidden',
   pb: { xs: 8, sm: 12 },
   '&::-webkit-scrollbar': { width: { xs: '4px', sm: '8px' } },
@@ -17,31 +22,21 @@ const scrollContainerSx = {
   '&::-webkit-scrollbar-thumb:hover': { backgroundColor: 'rgba(0,0,0,0.3)' },
 };
 
-const scrollableColumnSx = {
-  flex: 1,
-  overflowY: 'auto',
-  overflowX: 'hidden',
-  minHeight: 0,
-  pb: 10,
-  '&::-webkit-scrollbar': { width: '8px' },
-  '&::-webkit-scrollbar-track': { backgroundColor: 'rgba(0,0,0,0.1)' },
-  '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '4px' },
-  '&::-webkit-scrollbar-thumb:hover': { backgroundColor: 'rgba(0,0,0,0.3)' },
-};
+export default function FocoHubPage() {
+  const navigate = useNavigate();
 
-export function TareasListPage() {
   const controller = useTareasPageController();
 
   const {
     loading,
     objetivos,
-    refetchObjetivos,
     isMobile,
     agendaView,
     tareasAgenda,
     tareasAhora,
     tareasLuego,
     tareasTableCommonProps,
+    refetchObjetivos,
     isFormOpen,
     setIsFormOpen,
     editingTarea,
@@ -55,6 +50,8 @@ export function TareasListPage() {
     deleteWithHistory,
   } = controller;
 
+  const HabitCarousel = agendaView === 'luego' ? HabitCarouselLuego : HabitCarouselAhora;
+
   return (
     <Box sx={{ px: { xs: 1, sm: 2, md: 3 }, width: '100%' }}>
       <Box sx={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -63,32 +60,24 @@ export function TareasListPage() {
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
               <CircularProgress />
             </Box>
-          ) : isMobile ? (
-            <TareasTable {...tareasTableCommonProps} tareas={tareasAgenda} agendaView={agendaView} />
           ) : (
-            <Box sx={{ display: 'flex', gap: 2, flex: 1, minHeight: 0, overflow: 'hidden', height: '100%' }}>
-              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-                <Box sx={scrollableColumnSx}>
-                  <TareasTable
-                    {...tareasTableCommonProps}
-                    tareas={tareasAhora}
-                    agendaView="ahora"
-                  />
-                </Box>
-              </Box>
-
-              <Box sx={{ width: '1px', bgcolor: 'divider', flexShrink: 0 }} />
-
-              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-                <Box sx={scrollableColumnSx}>
-                  <TareasTable
-                    {...tareasTableCommonProps}
-                    tareas={tareasLuego}
-                    agendaView="luego"
-                  />
-                </Box>
-              </Box>
-            </Box>
+            <>
+              <HubSectionShell
+                title="Hábitos"
+                onTitleClick={() => navigate(focoConfig.routes.rutinas)}
+              >
+                <HabitCarousel variant="iconsRow" showDividers={false} />
+              </HubSectionShell>
+              <ObjetivosPreviewSection titleOnly />
+              <TareasHubSection
+                isMobile={isMobile}
+                agendaView={agendaView}
+                tareasAgenda={tareasAgenda}
+                tareasAhora={tareasAhora}
+                tareasLuego={tareasLuego}
+                tareasTableCommonProps={tareasTableCommonProps}
+              />
+            </>
           )}
         </Box>
 
@@ -112,5 +101,3 @@ export function TareasListPage() {
     </Box>
   );
 }
-
-export default TareasListPage;

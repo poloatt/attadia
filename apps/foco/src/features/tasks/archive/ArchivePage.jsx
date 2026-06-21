@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   IconButton,
@@ -8,11 +8,9 @@ import { useResponsive } from '@shared/hooks';
 import { TareasTable } from '../list';
 import { TareaForm, buildTareaPayload } from '../form';
 import { useSnackbar } from 'notistack';
-import { useNavigationBar } from '@shared/context';
 import { useNavigate } from 'react-router-dom';
 import { usePageWithHistory } from '@shared/hooks';
 import { useValuesVisibility } from '@shared/context';
-import { SystemButtons } from '@shared/navigation';
 import { useObjetivosLight } from '../hooks/useObjetivosLight';
 import {
   createTask,
@@ -29,7 +27,6 @@ export default function ArchivePage() {
   const [selectedTareas, setSelectedTareas] = useState([]);
   const { enqueueSnackbar } = useSnackbar();
   const { isMobile } = useResponsive();
-  const { setTitle, setActions } = useNavigationBar();
   const { showValues } = useValuesVisibility();
   const navigate = useNavigate();
 
@@ -78,39 +75,6 @@ export default function ArchivePage() {
       enqueueSnackbar('Error al eliminar las tareas', { variant: 'error' });
     }
   }, [selectedTareas, enqueueSnackbar, fetchTareas]);
-
-  useLayoutEffect(() => {
-    setTitle('Archivo de Tareas');
-
-    if (!isMobile) {
-      const actions = [];
-
-      if (selectedTareas.length > 0) {
-        actions.push({
-          component: (
-            <SystemButtons.MultiSelectDeleteButton
-              onDelete={handleDeleteSelected}
-              selectedCount={selectedTareas.length}
-            />
-          ),
-          onClick: handleDeleteSelected,
-        });
-
-        actions.push({
-          component: (
-            <SystemButtons.MultiSelectCancelButton
-              onCancel={handleDeactivateMultiSelect}
-            />
-          ),
-          onClick: handleDeactivateMultiSelect,
-        });
-      }
-
-      setActions(actions);
-    } else {
-      setActions([]);
-    }
-  }, [setTitle, setActions, isMobile, selectedTareas.length, handleDeleteSelected, handleDeactivateMultiSelect]);
 
   useEffect(() => {
     fetchTareas();

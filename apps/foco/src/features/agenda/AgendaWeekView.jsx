@@ -138,13 +138,11 @@ export default function AgendaWeekView({
 
         <AgendaWeekHeaderNavColumn selectedDate={selectedDate} />
 
-        {weekDays.map((day, idx) => {
+        {weekDays.map((day) => {
 
           const active = selectedDate && isSameDay(day, selectedDate);
 
           const today = isToday(day);
-
-          const allDay = allDayByDay[idx];
 
           return (
 
@@ -226,20 +224,6 @@ export default function AgendaWeekView({
 
               </ButtonBase>
 
-              <AgendaAllDayLane
-
-                events={allDay}
-
-                maxVisible={ALL_DAY_MAX_VISIBLE}
-
-                onEventClick={onEventClick}
-
-                onToggleComplete={onToggleComplete}
-
-                compact
-
-              />
-
             </Box>
 
           );
@@ -253,6 +237,72 @@ export default function AgendaWeekView({
       {showRutinaStrip && (
 
         <AgendaCalendarContextBar targetDate={selectedDate} agendaView={agendaView} />
+
+      )}
+
+
+
+      {allDayByDay.some((dayEvents) => dayEvents.length > 0) && (
+
+        <Box
+
+          sx={{
+
+            display: 'grid',
+
+            gridTemplateColumns: calendarGridColumns(7),
+
+            flexShrink: 0,
+
+            borderBottom: 1,
+
+            borderColor: 'divider',
+
+            bgcolor: 'background.default',
+
+          }}
+
+        >
+
+          <Box aria-hidden />
+
+          {weekDays.map((day, idx) => (
+
+            <Box
+
+              key={`allday-${day.toISOString()}`}
+
+              sx={{
+
+                borderLeft: 1,
+
+                borderColor: 'divider',
+
+                minWidth: 0,
+
+              }}
+
+            >
+
+              <AgendaAllDayLane
+
+                events={allDayByDay[idx]}
+
+                maxVisible={ALL_DAY_MAX_VISIBLE}
+
+                onEventClick={onEventClick}
+
+                onToggleComplete={onToggleComplete}
+
+                compact
+
+              />
+
+            </Box>
+
+          ))}
+
+        </Box>
 
       )}
 

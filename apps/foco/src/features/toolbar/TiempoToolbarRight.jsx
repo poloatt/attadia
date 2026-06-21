@@ -6,7 +6,15 @@ import { getTiempoNavTargets } from '@shared/navigation/tiempoNavConfig';
 import useResponsive from '@shared/hooks/useResponsive';
 import { matchTiempoSection } from '@shared/navigation/tiempoToolbarPaths';
 
-/** Toolbar derecha: solo navegación entre Agenda / objetivos / Tareas (desktop). */
+const TIEMPO_NAV_ORDER = ['foco', 'agenda', 'objetivos', 'tareas'];
+
+/** Mapa sección toolbar → id de destino en menú (hub usa id foco). */
+function sectionToNavTargetKey(section) {
+  if (section === 'hub') return 'foco';
+  return section;
+}
+
+/** Toolbar derecha: navegación Inicio / Agenda / Objetivos / Tareas (desktop). */
 export default function TiempoToolbarRight() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -29,10 +37,12 @@ export default function TiempoToolbarRight() {
     if (isMobile || !section) return [];
 
     const targets = getTiempoNavTargets();
+    const activeTargetKey = sectionToNavTargetKey(section);
+
     const navButton = (key, targetKey) => {
       const target = targets[targetKey];
       if (!target) return null;
-      const isActive = section === targetKey;
+      const isActive = activeTargetKey === targetKey;
       const Icon = getIconByKey(target.iconKey);
       return {
         key,
@@ -54,11 +64,9 @@ export default function TiempoToolbarRight() {
       };
     };
 
-    return [
-      navButton('navFoco', 'foco'),
-      navButton('navObjetivos', 'objetivos'),
-      navButton('navTareas', 'tareas'),
-    ].filter(Boolean);
+    return TIEMPO_NAV_ORDER
+      .map((targetKey) => navButton(`nav${targetKey}`, targetKey))
+      .filter(Boolean);
   }, [commonButtonSx, isMobile, navigate, section]);
 
   if (navActions.length === 0) return null;

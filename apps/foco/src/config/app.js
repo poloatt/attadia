@@ -24,6 +24,7 @@ export const focoConfig = {
   defaultRoute: '/foco',
   routes: {
     foco: '/foco',
+    agenda: '/agenda',
     rutinas: '/rutinas',
     objetivos: '/objetivos', 
     tareas: '/tareas',
@@ -33,6 +34,7 @@ export const focoConfig = {
   // Features habilitadas
   features: {
     foco: true,
+    agenda: true,
     rutinas: true,
     objetivos: true,
     tareas: true,

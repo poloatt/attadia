@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Container,
   Box,
-  Button,
   IconButton,
   Tooltip,
   CircularProgress,
@@ -10,7 +9,6 @@ import {
 } from '@mui/material';
 import { useResponsive } from '@shared/hooks';
 import {
-  Add as AddIcon,
   ViewModule as ViewModuleIcon,
   ViewList as ViewListIcon,
   FilterList as FilterListIcon,
@@ -25,14 +23,12 @@ import { fetchObjetivosLight, fetchTasksByObjetivo } from '../tasks/api/tasksApi
 import { useSnackbar } from 'notistack';
 import ObjetivosGrid from './ObjetivosGrid';
 import ObjetivoForm from './ObjetivoForm';
-import { useNavigationBar } from '@shared/context';
 import { TareaForm } from '../tasks/form';
 import GoogleTasksConfig from '../tasks/google/GoogleTasksConfig';
 import { HabitsManagerHost } from '../habits';
 import { useValuesVisibility } from '@shared/context';
 import { usePageWithHistory, useGlobalActionHistory } from '@shared/hooks';
 import { useNavigate } from 'react-router-dom';
-import { SystemButtons } from '@shared/components/common/SystemButtons';
 
 export function Objetivos() {
   const [objetivos, setObjetivos] = useState([]);
@@ -46,7 +42,6 @@ export function Objetivos() {
   const [isGoogleTasksConfigOpen, setIsGoogleTasksConfigOpen] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   const { isMobile } = useResponsive();
-  const { setTitle, setActions } = useNavigationBar();
   const { showValues, toggleValuesVisibility } = useValuesVisibility();
   const navigate = useNavigate();
 
@@ -212,93 +207,6 @@ export function Objetivos() {
       enqueueSnackbar('Error al eliminar los Objetivos', { variant: 'error' });
     }
   }, [selectedObjetivos, deleteWithHistory, enqueueSnackbar, fetchObjetivos]);
-
-  useLayoutEffect(() => {
-    setTitle('Objetivos');
-    
-    // Solo mostrar iconos en desktop
-    if (!isMobile) {
-      const actions = [];
-      
-      // Botón "Nuevo objetivo" siempre visible
-      actions.push({
-        component: (
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => {
-              setEditingObjetivo(null);
-              setIsFormOpen(true);
-            }}
-            sx={{ borderRadius: 0 }}
-          >
-            Nuevo objetivo
-          </Button>
-        ),
-        onClick: () => {}
-      });
-      
-      // Si hay objetivos seleccionados, mostrar botones de selección múltiple
-      if (selectedObjetivos.length > 0) {
-        // Botón seleccionar todas/deseleccionar todas
-        actions.push({
-          component: (
-            <Button
-              variant="outlined"
-              onClick={handleSelectAllObjetivos}
-              sx={{ borderRadius: 0 }}
-            >
-              {selectedObjetivos.length === objetivos.length ? 'Deseleccionar Todas' : 'Seleccionar Todas'}
-            </Button>
-          ),
-          onClick: handleSelectAllObjetivos
-        });
-        
-        // Botón de delete
-        actions.push({
-          component: (
-            <SystemButtons.MultiSelectDeleteButton 
-              onDelete={handleDeleteSelected}
-              selectedCount={selectedObjetivos.length}
-            />
-          ),
-          onClick: handleDeleteSelected
-        });
-        
-        // Botón para limpiar selección
-        actions.push({
-          component: (
-            <SystemButtons.MultiSelectCancelButton 
-              onCancel={handleDeactivateMultiSelect}
-            />
-          ),
-          onClick: handleDeactivateMultiSelect
-        });
-      }
-      
-      setActions(actions);
-    } else {
-      // En móvil, solo mostrar el botón "Nuevo objetivo"
-      setActions([
-        {
-          component: (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => {
-                setEditingObjetivo(null);
-                setIsFormOpen(true);
-              }}
-              sx={{ borderRadius: 0 }}
-            >
-              Nuevo objetivo
-            </Button>
-          ),
-          onClick: () => {}
-        }
-      ]);
-    }
-  }, [setTitle, setActions, isMobile, selectedObjetivos.length, objetivos.length, handleSelectAllObjetivos, handleDeleteSelected, handleDeactivateMultiSelect]);
 
   useEffect(() => {
     fetchObjetivos();

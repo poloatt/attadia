@@ -11,7 +11,7 @@ const OPTIONS = [
 ];
 
 /**
- * Selector "Ahora | Luego" para Tareas en móvil.
+ * Selector "Ahora | Luego" para Hub y Tareas en móvil.
  * Emite eventos: agendaViewChanged { view }
  */
 export default function AgendaToolbarCenter() {
@@ -20,7 +20,7 @@ export default function AgendaToolbarCenter() {
   const [agendaView, setAgendaView] = useState('ahora');
   const theme = useTheme();
 
-  if (!isMobile || matchTiempoSection(pathname) !== 'tareas') {
+  if (!isMobile || !['tareas', 'hub'].includes(matchTiempoSection(pathname))) {
     return null;
   }
 
