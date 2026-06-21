@@ -1,6 +1,6 @@
 import React from 'react';
 import { TextField } from '@mui/material';
-import { TaskFormRow, taskFormStandardFieldSx } from './taskFormUi';
+import { TaskFormRow, taskFormStandardFieldSx, taskFormFieldInputSx } from './taskFormUi';
 import { TaskFormIcons } from './taskFormIcons';
 
 /** Descripción en fila con icono (estilo Google Calendar). */
@@ -25,9 +25,8 @@ export default function TaskFormDescriptionField({
         sx={{
           ...taskFormStandardFieldSx,
           '& .MuiInputBase-input': {
-            fontSize: '0.875rem',
+            ...taskFormFieldInputSx,
             color: value ? 'text.primary' : 'text.secondary',
-            py: 0,
           },
         }}
       />

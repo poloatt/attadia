@@ -235,6 +235,7 @@ export default function ArchivePage() {
             selectedTareas={selectedTareas}
             onSelectTarea={handleSelectTarea}
             onActivateMultiSelect={() => {}}
+            objetivos={objetivos}
           />
         </Box>
 

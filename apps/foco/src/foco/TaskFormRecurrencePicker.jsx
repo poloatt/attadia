@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Menu, MenuItem, TextField, Box } from '@mui/material';
 import { KeyboardArrowDown as ChevronDownIcon } from '@mui/icons-material';
-import { TaskFormPillButton } from './taskFormUi';
+import { TaskFormPillButton, taskFormPillChevronSx } from './taskFormUi';
 
 const PRESETS = [
   { id: 'none', label: 'No se repite', rrule: null },
@@ -12,14 +12,19 @@ const PRESETS = [
   { id: 'custom', label: 'Personalizado (RRULE)', rrule: 'custom' },
 ];
 
-function labelForRrule(rrule) {
+export function labelForRrule(rrule) {
   if (!rrule) return 'No se repite';
   const found = PRESETS.find((p) => p.rrule === rrule);
   if (found) return found.label;
   return 'Recurrencia personalizada';
 }
 
-export default function TaskFormRecurrencePicker({ value, onChange, disabled }) {
+export default function TaskFormRecurrencePicker({
+  value,
+  onChange,
+  disabled,
+  variant = 'settings',
+}) {
   const [anchor, setAnchor] = useState(null);
   const [customOpen, setCustomOpen] = useState(false);
   const [customRrule, setCustomRrule] = useState(
@@ -39,14 +44,15 @@ export default function TaskFormRecurrencePicker({ value, onChange, disabled }) 
   };
 
   return (
-    <Box sx={{ alignSelf: 'flex-start' }}>
+    <>
       <TaskFormPillButton
+        variant={variant}
         disabled={disabled}
         onClick={(e) => setAnchor(e.currentTarget)}
-        aria-label="Recurrencia"
+        aria-label="Cadencia"
       >
         {labelForRrule(value)}
-        <ChevronDownIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+        <ChevronDownIcon sx={taskFormPillChevronSx} />
       </TaskFormPillButton>
 
       <Menu anchorEl={anchor} open={open} onClose={() => setAnchor(null)}>
@@ -58,17 +64,19 @@ export default function TaskFormRecurrencePicker({ value, onChange, disabled }) 
       </Menu>
 
       {customOpen && (
-        <TextField
-          size="small"
-          fullWidth
-          label="RRULE"
-          value={customRrule}
-          onChange={(e) => setCustomRrule(e.target.value)}
-          onBlur={() => onChange?.(customRrule.replace(/^RRULE:/, ''))}
-          sx={{ mt: 1, maxWidth: 320 }}
-          helperText="Ej: FREQ=WEEKLY;INTERVAL=1;BYDAY=MO"
-        />
+        <Box sx={{ width: '100%', flexBasis: '100%' }}>
+          <TextField
+            size="small"
+            fullWidth
+            label="RRULE"
+            value={customRrule}
+            onChange={(e) => setCustomRrule(e.target.value)}
+            onBlur={() => onChange?.(customRrule.replace(/^RRULE:/, ''))}
+            sx={{ mt: 0.5, maxWidth: 320 }}
+            helperText="Ej: FREQ=WEEKLY;INTERVAL=1;BYDAY=MO"
+          />
+        </Box>
       )}
-    </Box>
+    </>
   );
 }

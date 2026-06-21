@@ -1,30 +1,26 @@
 import React, { useMemo, useRef, useState } from 'react';
 import {
-  Box,
-  Checkbox,
-  FormControlLabel,
-  Popover,
   Stack,
-  TextField,
   Typography,
 } from '@mui/material';
-import { KeyboardArrowDown as ChevronDownIcon } from '@mui/icons-material';
 import { addMinutes, differenceInMinutes, format, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { isSameDayAsToday } from '@shared/utils/agendaRules';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import {
   TaskFormRow,
-  TaskFormPrimaryLine,
-  TaskFormSecondaryLine,
-  TaskFormSectionLabel,
+  TaskFormAllDaySwitch,
   TaskFormPillButton,
-  taskFormPickerPopoverPaperSx,
+  taskFormDatePillSx,
+  taskFormPillRowSx,
+  taskFormScheduleStackSx,
+  taskFormTimeSeparatorSx,
+  TASK_FORM_PILL_GAP,
 } from './taskFormUi';
 import { TaskFormIcons } from './taskFormIcons';
-import TaskFormRecurrencePicker from './TaskFormRecurrencePicker';
+import { TaskFormDeadlinePill } from './TaskFormDeadlineField';
+import { PickerPopover, PopoverInlineDatePicker, PopoverInlineTimePicker } from './taskFormPickers';
 
 function mergeDateAndTime(day, time) {
   const d = new Date(day);
@@ -42,92 +38,8 @@ function formatTimePill(time) {
   return format(time || new Date(), 'HH:mm');
 }
 
-function formatDeadlineSummary(date) {
-  if (!date) return null;
-  return format(date, 'EEE, d MMM yyyy', { locale: es });
-}
-
-const inlinePickerBoxSx = {
-  '& .MuiPickersPopper-root': {
-    position: 'relative !important',
-    transform: 'none !important',
-    inset: 'unset !important',
-  },
-  '& .MuiPaper-root': {
-    boxShadow: 'none',
-    backgroundImage: 'none',
-  },
-};
-
-const hiddenPickerInputSx = {
-  clip: 'rect(0 0 0 0)',
-  clipPath: 'inset(50%)',
-  height: 1,
-  overflow: 'hidden',
-  position: 'absolute',
-  whiteSpace: 'nowrap',
-  width: 1,
-  p: 0,
-  m: 0,
-  border: 0,
-};
-
-function PickerPopover({ open, anchorEl, onClose, children }) {
-  return (
-    <Popover
-      open={open}
-      anchorEl={anchorEl}
-      onClose={onClose}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-      transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-      PaperProps={{ sx: taskFormPickerPopoverPaperSx }}
-    >
-      {children}
-    </Popover>
-  );
-}
-
-function PopoverInlineDatePicker({ value, onChange }) {
-  return (
-    <Box sx={inlinePickerBoxSx}>
-      <DatePicker
-        value={value}
-        onChange={onChange}
-        views={['year', 'month', 'day']}
-        openTo="day"
-        open
-        renderInput={(params) => (
-          <TextField {...params} sx={hiddenPickerInputSx} tabIndex={-1} aria-hidden />
-        )}
-        PopperProps={{ disablePortal: true }}
-        componentsProps={{ actionBar: { actions: [] } }}
-      />
-    </Box>
-  );
-}
-
-function PopoverInlineTimePicker({ value, onChange }) {
-  return (
-    <Box sx={inlinePickerBoxSx}>
-      <TimePicker
-        value={value}
-        onChange={onChange}
-        ampm={false}
-        minutesStep={5}
-        views={['hours', 'minutes']}
-        open
-        renderInput={(params) => (
-          <TextField {...params} sx={hiddenPickerInputSx} tabIndex={-1} aria-hidden />
-        )}
-        PopperProps={{ disablePortal: true }}
-        componentsProps={{ actionBar: { actions: [] } }}
-      />
-    </Box>
-  );
-}
-
 /**
- * Fecha, todo el día / hora inicio–fin y vencimiento (pills estilo Google Calendar).
+ * Fecha, hora inicio–fin y todo el día (pills estilo Google Calendar).
  */
 export default function TaskFormScheduleFields({
   day,
@@ -141,38 +53,27 @@ export default function TaskFormScheduleFields({
   durationMin = 60,
   onDurationChange,
   showDuration = false,
-  showRecurrence = true,
-  recurrenceRrule = null,
-  onRecurrenceChange,
-  fechaVencimiento,
-  onFechaVencimientoChange,
-  showVencimiento = true,
+  showDeadline = false,
+  deadline = null,
+  onDeadlineChange,
+  deadlinePlaceholder = 'Agregar fecha límite',
   errors = {},
 }) {
   const datePillRef = useRef(null);
   const startPillRef = useRef(null);
   const endPillRef = useRef(null);
-  const deadlinePillRef = useRef(null);
 
   const [dateOpen, setDateOpen] = useState(false);
   const [startOpen, setStartOpen] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
-  const [deadlineExpanded, setDeadlineExpanded] = useState(
-    Boolean(showVencimiento && fechaVencimiento),
-  );
-  const [deadlineOpen, setDeadlineOpen] = useState(false);
 
-  const showTimePills = !allDay && (expanded || showTimeControls || showDuration);
+  const scheduleToday = isSameDayAsToday(day) || (deadline && isSameDayAsToday(deadline));
+  const showTimePills = !allDay && (expanded || showTimeControls || showDuration || scheduleToday);
 
   const startAt = useMemo(() => mergeDateAndTime(day, time), [day, time]);
   const endAt = useMemo(
     () => addMinutes(startAt, durationMin || 60),
     [startAt, durationMin],
-  );
-
-  const deadlineSummary = useMemo(
-    () => formatDeadlineSummary(fechaVencimiento),
-    [fechaVencimiento],
   );
 
   const handleEndTimeChange = (newEnd) => {
@@ -191,15 +92,43 @@ export default function TaskFormScheduleFields({
     }
   };
 
+  const enableTimedScheduleIfToday = (date) => {
+    if (date && isSameDayAsToday(date) && allDay && onAllDayChange) {
+      onAllDayChange(false);
+    }
+  };
+
+  const handleDayChange = (v) => {
+    if (!v) return;
+    const nextDay = startOfDay(v);
+    onDayChange(nextDay);
+    enableTimedScheduleIfToday(nextDay);
+    setDateOpen(false);
+  };
+
+  const handleDeadlineChange = (v) => {
+    onDeadlineChange?.(v);
+    enableTimedScheduleIfToday(v);
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-      <TaskFormRow icon={TaskFormIcons.schedule} showDivider={false}>
-        <Stack spacing={1} sx={{ width: '100%' }}>
-          <Stack direction="row" flexWrap="wrap" alignItems="center" gap={0.75} useFlexGap>
+      <TaskFormRow icon={TaskFormIcons.schedule} showDivider={false} align="flex-start">
+        <Stack spacing={TASK_FORM_PILL_GAP} sx={taskFormScheduleStackSx}>
+          <Stack
+            direction="row"
+            flexWrap="wrap"
+            alignItems="center"
+            gap={TASK_FORM_PILL_GAP}
+            useFlexGap
+            sx={taskFormPillRowSx}
+          >
             <TaskFormPillButton
               ref={datePillRef}
+              variant="schedule"
               onClick={() => setDateOpen(true)}
               aria-label="Cambiar fecha"
+              sx={taskFormDatePillSx}
             >
               {formatDatePill(day)}
             </TaskFormPillButton>
@@ -208,6 +137,7 @@ export default function TaskFormScheduleFields({
               <>
                 <TaskFormPillButton
                   ref={startPillRef}
+                  variant="schedule"
                   onClick={() => setStartOpen(true)}
                   aria-label="Hora de inicio"
                 >
@@ -216,13 +146,13 @@ export default function TaskFormScheduleFields({
                 <Typography
                   component="span"
                   variant="body2"
-                  color="text.secondary"
-                  sx={{ px: 0.25, userSelect: 'none' }}
+                  sx={taskFormTimeSeparatorSx}
                 >
                   –
                 </Typography>
                 <TaskFormPillButton
                   ref={endPillRef}
+                  variant="schedule"
                   onClick={() => setEndOpen(true)}
                   aria-label="Hora de fin"
                 >
@@ -230,35 +160,20 @@ export default function TaskFormScheduleFields({
                 </TaskFormPillButton>
               </>
             )}
+
+            {onAllDayChange && (
+              <TaskFormAllDaySwitch
+                checked={allDay}
+                onChange={handleAllDayChange}
+              />
+            )}
           </Stack>
 
-          {onAllDayChange && (
-            <FormControlLabel
-              control={(
-                <Checkbox
-                  size="small"
-                  checked={allDay}
-                  onChange={(e) => handleAllDayChange(e.target.checked)}
-                  sx={{ py: 0.25 }}
-                />
-              )}
-              label="Todo el día"
-              sx={{
-                ml: 0,
-                mr: 0,
-                alignItems: 'center',
-                '& .MuiFormControlLabel-label': {
-                  fontSize: '0.8125rem',
-                  color: 'text.secondary',
-                },
-              }}
-            />
-          )}
-
-          {showRecurrence && (
-            <TaskFormRecurrencePicker
-              value={recurrenceRrule}
-              onChange={onRecurrenceChange}
+          {showDeadline && !allDay && (
+            <TaskFormDeadlinePill
+              value={deadline}
+              onChange={handleDeadlineChange}
+              placeholder={deadlinePlaceholder}
             />
           )}
         </Stack>
@@ -271,12 +186,7 @@ export default function TaskFormScheduleFields({
       >
         <PopoverInlineDatePicker
           value={day}
-          onChange={(v) => {
-            if (v) {
-              onDayChange(startOfDay(v));
-              setDateOpen(false);
-            }
-          }}
+          onChange={handleDayChange}
         />
       </PickerPopover>
 
@@ -308,55 +218,6 @@ export default function TaskFormScheduleFields({
             />
           </PickerPopover>
         </>
-      )}
-
-      {showVencimiento && onFechaVencimientoChange && (
-        <TaskFormRow icon={TaskFormIcons.deadline} showDivider={false}>
-          {!deadlineExpanded && !fechaVencimiento ? (
-            <TaskFormPrimaryLine onClick={() => setDeadlineExpanded(true)}>
-              Agregar fecha límite
-            </TaskFormPrimaryLine>
-          ) : (
-            <Box sx={{ width: '100%' }}>
-              {deadlineSummary && !deadlineExpanded ? (
-                <>
-                  <TaskFormPrimaryLine onClick={() => setDeadlineExpanded(true)}>
-                    {deadlineSummary}
-                  </TaskFormPrimaryLine>
-                  <TaskFormSecondaryLine>Fecha límite</TaskFormSecondaryLine>
-                </>
-              ) : (
-                <>
-                  <TaskFormSectionLabel>Fecha límite</TaskFormSectionLabel>
-                  <TaskFormPillButton
-                    ref={deadlinePillRef}
-                    onClick={() => setDeadlineOpen(true)}
-                    aria-label="Fecha límite"
-                    sx={{ alignSelf: 'flex-start' }}
-                  >
-                    {fechaVencimiento
-                      ? formatDeadlineSummary(fechaVencimiento)
-                      : 'Elegir fecha'}
-                  </TaskFormPillButton>
-                  <PickerPopover
-                    open={deadlineOpen}
-                    anchorEl={deadlinePillRef.current}
-                    onClose={() => setDeadlineOpen(false)}
-                  >
-                    <PopoverInlineDatePicker
-                      value={fechaVencimiento}
-                      onChange={(v) => {
-                        onFechaVencimientoChange(v);
-                        if (v) setDeadlineExpanded(true);
-                        setDeadlineOpen(false);
-                      }}
-                    />
-                  </PickerPopover>
-                </>
-              )}
-            </Box>
-          )}
-        </TaskFormRow>
       )}
     </LocalizationProvider>
   );

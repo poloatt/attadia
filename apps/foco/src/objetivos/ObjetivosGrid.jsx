@@ -37,7 +37,7 @@ import { addDays, addWeeks, addMonths, isWeekend, startOfMonth } from 'date-fns'
 import { useResponsive } from '@shared/hooks';
 import { useValuesVisibility } from '@shared/context';
 import { getEstadoColor } from '@shared/components/common/StatusSystem';
-import { isTaskCompleted, parseTaskDate } from '@shared/utils/agendaRules';
+import { isTaskCompleted, parseTaskDate, shouldShowEndDateOnCard } from '@shared/utils/agendaRules';
 
 const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory }) => {
   const [open, setOpen] = useState(false);
@@ -414,7 +414,7 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory })
           variant="caption" 
           sx={{ color: 'text.secondary', minWidth: 80, textAlign: 'right' }}
         >
-          {tareaLocal.fechaVencimiento
+          {tareaLocal.fechaVencimiento && shouldShowEndDateOnCard(tareaLocal.fechaVencimiento)
             ? format(new Date(tareaLocal.fechaVencimiento), 'dd MMM yyyy', { locale: es })
             : '—'}
         </Typography>
@@ -435,7 +435,7 @@ const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory })
 
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', mb: 1 }}>
             {format(new Date(tareaLocal.fechaInicio), 'dd MMM yyyy', { locale: es })}
-            {tareaLocal.fechaVencimiento && (
+            {tareaLocal.fechaVencimiento && shouldShowEndDateOnCard(tareaLocal.fechaVencimiento) && (
               <> → {format(new Date(tareaLocal.fechaVencimiento), 'dd MMM yyyy', { locale: es })}</>
             )}
           </Typography>
@@ -556,7 +556,8 @@ const ObjetivoItem = ({
   updateTareaWithHistory,
   isMultiSelectMode,
   isSelected,
-  onSelect
+  onSelect,
+  objetivos = [],
 }) => {
   const { enqueueSnackbar } = useSnackbar();
   const [expanded, setExpanded] = useState(false);
@@ -844,6 +845,7 @@ const ObjetivoItem = ({
                         selectedTareas={[]}
                         onSelectTarea={() => {}}
                         onActivateMultiSelect={() => {}}
+                        objetivos={objetivos}
                   />
                 ))}
                 </TableBody>
@@ -902,6 +904,7 @@ const ObjetivosGrid = ({
           isMultiSelectMode={isMultiSelectMode}
           isSelected={selectedObjetivos?.includes(objetivo._id || objetivo.id) || false}
           onSelect={onSelectobjetivo}
+          objetivos={objetivos}
         />
       ))}
     </Stack>

@@ -10,22 +10,13 @@ import {
   Collapse,
   Box,
   Typography,
-  Tooltip,
-  LinearProgress,
   Stack,
-  Menu,
-  MenuItem,
   Checkbox,
-  TextField,
-  Divider,
-  Chip,
   TableHead,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useResponsive } from '@shared/hooks';
 import {
-  EditOutlined as EditIcon,
-  DeleteOutlined as DeleteIcon,
   CheckCircle as CompletedIcon,
   RadioButtonUnchecked as PendingIcon,
   PlayCircle as InProgressIcon,
@@ -33,13 +24,21 @@ import {
 } from '@mui/icons-material';
 import { format, isToday, isTomorrow, isThisWeek, isThisMonth, isThisYear, addMonths, isBefore, addDays, addWeeks, isWeekend, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
-import clienteAxios from '@shared/config/axios';
 import { useSnackbar } from 'notistack';
 import TareaActions from './TareaActions';
+import TareaExpandedForm from '../foco/TareaExpandedForm';
 import { useValuesVisibility } from '@shared/context/ValuesVisibilityContext';
 import RutinasPendientesHoy from '../rutinas/RutinasPendientesHoy';
 import RutinasLuego from '../rutinas/RutinasLuego';
-import { getAgendaBucket, getAgendaSortKey, isTaskCompleted, parseTaskDate } from '@shared/utils/agendaRules';
+import {
+  getAgendaBucket,
+  getAgendaSortKey,
+  getTaskDue,
+  getTaskStart,
+  isTaskCompleted,
+  parseTaskDate,
+  shouldShowEndDateOnCard,
+} from '@shared/utils/agendaRules';
 import { normalizeTaskList } from '@shared/utils/taskListUtils';
 import { getEstadoColor, TAREA_ESTADOS } from '@shared/components/common/StatusSystem';
 
@@ -119,8 +118,24 @@ const getPeriodo = (tarea, isArchive = false, agendaView = 'ahora') => {
 };
 
 const formatTaskScheduleLabel = (tarea, isMobile) => {
-  const raw = tarea?.fechaVencimiento || tarea?.fechaInicio;
-  const d = parseTaskDate(raw);
+  const due = getTaskDue(tarea);
+  if (due) {
+    if (!shouldShowEndDateOnCard(due)) return '';
+    const raw = tarea?.fechaVencimiento || tarea?.fechaFin || tarea?.vencimiento || tarea?.dueDate;
+    const d = parseTaskDate(raw);
+    if (!d) return '---';
+    const isDateOnly =
+      typeof raw === 'string'
+      && (/^\d{4}-\d{2}-\d{2}$/.test(raw) || /T00:00:00/i.test(raw));
+    const showTime = !isDateOnly && (d.getHours() !== 12 || d.getMinutes() !== 0);
+    if (showTime) {
+      return format(d, isMobile ? 'dd/MM HH:mm' : 'dd MMM HH:mm', { locale: es }).toUpperCase();
+    }
+    return format(d, isMobile ? 'dd/MM' : 'dd MMM', { locale: es }).toUpperCase();
+  }
+
+  const raw = tarea?.fechaInicio;
+  const d = getTaskStart(tarea);
   if (!d) return '---';
   const isDateOnly =
     typeof raw === 'string'
@@ -144,7 +159,7 @@ const ordenarTareas = (tareas) => {
   });
 };
 
-export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea, onActivateMultiSelect, onRefreshData, isOpen = false, onToggleOpen }) => {
+export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea, onActivateMultiSelect, onRefreshData, isOpen = false, onToggleOpen, objetivos = [] }) => {
   const [estadoLocal, setEstadoLocal] = useState(tarea.estado);
   const [subtareasLocal, setSubtareasLocal] = useState(tarea.subtareas || []);
   const [prioridadLocal, setPrioridadLocal] = useState(tarea.prioridad);
@@ -271,67 +286,37 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
 
   const handleSubtareaToggle = async (subtareaId, completada) => {
     if (isUpdating) return;
-    
+
     try {
       setIsUpdating(true);
-      
-      console.log('🔄 Actualizando subtarea:', { subtareaId, completada });
-      
-      // Guardar el estado original ANTES de cualquier cambio
       const tareaOriginal = { ...tarea };
-      
-      // Actualizar estado local inmediatamente
-      const nuevasSubtareas = subtareasLocal.map(st => 
-        st._id === subtareaId ? { ...st, completada: !completada } : st
+      const nuevasSubtareas = subtareasLocal.map((st) =>
+        (st._id === subtareaId ? { ...st, completada: !completada } : st),
       );
       setSubtareasLocal(nuevasSubtareas);
-      
-      // Determinar nuevo estado basado en subtareas
-      const todasCompletadas = nuevasSubtareas.every(st => st.completada);
-      const algunaCompletada = nuevasSubtareas.some(st => st.completada);
+
+      const todasCompletadas = nuevasSubtareas.every((st) => st.completada);
+      const algunaCompletada = nuevasSubtareas.some((st) => st.completada);
       let nuevoEstado = 'PENDIENTE';
-      if (todasCompletadas) {
-        nuevoEstado = 'COMPLETADA';
-      } else if (algunaCompletada) {
-        nuevoEstado = 'EN_PROGRESO';
-      }
+      if (todasCompletadas) nuevoEstado = 'COMPLETADA';
+      else if (algunaCompletada) nuevoEstado = 'EN_PROGRESO';
       setEstadoLocal(nuevoEstado);
 
-      console.log('📝 Enviando actualización:', { subtareas: nuevasSubtareas });
-      
-      // Preparar actualización incluyendo estado y completada cuando corresponda
       const updateData = {
         subtareas: nuevasSubtareas,
-        estado: nuevoEstado
+        estado: nuevoEstado,
+        completada: todasCompletadas,
       };
-      
-      // Si todas las subtareas están completadas, marcar la tarea como completada
-      if (todasCompletadas) {
-        updateData.completada = true;
-      } else {
-        updateData.completada = false;
-      }
-      
+
       const response = await updateWithHistory(tarea._id, updateData, tareaOriginal);
-      
-      console.log('✅ Respuesta recibida:', response);
-      
-      if (response) {
-        // Actualizar estado global
-        if (onUpdateEstado) {
-          onUpdateEstado(response);
-        }
-      }
+      if (response && onUpdateEstado) onUpdateEstado(response);
     } catch (error) {
-      // Revertir cambios locales en caso de error
       setSubtareasLocal(tarea.subtareas || []);
       setEstadoLocal(tarea.estado);
-      console.error('❌ Error al actualizar subtarea:', error);
+      console.error('Error al actualizar subtarea:', error);
       enqueueSnackbar('Error al actualizar subtarea', { variant: 'error' });
     } finally {
-      setTimeout(() => {
-        setIsUpdating(false);
-      }, 300);
+      setTimeout(() => setIsUpdating(false), 300);
     }
   };
 
@@ -399,12 +384,6 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
       default:
         return estado;
     }
-  };
-
-  const getSubtareasProgress = () => {
-    if (!subtareasLocal?.length) return 0;
-    const completadas = subtareasLocal.filter(st => st.completada).length;
-    return (completadas / subtareasLocal.length) * 100;
   };
 
   const handlePush = async (tarea) => {
@@ -840,241 +819,34 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
       >
         <TableCell style={{ paddingBottom: 0, paddingTop: 0, borderBottom: 'none', paddingLeft: 0, paddingRight: 0 }} colSpan={6}>
           <Collapse in={isOpen} timeout="auto" unmountOnExit>
-            <Box sx={{ 
-              py: isMobile ? 0.5 : 0.75,
-              pr: isMobile ? 0.75 : 1,
-              // Nivel anidado (detalle colapsado): fondo sutil + rail de estado para clarificar pertenencia
-              bgcolor: theme.palette.mode === 'dark'
-                ? alpha(theme.palette.common.white, 0.03)
-                : alpha(theme.palette.common.black, 0.03),
-              borderLeft: `2px solid ${estadoTokens.softBorder}`,
-              pl: isMobile ? 0.75 : 1,
-              maxHeight: isMobile ? '250px' : '300px', 
-              overflowY: 'auto',
-              width: '100%',
-              boxSizing: 'border-box',
-              // Asegurar que el borderLeft esté alineado con el left: 0 de las tareas
-              ml: 0,
-              '&::-webkit-scrollbar': {
-                width: isMobile ? '4px' : '8px',
-              },
-              '&::-webkit-scrollbar-track': {
-                backgroundColor: 'rgba(0,0,0,0.1)',
-              },
-              '&::-webkit-scrollbar-thumb': {
-                backgroundColor: 'rgba(0,0,0,0.2)',
-                borderRadius: '4px',
-              },
-              '&::-webkit-scrollbar-thumb:hover': {
-                backgroundColor: 'rgba(0,0,0,0.3)',
-              },
-            }}>
-              {/* Acciones rápidas - al inicio para acceso rápido */}
-              <TareaActions 
-                tarea={{ ...tarea, prioridad: prioridadLocal }}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onPush={handlePush}
-                onDelegate={handleDelegate}
-                onTogglePriority={handleTogglePriority}
-                onComplete={handleComplete}
-                onReactivate={handleReactivate}
-                onCancel={handleCancel}
-              />
-
-              {tarea.descripcion && (
-                <Typography 
-                  variant="body2" 
-                  color="text.secondary"
-                  sx={{ mb: isMobile ? 0.35 : 0.3, mt: isMobile ? 0.35 : 0.3, whiteSpace: 'pre-wrap', fontSize: isMobile ? '0.76rem' : '0.82rem', lineHeight: 1.02 }}
-                >
-                  {showValues ? tarea.descripcion : maskText(tarea.descripcion)}
-                </Typography>
-              )}
-
-              {tarea.subtareas?.length > 0 && (
-                <Box sx={{ mb: 0, width: '100%', boxSizing: 'border-box' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: isMobile ? 0.2 : 0.15, width: '100%' }}>
-                    <Typography 
-                      variant="body2"
-                      sx={{
-                        fontSize: isMobile ? '0.7rem' : '0.75rem',
-                        lineHeight: 1.1,
-                        fontWeight: 500
-                      }}
-                    >
-                      Subtareas
-                    </Typography>
-                    <Typography 
-                      variant="caption" 
-                      color="text.secondary"
-                      sx={{
-                        fontSize: isMobile ? '0.6rem' : '0.65rem',
-                        lineHeight: 1.1
-                      }}
-                    >
-                      {subtareasLocal.filter(st => st.completada).length}/{subtareasLocal.length} completadas
-                    </Typography>
-                  </Box>
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={getSubtareasProgress()} 
-                    sx={{ 
-                      height: 2,
-                      borderRadius: 1,
-                      mb: isMobile ? 0.25 : 0.2,
-                      width: '100%',
-                      backgroundColor: alpha(theme.palette.common.white, 0.14),
-                      '& .MuiLinearProgress-bar': {
-                        backgroundColor: isArchive ? theme.palette.success.main : theme.palette.info.main
-                      }
-                    }}
-                  />
-                  <Box sx={{ pl: 0, pr: 0, width: '100%', boxSizing: 'border-box' }}>
-                    {subtareasLocal.map((subtarea, index) => (
-                      <Box 
-                        key={subtarea._id || index}
-                        sx={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: isMobile ? 0.25 : 0.35,
-                          mb: index === subtareasLocal.length - 1 ? 0 : (isMobile ? 0.1 : 0.05),
-                          py: isMobile ? 0.1 : 0.05,
-                          minHeight: 0,
-                          width: '100%',
-                          boxSizing: 'border-box',
-                          '&:hover': {
-                            backgroundColor: rowHoverBg,
-                            borderRadius: 0.5
-                          }
-                        }}
-                      >
-                        <Checkbox
-                          checked={subtarea.completada}
-                          onChange={() => !isUpdating && handleSubtareaToggle(subtarea._id, subtarea.completada)}
-                          disabled={isUpdating}
-                          size="small"
-                          sx={{
-                            padding: isMobile ? 0.25 : 0.125,
-                            color: 'text.secondary',
-                            '&.Mui-checked': {
-                              color: isArchive ? theme.palette.success.main : theme.palette.text.secondary
-                            },
-                            '& .MuiSvgIcon-root': {
-                              borderRadius: '50%',
-                              fontSize: isMobile ? '1.1rem' : '1rem'
-                            },
-                            '&:hover': {
-                              backgroundColor: 'transparent'
-                            }
-                          }}
-                          icon={<PendingIcon sx={{ fontSize: isMobile ? '1.1rem' : '1rem' }} />}
-                          checkedIcon={<CompletedIcon sx={{ 
-                            fontSize: isMobile ? '1.1rem' : '1rem', 
-                            backgroundColor: 'background.default',
-                            color: isArchive ? theme.palette.success.main : theme.palette.text.secondary,
-                            borderRadius: '50%',
-                            border: '2px solid', 
-                            borderColor: isArchive ? theme.palette.success.main : theme.palette.text.secondary
-                          }} />}
-                        />
-                        <Typography
-                          sx={{
-                            textDecoration: subtarea.completada ? 'line-through' : 'none',
-                            color: subtarea.completada ? 'text.secondary' : 'text.primary',
-                            flex: 1,
-                            cursor: 'pointer',
-                            minWidth: 0,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            fontSize: isMobile ? '0.76rem' : '0.82rem',
-                            lineHeight: 1.02
-                          }}
-                          onClick={() => !isUpdating && handleSubtareaToggle(subtarea._id, subtarea.completada)}
-                        >
-                          {showValues ? subtarea.titulo : maskText(subtarea.titulo)}
-                        </Typography>
-                      </Box>
-                    ))}
-                  </Box>
-                </Box>
-              )}
-
-              {/* Divider sutil antes de las fechas */}
-              <Divider 
-                sx={{ 
-                  my: isMobile ? 0.5 : 0.75,
-                  opacity: 0.3,
-                  borderColor: theme.palette.divider
-                }} 
-              />
-
-              {/* Fechas de inicio y fin - alineadas a izquierda y derecha */}
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                mb: isMobile ? 0.35 : 0.3
-              }}>
-                <Typography 
-                  variant="body2" 
-                  color="text.secondary" 
-                  sx={{ 
-                    fontSize: isMobile ? '0.7rem' : '0.75rem', 
-                    lineHeight: 1.1 
-                  }}
-                >
-                  {format(new Date(tarea.fechaInicio), 'dd MMM yyyy', { locale: es })}
-                </Typography>
-                {tarea.fechaVencimiento && (
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary" 
-                    sx={{ 
-                      fontSize: isMobile ? '0.7rem' : '0.75rem', 
-                      lineHeight: 1.1 
-                    }}
-                  >
-                    {format(new Date(tarea.fechaVencimiento), 'dd MMM yyyy', { locale: es })}
-                  </Typography>
-                )}
+            <Box sx={{ py: isMobile ? 0.25 : 0.5, width: '100%' }}>
+              <Box sx={{ mb: 0.5 }}>
+                <TareaActions
+                  tarea={{ ...tarea, prioridad: prioridadLocal }}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  onPush={handlePush}
+                  onDelegate={handleDelegate}
+                  onTogglePriority={handleTogglePriority}
+                  onComplete={handleComplete}
+                  onReactivate={handleReactivate}
+                  onCancel={handleCancel}
+                />
               </Box>
-
-              {tarea.archivos?.length > 0 && (
-                <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                    Archivos Adjuntos
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    {tarea.archivos.map((archivo, index) => (
-                      <Paper
-                        key={index}
-                        sx={{
-                          p: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1,
-                          bgcolor: theme.palette.mode === 'dark'
-                            ? alpha(theme.palette.common.white, 0.03)
-                            : alpha(theme.palette.common.black, 0.03),
-                          border: 1,
-                          borderColor: 'divider',
-                          borderRadius: 1,
-                          '&:hover': {
-                            borderColor: selectionAccent,
-                            cursor: 'pointer'
-                          }
-                        }}
-                      >
-                        <Typography variant="body2">
-                          {archivo.nombre}
-                        </Typography>
-                      </Paper>
-                    ))}
-                  </Box>
-                </Box>
-              )}
+              <TareaExpandedForm
+                tarea={tarea}
+                objetivos={objetivos}
+                subtareas={subtareasLocal}
+                estadoLocal={estadoLocal}
+                prioridadLocal={prioridadLocal}
+                showValues={showValues}
+                maskText={maskText}
+                onClose={() => onToggleOpen?.(tarea._id)}
+                onToggleSubtarea={handleSubtareaToggle}
+                isUpdating={isUpdating}
+                isArchive={isArchive}
+                isMobile={isMobile}
+              />
             </Box>
           </Collapse>
         </TableCell>
@@ -1083,7 +855,7 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
   );
 };
 
-const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea, onActivateMultiSelect, groupingEnabled = true, agendaView = 'ahora', showCompleted = false, onRefreshData, showHabitCarousel = true }) => {
+const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea, onActivateMultiSelect, groupingEnabled = true, agendaView = 'ahora', showCompleted = false, onRefreshData, showHabitCarousel = true, objetivos = [] }) => {
   const [openTareaId, setOpenTareaId] = useState(null);
   const { isMobile, theme } = useResponsive();
   const { maskText } = useValuesVisibility();
@@ -1171,6 +943,7 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
                   onRefreshData={onRefreshData}
                   isOpen={openTareaId === (tarea._id || tarea.id)}
                   onToggleOpen={handleToggleTarea}
+                  objetivos={objetivos}
                 />
               ))}
             </TableBody>

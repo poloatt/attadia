@@ -13,12 +13,15 @@ import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import { addMinutes, endOfDay, setHours, setMinutes, startOfDay } from 'date-fns';
 import {
   TaskFormRow,
-  TaskTipoChips,
+  TaskFormTipoSelector,
+  TASK_FORM_TIPO_ALL,
   TaskFormHeader,
   TaskFormFooter,
   TaskFormPillSelect,
   taskFormGooglePaperSx,
   taskFormTitleFieldSx,
+  taskFormCaptionTextSx,
+  taskFormPillTextSx,
 } from './taskFormUi';
 import { TaskFormIcons } from './taskFormIcons';
 import TaskFormDescriptionField from './TaskFormDescriptionField';
@@ -28,20 +31,16 @@ import HabitFormFields from './HabitFormFields';
 import { availableIcons } from '@shared/utils/iconConfig';
 import { DEFAULT_HABIT_CONFIG } from './habitFormDefaults';
 import { normalizeTimeOfDay } from '@shared/utils/timeOfDayUtils';
+import { isSameDayAsToday } from '@shared/utils/agendaRules';
 
 const DEFAULT_HABIT_ICON = availableIcons[0]?.name || 'Add';
-
-const TIPO_OPTIONS = [
-  { value: 'EVENTO', label: 'Evento' },
-  { value: 'TAREA', label: 'Tarea' },
-  { value: 'HABITO', label: 'Hábito' },
-];
 
 const INITIAL_ADVANCED = {
   descripcion: '',
   estado: 'PENDIENTE',
   prioridad: 'BAJA',
   fechaVencimiento: null,
+  rrule: null,
   objetivo: '',
   subtareas: [],
 };
@@ -226,6 +225,7 @@ export default function FocoQuickCreate({
     estado: advanced.estado,
     prioridad: advanced.prioridad,
     fechaVencimiento,
+    rrule: advanced.rrule,
     objetivo: expanded && tipo === 'TAREA' ? advanced.objetivo : objetivo,
     subtareas: advanced.subtareas,
   }), [tipo, advanced, fechaVencimiento, expanded, objetivo]);
@@ -279,6 +279,7 @@ export default function FocoQuickCreate({
           descripcion: advancedFormData.descripcion,
           estado: advancedFormData.estado,
           prioridad: advancedFormData.prioridad,
+          rrule: advancedFormData.rrule || null,
           subtareas: advancedFormData.subtareas,
         });
       }
@@ -327,18 +328,19 @@ export default function FocoQuickCreate({
   const formBody = (
     <Box sx={{ pb: 0.5 }}>
       <TaskFormHeader onClose={onClose}>
-        <TaskTipoChips
-          value={tipo}
-          onChange={(v) => {
-            setTipo(v);
-            if (v !== 'TAREA' && v !== 'HABITO') setExpanded(false);
-          }}
-          options={TIPO_OPTIONS}
-          sx={{ mb: 1.5, pr: 4 }}
-        />
+        <Box sx={{ mb: 1.5, pr: 4 }}>
+          <TaskFormTipoSelector
+            value={tipo}
+            options={TASK_FORM_TIPO_ALL}
+            onChange={(v) => {
+              setTipo(v);
+              if (v !== 'TAREA') setExpanded(false);
+            }}
+          />
+        </Box>
 
         {tipo === 'HABITO' && (
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, lineHeight: 1.4 }}>
+          <Typography variant="caption" sx={{ display: 'block', mb: 1, ...taskFormCaptionTextSx }}>
             Los hábitos se guardan en Rutinas y no se sincronizan con Google Tasks.
           </Typography>
         )}
@@ -360,6 +362,41 @@ export default function FocoQuickCreate({
         <TaskFormDescriptionField
           value={advanced.descripcion}
           onChange={(e) => setAdvanced((prev) => ({ ...prev, descripcion: e.target.value }))}
+        />
+      )}
+
+      {expanded && tipo === 'TAREA' && (
+        <TareaFormAdvancedFields
+          variant="compact"
+          formData={advancedFormData}
+          setFormData={(updater) => {
+            setAdvanced((prev) => {
+              const base = {
+                descripcion: prev.descripcion,
+                estado: prev.estado,
+                prioridad: prev.prioridad,
+                fechaVencimiento: prev.fechaVencimiento ?? fechaFin,
+                rrule: prev.rrule,
+                objetivo: prev.objetivo || objetivo,
+                subtareas: prev.subtareas,
+                tipo,
+              };
+              const next = typeof updater === 'function' ? updater(base) : updater;
+              return {
+                descripcion: next.descripcion ?? prev.descripcion,
+                estado: next.estado ?? prev.estado,
+                prioridad: next.prioridad ?? prev.prioridad,
+                fechaVencimiento: next.fechaVencimiento ?? prev.fechaVencimiento ?? fechaFin,
+                rrule: next.rrule ?? prev.rrule,
+                objetivo: next.objetivo ?? prev.objetivo ?? objetivo,
+                subtareas: next.subtareas ?? prev.subtareas,
+              };
+            });
+          }}
+          errors={errors}
+          objetivos={objetivos}
+          showSettings={false}
+          showObjetivo={false}
         />
       )}
 
@@ -409,26 +446,29 @@ export default function FocoQuickCreate({
       ) : (
         <TaskFormScheduleFields
           day={day}
-          onDayChange={(v) => setDay(startOfDay(v))}
+          onDayChange={(v) => {
+            const nextDay = startOfDay(v);
+            setDay(nextDay);
+            if (isSameDayAsToday(nextDay)) setAllDay(false);
+          }}
           time={time}
           onTimeChange={setTime}
           allDay={allDay}
           onAllDayChange={setAllDay}
           expanded={expanded}
-          showTimeControls={expanded || !allDay}
+          showTimeControls={expanded || !allDay || isSameDayAsToday(day)}
           durationMin={durationMin}
           onDurationChange={setDurationMin}
           showDuration={expanded}
-          showRecurrence={expanded}
-          fechaVencimiento={fechaVencimiento}
-          onFechaVencimientoChange={(v) => setAdvanced((prev) => ({ ...prev, fechaVencimiento: v }))}
-          showVencimiento={expanded}
+          showDeadline={expanded}
+          deadline={fechaVencimiento}
+          onDeadlineChange={(v) => setAdvanced((prev) => ({ ...prev, fechaVencimiento: v }))}
           errors={errors}
         />
       )}
 
       {tipo === 'TAREA' && !expanded && (
-        <TaskFormRow icon={TaskFormIcons.objetivo} showDivider={false}>
+        <TaskFormRow icon={TaskFormIcons.objetivo} showDivider={false} align="center">
           <TaskFormPillSelect
             value={objetivo}
             onChange={(e) => {
@@ -456,6 +496,7 @@ export default function FocoQuickCreate({
                     estado: prev.estado,
                     prioridad: prev.prioridad,
                     fechaVencimiento: prev.fechaVencimiento ?? fechaFin,
+                    rrule: prev.rrule,
                     objetivo: prev.objetivo || objetivo,
                     subtareas: prev.subtareas,
                     tipo,
@@ -469,6 +510,7 @@ export default function FocoQuickCreate({
                     estado: next.estado ?? prev.estado,
                     prioridad: next.prioridad ?? prev.prioridad,
                     fechaVencimiento: next.fechaVencimiento ?? prev.fechaVencimiento ?? fechaFin,
+                    rrule: next.rrule ?? prev.rrule,
                     objetivo: next.objetivo ?? prev.objetivo ?? objetivo,
                     subtareas: next.subtareas ?? prev.subtareas,
                   };
@@ -476,7 +518,7 @@ export default function FocoQuickCreate({
               }}
               errors={errors}
               objetivos={objetivos}
-              showSubtareas={tipo === 'TAREA'}
+              showSubtareas={tipo !== 'TAREA'}
             />
           </Box>
         </Collapse>
@@ -499,7 +541,7 @@ export default function FocoQuickCreate({
               />
             )}
             onClick={handleMoreOptions}
-            sx={{ textTransform: 'none', color: 'text.secondary', px: 0 }}
+            sx={{ textTransform: 'none', color: 'text.secondary', px: 0, ...taskFormPillTextSx }}
           >
             {moreOptionsLabel}
           </Button>

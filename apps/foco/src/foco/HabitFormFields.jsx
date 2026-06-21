@@ -41,7 +41,7 @@ export default function HabitFormFields({
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column' }}>
       {showSection && (
-        <TaskFormRow icon={TaskFormIcons.habit} showDivider={false}>
+        <TaskFormRow icon={TaskFormIcons.habit} showDivider={false} align="center">
           <TaskFormPillSelect
             value={section}
             onChange={(e) => onSectionChange(e.target.value)}

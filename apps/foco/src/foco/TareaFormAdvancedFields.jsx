@@ -1,12 +1,9 @@
 import React, { useState } from 'react';
 import {
   Box,
-  Button,
   IconButton,
-  MenuItem,
   Stack,
   TextField,
-  Tooltip,
 } from '@mui/material';
 import {
   addMinutes,
@@ -20,11 +17,16 @@ import {
   TaskFormRow,
   TaskFormPillSelect,
   taskFormStandardFieldSx,
+  taskFormRowContentIndent,
+  taskFormFieldInputSx,
+  taskFormActionIconSx,
 } from './taskFormUi';
 import { TaskFormIcons } from './taskFormIcons';
 import TaskFormDescriptionField from './TaskFormDescriptionField';
 import TaskFormScheduleFields from './TaskFormScheduleFields';
+import TaskFormSettingsRow from './TaskFormSettingsRow';
 import { findObjetivoById } from './buildTareaPayload';
+import { isSameDayAsToday } from '@shared/utils/agendaRules';
 
 function toDateOrNull(value) {
   if (!value) return null;
@@ -66,9 +68,15 @@ export default function TareaFormAdvancedFields({
   Objetivos: ObjetivosProp,
   objetivoId = null,
   variant = 'full',
+  showDescription = variant === 'full',
+  showSchedule = variant === 'full',
+  showSettings = true,
+  showObjetivo = true,
   showSubtareas = true,
+  showVencimiento = true,
   onCreateObjetivo,
   onToggleSubtarea,
+  onAttach,
 }) {
   const objetivos = objetivosProp ?? ObjetivosProp ?? [];
   const [newSubtarea, setNewSubtarea] = useState('');
@@ -166,9 +174,10 @@ export default function TareaFormAdvancedFields({
     nextAllDay = scheduleAllDay,
     nextDuration = scheduleDuration,
   }) => {
+    const effectiveAllDay = isSameDayAsToday(nextDay) ? false : nextAllDay;
     let inicio;
     let fin;
-    if (nextAllDay) {
+    if (effectiveAllDay) {
       inicio = startOfDay(nextDay);
       fin = endOfDay(nextDay);
     } else {
@@ -177,7 +186,7 @@ export default function TareaFormAdvancedFields({
     }
     setFormData((prev) => ({
       ...prev,
-      allDay: nextAllDay,
+      allDay: effectiveAllDay,
       fechaInicio: inicio,
       fechaFin: fin,
     }));
@@ -196,121 +205,70 @@ export default function TareaFormAdvancedFields({
       durationMin={scheduleDuration}
       onDurationChange={(mins) => applySchedule({ nextDuration: mins, nextAllDay: false })}
       showDuration
-      showRecurrence
-      recurrenceRrule={formData.rrule}
-      onRecurrenceChange={(rr) => setFormData((prev) => ({ ...prev, rrule: rr }))}
-      fechaVencimiento={formData.fechaVencimiento}
-      onFechaVencimientoChange={(v) => setFormData((prev) => ({ ...prev, fechaVencimiento: v }))}
-      showVencimiento
+      showDeadline={showVencimiento}
+      deadline={formData.fechaVencimiento}
+      onDeadlineChange={(v) => setFormData((prev) => ({ ...prev, fechaVencimiento: v }))}
       errors={errors}
     />
   );
 
-  const estadoPrioridadBlock = (
-    <TaskFormRow icon={TaskFormIcons.estado} showDivider={false}>
-      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-        <TextField
-          select
-          variant="standard"
-          fullWidth
-          value={formData.estado || 'PENDIENTE'}
-          onChange={handleChange('estado')}
-          error={!!errors.estado}
-          helperText={errors.estado}
-          required
-          InputProps={{ disableUnderline: true }}
-          sx={{
-            ...taskFormStandardFieldSx,
-            '& .MuiInputBase-input': { fontSize: '0.875rem' },
-          }}
-        >
-          <MenuItem value="PENDIENTE">Pendiente</MenuItem>
-          <MenuItem value="EN_PROGRESO">En Progreso</MenuItem>
-          <MenuItem value="COMPLETADA">Completada</MenuItem>
-        </TextField>
-        {tipo !== 'EVENTO' && (
-          <Tooltip title="Prioridad">
-            <Button
-              variant="text"
-              onClick={() => handleChange('prioridad')({
-                target: { value: formData.prioridad === 'ALTA' ? 'BAJA' : 'ALTA' },
-              })}
-              startIcon={<TaskFormIcons.prioridad />}
-              size="small"
-              sx={{
-                color: formData.prioridad === 'ALTA' ? 'error.main' : 'text.secondary',
-                flexShrink: 0,
-                minWidth: 'auto',
-                textTransform: 'none',
-              }}
-            >
-              {formData.prioridad === 'ALTA' ? 'Alta' : 'Baja'}
-            </Button>
-          </Tooltip>
-        )}
-      </Box>
-    </TaskFormRow>
+  const settingsBlock = (
+    <TaskFormSettingsRow
+      estado={formData.estado}
+      onEstadoChange={handleChange('estado')}
+      prioridad={formData.prioridad}
+      onPrioridadChange={(value) => setFormData((prev) => ({ ...prev, prioridad: value }))}
+      showRecurrence
+      recurrenceRrule={formData.rrule}
+      onRecurrenceChange={(rr) => setFormData((prev) => ({ ...prev, rrule: rr }))}
+      tipo={tipo}
+      onAttach={onAttach}
+      errors={errors}
+    />
   );
 
-  const objetivoBlock = !objetivoId && tipo !== 'EVENTO' && (
-    <TaskFormRow icon={TaskFormIcons.objetivo} showDivider={false}>
-      <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', flexDirection: 'column' }}>
-        <TaskFormPillSelect
-          value={objetivoValue}
-          onChange={handleObjetivoChange}
-          options={objetivoOptions}
-          emptyLabel="Sin objetivo"
-          error={errors.objetivo || errors.proyecto}
-          required
-        />
-        {onCreateObjetivo && (
-          <Button
-            variant="text"
-            startIcon={<TaskFormIcons.add />}
-            onClick={onCreateObjetivo}
-            size="small"
-            sx={{ color: 'text.secondary', minWidth: 'auto', textTransform: 'none', px: 0 }}
-          >
-            Nuevo objetivo
-          </Button>
-        )}
-      </Box>
+  const objetivoBlock = showObjetivo && !objetivoId && tipo !== 'EVENTO' && (
+    <TaskFormRow icon={TaskFormIcons.objetivo} showDivider={false} align="center">
+      <TaskFormPillSelect
+        value={objetivoValue}
+        onChange={handleObjetivoChange}
+        options={objetivoOptions}
+        emptyLabel="Sin objetivo"
+        error={errors.objetivo || errors.proyecto}
+        required
+        onCreate={onCreateObjetivo}
+        createLabel="Nuevo objetivo"
+      />
     </TaskFormRow>
   );
 
   const subtareasBlock = showSubtareas && tipo !== 'EVENTO' && (
     <>
       <TaskFormRow icon={TaskFormIcons.subtarea} showDivider={false}>
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-          <TextField
-            variant="standard"
-            value={newSubtarea}
-            onChange={(e) => setNewSubtarea(e.target.value)}
-            placeholder="Agregar subtarea"
-            onKeyPress={(e) => e.key === 'Enter' && handleAddSubtarea()}
-            fullWidth
-            InputProps={{ disableUnderline: true }}
-            sx={{
-              ...taskFormStandardFieldSx,
-              '& .MuiInputBase-input': {
-                fontSize: '0.875rem',
-                color: 'text.secondary',
-              },
-            }}
-          />
-          <Button
-            variant="text"
-            startIcon={<TaskFormIcons.add />}
-            onClick={handleAddSubtarea}
-            size="small"
-            sx={{ color: 'text.secondary', flexShrink: 0, minWidth: 'auto', textTransform: 'none' }}
-          >
-            Añadir
-          </Button>
-        </Box>
+        <TextField
+          variant="standard"
+          fullWidth
+          placeholder="Agregar subtarea"
+          value={newSubtarea}
+          onChange={(e) => setNewSubtarea(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleAddSubtarea();
+            }
+          }}
+          InputProps={{ disableUnderline: true }}
+          sx={{
+            ...taskFormStandardFieldSx,
+            '& .MuiInputBase-input': {
+              ...taskFormFieldInputSx,
+              color: newSubtarea ? 'text.primary' : 'text.secondary',
+            },
+          }}
+        />
       </TaskFormRow>
       {subtareas.length > 0 && (
-        <Stack spacing={0.5} sx={{ pl: 5.5, pb: 1 }}>
+        <Stack spacing={0.5} sx={{ pl: taskFormRowContentIndent, pb: 1 }}>
           {subtareas.map((subtarea, index) => (
             <Box
               key={subtarea._id || `sub-${index}`}
@@ -328,7 +286,7 @@ export default function TareaFormAdvancedFields({
                 sx={{
                   p: 0.5,
                   color: subtarea.completada ? 'success.main' : 'text.secondary',
-                  '& .MuiSvgIcon-root': { fontSize: '1.25rem' },
+                  '& .MuiSvgIcon-root': taskFormActionIconSx,
                 }}
               >
                 <TaskFormIcons.completed />
@@ -359,7 +317,7 @@ export default function TareaFormAdvancedFields({
                 sx={{
                   p: 0.5,
                   color: 'error.main',
-                  '& .MuiSvgIcon-root': { fontSize: '1.25rem' },
+                  '& .MuiSvgIcon-root': taskFormActionIconSx,
                 }}
               >
                 <TaskFormIcons.close />
@@ -374,25 +332,26 @@ export default function TareaFormAdvancedFields({
   if (variant === 'compact') {
     return (
       <>
-        {estadoPrioridadBlock}
-        {objetivoBlock}
         {subtareasBlock}
+        {showSettings && settingsBlock}
+        {objetivoBlock}
       </>
     );
   }
 
   return (
     <>
-      <TaskFormDescriptionField
-        value={formData.descripcion}
-        onChange={handleChange('descripcion')}
-      />
+      {showDescription && (
+        <TaskFormDescriptionField
+          value={formData.descripcion}
+          onChange={handleChange('descripcion')}
+        />
+      )}
 
-      {scheduleBlock}
-
-      {estadoPrioridadBlock}
-      {objetivoBlock}
       {subtareasBlock}
+      {showSchedule && scheduleBlock}
+      {showSettings && settingsBlock}
+      {objetivoBlock}
     </>
   );
 }

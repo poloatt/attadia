@@ -8,19 +8,30 @@ import {
   Stack,
   Chip,
   Tooltip,
+  Typography,
 } from '@mui/material';
 import {
-  TaskTipoChips,
+  TaskFormTipoSelector,
+  TASK_FORM_TIPO_ALL,
+  TASK_FORM_TIPO_EVENTO_TAREA,
   TaskFormSectionLabel,
   TaskFormHeader,
   TaskFormFooter,
   taskFormDialogPaperSx,
   taskFormTitleFieldSx,
+  taskFormChipSx,
+  taskFormPillTextSx,
+  TASK_FORM_CHEVRON_ICON_SIZE,
 } from '../foco/taskFormUi';
 import TareaFormAdvancedFields from '../foco/TareaFormAdvancedFields';
+import HabitFormFields from '../foco/HabitFormFields';
+import { DEFAULT_HABIT_CONFIG } from '../foco/habitFormDefaults';
+import { saveHabitFromForm } from '../foco/saveHabitFromForm';
+import { availableIcons } from '@shared/utils/iconConfig';
+import { normalizeTimeOfDay } from '@shared/utils/timeOfDayUtils';
 import { useResponsive } from '@shared/hooks';
+import { useHabits, useRutinas } from '@shared/context';
 import {
-  AttachFile as AttachFileIcon,
   Google as GoogleIcon,
   Sync as SyncIcon,
 } from '@mui/icons-material';
@@ -31,6 +42,9 @@ import {
   cleanDescriptionForForm,
   resolveTaskFormRrule,
 } from '../foco/taskRecurrenceFormUtils';
+
+const DEFAULT_HABIT_ICON = availableIcons[0]?.name || 'Add';
+
 /**
  * Componente de formulario para crear/editar tareas
  * 
@@ -58,7 +72,13 @@ const TareaForm = ({
   updateWithHistory
 }) => {
   const { isMobile } = useResponsive();
+  const { habits, addHabit, fetchHabits } = useHabits();
+  const { updateUserHabitPreference } = useRutinas();
   const [isObjetivoFormOpen, setIsObjetivoFormOpen] = useState(false);
+  const [habitSection, setHabitSection] = useState('bodyCare');
+  const [habitIcon, setHabitIcon] = useState(DEFAULT_HABIT_ICON);
+  const [habitConfig, setHabitConfig] = useState(() => ({ ...DEFAULT_HABIT_CONFIG }));
+  const [saving, setSaving] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   
   const initialFormState = {
@@ -92,6 +112,9 @@ const TareaForm = ({
   const [errors, setErrors] = useState({});
   const [syncingToGoogle, setSyncingToGoogle] = useState(false);
 
+  const isHabitMode = formData.tipo === 'HABITO';
+  const canSelectHabit = !isEditing && !initialData?._id;
+
   useEffect(() => {
     if (open) {
       setFormData({
@@ -107,6 +130,10 @@ const TareaForm = ({
         estado: initialData?.estado || 'PENDIENTE',
         subtareas: initialData?.subtareas || []
       });
+      setHabitSection('bodyCare');
+      setHabitIcon(DEFAULT_HABIT_ICON);
+      setHabitConfig({ ...DEFAULT_HABIT_CONFIG });
+      setErrors({});
     }
   }, [initialData, open, objetivoId]);
 
@@ -217,7 +244,31 @@ const TareaForm = ({
     }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (isHabitMode) {
+      if (!validateHabitForm()) return;
+      setSaving(true);
+      try {
+        await saveHabitFromForm({
+          label: formData.titulo,
+          section: habitSection,
+          icon: habitIcon,
+          config: habitConfig,
+          habits,
+          addHabit,
+          updateUserHabitPreference,
+          fetchHabits,
+        });
+        enqueueSnackbar('Hábito creado', { variant: 'success' });
+        onClose();
+      } catch (error) {
+        enqueueSnackbar(error.message || 'Error al crear el hábito', { variant: 'error' });
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     if (validateForm()) {
       try {
         console.log('Preparando datos para enviar...');
@@ -253,6 +304,18 @@ const TareaForm = ({
         }));
       }
     }
+  };
+
+  const validateHabitForm = () => {
+    const newErrors = {};
+    if (!formData.titulo?.trim()) {
+      newErrors.titulo = 'El título es requerido';
+    }
+    if (!habitIcon) {
+      newErrors.icon = 'Selecciona un icono';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const validateForm = () => {
@@ -404,20 +467,27 @@ const TareaForm = ({
         px: 0,
       }}>
         <TaskFormHeader onClose={onClose}>
-          <TaskTipoChips
+          <TaskFormTipoSelector
             value={formData.tipo || 'TAREA'}
-            onChange={(v) => setFormData((prev) => ({ ...prev, tipo: v }))}
-            options={[
-              { value: 'EVENTO', label: 'Evento' },
-              { value: 'TAREA', label: 'Tarea' },
-            ]}
+            options={canSelectHabit ? TASK_FORM_TIPO_ALL : TASK_FORM_TIPO_EVENTO_TAREA}
+            readOnly={!canSelectHabit}
+            onChange={(v) => {
+              setFormData((prev) => ({ ...prev, tipo: v }));
+              if (v !== 'HABITO') setErrors({});
+            }}
             sx={{ mb: 1.5, pr: 4 }}
           />
+
+          {isHabitMode && (
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, lineHeight: 1.4 }}>
+              Los hábitos se guardan en Rutinas y no se sincronizan con Google Tasks.
+            </Typography>
+          )}
 
           <TextField
             variant="standard"
             fullWidth
-            placeholder="Agregar título"
+            placeholder={isHabitMode ? 'Nombre del hábito' : 'Agregar título'}
             value={formData.titulo}
             onChange={handleChange('titulo')}
             error={!!errors.titulo}
@@ -428,23 +498,7 @@ const TareaForm = ({
           />
 
           <Stack direction="row" spacing={0.5} sx={{ mt: 1, flexWrap: 'wrap' }}>
-            <Button
-              variant="text"
-              component="label"
-              startIcon={<AttachFileIcon sx={{ fontSize: 18 }} />}
-              size="small"
-              sx={{
-                color: 'text.secondary',
-                textTransform: 'none',
-                fontSize: '0.8125rem',
-                minWidth: 'auto',
-                px: 0.5,
-              }}
-            >
-              Adjuntar
-              <input type="file" hidden multiple onChange={handleFileChange} />
-            </Button>
-            {isEditing && formData._id && (
+            {isEditing && formData._id && !isHabitMode && (
               <Tooltip
                 title={
                   formData.googleTasksSync?.enabled
@@ -459,11 +513,11 @@ const TareaForm = ({
                   variant="text"
                   startIcon={
                     syncingToGoogle ? (
-                      <SyncIcon className="animate-spin" sx={{ fontSize: 18 }} />
+                      <SyncIcon className="animate-spin" sx={{ fontSize: TASK_FORM_CHEVRON_ICON_SIZE }} />
                     ) : (
                       <GoogleIcon
                         sx={{
-                          fontSize: 18,
+                          fontSize: TASK_FORM_CHEVRON_ICON_SIZE,
                           color: formData.googleTasksSync?.googleTaskId
                             ? 'success.main'
                             : 'text.secondary',
@@ -479,7 +533,7 @@ const TareaForm = ({
                       ? 'success.main'
                       : 'text.secondary',
                     textTransform: 'none',
-                    fontSize: '0.8125rem',
+                    ...taskFormPillTextSx,
                     minWidth: 'auto',
                     px: 0.5,
                   }}
@@ -493,6 +547,31 @@ const TareaForm = ({
         </TaskFormHeader>
 
         <Box sx={{ px: 2 }}>
+        {isHabitMode ? (
+          <HabitFormFields
+            section={habitSection}
+            onSectionChange={setHabitSection}
+            icon={habitIcon}
+            onIconChange={(name) => {
+              setHabitIcon(name);
+              if (errors.icon) setErrors((e) => ({ ...e, icon: undefined }));
+            }}
+            config={habitConfig}
+            onConfigChange={(newConfig) => {
+              setHabitConfig((prev) => ({
+                ...prev,
+                ...newConfig,
+                horarios: normalizeTimeOfDay(
+                  newConfig.horarios !== undefined ? newConfig.horarios : prev.horarios,
+                ),
+              }));
+            }}
+            errors={errors}
+            showSection
+            showIconPicker
+            showCadence
+          />
+        ) : (
         <TareaFormAdvancedFields
           formData={formData}
           setFormData={setFormData}
@@ -503,9 +582,11 @@ const TareaForm = ({
           showSubtareas
           onCreateObjetivo={() => setIsObjetivoFormOpen(true)}
           onToggleSubtarea={handleToggleSubtarea}
+          onAttach={handleFileChange}
         />
+        )}
 
-          {formData.archivos.length > 0 && (
+          {!isHabitMode && formData.archivos.length > 0 && (
             <Box sx={{ py: 1.5 }}>
               <TaskFormSectionLabel>Archivos adjuntos</TaskFormSectionLabel>
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
@@ -520,7 +601,7 @@ const TareaForm = ({
                       }));
                     }}
                     size="small"
-                    sx={{ borderRadius: '16px' }}
+                    sx={taskFormChipSx}
                   />
                 ))}
               </Stack>
@@ -530,6 +611,7 @@ const TareaForm = ({
 
         <TaskFormFooter
           onSave={handleSubmit}
+          saving={saving}
           saveLabel={isEditing ? 'Actualizar' : 'Guardar'}
         />
       </DialogContent>

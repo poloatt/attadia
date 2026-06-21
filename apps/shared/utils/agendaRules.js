@@ -138,4 +138,10 @@ export const getAgendaBucket = (task, agendaView = 'ahora', now = new Date()) =>
 
 export const getAgendaSortKey = (task) => getAnchorDate(task);
 
+export {
+  isSameDayAsToday,
+  getTaskCardEndDate,
+  shouldShowEndDateOnCard,
+} from './taskCardDateRules.js';
+
 

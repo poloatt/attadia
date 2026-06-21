@@ -524,6 +524,7 @@ export function TasksListPage() {
               onSelectTarea={handleSelectTarea}
               onActivateMultiSelect={() => {}} // Ya no necesitamos esta función
               onRefreshData={fetchDataStable}
+              objetivos={objetivos}
             />
             </>
           ) : (
@@ -592,6 +593,7 @@ export function TasksListPage() {
                     onSelectTarea={handleSelectTarea}
                     onActivateMultiSelect={() => {}}
                     onRefreshData={fetchDataStable}
+                    objetivos={objetivos}
                   />
                 </Box>
               </Box>
@@ -668,6 +670,7 @@ export function TasksListPage() {
                     onSelectTarea={handleSelectTarea}
                     onActivateMultiSelect={() => {}}
                     onRefreshData={fetchDataStable}
+                    objetivos={objetivos}
                   />
                 </Box>
               </Box>
