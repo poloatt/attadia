@@ -135,6 +135,21 @@ export const RutinasProvider = ({ children }) => {
       if (!hasToday && !ensureTodayAttemptedRef.current) {
         ensureTodayAttemptedRef.current = true;
         try {
+          // Verificar primero si la rutina de hoy ya existe en el servidor. Evita
+          // un POST que devolvería 409 cuando `hasToday` falla por desfase de
+          // fecha/zona horaria entre el cliente y el backend.
+          try {
+            const verify = await clienteAxios.get(
+              `/api/rutinas/verify?fecha=${encodeURIComponent(todayStr)}`,
+            );
+            if (verify.data?.exists && verify.data?.rutinaId) {
+              await getRutinaById(verify.data.rutinaId);
+              return;
+            }
+          } catch {
+            // Si verify falla, continuar con la creación (el POST maneja el 409).
+          }
+
           const created = await rutinasService.createRutina({ fecha: todayStr, useGlobalConfig: true });
           // Refrescar lista y seleccionar la rutina creada
           const merged = [created, ...rutinasWithHist];

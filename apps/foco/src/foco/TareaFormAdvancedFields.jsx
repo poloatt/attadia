@@ -8,31 +8,43 @@ import {
   TextField,
   Tooltip,
 } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { es } from 'date-fns/locale';
+import {
+  addMinutes,
+  differenceInMinutes,
+  endOfDay,
+  setHours,
+  setMinutes,
+  startOfDay,
+} from 'date-fns';
 import {
   TaskFormRow,
-  TaskFormSectionLabel,
   TaskFormPillSelect,
   taskFormStandardFieldSx,
 } from './taskFormUi';
 import { TaskFormIcons } from './taskFormIcons';
 import TaskFormDescriptionField from './TaskFormDescriptionField';
-import TaskFormRecurrencePicker from './TaskFormRecurrencePicker';
+import TaskFormScheduleFields from './TaskFormScheduleFields';
 import { findObjetivoById } from './buildTareaPayload';
 
-function renderStandardDateField(params, fieldProps = {}) {
-  return (
-    <TextField
-      {...params}
-      variant="standard"
-      fullWidth
-      sx={{ ...taskFormStandardFieldSx, ...fieldProps.sx }}
-      {...fieldProps}
-    />
-  );
+function toDateOrNull(value) {
+  if (!value) return null;
+  const d = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function mergeDateAndTime(day, time) {
+  const base = startOfDay(day || new Date());
+  const t = time || new Date();
+  return setMinutes(setHours(base, t.getHours()), t.getMinutes());
+}
+
+/** Deriva "todo el día" cuando no hay un flag explícito en formData. */
+function deriveAllDay(start, end) {
+  if (!start) return true;
+  const atMidnight = start.getHours() === 0 && start.getMinutes() === 0;
+  if (!end) return atMidnight;
+  const isEndOfDay = end.getHours() === 23 && end.getMinutes() >= 59;
+  return atMidnight && isEndOfDay;
 }
 
 function mapObjetivoOptions(objetivos) {
@@ -90,13 +102,6 @@ export default function TareaFormAdvancedFields({
     });
   };
 
-  const handleDateChange = (field) => (date) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: date,
-    }));
-  };
-
   const handleAddSubtarea = () => {
     if (!newSubtarea.trim()) return;
     setFormData((prev) => ({
@@ -145,6 +150,61 @@ export default function TareaFormAdvancedFields({
 
   const subtareas = formData.subtareas || [];
   const objetivoOptions = mapObjetivoOptions(objetivos);
+
+  // --- Horario (fecha + hora inicio/fin + todo el día) ---
+  const scheduleStart = toDateOrNull(formData.fechaInicio) || new Date();
+  const scheduleEnd = toDateOrNull(formData.fechaFin);
+  const scheduleDay = startOfDay(scheduleStart);
+  const scheduleDuration = scheduleEnd
+    ? Math.max(5, differenceInMinutes(scheduleEnd, scheduleStart))
+    : 60;
+  const scheduleAllDay = formData.allDay ?? deriveAllDay(scheduleStart, scheduleEnd);
+
+  const applySchedule = ({
+    nextDay = scheduleDay,
+    nextTime = scheduleStart,
+    nextAllDay = scheduleAllDay,
+    nextDuration = scheduleDuration,
+  }) => {
+    let inicio;
+    let fin;
+    if (nextAllDay) {
+      inicio = startOfDay(nextDay);
+      fin = endOfDay(nextDay);
+    } else {
+      inicio = mergeDateAndTime(nextDay, nextTime);
+      fin = addMinutes(inicio, nextDuration || 60);
+    }
+    setFormData((prev) => ({
+      ...prev,
+      allDay: nextAllDay,
+      fechaInicio: inicio,
+      fechaFin: fin,
+    }));
+  };
+
+  const scheduleBlock = (
+    <TaskFormScheduleFields
+      day={scheduleDay}
+      onDayChange={(v) => applySchedule({ nextDay: startOfDay(v) })}
+      time={scheduleStart}
+      onTimeChange={(v) => applySchedule({ nextTime: v, nextAllDay: false })}
+      allDay={scheduleAllDay}
+      onAllDayChange={(checked) => applySchedule({ nextAllDay: checked })}
+      expanded
+      showTimeControls={!scheduleAllDay}
+      durationMin={scheduleDuration}
+      onDurationChange={(mins) => applySchedule({ nextDuration: mins, nextAllDay: false })}
+      showDuration
+      showRecurrence
+      recurrenceRrule={formData.rrule}
+      onRecurrenceChange={(rr) => setFormData((prev) => ({ ...prev, rrule: rr }))}
+      fechaVencimiento={formData.fechaVencimiento}
+      onFechaVencimientoChange={(v) => setFormData((prev) => ({ ...prev, fechaVencimiento: v }))}
+      showVencimiento
+      errors={errors}
+    />
+  );
 
   const estadoPrioridadBlock = (
     <TaskFormRow icon={TaskFormIcons.estado} showDivider={false}>
@@ -328,42 +388,7 @@ export default function TareaFormAdvancedFields({
         onChange={handleChange('descripcion')}
       />
 
-      <TaskFormRow icon={TaskFormIcons.schedule} showDivider={false}>
-        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-          <Stack spacing={1.5} sx={{ width: '100%' }}>
-            <Box>
-              <TaskFormSectionLabel>Inicio</TaskFormSectionLabel>
-              <DatePicker
-                value={formData.fechaInicio}
-                onChange={handleDateChange('fechaInicio')}
-                renderInput={(params) => renderStandardDateField(params, {
-                  required: true,
-                  error: !!errors.fechaInicio,
-                  helperText: errors.fechaInicio,
-                })}
-              />
-            </Box>
-            <Box>
-              <TaskFormSectionLabel>Vencimiento</TaskFormSectionLabel>
-              <DatePicker
-                value={formData.fechaVencimiento}
-                onChange={handleDateChange('fechaVencimiento')}
-                renderInput={(params) => renderStandardDateField(params, {
-                  error: !!errors.fechaVencimiento,
-                  helperText: errors.fechaVencimiento,
-                })}
-              />
-            </Box>
-            <Box>
-              <TaskFormSectionLabel>Repetición</TaskFormSectionLabel>
-              <TaskFormRecurrencePicker
-                value={formData.rrule}
-                onChange={(rr) => setFormData((prev) => ({ ...prev, rrule: rr }))}
-              />
-            </Box>
-          </Stack>
-        </LocalizationProvider>
-      </TaskFormRow>
+      {scheduleBlock}
 
       {estadoPrioridadBlock}
       {objetivoBlock}

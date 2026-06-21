@@ -124,7 +124,11 @@ class RutinasService {
       const response = await clienteAxios.post('/api/rutinas', payload);
       return response.data;
     } catch (error) {
-      console.error('Error al crear rutina:', error);
+      // 409 = la rutina del día ya existe (respuesta idempotente esperada).
+      // El caller la maneja (selecciona la existente), así que no es un error real.
+      if (error?.response?.status !== 409) {
+        console.error('Error al crear rutina:', error);
+      }
       throw error;
     }
   }
