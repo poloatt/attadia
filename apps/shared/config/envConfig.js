@@ -1,4 +1,7 @@
 // Configuración centralizada según el ambiente
+// SSO cross-app: en producción la cookie refreshToken usa Domain=.attadia.com (backend).
+// En dev localhost (puertos distintos) se usa handoff URL; opcionalmente subdominios
+// locales (*.local.attadia.com) + USE_LOCAL_SUBDOMAINS=true en el backend.
 export const config = {
   development: {
     authPrefix: '/api/auth',
@@ -27,7 +30,8 @@ const env = import.meta.env.MODE || 'development';
 const isProduction = typeof window !== 'undefined' && 
   (window.location.hostname === 'atta.attadia.com' || 
    window.location.hostname === 'foco.attadia.com' || 
-   window.location.hostname === 'pulso.attadia.com');
+   window.location.hostname === 'pulso.attadia.com' ||
+   window.location.hostname.endsWith('.local.attadia.com'));
 
 // Forzar uso de configuración de producción si VITE_API_URL está definido
 const useProductionConfig = typeof window !== 'undefined' && 
@@ -70,6 +74,11 @@ export const getCurrentAppUrl = () => {
       default: return origin;
     }
   }
+
+  // Subdominios locales opcionales (USE_LOCAL_SUBDOMAINS en backend)
+  if (hostname === 'foco.local.attadia.com') return currentConfig.frontendUrls.foco;
+  if (hostname === 'atta.local.attadia.com') return currentConfig.frontendUrls.atta;
+  if (hostname === 'pulso.local.attadia.com') return currentConfig.frontendUrls.pulso;
 
   // Producción
   if (hostname === 'foco.attadia.com') return currentConfig.frontendUrls.foco;

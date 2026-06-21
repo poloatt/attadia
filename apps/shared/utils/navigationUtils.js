@@ -1,5 +1,6 @@
 import { modulos } from '../navigation/menuStructure';
 import currentConfig from '../config/envConfig';
+import { isCrossAppSsoViaCookie, isLocalhostDev } from './ssoUtils.js';
 
 /**
  * Utilidades centralizadas para lógica de navegación
@@ -190,9 +191,9 @@ export function getAppKeyFromPath(pathname) {
 export function getCurrentAppKey() {
   if (typeof window === 'undefined') return 'foco';
   const { hostname, port, pathname } = window.location;
-  if (hostname === 'atta.attadia.com') return 'atta';
-  if (hostname === 'pulso.attadia.com') return 'pulso';
-  if (hostname === 'foco.attadia.com') return 'foco';
+  if (hostname === 'atta.attadia.com' || hostname === 'atta.local.attadia.com') return 'atta';
+  if (hostname === 'pulso.attadia.com' || hostname === 'pulso.local.attadia.com') return 'pulso';
+  if (hostname === 'foco.attadia.com' || hostname === 'foco.local.attadia.com') return 'foco';
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return PORT_APP_MAPPING[port] || getAppKeyFromPath(pathname);
   }
@@ -213,18 +214,30 @@ export function navigateToAppPath(navigate, targetPath) {
   if (targetApp === currentApp) {
     return navigate(targetPath);
   }
-  // Pasar tokens para SSO entre subdominios
-  try {
-    const token = localStorage.getItem('token');
-    const refreshToken = localStorage.getItem('refreshToken');
-    const redirectParam = encodeURIComponent(targetPath);
-    if (token) {
-      const url = buildAppUrl(targetApp, `/auth/callback?token=${encodeURIComponent(token)}${refreshToken ? `&refreshToken=${encodeURIComponent(refreshToken)}` : ''}&redirect=${redirectParam}`);
-      return window.location.assign(url);
-    }
-  } catch (_) {
-    // ignorar errores de storage
+
+  // Producción / subdominios locales: SSO vía cookie httpOnly compartida
+  if (isCrossAppSsoViaCookie()) {
+    return window.location.assign(buildAppUrl(targetApp, targetPath));
   }
+
+  // Dev localhost: cookies no cruzan puertos — fallback handoff por URL
+  if (isLocalhostDev()) {
+    try {
+      const token = localStorage.getItem('token');
+      const refreshToken = localStorage.getItem('refreshToken');
+      const redirectParam = encodeURIComponent(targetPath);
+      if (token) {
+        const url = buildAppUrl(
+          targetApp,
+          `/auth/callback?token=${encodeURIComponent(token)}${refreshToken ? `&refreshToken=${encodeURIComponent(refreshToken)}` : ''}&redirect=${redirectParam}`,
+        );
+        return window.location.assign(url);
+      }
+    } catch (_) {
+      // ignorar errores de storage
+    }
+  }
+
   window.location.assign(buildAppUrl(targetApp, targetPath));
 }
 

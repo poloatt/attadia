@@ -3,6 +3,11 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import config from '../config/config.js';
 import { initializeSampleData } from '../config/initData.js';
+import {
+  setRefreshTokenCookie,
+  clearRefreshTokenCookie,
+  getRefreshTokenFromRequest,
+} from '../utils/authCookies.js';
 
 const generateTokens = (user) => {
   const now = Math.floor(Date.now() / 1000);
@@ -114,6 +119,8 @@ export const authController = {
       // Generar tokens
       const { token, refreshToken } = generateTokens(user);
 
+      setRefreshTokenCookie(res, refreshToken);
+
       res.json({ token, refreshToken });
     } catch (error) {
       console.error('Error en registro:', error);
@@ -170,6 +177,8 @@ export const authController = {
         });
       }
 
+      setRefreshTokenCookie(res, refreshToken);
+
       res.json({ 
         token, 
         refreshToken, 
@@ -183,10 +192,10 @@ export const authController = {
 
   refreshToken: async (req, res) => {
     try {
-      const { refreshToken: oldRefreshToken } = req.body;
+      const oldRefreshToken = getRefreshTokenFromRequest(req);
 
       if (!oldRefreshToken) {
-        return res.status(400).json({ error: 'Refresh token no proporcionado' });
+        return res.status(401).json({ error: 'Refresh token no proporcionado' });
       }
 
       // Verificar refresh token
@@ -195,6 +204,10 @@ export const authController = {
 
       if (!user) {
         return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+
+      if (!user.activo) {
+        return res.status(401).json({ error: 'Usuario inactivo' });
       }
 
       // Generar nuevos tokens
@@ -209,6 +222,8 @@ export const authController = {
         googleId: user.googleId,
         activo: user.activo
       };
+
+      setRefreshTokenCookie(res, newRefreshToken);
 
       res.json({ 
         token, 
@@ -229,8 +244,7 @@ export const authController = {
 
   logout: async (req, res) => {
     try {
-      // Aquí podrías implementar una lista negra de tokens si lo deseas
-      res.clearCookie('token');
+      clearRefreshTokenCookie(res);
       res.json({ message: 'Sesión cerrada correctamente' });
     } catch (error) {
       console.error('Error en logout:', error);
@@ -510,6 +524,8 @@ export const authController = {
       console.log('Redirigiendo al frontend:', {
         url: redirectUrl.toString().replace(/token=[^&]+/, 'token=REDACTED')
       });
+
+      setRefreshTokenCookie(res, refreshToken);
 
       res.redirect(redirectUrl.toString());
     } catch (error) {

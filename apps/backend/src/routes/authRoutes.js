@@ -103,11 +103,8 @@ router.post('/login', loginLimiter, [
   validateFields
 ], authController.login);
 
-// Ruta para refrescar el token
-router.post('/refresh-token', [
-  check('refreshToken', 'El refresh token es requerido').not().isEmpty(),
-  validateFields
-], authController.refreshToken);
+// Ruta para refrescar el token (cookie httpOnly o body legacy)
+router.post('/refresh-token', authController.refreshToken);
 
 // Rutas de autenticación con Google
 router.get('/google/url', (req, res) => {
@@ -342,8 +339,10 @@ router.get('/google/callback',
   authController.googleCallback
 );
 
+// Logout público: limpia cookie SSO compartida (no requiere JWT)
+router.post('/logout', authController.logout);
+
 // Rutas que requieren autenticación
 router.use(checkAuth);
-router.post('/logout', authController.logout);
 
 export default router;

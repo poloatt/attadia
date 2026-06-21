@@ -13,7 +13,6 @@ function GoogleCallback() {
       try {
         const params = new URLSearchParams(window.location.search);
         const token = params.get('token');
-        const refreshToken = params.get('refreshToken');
         
         if (!token) {
           console.error('No se recibió token en el callback');
@@ -21,11 +20,9 @@ function GoogleCallback() {
           return;
         }
 
-        // Guardar tokens
+        // Guardar access token (refresh en cookie httpOnly del backend)
         localStorage.setItem('token', token);
-        if (refreshToken) {
-          localStorage.setItem('refreshToken', refreshToken);
-        }
+        localStorage.removeItem('refreshToken');
 
         // Configurar el token en axios
         clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;

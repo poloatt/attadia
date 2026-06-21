@@ -36,7 +36,8 @@ const clienteAxios = axios.create({
   baseURL,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  withCredentials: true,
 });
 
 // Interceptor para agregar el token a las peticiones
@@ -175,17 +176,15 @@ clienteAxios.interceptors.response.use(
           originalRequest._retry = true;
           
           const refreshToken = localStorage.getItem('refreshToken');
-          if (!refreshToken) {
-            console.log('❌ No hay refresh token disponible');
-            throw new Error('No refresh token available');
-          }
+          const refreshBody = refreshToken ? { refreshToken } : {};
 
-          const response = await clienteAxios.post('/api/auth/refresh-token', {
-            refreshToken
+          const response = await clienteAxios.post('/api/auth/refresh-token', refreshBody, {
+            withCredentials: true,
           });
           
           const { token: newToken } = response.data;
           localStorage.setItem('token', newToken);
+          localStorage.removeItem('refreshToken');
           clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
           originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
           

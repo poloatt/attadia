@@ -45,6 +45,21 @@ const validateRequiredEnvVars = () => {
   }
 };
 
+// Dominio compartido para cookie SSO entre subdominios (*.attadia.com)
+const resolveAuthCookieDomain = (env) => {
+  if (process.env.AUTH_COOKIE_DOMAIN) {
+    return process.env.AUTH_COOKIE_DOMAIN;
+  }
+  if (env === 'production') {
+    return '.attadia.com';
+  }
+  // Dev con subdominios locales: foco.local.attadia.com → .local.attadia.com
+  if (process.env.USE_LOCAL_SUBDOMAINS === 'true') {
+    return '.local.attadia.com';
+  }
+  return undefined;
+};
+
 // Configuración base para todos los ambientes
 const baseConfig = {
   port: parseInt(process.env.PORT || '8080', 10),
@@ -78,6 +93,7 @@ const configs = {
     ...baseConfig,
     env: 'development',
     isDev: true,
+    authCookieDomain: resolveAuthCookieDomain('development'),
     port: parseInt(process.env.PORT || '5000', 10),
     mongoUrl: process.env.MONGO_URL || 'mongodb://localhost:27017/present',
     frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173', // Foco por defecto
@@ -98,6 +114,7 @@ const configs = {
   production: {
     ...baseConfig,
     env: 'production',
+    authCookieDomain: resolveAuthCookieDomain('production'),
     mongoUrl: process.env.MONGO_PUBLIC_URL || process.env.MONGO_URL || process.env.MONGODB_URI || `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@mongodb:27017/${process.env.MONGO_DB}?authSource=admin`,
     frontendUrl: process.env.FRONTEND_URL || 'https://foco.attadia.com',
     backendUrl: process.env.BACKEND_URL || 'https://api.attadia.com',

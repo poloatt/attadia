@@ -55,6 +55,33 @@ function hasStoredToken() {
   }
 }
 
+/** Intenta obtener sesión vía cookie httpOnly compartida (.attadia.com) o refresh legacy en LS. */
+async function fetchSessionFromRefreshCookie() {
+  try {
+    const legacyRefresh = localStorage.getItem('refreshToken');
+    const body = legacyRefresh ? { refreshToken: legacyRefresh } : {};
+    const { data } = await clienteAxios.post(
+      `${currentConfig.authPrefix}/refresh-token`,
+      body,
+      { withCredentials: true, timeout: 10_000 },
+    );
+    if (data?.token) {
+      localStorage.removeItem('refreshToken');
+      return data;
+    }
+  } catch {
+    // Sin sesión compartida disponible
+  }
+  return null;
+}
+
+function clearLocalAuthState() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('refreshToken');
+  removeCachedUser();
+  delete clienteAxios.defaults.headers.common['Authorization'];
+}
+
 /** Despierta el backend (p. ej. Render tras inactividad) antes de OAuth. */
 async function waitForBackendReady(maxAttempts = 4) {
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
@@ -98,13 +125,28 @@ export function AuthProvider({ children }) {
     try {
       isChecking.current = true;
       lastCheckStart.current = Date.now();
-      const token = localStorage.getItem('token');
-      
+      let token = localStorage.getItem('token');
+
       if (!token) {
-        setUser(null);
-        setIsAuthenticated(false);
-        setLoading(false);
-        return false;
+        const session = await fetchSessionFromRefreshCookie();
+        if (session?.token) {
+          localStorage.setItem('token', session.token);
+          clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${session.token}`;
+          if (session.user) {
+            setUser(session.user);
+            saveCachedUser(session.user);
+            setIsAuthenticated(true);
+            setError(null);
+            setLoading(false);
+            return true;
+          }
+          token = session.token;
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+          setLoading(false);
+          return false;
+        }
       }
 
       // Configurar token en axios
@@ -127,11 +169,7 @@ export function AuthProvider({ children }) {
         setLoading(false);
         return true;
       } else {
-        // Token inválido, limpiar
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-        removeCachedUser();
-        delete clienteAxios.defaults.headers.common['Authorization'];
+        clearLocalAuthState();
         
         setUser(null);
         setIsAuthenticated(false);
@@ -141,40 +179,29 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.log('Error en checkAuth:', error.message);
       
-      // Si es 401, intentar refresh una sola vez
+      // Si es 401, intentar refresh via cookie o legacy LS
       if (error.response?.status === 401) {
         try {
-          const refreshToken = localStorage.getItem('refreshToken');
-          if (refreshToken) {
-            // Timeout para refresh también
-            const refreshTimeoutPromise = new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Timeout en refresh token')), 10000)
-            );
+          const refreshTimeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout en refresh token')), 10000)
+          );
+          
+          const refreshRequestPromise = fetchSessionFromRefreshCookie();
+          
+          const refreshData = await Promise.race([refreshRequestPromise, refreshTimeoutPromise]);
+          
+          if (refreshData?.token) {
+            localStorage.setItem('token', refreshData.token);
+            clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${refreshData.token}`;
             
-            const refreshRequestPromise = clienteAxios.post(`${currentConfig.authPrefix}/refresh-token`, {
-              refreshToken
-            });
-            
-            const { data: refreshData } = await Promise.race([refreshRequestPromise, refreshTimeoutPromise]);
-            
-            if (refreshData.token) {
-              localStorage.setItem('token', refreshData.token);
-              if (refreshData.refreshToken) {
-                localStorage.setItem('refreshToken', refreshData.refreshToken);
-              }
-              
-              clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${refreshData.token}`;
-              
-              // Verificar con el nuevo token - sin timeout adicional
-              const { data: verifyData } = await clienteAxios.get(`${currentConfig.authPrefix}/check`);
-              if (verifyData.authenticated && verifyData.user) {
-                setUser(verifyData.user);
-                saveCachedUser(verifyData.user);
-                setIsAuthenticated(true);
-                setError(null);
-                setLoading(false);
-                return true;
-              }
+            const { data: verifyData } = await clienteAxios.get(`${currentConfig.authPrefix}/check`);
+            if (verifyData.authenticated && verifyData.user) {
+              setUser(verifyData.user);
+              saveCachedUser(verifyData.user);
+              setIsAuthenticated(true);
+              setError(null);
+              setLoading(false);
+              return true;
             }
           }
         } catch (refreshError) {
@@ -182,11 +209,7 @@ export function AuthProvider({ children }) {
         }
       }
       
-      // Limpiar tokens inválidos
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      removeCachedUser();
-      delete clienteAxios.defaults.headers.common['Authorization'];
+      clearLocalAuthState();
       
       setUser(null);
       setIsAuthenticated(false);
@@ -219,11 +242,9 @@ export function AuthProvider({ children }) {
         throw new Error('No se recibió token del servidor');
       }
 
-      // Guardar tokens
+      // Guardar access token (refresh vive en cookie httpOnly del backend)
       localStorage.setItem('token', token);
-      if (refreshToken) {
-        localStorage.setItem('refreshToken', refreshToken);
-      }
+      localStorage.removeItem('refreshToken');
       
       // Guardar información del último usuario de Google si tiene googleId
       if (userData?.googleId) {
@@ -274,13 +295,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   // Establecer sesión local sin depender de /check (útil tras OAuth si el backend está lento)
-  const establishSession = useCallback((token, refreshToken, userData) => {
+  const establishSession = useCallback((token, _refreshToken, userData) => {
     if (!token) return;
 
     localStorage.setItem('token', token);
-    if (refreshToken) {
-      localStorage.setItem('refreshToken', refreshToken);
-    }
+    localStorage.removeItem('refreshToken');
     clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
     if (userData) {
@@ -356,9 +375,7 @@ export function AuthProvider({ children }) {
       
       if (data.token) {
         localStorage.setItem('token', data.token);
-        if (data.refreshToken) {
-          localStorage.setItem('refreshToken', data.refreshToken);
-        }
+        localStorage.removeItem('refreshToken');
         
         // Guardar información del último usuario de Google si tiene googleId
         if (data.user?.googleId) {
@@ -396,25 +413,20 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  // Logout simplificado
+  // Logout simplificado — limpia cookie SSO compartida en el backend
   const logout = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      if (token) {
-        await clienteAxios.post(`${currentConfig.authPrefix}/logout`, null, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      }
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      await clienteAxios.post(`${currentConfig.authPrefix}/logout`, null, {
+        headers,
+        withCredentials: true,
+      });
     } catch (error) {
       console.log('Error en logout:', error.message);
     } finally {
-      // Limpiar todo
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      removeCachedUser();
-      // No limpiar lastGoogleUser para mantener la información del perfil
-      delete clienteAxios.defaults.headers.common['Authorization'];
+      clearLocalAuthState();
       
       setUser(null);
       setIsAuthenticated(false);
@@ -481,11 +493,7 @@ export function AuthProvider({ children }) {
                 setLoading(false);
                 return true;
               } else {
-                // Token inválido, limpiar
-                localStorage.removeItem('token');
-                localStorage.removeItem('refreshToken');
-                removeCachedUser();
-                delete clienteAxios.defaults.headers.common['Authorization'];
+                clearLocalAuthState();
                 
                 setUser(null);
                 setIsAuthenticated(false);
@@ -517,11 +525,7 @@ export function AuthProvider({ children }) {
                 return false;
               }
               
-              // Para otros errores o desktop, limpiar tokens
-              localStorage.removeItem('token');
-              localStorage.removeItem('refreshToken');
-              removeCachedUser();
-              delete clienteAxios.defaults.headers.common['Authorization'];
+              clearLocalAuthState();
               
               setUser(null);
               setIsAuthenticated(false);
@@ -536,7 +540,29 @@ export function AuthProvider({ children }) {
           
           initializeAuth();
         } else {
-          setLoading(false);
+          // Silent SSO: cookie compartida .attadia.com
+          const silentSsoInit = async () => {
+            try {
+              isChecking.current = true;
+              const session = await fetchSessionFromRefreshCookie();
+              if (session?.token) {
+                localStorage.setItem('token', session.token);
+                clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${session.token}`;
+                if (session.user) {
+                  setUser(session.user);
+                  saveCachedUser(session.user);
+                  setIsAuthenticated(true);
+                  setError(null);
+                }
+              }
+            } catch {
+              // Sin sesión compartida
+            } finally {
+              isChecking.current = false;
+              setLoading(false);
+            }
+          };
+          silentSsoInit();
         }
       }, initDelay);
     }
@@ -570,10 +596,7 @@ export function AuthProvider({ children }) {
             }
             isChecking.current = false;
             lastCheckStart.current = null;
-            // Limpiar tokens locales para evitar loops infinitos
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
-            delete clienteAxios.defaults.headers.common['Authorization'];
+            clearLocalAuthState();
             setUser(null);
             setIsAuthenticated(false);
             setLoading(false);
