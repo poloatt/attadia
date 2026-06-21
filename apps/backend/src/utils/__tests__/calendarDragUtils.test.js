@@ -3,14 +3,14 @@ import {
   computeEventMove,
   deltaYToGridMinutes,
   parseDayDropId,
-} from '../../../../foco/src/foco/calendar/dnd/calendarDragUtils.js';
-import { getTimedPosition } from '../../../../foco/src/foco/calendar/taskCalendarUtils.js';
+} from '../../../../shared/utils/calendar/calendarDragUtils.js';
+import { getTimedPosition } from '../../../../shared/utils/calendar/agendaCalendarUtils.js';
 import {
   DAY_START_HOUR,
   getGridHeightPx,
   HALF_SLOT_HEIGHT_PX,
   SLOT_MINUTES,
-} from '../../../../foco/src/foco/calendar/calendarLayout.js';
+} from '../../../../shared/utils/calendar/calendarLayout.js';
 
 describe('calendar drag utils', () => {
   test('deltaYToGridMinutes snaps to 30 min slots', () => {

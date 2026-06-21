@@ -1,2 +1,3 @@
-export { default as TareasTable } from '../../../objetivos/TareasTable';
-export { default as TasksListPage, TasksListPage as Tareas } from './TasksListPage';
+export { default as TareasTable, TareaRow } from './TareasTable';
+export { default as TareasListPage } from './TareasListPage';
+export { default as TareaActions } from '../components/TareaActions';

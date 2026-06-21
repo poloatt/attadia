@@ -6,13 +6,13 @@ import {
   NotesOutlined as NotesIcon,
 } from '@mui/icons-material';
 import {
-  TaskFormRow,
-  TaskFormPillSelect,
-  TaskFormSecondaryLine,
-  taskFormStandardFieldSx,
-} from '../../../foco/src/foco/taskFormUi';
-import TaskFormDescriptionField from '../../../foco/src/foco/TaskFormDescriptionField';
-import { TaskFormIcons } from '../../../foco/src/foco/taskFormIcons';
+  TareaFormRow,
+  TareaFormPillSelect,
+  TareaFormSecondaryLine,
+  tareaFormStandardFieldSx,
+} from '@shared/components/forms/tareaFormUi';
+import TareaFormDescriptionField from '@shared/components/forms/TareaFormDescriptionField';
+import { TareaFormIcons } from '@shared/components/forms/tareaFormUi';
 import {
   propiedadDetailEmptyTextSx,
   propiedadDetailPrimaryTextSx,
@@ -20,7 +20,7 @@ import {
 import { getDocumentId } from './propiedadFormUtils';
 
 const fieldSx = {
-  ...taskFormStandardFieldSx,
+  ...tareaFormStandardFieldSx,
   '& .MuiInputBase-input': { fontSize: '0.875rem', py: 0.5 },
   '& .MuiInput-underline:before': { borderBottomColor: 'divider' },
 };
@@ -49,38 +49,38 @@ export default function PropiedadCoreFields({
     return (
       <>
         {data?.descripcion ? (
-          <TaskFormRow icon={NotesIcon} showDivider align="flex-start">
+          <TareaFormRow icon={NotesIcon} showDivider align="flex-start">
             <Typography sx={{ fontSize: '0.875rem', lineHeight: 1.45, color: 'text.primary' }}>
               {data.descripcion}
             </Typography>
-          </TaskFormRow>
+          </TareaFormRow>
         ) : null}
 
-        <TaskFormRow icon={TaskFormIcons.folder} showDivider>
+        <TareaFormRow icon={TareaFormIcons.folder} showDivider>
           <Typography sx={{ fontSize: '0.875rem', lineHeight: 1.45, color: 'text.primary' }}>
             {resolveCuentaLabel(data, cuentaOptions)}
           </Typography>
-        </TaskFormRow>
+        </TareaFormRow>
 
-        <TaskFormRow icon={LocationIcon} showDivider align="flex-start">
+        <TareaFormRow icon={LocationIcon} showDivider align="flex-start">
           {hasUbicacion ? (
             <Box sx={{ flex: 1, minWidth: 0 }}>
               {data.direccion ? (
                 <Typography sx={propiedadDetailPrimaryTextSx}>{data.direccion}</Typography>
               ) : null}
-              {data.ciudad ? <TaskFormSecondaryLine>{data.ciudad}</TaskFormSecondaryLine> : null}
+              {data.ciudad ? <TareaFormSecondaryLine>{data.ciudad}</TareaFormSecondaryLine> : null}
             </Box>
           ) : (
             <Typography sx={propiedadDetailEmptyTextSx}>Sin dirección registrada</Typography>
           )}
-        </TaskFormRow>
+        </TareaFormRow>
 
         {data?.metrosCuadrados ? (
-          <TaskFormRow icon={SquareFootIcon}>
+          <TareaFormRow icon={SquareFootIcon}>
             <Typography sx={{ fontSize: '0.875rem', lineHeight: 1.45, color: 'text.primary' }}>
               {data.metrosCuadrados} m²
             </Typography>
-          </TaskFormRow>
+          </TareaFormRow>
         ) : null}
       </>
     );
@@ -88,7 +88,7 @@ export default function PropiedadCoreFields({
 
   return (
     <>
-      <TaskFormDescriptionField
+      <TareaFormDescriptionField
         value={data?.descripcion || ''}
         onChange={(event) => onChange('descripcion', event.target.value)}
         placeholder="Agregar descripción..."
@@ -100,9 +100,9 @@ export default function PropiedadCoreFields({
         </Typography>
       ) : null}
 
-      <TaskFormRow icon={TaskFormIcons.folder} showDivider>
+      <TareaFormRow icon={TareaFormIcons.folder} showDivider>
         <Box sx={{ width: '100%' }}>
-          <TaskFormPillSelect
+          <TareaFormPillSelect
             value={data?.cuenta || ''}
             onChange={(event) => onChange('cuenta', event.target.value || null)}
             options={cuentaOptions}
@@ -110,9 +110,9 @@ export default function PropiedadCoreFields({
             error={errors.cuenta}
           />
         </Box>
-      </TaskFormRow>
+      </TareaFormRow>
 
-      <TaskFormRow icon={LocationIcon} showDivider>
+      <TareaFormRow icon={LocationIcon} showDivider>
         <Box sx={{ width: '100%' }}>
           <TextField
             variant="standard"
@@ -135,9 +135,9 @@ export default function PropiedadCoreFields({
             sx={{ ...fieldSx, mt: 1 }}
           />
         </Box>
-      </TaskFormRow>
+      </TareaFormRow>
 
-      <TaskFormRow icon={SquareFootIcon}>
+      <TareaFormRow icon={SquareFootIcon}>
         <TextField
           variant="standard"
           fullWidth
@@ -149,7 +149,7 @@ export default function PropiedadCoreFields({
           inputProps={{ inputMode: 'decimal' }}
           sx={fieldSx}
         />
-      </TaskFormRow>
+      </TareaFormRow>
     </>
   );
 }

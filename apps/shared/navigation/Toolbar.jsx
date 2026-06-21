@@ -114,7 +114,7 @@ export default function Toolbar({
     
     const handleSettings = () => {
       // Disparar evento para que la página maneje la configuración de hábitos
-      window.dispatchEvent(new CustomEvent('openHabitsManager'));
+      window.dispatchEvent(new CustomEvent('openHabitTemplates'));
     };
     
     return (

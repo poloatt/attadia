@@ -16,7 +16,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useResponsive } from '@shared/hooks';
-import { TaskFormHeader, taskFormDialogPaperSx } from '../../../../foco/src/foco/taskFormUi';
+import { TareaFormHeader, tareaFormDialogPaperSx } from '@shared/components/forms/tareaFormUi';
 import PropiedadDetailSections from '../PropiedadDetailSections';
 import InquilinoEstadoChip from './InquilinoEstadoChip';
 import InquilinoContactRows from './InquilinoContactRows';
@@ -115,7 +115,7 @@ const InquilinoDetail = ({
       fullScreen={isMobile}
       PaperProps={{
         sx: {
-          ...taskFormDialogPaperSx(isMobile),
+          ...tareaFormDialogPaperSx(isMobile),
           display: 'flex',
           flexDirection: 'column',
         },
@@ -136,7 +136,7 @@ const InquilinoDetail = ({
           px: 0,
         }}
       >
-        <TaskFormHeader onClose={onClose}>
+        <TareaFormHeader onClose={onClose}>
           <Typography
             sx={{
               fontSize: '1.375rem',
@@ -152,7 +152,7 @@ const InquilinoDetail = ({
           <Box sx={{ mt: 1 }}>
             <InquilinoEstadoChip estado={estado} />
           </Box>
-        </TaskFormHeader>
+        </TareaFormHeader>
 
         <Box sx={{ px: 2, pb: 2 }}>
           <InquilinoContactRows inquilino={inquilino} />

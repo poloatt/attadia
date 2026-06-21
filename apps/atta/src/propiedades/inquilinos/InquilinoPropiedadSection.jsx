@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { TaskFormSecondaryLine } from '../../../../foco/src/foco/taskFormUi';
+import { TareaFormSecondaryLine } from '@shared/components/forms/tareaFormUi';
 import { formatFecha } from '@shared/utils/contratoUtils';
 import TipoPropiedadIcon from '../TipoPropiedadIcon';
 import { propiedadDetailPrimaryTextSx } from '../propiedadDetailStyles';
@@ -26,14 +26,14 @@ export default function InquilinoPropiedadSection({ contrato }) {
       />
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography sx={propiedadDetailPrimaryTextSx}>{label}</Typography>
-        <TaskFormSecondaryLine>
+        <TareaFormSecondaryLine>
           {formatFecha(contrato.fechaInicio)} – {formatFecha(contrato.fechaFin)} ·{' '}
           {formatContratoDuration(contrato.fechaInicio, contrato.fechaFin)}
-        </TaskFormSecondaryLine>
+        </TareaFormSecondaryLine>
         {propiedad.ciudad || propiedad.direccion ? (
-          <TaskFormSecondaryLine sx={{ mt: 0.25 }}>
+          <TareaFormSecondaryLine sx={{ mt: 0.25 }}>
             {[propiedad.ciudad, propiedad.direccion].filter(Boolean).join(' · ')}
-          </TaskFormSecondaryLine>
+          </TareaFormSecondaryLine>
         ) : null}
       </Box>
     </Box>

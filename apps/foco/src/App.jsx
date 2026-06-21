@@ -35,8 +35,8 @@ const Preferencias = React.lazy(() => import('@shared/pages/Preferencias'));
 function AppContent() {
   const { user, loading } = useAuth();
 
-  if (process.env.NODE_ENV === 'development' && !user && !loading) {
-    console.log('🎯 FOCO AUTH STATE:', { authenticated: !!user, loading });
+  if (import.meta.env.DEV && !user && !loading) {
+    console.log('[Foco] auth state:', { authenticated: !!user, loading });
   }
 
   if (loading) {

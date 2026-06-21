@@ -49,7 +49,7 @@ function RutinaNavigationSlot({ currentPath }) {
   };
 
   const handleSettings = () => {
-    window.dispatchEvent(new CustomEvent('openHabitsManager'));
+    window.dispatchEvent(new CustomEvent('openHabitTemplates'));
   };
 
   return (

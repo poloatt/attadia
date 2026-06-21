@@ -1,1 +1,1 @@
-export { default } from '../features/archive/ArchivePage';
+export { default } from '../features/tasks/archive/ArchivePage';

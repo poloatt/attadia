@@ -1,4 +1,4 @@
-import { isAllDayTask, taskToCalendarEvent, layoutTimedEventsForDay } from '../../../../foco/src/foco/calendar/taskCalendarUtils.js';
+import { isAllDayTask, taskToCalendarEvent, layoutTimedEventsForDay } from '../../../../shared/utils/calendar/agendaCalendarUtils.js';
 
 describe('task calendar classification', () => {
   test('Google date-only task without timed schedule is all-day', () => {

@@ -1,2 +1,12 @@
-export { default as RutinasActionStrip } from '../../foco/RutinasActionStrip';
-export { default as HabitsManagerHost } from '../../foco/HabitsManagerHost';
+export { default as HabitCarouselRow } from './carousel/HabitCarouselRow';
+export { default as HabitCarouselStrip } from './carousel/HabitCarouselStrip';
+export { default as HabitCarouselAhora } from './carousel/HabitCarouselAhora';
+export { default as HabitCarouselLuego } from './carousel/HabitCarouselLuego';
+export { default as HabitsManagerHost } from './HabitsManagerHost';
+export { HabitsManager } from './templates/HabitsManager';
+export { default as HabitFormFields } from './templates/HabitFormFields';
+export { useHabitFormState } from './templates/useHabitFormState';
+export { default as RutinasPage } from './daily/RutinasPage';
+export { ensureRutinaForDate } from './daily/ensureRutinaForDate';
+export { default as useEnsureRutinaForDate } from './daily/useEnsureRutinaForDate';
+export { useHabitsAgendaView } from './hooks/useHabitsAgendaView';

@@ -5,7 +5,7 @@ import { useRelationalData } from '@shared/hooks/useRelationalData';
 import { useAuth } from '@shared/context/AuthContext';
 import { useResponsive } from '@shared/hooks';
 import clienteAxios from '@shared/config/axios';
-import { TaskFormFooter } from '../../../foco/src/foco/taskFormUi';
+import { TareaFormFooter } from '@shared/components/forms/tareaFormUi';
 import PropiedadDialogShell from './PropiedadDialogShell';
 import PropiedadPanelHeader from './PropiedadPanelHeader';
 import PropiedadCoreFields from './PropiedadCoreFields';
@@ -210,7 +210,7 @@ const PropiedadForm = ({
         ) : null}
       </Box>
 
-      <TaskFormFooter
+      <TareaFormFooter
         onSave={handleSubmit}
         saveLabel={isSaving ? 'Guardando...' : isEditing ? 'Actualizar' : 'Guardar'}
         saving={isSaving}

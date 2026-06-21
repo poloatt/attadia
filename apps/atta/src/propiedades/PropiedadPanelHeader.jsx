@@ -1,10 +1,10 @@
 import React from 'react';
 import { Box, TextField, Typography } from '@mui/material';
 import {
-  TaskFormHeader,
+  TareaFormHeader,
   TaskTipoChips,
-  taskFormTitleFieldSx,
-} from '../../../foco/src/foco/taskFormUi';
+  tareaFormTitleFieldSx,
+} from '@shared/components/forms/tareaFormUi';
 import { PROPIEDAD_TIPOS, getPropiedadAlias } from './propiedadConstants';
 import PropiedadEstadoChip from './PropiedadEstadoChip';
 
@@ -21,7 +21,7 @@ export default function PropiedadPanelHeader({
   const alias = getPropiedadAlias(data);
 
   return (
-    <TaskFormHeader onClose={disableClose ? undefined : onClose}>
+    <TareaFormHeader onClose={disableClose ? undefined : onClose}>
       <TaskTipoChips
         value={data?.tipo || 'CASA'}
         onChange={isEdit ? onTipoChange : () => {}}
@@ -44,7 +44,7 @@ export default function PropiedadPanelHeader({
           helperText={errors.alias}
           required
           autoFocus
-          sx={{ ...taskFormTitleFieldSx, pr: 3 }}
+          sx={{ ...tareaFormTitleFieldSx, pr: 3 }}
         />
       ) : (
         <>
@@ -66,6 +66,6 @@ export default function PropiedadPanelHeader({
           ) : null}
         </>
       )}
-    </TaskFormHeader>
+    </TareaFormHeader>
   );
 }

@@ -37,7 +37,7 @@ import {
   isViewingTodayInCalendar,
   shiftCalendarDate,
 } from '../utils/focoNavigationUtils.js';
-import CalendarDatePickerPopover from '../../foco/src/foco/calendar/CalendarDatePickerPopover.jsx';
+import CalendarDatePickerPopover from '@foco/features/agenda/CalendarDatePickerPopover';
 import { useRutinas } from '../context/RutinasContext.jsx';
 import { calculateCompletionPercentage, calculateVisibleItems } from '../utils/rutinaCalculations';
 import { NAV_TYPO } from '../config/uiConstants';
@@ -46,7 +46,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { StaticDatePicker } from '@mui/x-date-pickers/StaticDatePicker';
 import HabitFormDialog from '../components/HabitFormDialog';
-import TiempoToolbarActions from '../../foco/src/foco/TiempoToolbarActions.jsx';
+import TiempoToolbarActions from '@foco/features/toolbar/TiempoToolbarActions';
 import useResponsive from '../hooks/useResponsive';
 
 /** Ancho fijo del slot «Hoy» para que ‹ › no se desplacen. */
@@ -97,17 +97,17 @@ const RutinaNavigation = ({
 
   useEffect(() => {
     if (!isCalendarNav) return undefined;
-    const handleFocoCalendarState = (event) => {
+    const handleAgendaCalendarState = (event) => {
       const { date, viewMode: vm } = event.detail || {};
       if (date) setCalendarDate(new Date(date));
       if (vm === 'day' || vm === 'week') setCalendarViewMode(vm);
     };
-    window.addEventListener('focoCalendarState', handleFocoCalendarState);
-    return () => window.removeEventListener('focoCalendarState', handleFocoCalendarState);
+    window.addEventListener('agendaCalendarState', handleAgendaCalendarState);
+    return () => window.removeEventListener('agendaCalendarState', handleAgendaCalendarState);
   }, [isCalendarNav]);
 
   const handleToggleViewMode = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('focoToggleViewMode'));
+    window.dispatchEvent(new CustomEvent('agendaToggleViewMode'));
   }, []);
 
   const previousRutinaId = useRef(null);

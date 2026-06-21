@@ -5,7 +5,7 @@ import {
   EmailOutlined as EmailIcon,
   PhoneOutlined as PhoneIcon,
 } from '@mui/icons-material';
-import { TaskFormRow } from '../../../../foco/src/foco/taskFormUi';
+import { TareaFormRow } from '@shared/components/forms/tareaFormUi';
 import { propiedadDetailEmptyTextSx } from '../propiedadDetailStyles';
 
 export default function InquilinoContactRows({ inquilino }) {
@@ -14,44 +14,44 @@ export default function InquilinoContactRows({ inquilino }) {
 
   if (!hasContact) {
     return (
-      <TaskFormRow icon={BadgeIcon} showDivider>
+      <TareaFormRow icon={BadgeIcon} showDivider>
         <Typography sx={propiedadDetailEmptyTextSx}>Sin datos de contacto</Typography>
-      </TaskFormRow>
+      </TareaFormRow>
     );
   }
 
   return (
     <>
       {email ? (
-        <TaskFormRow icon={EmailIcon} showDivider>
+        <TareaFormRow icon={EmailIcon} showDivider>
           <Typography sx={{ fontSize: '0.875rem', lineHeight: 1.45, color: 'text.primary' }}>
             {email}
           </Typography>
-        </TaskFormRow>
+        </TareaFormRow>
       ) : null}
 
       {telefono ? (
-        <TaskFormRow icon={PhoneIcon} showDivider>
+        <TareaFormRow icon={PhoneIcon} showDivider>
           <Typography sx={{ fontSize: '0.875rem', lineHeight: 1.45, color: 'text.primary' }}>
             {telefono}
           </Typography>
-        </TaskFormRow>
+        </TareaFormRow>
       ) : null}
 
       {dni ? (
-        <TaskFormRow icon={BadgeIcon} showDivider>
+        <TareaFormRow icon={BadgeIcon} showDivider>
           <Typography sx={{ fontSize: '0.875rem', lineHeight: 1.45, color: 'text.primary' }}>
             DNI {dni}
           </Typography>
-        </TaskFormRow>
+        </TareaFormRow>
       ) : null}
 
       {nacionalidad || ocupacion ? (
-        <TaskFormRow icon={BadgeIcon} showDivider>
+        <TareaFormRow icon={BadgeIcon} showDivider>
           <Typography sx={{ fontSize: '0.875rem', lineHeight: 1.45, color: 'text.primary' }}>
             {[nacionalidad, ocupacion].filter(Boolean).join(' · ')}
           </Typography>
-        </TaskFormRow>
+        </TareaFormRow>
       ) : null}
     </>
   );

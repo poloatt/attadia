@@ -1,4 +1,6 @@
-export { default as TareaForm } from '../../../objetivos/TareaForm';
-export { default as GoogleTasksConfig } from '../../../objetivos/GoogleTasksConfig';
-export { buildTareaPayload } from '../../../foco/buildTareaPayload';
-export { syncTareaToGoogleAfterSave, syncTareaToGoogleInBackground } from '../../../foco/tareaGoogleSync';
+export { default as TareaForm } from './TareaForm';
+export { buildTareaPayload } from './buildTareaPayload';
+export { syncTareaToGoogleAfterSave, syncTareaToGoogleInBackground } from './tareaGoogleSync';
+export { default as TareaFormDialogShell } from './components/TareaFormDialogShell';
+export { default as TareaFormAttachmentsSection } from './components/TareaFormAttachmentsSection';
+export { useTareaFormAttachments } from './components/useTareaFormAttachments';

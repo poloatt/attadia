@@ -4,11 +4,13 @@ import {
   registerRutinaNavigation,
 } from '@shared/navigation/toolbarRegistry';
 import { matchTiempoSection } from '@shared/navigation/tiempoToolbarPaths';
-import ObjetivosToolbarCenter from './foco/ObjetivosToolbarCenter.jsx';
-import TareasToolbarCenter from './foco/TareasToolbarCenter.jsx';
-import TiempoToolbarRight from './foco/TiempoToolbarRight.jsx';
-import FocoViewModeToggle from './foco/FocoViewModeToggle.jsx';
-import TiempoToolbarActions from './foco/TiempoToolbarActions.jsx';
+import {
+  ObjetivosToolbarCenter,
+  TareasToolbarCenter,
+  TiempoToolbarRight,
+  AgendaViewModeToggle,
+  TiempoToolbarActions,
+} from './features/toolbar';
 import RutinaNavigation from '@shared/navigation/RutinaNavigation.jsx';
 
 registerToolbarModules([
@@ -37,7 +39,7 @@ registerToolbarModules([
 
 registerAgendaBarSlots({
   focoCenterActions: TiempoToolbarActions,
-  focoViewModeToggle: FocoViewModeToggle,
+  focoViewModeToggle: AgendaViewModeToggle,
 });
 
 registerRutinaNavigation(RutinaNavigation);

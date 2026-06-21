@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box } from '@mui/material';
-import { TaskFormRow, TaskFormSectionLabel } from '../../../foco/src/foco/taskFormUi';
+import { TareaFormRow, TareaFormSectionLabel } from '@shared/components/forms/tareaFormUi';
 
 /** Bloque de detalle siempre visible (sin collapse), estilo Google Calendar. */
 export default function PropiedadDetailFlatSection({
@@ -10,11 +10,11 @@ export default function PropiedadDetailFlatSection({
   showDivider = true,
 }) {
   return (
-    <TaskFormRow icon={icon} showDivider={showDivider} align="flex-start">
+    <TareaFormRow icon={icon} showDivider={showDivider} align="flex-start">
       <Box sx={{ width: '100%', minWidth: 0 }}>
-        <TaskFormSectionLabel>{title}</TaskFormSectionLabel>
+        <TareaFormSectionLabel>{title}</TareaFormSectionLabel>
         {children}
       </Box>
-    </TaskFormRow>
+    </TareaFormRow>
   );
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Dialog, DialogContent } from '@mui/material';
-import { taskFormDialogPaperSx } from '../../../foco/src/foco/taskFormUi';
+import { tareaFormDialogPaperSx } from '@shared/components/forms/tareaFormUi';
 
 /** Shell compartido estilo Google Calendar para form y detail. */
 export default function PropiedadDialogShell({
@@ -20,7 +20,7 @@ export default function PropiedadDialogShell({
       fullScreen={isMobile}
       PaperProps={{
         sx: {
-          ...taskFormDialogPaperSx(isMobile),
+          ...tareaFormDialogPaperSx(isMobile),
           display: 'flex',
           flexDirection: 'column',
         },

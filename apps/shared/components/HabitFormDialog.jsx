@@ -24,23 +24,23 @@ import { useResponsive } from '@shared/hooks';
 
 import {
 
-  taskFormDialogPaperSx,
+  tareaFormDialogPaperSx,
 
-  taskFormTitleFieldSx,
+  tareaFormTitleFieldSx,
 
-  TaskFormHeader,
+  TareaFormHeader,
 
-  TaskFormFooter,
+  TareaFormFooter,
 
-} from '../../foco/src/foco/taskFormUi';
+} from '@shared/components/forms/tareaFormUi';
 
-import HabitFormFields from '../../foco/src/foco/HabitFormFields';
+import HabitFormFields from '@foco/features/habits/templates/HabitFormFields';
 
-import { DEFAULT_HABIT_CONFIG, normalizeHabitConfig } from '../../foco/src/foco/habitFormDefaults';
+import { DEFAULT_HABIT_CONFIG, normalizeHabitConfig } from '@foco/features/habits/templates/habitFormDefaults';
 
 import { normalizeTimeOfDay } from '@shared/utils/timeOfDayUtils';
 
-import { saveHabitFromForm } from '../../foco/src/foco/saveHabitFromForm';
+import { saveHabitFromForm } from '@foco/features/habits/templates/saveHabitFromForm';
 
 
 
@@ -348,7 +348,7 @@ const HabitFormDialog = ({ open, onClose, editingHabit = null, editingSection = 
 
         sx: {
 
-          ...taskFormDialogPaperSx(isMobile),
+          ...tareaFormDialogPaperSx(isMobile),
 
           display: 'flex',
 
@@ -362,7 +362,7 @@ const HabitFormDialog = ({ open, onClose, editingHabit = null, editingSection = 
 
       <DialogContent sx={{ flex: 1, overflowY: 'auto', py: 0, px: 0 }}>
 
-        <TaskFormHeader onClose={onClose}>
+        <TareaFormHeader onClose={onClose}>
 
           <TextField
 
@@ -382,11 +382,11 @@ const HabitFormDialog = ({ open, onClose, editingHabit = null, editingSection = 
 
             autoFocus
 
-            sx={{ ...taskFormTitleFieldSx, pr: 3 }}
+            sx={{ ...tareaFormTitleFieldSx, pr: 3 }}
 
           />
 
-        </TaskFormHeader>
+        </TareaFormHeader>
 
 
 
@@ -432,7 +432,7 @@ const HabitFormDialog = ({ open, onClose, editingHabit = null, editingSection = 
 
 
 
-        <TaskFormFooter
+        <TareaFormFooter
 
           onSave={handleSave}
 

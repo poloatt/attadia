@@ -19,6 +19,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@shared': path.resolve(__dirname, '../shared'),
+        '@foco': path.resolve(__dirname, './src'),
         '@': path.resolve(__dirname, './src'),
       },
       dedupe: ['react', 'react-dom']

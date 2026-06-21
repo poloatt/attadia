@@ -9,9 +9,9 @@ const PROPIEDAD_HUB = {
   ...ATTA_HUB,
   blockRadius: ATTA_HUB_SUBSECTION.borderRadius,
 };
-import { taskFormGooglePaperSx } from '../../../foco/src/foco/taskFormUi';
+import { tareaFormGooglePaperSx } from '@shared/components/forms/tareaFormUi';
 
-export { taskFormGooglePaperSx };
+export { tareaFormGooglePaperSx };
 
 export const PROPIEDAD_DETAIL = {
   sectionRadius: PROPIEDAD_HUB.sectionRadius,
@@ -23,7 +23,7 @@ export const PROPIEDAD_DETAIL = {
 
 /** Dialog paper — reuses Google Tasks form tokens. */
 export function getPropiedadDetailPaperSx(isMobile) {
-  return taskFormGooglePaperSx(isMobile);
+  return tareaFormGooglePaperSx(isMobile);
 }
 
 export const propiedadDetailContentSx = {

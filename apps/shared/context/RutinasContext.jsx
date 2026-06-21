@@ -78,7 +78,7 @@ export const RutinasProvider = ({ children }) => {
   // Mantener una referencia estable al array de rutinas para evitar dependencias reactivas
   const rutinasRef = React.useRef([]);
   const ensureTodayAttemptedRef = React.useRef(false);
-  // Deduplica llamadas concurrentes a fetchRutinas (FocoCalendarPage + RutinasActionStrip + RutinasPendientesHoy la disparan al montar)
+  // Deduplica llamadas concurrentes a fetchRutinas (AgendaCalendarPage + HabitCarouselStrip la disparan al montar)
   const fetchRutinasInFlightRef = React.useRef(null);
   useEffect(() => {
     rutinasRef.current = rutinas;
@@ -421,20 +421,17 @@ export const RutinasProvider = ({ children }) => {
   const patchRutinaItemConfig = useCallback((rutinaId, section, itemId, nextConfig) => {
     if (!rutinaId || !section || !itemId || !nextConfig) {
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasContext.jsx:390',message:'patchRutinaItemConfig: missing params',data:{rutinaId,section,itemId,hasNextConfig:!!nextConfig},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'sync'})}).catch(()=>{});
       // #endregion
       return;
     }
 
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasContext.jsx:393',message:'patchRutinaItemConfig called',data:{rutinaId,section,itemId,hasRutina:!!rutina?._id,rutinaMatches:rutina?._id===rutinaId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'sync'})}).catch(()=>{});
     // #endregion
 
     // 1) Rutina seleccionada - CRÍTICO: Crear nuevo objeto para forzar re-render
     setRutina(prev => {
       if (!prev || prev._id !== rutinaId) {
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasContext.jsx:400',message:'patchRutinaItemConfig: rutina no match',data:{rutinaId,prevId:prev?._id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'sync'})}).catch(()=>{});
         // #endregion
         return prev;
       }
@@ -454,7 +451,6 @@ export const RutinasProvider = ({ children }) => {
         }
       };
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasContext.jsx:420',message:'patchRutinaItemConfig: updating rutina',data:{rutinaId,section,itemId,configUpdated:!!updated.config[section]?.[itemId],configValue:JSON.stringify(updated.config[section]?.[itemId]).substring(0,100)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'sync'})}).catch(()=>{});
       // #endregion
       return updated;
     });
@@ -487,7 +483,6 @@ export const RutinasProvider = ({ children }) => {
   // IMPORTANTE: Esta función debe definirse ANTES de updateItemConfiguration porque updateItemConfiguration la usa
   const updateUserHabitPreference = useCallback(async (section, itemId, config, applyToCurrentRutina = true) => {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasContext.jsx:439',message:'updateUserHabitPreference called',data:{section,itemId,config,applyToCurrentRutina,hasRutina:!!rutina?._id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
     // #endregion
     try {
       // Normalizar configuración
@@ -503,7 +498,6 @@ export const RutinasProvider = ({ children }) => {
       };
 
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasContext.jsx:454',message:'Before API call to update preferences',data:{section,itemId,normalizedConfig},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
       // #endregion
 
       // Actualizar preferencias globales del usuario
@@ -516,28 +510,23 @@ export const RutinasProvider = ({ children }) => {
       });
 
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasContext.jsx:463',message:'After API call, before patchRutinaItemConfig',data:{section,itemId,applyToCurrentRutina,hasRutina:!!rutina?._id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
       // #endregion
 
       // Si hay una rutina actual y se solicita aplicar a la rutina actual, actualizarla también
       if (applyToCurrentRutina && rutina?._id) {
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasContext.jsx:474',message:'Calling patchRutinaItemConfig',data:{rutinaId:rutina._id,section,itemId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'sync'})}).catch(()=>{});
         // #endregion
         // CRÍTICO: Actualizar la rutina en el contexto para que RutinaTable y RutinaCard se actualicen automáticamente
         patchRutinaItemConfig(rutina._id, section, itemId, normalizedConfig);
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasContext.jsx:478',message:'patchRutinaItemConfig called, rutina should update',data:{rutinaId:rutina._id,section,itemId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'sync'})}).catch(()=>{});
         // #endregion
       }
 
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasContext.jsx:467',message:'updateUserHabitPreference success',data:{section,itemId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
       // #endregion
       return { updated: true, config: normalizedConfig };
     } catch (error) {
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasContext.jsx:469',message:'updateUserHabitPreference error',data:{section,itemId,error:error.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
       // #endregion
       console.error('[RutinasContext] Error al actualizar preferencia de hábito:', error);
       enqueueSnackbar('Error al actualizar preferencia', { variant: 'error' });
@@ -548,13 +537,11 @@ export const RutinasProvider = ({ children }) => {
   // Actualizar configuración de ítems
   const updateItemConfiguration = useCallback(async (section, itemId, config, options = {}) => {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasContext.jsx:518',message:'updateItemConfiguration called',data:{section,itemId,options,hasRutina:!!rutina?._id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
     // #endregion
     const { isGlobal = autoUpdateHabitPreferences, rutinaId = null } = options;
     
     if (!section || !itemId || !config) {
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasContext.jsx:523',message:'updateItemConfiguration: missing params',data:{section,itemId,hasConfig:!!config},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
       // #endregion
       handleError(new Error('Datos incompletos para actualizar configuración'), 'updateItemConfiguration', 'Datos incompletos');
       return { updated: false, error: "Datos incompletos" };
@@ -563,7 +550,6 @@ export const RutinasProvider = ({ children }) => {
     const targetRutinaId = rutinaId || rutina?._id;
     if (!targetRutinaId) {
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasContext.jsx:529',message:'updateItemConfiguration: no rutina',data:{rutinaId,targetRutinaId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
       // #endregion
       handleError(new Error('No hay rutina para actualizar'), 'updateItemConfiguration', 'No hay rutina actual');
       return { updated: false, error: "No hay rutina actual" };
@@ -583,7 +569,6 @@ export const RutinasProvider = ({ children }) => {
       };
 
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasContext.jsx:545',message:'updateItemConfiguration: before updateUserHabitPreference',data:{section,itemId,isGlobal,normalizedConfig},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
       // #endregion
 
       // Actualizar preferencias globales si es necesario
@@ -592,19 +577,16 @@ export const RutinasProvider = ({ children }) => {
       if (isGlobal) {
         try {
           // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasContext.jsx:551',message:'updateItemConfiguration: calling updateUserHabitPreference',data:{section,itemId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
           // #endregion
           // Usar la función del contexto que actualiza preferencias y rutina actual
           const prefResult = await updateUserHabitPreference(section, itemId, normalizedConfig, true);
           // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasContext.jsx:555',message:'updateItemConfiguration: updateUserHabitPreference result',data:{section,itemId,prefResult},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
           // #endregion
           if (!prefResult || !prefResult.updated) {
             console.warn(`[RutinasContext] updateUserHabitPreference no completó correctamente para ${section}.${itemId}`);
           }
         } catch (prefError) {
           // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasContext.jsx:560',message:'updateItemConfiguration: updateUserHabitPreference error',data:{section,itemId,error:prefError.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
           // #endregion
           console.error(`[RutinasContext] Error al actualizar preferencia global:`, prefError);
         }
@@ -627,13 +609,11 @@ export const RutinasProvider = ({ children }) => {
       };
 
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasContext.jsx:590',message:'updateItemConfiguration: updating rutina in backend',data:{targetRutinaId,section,itemId,isGlobal},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
       // #endregion
 
       await clienteAxios.put(`/api/rutinas/${targetRutinaId}`, updateData);
       
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasContext.jsx:600',message:'updateItemConfiguration: backend updated, calling patchRutinaItemConfig',data:{targetRutinaId,section,itemId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
       // #endregion
       
       // Reflejar inmediatamente el cambio en UI (sin refresh completo)
@@ -642,7 +622,6 @@ export const RutinasProvider = ({ children }) => {
       patchRutinaItemConfig(targetRutinaId, section, itemId, normalizedConfig);
       
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'RutinasContext.jsx:608',message:'updateItemConfiguration: success',data:{section,itemId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'rutinacard'})}).catch(()=>{});
       // #endregion
       
       enqueueSnackbar("Configuración guardada", { variant: "success" });

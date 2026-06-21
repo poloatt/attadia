@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { Box, Collapse, Typography } from '@mui/material';
 import { KeyboardArrowDown as ChevronDownIcon } from '@mui/icons-material';
 import {
-  TaskFormSecondaryLine,
-  taskFormRowIconSx,
-} from '../../../foco/src/foco/taskFormUi';
+  TareaFormSecondaryLine,
+  tareaFormRowIconSx,
+} from '@shared/components/forms/tareaFormUi';
 
 /**
  * Filas expandibles estilo Google Calendar (sin contenedor tipo acordeón).
@@ -53,7 +53,7 @@ export default function PropiedadDetailSections({ sections = [] }) {
                 '&:hover': { opacity: 0.92 },
               }}
             >
-              {Icon ? <Icon sx={taskFormRowIconSx} /> : <Box sx={{ width: 20, flexShrink: 0 }} />}
+              {Icon ? <Icon sx={tareaFormRowIconSx} /> : <Box sx={{ width: 20, flexShrink: 0 }} />}
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography
                   component="span"
@@ -62,7 +62,7 @@ export default function PropiedadDetailSections({ sections = [] }) {
                   {section.title}
                 </Typography>
                 {!expanded && section.summary ? (
-                  <TaskFormSecondaryLine>{section.summary}</TaskFormSecondaryLine>
+                  <TareaFormSecondaryLine>{section.summary}</TareaFormSecondaryLine>
                 ) : null}
               </Box>
               <ChevronDownIcon

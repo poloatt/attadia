@@ -182,7 +182,6 @@ export const HabitsProvider = ({ children }) => {
       setError(null);
       
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsContext.jsx:158',message:'reorderHabits called',data:{section,habitIds,habitIdsType:Array.isArray(habitIds),habitIdsLength:habitIds?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'reorder'})}).catch(()=>{});
       // #endregion
       
       const response = await clienteAxios.put('/api/users/habits/reorder', {
@@ -191,7 +190,6 @@ export const HabitsProvider = ({ children }) => {
       });
       
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsContext.jsx:168',message:'reorderHabits success',data:{section,habitsCount:response.data.habits?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'reorder'})}).catch(()=>{});
       // #endregion
       
       // Actualizar estado local
@@ -204,7 +202,6 @@ export const HabitsProvider = ({ children }) => {
       return response.data.habits;
     } catch (error) {
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a059dc4e-4ac4-432b-874b-c0f38a0644eb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HabitsContext.jsx:181',message:'reorderHabits error',data:{section,habitIds,errorMessage:error.message,errorResponse:error.response?.data,status:error.response?.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'reorder'})}).catch(()=>{});
       // #endregion
       console.error('[HabitsContext] Error al reordenar hábitos:', error);
       const errorMsg = error.response?.data?.error || error.response?.data?.message || 'Error al reordenar hábitos';
