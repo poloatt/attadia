@@ -1,6 +1,6 @@
 import React from 'react';
 import { Switch } from '@mui/material';
-import { attaSwitchSx } from '../hub/styles/attaHubSectionStyles';
+import { attaSwitchSx } from '../hub/styles/attaPropiedadHubStyles';
 
 /**
  * Switch compacto con estética hub Atta (Google Tasks–like).

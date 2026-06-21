@@ -125,14 +125,22 @@ export function isRouteActive(currentPath, targetPaths) {
   if (Array.isArray(targetPaths)) {
     return targetPaths.some(path => {
       if (path === '/') {
-        return currentPath === '/' || currentPath.startsWith('/assets/');
+        return (
+          currentPath === '/'
+          || currentPath.startsWith('/finanzas')
+          || currentPath.startsWith('/propiedades')
+        );
       }
       return currentPath === path || currentPath.startsWith(path + '/');
     });
   }
   
   if (targetPaths === '/') {
-    return currentPath === '/' || currentPath.startsWith('/assets/');
+    return (
+      currentPath === '/'
+      || currentPath.startsWith('/finanzas')
+      || currentPath.startsWith('/propiedades')
+    );
   }
   
   return currentPath === targetPaths || currentPath.startsWith(targetPaths + '/');

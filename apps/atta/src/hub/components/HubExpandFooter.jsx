@@ -1,7 +1,7 @@
 import React from 'react';
 import { ButtonBase } from '@mui/material';
 import { ExpandMoreOutlined } from '@mui/icons-material';
-import { hubExpandButtonSx } from '../styles/attaHubSectionStyles';
+import { hubExpandButtonSx } from '@shared/styles/hubSectionStyles';
 
 export default function HubExpandFooter({ expanded, onToggle, restCount }) {
   if (!restCount) return null;

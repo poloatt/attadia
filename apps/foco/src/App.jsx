@@ -10,7 +10,7 @@ import { Login } from '@shared/pages/Login';
 import { Register } from '@shared/pages/Register';
 import AuthCallback from '@shared/components/auth/AuthCallback';
 import AuthError from '@shared/components/auth/AuthError';
-import { AppLoadingScreen, ErrorBoundary } from '@shared/components/common';
+import { AppLoadingScreen, CustomSnackbarProvider, ErrorBoundary } from '@shared/components/common';
 import theme from '@shared/context/ThemeContext';
 import { ValuesVisibilityProvider } from '@shared/context/ValuesVisibilityContext';
 import { NavigationBarProvider } from '@shared/context/NavigationBarContext';
@@ -82,21 +82,23 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Toaster position="top-right" />
-      <ValuesVisibilityProvider>
-        <NavigationBarProvider>
-          <SidebarProvider>
-            <UISettingsProvider>
-              <RutinasProvider>
-                <HabitsProvider>
-                  <ErrorBoundary>
-                    <AppContent />
-                  </ErrorBoundary>
-                </HabitsProvider>
-              </RutinasProvider>
-            </UISettingsProvider>
-          </SidebarProvider>
-        </NavigationBarProvider>
-      </ValuesVisibilityProvider>
+      <CustomSnackbarProvider>
+        <ValuesVisibilityProvider>
+          <NavigationBarProvider>
+            <SidebarProvider>
+              <UISettingsProvider>
+                <RutinasProvider>
+                  <HabitsProvider>
+                    <ErrorBoundary>
+                      <AppContent />
+                    </ErrorBoundary>
+                  </HabitsProvider>
+                </RutinasProvider>
+              </UISettingsProvider>
+            </SidebarProvider>
+          </NavigationBarProvider>
+        </ValuesVisibilityProvider>
+      </CustomSnackbarProvider>
     </ThemeProvider>
   );
 }

@@ -1,5 +1,5 @@
 // Service Worker para Vite - Foco
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 const CACHE_PREFIX = 'foco-cache-';
 const CACHE_NAME = `${CACHE_PREFIX}${CACHE_VERSION}`;
 
@@ -56,18 +56,21 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Hashed Vite assets: network-first so deploys never serve stale bundles that 404 lazy chunks.
   if (request.destination === 'script' || request.destination === 'style' || request.url.includes('/assets/')) {
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {
-        const cached = await cache.match(request);
-        if (cached && isValidCachedAsset(request, cached)) return cached;
-        if (cached) await cache.delete(request);
-
-        const response = await fetch(request);
-        if (isCacheableAssetResponse(request, response)) {
-          cache.put(request, response.clone());
+        try {
+          const response = await fetch(request);
+          if (isCacheableAssetResponse(request, response)) {
+            cache.put(request, response.clone());
+          }
+          return response;
+        } catch (networkError) {
+          const cached = await cache.match(request);
+          if (cached && isValidCachedAsset(request, cached)) return cached;
+          throw networkError;
         }
-        return response;
       })
     );
     return;

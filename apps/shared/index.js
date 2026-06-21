@@ -4,6 +4,7 @@
 // Componentes
 export * from './components/auth/index.js';
 export * from './components/common/index.js';
+export * from './components/hub/index.js';
 
 // Context
 export * from './context/AuthContext.jsx';

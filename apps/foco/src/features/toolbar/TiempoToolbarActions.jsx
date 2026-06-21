@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
-  CheckCircle,
-  CheckCircleOutline,
   DeleteOutlined,
+  Google as GoogleIcon,
   TuneOutlined,
 } from '@mui/icons-material';
 import { SystemButtons } from '@shared/components/common/SystemButtons';
@@ -17,17 +16,7 @@ import { matchTiempoSection } from '@shared/navigation/tiempoToolbarPaths';
 export default function TiempoToolbarActions({ section: sectionProp, dense = false }) {
   const { pathname } = useLocation();
   const section = sectionProp || matchTiempoSection(pathname);
-  const [showCompleted, setShowCompleted] = useState(false);
   const [hasSelectedItems, setHasSelectedItems] = useState(false);
-
-  useEffect(() => {
-    const handleSetShowCompleted = (event) => {
-      const { value } = event.detail || {};
-      if (typeof value === 'boolean') setShowCompleted(value);
-    };
-    window.addEventListener('setShowCompleted', handleSetShowCompleted);
-    return () => window.removeEventListener('setShowCompleted', handleSetShowCompleted);
-  }, []);
 
   useEffect(() => {
     const handleSelectionChange = (event) => {
@@ -43,10 +32,14 @@ export default function TiempoToolbarActions({ section: sectionProp, dense = fal
     padding: { xs: 0.25, sm: 0.125 },
     minWidth: { xs: 32, sm: 26 },
     minHeight: { xs: 32, sm: 26 },
+    color: 'text.secondary',
     '& .MuiSvgIcon-root': {
       fontSize: { xs: '1.1rem', sm: '1.1rem' },
     },
-    '&:hover': { backgroundColor: 'action.hover' },
+    '&:hover': {
+      backgroundColor: 'action.hover',
+      color: 'text.primary',
+    },
   }), [dense]);
 
   const actions = useMemo(() => {
@@ -56,21 +49,16 @@ export default function TiempoToolbarActions({ section: sectionProp, dense = fal
         icon: <TuneOutlined />,
         label: 'Personalizar rutina',
         tooltip: 'Personalizar mi rutina',
-        color: 'text.secondary',
-        hoverColor: 'text.primary',
         buttonSx: commonButtonSx,
         onClick: () => window.dispatchEvent(new CustomEvent('openHabitTemplates')),
       },
       {
-        key: 'sync',
-        icon: (
-          <SystemButtons.SyncButton
-            tooltip="Sincronizar"
-            buttonSx={commonButtonSx}
-            onClick={() => window.dispatchEvent(new CustomEvent('openGoogleTasksConfig'))}
-          />
-        ),
-        label: 'Sincronizar',
+        key: 'googleTasks',
+        icon: <GoogleIcon />,
+        label: 'Google Tasks',
+        tooltip: 'Google Tasks',
+        buttonSx: commonButtonSx,
+        onClick: () => window.dispatchEvent(new CustomEvent('openGoogleTasksConfig')),
       },
       {
         key: 'deleteSelected',
@@ -90,23 +78,6 @@ export default function TiempoToolbarActions({ section: sectionProp, dense = fal
         },
       },
     ];
-
-    if (section === 'tareas') {
-      list.push({
-        key: 'toggleCompleted',
-        icon: showCompleted ? <CheckCircle /> : <CheckCircleOutline />,
-        label: showCompleted ? 'Ocultar completadas' : 'Mostrar completadas',
-        tooltip: showCompleted ? 'Ocultar completadas' : 'Mostrar completadas',
-        color: 'primary.main',
-        hoverColor: 'primary.main',
-        buttonSx: commonButtonSx,
-        onClick: () => {
-          const next = !showCompleted;
-          setShowCompleted(next);
-          window.dispatchEvent(new CustomEvent('setShowCompleted', { detail: { value: next } }));
-        },
-      });
-    }
 
     const addTooltip = section === 'objetivos'
       ? 'Nuevo objetivo'
@@ -135,7 +106,7 @@ export default function TiempoToolbarActions({ section: sectionProp, dense = fal
     });
 
     return list;
-  }, [commonButtonSx, hasSelectedItems, section, showCompleted]);
+  }, [commonButtonSx, hasSelectedItems, section]);
 
   if (!section) return null;
 

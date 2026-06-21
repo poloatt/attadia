@@ -16,6 +16,9 @@ import {
 import { getAgendaBarSlot, getRutinaNavigation } from './toolbarRegistry';
 import { resolveAttaBranchHubPath } from './appNavResolver';
 import { isAttaToolbarPath, isPulsoToolbarPath } from './unifiedBarPaths';
+import { matchTiempoSection } from './tiempoToolbarPaths';
+
+const AGENDA_VIEW_TOGGLE_RESERVE = 88;
 
 function RutinaNavigationSlot({ currentPath }) {
   const RutinaNavigation = getRutinaNavigation();
@@ -93,6 +96,7 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
   const mainMargin = getMainMargin(isMobileOrTablet, showSidebarCollapsed);
   const FocoCenterActions = getAgendaBarSlot('focoCenterActions');
   const FocoViewModeToggle = getAgendaBarSlot('focoViewModeToggle');
+  const AgendaViewToggle = getAgendaBarSlot('agendaViewToggle');
 
   const showCenter =
   shouldShowRutinaNavigation(path)
@@ -131,6 +135,9 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
     ? baseCenterInsetLeft + ATTA_BACK_SLOT_WIDTH
     : baseCenterInsetLeft;
   const showAttaBranchSwitcher = isAttaPath && !isMobile && RightComp;
+  const isTareasMobile = isMobile && matchTiempoSection(path) === 'tareas';
+  const gridMarginRight = collapsedWidth
+    + (isTareasMobile && AgendaViewToggle ? AGENDA_VIEW_TOGGLE_RESERVE : 0);
 
   return (
     <Box
@@ -193,6 +200,24 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
         {LeftComp && <LeftComp hasSelectedItems={hasSelectedItems} />}
       </Box>
 
+      {AgendaViewToggle && (
+        <Box
+          sx={{
+            position: 'absolute',
+            right: `${collapsedWidth}px`,
+            top: 0,
+            height: AGENDA_UNIFIED_BAR_CONFIG.height,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            px: 1,
+            zIndex: 4,
+          }}
+        >
+          <AgendaViewToggle />
+        </Box>
+      )}
+
       <Box
         sx={{
           position: 'absolute',
@@ -232,8 +257,8 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
           flex: 1,
           minWidth: 0,
           height: '100%',
-          ml: `${mainMargin}px`,
-          mr: `${collapsedWidth}px`,
+          ml: `${baseCenterInsetLeft}px`,
+          mr: `${gridMarginRight}px`,
           display: 'grid',
           gridTemplateColumns: gridColumns,
           alignItems: 'center',

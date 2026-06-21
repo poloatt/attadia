@@ -9,6 +9,31 @@ import clienteAxios from '../config/axios';
 import { useLocation } from 'react-router-dom';
 import { NAV_TYPO } from '../config/uiConstants';
 
+const ATTA_HUB_PATHS = ['/finanzas', '/propiedades'];
+
+function isAttaHubPath(path) {
+  return ATTA_HUB_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
+}
+
+function shouldRunHealthCheck(path) {
+  return (
+    path === '/'
+    || isAttaHubPath(path)
+    || path.startsWith('/tiempo')
+    || path.startsWith('/tareas')
+  );
+}
+
+/** Rutas donde el footer hace flash inicial de health-check (solo desktop). */
+function shouldFlashFooter(path) {
+  return (
+    path === '/'
+    || path === '/finanzas'
+    || path === '/tiempo/tareas'
+    || path === '/tareas'
+  );
+}
+
 export default function Footer({ isDesktop = false, isSidebarOpen = false }) {
   const [connectionStatus, setConnectionStatus] = useState({
     backend: false,
@@ -31,16 +56,7 @@ export default function Footer({ isDesktop = false, isSidebarOpen = false }) {
     };
 
     // Sólo iniciar el health-check si el footer está visible en alguna de las rutas objetivo
-    const shouldRun = (path) => {
-      return (
-        path === '/' ||
-        path.startsWith('/assets') ||
-        path.startsWith('/tiempo') ||
-        path.startsWith('/tareas')
-      );
-    };
-
-    if (shouldRun(location.pathname)) {
+    if (shouldRunHealthCheck(location.pathname)) {
       checkConnections();
       interval = setInterval(checkConnections, 10000);
     }
@@ -48,22 +64,14 @@ export default function Footer({ isDesktop = false, isSidebarOpen = false }) {
   }, [location.pathname]);
 
   useEffect(() => {
-    // Mostrar el footer solo en la ruta principal, assets, o tiempo (incl. Agenda)
-    if (
-      location.pathname === '/' ||
-      location.pathname === '/assets' ||
-      location.pathname === '/assets/finanzas' ||
-      location.pathname === '/tiempo/tareas' ||
-      location.pathname === '/tareas'
-    ) {
+    if (shouldFlashFooter(location.pathname)) {
       setVisible(true);
       const timer = setTimeout(() => {
         setVisible(false);
-      }, 3000); // Ocultar después de 3 segundos
+      }, 3000);
       return () => clearTimeout(timer);
-    } else {
-      setVisible(false);
     }
+    setVisible(false);
   }, [location]);
 
   return (
@@ -76,8 +84,9 @@ export default function Footer({ isDesktop = false, isSidebarOpen = false }) {
         height: '32px',
         backgroundColor: 'rgba(26, 27, 30, 0.8)',
         color: 'rgba(255, 255, 255, 0.7)',
-        opacity: visible ? 1 : 0, // Cambiar opacidad
-        transform: visible ? 'translateY(0)' : 'translateY(10px)', // Desplazamiento
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(10px)',
+        pointerEvents: visible ? 'auto' : 'none',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

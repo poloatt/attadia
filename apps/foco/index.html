@@ -45,12 +45,42 @@
         e.preventDefault();
       });
 
+      // Tras un deploy, un SW cache-first puede servir bundles viejos cuyos lazy chunks ya no existen.
+      // Detectar fallo de import dinámico, limpiar SW/caches y recargar una sola vez.
+      (function() {
+        var CHUNK_RECOVERY_KEY = 'foco-chunk-recovery';
+        window.addEventListener('unhandledrejection', function(event) {
+          var reason = event.reason && (event.reason.message || String(event.reason));
+          if (!reason || !/Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i.test(reason)) {
+            return;
+          }
+          if (sessionStorage.getItem(CHUNK_RECOVERY_KEY)) return;
+          sessionStorage.setItem(CHUNK_RECOVERY_KEY, '1');
+          event.preventDefault();
+          var cleanup = Promise.resolve();
+          if ('serviceWorker' in navigator) {
+            cleanup = navigator.serviceWorker.getRegistrations().then(function(regs) {
+              return Promise.all(regs.map(function(r) { return r.unregister(); }));
+            });
+          }
+          cleanup.then(function() {
+            if (window.caches && window.caches.keys) {
+              return caches.keys().then(function(keys) {
+                return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+              });
+            }
+          }).then(function() {
+            window.location.reload();
+          });
+        });
+      })();
+
       // Registrar Service Worker solo en producción; desregistrar en desarrollo
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
           var isLocalhost = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
           if (!isLocalhost) {
-            navigator.serviceWorker.register('/sw.js')
+            navigator.serviceWorker.register('/sw.js?v=6')
               .then(function(registration) {
                 console.log('SW registered: ', registration);
                 if (registration.update) {

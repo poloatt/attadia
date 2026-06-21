@@ -5,6 +5,9 @@ export const attaPageLayoutSx = {
   mx: 'auto',
   px: { xs: 1, sm: 2, md: 3 },
   py: 2,
-  pb: { xs: 10, sm: 4 },
+  pb: {
+    xs: 'calc(80px + env(safe-area-inset-bottom, 0px))',
+    sm: 4,
+  },
   boxSizing: 'border-box',
 };

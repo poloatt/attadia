@@ -1,13 +1,10 @@
 import { alpha } from '@mui/material/styles';
-import {
-  ATTA_HUB,
-  ATTA_HUB_SUBSECTION,
-  getPropiedadEstadoChipSx,
-} from '../hub/styles/attaHubSectionStyles';
+import { HUB_SECTION, HUB_SUBSECTION } from '@shared/styles/hubSectionStyles';
+import { getPropiedadEstadoChipSx } from '../hub/styles/attaPropiedadHubStyles';
 
 const PROPIEDAD_HUB = {
-  ...ATTA_HUB,
-  blockRadius: ATTA_HUB_SUBSECTION.borderRadius,
+  ...HUB_SECTION,
+  blockRadius: HUB_SUBSECTION.borderRadius,
 };
 import { tareaFormGooglePaperSx } from '@shared/components/forms/tareaFormUi';
 

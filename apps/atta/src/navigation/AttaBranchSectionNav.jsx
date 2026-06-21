@@ -21,12 +21,12 @@ import {
 import { DynamicIcon } from '@shared/components/common/DynamicIcon';
 import { useAttaSectionStats } from './useAttaSectionStats';
 import {
-  attaHubSectionBodySx,
-  attaHubSectionHeaderSx,
-  getAttaHubSectionCardSx,
+  hubSectionBodySx,
+  hubSectionHeaderSx,
+  getHubSectionCardSx,
   hubGridContainerSx,
   hubGridItemSx,
-} from '../hub/styles/attaHubSectionStyles';
+} from '@shared/styles/hubSectionStyles';
 
 function resolveActiveSectionId(pathname, pages) {
   const match = [...pages]
@@ -203,7 +203,7 @@ export default function AttaBranchSectionNav({
 
     const isFinanzasHub = usesHubCardLayout;
     const cardSx = {
-      ...(isFinanzasHub ? getAttaHubSectionCardSx(isActive) : {
+      ...(isFinanzasHub ? getHubSectionCardSx(isActive) : {
         height: '100%',
         width: '100%',
         border: '1px solid',
@@ -222,12 +222,12 @@ export default function AttaBranchSectionNav({
           <CardActionArea
             onClick={() => handleNavigate(page)}
             disabled={disabled}
-            sx={isFinanzasHub ? attaHubSectionHeaderSx : { px: 1.5, py: 1.25, display: 'block' }}
+            sx={isFinanzasHub ? hubSectionHeaderSx : { px: 1.5, py: 1.25, display: 'block' }}
           >
             {renderCardHeader(page, { isActive, disabled, meta, countLabel, compact: false })}
           </CardActionArea>
           <Box
-            sx={isFinanzasHub ? { ...attaHubSectionBodySx, pt: 0 } : { px: 1.5, pb: 1.25, pt: 0 }}
+            sx={isFinanzasHub ? { ...hubSectionBodySx, pt: 0 } : { px: 1.5, pb: 1.25, pt: 0 }}
             onClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
           >
@@ -246,7 +246,7 @@ export default function AttaBranchSectionNav({
             disabled={disabled}
             sx={
               isFinanzasHub && !isStrip
-                ? { ...attaHubSectionHeaderSx, height: '100%', flex: 1 }
+                ? { ...hubSectionHeaderSx, height: '100%', flex: 1 }
                 : {
                     height: '100%',
                     flex: isFinanzasHub ? 1 : undefined,

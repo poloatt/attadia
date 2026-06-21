@@ -5,6 +5,7 @@ import {
 } from '@shared/navigation/toolbarRegistry';
 import { matchTiempoSection } from '@shared/navigation/tiempoToolbarPaths';
 import {
+  AgendaToolbarCenter,
   ObjetivosToolbarCenter,
   TareasToolbarCenter,
   TiempoToolbarRight,
@@ -40,6 +41,7 @@ registerToolbarModules([
 registerAgendaBarSlots({
   focoCenterActions: TiempoToolbarActions,
   focoViewModeToggle: AgendaViewModeToggle,
+  agendaViewToggle: AgendaToolbarCenter,
 });
 
 registerRutinaNavigation(RutinaNavigation);

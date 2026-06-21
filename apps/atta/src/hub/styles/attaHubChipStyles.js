@@ -1,28 +1,30 @@
 import {
-  ATTA_HUB_CARD_BODY_MIN_HEIGHT,
-  ATTA_HUB_CARD_MIN_HEIGHT,
-  ATTA_HUB_SUBSECTION,
-  attaSwitchSx,
-  getAttaHubSubsectionSx,
+  HUB_SECTION_CARD_BODY_MIN_HEIGHT,
+  HUB_SECTION_CARD_MIN_HEIGHT,
+  HUB_SUBSECTION,
+  getHubSubsectionSx,
   getHubCardSx,
   hubGridContainerSx,
   hubGridItemSx,
   hubHeaderActionSx,
-} from './attaHubSectionStyles';
+  hubHeaderIconSx,
+} from '@shared/styles/hubSectionStyles';
+import { attaSwitchSx } from './attaPropiedadHubStyles';
 
 export {
-  ATTA_HUB_CARD_BODY_MIN_HEIGHT,
-  ATTA_HUB_CARD_MIN_HEIGHT,
+  HUB_SECTION_CARD_BODY_MIN_HEIGHT as ATTA_HUB_CARD_BODY_MIN_HEIGHT,
+  HUB_SECTION_CARD_MIN_HEIGHT as ATTA_HUB_CARD_MIN_HEIGHT,
   attaSwitchSx,
   getHubCardSx,
   hubGridContainerSx,
   hubGridItemSx,
   hubHeaderActionSx,
+  hubHeaderIconSx,
 };
 
 export const ATTA_HUB_CHIP = {
   chipHeight: 50,
-  chipRadius: ATTA_HUB_SUBSECTION.borderRadius,
+  chipRadius: HUB_SUBSECTION.borderRadius,
   chipGap: 0.625,
   chipPx: 0.875,
   chipPy: 0.5,
@@ -32,14 +34,9 @@ export const ATTA_HUB_CHIP = {
 /** @deprecated Use ATTA_HUB_CHIP */
 export const FINANZAS_HUB = ATTA_HUB_CHIP;
 
-export const hubHeaderIconSx = {
-  flexShrink: 0,
-  color: 'text.primary',
-};
-
 export function getHubChipSx({ selected } = {}) {
   return {
-    ...getAttaHubSubsectionSx({ selected }),
+    ...getHubSubsectionSx({ selected }),
     height: ATTA_HUB_CHIP.chipHeight,
     px: ATTA_HUB_CHIP.chipPx,
     py: ATTA_HUB_CHIP.chipPy,
@@ -53,7 +50,7 @@ export function getHubChipSx({ selected } = {}) {
 
 export function getHubListRowSx({ selected } = {}) {
   return {
-    ...getAttaHubSubsectionSx({ selected }),
+    ...getHubSubsectionSx({ selected }),
     px: ATTA_HUB_CHIP.chipPx,
     py: ATTA_HUB_CHIP.chipPy,
     transition: 'background-color 0.15s ease, border-color 0.15s ease',

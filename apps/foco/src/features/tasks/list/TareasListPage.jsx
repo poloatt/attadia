@@ -5,7 +5,6 @@ import {
   IconButton,
   CircularProgress,
   Chip,
-  Typography,
 } from '@mui/material';
 import { useResponsive } from '@shared/hooks';
 import {
@@ -29,6 +28,8 @@ import { useRutinas, useHabits } from '@shared/context';
 import { getNormalizedToday } from '@shared/utils/dateUtils';
 import { ensureRutinaForDate } from '../../habits/daily/ensureRutinaForDate';
 import { HabitCarouselAhora, HabitCarouselLuego } from '../../habits';
+import { HubSectionShell } from '@shared/components/hub';
+import ObjetivosPreviewSection from '../../objetivos/ObjetivosPreviewSection';
 
 export function TareasListPage() {
   const { fetchRutinas, getRutinaById } = useRutinas();
@@ -80,12 +81,11 @@ export function TareasListPage() {
     return () => { cancelled = true; };
   }, [fetchRutinas, fetchHabits, getRutinaById]);
 
-  const habitCarouselSx = {
-    flexShrink: 0,
-    px: 1,
-    py: 0.5,
-    minHeight: 36,
-  };
+  const renderHabitCarouselSection = (CarouselComponent) => (
+    <HubSectionShell title="Hábitos">
+      <CarouselComponent variant="iconsRow" showDividers={false} />
+    </HubSectionShell>
+  );
 
   const tareasLuego = useMemo(() => {
     if (isMobile) return [];
@@ -494,13 +494,9 @@ export function TareasListPage() {
             </Box>
           ) : isMobile ? (
             <>
-              <Box sx={habitCarouselSx}>
-                {agendaView === 'ahora' ? (
-                  <HabitCarouselAhora variant="iconsRow" showDividers={false} />
-                ) : (
-                  <HabitCarouselLuego variant="iconsRow" showDividers={false} />
-                )}
-              </Box>
+              {agendaView === 'ahora'
+                ? renderHabitCarouselSection(HabitCarouselAhora)
+                : renderHabitCarouselSection(HabitCarouselLuego)}
               <TareasTable
                 tareas={tareasAgenda}
                 agendaView={agendaView}
@@ -520,34 +516,15 @@ export function TareasListPage() {
               onRefreshData={fetchDataStable}
               objetivos={objetivos}
             />
+              <ObjetivosPreviewSection objetivos={objetivos} />
             </>
           ) : (
             // Vista desktop: dos columnas (AHORA y Luego)
-            <Box sx={{ display: 'flex', gap: 2, height: '100%', overflow: 'hidden' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+            <Box sx={{ display: 'flex', gap: 2, flex: 1, minHeight: 0, overflow: 'hidden' }}>
               {/* Columna AHORA */}
               <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-                <Box sx={{ mb: 1, px: 1, flexShrink: 0, display: 'flex', justifyContent: 'flex-start' }}>
-                  <Typography 
-                    sx={{ 
-                      fontWeight: 600,
-                      fontSize: '0.75rem',
-                      textTransform: 'capitalize',
-                      display: 'inline-block',
-                      px: 1,
-                      py: 0.5,
-                      bgcolor: 'background.paper',
-                      borderRadius: 1,
-                      boxShadow: 1,
-                      position: 'relative',
-                      zIndex: 1
-                    }}
-                  >
-                    Ahora
-                  </Typography>
-                </Box>
-                <Box sx={habitCarouselSx}>
-                  <HabitCarouselAhora variant="iconsRow" showDividers={false} />
-                </Box>
+                {renderHabitCarouselSection(HabitCarouselAhora)}
                 <Box 
                   sx={{ 
                     flex: 1, 
@@ -603,28 +580,7 @@ export function TareasListPage() {
 
               {/* Columna Luego */}
               <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-                <Box sx={{ mb: 1, px: 1, flexShrink: 0, display: 'flex', justifyContent: 'flex-start' }}>
-                  <Typography 
-                    sx={{ 
-                      fontWeight: 600,
-                      fontSize: '0.75rem',
-                      textTransform: 'capitalize',
-                      display: 'inline-block',
-                      px: 1,
-                      py: 0.5,
-                      bgcolor: 'background.paper',
-                      borderRadius: 1,
-                      boxShadow: 1,
-                      position: 'relative',
-                      zIndex: 1
-                    }}
-                  >
-                    Luego
-                  </Typography>
-                </Box>
-                <Box sx={habitCarouselSx}>
-                  <HabitCarouselLuego variant="iconsRow" showDividers={false} />
-                </Box>
+                {renderHabitCarouselSection(HabitCarouselLuego)}
                 <Box 
                   sx={{ 
                     flex: 1, 
@@ -668,6 +624,8 @@ export function TareasListPage() {
                   />
                 </Box>
               </Box>
+            </Box>
+            <ObjetivosPreviewSection objetivos={objetivos} />
             </Box>
           )}
         </Box>

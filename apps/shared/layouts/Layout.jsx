@@ -14,7 +14,7 @@ import { FormManagerProvider } from '../context/FormContext';
 import { GlobalFormEventListener } from '../context/GlobalFormEventListener';
 import useResponsive from '../hooks/useResponsive';
 import { useNavigationState } from '../utils/navigationUtils';
-import { calculateTopPadding, HEADER_CONFIG, FOOTER_CONFIG, SPACING } from '../config/uiConstants.js';
+import { calculateTopPadding, getMainBottomPadding, HEADER_CONFIG, FOOTER_CONFIG, SPACING } from '../config/uiConstants.js';
 import RutinasContext, { RutinasProvider } from '../context/RutinasContext';
 
 // Evita doble provider (p.ej. cuando el host app ya envuelve con RutinasProvider, como `apps/foco/src/App.jsx`)
@@ -82,6 +82,7 @@ export function Layout() {
   };
 
   const mainContentMargin = getMainContentMargin();
+  const mainBottomPadding = getMainBottomPadding(isMobileOrTablet);
 
   return (
     <FormManagerProvider>
@@ -141,7 +142,7 @@ export function Layout() {
                 right: 0,
                 bottom: 0,
                 pt: `${mainTopPadding}px`,
-                pb: `${FOOTER_CONFIG.height + 24}px`, // Agregar 24px adicionales de margen inferior
+                pb: mainBottomPadding,
                 bgcolor: 'background.default',
                 overflowY: 'auto',
                 overflowX: 'hidden',
@@ -172,7 +173,7 @@ export function Layout() {
                 minHeight: 0,
                 border: 'none',
                 outline: 'none',
-                pb: 3, // Agregar padding bottom adicional al contenedor interno
+                pb: 3,
               }}>
                 <Outlet />
               </Box>
@@ -222,7 +223,7 @@ export function Layout() {
                 right: 0,
                 bottom: 0,
                 pt: `${mainTopPadding}px`,
-                pb: `${FOOTER_CONFIG.height + 24}px`, // Agregar 24px adicionales de margen inferior
+                pb: mainBottomPadding,
                 bgcolor: 'background.default',
                 overflowY: 'auto',
                 overflowX: 'hidden',
@@ -253,7 +254,7 @@ export function Layout() {
                 minHeight: 0,
                 border: 'none',
                 outline: 'none',
-                pb: 3, // Agregar padding bottom adicional al contenedor interno
+                pb: 3,
               }}>
                 <Outlet />
               </Box>
@@ -262,10 +263,12 @@ export function Layout() {
             </Box>
           </>
         )}
-        {/* Footer */}
-        <Box sx={{ position: 'fixed', left: 0, bottom: 0, width: '100vw', zIndex: 1300, height: `${FOOTER_CONFIG.height}px` }}>
-          <Footer isDesktop={isDesktop} isSidebarOpen={isOpen && isDesktop} />
-        </Box>
+        {/* Footer health-check: solo desktop; en móvil compite con BottomNavigation */}
+        {!isMobileOrTablet && (
+          <Box sx={{ position: 'fixed', left: 0, bottom: 0, width: '100vw', zIndex: 1300, height: `${FOOTER_CONFIG.height}px` }}>
+            <Footer isDesktop={isDesktop} isSidebarOpen={isOpen && isDesktop} />
+          </Box>
+        )}
         <PwaInstallBanner />
       </Box>
     </FormManagerProvider>

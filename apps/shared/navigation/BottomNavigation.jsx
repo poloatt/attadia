@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Box, Paper, Typography } from '@mui/material';
-import { NAV_TYPO } from '../config/uiConstants';
+import { NAV_TYPO, SPACING } from '../config/uiConstants';
 import { useLocation, Link } from 'react-router-dom';
 import { resolveBottomNavItems, isAttaBranchActive, isPathActive } from './appNavResolver';
 import { DynamicIcon } from '../components/common/DynamicIcon';
@@ -8,7 +8,7 @@ import useResponsive from '../hooks/useResponsive';
 
 /**
  * Navegación inferior móvil.
- * Atta: sin ramas en bottom nav (hub Finanzas único).
+ * Atta: ramas Finanzas | Propiedades | Inventario.
  * Foco/Pulso: secciones planas del módulo.
  */
 export default function BottomNavigation() {
@@ -39,6 +39,8 @@ export default function BottomNavigation() {
         borderColor: theme.palette.divider,
         m: 0,
         p: 0,
+        pb: 'env(safe-area-inset-bottom, 0px)',
+        minHeight: `calc(${SPACING.bottomNavigationHeight}px + env(safe-area-inset-bottom, 0px))`,
       }}
     >
       <Box

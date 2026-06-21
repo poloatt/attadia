@@ -102,7 +102,11 @@ export const isRouteActive = (currentPath, activePaths) => {
   if (Array.isArray(activePaths)) {
     return activePaths.some(path => {
       if (path === '/') {
-        return currentPath === '/' || currentPath.startsWith('/assets/');
+        return (
+          currentPath === '/'
+          || currentPath.startsWith('/finanzas')
+          || currentPath.startsWith('/propiedades')
+        );
       }
       return currentPath === path || currentPath.startsWith(path + '/');
     });

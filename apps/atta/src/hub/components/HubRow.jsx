@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Skeleton, Typography } from '@mui/material';
 import { getHubListRowSx, hubLabelSx, hubValueSx } from '../styles/attaHubChipStyles';
-import { getAttaHubSubsectionSx } from '../styles/attaHubSectionStyles';
+import { getHubSubsectionSx } from '@shared/styles/hubSectionStyles';
 import { HUB_ROW_LAYOUT } from './hubRowLayout';
 
 export function HubRowSkeleton({ layout = HUB_ROW_LAYOUT }) {
@@ -11,7 +11,7 @@ export function HubRowSkeleton({ layout = HUB_ROW_LAYOUT }) {
       height={layout.minHeight}
       animation="wave"
       sx={{
-        ...getAttaHubSubsectionSx(),
+        ...getHubSubsectionSx(),
         mb: layout.mb,
         minHeight: layout.minHeight,
       }}

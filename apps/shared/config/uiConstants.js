@@ -200,6 +200,20 @@ export function calculateTopPadding(showToolbar, agendaUnified = false) {
 }
 
 /**
+ * Padding inferior del área principal (Layout).
+ * Móvil/tablet: bottom nav + safe area iOS; desktop: footer de health-check.
+ * @param {boolean} isMobileOrTablet
+ * @param {number} [extraPadding=24]
+ * @returns {string}
+ */
+export function getMainBottomPadding(isMobileOrTablet, extraPadding = 24) {
+  if (isMobileOrTablet) {
+    return `calc(${SPACING.bottomNavigationHeight}px + env(safe-area-inset-bottom, 0px) + ${extraPadding}px)`;
+  }
+  return `${FOOTER_CONFIG.height + extraPadding}px`;
+}
+
+/**
  * Obtiene la configuración de padding para children
  * @param {boolean} isOpen - Estado de apertura de la sidebar
  * @returns {string|number} - Padding calculado

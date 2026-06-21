@@ -14,9 +14,11 @@ export function createAppManualChunks(id) {
   if (
     normalized.includes('/node_modules/axios/')
     || normalized.includes('/node_modules/date-fns/')
-    || normalized.includes('/node_modules/notistack/')
   ) {
     return 'utils';
+  }
+  if (normalized.includes('/node_modules/notistack/')) {
+    return 'vendor';
   }
   if (normalized.includes('/apps/shared/')) {
     return 'shared';

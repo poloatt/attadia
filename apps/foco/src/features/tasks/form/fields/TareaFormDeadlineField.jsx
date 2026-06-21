@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { es } from 'date-fns/locale';
 import { IconButton } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';

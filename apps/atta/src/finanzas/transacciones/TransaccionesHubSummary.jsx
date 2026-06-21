@@ -9,7 +9,7 @@ import {
   hubValueSx,
   hubLabelSx,
 } from '../../hub';
-import { getAttaHubSubsectionSx } from '../../hub/styles/attaHubSectionStyles';
+import { getHubSubsectionSx } from '@shared/styles/hubSectionStyles';
 import { HubMetricsRow, MetricChip } from '../../hub';
 import { formatMonto } from './transaccionesPeriodUtils';
 import { useTransaccionesPeriodStats } from './useTransaccionesPeriodStats';
@@ -24,7 +24,7 @@ export function TransaccionesHubSummarySkeleton() {
             key={i}
             variant="rounded"
             height={ATTA_HUB_CHIP.chipHeight}
-            sx={{ ...getAttaHubSubsectionSx(), flex: 1, height: ATTA_HUB_CHIP.chipHeight }}
+            sx={{ ...getHubSubsectionSx(), flex: 1, height: ATTA_HUB_CHIP.chipHeight }}
           />
         ))}
       </HubMetricsRow>

@@ -5,6 +5,7 @@ import {
   Typography,
 } from '@mui/material';
 import { addMinutes, differenceInMinutes, isSameDay, startOfDay } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { isSameDayAsToday } from '@shared/utils/agendaRules';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';

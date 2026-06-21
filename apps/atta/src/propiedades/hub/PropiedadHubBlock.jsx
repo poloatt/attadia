@@ -18,7 +18,7 @@ import {
   propiedadHubIconSx,
   propiedadHubSubtitleSx,
   propiedadHubTitleSx,
-} from '../../hub/styles/attaHubSectionStyles';
+} from '../../hub/styles/attaPropiedadHubStyles';
 
 export default function PropiedadHubBlock({ propiedad, isLast = false, showHabitaciones = true }) {
   const navigate = useNavigate();

@@ -1,6 +1,22 @@
 # Atta Hub Kit
 
-Punto único de verdad para hubs de **Finanzas**, **Propiedades** e **Inventario**.
+Punto único de verdad para **componentes y lógica** de hubs de **Finanzas**, **Propiedades** e **Inventario**.
+
+Los **estilos core** y el **shell de tarjeta** viven en `@attadia/shared`:
+
+| Recurso | Import |
+|---------|--------|
+| Tokens y sx (header, body, card, subsección) | `@shared/styles/hubSectionStyles` |
+| `HubSectionCard`, `HubSectionHeader`, `HubSectionShell` | `@shared/components/hub` |
+| Alias ATTA | `AttaHubSectionCard` desde `@/hub` (= `HubSectionCard`) |
+
+Estilos **solo ATTA** (Propiedades, switch compacto): `@/hub/styles/attaPropiedadHubStyles`.
+
+Chips, filas y carruseles hub: `@/hub/styles/attaHubChipStyles`.
+
+`@/hub/styles/attaHubSectionStyles` re-exporta aliases `@deprecated` hacia shared; preferir imports directos de `@shared/styles/hubSectionStyles`.
+
+Registro de ramas: `getAttaHubBranchConfig` desde `@/hub/config/attaHubBranchConfig` (**no** desde `@/hub`), para no crear dependencia circular con `*HubSection`.
 
 ## Importar
 
@@ -14,15 +30,11 @@ import {
 } from '@/hub';
 ```
 
-Estilos de tarjeta/chip: `@/hub/styles/attaHubSectionStyles` o `@/hub/styles/attaHubChipStyles`. **No** usar shims en `navigation/` ni re-exports deprecados en dominio.
-
-Registro de ramas: `getAttaHubBranchConfig` desde `@/hub/config/attaHubBranchConfig` (**no** desde `@/hub`), para no crear dependencia circular con `*HubSection`.
-
 ## Checklist PR3 (sin shims)
 
 - [x] `finance/` y `bienes/` eliminados; dominios en `finanzas/`, `propiedades/`, `inventario/`
-- [x] Tarjeta hub: `AttaHubSectionCard` desde `@/hub` (no `FinanzasHubSectionCard`)
-- [x] Estilos hub: `hub/styles/*` (no `finanzasHubStyles`, `propiedadesHubStyles`, `navigation/attaHubSectionStyles`)
+- [x] Tarjeta hub: `AttaHubSectionCard` desde `@/hub` (wrapper de `@shared/components/hub`)
+- [x] Estilos core hub: `@shared/styles/hubSectionStyles` (aliases deprecated en `hub/styles/attaHubSectionStyles`)
 - [x] Filas hub: `HubRow` desde `@/hub` (no `BienesHubRow`)
 - [x] Nav Atta: `getAttaBranchPropiedades` / `getAttaPropiedadesNav` (no aliases `bienes`)
 
@@ -49,8 +61,6 @@ export default function XxxHubSection() {
 
 ## Widgets compartidos entre ramas
 
-Algunos componentes viven en un dominio y se reutilizan en hubs de otro:
-
 | Widget | Origen | Consumidores típicos |
 |--------|--------|----------------------|
 | `MonedasCarousel`, `MonedaTile` | `finanzas/monedas` | `finanzas/hub/MonedasHubSection`, `propiedades/hub/*`, `HabitacionesCarouselSection` |
@@ -66,4 +76,4 @@ Importar desde el barrel del dominio, p. ej. `import { MonedasCarousel } from '.
 | Métricas | `HubMetricsRow` + `MetricChip` |
 | Custom | cuerpo libre dentro de `AttaHubSectionCard` |
 
-No editar estilos de tarjeta en dominio salvo cambio global en `hub/styles/`.
+Cambios globales de look → `@shared/styles/hubSectionStyles`. Chips/filas → `hub/styles/attaHubChipStyles`.

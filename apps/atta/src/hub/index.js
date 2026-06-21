@@ -1,6 +1,7 @@
-export { default as AttaHubSectionCard } from './AttaHubSectionCard';
+export { HubSectionCard as AttaHubSectionCard } from '@shared/components/hub';
 
 export * from './styles/attaHubSectionStyles';
+export * from './styles/attaPropiedadHubStyles';
 export * from './styles/attaHubChipStyles';
 
 export { default as HubRow, HubRowSkeleton } from './components/HubRow';
