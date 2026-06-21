@@ -71,7 +71,7 @@ API: `POST /api/tarea-series`, `PATCH /api/tarea-series/:id`, `DELETE /api/tarea
 # GTASKS_AUTO_CREATE_OBJETIVOS=true   # por defecto false: no crear Objetivo por cada TaskList nueva en Google sin vínculo local
 # GTASKS_SERIES_HORIZON_DAYS=90       # cuántos días de ocurrencias exportar por serie
 # GTASKS_SERIES_LOOKBACK_DAYS=14      # días hacia atrás al expandir (calendario)
-# GTASKS_ASSUME_GOOGLE_RECURRING_SINGLE=true   # opt-in: inferir semanal con 1 sola fila en Google (por defecto desactivado)
+# GTASKS_FULL_IMPORT_HOURS=24   # import completo solo si la última sync fue hace más de N horas
 ```
 
 ## Scripts disponibles

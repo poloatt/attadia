@@ -4,6 +4,10 @@ import autoSyncService from '../services/autoSyncService.js';
 import { getUserId } from '../utils/authUtils.js';
 import { spawn } from 'child_process';
 import path from 'path';
+import {
+  CALENDAR_OAUTH_STATE_PREFIX,
+  completeCalendarOAuth,
+} from './googleCalendarController.js';
 
 const postMessageOrigin = () => {
   try {
@@ -234,16 +238,26 @@ export const handleCallback = async (req, res) => {
     console.log('  - state:', state);
     console.log('  - authError:', authError);
     console.log('  - req.user:', req.user);
-    
-    const userId = state;
-    console.log('🔍 userId final extraído:', userId);
+
+    const stateStr = String(state || '');
+    const isCalendarAuth = stateStr.startsWith(CALENDAR_OAUTH_STATE_PREFIX);
+    const userId = isCalendarAuth
+      ? stateStr.slice(CALENDAR_OAUTH_STATE_PREFIX.length)
+      : stateStr;
+    console.log('🔍 userId final extraído:', userId, isCalendarAuth ? '(Calendar)' : '(Tasks)');
     
     if (!userId || userId === 'undefined') {
       console.error('❌ UserId inválido en callback:', userId);
+      const authType = isCalendarAuth ? 'google_calendar_auth' : 'google_tasks_auth';
       return res.send(callbackHtml(
-        "{ type: 'google_tasks_auth', status: 'error', message: 'Usuario no identificado' }",
+        `{ type: '${authType}', status: 'error', message: 'Usuario no identificado' }`,
         'Error: Usuario no identificado. Puedes cerrar esta ventana.'
       ));
+    }
+
+    if (isCalendarAuth) {
+      const { scriptBody, bodyText } = await completeCalendarOAuth(userId, code);
+      return res.send(callbackHtml(scriptBody, bodyText));
     }
 
     if (!isGoogleTasksEnabled()) {
@@ -537,7 +551,8 @@ export const manualSync = async (req, res) => {
 
     // Modo real - sincronización real
     // Pasar el usuario completo en lugar de solo el ID para evitar consultas adicionales
-    const syncResults = await googleTasksService.fullSyncWithUser(req.user);
+    const fullImport = req.body?.fullImport === true;
+    const syncResults = await googleTasksService.fullSyncWithUser(req.user, { fullImport });
     
     // Actualizar fecha de última sincronización
     await Users.findByIdAndUpdate(getUserId(req.user), {

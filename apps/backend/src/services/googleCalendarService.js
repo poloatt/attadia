@@ -19,7 +19,7 @@ class GoogleCalendarService {
       const oauth = new google.auth.OAuth2(
         config.google.clientId,
         config.google.clientSecret,
-        `${config.backendUrl}/api/google-calendar/callback`,
+        `${config.backendUrl}/api/google-tasks/callback`,
       );
       if (typeof oauth.setMaxListeners === 'function') {
         oauth.setMaxListeners(50);

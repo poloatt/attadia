@@ -37,6 +37,17 @@ class GoogleTasksService {
     this.taskListCache.clear();
   }
 
+  /** Import completo solo si no hubo sync reciente o se fuerza (GTASKS_FULL_IMPORT_HOURS, default 24h). */
+  shouldFullImportFromGoogle(user, options = {}) {
+    if (options.fullImport === true) return true;
+    if (options.fullImport === false) return false;
+    const hours = parseInt(process.env.GTASKS_FULL_IMPORT_HOURS || '24', 10);
+    const lastSync = user?.googleTasksConfig?.lastSync;
+    if (!lastSync) return true;
+    const ageMs = Date.now() - new Date(lastSync).getTime();
+    return ageMs > hours * 60 * 60 * 1000;
+  }
+
   getOAuthClient(userId) {
     const uid = String(userId);
     if (!this.oauthClients.has(uid)) {
@@ -1032,13 +1043,24 @@ class GoogleTasksService {
           
           logger.sync(`📋 Procesando ${mainTasks.length} tareas principales de "${taskList.title}"`);
 
+          const googleIds = mainTasks.map((t) => t.id).filter(Boolean);
+          const existingByGoogleId = new Map();
+          if (googleIds.length > 0) {
+            const existingBatch = await Tareas.find({
+              usuario: userId,
+              'googleTasksSync.googleTaskId': { $in: googleIds },
+            });
+            for (const doc of existingBatch) {
+              const gid = doc.googleTasksSync?.googleTaskId;
+              if (gid) existingByGoogleId.set(gid, doc);
+            }
+          }
+
+          const isFullImport = !updatedMin;
+
           for (const googleTask of mainTasks) {
             try {
-              // Buscar tarea existente por Google Task ID
-              let tarea = await Tareas.findOne({
-                'googleTasksSync.googleTaskId': googleTask.id,
-                usuario: userId
-              });
+              let tarea = existingByGoogleId.get(googleTask.id);
 
               if (tarea) {
                 const shouldImport = this.shouldImportFromGoogle(tarea, googleTask);
@@ -1073,6 +1095,7 @@ class GoogleTasksService {
                 nuevaTarea.googleTasksSync.googleTaskListId = taskList.id;
                 
                 await nuevaTarea.save();
+                existingByGoogleId.set(googleTask.id, nuevaTarea);
                 syncResults.created++;
                 logger.sync(`📥 Creada tarea: "${tituloLimpio}"`);
               }
@@ -1083,6 +1106,8 @@ class GoogleTasksService {
             }
           }
 
+          // Limpieza pesada solo en import completo (incremental evita re-escaneo total)
+          if (isFullImport) {
           // Limpieza: eliminar en BD tareas que ya no existen en Google (huérfanas por borrado en Google)
           try {
             const googleMainIds = new Set(mainTasks.map(t => t.id));
@@ -1165,7 +1190,9 @@ class GoogleTasksService {
           } catch (dedupeErr) {
             logger.warn?.(`No se pudo deduplicar tareas locales sin id en "${taskList.title}": ${dedupeErr.message}`);
           }
+          } // isFullImport
 
+          if (isFullImport || mainTasks.length > 0) {
           try {
             const serieStats = await reconcileSeriesFromGoogle(
               userId,
@@ -1178,6 +1205,7 @@ class GoogleTasksService {
             syncResults.series.instancesLinked += serieStats.instancesLinked;
           } catch (serieErr) {
             logger.warn?.(`Reconcile series falló para "${taskList.title}": ${serieErr.message}`);
+          }
           }
 
         } catch (error) {
@@ -1361,12 +1389,13 @@ class GoogleTasksService {
   /**
    * Sincronización bidireccional completa con flujo correcto
    */
-  async fullSyncWithUser(user) {
+  async fullSyncWithUser(user, options = {}) {
     if (!user || !user.googleTasksConfig?.enabled) {
       throw new Error('Google Tasks no está habilitado para este usuario');
     }
 
     const userId = user._id || user.id;
+    const fullImport = this.shouldFullImportFromGoogle(user, options);
     const runId = randomUUID();
     const startedAt = new Date();
 
@@ -1403,7 +1432,7 @@ class GoogleTasksService {
 
     try {
       this.clearTaskListCache();
-      logger.sync(`🔄 Iniciando sincronización completa runId=${runId} para usuario ${userId} (syncDirection=${syncDirection})`);
+      logger.sync(`🔄 Iniciando sincronización completa runId=${runId} para usuario ${userId} (syncDirection=${syncDirection}, fullImport=${fullImport})`);
 
       let stepT0 = Date.now();
 
@@ -1419,7 +1448,8 @@ class GoogleTasksService {
       if (importFromGoogle) {
         logger.sync(`📥 Paso 2: Importando desde Google Tasks`);
         stepT0 = Date.now();
-        results.tareas.fromGoogle = await this.syncTasksFromGoogle(userId, { fullImport: true });
+        results.tareas.fromGoogle = await this.syncTasksFromGoogle(userId, { fullImport });
+        results.metrics.fullImport = fullImport;
         results.metrics.timings.importFromGoogleMs = Date.now() - stepT0;
         // Series ya reconciliadas por TaskList en syncTasksFromGoogle (con mainTasks de Google)
         results.series = results.tareas.fromGoogle?.series || {
@@ -1451,16 +1481,11 @@ class GoogleTasksService {
       } else {
       logger.sync(`📤 Paso 3: Sincronizando tareas locales hacia Google`);
 
-      try {
-        // Materialización local ya ocurrió en paso 2; aquí no exportar masivamente cada ocurrencia a Google
-        results.seriesExpand = await expandAllSeriesForUser(this, userId, { syncToGoogle: false });
-        logger.sync(
-          `🔁 Series (revisión export): ${results.seriesExpand.instancesCreated} instancias nuevas`,
-        );
-      } catch (expandErr) {
-        logger.warn?.(`Expand series: ${expandErr.message}`);
-        results.seriesExpand = { instancesCreated: 0, instancesSynced: 0, errors: [expandErr.message] };
-      }
+      results.seriesExpand = results.seriesExpandLocal || {
+        instancesCreated: 0,
+        instancesSynced: 0,
+        errors: [],
+      };
 
       const maxTasksPerSync = parseInt(process.env.GTASKS_MAX_TASKS_PER_SYNC || '25', 10);
       const concurrency = parseInt(process.env.GTASKS_CONCURRENCY || '3', 10);

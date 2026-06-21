@@ -3,6 +3,8 @@ import config from '../config/config.js';
 import { getUserId } from '../utils/authUtils.js';
 import googleCalendarService from '../services/googleCalendarService.js';
 
+const GOOGLE_OAUTH_REDIRECT_URI = `${config.backendUrl}/api/google-tasks/callback`;
+export const CALENDAR_OAUTH_STATE_PREFIX = 'cal:';
 const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly';
 const TASKS_SCOPE = 'https://www.googleapis.com/auth/tasks';
 
@@ -32,7 +34,7 @@ try {
   oauth2Client = new google.auth.OAuth2(
     config.google.clientId,
     config.google.clientSecret,
-    `${config.backendUrl}/api/google-calendar/callback`,
+    GOOGLE_OAUTH_REDIRECT_URI,
   );
 } catch (error) {
   console.warn('⚠️ googleapis no disponible para Google Calendar:', error.message);
@@ -72,7 +74,7 @@ export const getAuthUrl = async (req, res) => {
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: scopes,
-      state: String(userId),
+      state: `${CALENDAR_OAUTH_STATE_PREFIX}${userId}`,
       prompt: 'consent',
       login_hint: user?.email,
     });
@@ -83,6 +85,51 @@ export const getAuthUrl = async (req, res) => {
     res.status(500).json({ success: false, error: 'Error interno del servidor' });
   }
 };
+
+export async function completeCalendarOAuth(userId, code) {
+  const { tokens } = await oauth2Client.getToken(code);
+
+  const update = {
+    'googleCalendarConfig.enabled': true,
+    'googleCalendarConfig.accessToken': tokens.access_token,
+    'googleCalendarConfig.refreshToken': tokens.refresh_token,
+    'googleCalendarConfig.lastSync': new Date(),
+    'googleCalendarConfig.tokenError': null,
+    'googleCalendarConfig.tokenErrorDate': null,
+  };
+
+  if (!tokens.refresh_token) {
+    const user = await Users.findById(userId).select('googleCalendarConfig.refreshToken');
+    if (user?.googleCalendarConfig?.refreshToken) {
+      update['googleCalendarConfig.refreshToken'] = user.googleCalendarConfig.refreshToken;
+    }
+  }
+
+  if (tokens.access_token) {
+    update['googleTasksConfig.accessToken'] = tokens.access_token;
+    if (tokens.refresh_token) {
+      update['googleTasksConfig.refreshToken'] = tokens.refresh_token;
+    }
+  }
+
+  await Users.findByIdAndUpdate(userId, update);
+
+  let syncResults = null;
+  try {
+    syncResults = await googleCalendarService.syncEventsFromGoogle(userId);
+  } catch (syncErr) {
+    console.warn('Error en sync inicial Calendar:', syncErr.message);
+  }
+
+  const message = syncResults
+    ? `Google Calendar conectado. ${syncResults.created} eventos importados, ${syncResults.updated} actualizados`
+    : 'Google Calendar conectado correctamente';
+
+  return {
+    scriptBody: `{ type: 'google_calendar_auth', status: 'success', message: ${JSON.stringify(message)} }`,
+    bodyText: '¡Google Calendar conectado! Puedes cerrar esta ventana.',
+  };
+}
 
 export const handleCallback = async (req, res) => {
   try {
@@ -102,7 +149,10 @@ export const handleCallback = async (req, res) => {
       ));
     }
 
-    const userId = state;
+    const stateStr = String(state || '');
+    const userId = stateStr.startsWith(CALENDAR_OAUTH_STATE_PREFIX)
+      ? stateStr.slice(CALENDAR_OAUTH_STATE_PREFIX.length)
+      : stateStr;
     if (!userId || userId === 'undefined') {
       return res.send(callbackHtml(
         "{ type: 'google_calendar_auth', status: 'error', message: 'Usuario no identificado' }",
@@ -117,48 +167,8 @@ export const handleCallback = async (req, res) => {
       ));
     }
 
-    const { tokens } = await oauth2Client.getToken(code);
-
-    const update = {
-      'googleCalendarConfig.enabled': true,
-      'googleCalendarConfig.accessToken': tokens.access_token,
-      'googleCalendarConfig.refreshToken': tokens.refresh_token,
-      'googleCalendarConfig.lastSync': new Date(),
-      'googleCalendarConfig.tokenError': null,
-      'googleCalendarConfig.tokenErrorDate': null,
-    };
-
-    if (!tokens.refresh_token) {
-      const user = await Users.findById(userId).select('googleCalendarConfig.refreshToken');
-      if (user?.googleCalendarConfig?.refreshToken) {
-        update['googleCalendarConfig.refreshToken'] = user.googleCalendarConfig.refreshToken;
-      }
-    }
-
-    if (tokens.access_token) {
-      update['googleTasksConfig.accessToken'] = tokens.access_token;
-      if (tokens.refresh_token) {
-        update['googleTasksConfig.refreshToken'] = tokens.refresh_token;
-      }
-    }
-
-    await Users.findByIdAndUpdate(userId, update);
-
-    let syncResults = null;
-    try {
-      syncResults = await googleCalendarService.syncEventsFromGoogle(userId);
-    } catch (syncErr) {
-      console.warn('Error en sync inicial Calendar:', syncErr.message);
-    }
-
-    const message = syncResults
-      ? `Google Calendar conectado. ${syncResults.created} eventos importados, ${syncResults.updated} actualizados`
-      : 'Google Calendar conectado correctamente';
-
-    return res.send(callbackHtml(
-      `{ type: 'google_calendar_auth', status: 'success', message: ${JSON.stringify(message)} }`,
-      '¡Google Calendar conectado! Puedes cerrar esta ventana.',
-    ));
+    const { scriptBody, bodyText } = await completeCalendarOAuth(userId, code);
+    return res.send(callbackHtml(scriptBody, bodyText));
   } catch (error) {
     console.error('Error en callback Calendar:', error);
     return res.send(callbackHtml(

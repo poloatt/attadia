@@ -154,7 +154,7 @@ export function getAttaBranchById(branchId) {
 
 /**
  * Ítems para bottom nav móvil según módulo y ruta.
- * Atta: sin ramas en bottom nav (navegación vía hub Finanzas).
+ * Atta: ramas Finanzas | Propiedades | Inventario.
  * Foco/Pulso: subItems del módulo (secciones planas).
  */
 export function resolveBottomNavItems(currentPath) {
@@ -162,7 +162,7 @@ export function resolveBottomNavItems(currentPath) {
   if (!moduloActivo) return [];
 
   if (moduloActivo.id === 'assets') {
-    return [];
+    return getAttaBranches();
   }
 
   const orderMap = {

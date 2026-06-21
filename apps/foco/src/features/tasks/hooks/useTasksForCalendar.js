@@ -1,9 +1,32 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { endOfDay, endOfWeek, startOfDay, startOfWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useSnackbar } from 'notistack';
 import { normalizeTaskList } from '@shared/utils/taskListUtils';
 import { fetchTasksForAgendaRange } from '../api/tasksApi';
+
+// Caché por rango + dedup de requests en vuelo, compartida entre montajes.
+// Permite alternar día/semana (o volver a un rango ya visto) sin spinner ni
+// refetch bloqueante: se sirve la caché al instante y se revalida en background.
+const AGENDA_TTL_MS = 30000;
+const agendaCache = new Map(); // rangeKey -> { docs, timestamp }
+const agendaInFlight = new Map(); // rangeKey -> Promise<docs>
+
+function loadAgendaRange(rangeKey, { from, to, includeCompleted, force = false }) {
+  if (!force && agendaInFlight.has(rangeKey)) {
+    return agendaInFlight.get(rangeKey);
+  }
+  const promise = fetchTasksForAgendaRange({ from, to, includeCompleted })
+    .then((docs) => {
+      agendaCache.set(rangeKey, { docs, timestamp: Date.now() });
+      return docs;
+    })
+    .finally(() => {
+      agendaInFlight.delete(rangeKey);
+    });
+  agendaInFlight.set(rangeKey, promise);
+  return promise;
+}
 
 export function useTasksForCalendar(selectedDate, viewMode = 'week') {
   const { enqueueSnackbar } = useSnackbar();
@@ -35,13 +58,22 @@ export function useTasksForCalendar(selectedDate, viewMode = 'week') {
     [range.start, range.end, includeCompleted],
   );
 
+  // Mantener el rango actual accesible para refetch sin recrear el callback
+  const rangeRef = useRef({ rangeKey, range, includeCompleted });
+  rangeRef.current = { rangeKey, range, includeCompleted };
+
   const refetch = useCallback(async () => {
+    const { rangeKey: key, range: r, includeCompleted: inc } = rangeRef.current;
     try {
       setLoading(true);
-      const docs = await fetchTasksForAgendaRange({
-        from: range.start,
-        to: range.end,
-        includeCompleted,
+      // Refresco explícito (normalmente tras una mutación): invalidar todos los
+      // rangos para que al alternar día/semana se revaliden y no queden viejos.
+      agendaCache.clear();
+      const docs = await loadAgendaRange(key, {
+        from: r.start,
+        to: r.end,
+        includeCompleted: inc,
+        force: true,
       });
       setTasks(normalizeTaskList(docs));
       return docs;
@@ -53,31 +85,44 @@ export function useTasksForCalendar(selectedDate, viewMode = 'week') {
     } finally {
       setLoading(false);
     }
-  }, [range.start, range.end, includeCompleted, enqueueSnackbar]);
+  }, [enqueueSnackbar]);
 
   useEffect(() => {
     let cancelled = false;
-    const load = async () => {
-      try {
-        setLoading(true);
-        const docs = await fetchTasksForAgendaRange({
-          from: range.start,
-          to: range.end,
-          includeCompleted,
-        });
-        if (!cancelled) {
-          setTasks(normalizeTaskList(docs));
-        }
-      } catch (error) {
-        if (!cancelled) {
+
+    const cached = agendaCache.get(rangeKey);
+    const isFresh = cached && Date.now() - cached.timestamp < AGENDA_TTL_MS;
+
+    // Stale-while-revalidate: si hay caché, mostrarla ya y revalidar sin spinner
+    if (cached) {
+      setTasks(normalizeTaskList(cached.docs));
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
+    if (isFresh) {
+      return () => { cancelled = true; };
+    }
+
+    loadAgendaRange(rangeKey, {
+      from: range.start,
+      to: range.end,
+      includeCompleted,
+    })
+      .then((docs) => {
+        if (!cancelled) setTasks(normalizeTaskList(docs));
+      })
+      .catch(() => {
+        if (!cancelled && !cached) {
           enqueueSnackbar('Error al cargar tareas del calendario', { variant: 'error' });
           setTasks([]);
         }
-      } finally {
+      })
+      .finally(() => {
         if (!cancelled) setLoading(false);
-      }
-    };
-    load();
+      });
+
     return () => { cancelled = true; };
   }, [rangeKey, enqueueSnackbar, range.start, range.end, includeCompleted]);
 
