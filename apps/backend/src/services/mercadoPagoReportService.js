@@ -15,6 +15,48 @@ export function getSettlementPollConfig() {
   };
 }
 
+function dateWithinTolerance(reportDate, targetDate, toleranceDays = 1) {
+  if (!reportDate || !targetDate) return false;
+  const report = new Date(String(reportDate).slice(0, 10));
+  const target = new Date(String(targetDate).slice(0, 10));
+  const diffDays = Math.abs(report - target) / (24 * 60 * 60 * 1000);
+  return diffDays <= toleranceDays;
+}
+
+export function splitDateRangeIntoMonthlyChunks(beginDate, endDate) {
+  const chunks = [];
+  let start = new Date(beginDate);
+  const end = new Date(endDate);
+
+  while (start < end) {
+    const chunkEnd = new Date(start);
+    chunkEnd.setMonth(chunkEnd.getMonth() + 1);
+    if (chunkEnd > end) {
+      chunkEnd.setTime(end.getTime());
+    }
+    chunks.push({
+      beginDate: start.toISOString(),
+      endDate: chunkEnd.toISOString()
+    });
+    start = new Date(chunkEnd.getTime() + 1);
+  }
+
+  return chunks;
+}
+
+function findStrictReportMatch(reports, beginDate, endDate) {
+  return reports.find((r) => {
+    if (!r.file_name) return false;
+    const beginOk =
+      r.begin_date?.startsWith(beginDate.slice(0, 10)) ||
+      dateWithinTolerance(r.begin_date, beginDate);
+    const endOk =
+      r.end_date?.startsWith(endDate.slice(0, 10)) ||
+      dateWithinTolerance(r.end_date, endDate);
+    return beginOk && endOk;
+  });
+}
+
 export class SettlementReportTimeoutError extends Error {
   constructor(message, { beginDate, endDate } = {}) {
     super(message);
@@ -46,11 +88,16 @@ export class MercadoPagoReportService {
         { key: 'SOURCE_ID' },
         { key: 'EXTERNAL_REFERENCE' },
         { key: 'TRANSACTION_TYPE' },
+        { key: 'DESCRIPTION' },
         { key: 'TRANSACTION_AMOUNT' },
+        { key: 'TRANSACTION_CURRENCY' },
         { key: 'FEE_AMOUNT' },
         { key: 'SETTLEMENT_NET_AMOUNT' },
+        { key: 'SETTLEMENT_DATE' },
+        { key: 'REAL_AMOUNT' },
         { key: 'PAYMENT_METHOD' },
-        { key: 'PAYMENT_METHOD_TYPE' }
+        { key: 'PAYMENT_METHOD_TYPE' },
+        { key: 'METADATA' }
       ]
     };
 
@@ -136,21 +183,11 @@ export class MercadoPagoReportService {
       }
 
       const reports = await this.listReports();
-      const match = reports.find((r) => {
-        const sameBegin = r.begin_date?.startsWith(beginDate.slice(0, 10));
-        const sameEnd = r.end_date?.startsWith(endDate.slice(0, 10));
-        return r.file_name && (sameBegin || sameEnd || r.created_from === 'manual');
-      });
+      const match = findStrictReportMatch(reports, beginDate, endDate);
 
       if (match?.file_name) {
         return match.file_name;
       }
-    }
-
-    const reports = await this.listReports();
-    const latest = reports.find((r) => r.file_name);
-    if (latest?.file_name) {
-      return latest.file_name;
     }
 
     throw new SettlementReportTimeoutError(
@@ -171,9 +208,6 @@ export class MercadoPagoReportService {
     return this.createReport(beginDate, endDate);
   }
 
-  /**
-   * Intenta completar un reporte solicitado previamente (job async en background).
-   */
   async tryCompletePendingReport(pending, pollOptions = {}) {
     if (!pending?.beginDate || !pending?.endDate) {
       return null;
@@ -198,10 +232,6 @@ export class MercadoPagoReportService {
     }
   }
 
-  /**
-   * Flujo completo: configura, crea y espera el reporte.
-   * Si el poll agota el timeout, devuelve { pending: true } para completar en próxima sync.
-   */
   async fetchSettlementMovements(beginDate, endDate, options = {}) {
     const pollOptions = options.pollOptions || {};
 
@@ -243,6 +273,64 @@ export class MercadoPagoReportService {
       }
       throw error;
     }
+  }
+
+  /**
+   * Solicita reportes en chunks mensuales y deduplica filas por SOURCE_ID.
+   */
+  async fetchAllSettlementMovements(beginDate, endDate, options = {}) {
+    const chunks = splitDateRangeIntoMonthlyChunks(beginDate, endDate);
+    const byId = new Map();
+    let pendingInfo = null;
+    let pendingConsumed = false;
+
+    for (const chunk of chunks) {
+      const chunkOptions = {
+        ...options,
+        pending: !pendingConsumed ? options.pending : undefined
+      };
+
+      const result = await this.fetchSettlementMovements(
+        chunk.beginDate,
+        chunk.endDate,
+        chunkOptions
+      );
+
+      if (options.pending && !pendingConsumed) {
+        pendingConsumed = true;
+      }
+
+      if (result.pending) {
+        pendingInfo = {
+          pending: true,
+          beginDate: result.beginDate || chunk.beginDate,
+          endDate,
+          chunksProcessed: chunks.indexOf(chunk)
+        };
+        break;
+      }
+
+      for (const row of result.rows || []) {
+        const key = String(row.sourceId || row.id || '');
+        if (key && !byId.has(key)) {
+          byId.set(key, row);
+        }
+      }
+    }
+
+    const rows = Array.from(byId.values());
+    if (pendingInfo) {
+      return {
+        rows,
+        total: rows.length,
+        pending: true,
+        beginDate: pendingInfo.beginDate,
+        endDate: pendingInfo.endDate,
+        partial: rows.length > 0
+      };
+    }
+
+    return { rows, total: rows.length };
   }
 
   parseCsvContent(csvText) {

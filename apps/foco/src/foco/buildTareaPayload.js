@@ -1,6 +1,10 @@
 /**
  * Normaliza datos de formulario/borrador a payload API de tarea.
  */
+import {
+  appendScheduleToNotes,
+  isTimedScheduleInstant,
+} from '@shared/utils/googleTasksScheduleNotes';
 
 function normalizeObjetivoId(value) {
   if (value == null || value === '') return null;
@@ -103,6 +107,24 @@ export function buildTareaPayload(formData, { editingTarea = null, objetivos = [
     rrule: formData.rrule || null,
     googleTasksSync: mergeGoogleTasksSyncForSave(formData, { editingTarea, objetivos }),
   };
+
+  const startDate = fechaInicio ? new Date(fechaInicio) : null;
+  const endDate = fechaFin
+    ? new Date(fechaFin)
+    : (fechaVencimiento ? new Date(fechaVencimiento) : null);
+  const timed = tipo === 'TAREA'
+    && startDate
+    && endDate
+    && isTimedScheduleInstant(startDate, endDate);
+  if (timed) {
+    payload.descripcion = appendScheduleToNotes(payload.descripcion, startDate, endDate);
+    payload.googleTasksSync = {
+      ...payload.googleTasksSync,
+      hasTimedSchedule: true,
+      needsSync: true,
+      syncStatus: 'pending',
+    };
+  }
 
   if (editingTarea) {
     payload.usuario = editingTarea.usuario;

@@ -70,7 +70,13 @@ export default function AttaToolbarCenter() {
   const contextActions = useMemo(() => {
     const list = [];
 
-    if (pathname === '/finanzas/cuentas') {
+    const isCuentasPage = [
+      '/finanzas/cuentas',
+      '/propiedades/cuentas',
+      '/propiedades/inventario/cuentas',
+    ].includes(pathname);
+
+    if (isCuentasPage) {
       list.push({
         key: 'syncCuentas',
         icon: <AutorenewOutlined />,

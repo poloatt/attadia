@@ -39,6 +39,15 @@ const app = express();
 // Configurar trust proxy para trabajar con nginx
 app.set('trust proxy', 1);
 
+// Compresión gzip de respuestas (carga opcional para no romper si falta el paquete)
+try {
+  const { default: compression } = await import('compression');
+  app.use(compression());
+  console.log('✅ Compresión gzip habilitada');
+} catch (compressionError) {
+  console.warn('⚠️ Paquete "compression" no disponible; respuestas sin gzip. Ejecuta "npm install" en apps/backend.');
+}
+
 // Manejo de errores no capturados - CRÍTICO para evitar reinicios en Render
 process.on('unhandledRejection', (reason, promise) => {
   console.error('⚠️ Unhandled Rejection at:', promise, 'reason:', reason);
@@ -205,6 +214,8 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Cache-Control, Pragma, X-Device-Type');
+    // Cachear el preflight 24h para evitar un OPTIONS por cada request cross-origin
+    res.header('Access-Control-Max-Age', '86400');
     res.header('Vary', 'Origin');
   } else {
     // Log cuando se rechaza una petición CORS

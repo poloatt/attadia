@@ -13,7 +13,7 @@ import {
 } from '@mui/icons-material';
 import { Toolbar, SystemButtons } from '@shared/navigation';
 import { TareasTable } from './index';
-import { TareaForm, GoogleTasksConfig, buildTareaPayload, syncTareaToGoogleAfterSave } from '../form';
+import { TareaForm, GoogleTasksConfig, buildTareaPayload, syncTareaToGoogleInBackground } from '../form';
 import { HabitsManagerHost } from '../../habits';
 import { useSnackbar } from 'notistack';
 import { useNavigate } from 'react-router-dom';
@@ -23,7 +23,7 @@ import { usePageWithHistory } from '@shared/hooks';
 import { useAgendaFilter } from '../hooks/useAgendaFilter';
 import { useObjetivosLight } from '../hooks/useObjetivosLight';
 import { useTasksForList } from '../hooks/useTasksForList';
-import { isInAhora, isInLuego, isTaskCompleted } from '@shared/utils';
+import { isInAhora, isInLuego, isTaskCompleted } from '@shared/utils/agendaRules';
 
 export function TasksListPage() {
   const { tasks: tareas, setTasks: setTareas, loading, refetch: refetchTareas } = useTasksForList();
@@ -366,18 +366,16 @@ export function TasksListPage() {
         enqueueSnackbar('Tarea creada exitosamente', { variant: 'success' });
       }
 
-      try {
-        const { synced } = await syncTareaToGoogleAfterSave(saved || datosAEnviar);
-        if (synced) {
-          enqueueSnackbar('Sincronizada con Google Tasks', { variant: 'info' });
-        }
-      } catch (syncErr) {
-        console.warn('Sync Google Tasks tras guardar:', syncErr);
-        enqueueSnackbar(
-          syncErr.response?.data?.error || 'Tarea guardada; no se pudo sincronizar con Google',
-          { variant: 'warning' },
-        );
-      }
+      syncTareaToGoogleInBackground(saved || datosAEnviar, {
+        onSynced: () => enqueueSnackbar('Sincronizada con Google Tasks', { variant: 'info' }),
+        onError: (syncErr) => {
+          console.warn('Sync Google Tasks tras guardar:', syncErr);
+          enqueueSnackbar(
+            syncErr.response?.data?.error || 'Tarea guardada; no se pudo sincronizar con Google',
+            { variant: 'warning' },
+          );
+        },
+      });
 
       setIsFormOpen(false);
       setEditingTarea(null);

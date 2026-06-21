@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { Users } from '../models/index.js';
 import googleTasksService from './googleTasksService.js';
+import googleCalendarService from './googleCalendarService.js';
 
 /**
  * Cron global del servidor: start/stop desde la UI afecta a todos los usuarios
@@ -98,12 +99,20 @@ class AutoSyncService {
       
       // Buscar usuarios con Google Tasks habilitado
       const users = await Users.find({
-        'googleTasksConfig.enabled': true,
-        'googleTasksConfig.accessToken': { $exists: true, $ne: null }
+        $or: [
+          {
+            'googleTasksConfig.enabled': true,
+            'googleTasksConfig.accessToken': { $exists: true, $ne: null },
+          },
+          {
+            'googleCalendarConfig.enabled': true,
+            'googleCalendarConfig.accessToken': { $exists: true, $ne: null },
+          },
+        ],
       });
 
       if (users.length === 0) {
-        console.log('📝 No hay usuarios con Google Tasks habilitado');
+        console.log('📝 No hay usuarios con Google Tasks o Calendar habilitado');
         return;
       }
 
@@ -124,7 +133,29 @@ class AutoSyncService {
           }
 
           console.log(`🔄 Sincronizando usuario: ${user.email}`);
-          const result = await googleTasksService.fullSyncWithUser(user);
+          let result = null;
+
+          if (user.googleTasksConfig?.enabled && user.googleTasksConfig?.accessToken) {
+            result = await googleTasksService.fullSyncWithUser(user);
+          }
+
+          if (user.googleCalendarConfig?.enabled && user.googleCalendarConfig?.accessToken) {
+            try {
+              const calendarResult = await googleCalendarService.syncEventsFromGoogle(user._id);
+              result = result || {};
+              result.calendar = calendarResult;
+            } catch (calErr) {
+              console.warn(`⚠️ Calendar sync falló para ${user.email}:`, calErr.message);
+              result = result || {};
+              result.calendarError = calErr.message;
+            }
+          }
+
+          if (!result) {
+            results.push({ status: 'fulfilled', value: { userId: user._id, email: user.email, success: false, skipped: true } });
+            continue;
+          }
+
           this.lastSyncTimes.set(userId, now);
           console.log(`✅ Usuario ${user.email} sincronizado exitosamente`);
           results.push({ status: 'fulfilled', value: { userId: user._id, email: user.email, success: true, result } });

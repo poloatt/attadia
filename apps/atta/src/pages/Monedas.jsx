@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Button, Box, Tooltip, IconButton } from '@mui/material';
 import {
   FinanzasSectionNav,
@@ -59,33 +59,19 @@ export function Monedas() {
     }
   }, [monedasError, enqueueSnackbar]);
 
-  // Recargar datos periódicamente para mantener la información actualizada - reducir frecuencia
+  // Recargar al volver a la pestaña, pero con TTL para no refetch en exceso
+  // (se eliminó el polling cada 60s que disparaba requests innecesarias).
+  const lastRefetchRef = useRef(Date.now());
   useEffect(() => {
-    // Solo si no estamos en modo de carga y tenemos la página activa
-    if (!isLoading && document.visibilityState === 'visible') {
-      const interval = setInterval(() => {
-        // Recargar datos silenciosamente sin logs
-        refetchMonedas();
-      }, 60000); // Recargar cada 60 segundos en lugar de 30
-      
-      // Limpiar el intervalo cuando el componente se desmonte
-      return () => clearInterval(interval);
-    }
-  }, [isLoading, refetchMonedas]);
-  
-  // Recargar datos cuando la pestaña vuelve a estar activa
-  useEffect(() => {
+    const REFRESH_TTL_MS = 60000;
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        // Recargar sin logs
-        refetchMonedas();
-      }
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - lastRefetchRef.current < REFRESH_TTL_MS) return;
+      lastRefetchRef.current = Date.now();
+      refetchMonedas();
     };
-    
-    // Registrar el listener para el evento visibilitychange
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // Limpiar el listener cuando el componente se desmonte
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };

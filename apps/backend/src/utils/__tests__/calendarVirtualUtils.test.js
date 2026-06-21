@@ -51,7 +51,7 @@ describe('dedupeAgendaTasksByGoogleDay', () => {
 });
 
 describe('buildVirtualTasksForRange', () => {
-  test('virtual occurrences keep serie dtstart wall-clock time', () => {
+  test('Attadia-local series expand virtual occurrences with wall-clock time', () => {
     const dtstart = new Date(2025, 4, 12, 9, 30, 0, 0);
     const series = [
       {
@@ -62,7 +62,7 @@ describe('buildVirtualTasksForRange', () => {
         activa: true,
         rrule: 'FREQ=WEEKLY;INTERVAL=1;BYDAY=MO',
         dtstart,
-        googleTasksSync: { exportInstances: false, googleTaskListId: 'list1' },
+        googleTasksSync: { exportInstances: true, googleTaskListId: 'list1' },
       },
     ];
 
@@ -80,24 +80,25 @@ describe('buildVirtualTasksForRange', () => {
     }
   });
 
-  test('still expands virtual days when a Google anchor exists in range', () => {
-    const dtstart = new Date(2026, 4, 14, 12, 0, 0, 0); // Wed 14 May 2026
+  test('Google-origin series do not expand virtual weeks (only anchor in existingTasks)', () => {
+    const dtstart = new Date(2026, 4, 14, 12, 0, 0, 0);
     const series = [
       {
         _id: 'serie-we',
-        titulo: 'ATTA weekly',
+        titulo: 'Neurología',
         usuario: 'u1',
         objetivo: 'obj-atta',
         activa: true,
-        rrule: 'FREQ=WEEKLY;INTERVAL=1;BYDAY=WE',
+        rrule: 'FREQ=WEEKLY;INTERVAL=1;BYDAY=MO',
         dtstart,
+        googleSerieKey: 'list-atta|neurologia',
         googleTasksSync: { exportInstances: false, googleTaskListId: 'list-atta' },
       },
     ];
 
     const from = new Date(2026, 4, 1);
     const to = new Date(2026, 5, 1);
-    const anchorDay = new Date(2026, 4, 21, 12, 0, 0, 0);
+    const anchorDay = new Date(2026, 4, 18, 14, 0, 0, 0);
 
     const existingTasks = [
       {
@@ -110,14 +111,7 @@ describe('buildVirtualTasksForRange', () => {
     ];
 
     const virtual = buildVirtualTasksForRange(series, from, to, existingTasks);
-
-    expect(virtual.length).toBeGreaterThan(0);
-    for (const v of virtual) {
-      expect(v.fechaVencimiento.getDay()).toBe(3);
-    }
-    expect(
-      virtual.some((v) => v.fechaVencimiento.getDate() === anchorDay.getDate()),
-    ).toBe(false);
+    expect(virtual).toHaveLength(0);
   });
 
   test('skips all virtual occurrences when Google anchor is completed', () => {
@@ -151,5 +145,54 @@ describe('buildVirtualTasksForRange', () => {
 
     const virtual = buildVirtualTasksForRange(series, from, to, existingTasks);
     expect(virtual).toHaveLength(0);
+  });
+
+  test('skips virtuals when completed Google anchor is outside range but passed externally', () => {
+    const dtstart = new Date(2024, 0, 8, 12, 0, 0, 0);
+    const series = [
+      {
+        _id: 'serie-old',
+        titulo: 'Old weekly',
+        usuario: 'u1',
+        objetivo: 'obj1',
+        activa: true,
+        rrule: 'FREQ=WEEKLY;INTERVAL=1;BYDAY=MO',
+        dtstart,
+        googleSerieKey: 'list1|old weekly',
+        googleTasksSync: { googleTaskListId: 'list1' },
+      },
+    ];
+    const from = new Date(2026, 5, 15);
+    const to = new Date(2026, 5, 21, 23, 59, 59, 999);
+    const externalAnchors = new Map([
+      ['serie-old', {
+        _id: 'anchor-old',
+        serieId: 'serie-old',
+        estado: 'COMPLETADA',
+        completada: true,
+        fechaVencimiento: new Date(2024, 2, 10, 12, 0, 0, 0),
+        googleTasksSync: { googleTaskId: 'gt-old', completed: new Date(2024, 2, 10) },
+      }],
+    ]);
+
+    const virtual = buildVirtualTasksForRange(series, from, to, [], externalAnchors);
+    expect(virtual).toHaveLength(0);
+  });
+
+  test('skips Google-origin series without any anchor in DB', () => {
+    const series = [
+      {
+        _id: 'serie-no-anchor',
+        titulo: 'Ghost',
+        activa: true,
+        rrule: 'FREQ=WEEKLY;INTERVAL=1;BYDAY=MO',
+        dtstart: new Date(2026, 0, 5, 12, 0, 0, 0),
+        googleSerieKey: 'list1|ghost',
+        googleTasksSync: { googleTaskListId: 'list1' },
+      },
+    ];
+    const from = new Date(2026, 5, 15);
+    const to = new Date(2026, 5, 21, 23, 59, 59, 999);
+    expect(buildVirtualTasksForRange(series, from, to, [])).toHaveLength(0);
   });
 });

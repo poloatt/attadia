@@ -4,14 +4,33 @@ Este runbook documenta los comandos de mantenimiento para la integración con Go
 
 ## Alcance de la integración
 
-**Attadia sincroniza Google Tasks, no Google Calendar.** La vista de semana de Google Calendar puede mostrar citas (eventos del calendario) y, si está activado, tareas con hora desde Tasks. Solo lo segundo entra por esta integración.
+Attadia sincroniza **Google Tasks** (tareas ↔ objetivos) y, opcionalmente, **Google Calendar** (eventos con horario en la grilla de Foco).
 
 | Sincroniza | No sincroniza |
 |------------|----------------|
-| Tareas (`Tareas`) con **objetivo** asignado ↔ Google Task List | Eventos nativos de Google Calendar |
+| Tareas (`Tareas`) con **objetivo** ↔ Google Task List | Horarios de Google Tasks (la API solo expone fecha en `due`) |
 | Objetivo ↔ Google Task List | Hábitos / Rutinas (franja de iconos en Foco) |
-| Subtareas en campo `notes` del task padre | Tareas sin objetivo / listas sin vínculo |
-| Tareas con `due` con hora (RFC3339) | Subtareas como tasks hijas (`parent`) en Google |
+| Subtareas en campo `notes` del task padre | Subtareas como tasks hijas (`parent`) en Google |
+| **Eventos** de Google Calendar (`tipo: EVENTO`, read-only) | Sync bidireccional Calendar → Atta (v1 solo import) |
+| Tareas con horario local (`Horario Attadia:` en notes) | Tasks con hora solo en UI de Google Calendar |
+
+### Google Calendar API
+
+- OAuth scope: `calendar.readonly`
+- Rutas: `/api/google-calendar/*` (auth, status, sync, calendars)
+- Eventos importados: `tipo: EVENTO`, sin objetivo, campos en `googleCalendarSync`
+- Aparecen en **calendario/agenda** de Foco; no en listas Ahora/Luego
+- Habilitar **Google Calendar API** en GCP y añadir el scope al consent screen
+
+Variables opcionales:
+
+```bash
+# GCAL_LOOKBACK_DAYS=14
+# GCAL_HORIZON_DAYS=120
+# GCAL_SKIP_EVENT_TYPES=workingLocation,focusTime
+```
+
+La vista de semana de Google Calendar mezcla **eventos** (citables por API) y **tasks** (solo fecha por Tasks API). Atta importa cada uno por su canal.
 
 ## Modelo de subtareas (notes-only)
 

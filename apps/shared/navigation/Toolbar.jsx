@@ -14,9 +14,9 @@ import { useUISettings } from '../context/UISettingsContext';
 import { useSidebar } from '../context/SidebarContext';
 import useResponsive from '../hooks/useResponsive';
 import { useAnchorWidths } from '../hooks/useAnchorWidths';
-import { getMainModules, reorderModulesWithActiveFirst, findActiveModule, navigateToAppPath } from '../utils/navigationUtils';
+import { getMainModules, reorderModulesWithActiveFirst, findActiveModule, navigateToAppPath, prefetchAppForPath } from '../utils/navigationUtils';
 import { DynamicIcon, ClickableIcon, IconWithText } from '../components/common/DynamicIcon';
-import RutinaNavigation from './RutinaNavigation.jsx';
+import { getRutinaNavigation } from './toolbarRegistry';
 import { useRutinas } from '../context/RutinasContext';
 import { calculateCompletionPercentage } from '../utils/rutinaCalculations';
 import { ToggleButton, ToggleButtonGroup, Menu, MenuItem } from '@mui/material';
@@ -79,8 +79,11 @@ export default function Toolbar({
   
   // Wrapper para RutinaNavigation que proporciona los datos necesarios desde el contexto
   const RutinaNavigationWrapper = () => {
-    // Solo usar useRutinas si estamos en una ruta de rutinas
-    if (!(currentPath.startsWith('/rutinas') || currentPath.startsWith('/tiempo/rutinas') || currentPath.startsWith('/foco'))) {
+    const RutinaNavigation = getRutinaNavigation();
+    if (
+      !RutinaNavigation
+      || !(currentPath.startsWith('/rutinas') || currentPath.startsWith('/tiempo/rutinas') || currentPath.startsWith('/foco'))
+    ) {
       return null;
     }
     
@@ -191,6 +194,7 @@ export default function Toolbar({
                   iconKey={moduloActivo.icon}
                   text={moduloActivo.title}
                   onClick={() => navigateToAppPath(navigate, moduloActivo.path)}
+                  onMouseEnter={() => prefetchAppForPath(moduloActivo.path)}
                   sx={{
                     color: 'text.primary',
                   }}
@@ -210,6 +214,7 @@ export default function Toolbar({
                 iconKey={modulo.icon}
                 title={modulo.title}
                 onClick={() => navigateToAppPath(navigate, modulo.path)}
+                onMouseEnter={() => prefetchAppForPath(modulo.path)}
                 size="small"
                 sx={{
                   fontSize: 18
@@ -403,7 +408,9 @@ export default function Toolbar({
           {!isMobile && children}
 
           {/* Botón de sincronización de MercadoPago en Cuentas */}
-          {(currentPath === '/finanzas/cuentas') && (
+          {(currentPath === '/finanzas/cuentas'
+            || currentPath === '/propiedades/cuentas'
+            || currentPath === '/propiedades/inventario/cuentas') && (
             <Tooltip title="Sincronizar">
               <IconButton
                 size="small"

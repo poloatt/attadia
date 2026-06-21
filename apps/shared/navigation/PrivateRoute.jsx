@@ -15,7 +15,7 @@ export function PrivateRoute() {
     }
   }, [error]);
 
-  if (loading) {
+  if (loading && !user) {
     return <AppLoadingScreen />;
   }
 

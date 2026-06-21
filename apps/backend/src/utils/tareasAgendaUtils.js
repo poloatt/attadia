@@ -1,18 +1,20 @@
 import { Tareas } from '../models/index.js';
 import * as agendaListRules from './agendaListRules.js';
+import { isGoogleCalendarImportedEvent } from './googleCalendarEventMapper.js';
 import {
   buildVirtualTasksForRange,
   dedupeAgendaTasksByGoogleDay,
   dedupeSerieInstancesForAgenda,
+  loadGoogleAnchorsBySerie,
   loadSeriesForAgenda,
 } from './calendarVirtualUtils.js';
 
 const LIST_VIRTUAL_LOOKBACK_DAYS = parseInt(
-  process.env.GTASKS_LIST_VIRTUAL_LOOKBACK_DAYS || '14',
+  process.env.GTASKS_LIST_VIRTUAL_LOOKBACK_DAYS || '7',
   10,
 );
 const LIST_VIRTUAL_HORIZON_DAYS = parseInt(
-  process.env.GTASKS_LIST_VIRTUAL_HORIZON_DAYS || '120',
+  process.env.GTASKS_LIST_VIRTUAL_HORIZON_DAYS || '90',
   10,
 );
 
@@ -40,7 +42,7 @@ export async function getTareasForAgendaRange(userId, rangeFrom, rangeTo) {
   from.setHours(0, 0, 0, 0);
   to.setHours(23, 59, 59, 999);
 
-  const series = await loadSeriesForAgenda(userId);
+  const series = await loadSeriesForAgenda(userId, { from, to });
 
   const realDocs = await Tareas.find(buildOverlapQuery(userId, from, to))
     .populate('objetivo', 'nombre estado')
@@ -49,7 +51,11 @@ export async function getTareasForAgendaRange(userId, rangeFrom, rangeTo) {
     .lean({ virtuals: true });
 
   const deduped = dedupeAgendaTasksByGoogleDay(dedupeSerieInstancesForAgenda(realDocs));
-  const virtual = buildVirtualTasksForRange(series, from, to, deduped);
+  const anchorsBySerie = await loadGoogleAnchorsBySerie(
+    userId,
+    series.map((s) => s._id),
+  );
+  const virtual = buildVirtualTasksForRange(series, from, to, deduped, anchorsBySerie);
   const seenIds = new Set();
   const merged = [];
   for (const doc of [...deduped, ...virtual]) {
@@ -75,9 +81,13 @@ export async function appendVirtualRecurrenceTasks(userId, realDocs = []) {
   to.setDate(to.getDate() + LIST_VIRTUAL_HORIZON_DAYS);
   to.setHours(23, 59, 59, 999);
 
-  const series = await loadSeriesForAgenda(userId);
+  const series = await loadSeriesForAgenda(userId, { from, to });
   const deduped = dedupeSerieInstancesForAgenda(list);
-  const virtual = buildVirtualTasksForRange(series, from, to, deduped);
+  const anchorsBySerie = await loadGoogleAnchorsBySerie(
+    userId,
+    series.map((s) => s._id),
+  );
+  const virtual = buildVirtualTasksForRange(series, from, to, deduped, anchorsBySerie);
 
   const seenIds = new Set(list.map((d) => String(d._id)));
   const merged = [...list];
@@ -142,7 +152,8 @@ export function filterDocsForListView(docs, options = {}, now = new Date()) {
  */
 export async function getTareasForListRange(userId, rangeFrom, rangeTo, options = {}) {
   const docs = await getTareasForAgendaRange(userId, rangeFrom, rangeTo);
-  return filterDocsForListView(docs, options);
+  const withoutCalendarEvents = docs.filter((d) => !isGoogleCalendarImportedEvent(d));
+  return filterDocsForListView(withoutCalendarEvents, options);
 }
 
 export { buildOverlapQuery };

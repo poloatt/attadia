@@ -4,4 +4,7 @@ module.exports = {
   transform: {},
   testMatch: ['**/__tests__/**/*.test.js'],
   moduleFileExtensions: ['js'],
+  moduleNameMapper: {
+    '^@shared/(.*)$': '<rootDir>/../shared/$1',
+  },
 };

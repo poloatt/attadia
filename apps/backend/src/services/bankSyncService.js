@@ -8,7 +8,8 @@ import {
   determinarTipoMovimiento,
   formatearDescripcionPago,
   formatearDescripcionMovimiento,
-  mapearEstadoPago
+  mapearEstadoPago,
+  getMpSyncDays
 } from './mercadoPagoUtils.js';
 import { MercadoPagoReportService } from './mercadoPagoReportService.js';
 import { extractBalanceFromRows } from './mercadoPagoCsvParser.js';
@@ -321,15 +322,18 @@ export class BankSyncService {
       const userInfo = await mpAdapter.getUserInfo();
       console.log('Usuario MercadoPago verificado:', userInfo.nickname || userInfo.email);
 
-      const fechaDesde = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const syncDays = getMpSyncDays();
+      const fechaDesde = new Date(Date.now() - syncDays * 24 * 60 * 60 * 1000);
       let pagos = [];
       let movimientos = [];
+      let totalCsvRows = 0;
       const errores = [];
 
       try {
         pagos = await mpAdapter.getAllPayments({
           since: fechaDesde.toISOString(),
-          limit: 100
+          limit: 100,
+          maxPages: 20
         });
         console.log(`✅ Pagos obtenidos (collector + payer): ${pagos.length}`);
       } catch (error) {
@@ -346,10 +350,13 @@ export class BankSyncService {
         const beginDate = fechaDesde.toISOString();
         const endDate = new Date().toISOString();
         const pending = bankConnection.mercadopago?.reportePendiente;
-        const report = await reportService.fetchSettlementMovements(beginDate, endDate, { pending });
+        const report = await reportService.fetchAllSettlementMovements(beginDate, endDate, { pending });
+
+        totalCsvRows = report.total || report.rows?.length || 0;
 
         if (report.pending) {
           settlementPending = true;
+          movimientos = report.rows || [];
           bankConnection.mercadopago = {
             ...(bankConnection.mercadopago?.toObject?.() || bankConnection.mercadopago || {}),
             syncParcial: true,
@@ -367,7 +374,7 @@ export class BankSyncService {
             error: bankConnection.mercadopago.ultimoErrorSettlement,
             pending: true
           });
-          console.warn('⚠️ Reporte settlement pendiente (async); sync parcial');
+          console.warn(`⚠️ Reporte settlement pendiente; importados parcialmente: ${movimientos.length}`);
         } else {
           movimientos = report.rows || [];
           bankConnection.mercadopago = {
@@ -442,6 +449,10 @@ export class BankSyncService {
           usuario: userInfo.nickname || userInfo.email,
           totalPagos: pagos.length,
           totalMovimientos: movimientos.length,
+          totalCsvRows,
+          movimientosImportados: movResult.nuevas,
+          movimientosOmitidos: movResult.omitidas,
+          rangoDias: syncDays,
           balance,
           errores,
           reportePendiente: bankConnection.mercadopago?.reportePendiente || null
@@ -457,13 +468,14 @@ export class BankSyncService {
   async procesarPagosMercadoPago(pagos, bankConnection, cuenta, userId) {
     let nuevas = 0;
     let actualizadas = 0;
+    const MP_ORIGEN_TIPOS = ['MERCADOPAGO_PAGO', 'MERCADOPAGO_MOVIMIENTO'];
 
     for (const pago of pagos) {
       try {
         const transaccionExistente = await Transacciones.findOne({
           cuenta: bankConnection.cuenta,
           'origen.transaccionId': pago.id.toString(),
-          'origen.tipo': 'MERCADOPAGO_PAGO'
+          'origen.tipo': { $in: MP_ORIGEN_TIPOS }
         });
 
         if (transaccionExistente) continue;
@@ -518,6 +530,8 @@ export class BankSyncService {
   async procesarMovimientosReporte(movimientos, bankConnection, cuenta) {
     let nuevas = 0;
     let actualizadas = 0;
+    let omitidas = 0;
+    const MP_ORIGEN_TIPOS = ['MERCADOPAGO_PAGO', 'MERCADOPAGO_MOVIMIENTO'];
 
     for (const mov of movimientos) {
       try {
@@ -527,10 +541,13 @@ export class BankSyncService {
         const transaccionExistente = await Transacciones.findOne({
           cuenta: bankConnection.cuenta,
           'origen.transaccionId': transaccionId,
-          'origen.tipo': 'MERCADOPAGO_MOVIMIENTO'
+          'origen.tipo': { $in: MP_ORIGEN_TIPOS }
         });
 
-        if (transaccionExistente) continue;
+        if (transaccionExistente) {
+          omitidas++;
+          continue;
+        }
 
         const monto = Math.abs(mov.amount || mov.netAmount || 0);
         const montoNeto = Math.abs(mov.netAmount || monto);
@@ -559,6 +576,7 @@ export class BankSyncService {
             transaccionId,
             metadata: {
               transactionType: mov.transactionType,
+              description: mov.description,
               paymentMethod: mov.paymentMethod,
               paymentMethodType: mov.paymentMethodType,
               externalReference: mov.externalReference,
@@ -575,7 +593,7 @@ export class BankSyncService {
       }
     }
 
-    return { nuevas, actualizadas };
+    return { nuevas, actualizadas, omitidas };
   }
 
   async importarCsvMercadoPago(bankConnection, csvContent) {

@@ -66,6 +66,9 @@ cuentaSchema.pre(['find', 'findOne'], function() {
   this.populate('moneda');
 });
 
+cuentaSchema.index({ usuario: 1, activo: 1 });
+cuentaSchema.index({ usuario: 1, moneda: 1 });
+
 const Cuentas = mongoose.model('Cuentas', cuentaSchema);
 
 export { Cuentas }; 

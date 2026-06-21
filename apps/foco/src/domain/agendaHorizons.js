@@ -1,6 +1,6 @@
-/** Ventana por defecto alineada con backend GTASKS_LIST_* (14 + 120 días). */
-export const LIST_LOOKBACK_DAYS = 14;
-export const LIST_HORIZON_DAYS = 120;
+/** Ventana por defecto alineada con backend GTASKS_LIST_* (7 + 90 días). */
+export const LIST_LOOKBACK_DAYS = 7;
+export const LIST_HORIZON_DAYS = 90;
 
 export function getDefaultListRangeDates(now = new Date()) {
   const today = new Date(now);

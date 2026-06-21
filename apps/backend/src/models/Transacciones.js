@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { createSchema, commonFields } from './BaseSchema.js';
+import { buildEstadoFilter } from '../utils/transaccionEstado.js';
 
 const transaccionSchema = createSchema({
   descripcion: {
@@ -183,20 +184,28 @@ transaccionSchema.methods.getLabel = function() {
   return `${tipoSymbol}${this.monto} - ${this.descripcion}`;
 };
 
-// Método para obtener el balance de una cuenta
-transaccionSchema.statics.getBalance = async function(cuentaId) {
+// Método para obtener el balance de una cuenta mediante agregación (sin traer
+// todas las transacciones al cliente). Acepta filtros de estado y fecha tope.
+transaccionSchema.statics.getBalance = async function(cuentaId, options = {}) {
+  const { estado = 'PAGADO', fechaFin } = options;
+
+  const match = { cuenta: new mongoose.Types.ObjectId(cuentaId) };
+  const estadoFilter = buildEstadoFilter(estado);
+  if (estadoFilter) match.estado = estadoFilter;
+  if (fechaFin) match.fecha = { $lte: new Date(fechaFin) };
+
   const result = await this.aggregate([
-    { $match: { cuenta: new mongoose.Types.ObjectId(cuentaId), estado: 'COMPLETADA' } },
+    { $match: match },
     { $group: {
       _id: null,
       ingresos: { 
         $sum: { 
-          $cond: [{ $eq: ['$tipo', 'INGRESO'] }, '$monto', 0] 
+          $cond: [{ $eq: ['$tipo', 'INGRESO'] }, { $ifNull: ['$monto', 0] }, 0] 
         }
       },
       egresos: { 
         $sum: { 
-          $cond: [{ $eq: ['$tipo', 'EGRESO'] }, '$monto', 0] 
+          $cond: [{ $eq: ['$tipo', 'EGRESO'] }, { $ifNull: ['$monto', 0] }, 0] 
         }
       }
     }}

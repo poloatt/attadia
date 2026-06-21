@@ -7,7 +7,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useValuesVisibility } from '../../context/ValuesVisibilityContext';
 import MenuIcon from '@mui/icons-material/MenuOutlined';
 import { Refresh as RefreshIcon, Undo as UndoIcon, AddOutlined as AddOutlinedIcon, VisibilityOff as HideValuesIcon, Apps as AppsIcon, ArchiveOutlined as ArchiveIcon, Sync as SyncIcon, FitnessCenterOutlined as FitnessCenterIcon } from '@mui/icons-material';
-import { Menu, MenuItem, ListItemText, ListItemIcon, Chip, Divider } from '../../utils/materialImports';
+import { Menu, MenuItem, ListItemText, ListItemIcon, Chip, Divider, List, ListItemButton } from '../../utils/materialImports';
+import { Popover } from '@mui/material';
 import { SettingsOutlined as SettingsOutlinedIcon } from '@mui/icons-material';
 import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import { modulos } from '../../navigation/menuStructure';
@@ -17,7 +18,7 @@ import TooltipSpan from '../TooltipSpan';
 import { DynamicIcon } from './DynamicIcon';
 import { ToolbarAddButton } from './ToolbarAddButton';
 import { config } from '../../config/envConfig.js';
-import { navigateToAppPath } from '../../utils/navigationUtils';
+import { navigateToAppPath, prefetchAppForPath } from '../../utils/navigationUtils';
 import useResponsive from '../../hooks/useResponsive';
 import { isStandalonePwa } from '../../hooks/usePwaInstall';
 
@@ -314,109 +315,205 @@ function HeaderMenuButton({ sx, disabled = false }) {
   return btn;
 }
 
+const ADD_MENU_PAPER_SX = {
+  mt: 0.75,
+  minWidth: 200,
+  maxWidth: 280,
+  borderRadius: 1.5,
+  bgcolor: 'background.default',
+  border: '1px solid',
+  borderColor: 'divider',
+  boxShadow: '0 10px 32px rgba(0,0,0,0.45)',
+  overflow: 'hidden',
+};
+
+const ADD_MENU_ITEM_SX = {
+  gap: 1.25,
+  py: 0.875,
+  px: 1.25,
+  mx: 0.5,
+  borderRadius: 1,
+  '&:hover': { bgcolor: 'action.hover' },
+};
+
+function renderAddMenuIcon(icon) {
+  if (!icon) {
+    return <AddOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />;
+  }
+  if (typeof icon === 'string') {
+    return <DynamicIcon iconKey={icon} size="small" />;
+  }
+  if (isValidElement(icon)) {
+    return icon;
+  }
+  if (typeof icon === 'function') {
+    return React.createElement(icon, { fontSize: 'small' });
+  }
+  return <AddOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />;
+}
+
 // HeaderAddButton
 function HeaderAddButton({ entityConfig, buttonSx }) {
   const [anchorEl, setAnchorEl] = useState(null);
-  // Eliminar navigate y location para simplificar
+  const open = Boolean(anchorEl);
   const hasSubItems = entityConfig && Array.isArray(entityConfig.subItems) && entityConfig.subItems.length > 0;
   const canAddSelf = entityConfig && entityConfig.canAdd;
-  const addableChildren = hasSubItems ? entityConfig.subItems.filter(sub => sub.canAdd) : [];
+  const addableChildren = hasSubItems ? entityConfig.subItems.filter((sub) => sub.canAdd) : [];
+  const hasMenu = canAddSelf || addableChildren.length > 0;
 
-  // Handler para abrir/cerrar el menú
-  const handleOpenMenu = (e) => {
-    setAnchorEl(e.currentTarget);
-  };
   const handleCloseMenu = () => {
     setAnchorEl(null);
   };
 
-  // Handler para crear submodelo
+  const handleToggleMenu = (e) => {
+    if (open) {
+      handleCloseMenu();
+      return;
+    }
+    setAnchorEl(e.currentTarget);
+  };
+
   const handleCreateSubItem = (subItem) => {
     handleCloseMenu();
     window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
-      detail: { type: subItem.id, path: subItem.path }
+      detail: { type: subItem.id, path: subItem.path },
     }));
   };
 
-  // Handler para crear el modelo principal (siempre dispara el evento)
   const handleCreateSelf = () => {
     handleCloseMenu();
     window.dispatchEvent(new CustomEvent('headerAddButtonClicked', {
-      detail: { type: entityConfig.id || entityConfig.name, path: entityConfig.path }
+      detail: { type: entityConfig.id || entityConfig.name, path: entityConfig.path },
     }));
   };
 
-  if (!entityConfig) return null;
+  if (!entityConfig || !hasMenu) return null;
 
   const addLabel = `Agregar ${entityConfig.name || entityConfig.title}`;
 
-  // Si es de tercer nivel (no tiene subItems pero sí canAdd), botón directo
-  if (!hasSubItems && canAddSelf) {
+  const menuItems = [
+    ...(canAddSelf ? [{
+      key: entityConfig.id || entityConfig.title,
+      title: entityConfig.title,
+      icon: entityConfig.icon,
+      onClick: handleCreateSelf,
+      disabled: false,
+    }] : []),
+    ...addableChildren.map((sub) => ({
+      key: sub.id || sub.title,
+      title: sub.title,
+      icon: sub.icon,
+      onClick: () => handleCreateSubItem(sub),
+      disabled: !!sub.isUnderConstruction,
+      underConstruction: !!sub.isUnderConstruction,
+    })),
+  ];
+
+  if (menuItems.length === 1) {
+    const item = menuItems[0];
     return (
       <TooltipSpan title={addLabel}>
         <ToolbarAddButton
-          onClick={handleCreateSelf}
+          onClick={item.onClick}
           buttonSx={buttonSx}
           aria-label={addLabel}
+          disabled={item.disabled}
         />
       </TooltipSpan>
     );
   }
 
-  // Si hay opciones para agregar (self o hijos), mostrar menú contextual
-  if (canAddSelf || addableChildren.length > 0) {
-    return (
-      <>
-        <TooltipSpan title={addLabel}>
-          <ToolbarAddButton
-            onClick={handleOpenMenu}
-            buttonSx={buttonSx}
-            aria-label={addLabel}
-          />
-        </TooltipSpan>
-        <Menu
+  return (
+    <>
+      <TooltipSpan title={open ? '' : addLabel} disableHoverListener={open}>
+        <ToolbarAddButton
+          onClick={handleToggleMenu}
+          buttonSx={buttonSx}
+          isActive={open}
+          aria-label={addLabel}
+          aria-expanded={open}
+          aria-haspopup="menu"
+        />
+      </TooltipSpan>
+      <Popover
+          open={open}
           anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
           onClose={handleCloseMenu}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          disableScrollLock
+          slotProps={{
+            paper: {
+              elevation: 0,
+              sx: ADD_MENU_PAPER_SX,
+            },
+            root: {
+              sx: { zIndex: (theme) => theme.zIndex.modal + 1 },
+            },
+          }}
         >
-          {/* Opción principal (nivel 2) primero si existe */}
-          {canAddSelf && (
-            <MenuItem onClick={handleCreateSelf}>
-              <ListItemIcon>
-                {entityConfig.icon ? (
-                  typeof entityConfig.icon === 'string' ? 
-                    <DynamicIcon iconKey={entityConfig.icon} size="small" /> : 
-                    (React.isValidElement(entityConfig.icon) ? entityConfig.icon : 
-                     (typeof entityConfig.icon === 'function' ? React.createElement(entityConfig.icon) : <AddOutlinedIcon fontSize="small" />))
-                ) : <AddOutlinedIcon fontSize="small" />}
-              </ListItemIcon>
-              <ListItemText primary={`Agregar ${entityConfig.name || entityConfig.title}`} />
-            </MenuItem>
-          )}
-          {/* Opciones para cada submodelo agregable */}
-          {addableChildren.map((sub) => (
-            <MenuItem key={sub.id || sub.title} onClick={() => handleCreateSubItem(sub)} disabled={sub.isUnderConstruction}>
-              <ListItemIcon>
-                {sub.icon ? (
-                  typeof sub.icon === 'string' ? 
-                    <DynamicIcon iconKey={sub.icon} size="small" /> : 
-                    (React.isValidElement(sub.icon) ? sub.icon : 
-                     (typeof sub.icon === 'function' ? React.createElement(sub.icon) : <AddOutlinedIcon fontSize="small" />))
-                ) : <AddOutlinedIcon fontSize="small" />}
-              </ListItemIcon>
-              <ListItemText primary={`Agregar ${sub.title}`} />
-              {sub.isUnderConstruction && (
-                <Chip label="Próximamente" size="small" color="warning" sx={{ ml: 1 }} />
-              )}
-            </MenuItem>
-          ))}
-        </Menu>
-      </>
-    );
-  }
-
-  // Si no hay subItems ni self agregable, botón simple (no debería mostrarse)
-  return null;
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{
+              display: 'block',
+              px: 1.5,
+              pt: 1,
+              pb: 0.5,
+              fontWeight: 600,
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              fontSize: '0.65rem',
+            }}
+          >
+            Agregar
+          </Typography>
+          <List dense disablePadding sx={{ py: 0.5, pb: 0.75 }}>
+            {menuItems.map((item) => (
+              <ListItemButton
+                key={item.key}
+                onClick={item.onClick}
+                disabled={item.disabled}
+                sx={{
+                  ...ADD_MENU_ITEM_SX,
+                  opacity: item.disabled ? 0.5 : 1,
+                }}
+              >
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 26,
+                    height: 26,
+                    flexShrink: 0,
+                    color: 'text.secondary',
+                  }}
+                >
+                  {renderAddMenuIcon(item.icon)}
+                </Box>
+                <ListItemText
+                  primary={item.title}
+                  primaryTypographyProps={{
+                    variant: 'body2',
+                    fontWeight: 500,
+                    noWrap: true,
+                  }}
+                />
+                {item.underConstruction && (
+                  <Chip
+                    label="Próximamente"
+                    size="small"
+                    color="warning"
+                    sx={{ ml: 0.5, height: 20, fontSize: '0.65rem' }}
+                  />
+                )}
+              </ListItemButton>
+            ))}
+          </List>
+        </Popover>
+    </>
+  );
 }
 
 // Marcar el componente como botón para evitar anidado dentro de otro IconButton
@@ -791,6 +888,8 @@ function HeaderAppsButton({ iconSx }) {
             <MenuItem 
               key={modulo.id}
               onClick={() => handleNavigateToModule(modulo)}
+              onMouseEnter={() => prefetchAppForPath(modulo.path)}
+              onFocus={() => prefetchAppForPath(modulo.path)}
               sx={{
                 bgcolor: isCurrentModule ? 'action.selected' : 'transparent',
                 '&:hover': {

@@ -65,11 +65,41 @@ export function formatearDescripcionPago(pago) {
   return descripcion;
 }
 
+export const MP_TRANSACTION_TYPE_LABELS = {
+  SETTLEMENT: 'Pago aprobado',
+  REFUND: 'Devolución',
+  CHARGEBACK: 'Contracargo',
+  DISPUTE: 'Reclamo',
+  WITHDRAWAL: 'Transferencia bancaria',
+  WITHDRAWAL_CANCEL: 'Transferencia cancelada',
+  PAYOUT: 'Retiro de efectivo',
+  CASHBACK: 'Cashback',
+  SETTLEMENT_SHIPPING: 'Envío aprobado',
+  REFUND_SHIPPING: 'Devolución de envío',
+  CHARGEBACK_SHIPPING: 'Contracargo de envío',
+  DISPUTE_SHIPPING: 'Reclamo de envío'
+};
+
+export function mapearTipoTransaccionMp(type) {
+  if (!type) return 'Movimiento';
+  const key = String(type).toUpperCase();
+  return MP_TRANSACTION_TYPE_LABELS[key] || type;
+}
+
+export function getMpSyncDays() {
+  return parseInt(process.env.MP_SYNC_DAYS || '90', 10);
+}
+
 export function formatearDescripcionMovimiento(row) {
-  const tipo = row.TRANSACTION_TYPE || row.transaction_type || row.type || 'Movimiento';
-  const metodo = row.PAYMENT_METHOD || row.payment_method || '';
-  let descripcion = `MercadoPago - ${tipo}`;
-  if (metodo) {
+  const tipoRaw =
+    row.TRANSACTION_TYPE || row.transaction_type || row.transactionType || row.type || 'Movimiento';
+  const tipoLabel = mapearTipoTransaccionMp(tipoRaw);
+  const metodo = row.PAYMENT_METHOD || row.payment_method || row.paymentMethod || '';
+  const description = row.DESCRIPTION || row.description || '';
+  let descripcion = `MercadoPago - ${tipoLabel}`;
+  if (description && description !== tipoRaw && description !== tipoLabel) {
+    descripcion += ` - ${description}`;
+  } else if (metodo) {
     descripcion += ` (${metodo})`;
   }
   if (row.EXTERNAL_REFERENCE || row.external_reference) {

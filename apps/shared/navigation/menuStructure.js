@@ -53,6 +53,8 @@ export const modulos = [
             subItems: [
               { id: 'contratos', title: 'Contratos', path: '/propiedades/contratos', icon: 'description', canAdd: true },
               { id: 'inquilinos', title: 'Inquilinos', path: '/propiedades/inquilinos', icon: 'person', canAdd: true },
+              { id: 'cuentas', title: 'Cuentas', path: '/propiedades/cuentas', icon: 'accountBalance', canAdd: true },
+              { id: 'transacciones', title: 'Transacciones', path: '/propiedades/transacciones', icon: 'moneyBag', canAdd: true },
             ],
           },
           {
@@ -83,6 +85,8 @@ export const modulos = [
                 icon: 'inventario',
                 canAdd: true,
               },
+              { id: 'cuentas', title: 'Cuentas', path: '/propiedades/inventario/cuentas', icon: 'accountBalance', canAdd: true },
+              { id: 'transacciones', title: 'Transacciones', path: '/propiedades/inventario/transacciones', icon: 'moneyBag', canAdd: true },
             ],
           },
         ]

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { Toaster } from 'react-hot-toast';
@@ -18,28 +18,29 @@ import { SidebarProvider } from '@shared/context/SidebarContext';
 import { UISettingsProvider } from '@shared/context/UISettingsContext';
 import { useAuth } from '@shared/context/AuthContext';
 
-// Importaciones específicas de Atta
-import Finanzas from './pages/Finanzas';
-import Propiedades from './pages/Propiedades';
-import Transacciones from './pages/Transacciones';
-import Cuentas from './pages/Cuentas';
-import Monedas from './pages/Monedas';
-import Inquilinos from './pages/Inquilinos';
-import Contratos from './pages/Contratos';
-import Inventario from './pages/Inventario';
-import Deudores from './pages/Deudores';
-import Recurrente from './pages/Recurrente';
-import Inversiones from './pages/Inversiones';
-import Autos from './pages/Autos';
-import { MercadoPagoCallbackPage } from '@shared/pages/MercadoPagoCallbackPage';
-import Perfil from '@shared/pages/Perfil';
-import Configuracion from '@shared/pages/Configuracion';
-import Preferencias from '@shared/pages/Preferencias';
+// Páginas Atta (lazy)
+const Finanzas = React.lazy(() => import('./pages/Finanzas'));
+const Propiedades = React.lazy(() => import('./pages/Propiedades'));
+const Transacciones = React.lazy(() => import('./pages/Transacciones'));
+const Cuentas = React.lazy(() => import('./pages/Cuentas'));
+const Monedas = React.lazy(() => import('./pages/Monedas'));
+const Inquilinos = React.lazy(() => import('./pages/Inquilinos'));
+const Contratos = React.lazy(() => import('./pages/Contratos'));
+const Inventario = React.lazy(() => import('./pages/Inventario'));
+const Deudores = React.lazy(() => import('./pages/Deudores'));
+const Recurrente = React.lazy(() => import('./pages/Recurrente'));
+const Inversiones = React.lazy(() => import('./pages/Inversiones'));
+const Autos = React.lazy(() => import('./pages/Autos'));
+const MercadoPagoCallbackPage = React.lazy(() =>
+  import('@shared/pages/MercadoPagoCallbackPage').then((m) => ({ default: m.MercadoPagoCallbackPage }))
+);
+const Perfil = React.lazy(() => import('@shared/pages/Perfil'));
+const Configuracion = React.lazy(() => import('@shared/pages/Configuracion'));
+const Preferencias = React.lazy(() => import('@shared/pages/Preferencias'));
 
 function App() {
   const { user, loading } = useAuth();
 
-  // Debug del estado de autenticación (solo en desarrollo)
   if (process.env.NODE_ENV === 'development' && !user && !loading) {
     console.log('🏠 ATTA AUTH STATE:', { authenticated: !!user, loading });
   }
@@ -57,6 +58,7 @@ function App() {
           <SidebarProvider>
             <UISettingsProvider>
               <ErrorBoundary>
+              <Suspense fallback={<AppLoadingScreen />}>
               <Routes>
                 {/* Rutas públicas */}
                 <Route path="/login" element={user ? <Navigate to="/finanzas" replace /> : <Login />} />
@@ -65,14 +67,11 @@ function App() {
                 <Route path="/auth/callback/*" element={<AuthCallback />} />
                 <Route path="/auth/error" element={<AuthError />} />
                 <Route path="/mercadopago/callback" element={<MercadoPagoCallbackPage />} />
-                
-                {/* Ruta raíz redirige a finanzas */}
+
                 <Route path="/" element={<Navigate to="/finanzas" replace />} />
-                
-                {/* Rutas protegidas */}
+
                 <Route element={<PrivateRoute />}>
                   <Route element={<Layout />}>
-                    {/* Módulo Finanzas */}
                     <Route path="/finanzas" element={<Finanzas />} />
                     <Route path="/finanzas/transacciones" element={<Transacciones />} />
                     <Route path="/finanzas/cuentas" element={<Cuentas />} />
@@ -80,9 +79,10 @@ function App() {
                     <Route path="/finanzas/inversiones" element={<Inversiones />} />
                     <Route path="/finanzas/deudores" element={<Deudores />} />
                     <Route path="/finanzas/recurrente" element={<Recurrente />} />
-                    
-                    {/* Módulo Propiedades */}
+
                     <Route path="/propiedades" element={<Propiedades />} />
+                    <Route path="/propiedades/cuentas" element={<Cuentas />} />
+                    <Route path="/propiedades/transacciones" element={<Transacciones />} />
                     <Route path="/propiedades/inquilinos" element={<Inquilinos />} />
                     <Route path="/propiedades/contratos" element={<Contratos />} />
                     <Route
@@ -90,20 +90,21 @@ function App() {
                       element={<Navigate to="/propiedades" replace />}
                     />
                     <Route path="/propiedades/inventario" element={<Inventario />} />
+                    <Route path="/propiedades/inventario/cuentas" element={<Cuentas />} />
+                    <Route path="/propiedades/inventario/transacciones" element={<Transacciones />} />
                     <Route path="/propiedades/inventario/en-propiedades" element={<Inventario />} />
                     <Route path="/propiedades/inventario/sin-ubicacion" element={<Inventario />} />
                     <Route path="/propiedades/autos" element={<Autos />} />
-                    
-                    {/* Configuración */}
+
                     <Route path="/configuracion" element={<Configuracion />} />
                     <Route path="/configuracion/perfil" element={<Perfil />} />
                     <Route path="/configuracion/preferencias" element={<Preferencias />} />
                   </Route>
                 </Route>
 
-                {/* Ruta 404 */}
                 <Route path="*" element={<Navigate to="/finanzas" replace />} />
               </Routes>
+              </Suspense>
               </ErrorBoundary>
             </UISettingsProvider>
           </SidebarProvider>

@@ -16,7 +16,6 @@ export async function fetchTasksForList({
     from: range.from.toISOString(),
     to: range.to.toISOString(),
     includeCompleted: includeCompleted ? 'true' : 'false',
-    _t: Date.now(),
   };
   if (view === 'ahora' || view === 'luego') {
     params.view = view;
@@ -28,22 +27,22 @@ export async function fetchTasksForList({
 /**
  * Calendario /foco: solo rango visible.
  */
-export async function fetchTasksForAgendaRange({ from, to, signal }) {
+export async function fetchTasksForAgendaRange({ from, to, includeCompleted = false, signal } = {}) {
   const response = await clienteAxios.get('/api/tareas/agenda', {
     params: {
       from: from.toISOString(),
       to: to.toISOString(),
-      _t: Date.now(),
+      includeCompleted: includeCompleted ? 'true' : 'false',
     },
     signal,
-    timeout: 60000,
+    timeout: 20000,
   });
   return response.data.docs || [];
 }
 
 export async function fetchCompletedTasks({ page = 1, limit = 100, signal } = {}) {
   const response = await clienteAxios.get('/api/tareas', {
-    params: { estado: 'COMPLETADA', page, limit, _t: Date.now() },
+    params: { estado: 'COMPLETADA', page, limit },
     signal,
   });
   return response.data;
@@ -51,7 +50,7 @@ export async function fetchCompletedTasks({ page = 1, limit = 100, signal } = {}
 
 export async function fetchObjetivosLight({ signal } = {}) {
   const response = await clienteAxios.get('/api/objetivos', {
-    params: { light: 'true', _t: Date.now() },
+    params: { light: 'true' },
     signal,
   });
   return response.data.docs || [];
@@ -79,7 +78,7 @@ export async function fetchTaskById(id) {
 
 export async function fetchTasksByObjetivo(objetivoId, { limit = 500, signal } = {}) {
   const response = await clienteAxios.get(`/api/tareas/objetivo/${objetivoId}`, {
-    params: { limit, _t: Date.now() },
+    params: { limit },
     signal,
   });
   return response.data.docs || [];

@@ -18,6 +18,8 @@ import { useFocoSwipeNavigate } from './useFocoSwipeNavigate';
 
 
 
+import CalendarDndContext from './dnd/CalendarDndContext';
+
 export default function FocoDayView({
 
   date,
@@ -29,6 +31,8 @@ export default function FocoDayView({
   onToggleComplete,
 
   onSlotClick,
+
+  onEventMove,
 
   agendaView = 'ahora',
 
@@ -114,19 +118,25 @@ export default function FocoDayView({
 
       >
 
-        <FocoTimeGrid
+        <CalendarDndContext onEventMove={onEventMove} enabled={Boolean(onEventMove)}>
 
-          day={date}
+          <FocoTimeGrid
 
-          timedEvents={timedEvents}
+            day={date}
 
-          onSlotClick={onSlotClick}
+            timedEvents={timedEvents}
 
-          onEventClick={onEventClick}
+            onSlotClick={onSlotClick}
 
-          onToggleComplete={onToggleComplete}
+            onEventClick={onEventClick}
 
-        />
+            onToggleComplete={onToggleComplete}
+
+            dndEnabled={Boolean(onEventMove)}
+
+          />
+
+        </CalendarDndContext>
 
       </Box>
 

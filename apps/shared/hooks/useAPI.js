@@ -1,132 +1,124 @@
 import { useState, useEffect } from 'react';
 import clienteAxios from '../config/axios';
 
-// Cache simple
+// Cache simple en memoria + dedup de requests en vuelo (stale-while-revalidate)
 const dataCache = {};
+const inFlight = {};
+
+function buildCacheKey(endpoint, params) {
+  const queryString = new URLSearchParams(params).toString();
+  return `${endpoint}?${queryString}`;
+}
+
+/**
+ * Hace el GET deduplicando peticiones idénticas en vuelo: si ya hay una request
+ * para la misma clave, devuelve la misma promesa en vez de disparar otra.
+ */
+function fetchWithDedup(endpoint, params, { force = false } = {}) {
+  const cacheKey = buildCacheKey(endpoint, params);
+  if (!force && inFlight[cacheKey]) {
+    return inFlight[cacheKey];
+  }
+
+  const requestConfig = { params: { ...params } };
+  if (force) {
+    requestConfig.params._nocache = Date.now() + Math.random();
+  }
+
+  const promise = clienteAxios
+    .get(endpoint, requestConfig)
+    .then((response) => {
+      dataCache[cacheKey] = { data: response.data, timestamp: Date.now() };
+      return response.data;
+    })
+    .finally(() => {
+      delete inFlight[cacheKey];
+    });
+
+  inFlight[cacheKey] = promise;
+  return promise;
+}
 
 export function useAPI(endpoint, options = {}) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  const { 
+
+  const {
     cacheDuration = 60000, // 1 minuto por defecto
     dependencies = [],
     params = {},
     enableCache = true,
-    forceRevalidate = false // Opción para forzar revalidación de caché
+    forceRevalidate = false,
   } = options;
-  
+
   useEffect(() => {
     let isMounted = true;
-    
-    const fetchData = async () => {
-      // Generar clave de caché basada en endpoint y parámetros
-      const queryString = new URLSearchParams(params).toString();
-      const cacheKey = `${endpoint}?${queryString}`;
-      
-      // Revisar caché si está habilitado
-      if (enableCache) {
-        const cachedData = dataCache[cacheKey];
-        if (cachedData && Date.now() - cachedData.timestamp < cacheDuration) {
-          if (isMounted) {
-            setData(cachedData.data);
-            setLoading(false);
-          }
-          return;
+
+    // Sin endpoint no hay nada que cargar (p. ej. id aún no disponible)
+    if (!endpoint) {
+      setData(null);
+      setError(null);
+      setLoading(false);
+      return undefined;
+    }
+
+    const cacheKey = buildCacheKey(endpoint, params);
+    const cached = enableCache ? dataCache[cacheKey] : null;
+    const isFresh = cached
+      && !forceRevalidate
+      && (Date.now() - cached.timestamp < cacheDuration);
+
+    // Stale-while-revalidate: servir cache al instante (aunque esté vieja)
+    if (cached) {
+      setData(cached.data);
+      setError(null);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
+    // Si la cache es fresca, no revalidamos
+    if (isFresh) {
+      return () => { isMounted = false; };
+    }
+
+    // Revalidar (en background si ya había cache; con spinner si no)
+    fetchWithDedup(endpoint, params, { force: forceRevalidate })
+      .then((responseData) => {
+        if (!isMounted) return;
+        setData(responseData);
+        setError(null);
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        if (!err.message?.includes('cancelada')) {
+          console.error(`Error en solicitud a ${endpoint}:`, err);
+          setError(err);
         }
-      }
-      
-      try {
-        setLoading(true);
-        
-        // Configuración para la petición - Solo usar parámetros de URL para evitar problemas CORS
-        const requestConfig = { 
-          params: { ...params }
-        };
-        
-        // Si forceRevalidate está activo, añadir parámetros para evitar caché
-        if (forceRevalidate) {
-          // Añadir timestamp aleatorio para evitar caché de cualquier tipo
-          requestConfig.params = {
-            ...requestConfig.params,
-            _nocache: Date.now() + Math.random()
-          };
-        }
-        
-        const response = await clienteAxios.get(endpoint, requestConfig);
-        
-        // Solo actualizar el estado si el componente sigue montado
-        if (isMounted) {
-          const responseData = response.data;
-          
-          // Guardar en caché si está habilitado
-          if (enableCache) {
-            dataCache[cacheKey] = {
-              data: responseData,
-              timestamp: Date.now()
-            };
-          }
-          
-          setData(responseData);
-          setError(null);
-        }
-      } catch (err) {
-        if (isMounted) {
-          // No establecer error si fue una cancelación deliberada
-          if (!err.message?.includes('cancelada')) {
-            console.error(`Error en solicitud a ${endpoint}:`, err);
-            setError(err);
-          }
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-    
-    fetchData();
-    
-    // Función de limpieza
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
     return () => {
       isMounted = false;
     };
   }, [endpoint, ...dependencies, JSON.stringify(params), enableCache, cacheDuration, forceRevalidate]);
-  
-  // Implementamos una verdadera función de refetch que limpia la caché y vuelve a solicitar los datos
+
+  // refetch: invalida la cache de este endpoint y trae datos frescos
   const refetch = async () => {
-    // Limpiar la caché para este endpoint
-    const queryString = new URLSearchParams(params).toString();
-    const cacheKey = `${endpoint}?${queryString}`;
-    if (enableCache && dataCache[cacheKey]) {
+    if (!endpoint) return;
+    const cacheKey = buildCacheKey(endpoint, params);
+    if (dataCache[cacheKey]) {
       delete dataCache[cacheKey];
     }
-    
-    // Indicar que estamos cargando
+
     setLoading(true);
-    
     try {
-      // Configuración para forzar datos frescos sin usar cabeceras (solo parámetros)
-      const requestConfig = { 
-        params: {
-          ...params,
-          _nocache: Date.now() + Math.random() // Parámetro para evitar caché
-        }
-      };
-      
-      // Hacer la solicitud directamente
-      const response = await clienteAxios.get(endpoint, requestConfig);
-      setData(response.data);
+      const responseData = await fetchWithDedup(endpoint, params, { force: true });
+      setData(responseData);
       setError(null);
-      
-      // Actualizar la caché
-      if (enableCache) {
-        dataCache[cacheKey] = {
-          data: response.data,
-          timestamp: Date.now()
-        };
-      }
     } catch (err) {
       if (!err.message?.includes('cancelada')) {
         console.error(`Error en solicitud a ${endpoint}:`, err);
@@ -136,6 +128,6 @@ export function useAPI(endpoint, options = {}) {
       setLoading(false);
     }
   };
-  
+
   return { data, loading, error, refetch };
-} 
+}

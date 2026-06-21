@@ -14,6 +14,7 @@ import tareasRoutes from './tareasRoutes.js';
 import tareaSeriesRoutes from './tareaSeriesRoutes.js';
 import subtareasRoutes from './subtareasRoutes.js';
 import googleTasksRoutes from './googleTasksRoutes.js';
+import googleCalendarRoutes from './googleCalendarRoutes.js';
 import rutinasRoutes from './rutinasRoutes.js';
 import labsRoutes from './labsRoutes.js';
 import dietasRoutes from './dietasRoutes.js';
@@ -22,11 +23,15 @@ import perfilRoutes from './perfilRoutes.js';
 import healthRoutes from './healthRoutes.js';
 import dataCorporalRoutes from './dataCorporalRoutes.js';
 import bankConnectionRoutes from './bankConnectionRoutes.js';
+import statsRoutes from './statsRoutes.js';
 
 const router = express.Router();
 
 // Rutas de salud
 router.use('/health', healthRoutes);
+
+// Conteos batch (hub/strip)
+router.use('/stats', statsRoutes);
 
 // Rutas de usuarios y perfil
 router.use('/users', usersRoutes);
@@ -52,6 +57,7 @@ router.use('/tareas', tareasRoutes);
 router.use('/tarea-series', tareaSeriesRoutes);
 router.use('/subtareas', subtareasRoutes);
 router.use('/google-tasks', googleTasksRoutes);
+router.use('/google-calendar', googleCalendarRoutes);
 
 // Rutas de salud y bienestar
 router.use('/rutinas', rutinasRoutes);

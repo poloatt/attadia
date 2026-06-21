@@ -63,7 +63,8 @@ const baseConfig = {
     settlementPendingMaxAgeMs: parseInt(
       process.env.MP_SETTLEMENT_PENDING_MAX_AGE_MS || String(24 * 60 * 60 * 1000),
       10
-    )
+    ),
+    syncDays: parseInt(process.env.MP_SYNC_DAYS || '90', 10)
   },
   openFinance: {
     sfaEnabled: process.env.OPEN_FINANCE_SFA_ENABLED === 'true',

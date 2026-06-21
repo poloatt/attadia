@@ -5,13 +5,14 @@ import { isPathActive } from '@shared/navigation/appNavResolver';
 import { AttaHubSectionCard, HubItemsPreview } from '../../hub';
 import CuentaRow from '../cuentas/CuentaRow';
 import { CUENTAS_HUB_PREVIEW_COUNT, normalizeCuenta } from '../cuentas/cuentaConstants';
+import { getCuentasPath, resolveFinanzasBranch } from '../finanzasDeepLink';
 
-const CUENTAS_PATH = '/finanzas/cuentas';
-
-/** Bloque compacto Cuentas en el hub Finanzas. */
+/** Bloque compacto Cuentas en hubs Finanzas, Propiedades e Inventario. */
 export default function CuentasHubSection() {
   const { pathname } = useLocation();
-  const isActive = isPathActive(pathname, CUENTAS_PATH);
+  const branchId = resolveFinanzasBranch(pathname);
+  const cuentasPath = getCuentasPath(branchId);
+  const isActive = isPathActive(pathname, cuentasPath);
 
   const { data, loading } = useAPI('/api/cuentas', {
     enableCache: true,
@@ -27,7 +28,7 @@ export default function CuentasHubSection() {
     <AttaHubSectionCard
       title="Cuentas"
       iconKey="accountBalance"
-      path={CUENTAS_PATH}
+      path={cuentasPath}
       isActive={isActive}
     >
       <HubItemsPreview
@@ -35,7 +36,9 @@ export default function CuentasHubSection() {
         items={cuentas}
         previewCount={CUENTAS_HUB_PREVIEW_COUNT}
         emptyLabel="Sin cuentas"
-        renderRow={(cuenta) => <CuentaRow key={cuenta.id} cuenta={cuenta} />}
+        renderRow={(cuenta) => (
+          <CuentaRow key={cuenta.id} cuenta={cuenta} branchId={branchId} />
+        )}
       />
     </AttaHubSectionCard>
   );

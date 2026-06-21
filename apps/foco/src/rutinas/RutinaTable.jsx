@@ -25,7 +25,7 @@ import {
 } from '@mui/material';
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
 import AddIcon from '@mui/icons-material/Add';
-import { formatDate } from '@shared/utils';
+import { formatDate } from '@shared/utils/iconConfig';
 import RutinaCard from './RutinaCard';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -35,7 +35,7 @@ import { NavigateBefore, NavigateNext, Today as TodayIcon } from '@mui/icons-mat
 import { useRutinas } from '@shared/context';
 
 // Visibilidad centralizada gestionada en subcomponentes mediante visibilityUtils
-import { getNormalizedToday, toISODateString, parseAPIDate } from '@shared/utils';
+import { getNormalizedToday, toISODateString, parseAPIDate } from '@shared/utils/dateUtils';
 
 // Exportación nombrada para compatibilidad
 export const RutinaTable = ({ 

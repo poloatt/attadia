@@ -42,6 +42,30 @@ const logFrequencyLimit = {
   reset: 60000    // Resetear contador cada minuto
 };
 
+// Caché breve del usuario por id para evitar un Users.findById en CADA request
+// autenticado (una vista puede disparar ~20 requests en paralelo).
+const USER_CACHE_TTL_MS = 30_000;
+const userCache = new Map(); // userId -> { user, expiresAt }
+
+const getCachedUserById = async (userId) => {
+  const cached = userCache.get(userId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.user;
+  }
+  const user = await Users.findById(userId);
+  if (user) {
+    userCache.set(userId, { user, expiresAt: Date.now() + USER_CACHE_TTL_MS });
+  } else {
+    userCache.delete(userId);
+  }
+  return user;
+};
+
+/** Invalida la caché de un usuario (llamar tras cambios de rol/estado/perfil). */
+export const invalidateUserCache = (userId) => {
+  if (userId) userCache.delete(String(userId));
+};
+
 // Función para gestionar el ratio de logs - completamente deshabilitada en producción
 const shouldLog = () => {
   // Solo loggear en desarrollo o con DEBUG_AUTH habilitado explícitamente
@@ -58,7 +82,7 @@ passport.use(new JwtStrategy(jwtOptions, async (req, jwt_payload, done) => {
       });
     }
 
-    const user = await Users.findById(jwt_payload.user.id);
+    const user = await getCachedUserById(jwt_payload.user.id);
     if (!user) {
       if (shouldLog()) {
         console.log('Usuario no encontrado en la base de datos');

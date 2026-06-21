@@ -80,7 +80,7 @@ class MercadoPagoService {
         code, 
         state 
       }, {
-        timeout: this.timeout
+        timeout: 180000
       });
       
       return data;

@@ -19,6 +19,11 @@ export function findActiveModule(currentPath) {
     return modulos.find((m) => m.id === 'tiempo') || null;
   }
 
+  // Atta: finanzas, propiedades e inventario comparten el módulo assets
+  if (ATTA_PATHS.some((p) => currentPath === p || currentPath.startsWith(`${p}/`))) {
+    return modulos.find((m) => m.id === 'assets') || null;
+  }
+
   return modulos.find(modulo =>
     modulo.subItems?.some(sub => currentPath.startsWith(sub.path)) ||
     currentPath.startsWith(modulo.path)
@@ -213,4 +218,36 @@ export function navigateToAppPath(navigate, targetPath) {
     // ignorar errores de storage
   }
   window.location.assign(buildAppUrl(targetApp, targetPath));
+}
+
+const prefetchedApps = new Set();
+
+/** Prefetch index de otra app al hover/focus para acelerar el switch cross-app. */
+export function prefetchApp(appKey) {
+  if (typeof document === 'undefined' || !appKey) return;
+  if (appKey === getCurrentAppKey()) return;
+  if (prefetchedApps.has(appKey)) return;
+  prefetchedApps.add(appKey);
+
+  const base = currentConfig?.frontendUrls?.[appKey];
+  if (!base) return;
+
+  const prefetchLink = document.createElement('link');
+  prefetchLink.rel = 'prefetch';
+  prefetchLink.href = `${base}/`;
+  document.head.appendChild(prefetchLink);
+
+  try {
+    const { protocol, hostname } = new URL(base);
+    const dnsLink = document.createElement('link');
+    dnsLink.rel = 'dns-prefetch';
+    dnsLink.href = `${protocol}//${hostname}`;
+    document.head.appendChild(dnsLink);
+  } catch (_) {
+    // ignorar URLs inválidas
+  }
+}
+
+export function prefetchAppForPath(path) {
+  prefetchApp(getAppKeyFromPath(path));
 }

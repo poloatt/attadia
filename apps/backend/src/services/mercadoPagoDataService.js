@@ -84,7 +84,7 @@ export class MercadoPagoDataService {
         pagos,
         movimientosCuenta: movimientosReporte.map((row) => ({
           id: row.sourceId || row.id,
-          description: row.transactionType || row.raw?.TRANSACTION_TYPE,
+          description: row.description || row.transactionType || row.raw?.TRANSACTION_TYPE,
           amount: row.netAmount ?? row.amount,
           type: (row.netAmount ?? row.amount) >= 0 ? 'credit' : 'debit',
           status: 'available',

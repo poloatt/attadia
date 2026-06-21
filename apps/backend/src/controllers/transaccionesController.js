@@ -113,10 +113,11 @@ class TransaccionesController extends BaseController {
     }
   }
 
-  // GET /api/transacciones/balance/:cuentaId
+  // GET /api/transacciones/balance/:cuentaId?estado&fechaFin
   getBalance = async (req, res) => {
     try {
-      const balance = await this.Model.getBalance(req.params.cuentaId);
+      const { estado = 'PAGADO', fechaFin } = req.query;
+      const balance = await this.Model.getBalance(req.params.cuentaId, { estado, fechaFin });
       res.json(balance);
     } catch (error) {
       res.status(500).json({ error: error.message });

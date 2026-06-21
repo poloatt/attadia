@@ -159,7 +159,27 @@ const tareaSchema = createSchema({
     needsSync: {
       type: Boolean,
       default: false
-    } // Flag para marcar tareas que necesitan sincronización
+    }, // Flag para marcar tareas que necesitan sincronización
+    hasTimedSchedule: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  googleCalendarSync: {
+    googleEventId: String,
+    googleCalendarId: String,
+    etag: String,
+    htmlLink: String,
+    status: {
+      type: String,
+      enum: ['confirmed', 'tentative', 'cancelled'],
+      default: 'confirmed',
+    },
+    eventType: {
+      type: String,
+      default: 'default',
+    },
+    lastSyncDate: Date,
   },
   ...commonFields
 });
@@ -188,12 +208,13 @@ tareaSchema.pre('save', function(next) {
 
 // Middleware para mapear estados entre Google Tasks y nuestra app
 tareaSchema.methods.toGoogleTaskFormat = function() {
+  const due = this.fechaVencimiento || this.fechaInicio;
   return {
     id: this.googleTasksSync?.googleTaskId,
     title: this.titulo,
     notes: this.descripcion || '',
     status: this.completada ? 'completed' : 'needsAction',
-    due: this.fechaVencimiento ? this.fechaVencimiento.toISOString() : null,
+    due: due ? Tareas.formatGoogleDueDateOnly(due) : null,
     completed: this.completada && this.googleTasksSync?.completed ? this.googleTasksSync.completed.toISOString() : null,
     parent: this.googleTasksSync?.parent || null,
     position: this.googleTasksSync?.position || null,
@@ -290,14 +311,11 @@ tareaSchema.methods.updateFromGoogleTask = function(googleTask, parsedNotes = nu
 
   this.completada = googleTask.status === 'completed';
   this.estado = googleTask.status === 'completed' ? 'COMPLETADA' : 'PENDIENTE';
-  
-  if (googleTask.due) {
+
+  // Fechas: las gestiona mergeGoogleDueWithLocalSchedule en applyGoogleStatusAndDue.
+  if (googleTask.due && typeof this.recordGoogleDueSnapshot === 'function') {
     const dueDate = this.constructor.parseGoogleDueDate(googleTask.due);
-    if (dueDate) {
-      this.recordGoogleDueSnapshot(dueDate);
-      this.fechaVencimiento = dueDate;
-      this.fechaInicio = dueDate;
-    }
+    if (dueDate) this.recordGoogleDueSnapshot(dueDate);
   }
   
   // Actualizar campos de Google Tasks
@@ -322,14 +340,24 @@ tareaSchema.pre('save', function(next) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Si no hay fecha de inicio, establecer a hoy
+  // Si no hay fecha de inicio, establecer a hoy (excepto Google Tasks sin due).
   if (!this.fechaInicio) {
-    this.fechaInicio = today;
+    const isGoogleUndated = Boolean(
+      this.googleTasksSync?.googleTaskId && !this.fechaVencimiento,
+    );
+    if (!isGoogleUndated) {
+      this.fechaInicio = today;
+    }
   }
 
   // Validar que la fecha de inicio no sea anterior a hoy si es nueva tarea
-  // (excepto instancias de series: deben conservar la fecha de ocurrencia para el calendario)
-  if (this.isNew && !this.serieId && this.fechaInicio < today) {
+  // (excepto instancias de series o import Google: conservar due histórico)
+  if (
+    this.isNew
+    && !this.serieId
+    && this.fechaInicio < today
+    && !this.googleTasksSync?.googleTaskId
+  ) {
     this.fechaInicio = today;
   }
 
@@ -549,7 +577,7 @@ tareaSchema.post('save', async function() {
   }
 });
 
-/** Fecha de Google Tasks → instante local (date-only a mediodía para evitar saltos de día UTC). */
+/** Fecha de Google Tasks → mediodía local (Google API solo guarda el día). */
 tareaSchema.statics.parseGoogleDueDate = function parseGoogleDueDate(due) {
   if (!due) return null;
   const raw = String(due);
@@ -558,17 +586,39 @@ tareaSchema.statics.parseGoogleDueDate = function parseGoogleDueDate(due) {
     const y = Number(match[1]);
     const m = Number(match[2]);
     const d = Number(match[3]);
-    const isDateOnly =
-      raw.length === 10
-      || /T00:00:00(\.000)?Z?$/i.test(raw)
-      || /T12:00:00(\.000)?Z?$/i.test(raw)
-      || /T00:00:00(\.000)?([+-]\d{2}:?\d{2})?$/i.test(raw);
-    if (isDateOnly) {
-      return new Date(y, m - 1, d, 12, 0, 0, 0);
-    }
+    return new Date(y, m - 1, d, 12, 0, 0, 0);
   }
   const dt = new Date(due);
-  return isNaN(dt.getTime()) ? null : dt;
+  if (Number.isNaN(dt.getTime())) return null;
+  return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), 12, 0, 0, 0);
 };
+
+/** Export due date-only (RFC3339; Google descarta la hora). */
+tareaSchema.statics.formatGoogleDueDateOnly = function formatGoogleDueDateOnly(date) {
+  if (!date) return null;
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}T00:00:00.000Z`;
+};
+
+// Índices para acelerar las queries por rango de fechas de la agenda (Foco)
+tareaSchema.index({ usuario: 1, fechaVencimiento: 1 });
+tareaSchema.index({ usuario: 1, fechaInicio: 1 });
+tareaSchema.index({ usuario: 1, estado: 1, fechaVencimiento: 1 });
+tareaSchema.index({ serieId: 1 });
+tareaSchema.index({ objetivo: 1 });
+// Búsqueda directa por id de Google Tasks durante la sincronización
+tareaSchema.index({ 'googleTasksSync.googleTaskId': 1 });
+tareaSchema.index(
+  {
+    usuario: 1,
+    'googleCalendarSync.googleEventId': 1,
+    'googleCalendarSync.googleCalendarId': 1,
+  },
+  { unique: true, sparse: true },
+);
 
 export const Tareas = mongoose.model('Tareas', tareaSchema); 

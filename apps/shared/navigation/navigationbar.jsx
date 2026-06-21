@@ -10,7 +10,7 @@ import {
   CalendarMonthOutlined as CalendarIcon
 } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { navigateToAppPath } from '../utils/navigationUtils';
+import { navigateToAppPath, prefetchAppForPath } from '../utils/navigationUtils';
 
 const StyledAppBar = styled(AppBar)(({ theme }) => ({
   backgroundColor: '#000000',
@@ -112,6 +112,8 @@ export const FooterNavigation = () => {
             key={item.path}
             icon={item.icon}
             onClick={() => navigateToAppPath(navigate, item.path)}
+            onMouseEnter={() => prefetchAppForPath(item.path)}
+            onFocus={() => prefetchAppForPath(item.path)}
             sx={{
               minWidth: 'auto',
               padding: 1.15,

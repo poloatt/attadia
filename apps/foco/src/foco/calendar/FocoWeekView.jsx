@@ -42,6 +42,8 @@ import { useFocoSwipeNavigate } from './useFocoSwipeNavigate';
 
 
 
+import CalendarDndContext from './dnd/CalendarDndContext';
+
 export default function FocoWeekView({
 
   weekDays = [],
@@ -55,6 +57,8 @@ export default function FocoWeekView({
   onToggleComplete,
 
   onSlotClick,
+
+  onEventMove,
 
   agendaView = 'ahora',
 
@@ -268,51 +272,109 @@ export default function FocoWeekView({
 
       >
 
-        <Box
+        <CalendarDndContext onEventMove={onEventMove} enabled={Boolean(onEventMove)}>
 
-          sx={{
+          <Box
 
-            display: 'grid',
+            sx={{
 
-            gridTemplateColumns: calendarGridColumns(7),
+              display: 'grid',
 
-            minHeight: gridHeight,
+              gridTemplateColumns: calendarGridColumns(7),
 
-          }}
+              minHeight: gridHeight,
 
-        >
+            }}
 
-          <Box sx={{ borderRight: 1, borderColor: 'divider', height: gridHeight }}>
+          >
 
-            {HOUR_LABELS.map((hour) => (
+            <Box sx={{ borderRight: 1, borderColor: 'divider', height: gridHeight }}>
+
+              {HOUR_LABELS.map((hour) => (
+
+                <Box
+
+                  key={hour}
+
+                  sx={{
+
+                    height: SLOT_HEIGHT_PX,
+
+                    display: 'flex',
+
+                    alignItems: 'flex-start',
+
+                    justifyContent: 'flex-end',
+
+                    pr: 0.5,
+
+                    pt: 0.25,
+
+                  }}
+
+                >
+
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+
+                    {formatHourLabel(hour)}
+
+                  </Typography>
+
+                </Box>
+
+              ))}
+
+            </Box>
+
+
+
+            {weekDays.map((day, idx) => (
 
               <Box
 
-                key={hour}
+                key={`grid-${day.toISOString()}`}
 
                 sx={{
 
-                  height: SLOT_HEIGHT_PX,
+                  borderLeft: 1,
 
-                  display: 'flex',
+                  borderColor: 'divider',
 
-                  alignItems: 'flex-start',
+                  height: gridHeight,
 
-                  justifyContent: 'flex-end',
+                  position: 'relative',
 
-                  pr: 0.5,
+                  minWidth: 0,
 
-                  pt: 0.25,
+                  bgcolor: isToday(day)
+
+                    ? alpha(theme.palette.primary.main, 0.03)
+
+                    : 'transparent',
 
                 }}
 
               >
 
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                <FocoTimeGrid
 
-                  {formatHourLabel(hour)}
+                  day={day}
 
-                </Typography>
+                  timedEvents={timedByDay[idx]}
+
+                  onSlotClick={onSlotClick}
+
+                  onEventClick={onEventClick}
+
+                  onToggleComplete={onToggleComplete}
+
+                  showNowIndicator={isToday(day)}
+
+                  showTimeColumn={false}
+
+                  dndEnabled={Boolean(onEventMove)}
+
+                />
 
               </Box>
 
@@ -320,59 +382,7 @@ export default function FocoWeekView({
 
           </Box>
 
-
-
-          {weekDays.map((day, idx) => (
-
-            <Box
-
-              key={`grid-${day.toISOString()}`}
-
-              sx={{
-
-                borderLeft: 1,
-
-                borderColor: 'divider',
-
-                height: gridHeight,
-
-                position: 'relative',
-
-                minWidth: 0,
-
-                bgcolor: isToday(day)
-
-                  ? alpha(theme.palette.primary.main, 0.03)
-
-                  : 'transparent',
-
-              }}
-
-            >
-
-              <FocoTimeGrid
-
-                day={day}
-
-                timedEvents={timedByDay[idx]}
-
-                onSlotClick={onSlotClick}
-
-                onEventClick={onEventClick}
-
-                onToggleComplete={onToggleComplete}
-
-                showNowIndicator={isToday(day)}
-
-                showTimeColumn={false}
-
-              />
-
-            </Box>
-
-          ))}
-
-        </Box>
+        </CalendarDndContext>
 
       </Box>
 

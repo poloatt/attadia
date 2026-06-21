@@ -7,21 +7,21 @@ import { useUISettings } from '../context/UISettingsContext';
 import { useSidebar } from '../context/SidebarContext';
 import useResponsive from '../hooks/useResponsive';
 import { useRutinas } from '../context/RutinasContext';
-import RutinaNavigation from './RutinaNavigation.jsx';
 import {
   resolveToolbarLeftByPath,
   resolveToolbarCenterByPath,
   resolveToolbarCenterDesktop,
   resolveToolbarRightByPath,
 } from './toolbarModules';
+import { getAgendaBarSlot, getRutinaNavigation } from './toolbarRegistry';
 import { resolveAttaBranchHubPath } from './appNavResolver';
 import { isAttaToolbarPath, isPulsoToolbarPath } from './unifiedBarPaths';
-import FocoViewModeToggle from '../../foco/src/foco/FocoViewModeToggle.jsx';
-import TiempoToolbarActions from '../../foco/src/foco/TiempoToolbarActions.jsx';
 
 function RutinaNavigationSlot({ currentPath }) {
+  const RutinaNavigation = getRutinaNavigation();
   if (
-    !(currentPath.startsWith('/rutinas')
+    !RutinaNavigation
+    || !(currentPath.startsWith('/rutinas')
       || currentPath.startsWith('/tiempo/rutinas')
       || currentPath.startsWith('/foco'))
   ) {
@@ -91,6 +91,8 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
   const CenterComp = resolveToolbarCenterByPath(path);
   const showCenterOnDesktop = resolveToolbarCenterDesktop(path);
   const mainMargin = getMainMargin(isMobileOrTablet, showSidebarCollapsed);
+  const FocoCenterActions = getAgendaBarSlot('focoCenterActions');
+  const FocoViewModeToggle = getAgendaBarSlot('focoViewModeToggle');
 
   const showCenter =
   shouldShowRutinaNavigation(path)
@@ -128,6 +130,7 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
   const centerActionsInsetLeft = showAttaBranchBack
     ? baseCenterInsetLeft + ATTA_BACK_SLOT_WIDTH
     : baseCenterInsetLeft;
+  const showAttaBranchSwitcher = isAttaPath && !isMobile && RightComp;
 
   return (
     <Box
@@ -145,7 +148,7 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
           sx={{
             position: 'absolute',
             left: `${centerActionsInsetLeft}px`,
-            right: `${collapsedWidth}px`,
+            right: showAttaBranchSwitcher ? `${collapsedWidth + 96}px` : `${collapsedWidth}px`,
             top: 0,
             bottom: 0,
             display: 'flex',
@@ -156,7 +159,7 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
             '& > *': { pointerEvents: 'auto' },
           }}
         >
-          {isFocoPath && <TiempoToolbarActions section="foco" dense />}
+          {isFocoPath && FocoCenterActions && <FocoCenterActions section="foco" dense />}
           {isAttaPath && CenterComp && <CenterComp hasSelectedItems={hasSelectedItems} />}
           {isPulsoPath && CenterComp && <CenterComp hasSelectedItems={hasSelectedItems} />}
         </Box>
@@ -205,6 +208,24 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
       >
         <SystemButtons.AppsButton />
       </Box>
+
+      {showAttaBranchSwitcher && (
+        <Box
+          sx={{
+            position: 'absolute',
+            right: `${collapsedWidth}px`,
+            top: 0,
+            height: AGENDA_UNIFIED_BAR_CONFIG.height,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            zIndex: 4,
+            px: 0.5,
+          }}
+        >
+          <RightComp hasSelectedItems={hasSelectedItems} />
+        </Box>
+      )}
 
       <Box
         sx={{
@@ -256,8 +277,10 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
               zIndex: 2,
             }}
           >
-            {isFocoPath && !isMobile && <FocoViewModeToggle />}
-            {RightComp && <RightComp hasSelectedItems={hasSelectedItems} />}
+            {isFocoPath && !isMobile && FocoViewModeToggle && <FocoViewModeToggle />}
+            {RightComp && !showAttaBranchSwitcher && (
+              <RightComp hasSelectedItems={hasSelectedItems} />
+            )}
           </Box>
         )}
       </Box>

@@ -9,12 +9,16 @@ import {
   normalizeDateOnlyDue,
   parseTaskDate,
 } from '@shared/utils/agendaRules';
+import { isTimedScheduleInstant, parseScheduleFromNotes, taskHasTimedSchedule } from '@shared/utils/googleTasksScheduleNotes';
 import { normalizeTaskList } from '@shared/utils/taskListUtils';
 import {
   DAY_END_HOUR,
   DAY_START_HOUR,
   DEFAULT_DURATION_MINUTES,
-  MAX_TIMED_EVENTS_VISIBLE,
+  getGridHeightPx,
+  getTotalGridMinutes,
+  MIN_EVENT_HEIGHT_PX,
+  SLOT_MINUTES,
 } from './calendarLayout';
 
 /** Máx. columnas solapadas en la rejilla horaria (evita “código de barras”). */
@@ -51,26 +55,33 @@ function isGoogleDateOnlyDue(task) {
 }
 
 export const isAllDayTask = (task) => {
+  if (taskHasTimedSchedule(task)) return false;
+
+  const schedule = parseScheduleFromNotes(task?.descripcion || '');
+  if (schedule?.fechaInicio && schedule?.fechaFin) return false;
+
   const rawStart = task?.fechaInicio || task?.inicio || task?.start;
-  const tipoEarly = String(task?.tipo || 'TAREA').toUpperCase();
-  const rawDue = tipoEarly === 'EVENTO'
+  const tipo = String(task?.tipo || 'TAREA').toUpperCase();
+  const rawDue = tipo === 'EVENTO'
     ? (task?.fechaVencimiento || task?.fechaFin || task?.vencimiento)
     : (task?.fechaVencimiento || task?.vencimiento);
   if (isDateOnlyString(rawStart) || isDateOnlyString(rawDue)) return true;
-  if (tipoEarly !== 'EVENTO' && isGoogleDateOnlyDue(task)) return true;
 
-  const tipo = String(task?.tipo || 'TAREA').toUpperCase();
   const start = tipo === 'EVENTO'
     ? (getTaskStart(task) || getTaskDue(task))
     : (getAnchorDate(task) || getTaskStart(task) || getTaskDue(task));
   if (!start) return true;
 
   const endRaw = task?.fechaFin || (tipo === 'EVENTO' ? task?.fechaVencimiento : null);
+  const end = parseTaskDate(endRaw || task?.fechaVencimiento);
+  if (start && end && isTimedScheduleInstant(start, end)) return false;
+
+  if (tipo !== 'EVENTO' && isGoogleDateOnlyDue(task)) return true;
+
   if (!endRaw) {
     return start.getHours() === 0 && start.getMinutes() === 0;
   }
 
-  const end = parseTaskDate(endRaw);
   if (!end) return start.getHours() === 0 && start.getMinutes() === 0;
 
   return (
@@ -103,7 +114,9 @@ export const taskToCalendarEvent = (task, objetivos = []) => {
     : (task?.fechaVencimiento || task?.vencimiento || task?.fechaInicio || task?.inicio || task?.start);
   let start = tipo === 'EVENTO'
     ? (getTaskStart(task) || getTaskDue(task))
-    : (getAnchorDate(task) || getTaskStart(task) || getTaskDue(task));
+    : (taskHasTimedSchedule(task)
+      ? (getTaskStart(task) || getAnchorDate(task) || getTaskDue(task))
+      : (getAnchorDate(task) || getTaskStart(task) || getTaskDue(task)));
   if (!start) return null;
   if (allDay) {
     start = normalizeDateOnlyDue(rawAnchor) || startOfDay(start);
@@ -229,16 +242,27 @@ export const splitEventsByDay = (events, day) => {
 };
 
 /**
- * Reparte eventos solapados en columnas (evita apilar todo a las 12:00).
+ * Reparte eventos solapados: EVENTO en columnas; TAREA como barras compactas apiladas.
  */
 export const layoutTimedEventsForDay = (events = []) => {
   const sorted = [...events].sort((a, b) => a.start.getTime() - b.start.getTime());
-  const hiddenCount = Math.max(0, sorted.length - MAX_TIMED_EVENTS_VISIBLE);
-  const toPlace = hiddenCount > 0 ? sorted.slice(0, MAX_TIMED_EVENTS_VISIBLE) : sorted;
+  const tasks = sorted.filter((ev) => String(ev.task?.tipo || 'TAREA').toUpperCase() !== 'EVENTO');
+  const eventos = sorted.filter((ev) => String(ev.task?.tipo || 'TAREA').toUpperCase() === 'EVENTO');
+
+  const taskItems = layoutCompactTaskBars(tasks);
+  const eventoItems = layoutColumnEvents(eventos);
+
+  return {
+    items: [...taskItems.items, ...eventoItems.items],
+    hiddenCount: taskItems.hiddenCount + eventoItems.hiddenCount,
+  };
+};
+
+const layoutColumnEvents = (events = []) => {
   const columnEnds = [];
   const placed = [];
 
-  for (const event of toPlace) {
+  for (const event of events) {
     const startMs = event.start.getTime();
     const endMs = event.end.getTime();
     let column = columnEnds.findIndex((end) => end <= startMs);
@@ -277,21 +301,61 @@ export const layoutTimedEventsForDay = (events = []) => {
     };
   });
 
-  return { items, hiddenCount };
+  return { items, hiddenCount: 0 };
+};
+
+const layoutCompactTaskBars = (events = []) => {
+  const gapPx = 2;
+  const gridHeight = getGridHeightPx();
+  const compactHeightPct = (MIN_EVENT_HEIGHT_PX / gridHeight) * 100;
+  const stackStepPct = ((MIN_EVENT_HEIGHT_PX + gapPx) / gridHeight) * 100;
+  const placed = [];
+  let hiddenCount = 0;
+
+  for (const event of events) {
+    const startMs = event.start.getTime();
+    const endMs = event.end.getTime();
+    const overlapping = placed.filter(
+      (p) => p.event.start.getTime() < endMs && p.event.end.getTime() > startMs,
+    );
+    const stackIndex = overlapping.length;
+
+    if (stackIndex >= MAX_OVERLAP_COLUMNS) {
+      hiddenCount += 1;
+      continue;
+    }
+
+    const pos = getTimedPosition(event.start, event.end);
+    const topPct = parseFloat(pos.top) + stackIndex * stackStepPct;
+
+    placed.push({
+      event,
+      stackIndex,
+      style: {
+        top: `${topPct}%`,
+        height: `${compactHeightPct}%`,
+        left: `${gapPx}px`,
+        width: `calc(100% - ${gapPx * 2}px)`,
+      },
+    });
+  }
+
+  return { items: placed, hiddenCount };
 };
 
 export const getTimedPosition = (start, end) => {
-  const totalMinutes = (DAY_END_HOUR - DAY_START_HOUR) * 60;
+  const totalMinutes = getTotalGridMinutes();
+  const snap = (mins) => Math.round(mins / SLOT_MINUTES) * SLOT_MINUTES;
   const clamp = (mins) => Math.max(0, Math.min(totalMinutes, mins));
 
-  const startMins = clamp((start.getHours() - DAY_START_HOUR) * 60 + start.getMinutes());
-  let endMins = clamp((end.getHours() - DAY_START_HOUR) * 60 + end.getMinutes());
+  const startMins = clamp(snap((start.getHours() - DAY_START_HOUR) * 60 + start.getMinutes()));
+  let endMins = clamp(snap((end.getHours() - DAY_START_HOUR) * 60 + end.getMinutes()));
   if (endMins <= startMins) {
     endMins = Math.min(totalMinutes, startMins + DEFAULT_DURATION_MINUTES);
   }
 
   const topPct = (startMins / totalMinutes) * 100;
-  const heightPct = Math.max(((endMins - startMins) / totalMinutes) * 100, 2.5);
+  const heightPct = Math.max(((endMins - startMins) / totalMinutes) * 100, (MIN_EVENT_HEIGHT_PX / getGridHeightPx()) * 100);
 
   return { top: `${topPct}%`, height: `${heightPct}%` };
 };

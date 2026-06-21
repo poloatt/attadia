@@ -41,9 +41,17 @@ function getAssetsModule() {
   return modulos.find((m) => m.id === 'assets') || null;
 }
 
-/** Atta: una sola rama (Finanzas). Propiedades e Inventario son secciones del hub. */
+/** Atta: ramas virtuales Finanzas | Propiedades | Inventario (toolbar derecha desktop). */
 export function getAttaBranches() {
-  return [];
+  const finanzas = getFinanzasBranch();
+  const propiedades = getPropiedadesSectionNode();
+  const inventario = getInventarioSectionNode();
+
+  return [
+    finanzas && toNavItem(finanzas, 'branch'),
+    propiedades && toNavItem(propiedades, 'branch'),
+    inventario && toNavItem(inventario, 'branch'),
+  ].filter(Boolean);
 }
 
 function getFinanzasBranch() {
@@ -113,35 +121,30 @@ export function getFinanzasBranchPages() {
   return getAttaBranchPages('finanzas').filter((page) => !exclude.has(page.id));
 }
 
-/** Subpáginas Propiedades: solo hub / cards in-page, no en toolbar ni strip contextual. */
-export const PROPIEDADES_TOOLBAR_EXCLUDE_PAGE_IDS = [
-  'propiedades',
-  'contratos',
-  'inquilinos',
+/** Subpáginas Propiedades ocultas en hub/strip (finanzas duplicadas). */
+export const PROPIEDADES_HUB_STRIP_EXCLUDE_PAGE_IDS = [
+  'cuentas',
+  'transacciones',
 ];
 
-/** Subpáginas Inventario: solo hub / cards in-page, no en toolbar ni strip contextual. */
-export const INVENTARIO_TOOLBAR_EXCLUDE_PAGE_IDS = [
+/** Subpáginas Inventario ocultas en hub/strip. */
+export const INVENTARIO_HUB_STRIP_EXCLUDE_PAGE_IDS = [
   'inventario-en-propiedades',
   'vehiculos',
   'inventario-sin-ubicacion',
+  'cuentas',
+  'transacciones',
 ];
 
-/**
- * Páginas Propiedades para toolbar centro y strip en subpáginas.
- * Vacío: navegación vía hub (/propiedades) y botón atrás en subpáginas.
- */
+/** Páginas Propiedades para strip in-page: propiedades, inquilinos, contratos. */
 export function getPropiedadesBranchPages() {
-  const exclude = new Set(PROPIEDADES_TOOLBAR_EXCLUDE_PAGE_IDS);
+  const exclude = new Set(PROPIEDADES_HUB_STRIP_EXCLUDE_PAGE_IDS);
   return getAttaBranchPages('propiedades').filter((page) => !exclude.has(page.id));
 }
 
-/**
- * Páginas Inventario para toolbar centro y strip en subpáginas.
- * Vacío: navegación vía hub (/propiedades/inventario) y botón atrás en subpáginas.
- */
+/** Páginas Inventario para strip in-page: solo la sección principal. */
 export function getInventarioBranchPages() {
-  const exclude = new Set(INVENTARIO_TOOLBAR_EXCLUDE_PAGE_IDS);
+  const exclude = new Set(INVENTARIO_HUB_STRIP_EXCLUDE_PAGE_IDS);
   return getAttaBranchPages('inventario').filter((page) => !exclude.has(page.id));
 }
 
@@ -159,7 +162,7 @@ export function resolveBottomNavItems(currentPath) {
   if (!moduloActivo) return [];
 
   if (moduloActivo.id === 'assets') {
-    return getAttaBranches();
+    return [];
   }
 
   const orderMap = {
@@ -177,14 +180,26 @@ export function resolveBottomNavItems(currentPath) {
   );
 }
 
-/** Toolbar derecha Atta (desktop): sin conmutador de ramas (hub único). */
+/** Toolbar derecha Atta (desktop): Finanzas | Propiedades | Inventario. */
 export function resolveAttaToolbarRight(currentPath) {
   const moduloActivo = findActiveModule(currentPath);
   if (moduloActivo?.id !== 'assets') {
     return { branches: [], activeBranchId: null };
   }
 
-  return { branches: [], activeBranchId: 'finanzas' };
+  const branches = getAttaBranches();
+  let activeBranchId = 'finanzas';
+
+  if (isInventarioBranchRoute(currentPath)) {
+    activeBranchId = 'inventario';
+  } else if (
+    currentPath === '/propiedades'
+    || (currentPath.startsWith('/propiedades/') && !isInventarioBranchRoute(currentPath))
+  ) {
+    activeBranchId = 'propiedades';
+  }
+
+  return { branches, activeBranchId };
 }
 
 /**
@@ -196,12 +211,9 @@ function resolveAttaBranchToolbarPages(currentPath, branchId) {
     return getFinanzasBranchPages();
   }
 
-  if (branchId === 'propiedades') {
-    return getPropiedadesBranchPages();
-  }
-
-  if (branchId === 'inventario') {
-    return getInventarioBranchPages();
+  // Propiedades e Inventario: navegación in-page (hub/strip), sin tabs en toolbar centro.
+  if (branchId === 'propiedades' || branchId === 'inventario') {
+    return [];
   }
 
   const assets = getAssetsModule();
@@ -261,7 +273,7 @@ export function isAttaPageActive(pathname, page) {
     return pathname === '/propiedades' || pathname.startsWith('/propiedades/habitaciones');
   }
   if (page.id === 'inventario') {
-    return pathname === '/propiedades/inventario';
+    return isInventarioBranchRoute(pathname);
   }
   if (
     page.id === 'inventario-en-propiedades'
@@ -338,12 +350,16 @@ export function resolveAttaBranchHubLabel(pathname) {
 export function isAttaBranchActive(pathname, branch) {
   if (!branch) return false;
   if (branch.id === 'finanzas') {
-    return (
-      pathname === '/finanzas'
-      || pathname.startsWith('/finanzas/')
-      || pathname === '/propiedades'
-      || pathname.startsWith('/propiedades/')
-    );
+    return pathname === '/finanzas' || pathname.startsWith('/finanzas/');
+  }
+  if (branch.id === 'propiedades') {
+    if (isInventarioBranchRoute(pathname)) {
+      return false;
+    }
+    return pathname === '/propiedades' || pathname.startsWith('/propiedades/');
+  }
+  if (branch.id === 'inventario') {
+    return isInventarioBranchRoute(pathname);
   }
   return isPathActive(pathname, branch.path);
 }

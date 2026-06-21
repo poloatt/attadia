@@ -1,4 +1,4 @@
-import { isTiempoToolbarPath } from '../../foco/src/foco/tiempoToolbarPaths.js';
+import { isTiempoToolbarPath } from './tiempoToolbarPaths.js';
 
 const ATTA_PATH_PREFIXES = ['/finanzas', '/propiedades'];
 const PULSO_PATH_PREFIXES = ['/datacorporal', '/dieta', '/lab', '/salud'];

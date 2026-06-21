@@ -134,14 +134,14 @@ function findMenuItemByPath(path, items = modulos, parent = null) {
     }
     // Si no se encontró en hijos, comparar el propio item
     if (item.path === path) {
-      // Hub compartido padre/hijo (p. ej. /propiedades): usar rama con subItems agregables
-      if (
-        parent &&
-        parent.path === path &&
-        Array.isArray(parent.subItems) &&
-        parent.subItems.length > 0
-      ) {
-        return { item: parent, parent: null };
+      // Misma URL en padre e hijo (p. ej. assets + finanzas → /finanzas): preferir el nodo con subItems.
+      if (parent && parent.path === path) {
+        if (Array.isArray(item.subItems) && item.subItems.length > 0) {
+          return { item, parent };
+        }
+        if (Array.isArray(parent.subItems) && parent.subItems.length > 0) {
+          return { item: parent, parent: null };
+        }
       }
       return { item, parent };
     }

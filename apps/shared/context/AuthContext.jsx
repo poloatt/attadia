@@ -19,6 +19,42 @@ const useAuth = () => {
 clienteAxios.defaults.baseURL = currentConfig.baseUrl;
 clienteAxios.defaults.withCredentials = true;
 
+// Cache del usuario en localStorage para render optimista (evita el gate serial de /check)
+const CACHED_USER_KEY = 'cachedUser';
+
+function readCachedUser() {
+  try {
+    const raw = localStorage.getItem(CACHED_USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveCachedUser(userData) {
+  try {
+    if (userData) localStorage.setItem(CACHED_USER_KEY, JSON.stringify(userData));
+  } catch {
+    // Silenciar errores de cuota/serialización
+  }
+}
+
+function removeCachedUser() {
+  try {
+    localStorage.removeItem(CACHED_USER_KEY);
+  } catch {
+    // Silenciar
+  }
+}
+
+function hasStoredToken() {
+  try {
+    return !!localStorage.getItem('token');
+  } catch {
+    return false;
+  }
+}
+
 /** Despierta el backend (p. ej. Render tras inactividad) antes de OAuth. */
 async function waitForBackendReady(maxAttempts = 4) {
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
@@ -35,10 +71,16 @@ async function waitForBackendReady(maxAttempts = 4) {
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Render optimista: si hay token + usuario cacheado, arrancamos autenticados
+  // y validamos /check en background (no bloqueamos la ruta crítica).
+  const optimisticUser = (typeof window !== 'undefined' && hasStoredToken())
+    ? readCachedUser()
+    : null;
+
+  const [user, setUser] = useState(optimisticUser);
+  const [loading, setLoading] = useState(!optimisticUser);
   const [error, setError] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!optimisticUser);
 
   // Refs para control de estado
   const isInitialized = useRef(false);
@@ -68,9 +110,9 @@ export function AuthProvider({ children }) {
       // Configurar token en axios
       clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
-      // Timeout más generoso para reducir errores falsos
+      // Timeout reducido para UX; reintentos en background si falla
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout: Verificación de autenticación tardó demasiado')), 15000)
+        setTimeout(() => reject(new Error('Timeout: Verificación de autenticación tardó demasiado')), 5000)
       );
       
       const requestPromise = clienteAxios.get(`${currentConfig.authPrefix}/check`);
@@ -79,6 +121,7 @@ export function AuthProvider({ children }) {
       
       if (data.authenticated && data.user) {
         setUser(data.user);
+        saveCachedUser(data.user);
         setIsAuthenticated(true);
         setError(null);
         setLoading(false);
@@ -87,6 +130,7 @@ export function AuthProvider({ children }) {
         // Token inválido, limpiar
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
+        removeCachedUser();
         delete clienteAxios.defaults.headers.common['Authorization'];
         
         setUser(null);
@@ -125,6 +169,7 @@ export function AuthProvider({ children }) {
               const { data: verifyData } = await clienteAxios.get(`${currentConfig.authPrefix}/check`);
               if (verifyData.authenticated && verifyData.user) {
                 setUser(verifyData.user);
+                saveCachedUser(verifyData.user);
                 setIsAuthenticated(true);
                 setError(null);
                 setLoading(false);
@@ -140,6 +185,7 @@ export function AuthProvider({ children }) {
       // Limpiar tokens inválidos
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
+      removeCachedUser();
       delete clienteAxios.defaults.headers.common['Authorization'];
       
       setUser(null);
@@ -210,6 +256,7 @@ export function AuthProvider({ children }) {
       }
       
       setUser(userData || null);
+      saveCachedUser(userData);
       setIsAuthenticated(true);
       setError(null);
       setLoading(false);
@@ -238,6 +285,7 @@ export function AuthProvider({ children }) {
 
     if (userData) {
       setUser(userData);
+      saveCachedUser(userData);
       setIsAuthenticated(true);
     }
     setError(null);
@@ -333,6 +381,7 @@ export function AuthProvider({ children }) {
         clienteAxios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
         
         setUser(data.user || null);
+        saveCachedUser(data.user);
         setIsAuthenticated(true);
         setError(null);
         setLoading(false);
@@ -363,6 +412,7 @@ export function AuthProvider({ children }) {
       // Limpiar todo
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
+      removeCachedUser();
       // No limpiar lastGoogleUser para mantener la información del perfil
       delete clienteAxios.defaults.headers.common['Authorization'];
       
@@ -416,7 +466,7 @@ export function AuthProvider({ children }) {
               
               // Timeout estándar (no aumentamos porque no soluciona el problema de fondo)
               const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Timeout: Verificación inicial tardó demasiado')), 12000)
+                setTimeout(() => reject(new Error('Timeout: Verificación inicial tardó demasiado')), 5000)
               );
               
               const requestPromise = clienteAxios.get(`${currentConfig.authPrefix}/check`);
@@ -425,6 +475,7 @@ export function AuthProvider({ children }) {
               
               if (data.authenticated && data.user) {
                 setUser(data.user);
+                saveCachedUser(data.user);
                 setIsAuthenticated(true);
                 setError(null);
                 setLoading(false);
@@ -433,6 +484,7 @@ export function AuthProvider({ children }) {
                 // Token inválido, limpiar
                 localStorage.removeItem('token');
                 localStorage.removeItem('refreshToken');
+                removeCachedUser();
                 delete clienteAxios.defaults.headers.common['Authorization'];
                 
                 setUser(null);
@@ -443,16 +495,21 @@ export function AuthProvider({ children }) {
             } catch (error) {
               console.log('Error en inicialización de auth:', error.message);
               
-              // En móviles/PWAs, si es timeout o error de red, no limpiar tokens inmediatamente
-              // Permitir que el usuario intente de nuevo
               const isNetworkError = error.message?.includes('Timeout') || 
                                     error.message?.includes('Network') ||
                                     error.message?.includes('ERR_') ||
                                     !error.response;
-              
+
+              // Render optimista: si ya mostramos al usuario cacheado y el fallo es de
+              // red/timeout (típico de cold start), MANTENER la sesión y reintentar luego.
+              if (isNetworkError && optimisticUser) {
+                setError(null);
+                setLoading(false);
+                return false;
+              }
+
+              // En móviles/PWAs, si es timeout o error de red, no limpiar tokens inmediatamente
               if (isNetworkError && (isPWA || isMobile)) {
-                // En móviles, si es error de red, mantener tokens pero mostrar login
-                // El usuario puede intentar de nuevo
                 setUser(null);
                 setIsAuthenticated(false);
                 setError(null); // No mostrar error para no asustar al usuario
@@ -463,6 +520,7 @@ export function AuthProvider({ children }) {
               // Para otros errores o desktop, limpiar tokens
               localStorage.removeItem('token');
               localStorage.removeItem('refreshToken');
+              removeCachedUser();
               delete clienteAxios.defaults.headers.common['Authorization'];
               
               setUser(null);

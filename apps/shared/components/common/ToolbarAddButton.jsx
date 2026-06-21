@@ -15,14 +15,18 @@ export const TOOLBAR_ICON_BUTTON_SX = {
   '&:hover': { backgroundColor: 'action.hover' },
 };
 
-function mergeToolbarAddSx(buttonSx = {}) {
+function mergeToolbarAddSx(buttonSx = {}, isActive = false) {
   const { '&:hover': hoverOverride, ...rest } = buttonSx;
   return {
     ...TOOLBAR_ICON_BUTTON_SX,
     color: 'primary.main',
+    ...(isActive && {
+      bgcolor: 'action.selected',
+      '&:hover': { bgcolor: 'action.selected' },
+    }),
     '&:hover': {
       color: 'primary.main',
-      backgroundColor: 'action.hover',
+      backgroundColor: isActive ? 'action.selected' : 'action.hover',
       ...hoverOverride,
     },
     ...rest,
@@ -38,6 +42,7 @@ export const ToolbarAddButton = memo(
     {
       onClick,
       disabled = false,
+      isActive = false,
       buttonSx = {},
       'aria-label': ariaLabel = 'Crear',
       ...other
@@ -52,7 +57,7 @@ export const ToolbarAddButton = memo(
         onClick={disabled ? undefined : onClick}
         disabled={disabled}
         aria-label={ariaLabel}
-        sx={mergeToolbarAddSx(buttonSx)}
+        sx={mergeToolbarAddSx(buttonSx, isActive)}
       >
         <AddOutlined />
       </IconButton>

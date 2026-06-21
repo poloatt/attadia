@@ -29,6 +29,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Checkbox,
+  FormGroup,
 } from '@mui/material';
 import {
   Google as GoogleIcon,
@@ -44,6 +46,7 @@ import {
   FolderOutlined as FolderIcon,
   Schedule as ScheduleIcon,
   LinkOff as LinkOffIcon,
+  Event as EventIcon,
 } from '@mui/icons-material';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -158,7 +161,8 @@ function SyncResultPanel({ summary, onDismiss }) {
       ) : (
         <Typography variant="body2" color="text.secondary">
           Vincula cada lista de Google Tasks a un objetivo en Attadia (mismo nombre o ID guardado).
-          Los eventos nativos de Google Calendar no se importan; solo tareas de Google Tasks.
+          Los eventos nativos de Google Calendar no se importan por Tasks; usa la sección Google Calendar más abajo.
+          Las tareas con hora en Google Calendar UI no llegan por API; solo eventos del calendario.
         </Typography>
       )}
       {!hasChanges && (
@@ -189,11 +193,19 @@ const GoogleTasksConfig = ({ open, onClose }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [objetivoName, setObjetivoName] = useState('');
   const [applyCleanup, setApplyCleanup] = useState(false);
+  const [calendarConfig, setCalendarConfig] = useState({
+    enabled: false,
+    lastSync: null,
+    selectedCalendarIds: ['primary'],
+  });
+  const [calendarCalendars, setCalendarCalendars] = useState([]);
+  const [calendarSyncing, setCalendarSyncing] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
     if (open) {
       loadConfig();
+      loadCalendarConfig();
       loadAutoSyncStatus();
       setError(null);
     }
@@ -209,6 +221,41 @@ const GoogleTasksConfig = ({ open, onClose }) => {
       return 'Nunca';
     }
   }, [config.lastSync]);
+
+  const calendarLastSyncLabel = useMemo(() => {
+    if (!calendarConfig.lastSync) return 'Nunca';
+    try {
+      const d = new Date(calendarConfig.lastSync);
+      if (isNaN(d.getTime())) return 'Nunca';
+      return `${formatDistanceToNow(d, { addSuffix: true, locale: es })} · ${format(d, "d MMM HH:mm", { locale: es })}`;
+    } catch {
+      return 'Nunca';
+    }
+  }, [calendarConfig.lastSync]);
+
+  const loadCalendarConfig = async () => {
+    try {
+      const response = await clienteAxios.get('/api/google-calendar/status');
+      const status = response.data.status || {};
+      setCalendarConfig(status);
+      if (status.enabled) {
+        await loadCalendarList();
+      } else {
+        setCalendarCalendars([]);
+      }
+    } catch (err) {
+      console.error('Error al cargar Google Calendar:', err);
+    }
+  };
+
+  const loadCalendarList = async () => {
+    try {
+      const response = await clienteAxios.get('/api/google-calendar/calendars');
+      setCalendarCalendars(response.data.calendars || []);
+    } catch (err) {
+      console.error('Error al listar calendarios:', err);
+    }
+  };
 
   const loadConfig = async () => {
     try {
@@ -229,6 +276,119 @@ const GoogleTasksConfig = ({ open, onClose }) => {
       setAutoSync(response.data.autoSync);
     } catch (err) {
       console.error('Error al cargar auto-sync:', err);
+    }
+  };
+
+  const handleEnableGoogleCalendar = async () => {
+    try {
+      setLoading(true);
+      const response = await clienteAxios.get('/api/google-calendar/auth-url', {
+        params: { _t: Date.now() },
+        headers: { 'Cache-Control': 'no-cache' },
+      });
+
+      if (!response.data.authUrl) {
+        enqueueSnackbar('No se pudo generar la URL de autorización de Calendar', { variant: 'error' });
+        return;
+      }
+
+      const authWindow = window.open(
+        response.data.authUrl,
+        'google-calendar-auth',
+        'width=500,height=600,scrollbars=yes,resizable=yes',
+      );
+
+      if (!authWindow) {
+        enqueueSnackbar('Permite ventanas emergentes para conectar Google Calendar', { variant: 'warning' });
+        return;
+      }
+
+      enqueueSnackbar('Completa la autorización de Google Calendar', { variant: 'info' });
+
+      const handleAuthMessage = (event) => {
+        if (event.data?.type === 'google_calendar_auth') {
+          if (event.data.status === 'success') {
+            enqueueSnackbar(event.data.message || 'Google Calendar conectado', { variant: 'success' });
+            setTimeout(() => { loadCalendarConfig(); }, 500);
+            window.dispatchEvent(new CustomEvent('googleCalendarSyncCompleted'));
+          } else if (event.data.status === 'error') {
+            enqueueSnackbar('Error en la autorización de Calendar', { variant: 'error' });
+          }
+          window.removeEventListener('message', handleAuthMessage);
+          setLoading(false);
+        }
+      };
+
+      window.addEventListener('message', handleAuthMessage);
+      setTimeout(() => {
+        window.removeEventListener('message', handleAuthMessage);
+        setLoading(false);
+      }, 300000);
+    } catch (err) {
+      enqueueSnackbar(
+        err.response?.data?.error || err.message || 'Error al conectar Google Calendar',
+        { variant: 'error',
+        },
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDisableGoogleCalendar = async () => {
+    if (!window.confirm('¿Desconectar Google Calendar? Los eventos ya importados se conservan.')) return;
+    try {
+      setLoading(true);
+      await clienteAxios.delete('/api/google-calendar/disconnect');
+      setCalendarConfig((prev) => ({ ...prev, enabled: false, lastSync: null }));
+      setCalendarCalendars([]);
+      enqueueSnackbar('Google Calendar desconectado', { variant: 'info' });
+    } catch {
+      enqueueSnackbar('Error al desconectar Calendar', { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCalendarSelectionChange = async (calendarId, checked) => {
+    const current = calendarConfig.selectedCalendarIds || ['primary'];
+    const next = checked
+      ? [...new Set([...current, calendarId])]
+      : current.filter((id) => id !== calendarId);
+    if (next.length === 0) {
+      enqueueSnackbar('Debes seleccionar al menos un calendario', { variant: 'warning' });
+      return;
+    }
+    try {
+      setLoading(true);
+      await clienteAxios.put('/api/google-calendar/config', { selectedCalendarIds: next });
+      setCalendarConfig((prev) => ({ ...prev, selectedCalendarIds: next }));
+      enqueueSnackbar('Calendarios actualizados', { variant: 'success' });
+    } catch {
+      enqueueSnackbar('No se pudieron guardar los calendarios', { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCalendarSyncNow = async () => {
+    try {
+      setCalendarSyncing(true);
+      const response = await clienteAxios.post('/api/google-calendar/sync');
+      const r = response.data.results || {};
+      enqueueSnackbar(
+        `Calendar: ${r.created || 0} nuevos, ${r.updated || 0} actualizados`,
+        { variant: 'success' },
+      );
+      await loadCalendarConfig();
+      window.dispatchEvent(new CustomEvent('googleCalendarSyncCompleted'));
+    } catch (err) {
+      enqueueSnackbar(
+        err.response?.data?.error || 'Error al sincronizar Google Calendar',
+        { variant: 'error' },
+      );
+    } finally {
+      setCalendarSyncing(false);
     }
   };
 
@@ -496,7 +656,7 @@ const GoogleTasksConfig = ({ open, onClose }) => {
             Google Tasks
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Objetivos ↔ listas · Tareas ↔ tasks
+            Objetivos ↔ listas · Tareas ↔ tasks · Eventos ↔ Calendar
           </Typography>
         </Box>
         <IconButton onClick={onClose} size="small" aria-label="Cerrar">
@@ -586,9 +746,11 @@ const GoogleTasksConfig = ({ open, onClose }) => {
                 <Divider sx={{ my: 1.5 }} />
                 <Box sx={{ pl: 4.25 }}>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                    <strong>Alcance:</strong> Google <strong>Tasks</strong> (listas ↔ objetivos), no eventos
-                    del calendario de Google. Lo que ves en Google Calendar puede incluir citas que Attadia
-                    no importa; las tareas con hora sí se sincronizan si la lista está vinculada.
+                    <strong>Alcance Tasks:</strong> listas ↔ objetivos. Los <strong>eventos</strong> del calendario
+                    de Google (clases, reuniones) se importan en la sección Google Calendar más abajo.
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                    Los horarios de <strong>Google Tasks</strong> no vienen por API; solo fecha o horario definido en Atta.
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                     Solo se importan listas con un <strong>objetivo</strong> vinculado (mismo nombre o ID guardado).
@@ -749,6 +911,93 @@ const GoogleTasksConfig = ({ open, onClose }) => {
               </Button>
             </Stack>
           )}
+
+          <Divider sx={{ my: 1 }} />
+
+          <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+            <Stack direction="row" alignItems="flex-start" spacing={1.5} sx={{ mb: 1 }}>
+              <EventIcon color="primary" sx={{ mt: 0.25 }} />
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography variant="subtitle2">Google Calendar (eventos)</Typography>
+                <Typography variant="caption" color="text.secondary" display="block">
+                  Importa citas y clases con horario real en la grilla de Foco (solo lectura).
+                </Typography>
+              </Box>
+              {calendarConfig.enabled && (
+                <Tooltip title="Desconectar Google Calendar">
+                  <span style={{ display: 'inline-flex' }}>
+                    <IconButton
+                      size="small"
+                      onClick={handleDisableGoogleCalendar}
+                      disabled={loading || calendarSyncing}
+                    >
+                      <LinkOffIcon fontSize="small" />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              )}
+            </Stack>
+
+            <Alert severity="info" sx={{ mb: 1.5, py: 0 }}>
+              <Typography variant="caption">
+                Los horarios de Google Tasks (checkbox en Calendar) no están en la API. Esta sección importa
+                <strong> eventos</strong> del calendario (bloques azules en Google), no tasks con hora.
+              </Typography>
+            </Alert>
+
+            {calendarConfig.enabled ? (
+              <Stack spacing={1.5}>
+                <Typography variant="caption" color="text.secondary">
+                  Última sync: {calendarLastSyncLabel}
+                </Typography>
+
+                {calendarCalendars.length > 0 && (
+                  <FormGroup>
+                    {calendarCalendars.map((cal) => (
+                      <FormControlLabel
+                        key={cal.id}
+                        control={
+                          <Checkbox
+                            size="small"
+                            checked={(calendarConfig.selectedCalendarIds || ['primary']).includes(cal.id)}
+                            onChange={(e) => handleCalendarSelectionChange(cal.id, e.target.checked)}
+                            disabled={loading || calendarSyncing}
+                          />
+                        }
+                        label={
+                          <Typography variant="body2">
+                            {cal.summary}{cal.primary ? ' (principal)' : ''}
+                          </Typography>
+                        }
+                      />
+                    ))}
+                  </FormGroup>
+                )}
+
+                <Button
+                  variant="outlined"
+                  size="small"
+                  fullWidth
+                  startIcon={calendarSyncing ? <CircularProgress size={16} /> : <SyncIcon />}
+                  onClick={handleCalendarSyncNow}
+                  disabled={calendarSyncing || loading}
+                >
+                  {calendarSyncing ? 'Sincronizando eventos…' : 'Sincronizar eventos ahora'}
+                </Button>
+              </Stack>
+            ) : (
+              <Button
+                variant="outlined"
+                size="small"
+                fullWidth
+                startIcon={<EventIcon />}
+                onClick={handleEnableGoogleCalendar}
+                disabled={loading}
+              >
+                Conectar Google Calendar
+              </Button>
+            )}
+          </Paper>
         </Stack>
       </DialogContent>
 

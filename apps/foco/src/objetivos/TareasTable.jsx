@@ -39,7 +39,8 @@ import TareaActions from './TareaActions';
 import { useValuesVisibility } from '@shared/context/ValuesVisibilityContext';
 import RutinasPendientesHoy from '../rutinas/RutinasPendientesHoy';
 import RutinasLuego from '../rutinas/RutinasLuego';
-import { getAgendaBucket, getAgendaSortKey, isTaskCompleted, normalizeTaskList, parseTaskDate } from '@shared/utils';
+import { getAgendaBucket, getAgendaSortKey, isTaskCompleted, parseTaskDate } from '@shared/utils/agendaRules';
+import { normalizeTaskList } from '@shared/utils/taskListUtils';
 import { getEstadoColor, TAREA_ESTADOS } from '@shared/components/common/StatusSystem';
 
 const normalizeEstado = (estado) => String(estado || '').toUpperCase();

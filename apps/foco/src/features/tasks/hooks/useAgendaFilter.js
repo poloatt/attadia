@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { isInAhora, isInLuego, isTaskCompleted } from '@shared/utils';
+import { isInAhora, isInLuego, isTaskCompleted } from '@shared/utils/agendaRules';
 
 /**
  * Filtrado UI Ahora/Luego sobre tareas ya acotadas por API /list.

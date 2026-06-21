@@ -12,4 +12,12 @@ export const PROPIEDADES_SECTION_META = {
     description: 'Personas, ocupación y contacto',
     accent: '#FFA726',
   },
+  cuentas: {
+    description: 'Bancos, efectivo y billeteras conectadas',
+    accent: '#2196F3',
+  },
+  transacciones: {
+    description: 'Ingresos, gastos y movimientos del día a día',
+    accent: '#4CAF50',
+  },
 };

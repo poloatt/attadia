@@ -16,7 +16,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import clienteAxios from '@shared/config/axios';
 import { snackbar } from '@shared/components/common';
 import { CommonDate } from '@shared/components/common';
-import { formatDateForAPI, getNormalizedToday, parseAPIDate } from '@shared/utils';
+import { formatDateForAPI, getNormalizedToday, parseAPIDate } from '@shared/utils/dateUtils';
 import { useRutinas } from '@shared/context';
 import { CancelarTabButton, GuardarTabButton } from '@shared/components/common/SystemButtons';
 

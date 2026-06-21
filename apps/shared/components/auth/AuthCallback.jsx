@@ -21,8 +21,6 @@ const ERROR_MESSAGES = {
   'default': 'Error desconocido en la autenticación'
 };
 
-const TIMEOUT_DURATION = 20000; // Debe superar el timeout interno de checkAuth (15s)
-
 // Utilidades
 const isDevelopment = process.env.NODE_ENV === 'development';
 
@@ -99,23 +97,13 @@ function AuthCallback() {
     navigate('/login');
   };
 
-  // Función para actualizar contexto de autenticación con timeout
-  const updateAuthContext = async (tokenPayload) => {
+  // Verificar con el backend en segundo plano (no bloquear navegación SSO)
+  const verifyAuthInBackground = (tokenPayload) => {
     if (!tokenPayload.user) return;
-    
-    log('Actualizando contexto de autenticación...');
-    
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout: Verificación de autenticación tardó demasiado')), TIMEOUT_DURATION)
-    );
-    
-    try {
-      await Promise.race([checkAuth({ force: true }), timeoutPromise]);
-      log('Contexto de autenticación actualizado exitosamente');
-    } catch (authError) {
-      console.warn('Error al actualizar contexto (continuando):', authError.message);
-      // Continuar sin bloquear, el token ya está guardado
-    }
+    log('Verificando sesión en segundo plano...');
+    checkAuth({ force: true }).catch((authError) => {
+      console.warn('Verificación en segundo plano falló:', authError.message);
+    });
   };
 
   // Función principal simplificada para manejar el callback
@@ -156,7 +144,7 @@ function AuthCallback() {
         return;
       }
 
-      // Configurar tokens y sesión local de inmediato (no depender solo de /check)
+      // Configurar tokens y sesión local de inmediato (no depender de /check)
       establishSession(token, refreshToken, tokenPayload.user ?? null);
 
       // Guardar información del último usuario de Google para mostrar en el botón de login
@@ -170,17 +158,14 @@ function AuthCallback() {
           };
           localStorage.setItem('lastGoogleUser', JSON.stringify(lastGoogleUser));
         } catch (error) {
-          // Silenciar errores al guardar
           if (isDevelopment) {
             console.log('Error al guardar último usuario de Google:', error);
           }
         }
       }
 
-      // Verificar con el backend en segundo plano (la sesión ya está establecida localmente)
-      await updateAuthContext(tokenPayload);
+      verifyAuthInBackground(tokenPayload);
 
-      // Si viene redirect, respetarlo; si no, ir a la home de la app detectada
       const target = redirect && redirect.startsWith('/') ? redirect : appPath;
       navigate(target, { replace: true });
       

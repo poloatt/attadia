@@ -37,7 +37,7 @@ import { addDays, addWeeks, addMonths, isWeekend, startOfMonth } from 'date-fns'
 import { useResponsive } from '@shared/hooks';
 import { useValuesVisibility } from '@shared/context';
 import { getEstadoColor } from '@shared/components/common/StatusSystem';
-import { isTaskCompleted, parseTaskDate } from '@shared/utils';
+import { isTaskCompleted, parseTaskDate } from '@shared/utils/agendaRules';
 
 const TareaItem = ({ tarea, onUpdateTarea, showValues, updateTareaWithHistory }) => {
   const [open, setOpen] = useState(false);

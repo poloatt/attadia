@@ -1,17 +1,15 @@
-import { useEffect, useState } from 'react';
 import { useAPI } from '@shared/hooks/useAPI';
 
 export function useCuentaBalance(cuentaId) {
-  const [balance, setBalance] = useState(0);
   const today = new Date().toISOString().split('T')[0];
 
+  // Usa el endpoint de agregación en vez de bajar hasta 5000 transacciones
   const { data, loading, error } = useAPI(
-    cuentaId ? `/api/transacciones/by-cuenta/${cuentaId}` : null,
+    cuentaId ? `/api/transacciones/balance/${cuentaId}` : null,
     {
       params: {
         fechaFin: today,
         estado: 'PAGADO',
-        limit: 5000,
       },
       dependencies: [cuentaId],
       enableCache: true,
@@ -19,14 +17,7 @@ export function useCuentaBalance(cuentaId) {
     },
   );
 
-  useEffect(() => {
-    const docs = data?.docs ?? [];
-    const total = docs.reduce((acc, trans) => {
-      const monto = parseFloat(trans.monto) || 0;
-      return trans.tipo === 'INGRESO' ? acc + monto : acc - monto;
-    }, 0);
-    setBalance(total);
-  }, [data]);
+  const balance = data?.balance ?? 0;
 
   return { balance, loading: loading && !!cuentaId, error };
 }

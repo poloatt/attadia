@@ -104,6 +104,27 @@ const userSchema = new mongoose.Schema({
     tokenError: String, // Tipo de error de token (ej: 'invalid_grant')
     tokenErrorDate: Date // Fecha del último error de token
   },
+  googleCalendarConfig: {
+    enabled: {
+      type: Boolean,
+      default: false,
+    },
+    accessToken: String,
+    refreshToken: String,
+    lastSync: Date,
+    lastTokenRefresh: Date,
+    selectedCalendarIds: {
+      type: [String],
+      default: ['primary'],
+    },
+    syncDirection: {
+      type: String,
+      enum: ['from_google', 'bidirectional'],
+      default: 'from_google',
+    },
+    tokenError: String,
+    tokenErrorDate: Date,
+  },
   // --- NUEVO: país del usuario (código ISO 2 letras, ej: 'AR', 'BR', 'US') ---
   pais: {
     type: String,

@@ -11,7 +11,7 @@ import {
   IconButton,
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { navigateToAppPath, isRouteActive } from '../utils/navigationUtils';
+import { navigateToAppPath, isRouteActive, prefetchAppForPath } from '../utils/navigationUtils';
 import { useSidebar } from '../context/SidebarContext';
 import SidebarResizer from './SidebarResizer';
 import { DynamicIcon } from '../components/common/DynamicIcon';
@@ -45,6 +45,8 @@ export default function Sidebar({ moduloActivo, nivel1Activo }) {
               <ListItem key={app.id} disablePadding sx={{ bgcolor: 'transparent' }}>
                 <ListItemButton
                   onClick={() => navigateToAppPath(navigate, app.path)}
+                  onMouseEnter={() => prefetchAppForPath(app.path)}
+                  onFocus={() => prefetchAppForPath(app.path)}
                   selected={isActive}
                   sx={{
                     minHeight: SIDEBAR_CONFIG.parent.minHeight,

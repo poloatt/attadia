@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App.jsx'
+import './toolbarConfig.js'
 import '@shared/index.css'
 import { AuthProvider } from '@shared/context/AuthContext'
 import { ActionHistoryProvider } from '@shared/context/ActionHistoryContext'
@@ -88,6 +89,4 @@ const Root = (
   </BrowserRouter>
 )
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  import.meta.env.DEV ? Root : <React.StrictMode>{Root}</React.StrictMode>,
-)
+ReactDOM.createRoot(document.getElementById('root')).render(Root)

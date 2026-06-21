@@ -20,7 +20,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import TuneIcon from '@mui/icons-material/Tune';
 import ViewListIcon from '@mui/icons-material/ViewList';
-import { iconConfig, getIconByName } from '@shared/utils';
+import { iconConfig, getIconByName } from '@shared/utils/iconConfig';
 import InlineItemConfigImproved from './InlineItemConfigImproved';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -29,7 +29,14 @@ import HabitFormDialog from '@shared/components/HabitFormDialog';
 
 import { useSnackbar } from 'notistack';
 // Importamos las utilidades de cadencia
-import { debesMostrarHabitoEnFecha, generarMensajeCadencia, obtenerUltimaCompletacion, obtenerHistorialCompletados, contarCompletadosEnPeriodo, esRutinaHistorica, obtenerHistorialCompletaciones } from '@shared/utils';
+import {
+  debesMostrarHabitoEnFecha,
+  generarMensajeCadencia,
+  obtenerUltimaCompletacion,
+  obtenerHistorialCompletados,
+  contarCompletadosEnPeriodo,
+} from '@shared/utils/cadenciaUtils';
+import { esRutinaHistorica, obtenerHistorialCompletaciones } from '@shared/utils/rutinaHistorialUtils';
 import { getVisibleItemIds } from '@shared/utils/visibilityUtils';
 import { getFrecuenciaLabel } from './InlineItemConfigImproved';
 // La visibilidad en esta vista extendida no oculta ítems; solo se ocultan completos en vista colapsada

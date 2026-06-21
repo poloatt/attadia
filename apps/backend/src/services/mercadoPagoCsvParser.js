@@ -72,6 +72,7 @@ function normalizeSettlementRow(row) {
     id: sourceId || `${row.TRANSACTION_DATE}-${netAmount}-${row.TRANSACTION_TYPE}`,
     sourceId,
     transactionType: row.TRANSACTION_TYPE || row.transaction_type || '',
+    description: row.DESCRIPTION || row.description || '',
     paymentMethod: row.PAYMENT_METHOD || row.payment_method || '',
     paymentMethodType: row.PAYMENT_METHOD_TYPE || row.payment_method_type || '',
     amount: grossAmount,

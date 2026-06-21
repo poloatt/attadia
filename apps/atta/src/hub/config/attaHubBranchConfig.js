@@ -12,17 +12,16 @@ import {
   TransaccionesHubSection,
 } from '../../finanzas/hub';
 import { FINANZAS_SECTION_META, FINANZAS_STATS_ENDPOINTS } from '../../finanzas/finanzasSectionMeta';
-import { InquilinosHubSection, PropiedadesHubSection } from '../../propiedades/hub';
+import {
+  ContratosHubSection,
+  InquilinosHubSection,
+  PropiedadesHubSection,
+} from '../../propiedades/hub';
 import { INVENTARIO_SECTION_META } from '../../inventario/inventarioSectionMeta';
 import { INVENTARIO_STATS_ENDPOINTS } from '../../inventario/inventarioStatsEndpoints';
 import { PROPIEDADES_SECTION_META } from '../../propiedades/propiedadesSectionMeta';
 import { PROPIEDADES_STATS_ENDPOINTS } from '../../propiedades/propiedadesStatsEndpoints';
-import {
-  AutosHubSection,
-  InventarioEnPropiedadesHubSection,
-  InventarioHubSection,
-  InventarioSinUbicacionHubSection,
-} from '../../inventario/hub';
+import { InventarioHubSection } from '../../inventario/hub';
 
 /** Registro unificado de hubs Atta por rama. */
 export const ATTA_HUB_BRANCHES = {
@@ -51,9 +50,9 @@ export const ATTA_HUB_BRANCHES = {
     hubSectionCards: {
       propiedades: PropiedadesHubSection,
       inquilinos: InquilinosHubSection,
+      contratos: ContratosHubSection,
     },
-    /** Contratos se resumen dentro de Inquilinos en el hub. */
-    hubExcludePageIds: ['contratos'],
+    hubExcludePageIds: ['cuentas', 'transacciones'],
     getStripPages: getPropiedadesBranchPages,
   },
   inventario: {
@@ -62,11 +61,15 @@ export const ATTA_HUB_BRANCHES = {
     sectionMeta: INVENTARIO_SECTION_META,
     statsEndpoints: INVENTARIO_STATS_ENDPOINTS,
     hubSectionCards: {
-      'inventario-en-propiedades': InventarioEnPropiedadesHubSection,
-      vehiculos: AutosHubSection,
-      'inventario-sin-ubicacion': InventarioSinUbicacionHubSection,
+      inventario: InventarioHubSection,
     },
-    hubExcludePageIds: [],
+    hubExcludePageIds: [
+      'inventario-en-propiedades',
+      'vehiculos',
+      'inventario-sin-ubicacion',
+      'cuentas',
+      'transacciones',
+    ],
     getStripPages: getInventarioBranchPages,
   },
 };

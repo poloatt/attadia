@@ -12,6 +12,11 @@ import {
   Typography
 } from '@mui/material';
 import { useResponsive } from '@shared/hooks';
+import { formatFinanzasMontoCompact } from '@shared/utils/formatFinanzasMonto';
+import {
+  formatMpTransactionDescription,
+  isMercadoPagoOrigen,
+} from '@shared/utils/mpDisplayUtils';
 import { getEstadoColor, getStatusIconComponent } from '@shared/components/common/StatusSystem';
 import { 
   EditOutlined as EditIcon, 
@@ -27,9 +32,16 @@ import {
   MoreHoriz
 } from '@mui/icons-material';
 
-const TransaccionTable = ({ transacciones, onEdit, onDelete, showValues = true }) => {
+const TransaccionTable = ({
+  transacciones,
+  onEdit,
+  onDelete,
+  showValues = true,
+  variant = 'default',
+}) => {
   const [expandedRow, setExpandedRow] = useState(null);
   const { isMobile, theme } = useResponsive();
+  const isAccountDetail = variant === 'accountDetail';
 
   const handleRowClick = (id) => {
     setExpandedRow(expandedRow === id ? null : id);
@@ -45,10 +57,12 @@ const TransaccionTable = ({ transacciones, onEdit, onDelete, showValues = true }
 
   const formatMonto = (monto) => {
     if (!showValues) return '****';
-    return new Intl.NumberFormat('es-ES', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(monto);
+    return formatFinanzasMontoCompact(monto);
+  };
+
+  const formatFechaShort = (fecha) => {
+    const date = new Date(fecha);
+    return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
   };
 
   const getEstadoIcon = (estado) => {
@@ -106,12 +120,12 @@ const TransaccionTable = ({ transacciones, onEdit, onDelete, showValues = true }
         backgroundColor: 'transparent',
         '& .MuiTableCell-root': {
           border: 'none',
-          py: 0.75,
+          py: isAccountDetail ? 1 : 0.75,
           px: 1.5,
           fontSize: '0.875rem',
-          height: 32,
+          height: isAccountDetail ? 'auto' : 32,
           lineHeight: 1.2,
-          whiteSpace: 'nowrap'
+          whiteSpace: isAccountDetail ? 'normal' : 'nowrap'
         },
         '& .descripcion': {
           color: 'text.secondary',
@@ -133,32 +147,55 @@ const TransaccionTable = ({ transacciones, onEdit, onDelete, showValues = true }
     >
       <Table size="small" sx={{ minWidth: isMobile ? 'unset' : 400 }}>
         <TableBody>
-          {transacciones.map((transaccion) => (
-            <React.Fragment key={transaccion.id}>
+          {transacciones.map((transaccion) => {
+            const rowId = transaccion.id || transaccion._id;
+            const displayDescripcion = formatMpTransactionDescription(
+              transaccion.descripcion,
+              transaccion.origen
+            );
+            const mpOrigen = isMercadoPagoOrigen(transaccion.origen);
+
+            return (
+            <React.Fragment key={rowId}>
               <TableRow 
-                onClick={() => handleRowClick(transaccion.id)}
+                onClick={() => handleRowClick(rowId)}
                 sx={{
                   cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  bgcolor: expandedRow === transaccion.id ? 
+                  transition: 'background-color 0.2s ease',
+                  bgcolor: expandedRow === rowId ? 
                     'rgba(0, 0, 0, 0.03)' : 'inherit',
                   '&:hover': {
                     bgcolor: 'rgba(0, 0, 0, 0.02)',
-                    transform: 'translateX(4px)'
+                    ...(isAccountDetail ? {} : { transform: 'translateX(4px)' }),
                   }
                 }}
               >
                 <TableCell sx={{ 
                   display: 'flex',
-                  alignItems: 'center',
+                  alignItems: isAccountDetail ? 'flex-start' : 'center',
                   gap: 1
                 }}>
                   {getCategoriaIcon(transaccion.categoria)}
-                  <Typography className="descripcion">
-                    {transaccion.descripcion}
-                  </Typography>
+                  {isAccountDetail ? (
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <Typography
+                        className="descripcion"
+                        sx={{ color: 'text.primary', fontWeight: 500, display: 'block' }}
+                      >
+                        {displayDescripcion}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+                        {formatFechaShort(transaccion.fecha)}
+                        {mpOrigen ? ' · MP' : ''}
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <Typography className="descripcion">
+                      {displayDescripcion}
+                    </Typography>
+                  )}
                 </TableCell>
-                <TableCell align="right" sx={{ width: isMobile ? '35%' : '140px' }}>
+                <TableCell align="right" sx={{ width: isMobile ? '35%' : '140px', verticalAlign: isAccountDetail ? 'top' : 'middle' }}>
                   <Typography sx={getMontoStyle(transaccion)}>
                     {transaccion.cuenta?.moneda?.simbolo} {formatMonto(transaccion.monto)}
                   </Typography>
@@ -166,11 +203,11 @@ const TransaccionTable = ({ transacciones, onEdit, onDelete, showValues = true }
               </TableRow>
               <TableRow 
                 sx={{ 
-                  display: expandedRow === transaccion.id ? 'table-row' : 'none'
+                  display: expandedRow === rowId ? 'table-row' : 'none'
                 }}
               >
                 <TableCell colSpan={2} sx={{ p: 0 }}>
-                  <Collapse in={expandedRow === transaccion.id}>
+                  <Collapse in={expandedRow === rowId}>
                     <Box sx={{ 
                       py: 1,
                       px: 2,
@@ -265,6 +302,7 @@ const TransaccionTable = ({ transacciones, onEdit, onDelete, showValues = true }
                         pt: 1,
                         borderTop: '1px solid rgba(224, 224, 224, 0.4)'
                       }}>
+                        {onEdit && (
                         <Tooltip title="Editar" arrow>
                           <IconButton 
                             size="small" 
@@ -283,6 +321,8 @@ const TransaccionTable = ({ transacciones, onEdit, onDelete, showValues = true }
                             <EditIcon sx={{ fontSize: 20 }} />
                           </IconButton>
                         </Tooltip>
+                        )}
+                        {onDelete && (
                         <Tooltip title="Eliminar" arrow>
                           <IconButton 
                             size="small" 
@@ -301,13 +341,15 @@ const TransaccionTable = ({ transacciones, onEdit, onDelete, showValues = true }
                             <DeleteIcon sx={{ fontSize: 20 }} />
                           </IconButton>
                         </Tooltip>
+                        )}
                       </Box>
                     </Box>
                   </Collapse>
                 </TableCell>
               </TableRow>
             </React.Fragment>
-          ))}
+            );
+          })}
         </TableBody>
       </Table>
     </TableContainer>

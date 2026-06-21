@@ -15,6 +15,13 @@ import {
   reconcileSeriesFromGoogle,
   expandAllSeriesForUser,
 } from './googleTasksRecurrenceService.js';
+import { mergeGoogleDueWithLocalSchedule } from '../utils/googleTasksScheduleMerge.js';
+import {
+  appendScheduleToNotes,
+  isTimedScheduleInstant,
+  parseScheduleFromNotes,
+  taskHasTimedSchedule,
+} from '../../../shared/utils/googleTasksScheduleNotes.js';
 
 class GoogleTasksService {
   constructor() {
@@ -1034,10 +1041,13 @@ class GoogleTasksService {
               });
 
               if (tarea) {
-                this.applyGoogleStatusAndDue(tarea, googleTask);
-                if (this.shouldImportFromGoogle(tarea, googleTask)) {
+                const shouldImport = this.shouldImportFromGoogle(tarea, googleTask);
+                if (shouldImport) {
                   this.applyNotesFromGoogle(tarea, googleTask);
                   tarea.titulo = this.cleanTitle(tarea.titulo || googleTask.title);
+                }
+                this.applyGoogleStatusAndDue(tarea, googleTask);
+                if (shouldImport) {
                   await tarea.save();
                   syncResults.updated++;
                   logger.sync(`📝 Actualizada tarea desde Google: "${googleTask.title}"`);
@@ -1050,17 +1060,14 @@ class GoogleTasksService {
                 }
               } else {
                 const tituloLimpio = this.cleanTitle(googleTask.title);
-                
-                const fechaDesdeGoogle = Tareas.parseGoogleDueDate(googleTask.due) || new Date();
+
                 const nuevaTarea = new Tareas({
                   titulo: tituloLimpio,
                   usuario: userId,
-                  fechaInicio: fechaDesdeGoogle,
-                  fechaVencimiento: fechaDesdeGoogle,
                   prioridad: 'BAJA',
-                  objetivo: objetivo._id
+                  objetivo: objetivo._id,
                 });
-                
+
                 this.applyNotesFromGoogle(nuevaTarea, googleTask);
                 this.applyGoogleStatusAndDue(nuevaTarea, googleTask);
                 nuevaTarea.googleTasksSync.googleTaskListId = taskList.id;
@@ -1691,13 +1698,10 @@ class GoogleTasksService {
     tarea.estado = googleTask.status === 'completed' ? 'COMPLETADA' : 'PENDIENTE';
     if (googleTask.due) {
       const dueDate = Tareas.parseGoogleDueDate(googleTask.due);
-      if (dueDate) {
-        if (typeof tarea.recordGoogleDueSnapshot === 'function') {
-          tarea.recordGoogleDueSnapshot(dueDate);
-        }
-        tarea.fechaVencimiento = dueDate;
-        tarea.fechaInicio = dueDate;
+      if (dueDate && typeof tarea.recordGoogleDueSnapshot === 'function') {
+        tarea.recordGoogleDueSnapshot(dueDate);
       }
+      mergeGoogleDueWithLocalSchedule(tarea, googleTask.due);
     }
     tarea.googleTasksSync.googleTaskId = googleTask.id;
     tarea.googleTasksSync.updated = googleTask.updated
@@ -1766,6 +1770,18 @@ class GoogleTasksService {
     const parsed = this.parseSubtasksFromNotes(notes);
     parsed.descripcion = cleanDescriptionFromGoogleNotes(notes);
     tarea.updateFromGoogleTask(googleTask, parsed);
+
+    const schedule = parseScheduleFromNotes(notes);
+    if (schedule?.fechaInicio) {
+      tarea.fechaInicio = schedule.fechaInicio;
+      tarea.fechaVencimiento = schedule.fechaFin || schedule.fechaInicio;
+      if (schedule.fechaFin) tarea.fechaFin = schedule.fechaFin;
+      if (!tarea.googleTasksSync) tarea.googleTasksSync = {};
+      tarea.googleTasksSync.hasTimedSchedule = true;
+    } else if (taskHasTimedSchedule(tarea)) {
+      if (!tarea.googleTasksSync) tarea.googleTasksSync = {};
+      tarea.googleTasksSync.hasTimedSchedule = true;
+    }
   }
 
   buildTaskNotes(tarea, rrule = null) {
@@ -1784,6 +1800,17 @@ class GoogleTasksService {
       notes = appendRecurrenceToNotes(notes, rrule);
     }
 
+    if (tarea.googleTasksSync?.hasTimedSchedule && tarea.fechaInicio) {
+      const start = tarea.fechaInicio instanceof Date
+        ? tarea.fechaInicio
+        : new Date(tarea.fechaInicio);
+      const endRaw = tarea.fechaFin || tarea.fechaVencimiento;
+      const end = endRaw instanceof Date ? endRaw : (endRaw ? new Date(endRaw) : null);
+      if (end && !Number.isNaN(start.getTime()) && isTimedScheduleInstant(start, end)) {
+        notes = appendScheduleToNotes(notes, start, end);
+      }
+    }
+
     if (notes.length > 7000) {
       notes = notes.slice(0, 7000);
     }
@@ -1796,7 +1823,7 @@ class GoogleTasksService {
 
     const { descripcionSinRecurrencia } = parseRecurrenceFromNotes(notes);
     const lines = (descripcionSinRecurrencia || notes).split('\n');
-    const endMarkers = ['Subtareas:', 'Objetivo:', 'Proyecto:', 'Recurrencia:', '---'];
+    const endMarkers = ['Subtareas:', 'Objetivo:', 'Proyecto:', 'Recurrencia:', 'Horario Attadia:', '---'];
     
     let description = '';
     for (const line of lines) {

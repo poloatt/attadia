@@ -19,10 +19,15 @@ describe('Tareas.parseGoogleDueDate', () => {
     expect(d.getDate()).toBe(20);
   });
 
-  test('RFC3339 with time preserves instant', () => {
+  test('RFC3339 with time maps to local noon on that calendar day', () => {
     const d = Tareas.parseGoogleDueDate('2026-05-20T16:45:00.000Z');
-    expect(d.getUTCHours()).toBe(16);
-    expect(d.getUTCMinutes()).toBe(45);
+    expect(d.getHours()).toBe(12);
+    expect(d.getDate()).toBe(20);
+  });
+
+  test('formatGoogleDueDateOnly exports date-only RFC3339', () => {
+    const d = new Date(2026, 4, 20, 16, 45, 0, 0);
+    expect(Tareas.formatGoogleDueDateOnly(d)).toBe('2026-05-20T00:00:00.000Z');
   });
 });
 
@@ -83,15 +88,15 @@ Subtareas:
   });
 
   test('shouldRefreshGoogleDueDate when Google due differs from local', () => {
-    const googleTask = { due: '2026-05-20T16:45:00.000Z' };
+    const googleTask = { due: '2026-05-20T00:00:00.000Z' };
     const tarea = {
-      fechaVencimiento: new Date('2026-05-20T12:00:00.000Z'),
-      fechaInicio: new Date('2026-05-20T12:00:00.000Z'),
+      fechaVencimiento: new Date(2026, 4, 21, 12, 0, 0, 0),
+      fechaInicio: new Date(2026, 4, 21, 12, 0, 0, 0),
     };
     expect(googleTasksService.shouldRefreshGoogleDueDate(tarea, googleTask)).toBe(true);
     expect(
       googleTasksService.shouldRefreshGoogleDueDate(
-        { fechaVencimiento: new Date('2026-05-20T16:45:00.000Z') },
+        { fechaVencimiento: new Date(2026, 4, 20, 12, 0, 0, 0) },
         googleTask,
       ),
     ).toBe(false);
@@ -126,23 +131,23 @@ Subtareas:
     googleTasksService.applyGoogleStatusAndDue(tarea, {
       id: 'gt-1',
       status: 'completed',
-      due: '2026-05-20T15:30:00.000Z',
+      due: '2026-05-20T00:00:00.000Z',
       completed: '2026-05-19T12:00:00.000Z',
       updated: '2026-05-19T12:00:00.000Z',
     });
     expect(tarea.completada).toBe(true);
     expect(tarea.estado).toBe('COMPLETADA');
-    expect(tarea.fechaVencimiento.getUTCHours()).toBe(15);
+    expect(tarea.fechaVencimiento.getHours()).toBe(12);
   });
 
   test('shouldImportFromGoogle when due or notes differ', () => {
     const googleTask = {
-      due: '2026-05-20T16:45:00.000Z',
+      due: '2026-05-20T00:00:00.000Z',
       updated: '2026-05-18T10:00:00.000Z',
       notes: '',
     };
     const tarea = {
-      fechaVencimiento: new Date('2026-05-20T12:00:00.000Z'),
+      fechaVencimiento: new Date(2026, 4, 21, 12, 0, 0, 0),
       updatedAt: new Date('2026-05-18T14:00:00.000Z'),
       googleTasksSync: { needsSync: false, syncStatus: 'synced', updated: new Date('2026-05-18T14:00:00.000Z') },
     };

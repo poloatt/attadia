@@ -15,9 +15,12 @@ import {
   weekdayToRruleByday,
 } from '../utils/recurrenceUtils.js';
 import { applySerieTimeToOccurrence } from '../utils/calendarVirtualUtils.js';
+import { isTaskCompleted } from '../utils/agendaListRules.js';
 
 const HORIZON_DAYS = parseInt(process.env.GTASKS_SERIES_HORIZON_DAYS || '90', 10);
 const EXPAND_LOOKBACK_DAYS = parseInt(process.env.GTASKS_SERIES_LOOKBACK_DAYS || '14', 10);
+/** Mínimo de fechas distintas para inferir RRULE solo por due dates (evita weekly con 2 filas históricas). */
+const MIN_INFERRED_DUE_DATES = parseInt(process.env.GTASKS_MIN_INFERRED_DUE_DATES || '4', 10);
 /**
  * Opt-in: inferir semanal cuando Google solo devuelve 1 fila por título.
  * Por defecto false — evita crear cientos de TareaSeries en tareas con fecha única.
@@ -104,7 +107,9 @@ export async function reconcileSeriesFromGoogle(userId, objetivoId, taskListId, 
         ...extraGoogleDues.map((d) => ({ fechaVencimiento: d })),
       ]);
     }
-    const inferredFromDueDates = inferRruleFromDueDates(dueDates);
+    const inferredFromDueDates = dueDates.length >= MIN_INFERRED_DUE_DATES
+      ? inferRruleFromDueDates(dueDates)
+      : null;
     const googleRruleForKey = googleRruleByKey.get(googleSerieKey) || null;
     let rrule = rruleFromNotes || googleRruleForKey || rruleFromGoogleNotes || inferredFromDueDates;
 
@@ -126,6 +131,15 @@ export async function reconcileSeriesFromGoogle(userId, objetivoId, taskListId, 
     }
 
     if (!rrule) continue;
+
+    if (isTaskCompleted(recurrenceAnchor)) {
+      const existingSerie = await TareaSeries.findOne({ usuario: userId, googleSerieKey });
+      if (existingSerie?.activa) {
+        existingSerie.activa = false;
+        await existingSerie.save();
+      }
+      continue;
+    }
 
     const fromAssumeHeuristic =
       ASSUME_GOOGLE_RECURRING_SINGLE

@@ -24,7 +24,7 @@ import {
   Assignment as AssignmentIcon,
 } from '@mui/icons-material';
 import { getEstadoColor } from '@shared/components/common/StatusSystem';
-import { isTaskCompleted, parseTaskDate } from '@shared/utils';
+import { isTaskCompleted, parseTaskDate } from '@shared/utils/agendaRules';
 
 const TareasSection = ({ tareas = [], onChange }) => {
   const [nuevaTarea, setNuevaTarea] = useState({

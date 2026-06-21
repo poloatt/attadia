@@ -85,7 +85,7 @@ export class MercadoPagoAdapter {
     });
   }
 
-  async searchPayments({ since, limit = 100, filter = null }) {
+  async searchPayments({ since, limit = 100, offset = 0, filter = null }) {
     return this.withRetry(async () => {
       const params = new URLSearchParams();
       if (since) {
@@ -94,6 +94,7 @@ export class MercadoPagoAdapter {
         params.append('end_date', new Date().toISOString());
       }
       params.append('limit', limit.toString());
+      params.append('offset', offset.toString());
       params.append('sort', 'date_created.desc');
 
       if (filter?.collectorId) {
@@ -104,8 +105,6 @@ export class MercadoPagoAdapter {
       }
 
       const url = `https://api.mercadopago.com/v1/payments/search?${params.toString()}`;
-      console.log('URL de consulta MercadoPago:', url);
-
       const response = await fetch(url, { headers: mpAuthHeaders(this.accessToken) });
 
       if (!response.ok) {
@@ -117,19 +116,54 @@ export class MercadoPagoAdapter {
       }
 
       const data = await response.json();
-      return data.results || [];
+      return {
+        results: data.results || [],
+        total: data.paging?.total ?? (data.results?.length || 0)
+      };
     });
+  }
+
+  async fetchAllPaymentsForFilter({ since, pageSize = 100, maxPages = 20, filter }) {
+    const all = [];
+    let offset = 0;
+    let total = Infinity;
+
+    for (let page = 0; page < maxPages && offset < total; page++) {
+      const { results, total: pagingTotal } = await this.searchPayments({
+        since,
+        limit: pageSize,
+        offset,
+        filter
+      });
+      total = pagingTotal;
+      all.push(...results);
+      if (results.length < pageSize) break;
+      offset += pageSize;
+    }
+
+    return all;
   }
 
   async getMovimientos({ since, limit = 100 }) {
     return this.getAllPayments({ since, limit });
   }
 
-  async getAllPayments({ since, limit = 100 }) {
+  async getAllPayments({ since, limit = 100, maxPages = 20 }) {
     const mpUserId = this.userId;
+    const pageSize = Math.min(limit, 100);
     const results = await Promise.allSettled([
-      this.searchPayments({ since, limit, filter: { collectorId: mpUserId } }),
-      this.searchPayments({ since, limit, filter: { payerId: mpUserId } })
+      this.fetchAllPaymentsForFilter({
+        since,
+        pageSize,
+        maxPages,
+        filter: { collectorId: mpUserId }
+      }),
+      this.fetchAllPaymentsForFilter({
+        since,
+        pageSize,
+        maxPages,
+        filter: { payerId: mpUserId }
+      })
     ]);
 
     const all = [];

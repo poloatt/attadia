@@ -111,10 +111,44 @@ export function dedupeAgendaTasksByGoogleDay(tasks = []) {
   });
 }
 
+function isGoogleOriginSerie(serie) {
+  return Boolean(serie?.googleSerieKey);
+}
+
+/**
+ * Anclas Google por serie (fuera del rango visible del calendario).
+ */
+export async function loadGoogleAnchorsBySerie(userId, serieIds = []) {
+  const ids = (Array.isArray(serieIds) ? serieIds : [])
+    .map((id) => String(id?._id ?? id))
+    .filter(Boolean);
+  if (!ids.length || !userId) return new Map();
+
+  const anchors = await Tareas.find({
+    usuario: userId,
+    serieId: { $in: ids },
+    'googleTasksSync.googleTaskId': { $exists: true, $ne: null },
+  }).lean();
+
+  const map = new Map();
+  for (const t of anchors) {
+    const sid = serieIdStr(t.serieId);
+    if (!sid || map.has(sid)) continue;
+    map.set(sid, t);
+  }
+  return map;
+}
+
 /**
  * Ocurrencias virtuales (no persistidas) para el calendario — modelo tipo Google Tasks.
  */
-export function buildVirtualTasksForRange(series = [], rangeFrom, rangeTo, existingTasks = []) {
+export function buildVirtualTasksForRange(
+  series = [],
+  rangeFrom,
+  rangeTo,
+  existingTasks = [],
+  externalAnchorsBySerie = new Map(),
+) {
   const from = new Date(rangeFrom);
   const to = new Date(rangeTo);
   from.setHours(0, 0, 0, 0);
@@ -133,6 +167,12 @@ export function buildVirtualTasksForRange(series = [], rangeFrom, rangeTo, exist
     }
   }
 
+  if (externalAnchorsBySerie instanceof Map) {
+    for (const [sid, anchor] of externalAnchorsBySerie) {
+      if (!anchorBySerie.has(sid)) anchorBySerie.set(sid, anchor);
+    }
+  }
+
   const virtual = [];
 
   for (const serie of series) {
@@ -140,7 +180,15 @@ export function buildVirtualTasksForRange(series = [], rangeFrom, rangeTo, exist
 
     const sid = String(serie._id);
     const anchor = anchorBySerie.get(sid);
+    const googleSerie = isGoogleOriginSerie(serie);
+
+    if (googleSerie && !anchor) continue;
     if (anchor && isTaskCompleted(anchor)) continue;
+
+    // Google Tasks API solo expone la instancia actual (due). No rellenar semanas futuras
+    // con RRULE inferido — eso duplicaba la tarea en todo el calendario.
+    const exportInstances = serie.googleTasksSync?.exportInstances === true;
+    if (googleSerie && !exportInstances) continue;
 
     const dtstart = new Date(serie.dtstart);
     if (Number.isNaN(dtstart.getTime())) continue;
@@ -186,12 +234,28 @@ export function buildVirtualTasksForRange(series = [], rangeFrom, rangeTo, exist
   return virtual;
 }
 
-export async function loadSeriesForAgenda(userId) {
-  return TareaSeries.find({
+export async function loadSeriesForAgenda(userId, { from, to } = {}) {
+  const query = {
     usuario: userId,
     activa: true,
     rrule: { $exists: true, $ne: '' },
-  })
+  };
+
+  // Descartar series que no pueden tener ocurrencias en el rango visible:
+  // - dtstart posterior al fin del rango
+  // - serie finalizada (hasta) antes del inicio del rango
+  if (to) {
+    query.dtstart = { $lte: new Date(to) };
+  }
+  if (from) {
+    query.$or = [
+      { hasta: { $exists: false } },
+      { hasta: null },
+      { hasta: { $gte: new Date(from) } },
+    ];
+  }
+
+  return TareaSeries.find(query)
     .populate('objetivo', 'nombre estado')
     .lean();
 }

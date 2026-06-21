@@ -1,6 +1,10 @@
 /** Textos de apoyo para la rama Inventario (hub y strip). */
 
 export const INVENTARIO_SECTION_META = {
+  inventario: {
+    description: 'Objetos, mobiliario y activos',
+    accent: '#26A69A',
+  },
 
   'inventario-en-propiedades': {
 
@@ -24,6 +28,16 @@ export const INVENTARIO_SECTION_META = {
 
     accent: '#78909C',
 
+  },
+
+  cuentas: {
+    description: 'Bancos, efectivo y billeteras conectadas',
+    accent: '#2196F3',
+  },
+
+  transacciones: {
+    description: 'Ingresos, gastos y movimientos del día a día',
+    accent: '#4CAF50',
   },
 
 };

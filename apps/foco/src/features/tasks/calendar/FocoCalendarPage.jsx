@@ -6,9 +6,12 @@ import { useResponsive } from '@shared/hooks';
 import { useNavigationBar } from '@shared/context';
 import { useHabits, useRutinas } from '@shared/context';
 import { usePageWithHistory } from '@shared/hooks';
+import { applyTimedMoveToTask } from '../../../foco/calendar/dnd/calendarDragUtils';
+import { isTaskCompleted } from '@shared/utils/agendaRules';
 import { getNormalizedToday } from '@shared/utils/dateUtils';
-import { TareaForm, GoogleTasksConfig, buildTareaPayload, syncTareaToGoogleAfterSave } from '../form';
-import { useAgendaFilter } from '../hooks/useAgendaFilter';
+import { TareaForm, GoogleTasksConfig, buildTareaPayload, syncTareaToGoogleInBackground } from '../form';
+import { useCalendarTaskFilter } from '../hooks/useCalendarTaskFilter';
+import { useHabitsAgendaView } from '../hooks/useHabitsAgendaView';
 import { useObjetivosLight } from '../hooks/useObjetivosLight';
 import { useTasksForCalendar } from '../hooks/useTasksForCalendar';
 import { HabitsManagerHost } from '../../habits';
@@ -48,12 +51,8 @@ export default function FocoCalendarPage() {
   const [habitFormOpen, setHabitFormOpen] = useState(false);
   const [habitFormDraft, setHabitFormDraft] = useState(null);
 
-  const { filteredTasks, agendaView } = useAgendaFilter(tareas);
-
-  const calendarTasks = useMemo(
-    () => (Array.isArray(filteredTasks) ? filteredTasks : []),
-    [filteredTasks],
-  );
+  const { filteredTasks: calendarTasks } = useCalendarTaskFilter(tareas);
+  const agendaView = useHabitsAgendaView('ahora');
 
   useEffect(() => {
     setViewMode(isMobile ? 'day' : 'week');
@@ -155,6 +154,7 @@ export default function FocoCalendarPage() {
     };
     const handleOpenGoogleTasksConfig = () => setIsGoogleTasksConfigOpen(true);
     const handleGoogleTasksSyncCompleted = () => fetchDataStable();
+    const handleGoogleCalendarSyncCompleted = () => fetchDataStable();
     const handleDeleteSelectedTasks = async () => {
       if (selectedTareas.length === 0) return;
       try {
@@ -171,12 +171,14 @@ export default function FocoCalendarPage() {
     window.addEventListener('addTask', handleAddTask);
     window.addEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
     window.addEventListener('googleTasksSyncCompleted', handleGoogleTasksSyncCompleted);
+    window.addEventListener('googleCalendarSyncCompleted', handleGoogleCalendarSyncCompleted);
     window.addEventListener('deleteSelectedTasks', handleDeleteSelectedTasks);
 
     return () => {
       window.removeEventListener('addTask', handleAddTask);
       window.removeEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
       window.removeEventListener('googleTasksSyncCompleted', handleGoogleTasksSyncCompleted);
+      window.removeEventListener('googleCalendarSyncCompleted', handleGoogleCalendarSyncCompleted);
       window.removeEventListener('deleteSelectedTasks', handleDeleteSelectedTasks);
     };
   }, [selectedTareas, deleteWithHistory, fetchDataStable, enqueueSnackbar, openQuickCreate]);
@@ -227,11 +229,66 @@ export default function FocoCalendarPage() {
     }
   }, [resolveAgendaTask, updateWithHistory, enqueueSnackbar, fetchDataStable, setTareas]);
 
-  const handleSlotClick = useCallback((day, hour) => {
+  const handleSlotClick = useCallback((day, hour, minutes = 0) => {
     const start = new Date(day);
-    start.setHours(hour, 0, 0, 0);
+    start.setHours(hour, minutes, 0, 0);
     openQuickCreate(quickCreateFallbackRef.current, start, 'EVENTO');
   }, [openQuickCreate]);
+
+  const handleEventMove = useCallback(async (calendarEvent, newStart, newEnd) => {
+    const target = resolveAgendaTask(calendarEvent?.task);
+    if (!target?._id) return;
+    if (target?.virtual) {
+      enqueueSnackbar('No se puede mover esta ocurrencia sin ancla en la serie', { variant: 'warning' });
+      return;
+    }
+    if (isTaskCompleted(target)) return;
+
+    const datePatch = applyTimedMoveToTask(target, newStart, newEnd);
+
+    setTareas((prev) => prev.map((t) => {
+      if (t._id === target._id) return { ...t, ...datePatch };
+      const sid = String(t.serieId?._id || t.serieId || '');
+      const targetSid = String(target.serieId?._id || target.serieId || '');
+      if (sid && sid === targetSid) {
+        return { ...t, ...datePatch, virtual: t.virtual };
+      }
+      return t;
+    }));
+
+    try {
+      const payload = buildTareaPayload(
+        {
+          ...target,
+          ...datePatch,
+          googleTasksSync: {
+            ...(target.googleTasksSync || {}),
+            ...(datePatch.googleTasksSync || {}),
+          },
+        },
+        { editingTarea: target, objetivos },
+      );
+      const saved = await updateWithHistory(target._id, payload, target);
+      syncTareaToGoogleInBackground(saved || { ...target, ...payload }, {
+        onSynced: () => enqueueSnackbar('Sincronizada con Google Tasks', { variant: 'info' }),
+        onError: (syncErr) => enqueueSnackbar(
+          syncErr.response?.data?.error || 'Movido localmente; no se pudo sincronizar con Google',
+          { variant: 'warning' },
+        ),
+      });
+    } catch (error) {
+      console.error('Error al mover tarea en calendario:', error);
+      enqueueSnackbar('Error al mover la tarea', { variant: 'error' });
+      await refetchCalendarTasks();
+    }
+  }, [
+    resolveAgendaTask,
+    enqueueSnackbar,
+    setTareas,
+    objetivos,
+    updateWithHistory,
+    refetchCalendarTasks,
+  ]);
 
   const handleQuickSave = useCallback(async (data) => {
     try {
@@ -295,17 +352,13 @@ export default function FocoCalendarPage() {
         enqueueSnackbar('Tarea creada', { variant: 'success' });
       }
 
-      try {
-        const { synced } = await syncTareaToGoogleAfterSave(saved || datosAEnviar);
-        if (synced) {
-          enqueueSnackbar('Sincronizada con Google Tasks', { variant: 'info' });
-        }
-      } catch (syncErr) {
-        enqueueSnackbar(
+      syncTareaToGoogleInBackground(saved || datosAEnviar, {
+        onSynced: () => enqueueSnackbar('Sincronizada con Google Tasks', { variant: 'info' }),
+        onError: (syncErr) => enqueueSnackbar(
           syncErr.response?.data?.error || 'Tarea guardada; no se pudo sincronizar con Google',
           { variant: 'warning' },
-        );
-      }
+        ),
+      });
 
       setIsFormOpen(false);
       setEditingTarea(null);
@@ -352,6 +405,7 @@ export default function FocoCalendarPage() {
             onEventClick={handleEdit}
             onToggleComplete={handleToggleComplete}
             onSlotClick={handleSlotClick}
+            onEventMove={handleEventMove}
           />
         ) : (
           <FocoWeekView
@@ -362,6 +416,7 @@ export default function FocoCalendarPage() {
             onEventClick={handleEdit}
             onToggleComplete={handleToggleComplete}
             onSlotClick={handleSlotClick}
+            onEventMove={handleEventMove}
           />
         )}
       </Box>

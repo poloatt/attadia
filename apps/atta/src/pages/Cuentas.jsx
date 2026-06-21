@@ -27,11 +27,16 @@ import { useAPI } from '@shared/hooks/useAPI';
 import {
   MercadoPagoConnectButton,
   BankConnectionForm,
-  FinanzasSectionNav,
+  BranchFinanzasSectionNav,
   MercadoPagoPartialSyncBanner,
+  CuentaTransaccionesPanel,
+  CuentaDetailShell,
   cuentaDetailPath,
+  useFinanzasBranch,
 } from '../finanzas';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useResponsive } from '@shared/hooks';
+import { formatFinanzasMonto } from '@shared/utils/formatFinanzasMonto';
 import { attaPageLayoutSx } from '../navigation/attaPageLayoutSx';
 
 export function Cuentas() {
@@ -51,6 +56,8 @@ export function Cuentas() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const selectedCuentaId = searchParams.get('cuenta');
+  const { isMobile } = useResponsive();
+  const { branchId, cuentasPath } = useFinanzasBranch();
 
   // Función para restablecer los balances
   const resetBalance = useCallback(() => {
@@ -107,48 +114,51 @@ export function Cuentas() {
         balancesPorMonedaTemp[monedaId] = 0;
       }
     });
-    
-    // Obtener balance para cada cuenta
-    for (const cuenta of cuentas) {
-      try {
+
+    const today = new Date().toISOString().split('T')[0];
+
+    // Pedir el balance de cada cuenta en paralelo via agregación (no bajar transacciones)
+    const resultados = await Promise.all(
+      cuentas.map(async (cuenta) => {
         const cuentaId = cuenta.id || cuenta._id;
-        if (!cuentaId) continue;
-        
-        const today = new Date().toISOString().split('T')[0];
-        const response = await clienteAxios.get(`/api/transacciones/by-cuenta/${cuentaId}`, {
-          params: {
-            fechaFin: today,
-            estado: 'PAGADO'
-          }
-        });
-        
-        const transacciones = response.data?.docs || [];
-        const balance = transacciones.reduce((acc, trans) => {
-          return trans.tipo === 'INGRESO' ? acc + trans.monto : acc - trans.monto;
-        }, 0);
-        
-        // Guardar balance de la cuenta
-        balancesTemp[cuentaId] = balance;
-        
-        // Acumular balance por moneda
-        let monedaId = null;
-        if (typeof cuenta.moneda === 'object' && cuenta.moneda) {
-          monedaId = cuenta.moneda.id || cuenta.moneda._id;
-        } else {
-          monedaId = cuenta.moneda;
+        if (!cuentaId) return null;
+        try {
+          const response = await clienteAxios.get(`/api/transacciones/balance/${cuentaId}`, {
+            params: { fechaFin: today, estado: 'PAGADO' },
+          });
+          return { cuenta, cuentaId, balance: response.data?.balance ?? 0 };
+        } catch (error) {
+          console.error(`Error al cargar balance para cuenta ${cuenta.nombre}:`, error);
+          return { cuenta, cuentaId, balance: 0 };
         }
-        
-        if (monedaId && balancesPorMonedaTemp[monedaId] !== undefined) {
-          balancesPorMonedaTemp[monedaId] += balance;
-        }
-      } catch (error) {
-        console.error(`Error al cargar balance para cuenta ${cuenta.nombre}:`, error);
+      }),
+    );
+
+    for (const item of resultados) {
+      if (!item) continue;
+      const { cuenta, cuentaId, balance } = item;
+      balancesTemp[cuentaId] = balance;
+
+      let monedaId = null;
+      if (typeof cuenta.moneda === 'object' && cuenta.moneda) {
+        monedaId = cuenta.moneda.id || cuenta.moneda._id;
+      } else {
+        monedaId = cuenta.moneda;
+      }
+
+      if (monedaId && balancesPorMonedaTemp[monedaId] !== undefined) {
+        balancesPorMonedaTemp[monedaId] += balance;
       }
     }
-    
+
     setBalances(balancesTemp);
     setBalancesPorMoneda(balancesPorMonedaTemp);
   }, [cuentas, monedas]);
+
+  const handleRefreshCuenta = useCallback(() => {
+    refetchCuentas();
+    fetchBalancesCuentas();
+  }, [refetchCuentas, fetchBalancesCuentas]);
 
   // Cargar balances cuando se cargan las cuentas
   useEffect(() => {
@@ -204,15 +214,15 @@ export function Cuentas() {
   }, [location]);
 
   useEffect(() => {
-    if (!selectedCuentaId || isLoading) return undefined;
+    if (!selectedCuentaId || isLoading || !isMobile) return undefined;
     const timer = setTimeout(() => {
       document.getElementById(`cuenta-row-${selectedCuentaId}`)?.scrollIntoView({
         behavior: 'smooth',
-        block: 'center',
+        block: 'nearest',
       });
     }, 200);
     return () => clearTimeout(timer);
-  }, [selectedCuentaId, isLoading, cuentas]);
+  }, [selectedCuentaId, isLoading, cuentas, isMobile]);
 
   const handleCreateMoneda = async (data) => {
     try {
@@ -564,6 +574,23 @@ export function Cuentas() {
     );
   }, [monedas, cuentas, balances, balancesPorMoneda]);
 
+  const selectedCuenta = useMemo(() => {
+    if (!selectedCuentaId) return null;
+    for (const grupo of Object.values(cuentasAgrupadasPorMoneda)) {
+      const found = grupo.cuentas.find((c) => (c._id || c.id) === selectedCuentaId);
+      if (found) {
+        const monedaObj = grupo.moneda;
+        return {
+          ...found,
+          moneda: typeof found.moneda === 'object' ? found.moneda : monedaObj,
+        };
+      }
+    }
+    return null;
+  }, [cuentasAgrupadasPorMoneda, selectedCuentaId]);
+
+  const showGlobalPartialBanner = !selectedCuentaId || selectedCuenta?.tipo !== 'MERCADO_PAGO';
+
   // Función para iniciar el pago de prueba
   const handlePagoPrueba = async () => {
     setIsProcessingPago(true);
@@ -588,8 +615,31 @@ export function Cuentas() {
 
   return (
     <Box sx={attaPageLayoutSx}>
-      <FinanzasSectionNav variant="strip" />
-      <MercadoPagoPartialSyncBanner onImportCsv={() => refetchCuentas()} />
+      <BranchFinanzasSectionNav branchId={branchId} variant="strip" />
+      {showGlobalPartialBanner && (
+        <MercadoPagoPartialSyncBanner onImportCsv={() => refetchCuentas()} />
+      )}
+      {isMobile && selectedCuenta && (
+        <CuentaTransaccionesPanel
+          cuenta={selectedCuenta}
+          onRefresh={handleRefreshCuenta}
+          embedded
+          branchId={branchId}
+        />
+      )}
+      <CuentaDetailShell
+        open={!isMobile && !!selectedCuenta}
+        onClose={() => navigate(cuentasPath, { replace: true })}
+      >
+        {!isMobile && selectedCuenta && (
+          <CuentaTransaccionesPanel
+            cuenta={selectedCuenta}
+            onRefresh={handleRefreshCuenta}
+            embedded
+            branchId={branchId}
+          />
+        )}
+      </CuentaDetailShell>
       {/* Modal para crear cuenta (manual o MercadoPago) */}
       <BankConnectionForm
         open={isBankConnectionFormOpen}
@@ -645,6 +695,16 @@ export function Cuentas() {
               if (!grupo.moneda) {
                 return null;
               }
+
+              const cuentasVisibles = grupo.cuentas.filter((cuenta) => {
+                if (!isMobile || !selectedCuentaId) return true;
+                const id = cuenta._id || cuenta.id;
+                return id !== selectedCuentaId;
+              });
+
+              if (cuentasVisibles.length === 0) {
+                return null;
+              }
               
               return (
                 <Paper 
@@ -676,20 +736,20 @@ export function Cuentas() {
                           fontWeight: 'bold'
                         }}
                       >
-                        {showValues ? `${grupo.moneda.simbolo} ${grupo.balance.toFixed(2)}` : '****'}
+                        {showValues ? formatFinanzasMonto(grupo.balance, { simbolo: grupo.moneda.simbolo }) : '****'}
                       </Typography>
                     </Box>
                   </Box>
 
                   <Box>
-                    {grupo.cuentas.map((cuenta) => {
+                    {cuentasVisibles.map((cuenta) => {
                       const cuentaRowId = cuenta._id || cuenta.id;
                       const isSelected = selectedCuentaId === cuentaRowId;
                       return (
                         <Box
                           key={cuentaRowId}
                           id={`cuenta-row-${cuentaRowId}`}
-                          onClick={() => navigate(cuentaDetailPath(cuentaRowId), { replace: true })}
+                          onClick={() => navigate(cuentaDetailPath(cuentaRowId, branchId), { replace: true })}
                           sx={{
                             display: 'flex',
                             alignItems: 'center',
@@ -751,10 +811,9 @@ export function Cuentas() {
                                 fontWeight: 500
                               }}
                             >
-                              {showValues 
-                                ? `${grupo.moneda.simbolo} ${cuenta.saldo.toFixed(2)}`
-                                : '****'
-                              }
+                              {showValues
+                                ? formatFinanzasMonto(cuenta.saldo, { simbolo: grupo.moneda.simbolo })
+                                : '****'}
                             </Typography>
 
                             <CommonActions

@@ -1,17 +1,19 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Box } from '@shared/utils/materialImports';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Box, Chip, Typography } from '@shared/utils/materialImports';
 import {
   FabNuevaTransaccion,
   TransaccionTable,
   TransaccionForm,
-  FinanzasSectionNav,
+  BranchFinanzasSectionNav,
+  cuentaDetailPath,
+  useFinanzasBranch,
 } from '../finanzas';
 import clienteAxios from '@shared/config/axios';
 import { useSnackbar } from 'notistack';
 import { EmptyState } from '@shared/components/common';
 import { useValuesVisibility } from '@shared/context/ValuesVisibilityContext';
 import { useAPI } from '@shared/hooks/useAPI';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { attaPageLayoutSx } from '../navigation/attaPageLayoutSx';
 
 export function Transacciones() {
@@ -21,6 +23,10 @@ export function Transacciones() {
   const [editingTransaccion, setEditingTransaccion] = useState(null);
   const { showValues } = useValuesVisibility();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const cuentaFilterId = searchParams.get('cuenta');
+  const { branchId } = useFinanzasBranch();
 
   // Usar nuestro hook personalizado para cargar datos
   const { 
@@ -48,6 +54,19 @@ export function Transacciones() {
   const monedas = monedasData?.docs || [];
   const cuentas = cuentasData?.docs || [];
   const transacciones = transaccionesData?.docs || [];
+
+  const transaccionesFiltradas = useMemo(() => {
+    if (!cuentaFilterId) return transacciones;
+    return transacciones.filter((t) => {
+      const cuentaId = t.cuenta?._id || t.cuenta?.id || t.cuenta;
+      return String(cuentaId) === String(cuentaFilterId);
+    });
+  }, [transacciones, cuentaFilterId]);
+
+  const cuentaFiltrada = useMemo(() => {
+    if (!cuentaFilterId) return null;
+    return cuentas.find((c) => (c._id || c.id) === cuentaFilterId) || null;
+  }, [cuentas, cuentaFilterId]);
 
   // Estado de carga general
   const isLoading = monedasLoading || cuentasLoading || transaccionesLoading;
@@ -262,7 +281,31 @@ export function Transacciones() {
 
   return (
     <Box sx={{ ...attaPageLayoutSx, position: 'relative', minHeight: '80vh', bgcolor: 'background.default' }}>
-      <FinanzasSectionNav variant="strip" />
+      <BranchFinanzasSectionNav branchId={branchId} variant="strip" />
+      {cuentaFilterId && cuentaFiltrada && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, px: 0.5 }}>
+          <Chip
+            label={`Cuenta: ${cuentaFiltrada.nombre}`}
+            size="small"
+            onDelete={() => navigate(`${location.pathname.split('?')[0]}`, { replace: true })}
+            variant="outlined"
+          />
+          <Typography
+            component="button"
+            variant="caption"
+            onClick={() => navigate(cuentaDetailPath(cuentaFilterId, branchId))}
+            sx={{
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              color: 'primary.main',
+              textDecoration: 'underline',
+            }}
+          >
+            Ver detalle
+          </Typography>
+        </Box>
+      )}
       <FabNuevaTransaccion onClick={handleOpenForm} />
 
       {isLoading ? (
@@ -273,20 +316,28 @@ export function Transacciones() {
             icon="loading"
           />
         </Box>
-      ) : transacciones.length === 0 ? (
+      ) : transaccionesFiltradas.length === 0 ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
           <EmptyState
-            title="No hay transacciones"
-            description="Comienza creando tu primera transacción."
-            buttonText="Nueva Transacción"
-            onButtonClick={handleOpenForm}
+            title={cuentaFilterId ? 'Sin movimientos en esta cuenta' : 'No hay transacciones'}
+            description={
+              cuentaFilterId
+                ? 'Probá sincronizar Mercado Pago o importar el CSV desde Cuentas.'
+                : 'Comienza creando tu primera transacción.'
+            }
+            buttonText={cuentaFilterId ? 'Ir a Cuentas' : 'Nueva Transacción'}
+            onButtonClick={
+              cuentaFilterId
+                ? () => navigate(cuentaDetailPath(cuentaFilterId, branchId))
+                : handleOpenForm
+            }
             icon="empty"
           />
         </Box>
       ) : (
         <Box sx={{ mt: 2 }}>
           <TransaccionTable
-            transacciones={transacciones}
+            transacciones={transaccionesFiltradas}
             onEdit={handleEdit}
             onDelete={handleDelete}
             showVisibilityToggle={true}

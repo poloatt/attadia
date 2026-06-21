@@ -1,4 +1,5 @@
 import { BaseController } from './BaseController.js';
+import mongoose from 'mongoose';
 import { Monedas, COLORES_MONEDA, Transacciones } from '../models/index.js';
 import { buildEstadoFilter } from '../utils/transaccionEstado.js';
 
@@ -250,33 +251,29 @@ class MonedasController extends BaseController {
         return res.status(404).json({ message: 'Moneda no encontrada' });
       }
 
-      // Obtener todas las transacciones de la moneda
-      const query = {
-        moneda: id
-      };
-
+      // Calcular el balance por agregación (sin traer todas las transacciones)
+      const match = { moneda: new mongoose.Types.ObjectId(id) };
       if (fechaFin) {
-        query.fecha = { $lte: new Date(fechaFin) };
+        match.fecha = { $lte: new Date(fechaFin) };
+      }
+      const estadoFilter = buildEstadoFilter(estado);
+      if (estadoFilter) {
+        match.estado = estadoFilter;
       }
 
-      if (estado) {
-        query.estado = buildEstadoFilter(estado);
-      }
+      const result = await Transacciones.aggregate([
+        { $match: match },
+        { $group: {
+          _id: null,
+          ingresos: { $sum: { $cond: [{ $eq: ['$tipo', 'INGRESO'] }, { $ifNull: ['$monto', 0] }, 0] } },
+          egresos: { $sum: { $cond: [{ $eq: ['$tipo', 'EGRESO'] }, { $ifNull: ['$monto', 0] }, 0] } },
+        }},
+      ]);
 
-      console.log('Query de transacciones:', query);
+      const { ingresos = 0, egresos = 0 } = result[0] || {};
+      const balance = ingresos - egresos;
 
-      const transacciones = await Transacciones.find(query);
-      console.log(`Encontradas ${transacciones.length} transacciones`);
-
-      // Calcular el balance
-      const balance = transacciones.reduce((acc, trans) => {
-        const monto = parseFloat(trans.monto) || 0;
-        return trans.tipo === 'INGRESO' ? acc + monto : acc - monto;
-      }, 0);
-
-      console.log('Balance calculado:', balance);
-
-      res.json({ balance });
+      res.json({ balance, ingresos, egresos });
     } catch (error) {
       console.error('Error al obtener balance:', error);
       res.status(500).json({ error: error.message });

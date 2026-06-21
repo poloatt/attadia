@@ -9,6 +9,16 @@ export function useTasksForCalendar(selectedDate, viewMode = 'week') {
   const { enqueueSnackbar } = useSnackbar();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [includeCompleted, setIncludeCompleted] = useState(false);
+
+  useEffect(() => {
+    const handleSetShowCompleted = (event) => {
+      const { value } = event.detail || {};
+      if (typeof value === 'boolean') setIncludeCompleted(value);
+    };
+    window.addEventListener('setShowCompleted', handleSetShowCompleted);
+    return () => window.removeEventListener('setShowCompleted', handleSetShowCompleted);
+  }, []);
 
   const range = useMemo(() => {
     const base = selectedDate || new Date();
@@ -21,8 +31,8 @@ export function useTasksForCalendar(selectedDate, viewMode = 'week') {
   }, [selectedDate, viewMode]);
 
   const rangeKey = useMemo(
-    () => `${range.start.getTime()}|${range.end.getTime()}`,
-    [range.start, range.end],
+    () => `${range.start.getTime()}|${range.end.getTime()}|${includeCompleted}`,
+    [range.start, range.end, includeCompleted],
   );
 
   const refetch = useCallback(async () => {
@@ -31,6 +41,7 @@ export function useTasksForCalendar(selectedDate, viewMode = 'week') {
       const docs = await fetchTasksForAgendaRange({
         from: range.start,
         to: range.end,
+        includeCompleted,
       });
       setTasks(normalizeTaskList(docs));
       return docs;
@@ -42,7 +53,7 @@ export function useTasksForCalendar(selectedDate, viewMode = 'week') {
     } finally {
       setLoading(false);
     }
-  }, [range.start, range.end, enqueueSnackbar]);
+  }, [range.start, range.end, includeCompleted, enqueueSnackbar]);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,6 +63,7 @@ export function useTasksForCalendar(selectedDate, viewMode = 'week') {
         const docs = await fetchTasksForAgendaRange({
           from: range.start,
           to: range.end,
+          includeCompleted,
         });
         if (!cancelled) {
           setTasks(normalizeTaskList(docs));
@@ -67,7 +79,7 @@ export function useTasksForCalendar(selectedDate, viewMode = 'week') {
     };
     load();
     return () => { cancelled = true; };
-  }, [rangeKey, enqueueSnackbar, range.start, range.end]);
+  }, [rangeKey, enqueueSnackbar, range.start, range.end, includeCompleted]);
 
-  return { tasks, setTasks, loading, range, refetch };
+  return { tasks, setTasks, loading, range, refetch, includeCompleted };
 }

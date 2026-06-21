@@ -61,8 +61,26 @@ export const useMercadoPago = () => {
       // Limpiar el state después de procesar exitosamente
       mercadopagoService.clearState();
       setConnectionStatus('connected');
-      
-      enqueueSnackbar('¡Conexión MercadoPago exitosa!', { variant: 'success' });
+
+      const sync = result?.sync;
+      const detalles = sync?.detalles;
+      const syncParcial = sync?.syncParcial;
+      const movimientos = detalles?.totalMovimientos ?? 0;
+      const csvRows = detalles?.totalCsvRows ?? movimientos;
+
+      if (syncParcial || movimientos < 5) {
+        enqueueSnackbar(
+          syncParcial
+            ? 'Conexión OK. Sync parcial: importá CSV manual si faltan movimientos.'
+            : `Conexión OK. ${movimientos} movimientos importados (${csvRows} en reporte).`,
+          { variant: syncParcial ? 'warning' : 'info', autoHideDuration: 8000 }
+        );
+      } else {
+        enqueueSnackbar(
+          `¡Conexión MercadoPago exitosa! ${movimientos} movimientos sincronizados.`,
+          { variant: 'success' }
+        );
+      }
       return result;
     } catch (error) {
       console.error('Error procesando callback MercadoPago:', error);
@@ -83,13 +101,17 @@ export const useMercadoPago = () => {
     try {
       const result = await mercadopagoService.syncConnection(connectionId, options);
       const syncParcial = result?.resultado?.syncParcial || result?.syncParcial;
+      const movimientos = result?.resultado?.detalles?.totalMovimientos ?? 0;
       if (syncParcial) {
         enqueueSnackbar(
-          'Sync parcial: pagos OK. Importá CSV manual si faltan movimientos.',
+          `Sync parcial: ${movimientos} movimientos. Importá CSV manual si faltan más.`,
           { variant: 'warning', autoHideDuration: 8000 }
         );
       } else {
-        enqueueSnackbar('Sincronización completada exitosamente', { variant: 'success' });
+        enqueueSnackbar(
+          `Sincronización completada: ${movimientos} movimientos del reporte.`,
+          { variant: 'success' }
+        );
       }
       return result;
     } catch (error) {

@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { createAppManualChunks } from '../shared/vite/manualChunks.js'
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -77,12 +78,7 @@ export default defineConfig(({ mode }) => {
       minify: isProd,
       rollupOptions: {
         output: {
-          manualChunks: {
-            vendor: ['react', 'react-dom', 'react-router-dom'],
-            mui: ['@mui/material', '@mui/icons-material'],
-            utils: ['axios', 'date-fns', 'notistack'],
-            shared: ['shared']
-          }
+          manualChunks: createAppManualChunks
         }
       }
     },

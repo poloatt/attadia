@@ -84,7 +84,7 @@ class TareasController extends BaseController {
   // GET /api/tareas/agenda?from=ISO&to=ISO — tareas + instancias de series en el rango visible
   async getAgenda(req, res) {
     try {
-      const { from, to } = req.query;
+      const { from, to, includeCompleted } = req.query;
       if (!from || !to) {
         return res.status(400).json({ error: 'Parámetros from y to son requeridos (ISO)' });
       }
@@ -95,12 +95,21 @@ class TareasController extends BaseController {
         return res.status(400).json({ error: 'Fechas from/to no válidas' });
       }
 
+      const include =
+        includeCompleted === 'true'
+        || includeCompleted === true
+        || includeCompleted === '1';
+
       const { getTareasForAgendaRange } = await import('../utils/tareasAgendaUtils.js');
-      const docs = await getTareasForAgendaRange(
+      const { filterDocsForListView } = await import('../utils/tareasAgendaUtils.js');
+      let docs = await getTareasForAgendaRange(
         req.user.id,
         rangeFrom,
         rangeTo,
       );
+      if (!include) {
+        docs = filterDocsForListView(docs, { includeCompleted: false });
+      }
 
       res.json({ docs, totalDocs: docs.length });
     } catch (error) {

@@ -3,18 +3,20 @@ import { useLocation } from 'react-router-dom';
 import { isPathActive } from '@shared/navigation/appNavResolver';
 import { AttaHubSectionCard } from '../../hub';
 import TransaccionesHubSummary from '../transacciones/TransaccionesHubSummary';
+import { getTransaccionesPath, resolveFinanzasBranch } from '../finanzasDeepLink';
 
-const TRANSACCIONES_PATH = '/finanzas/transacciones';
-
-/** Bloque Transacciones en el hub Finanzas. */
+/** Bloque Transacciones en hubs Finanzas, Propiedades e Inventario. */
 export default function TransaccionesHubSection() {
   const { pathname } = useLocation();
-  const isActive = isPathActive(pathname, TRANSACCIONES_PATH);
+  const branchId = resolveFinanzasBranch(pathname);
+  const transaccionesPath = getTransaccionesPath(branchId);
+  const isActive = isPathActive(pathname, transaccionesPath);
+
   return (
     <AttaHubSectionCard
       title="Transacciones"
       iconKey="moneyBag"
-      path={TRANSACCIONES_PATH}
+      path={transaccionesPath}
       isActive={isActive}
     >
       <TransaccionesHubSummary />

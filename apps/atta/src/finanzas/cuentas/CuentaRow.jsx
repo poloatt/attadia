@@ -32,7 +32,7 @@ export function CuentaRowSkeleton() {
   );
 }
 
-function CuentaRow({ cuenta, selected = false, onSelect }) {
+function CuentaRow({ cuenta, selected = false, onSelect, branchId = 'finanzas' }) {
   const navigate = useNavigate();
   const { showValues } = useValuesVisibility();
   const cuentaId = cuenta.id || cuenta._id;
@@ -42,7 +42,7 @@ function CuentaRow({ cuenta, selected = false, onSelect }) {
   const handleClick = (e) => {
     e.stopPropagation();
     if (onSelect) onSelect(cuentaId);
-    else navigate(cuentaDetailPath(cuentaId));
+    else navigate(cuentaDetailPath(cuentaId, branchId));
   };
 
   return (

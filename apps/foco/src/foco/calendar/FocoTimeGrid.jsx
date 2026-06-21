@@ -1,183 +1,172 @@
-import React from 'react';
-import { Box, ButtonBase, Typography } from '@mui/material';
-import { alpha, useTheme } from '@mui/material/styles';
-import { isSameDay, isToday } from 'date-fns';
-import {
-  DAY_END_HOUR,
-  DAY_START_HOUR,
-  getGridHeightPx,
-  HOUR_LABELS,
-  SLOT_HEIGHT_PX,
-  TIME_COLUMN_WIDTH,
-} from './calendarLayout';
-import FocoEventBlock from './FocoEventBlock';
-import {
-  clampEventToDay,
-  formatHourLabel,
-  layoutTimedEventsForDay,
-} from './taskCalendarUtils';
-
-function NowIndicator() {
-  const theme = useTheme();
-  const now = new Date();
-  const hour = now.getHours();
-  if (hour < DAY_START_HOUR || hour > DAY_END_HOUR) return null;
-
-  const totalMinutes = (DAY_END_HOUR - DAY_START_HOUR) * 60;
-  const nowMins = (hour - DAY_START_HOUR) * 60 + now.getMinutes();
-  const topPct = (nowMins / totalMinutes) * 100;
-
-  return (
-    <Box
-      sx={{
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: `${topPct}%`,
-        zIndex: 2,
-        pointerEvents: 'none',
-      }}
-    >
-      <Box
-        sx={{
-          height: 2,
-          bgcolor: theme.palette.error.main,
-          borderRadius: 1,
-        }}
-      />
-    </Box>
-  );
-}
-
-export default function FocoTimeGrid({
-  day,
-  timedEvents = [],
-  onSlotClick,
-  onEventClick,
-  onToggleComplete,
-  showNowIndicator = true,
-  showTimeColumn = true,
-}) {
-  const theme = useTheme();
-  const gridHeight = getGridHeightPx();
-  const isDayToday = isToday(day);
-
-  const dayTimed = timedEvents
-    .filter((ev) => !ev.allDay)
-    .map((ev) => clampEventToDay(ev, day))
-    .filter((ev) => isSameDay(ev.start, day));
-
-  return (
-    <Box sx={{ display: 'flex', flex: 1, minHeight: 0, width: '100%' }}>
-      {showTimeColumn && (
-        <Box
-          sx={{
-            width: TIME_COLUMN_WIDTH,
-            flexShrink: 0,
-            borderRight: 1,
-            borderColor: 'divider',
-            position: 'relative',
-            height: gridHeight,
-          }}
-        >
-          {HOUR_LABELS.map((hour) => (
-            <Box
-              key={hour}
-              sx={{
-                height: SLOT_HEIGHT_PX,
-                display: 'flex',
-                alignItems: 'flex-start',
-                justifyContent: 'flex-end',
-                pr: 0.5,
-                pt: 0.25,
-              }}
-            >
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                {formatHourLabel(hour)}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-      )}
-
-      <Box
-        sx={{
-          flex: 1,
-          position: 'relative',
-          height: gridHeight,
-        }}
-      >
-        {HOUR_LABELS.map((hour) => (
-          <Box
-            key={`slot-${hour}`}
-            onClick={() => onSlotClick?.(day, hour)}
-            sx={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              top: (hour - DAY_START_HOUR) * SLOT_HEIGHT_PX,
-              height: SLOT_HEIGHT_PX,
-              borderTop: 1,
-              borderColor: 'divider',
-              cursor: onSlotClick ? 'pointer' : 'default',
-              '&:hover': onSlotClick
-                ? { bgcolor: alpha(theme.palette.primary.main, 0.04) }
-                : undefined,
-            }}
-          />
-        ))}
-
-        {showNowIndicator && isDayToday && <NowIndicator />}
-
-        {(() => {
-          const { items, hiddenCount } = layoutTimedEventsForDay(dayTimed);
-          return (
-            <>
-              {items.map(({ event: ev, style }, idx) => (
-                <Box
-                  key={`${ev.task._id || ev.task.id || 'ev'}-${idx}`}
-                  sx={{
-                    position: 'absolute',
-                    top: style.top,
-                    height: style.height,
-                    left: style.left,
-                    width: style.width,
-                    zIndex: 1,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <FocoEventBlock
-                    event={ev}
-                    compact
-                    onClick={onEventClick}
-                    onToggleComplete={onToggleComplete}
-                  />
-                </Box>
-              ))}
-              {hiddenCount > 0 && (
-                <ButtonBase
-                  sx={{
-                    position: 'absolute',
-                    top: 4,
-                    right: 4,
-                    zIndex: 3,
-                    borderRadius: 1,
-                    px: 0.75,
-                    py: 0.25,
-                    bgcolor: alpha(theme.palette.warning.main, 0.2),
-                    minHeight: 22,
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.65rem' }}>
-                    +{hiddenCount} más
-                  </Typography>
-                </ButtonBase>
-              )}
-            </>
-          );
-        })()}
-      </Box>
-    </Box>
-  );
-}
+import React from 'react';
+import { Box, ButtonBase, Typography } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
+import { isSameDay, isToday } from 'date-fns';
+import {
+  DAY_END_HOUR,
+  DAY_START_HOUR,
+  getGridHeightPx,
+  getTotalGridMinutes,
+  HALF_HOUR_SLOTS,
+  HALF_SLOT_HEIGHT_PX,
+  HOUR_LABELS,
+  SLOT_HEIGHT_PX,
+  SLOT_MINUTES,
+  TIME_COLUMN_WIDTH,
+} from './calendarLayout';
+import {
+  clampEventToDay,
+  formatHourLabel,
+  layoutTimedEventsForDay,
+} from './taskCalendarUtils';
+import DraggableTimedEvent from './dnd/DraggableTimedEvent';
+import DroppableDayColumn from './dnd/DroppableDayColumn';
+
+function NowIndicator() {
+  const theme = useTheme();
+  const now = new Date();
+  const hour = now.getHours();
+  if (hour < DAY_START_HOUR || hour > DAY_END_HOUR) return null;
+
+  const totalMinutes = getTotalGridMinutes();
+  const nowMins = (hour - DAY_START_HOUR) * 60 + now.getMinutes();
+  const topPct = (nowMins / totalMinutes) * 100;
+
+  return (
+    <Box
+      sx={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: `${topPct}%`,
+        zIndex: 2,
+        pointerEvents: 'none',
+      }}
+    >
+      <Box
+        sx={{
+          height: 2,
+          bgcolor: theme.palette.error.main,
+          borderRadius: 1,
+        }}
+      />
+    </Box>
+  );
+}
+
+export default function FocoTimeGrid({
+  day,
+  timedEvents = [],
+  onSlotClick,
+  onEventClick,
+  onToggleComplete,
+  showNowIndicator = true,
+  showTimeColumn = true,
+  dndEnabled = false,
+}) {
+  const theme = useTheme();
+  const gridHeight = getGridHeightPx();
+  const isDayToday = isToday(day);
+
+  const dayTimed = timedEvents
+    .filter((ev) => !ev.allDay)
+    .map((ev) => clampEventToDay(ev, day))
+    .filter((ev) => isSameDay(ev.start, day));
+
+  const slotFromMinutes = (startMin) =>
+    ((startMin - DAY_START_HOUR * 60) / SLOT_MINUTES) * HALF_SLOT_HEIGHT_PX;
+
+  const gridBody = (
+    <>
+      {HALF_HOUR_SLOTS.map((startMin) => {
+        const isHourLine = startMin % 60 === 0;
+        const hour = Math.floor(startMin / 60);
+        return (
+          <Box
+            key={`slot-${startMin}`}
+            onClick={() => onSlotClick?.(day, hour, startMin % 60)}
+            sx={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: slotFromMinutes(startMin),
+              height: HALF_SLOT_HEIGHT_PX,
+              borderTop: isHourLine ? 1 : '1px dashed',
+              borderColor: isHourLine ? 'divider' : alpha(theme.palette.divider, 0.45),
+              cursor: onSlotClick ? 'pointer' : 'default',
+              boxSizing: 'border-box',
+              '&:hover': onSlotClick
+                ? { bgcolor: alpha(theme.palette.primary.main, 0.04) }
+                : undefined,
+            }}
+          />
+        );
+      })}
+
+      {showNowIndicator && isDayToday && <NowIndicator />}
+
+      {(() => {
+        const { items } = layoutTimedEventsForDay(dayTimed);
+        return items.map(({ event: ev, style }, idx) => (
+          <DraggableTimedEvent
+            key={`${ev.task._id || ev.task.id || 'ev'}-${idx}`}
+            event={ev}
+            style={style}
+            onEventClick={onEventClick}
+            onToggleComplete={onToggleComplete}
+            dndEnabled={dndEnabled}
+          />
+        ));
+      })()}
+    </>
+  );
+
+  return (
+    <Box sx={{ display: 'flex', flex: 1, minHeight: 0, width: '100%' }}>
+      {showTimeColumn && (
+        <Box
+          sx={{
+            width: TIME_COLUMN_WIDTH,
+            flexShrink: 0,
+            borderRight: 1,
+            borderColor: 'divider',
+            position: 'relative',
+            height: gridHeight,
+          }}
+        >
+          {HOUR_LABELS.map((hour) => (
+            <Box
+              key={hour}
+              sx={{
+                height: SLOT_HEIGHT_PX,
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'flex-end',
+                pr: 0.5,
+                pt: 0.25,
+              }}
+            >
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                {formatHourLabel(hour)}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+      )}
+
+      <Box
+        sx={{
+          flex: 1,
+          position: 'relative',
+          height: gridHeight,
+        }}
+      >
+        {dndEnabled ? (
+          <DroppableDayColumn day={day}>
+            {gridBody}
+          </DroppableDayColumn>
+        ) : gridBody}
+      </Box>
+    </Box>
+  );
+}
