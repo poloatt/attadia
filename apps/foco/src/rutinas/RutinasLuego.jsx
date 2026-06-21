@@ -9,7 +9,7 @@ import {
   getCarouselSectionItemIds,
   resolveRutinaForDate,
 } from '@shared/utils/habitSectionIcons';
-import { getNormalizedToday, formatDateForAPI } from '@shared/utils/dateUtils';
+import { getNormalizedToday } from '@shared/utils/dateUtils';
 import { getCurrentTimeOfDay } from '@shared/utils/timeOfDayUtils';
 import { HabitCounterBadge } from '@shared/components/common/HabitCounterBadge';
 import { isSameDay, isSameWeek, isSameMonth, startOfMonth, endOfMonth, endOfWeek, differenceInDays, startOfWeek, getDay, getDate } from 'date-fns';
@@ -53,10 +53,6 @@ export default function RutinasLuego({
   const resolvedTargetDate = useMemo(
     () => targetDate || getNormalizedToday(),
     [targetDate],
-  );
-  const targetDateStr = useMemo(
-    () => formatDateForAPI(resolvedTargetDate),
-    [resolvedTargetDate],
   );
   const isTargetToday = useMemo(
     () => isSameDay(resolvedTargetDate, getNormalizedToday()),

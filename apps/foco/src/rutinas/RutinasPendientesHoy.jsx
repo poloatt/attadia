@@ -57,10 +57,6 @@ export default function RutinasPendientesHoy({
     () => targetDate || getNormalizedToday(),
     [targetDate],
   );
-  const targetDateStr = useMemo(
-    () => formatDateForAPI(resolvedTargetDate),
-    [resolvedTargetDate],
-  );
   const isTargetToday = useMemo(
     () => isSameDay(resolvedTargetDate, getNormalizedToday()),
     [resolvedTargetDate],
