@@ -24,8 +24,15 @@ import { useAgendaFilter } from '../hooks/useAgendaFilter';
 import { useObjetivosLight } from '../hooks/useObjetivosLight';
 import { useTasksForList } from '../hooks/useTasksForList';
 import { isInAhora, isInLuego, isTaskCompleted } from '@shared/utils/agendaRules';
+import { useRutinas, useHabits } from '@shared/context';
+import { getNormalizedToday } from '@shared/utils/dateUtils';
+import { ensureRutinaForDate } from '../../../foco/ensureRutinaForDate';
+import RutinasPendientesHoy from '../../../rutinas/RutinasPendientesHoy';
+import RutinasLuego from '../../../rutinas/RutinasLuego';
 
 export function TasksListPage() {
+  const { fetchRutinas, getRutinaById } = useRutinas();
+  const { fetchHabits } = useHabits();
   const { tasks: tareas, setTasks: setTareas, loading, refetch: refetchTareas } = useTasksForList();
   const { objetivos, refetch: refetchObjetivos } = useObjetivosLight();
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -52,6 +59,33 @@ export function TasksListPage() {
       return isInAhora(t, now);
     });
   }, [tareas, showCompleted, isMobile]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const bootRutinas = async () => {
+      await Promise.all([
+        typeof fetchHabits === 'function' ? fetchHabits().catch(() => {}) : Promise.resolve(),
+        typeof fetchRutinas === 'function' ? fetchRutinas().catch(() => {}) : Promise.resolve(),
+      ]);
+      if (cancelled || typeof getRutinaById !== 'function') return;
+      await ensureRutinaForDate(getNormalizedToday(), {
+        rutinas: [],
+        getRutinaById,
+        fetchRutinas,
+      }).catch(() => {});
+    };
+
+    bootRutinas();
+    return () => { cancelled = true; };
+  }, [fetchRutinas, fetchHabits, getRutinaById]);
+
+  const habitCarouselSx = {
+    flexShrink: 0,
+    px: 1,
+    py: 0.5,
+    minHeight: 36,
+  };
 
   const tareasLuego = useMemo(() => {
     if (isMobile) return [];
@@ -465,10 +499,18 @@ export function TasksListPage() {
               <CircularProgress />
             </Box>
           ) : isMobile ? (
-            // Vista móvil: una columna según agendaView
-            <TareasTable
-              tareas={tareasAgenda}
-              agendaView={agendaView}
+            <>
+              <Box sx={habitCarouselSx}>
+                {agendaView === 'ahora' ? (
+                  <RutinasPendientesHoy variant="iconsRow" showDividers={false} />
+                ) : (
+                  <RutinasLuego variant="iconsRow" showDividers={false} />
+                )}
+              </Box>
+              <TareasTable
+                tareas={tareasAgenda}
+                agendaView={agendaView}
+                showHabitCarousel={false}
               showCompleted={showCompleted}
               groupingEnabled={true}
               onEdit={handleEdit}
@@ -483,6 +525,7 @@ export function TasksListPage() {
               onActivateMultiSelect={() => {}} // Ya no necesitamos esta función
               onRefreshData={fetchDataStable}
             />
+            </>
           ) : (
             // Vista desktop: dos columnas (AHORA y Luego)
             <Box sx={{ display: 'flex', gap: 2, height: '100%', overflow: 'hidden' }}>
@@ -506,6 +549,9 @@ export function TasksListPage() {
                   >
                     Ahora
                   </Typography>
+                </Box>
+                <Box sx={habitCarouselSx}>
+                  <RutinasPendientesHoy variant="iconsRow" showDividers={false} />
                 </Box>
                 <Box 
                   sx={{ 
@@ -532,6 +578,7 @@ export function TasksListPage() {
                   <TareasTable
                     tareas={tareasAhora}
                     agendaView="ahora"
+                    showHabitCarousel={false}
                     showCompleted={showCompleted}
                     groupingEnabled={true}
                     onEdit={handleEdit}
@@ -579,6 +626,9 @@ export function TasksListPage() {
                     Luego
                   </Typography>
                 </Box>
+                <Box sx={habitCarouselSx}>
+                  <RutinasLuego variant="iconsRow" showDividers={false} />
+                </Box>
                 <Box 
                   sx={{ 
                     flex: 1, 
@@ -604,6 +654,7 @@ export function TasksListPage() {
                   <TareasTable
                     tareas={tareasLuego}
                     agendaView="luego"
+                    showHabitCarousel={false}
                     showCompleted={showCompleted}
                     groupingEnabled={true}
                     onEdit={handleEdit}

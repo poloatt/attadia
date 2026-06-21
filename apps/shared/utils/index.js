@@ -19,3 +19,6 @@ export * from './timezoneConfig.js';
 export * from './visibilityUtils.js';
 export * from './agendaRules.js';
 export * from './taskListUtils.js';
+export * from './habitCompletionUtils.js';
+export * from './habitTimeLogic.js';
+export * from './habitSectionIcons.js';

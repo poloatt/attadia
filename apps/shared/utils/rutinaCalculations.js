@@ -1,4 +1,5 @@
 import { iconConfig, getIconByName } from './iconConfig.js';
+import { isHabitCompletedForHistorial } from './habitCompletionUtils.js';
 
 /**
  * Calcula los ítems visibles y completados para una rutina
@@ -67,7 +68,8 @@ export const calculateVisibleItems = (rutina, localDataBySection = {}, customHab
       visibleIds.forEach((itemId) => {
         const fromLocal = localData?.[itemId];
         const fromRutina = rutina?.[section]?.[itemId];
-        const isCompleted = (fromLocal !== undefined ? fromLocal : fromRutina) === true;
+        const itemValue = fromLocal !== undefined ? fromLocal : fromRutina;
+        const isCompleted = isHabitCompletedForHistorial(itemValue);
 
         visibleItems.push({ section, itemId, isCompleted });
         if (isCompleted) {

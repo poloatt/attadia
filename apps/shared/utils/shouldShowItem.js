@@ -2,6 +2,7 @@ import { debesMostrarHabitoEnFecha } from './cadenciaUtils';
 import { parseAPIDate, toISODateString, getNormalizedToday } from './dateUtils';
 import { getCurrentTimeOfDay } from './timeOfDayUtils';
 import { shouldShowHabitForCurrentTime } from './habitTimeLogic';
+import { isHabitCompletedForHistorial, isHabitFullyCompletedToday } from './habitCompletionUtils';
 
 /**
  * Determina sincrónicamente si un ítem debe mostrarse para una rutina dada.
@@ -58,19 +59,26 @@ export default function shouldShowItem(section, itemId, rutina, additionalData =
     const frecuencia = Number(config.frecuencia || 1);
     const progresoActual = Number(config.progresoActual || config.progress || 0);
     const ultimoPeriodo = config.ultimoPeriodo; // { inicio, fin } opcional
+    const itemValueForProgress = rutina?.[section]?.[itemId];
+    const horariosConfig = Array.isArray(config.horarios) ? config.horarios : [];
+
+    const hideByProgress = () => {
+      if (tipo === 'DIARIO') {
+        return isHabitFullyCompletedToday(itemValueForProgress, horariosConfig);
+      }
+      return true;
+    };
 
     if (ultimoPeriodo && ultimoPeriodo.inicio && ultimoPeriodo.fin) {
       const inicio = new Date(ultimoPeriodo.inicio);
       const fin = new Date(ultimoPeriodo.fin);
       if (fechaRutina >= inicio && fechaRutina <= fin) {
-        // Si el contador del período actual alcanza la frecuencia, ocultar
-        if (progresoActual >= frecuencia) {
+        if (progresoActual >= frecuencia && hideByProgress()) {
           return false;
         }
       }
     } else if (progresoActual >= frecuencia) {
-      // Si no hay información de período pero el progreso satisface la cuota, aplicar lógica mínima por tipo
-      if (tipo === 'DIARIO') {
+      if (tipo === 'DIARIO' && hideByProgress()) {
         return false;
       }
       // Para SEMANAL/MENSUAL sin período explícito, no podemos afirmar con certeza -> continuar a heurística
@@ -94,8 +102,9 @@ export default function shouldShowItem(section, itemId, rutina, additionalData =
         .filter(([, items]) => items && items[itemId] === true)
         .map(([dateStr]) => new Date(dateStr));
     }
-    // Incluir completación de hoy si la rutina marca el item como completado
-    if (rutina?.[section]?.[itemId] === true) {
+    // Incluir completación de hoy si la rutina marca el item como completado (boolean u objeto por horario)
+    const itemValue = rutina?.[section]?.[itemId];
+    if (isHabitCompletedForHistorial(itemValue)) {
       historial.push(fechaRutina);
     }
 

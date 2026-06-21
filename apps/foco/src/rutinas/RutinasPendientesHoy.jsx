@@ -1,22 +1,29 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Box, IconButton, Tooltip } from '@mui/material';
+import { Box, IconButton, Tooltip, CircularProgress } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useRutinas, useHabits } from '@shared/context';
-import { iconConfig, iconTooltips, getIconByName } from '@shared/utils/iconConfig';
-import { getNormalizedToday, parseAPIDate, toISODateString } from '@shared/utils/dateUtils';
-import { getVisibleItemIds } from '@shared/utils/visibilityUtils';
+import {
+  HABIT_SECTIONS,
+  DEFAULT_HABIT_ITEM_CONFIG,
+  buildHabitSectionIconsMap,
+  getCarouselSectionItemIds,
+  resolveRutinaForDate,
+} from '@shared/utils/habitSectionIcons';
+import { getNormalizedToday } from '@shared/utils/dateUtils';
 import { getCurrentTimeOfDay } from '@shared/utils/timeOfDayUtils';
-import { shouldShowHabitForCurrentTime, getHorarioToShow } from '@shared/utils/habitTimeLogic';
+import { getHorarioToShow } from '@shared/utils/habitTimeLogic';
 import { HabitCounterBadge } from '@shared/components/common/HabitCounterBadge';
 import { isSameDay, isSameWeek, isSameMonth, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays, getDay, getDate } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { contarCompletadosEnPeriodo, obtenerHistorialCompletados } from '@shared/utils/cadenciaUtils';
+import { isHabitCompletedForHistorial } from '@shared/utils/habitCompletionUtils';
 import useHorizontalDragScroll from './hooks/useHorizontalDragScroll';
+import useCarouselRutinaBoot from './hooks/useCarouselRutinaBoot';
 
 /**
  * RutinasPendientesHoy
  * - Render compacto para "pendientes de hoy" en formato fila de íconos.
- * - Muestra items DIARIOS o PERSONALIZADO con periodo CADA_DIA.
+ * - Muestra items DIARIOS activos (completados y pendientes), igual que RutinaCard colapsado.
  * - También muestra items SEMANALES/MENSUALES cuando faltan completados y los días restantes
  *   no alcanzan para cumplir la cuota (necesita hacer al menos 1 por día).
  * - Los items semanales/mensuales que no requieren acción diaria se muestran solo en RutinasLuego.
@@ -36,10 +43,8 @@ export default function RutinasPendientesHoy({
   targetDate,
 }) {
   const theme = useTheme();
-  const { rutina, rutinas, loading, fetchRutinas, markItemComplete } = useRutinas();
-  const { habits, fetchHabits } = useHabits();
-  const didFetchRef = useRef(false);
-  const didFetchHabitsRef = useRef(false);
+  const { rutina, rutinas, loading: rutinasLoading, markItemComplete } = useRutinas();
+  const { habits, loading: habitsLoading } = useHabits();
   const carouselRef = useRef(null);
   const isScrollingRef = useRef(false);
   // Umbral un poco mayor para que un "tap" con leve movimiento no se considere drag (especialmente en mobile)
@@ -53,7 +58,7 @@ export default function RutinasPendientesHoy({
     [targetDate],
   );
   const targetDateStr = useMemo(
-    () => toISODateString(resolvedTargetDate),
+    () => formatDateForAPI(resolvedTargetDate),
     [resolvedTargetDate],
   );
   const isTargetToday = useMemo(
@@ -63,123 +68,42 @@ export default function RutinasPendientesHoy({
   // Usar horario actual solo cuando la fecha seleccionada es hoy
   const currentTimeOfDay = isTargetToday ? getCurrentTimeOfDay() : 'MAÑANA';
 
-  const rutinaHoy = useMemo(() => {
-    const sameDay = (r) => {
-      try {
-        return toISODateString(parseAPIDate(r?.fecha)) === targetDateStr;
-      } catch {
-        return false;
-      }
-    };
+  const rutinaHoy = useMemo(
+    () => resolveRutinaForDate({ rutina, rutinas, targetDate: resolvedTargetDate }),
+    [rutina, rutinas, resolvedTargetDate],
+  );
 
-    // 1) Si la rutina seleccionada en el contexto coincide con la fecha, úsala
-    if (rutina && sameDay(rutina)) return rutina;
+  useCarouselRutinaBoot(resolvedTargetDate);
 
-    // 2) Buscar en el listado
-    const list = Array.isArray(rutinas) ? rutinas : [];
-    const found = list.find(sameDay);
-    return found || null;
-  }, [rutina, rutinas, targetDateStr]);
-
-  // Cargar hábitos personalizados al montar
-  useEffect(() => {
-    if (didFetchHabitsRef.current) return;
-    if (typeof fetchHabits !== 'function') return;
-    didFetchHabitsRef.current = true;
-    fetchHabits();
-  }, [fetchHabits]);
-
-  useEffect(() => {
-    if (didFetchRef.current) return;
-    if (rutinaHoy) return;
-    if (typeof fetchRutinas !== 'function') return;
-    // Importante: no depender de `loading` aquí. En RutinasContext, `loading` puede iniciar en true
-    // aun cuando nadie disparó `fetchRutinas()`; si nos bloqueamos, nunca se carga y no se renderiza.
-    didFetchRef.current = true;
-    fetchRutinas();
-  }, [rutinaHoy, fetchRutinas]);
-
-  // Construir mapa de iconos y labels usando hábitos personalizados o fallback
-  const sectionIconsMap = useMemo(() => {
-    const iconsMap = {};
-    const labelsMap = {};
-    const sections = ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'];
-    
-    sections.forEach((section) => {
-      iconsMap[section] = {};
-      labelsMap[section] = {};
-      
-      // Obtener hábitos personalizados de la sección
-      const sectionHabits = habits[section] || [];
-      
-      if (sectionHabits.length > 0) {
-        // Usar hábitos personalizados
-        sectionHabits
-          .filter(h => h.activo !== false)
-          .sort((a, b) => (a.orden || 0) - (b.orden || 0))
-          .forEach(habit => {
-            const Icon = getIconByName(habit.icon);
-            if (Icon) {
-              iconsMap[section][habit.id] = Icon;
-              labelsMap[section][habit.id] = habit.label || habit.name || habit.id;
-            }
-          });
-      }
-      
-      // Si no hay hábitos personalizados, usar iconConfig como fallback
-      if (Object.keys(iconsMap[section]).length === 0 && iconConfig[section]) {
-        Object.keys(iconConfig[section]).forEach(itemId => {
-          iconsMap[section][itemId] = iconConfig[section][itemId];
-          labelsMap[section][itemId] = iconTooltips?.[section]?.[itemId] || itemId;
-        });
-      }
-    });
-    
-    return { iconsMap, labelsMap };
-  }, [habits]);
+  const sectionIconsMap = useMemo(
+    () => buildHabitSectionIconsMap(habits),
+    [habits],
+  );
 
   const itemsHoy = useMemo(() => {
-    if (!rutinaHoy) return [];
-    const sections = Object.keys(sectionIconsMap.iconsMap || {});
     const items = [];
-    const itemsSet = new Set(); // Para evitar duplicados
+    const itemsSet = new Set();
 
-    sections.forEach((section) => {
+    HABIT_SECTIONS.forEach((section) => {
       const sectionIcons = sectionIconsMap.iconsMap[section] || {};
       const sectionCfg = rutinaHoy?.config?.[section] || {};
+      const itemIds = getCarouselSectionItemIds(section, sectionIconsMap.iconsMap, habits);
 
-      // Reusar la lógica unificada de visibilidad (cadencia + activo + horario)
-      const visibleItemIds = getVisibleItemIds(
-        sectionIcons,
-        section,
-        rutinaHoy,
-        sectionCfg,
-        rutinaHoy?.[section] || {},
-        currentTimeOfDay
-      );
+      itemIds.forEach((itemId) => {
+        if (!sectionIcons[itemId]) return;
 
-      visibleItemIds.forEach((itemId) => {
-        // Verificar si está completado: puede ser boolean (legacy) u objeto con horarios (nuevo formato)
+        const itemConfig = sectionCfg[itemId] || DEFAULT_HABIT_ITEM_CONFIG;
+        if (itemConfig.activo === false) return;
+
         const itemValue = rutinaHoy?.[section]?.[itemId];
-        const isObjectFormat = typeof itemValue === 'object' && itemValue !== null && !Array.isArray(itemValue);
-        const isBooleanFormat = typeof itemValue === 'boolean';
-        
-        // Si está en formato objeto, verificar si todos los horarios están completados
-        // Si está en formato boolean, verificar directamente
-        const completadoHoy = isObjectFormat 
-          ? Object.values(itemValue).every(Boolean) 
-          : (isBooleanFormat && itemValue === true);
-        
-        if (completadoHoy) return;
-        
-        // Verificar si el item ya fue agregado (evitar duplicados)
+        const horarios = Array.isArray(itemConfig.horarios) ? itemConfig.horarios : [];
+        const completadoHoy = isHabitCompletedForHistorial(itemValue);
+        const tipo = (itemConfig.tipo || 'DIARIO').toUpperCase();
+        const periodo = (itemConfig.periodo || 'CADA_DIA').toUpperCase();
+        const frecuencia = Number(itemConfig.frecuencia || 1);
+
         const itemKey = `${section}.${itemId}`;
         if (itemsSet.has(itemKey)) return;
-        
-        const itemConfig = sectionCfg[itemId];
-        const tipo = itemConfig?.tipo ? (itemConfig.tipo).toUpperCase() : 'DIARIO';
-        const periodo = itemConfig?.periodo ? (itemConfig.periodo).toUpperCase() : 'CADA_DIA';
-        const frecuencia = Number(itemConfig?.frecuencia || 1);
         
         // Incluir items diarios siempre
         if (tipo === 'DIARIO' || (tipo === 'PERSONALIZADO' && periodo === 'CADA_DIA')) {
@@ -193,6 +117,7 @@ export default function RutinasPendientesHoy({
         // entonces debe aparecer también en "Hoy" (además de "Luego")
         if (tipo === 'SEMANAL' || tipo === 'MENSUAL' || 
             (tipo === 'PERSONALIZADO' && (periodo === 'CADA_SEMANA' || periodo === 'CADA_MES'))) {
+          if (!rutinaHoy) return;
           
           const historial = obtenerHistorialCompletados(itemId, section, rutinaHoy);
           const hoy = new Date();
@@ -310,9 +235,9 @@ export default function RutinasPendientesHoy({
     });
 
     return items;
-  }, [rutinaHoy, sectionIconsMap]);
+  }, [rutinaHoy, sectionIconsMap, habits, currentTimeOfDay]);
 
-  // En Agenda "Hoy" queremos el comportamiento tipo TODO: solo pendientes.
+  // En Agenda "Ahora": todos los hábitos diarios activos (el estado completado se refleja en el ícono).
   const pendingItems = itemsHoy;
 
   // Para carrusel infinito: duplicar items al inicio y final
@@ -462,8 +387,16 @@ export default function RutinasPendientesHoy({
   // IMPORTANTE: a partir de aquí recién retornamos condicionalmente
   // para no romper el orden de Hooks (Rules of Hooks).
   if (variant !== 'iconsRow') return null;
-  if (!rutinaHoy) return null;
-  if (pendingItems.length === 0) return null;
+  if (carouselItems.length === 0) {
+    if (rutinasLoading || habitsLoading) {
+      return (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 36 }}>
+          <CircularProgress size={18} />
+        </Box>
+      );
+    }
+    return null;
+  }
 
   return (
     <Box
@@ -496,24 +429,6 @@ export default function RutinasPendientesHoy({
       {...bind}
     >
       {carouselItems
-        .filter(({ section, itemId }) => {
-          // Filtrar por horario actual: mostrar hábitos del horario actual o último no completado
-          const itemConfig = rutinaHoy?.config?.[section]?.[itemId] || {};
-          const horarios = Array.isArray(itemConfig.horarios) ? itemConfig.horarios : [];
-          // Si no tiene horarios configurados, mostrar siempre
-          if (horarios.length === 0) return true;
-          
-          // Verificar si el hábito está completado hoy (solo considerar el día de hoy)
-          // Puede ser boolean (legacy) u objeto con horarios (nuevo formato)
-          const itemValue = rutinaHoy?.[section]?.[itemId];
-          // Pasar el itemValue completo (puede ser objeto o boolean) para que shouldShowHabitForCurrentTime lo maneje
-          const completadoHoy = itemValue !== undefined ? itemValue : false;
-          const tipo = (itemConfig.tipo || 'DIARIO').toUpperCase();
-          const frecuencia = Number(itemConfig.frecuencia || 1);
-          
-          // Usar lógica mejorada que considera el último horario no completado
-          return shouldShowHabitForCurrentTime(horarios, currentTimeOfDay, completadoHoy, tipo, frecuencia);
-        })
         .map(({ section, itemId }, index) => {
         const Icon = sectionIconsMap.iconsMap[section]?.[itemId];
         const label = sectionIconsMap.labelsMap[section]?.[itemId] || itemId;

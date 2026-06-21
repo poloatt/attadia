@@ -5,6 +5,7 @@ import { getNormalizedToday, toISODateString, parseAPIDate } from '../utils/date
 import rutinasService from '../services/rutinasService';
 import { UISettingsContext } from './UISettingsContext';
 import { calculateCompletionPercentage } from '../utils/rutinaCalculations';
+import { isHabitCompletedForHistorial } from '../utils/habitCompletionUtils';
 
 // Construye historial de completaciones por sección/ítem a partir del logger por día
 // Forma: historial[section][itemId][YYYY-MM-DD] = true
@@ -30,7 +31,7 @@ const buildHistorialFromRutinas = (rutinasList = []) => {
       const sec = r?.[section];
       if (!sec || typeof sec !== 'object') return;
       Object.entries(sec).forEach(([itemId, completed]) => {
-        if (completed !== true) return;
+        if (!isHabitCompletedForHistorial(completed)) return;
         if (!historial[section][itemId]) historial[section][itemId] = {};
         historial[section][itemId][dateStr] = true;
       });

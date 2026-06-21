@@ -60,8 +60,8 @@ export const getVisibleItemIds = (sectionIcons, section, rutina, config, localDa
   const itemIds = Object.keys(sectionIcons || {});
   return itemIds.filter(itemId => {
     const itemConfig = config?.[itemId];
-    if (!itemConfig || itemConfig.activo === false) return false;
-    return shouldShowItemSync(section, itemId, rutina, itemConfig, localData, currentTimeOfDay);
+    if (itemConfig?.activo === false) return false;
+    return shouldShowItemSync(section, itemId, rutina, itemConfig || {}, localData, currentTimeOfDay);
   });
 };
 

@@ -7,6 +7,7 @@ export * from './GlobalFormEventListener.jsx';
 export * from './HabitsContext.jsx';
 export * from './NavigationBarContext.jsx';
 export * from './RutinasContext.jsx';
+export { default as RutinasContext } from './RutinasContext.jsx';
 export * from './SidebarContext.jsx';
 export * from './ThemeContext.jsx';
 export * from './UISettingsContext.jsx';

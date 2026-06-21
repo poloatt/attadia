@@ -1083,7 +1083,7 @@ export const TareaRow = ({ tarea, onEdit, onDelete, onUpdateEstado, isArchive = 
   );
 };
 
-const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea, onActivateMultiSelect, groupingEnabled = true, agendaView = 'ahora', showCompleted = false, onRefreshData }) => {
+const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = false, showValues, updateWithHistory, isMultiSelectMode = false, selectedTareas = [], onSelectTarea, onActivateMultiSelect, groupingEnabled = true, agendaView = 'ahora', showCompleted = false, onRefreshData, showHabitCarousel = true }) => {
   const [openTareaId, setOpenTareaId] = useState(null);
   const { isMobile, theme } = useResponsive();
   const { maskText } = useValuesVisibility();
@@ -1093,7 +1093,7 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
     : alpha(theme.palette.common.black, 0.06);
   const groupSubBg = surfaceBg;
   const groupDividerColor = sectionDividerColor;
-  const shouldShowRutinas = !isArchive && (agendaView === 'ahora' || agendaView === 'luego');
+  const shouldShowRutinas = showHabitCarousel && !isArchive && (agendaView === 'ahora' || agendaView === 'luego');
 
   // Función para manejar el toggle de apertura de tareas (comportamiento de acordeón)
   const handleToggleTarea = (tareaId) => {

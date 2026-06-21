@@ -1,5 +1,6 @@
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { parseAPIDate } from './dateUtils';
+import { isHabitCompletedForHistorial, isHabitFullyCompletedToday } from './habitCompletionUtils.js';
 
 export const getPeriodBounds = (tipo, refDate) => {
   const date = refDate instanceof Date ? refDate : (parseAPIDate(refDate) || new Date());
@@ -32,7 +33,8 @@ export const computeItemProgressFromRecords = (rutinas, section, itemId, refDate
       if (!r || !r.fecha) return;
       const d = parseAPIDate(r.fecha) || new Date(r.fecha);
       if (d >= inicio && d <= fin) {
-        if (r?.[section]?.[itemId] === true) {
+        const itemValue = r?.[section]?.[itemId];
+        if (isHabitCompletedForHistorial(itemValue)) {
           const key = d.toISOString().split('T')[0];
           uniques.add(key);
         }
@@ -59,7 +61,9 @@ export const reconcileRoutineProgressFromRecords = (rutina, rutinas) => {
         const { inicio, fin } = getPeriodBounds(tipo, refDate);
         let progreso = 0;
         if (tipo === 'DIARIO') {
-          progreso = updated?.[section]?.[itemId] ? 1 : 0;
+          const itemValue = updated?.[section]?.[itemId];
+          const horarios = Array.isArray(cfg?.horarios) ? cfg.horarios : [];
+          progreso = isHabitFullyCompletedToday(itemValue, horarios) ? 1 : 0;
         } else {
           progreso = computeItemProgressFromRecords(rutinas || [], section, itemId, refDate, tipo);
         }

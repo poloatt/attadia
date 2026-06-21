@@ -52,10 +52,9 @@ export const obtenerHistorialCompletados = (itemId, section, rutina) => {
  * @returns {Boolean} - Verdadero si el hábito debe mostrarse en esa fecha
  */
 export const debesMostrarHabitoEnFecha = (targetDate, cadenciaConfig, historialCompletado = []) => {
-  // Si la configuración está inactiva, no mostrar
-  if (!cadenciaConfig || !cadenciaConfig.activo) {
-    return false;
-  }
+  // Sin config: mostrar (alineado con shouldShowItem y RutinaCard)
+  if (!cadenciaConfig) return true;
+  if (cadenciaConfig.activo === false) return false;
 
   // Normalizar la fecha objetivo a las 12:00 para evitar problemas con horas
   const fechaObjetivo = new Date(targetDate);

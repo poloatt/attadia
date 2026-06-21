@@ -4,6 +4,7 @@ import WbSunnyIcon from '@mui/icons-material/WbSunny';
 import WbTwilightIcon from '@mui/icons-material/WbTwilight';
 import NightlightIcon from '@mui/icons-material/Nightlight';
 import { contarCompletadosEnPeriodo } from '@shared/utils/cadenciaUtils';
+import { isHabitCompletedForHistorial, isHabitHorarioCompleted } from '@shared/utils/habitCompletionUtils';
 
 /**
  * Componente Badge que muestra la frecuencia o el icono de horario de un hábito
@@ -72,7 +73,7 @@ export const HabitCounterBadge = ({
       let completados = contarCompletadosEnPeriodo(hoy, tipo, periodo || 'CADA_DIA', historialCompletado);
       
       // Verificar si el hábito está completado hoy y agregarlo si no está en el historial
-      const completadoHoy = rutina?.[section]?.[itemId] === true;
+      const completadoHoy = isHabitCompletedForHistorial(rutina?.[section]?.[itemId]);
       if (completadoHoy) {
         const hoyStr = hoy.toISOString().split('T')[0];
         const yaEstaEnHistorial = historialCompletado.some(fecha => {
@@ -114,22 +115,10 @@ export const HabitCounterBadge = ({
     if (horarios.length > 0) {
       const normalizedHorarios = horarios.map(h => String(h).toUpperCase());
       const normalizedTimeOfDay = String(currentTimeOfDay).toUpperCase();
-      
-      // Obtener estado de completitud del hábito (puede ser objeto o boolean)
       const itemValue = rutina?.[section]?.[itemId];
-      const isObjectFormat = typeof itemValue === 'object' && itemValue !== null && !Array.isArray(itemValue);
-      const isBooleanFormat = typeof itemValue === 'boolean';
-      
+
       // Función helper para verificar si un horario específico está completado
-      const isHorarioCompleted = (horario) => {
-        if (isObjectFormat) {
-          return itemValue[horario] === true;
-        } else if (isBooleanFormat) {
-          // En formato legacy, si está completado, todos los horarios están completados
-          return itemValue === true;
-        }
-        return false;
-      };
+      const isHorarioCompleted = (horario) => isHabitHorarioCompleted(itemValue, horario);
       
       // Orden de horarios del día (de más temprano a más tarde)
       const HORARIOS_ORDER = ['MAÑANA', 'TARDE', 'NOCHE'];
