@@ -1,4 +1,4 @@
-import { isDateOnlyDueInstant, parseTaskDate } from './agendaRules.js';
+import { isDateOnlyDueInstant, parseTaskDate } from './taskDateUtils.js';
 
 const SCHEDULE_HEADER = 'Horario Attadia:';
 const END_MARKERS = ['Subtareas:', 'Objetivo:', 'Proyecto:', 'Recurrencia:', '---', SCHEDULE_HEADER];
