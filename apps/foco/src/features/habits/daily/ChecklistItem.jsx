@@ -219,7 +219,7 @@ const ChecklistItem = ({
             <Box sx={rutinaChecklistTextColumnSx}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flex: 1, minWidth: 0 }}>
                 <Typography variant="body2" sx={rutinaChecklistLabelSx(isCompleted)}>
-                  {isCustomHabit ? habitLabel : itemId}
+                  {habitLabel || itemId}
                 </Typography>
               </Box>
               {/* Resumen de configuración centralizado */}

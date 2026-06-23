@@ -27,6 +27,8 @@ import {
   Inventory2Outlined, // inventario
   AttachMoneyOutlined, // bolsa de dinero (finanzas)
   FitnessCenterOutlined, // pesa de gym para rutinas
+  CleaningServicesOutlined,
+  SelfImprovementOutlined,
   ExpandLess,
   ExpandMore,
   FiberManualRecordOutlined,
@@ -71,6 +73,8 @@ export const icons = {
   inventario: Inventory2Outlined, // caja de inventario
   moneyBag: AttachMoneyOutlined, // bolsa de dinero (finanzas)
   fitnessCenter: FitnessCenterOutlined, // pesa de gym para rutinas
+  cleaningServices: CleaningServicesOutlined,
+  selfImprovement: SelfImprovementOutlined,
   bankConnections: AccountBalanceWalletOutlined, // billetera digital
   expandLess: ExpandLess,
   expandMore: ExpandMore,

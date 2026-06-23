@@ -4,10 +4,13 @@ import {
   hubSectionBg,
   hubSectionShellSx,
   hubSectionHeaderSx,
+  hubSectionTitleSx,
+  hubHeaderIconSx,
   hubSectionShellBodySx,
   hubGridContainerSx,
   hubGridItemSx,
   getHubSubsectionSx,
+  hubPageScrollSx,
 } from './hubSectionStyles';
 import {
   taskFormCaptionTextSx,
@@ -20,6 +23,15 @@ import {
 /** Ancho máximo del contenido de la página Rutinas (alineado con TareaForm / hub Foco). */
 export const RUTINA_PAGE_MAX_WIDTH = 900;
 
+/** Contenedor único: hero de fecha + cuerpo de página comparten max-width y padding horizontal. */
+export const rutinaPageContentShellSx = {
+  width: '100%',
+  maxWidth: RUTINA_PAGE_MAX_WIDTH,
+  mx: 'auto',
+  px: { xs: 1, sm: 2, md: 3 },
+  boxSizing: 'border-box',
+};
+
 export const rutinaPageMainSx = {
   width: '100%',
   flex: 1,
@@ -28,40 +40,17 @@ export const rutinaPageMainSx = {
 };
 
 export const rutinaPageContainerSx = {
-  width: '100%',
-  maxWidth: RUTINA_PAGE_MAX_WIDTH,
-  mx: 'auto',
-  px: { xs: 1, sm: 2, md: 3 },
+  ...rutinaPageContentShellSx,
   py: 0,
-  boxSizing: 'border-box',
   display: 'flex',
   flexDirection: 'column',
   gap: 0,
 };
 
-export function rutinaPageScrollSx(isMobile, bottomPadding) {
+export function rutinaPageScrollSx(isMobile, bottomPadding, extraTopOffset = 0) {
   return {
-    py: isMobile ? 1 : 2,
-    px: { xs: 1, sm: 2, md: 3 },
-    height: isMobile ? 'calc(100vh - 180px)' : 'calc(100vh - 190px)',
-    overflowY: 'auto',
-    pb: bottomPadding ?? (isMobile ? 4 : 6),
-    '&::-webkit-scrollbar': {
-      width: isMobile ? '4px' : '8px',
-    },
-    '&::-webkit-scrollbar-track': {
-      backgroundColor: (theme) =>
-        alpha(theme.palette.text.primary, theme.palette.mode === 'dark' ? 0.06 : 0.04),
-    },
-    '&::-webkit-scrollbar-thumb': {
-      backgroundColor: (theme) =>
-        alpha(theme.palette.text.primary, theme.palette.mode === 'dark' ? 0.18 : 0.12),
-      borderRadius: '4px',
-    },
-    '&::-webkit-scrollbar-thumb:hover': {
-      backgroundColor: (theme) =>
-        alpha(theme.palette.text.primary, theme.palette.mode === 'dark' ? 0.28 : 0.2),
-    },
+    ...hubPageScrollSx({ isMobile, bottomPadding, extraTopOffset }),
+    px: 0,
   };
 }
 
@@ -95,50 +84,71 @@ export const rutinaErrorStatePaperSx = {
 
 export const rutinaTableContainerSx = {
   width: '100%',
-  maxWidth: RUTINA_PAGE_MAX_WIDTH,
-  mx: 'auto',
-  px: { xs: 1, sm: 2, md: 3 },
-  py: 3,
   boxSizing: 'border-box',
 };
 
-export const rutinaGridContainerSx = hubGridContainerSx;
+export const rutinaGridContainerSx = {
+  ...hubGridContainerSx,
+  alignItems: 'stretch',
+};
 
-export const rutinaGridItemSx = hubGridItemSx;
+export const rutinaGridItemSx = {
+  ...hubGridItemSx,
+  display: 'flex',
+  '& > *': { width: '100%' },
+};
 
 /** Shell de sección (Cuidado Personal, Nutrición, etc.) — misma base que HubSectionShell. */
 export const rutinaSectionShellSx = {
   ...hubSectionShellSx,
-  mb: 1,
-  overflow: 'visible',
-  position: 'relative',
+  mb: 0,
+  width: '100%',
+  height: '100%',
+  overflow: 'hidden',
 };
 
 export function rutinaSectionHeaderSx(isExpanded) {
   return {
-    ...hubSectionHeaderSx,
-    px: 1,
-    py: 0.75,
-    minHeight: 32,
     display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: isExpanded ? 0 : 0.5,
+    overflow: 'hidden',
     borderBottom: isExpanded ? 1 : 0,
     borderColor: 'divider',
     cursor: 'pointer',
-    bgcolor: (theme) =>
-      alpha(theme.palette.text.primary, theme.palette.mode === 'dark' ? 0.04 : 0.03),
   };
 }
 
-export const rutinaSectionTitleSx = {
-  ...taskFormCaptionTextSx,
-  fontWeight: 700,
-  fontSize: '0.72rem',
-  letterSpacing: 0.2,
-  textTransform: 'uppercase',
-  pointerEvents: 'none',
+/** Fila superior de sección: cabecera tintada estilo hub + chevron. */
+export const rutinaSectionHeaderTopRowSx = {
+  ...hubSectionHeaderSx,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  width: '100%',
+  minWidth: 0,
+  gap: 0.5,
+  borderBottom: 0,
+  py: 0.75,
+  px: 1.25,
 };
+
+export const rutinaSectionTitleRowSx = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 0.75,
+  minWidth: 0,
+  flex: 1,
+};
+
+export const rutinaSectionTitleSx = {
+  ...hubSectionTitleSx,
+  textTransform: 'none',
+  letterSpacing: 0,
+};
+
+export const rutinaSectionHeaderIconSx = hubHeaderIconSx;
 
 export const rutinaSectionBodySx = {
   ...hubSectionShellBodySx,
@@ -200,8 +210,13 @@ export const rutinaCollapsedIconsRowSx = {
   display: 'flex',
   flexDirection: 'row',
   flexWrap: 'wrap',
-  gap: 0.3,
+  gap: 0.25,
   alignItems: 'center',
+  width: '100%',
+  minWidth: 0,
+  px: 1.25,
+  pb: 0.5,
+  bgcolor: hubSectionBg,
 };
 
 export const rutinaChecklistItemSx = {

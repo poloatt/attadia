@@ -5,10 +5,11 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { resolveBottomNavItems } from './appNavResolver';
 import { DynamicIcon } from '../components/common/DynamicIcon';
 import useResponsive from '../hooks/useResponsive';
-import { isRouteActive, navigateToAppPath, prefetchAppForPath } from '../utils/navigationUtils';
+import { getCurrentAppKey, isRouteActive, navigateToAppPath, prefetchAppForPath } from '../utils/navigationUtils';
 
 /**
- * Navegación inferior móvil: switcher Atta | Pulso | Agenda (hub de cada app).
+ * Navegación inferior móvil.
+ * Foco: páginas hijas. Atta/Pulso: switcher Atta | Pulso | Agenda.
  */
 export default function BottomNavigation() {
   const { theme } = useResponsive();
@@ -16,7 +17,10 @@ export default function BottomNavigation() {
   const location = useLocation();
   const currentPath = location.pathname;
 
-  const navItems = useMemo(() => resolveBottomNavItems(), []);
+  const navItems = useMemo(
+    () => resolveBottomNavItems(getCurrentAppKey()),
+    [currentPath],
+  );
 
   if (navItems.length === 0) return null;
 

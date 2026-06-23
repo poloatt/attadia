@@ -3,6 +3,7 @@ import { IconButton, Tooltip, Box, Dialog, DialogTitle, DialogContent, DialogAct
 import { Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon, Add as AddIcon, CheckBoxOutlined as MultiSelectIcon } from '@mui/icons-material';
 import { useSidebar } from '../../context/SidebarContext';
 import { useActionHistory, ACTION_TYPES } from '../../context/ActionHistoryContext';
+import { useUndoScope } from '../../hooks/useScopedUndo';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useValuesVisibility } from '../../context/ValuesVisibilityContext';
 import MenuIcon from '@mui/icons-material/MenuOutlined';
@@ -558,44 +559,85 @@ function HeaderVisibilityButton({ iconSx }) {
   return btn;
 }
 
-// HeaderUndoMenu
-function HeaderUndoMenu({ iconSx }) {
-  const { 
-    canUndo, 
-    undoLastAction, 
-    getUndoCount
+// ScopedUndoButton — deshacer filtrado por scope de página
+function ScopedUndoButton({ iconSx, buttonSx, scope: scopeProp, disabled = false }) {
+  const resolvedScope = useUndoScope();
+  const scope = scopeProp || resolvedScope;
+  const { isMobile: isMobileFromHook } = useResponsive();
+  const isMobile = typeof window !== 'undefined'
+    ? (isMobileFromHook || window.innerWidth < 600)
+    : isMobileFromHook;
+
+  const {
+    canUndoForScope,
+    undoLastForScope,
+    getUndoCountForScope,
+    canUndo: canUndoGlobal,
+    undoLastAction: undoLastGlobal,
+    getUndoCount: getGlobalUndoCount,
   } = useActionHistory();
-  // Ocultar completamente si no hay historial
-  if (!canUndo() || getUndoCount() === 0) {
+
+  const useScoped = Boolean(scope);
+  const hasUndo = useScoped
+    ? canUndoForScope(scope)
+    : canUndoGlobal();
+  const count = useScoped
+    ? getUndoCountForScope(scope)
+    : getGlobalUndoCount();
+
+  if (!hasUndo || count === 0) {
     return null;
   }
+
+  const getButtonSxValue = (key) => {
+    if (!buttonSx || !buttonSx[key]) return null;
+    const value = buttonSx[key];
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      return isMobile ? (value.xs || value.sm || value) : (value.sm || value.md || value.xs || value);
+    }
+    return value;
+  };
+
+  const { width, height, padding, '&:hover': hoverStyles, ...restButtonSx } = buttonSx || {};
+  const finalWidth = getButtonSxValue('width') ?? 32;
+  const finalHeight = getButtonSxValue('height') ?? 32;
+  const finalPadding = getButtonSxValue('padding') ?? 0.5;
+
   const handleUndoLastAction = () => {
-    const lastAction = undoLastAction();
+    const lastAction = useScoped
+      ? undoLastForScope(scope)
+      : undoLastGlobal();
     if (lastAction) {
       window.dispatchEvent(new CustomEvent('undoAction', {
-        detail: lastAction
+        detail: lastAction,
       }));
     }
   };
+
   return (
     <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-      <Tooltip title={canUndo() ? `Deshacer última acción (${getUndoCount()} disponible${getUndoCount() > 1 ? 's' : ''})` : 'No hay acciones para deshacer'}>
+      <Tooltip title={`Deshacer última acción (${count} disponible${count > 1 ? 's' : ''})`}>
         <span>
           <IconButton
             size="small"
-            onClick={canUndo() ? handleUndoLastAction : undefined}
+            onClick={handleUndoLastAction}
+            disabled={disabled}
             sx={{
-              width: 32,
-              height: 32,
-              padding: 0.5,
-              color: canUndo() ? 'inherit' : 'grey.500',
-              '&:hover': { color: canUndo() ? 'text.primary' : 'grey.500' },
-              position: 'relative'
+              width: finalWidth,
+              height: finalHeight,
+              padding: finalPadding,
+              color: 'text.secondary',
+              position: 'relative',
+              ...restButtonSx,
+              '&:hover': hoverStyles || {
+                backgroundColor: 'action.hover',
+                color: 'text.primary',
+              },
             }}
-            disabled={!canUndo()}
+            aria-label="Deshacer última acción"
           >
-            <UndoIcon sx={iconSx || { fontSize: 20 }} />
-            {canUndo() && getUndoCount() > 0 && (
+            <UndoIcon sx={iconSx || { fontSize: '1.1rem' }} />
+            {count > 0 && (
               <span
                 style={{
                   position: 'absolute',
@@ -604,10 +646,10 @@ function HeaderUndoMenu({ iconSx }) {
                   fontSize: '10px',
                   fontWeight: 'bold',
                   color: 'inherit',
-                  lineHeight: 1
+                  lineHeight: 1,
                 }}
               >
-                {getUndoCount() > 99 ? '99+' : getUndoCount()}
+                {count > 99 ? '99+' : count}
               </span>
             )}
           </IconButton>
@@ -617,7 +659,13 @@ function HeaderUndoMenu({ iconSx }) {
   );
 }
 
-// Marcar el componente como botón
+ScopedUndoButton.isButtonComponent = true;
+
+// HeaderUndoMenu — alias retrocompatible
+function HeaderUndoMenu(props) {
+  return <ScopedUndoButton {...props} />;
+}
+
 HeaderUndoMenu.isButtonComponent = true;
 
 // HeaderArchiveButton - acceso rápido a /archivo
@@ -964,6 +1012,7 @@ SystemButtons.ToolbarAddButton = ToolbarAddButton;
 SystemButtons.RefreshButton = HeaderRefreshButton;
 SystemButtons.VisibilityButton = HeaderVisibilityButton;
 SystemButtons.UndoMenu = HeaderUndoMenu;
+SystemButtons.ScopedUndoButton = ScopedUndoButton;
 SystemButtons.ArchiveButton = HeaderArchiveButton;
 SystemButtons.SyncButton = HeaderSyncButton;
 SystemButtons.RutinasButton = HeaderRutinasButton;

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import {
   CalendarTodayOutlined,
   DeleteOutlined,
@@ -8,10 +8,13 @@ import {
 } from '@mui/icons-material';
 import { SystemButtons } from '@shared/components/common/SystemButtons';
 import { ToolbarAddButton } from '@shared/components/common/ToolbarAddButton';
+import { useActionHistory } from '@shared/context/ActionHistoryContext';
+import { useUndoScope } from '@shared/hooks/useScopedUndo';
 import { getIconByKey } from '@shared/navigation/menuIcons';
 import { matchTiempoSection } from '@shared/navigation/tiempoToolbarPaths';
 import { TIEMPO_ICON_KEYS } from '@shared/navigation/tiempoIconKeys';
-import focoConfig from '../../config/app';
+import { toggleTareasPageView, useTareasPageView } from '../tasks/list/useTareasPageView';
+import FocoUndoButton from './FocoUndoButton';
 
 const TareasMenuIcon = getIconByKey(TIEMPO_ICON_KEYS.tareas);
 
@@ -21,11 +24,16 @@ const TareasMenuIcon = getIconByKey(TIEMPO_ICON_KEYS.tareas);
  */
 export default function TiempoToolbarActions({ section: sectionProp, dense = false }) {
   const { pathname } = useLocation();
-  const navigate = useNavigate();
   const section = sectionProp || matchTiempoSection(pathname);
   const [hasSelectedItems, setHasSelectedItems] = useState(false);
+  const tareasPageView = useTareasPageView();
+  const isTareasAgendaView = section === 'tareas' && tareasPageView === 'agenda';
+  const undoScope = useUndoScope();
+  const { actionHistory, getUndoCountForScope } = useActionHistory();
+  const undoCount = undoScope ? getUndoCountForScope(undoScope) : 0;
+  const showUndo = undoCount > 0;
 
-  const isQuickCreateSection = section === 'hub' || section === 'agenda' || section === 'foco';
+  const isQuickCreateSection = section === 'hub' || section === 'foco';
 
   useEffect(() => {
     const handleSelectionChange = (event) => {
@@ -51,16 +59,45 @@ export default function TiempoToolbarActions({ section: sectionProp, dense = fal
     },
   }), [dense]);
 
+  const undoAction = useMemo(() => (showUndo ? {
+    key: 'undo',
+    icon: <FocoUndoButton buttonSx={commonButtonSx} scope={undoScope} />,
+    label: 'Deshacer última acción',
+    tooltip: `Deshacer última acción (${undoCount})`,
+  } : null), [commonButtonSx, showUndo, undoCount, undoScope]);
+
   const actions = useMemo(() => {
+    if (section === 'archivo') {
+      return undoAction ? [undoAction] : [];
+    }
+
+    if (section === 'rutinas') {
+      return [
+        ...(undoAction ? [undoAction] : []),
+        {
+          key: 'personalizarRutina',
+          icon: <TuneOutlined />,
+          label: 'Personalizar hábitos',
+          tooltip: 'Personalizar hábitos',
+          buttonSx: commonButtonSx,
+          onClick: () => window.dispatchEvent(new CustomEvent('openHabitTemplates')),
+        },
+        {
+          key: 'add',
+          icon: (
+            <ToolbarAddButton
+              buttonSx={commonButtonSx}
+              aria-label="Agregar rutina"
+              onClick={() => window.dispatchEvent(new CustomEvent('addRutina'))}
+            />
+          ),
+          label: 'Agregar rutina',
+        },
+      ];
+    }
+
     const list = [
-      {
-        key: 'personalizarRutina',
-        icon: <TuneOutlined />,
-        label: 'Personalizar rutina',
-        tooltip: 'Personalizar mi rutina',
-        buttonSx: commonButtonSx,
-        onClick: () => window.dispatchEvent(new CustomEvent('openHabitTemplates')),
-      },
+      ...(undoAction ? [undoAction] : []),
       {
         key: 'googleTasks',
         icon: <GoogleIcon />,
@@ -69,21 +106,21 @@ export default function TiempoToolbarActions({ section: sectionProp, dense = fal
         buttonSx: commonButtonSx,
         onClick: () => window.dispatchEvent(new CustomEvent('openGoogleTasksConfig')),
       },
-      ...(section === 'hub' || section === 'tareas' ? [{
-        key: 'navAgenda',
-        icon: <CalendarTodayOutlined />,
-        label: 'Ir a Agenda',
-        tooltip: 'Ir a Agenda',
-        buttonSx: commonButtonSx,
-        onClick: () => navigate(focoConfig.routes.agenda),
-      }] : []),
-      ...(section === 'agenda' ? [{
-        key: 'navTareas',
-        icon: <TareasMenuIcon />,
-        label: 'Ir a Tareas',
-        tooltip: 'Ir a Tareas',
-        buttonSx: commonButtonSx,
-        onClick: () => navigate(focoConfig.routes.tareas),
+      ...(section === 'tareas' ? [{
+        key: 'toggleAgendaView',
+        icon: isTareasAgendaView ? <TareasMenuIcon /> : <CalendarTodayOutlined />,
+        label: isTareasAgendaView ? 'Ver lista' : 'Ver agenda',
+        tooltip: isTareasAgendaView ? 'Ver lista de tareas' : 'Ver agenda',
+        color: isTareasAgendaView ? 'primary.main' : 'text.secondary',
+        hoverColor: 'primary.main',
+        buttonSx: {
+          ...commonButtonSx,
+          ...(isTareasAgendaView && {
+            bgcolor: 'action.selected',
+            '&:hover': { bgcolor: 'action.selected' },
+          }),
+        },
+        onClick: () => toggleTareasPageView(tareasPageView),
       }] : []),
       {
         key: 'deleteSelected',
@@ -131,9 +168,10 @@ export default function TiempoToolbarActions({ section: sectionProp, dense = fal
     });
 
     return list;
-  }, [commonButtonSx, hasSelectedItems, isQuickCreateSection, navigate, section]);
+  }, [actionHistory, commonButtonSx, hasSelectedItems, isQuickCreateSection, isTareasAgendaView, section, tareasPageView, undoAction]);
 
   if (!section) return null;
+  if (actions.length === 0) return null;
 
   return (
     <SystemButtons

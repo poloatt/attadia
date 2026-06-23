@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '../config/axios';
 import { getNormalizedToday, toISODateString, parseAPIDate } from '../utils/dateUtils';
@@ -7,6 +8,17 @@ import { UISettingsContext } from './UISettingsContext';
 import { calculateCompletionPercentage } from '../utils/rutinaCalculations';
 import { isHabitCompletedForHistorial } from '../utils/habitCompletionUtils';
 import { normalizeTimeOfDay } from '../utils/timeOfDayUtils';
+import { invalidateHabitsPreferencesCache } from '@foco/features/habits/carousel/hooks/useHabitsPreferences';
+import { resolveUndoScope } from '../config/undoScopeConfig';
+import { useScopedActionHistory } from '../hooks/useScopedUndo';
+import { ACTION_TYPES } from './ActionHistoryContext';
+import {
+  recordRutinaSectionAction,
+  recordRutinaConfigAction,
+  recordRutinaCrudAction,
+} from '../undo/undoRecordingUtils';
+
+const SCOPES_WITH_SECTION_UNDO = new Set(['tareas', 'hub', 'rutinas']);
 
 // Construye historial de completaciones por sección/ítem a partir del logger por día
 // Forma: historial[section][itemId][YYYY-MM-DD] = true
@@ -64,6 +76,10 @@ export const useRutinas = () => {
 
 // Provider del contexto
 export const RutinasProvider = ({ children }) => {
+  const location = useLocation();
+  const undoScope = resolveUndoScope(location.pathname);
+  const undoRecorder = useScopedActionHistory(undoScope);
+
   // Estados básicos
   const [rutina, setRutina] = useState(null);
   const [rutinas, setRutinas] = useState([]);
@@ -354,6 +370,9 @@ export const RutinasProvider = ({ children }) => {
       console.error('[RutinasContext] Datos incompletos para marcar ítem');
       return;
     }
+
+    const rutinaBefore = rutinas.find((r) => r._id === rutinaId)
+      || (rutina?._id === rutinaId ? rutina : null);
     
     try {
       // Actualizar en el servidor
@@ -410,13 +429,26 @@ export const RutinasProvider = ({ children }) => {
         }
       }
       
+      if (undoScope && SCOPES_WITH_SECTION_UNDO.has(undoScope)) {
+        Object.entries(data).forEach(([itemId, newValue]) => {
+          const previousValue = rutinaBefore?.[section]?.[itemId];
+          recordRutinaSectionAction(undoRecorder, {
+            rutinaId,
+            section,
+            itemId,
+            newValue,
+            previousValue,
+          });
+        });
+      }
+
       return response;
     } catch (error) {
       console.error('[RutinasContext] Error al marcar ítem:', error);
       enqueueSnackbar('Error al marcar ítem', { variant: 'error' });
       throw error;
     }
-  }, [rutinas, rutina, enqueueSnackbar, patchRutinaSection]);
+  }, [rutinas, rutina, enqueueSnackbar, patchRutinaSection, undoScope, undoRecorder]);
 
   // Parche local de config para un ítem (refresca SOLO lo necesario sin recargar toda la página)
   const patchRutinaItemConfig = useCallback((rutinaId, section, itemId, nextConfig) => {
@@ -502,14 +534,17 @@ export const RutinasProvider = ({ children }) => {
       // #region agent log
       // #endregion
 
-      // Actualizar preferencias globales del usuario
+      // Actualizar preferencias globales y propagar a rutinas desde hoy
       await clienteAxios.put('/api/users/preferences/habits', {
         habits: {
           [section]: {
             [itemId]: normalizedConfig
           }
-        }
-      });
+        },
+        applyFrom: 'today',
+      }, { params: { applyFrom: 'today' } });
+
+      invalidateHabitsPreferencesCache();
 
       // #region agent log
       // #endregion
@@ -558,6 +593,10 @@ export const RutinasProvider = ({ children }) => {
     }
 
     try {
+      const originalConfig = rutina?.config?.[section]?.[itemId]
+        ? { ...rutina.config[section][itemId] }
+        : null;
+
       // Normalizar configuración - incluir todos los campos necesarios
       const normalizedConfig = {
         tipo: (config.tipo || 'DIARIO').toUpperCase(),
@@ -623,9 +662,17 @@ export const RutinasProvider = ({ children }) => {
       // NOTA: Si isGlobal es true, patchRutinaItemConfig ya fue llamado por updateUserHabitPreference
       // Pero lo llamamos de nuevo para asegurar que la UI se actualiza
       patchRutinaItemConfig(targetRutinaId, section, itemId, normalizedConfig);
-      
-      // #region agent log
-      // #endregion
+
+      if (undoScope === 'rutinas') {
+        recordRutinaConfigAction(undoRecorder, {
+          rutinaId: targetRutinaId,
+          section,
+          itemId,
+          newConfig: normalizedConfig,
+          originalConfig,
+          isGlobal,
+        });
+      }
       
       enqueueSnackbar("Configuración guardada", { variant: "success" });
       return { updated: true, config: normalizedConfig };
@@ -634,7 +681,7 @@ export const RutinasProvider = ({ children }) => {
       handleError(error, 'updateItemConfiguration', 'Error inesperado al actualizar configuración');
       return { updated: false, error: error.message };
     }
-  }, [rutina, enqueueSnackbar, handleError, autoUpdateHabitPreferences, patchRutinaItemConfig, updateUserHabitPreference]);
+  }, [rutina, enqueueSnackbar, handleError, autoUpdateHabitPreferences, patchRutinaItemConfig, updateUserHabitPreference, undoScope, undoRecorder]);
 
   // Eliminar una rutina
   const deleteRutina = useCallback(async (rutinaId) => {
@@ -644,6 +691,7 @@ export const RutinasProvider = ({ children }) => {
     }
     try {
       setLoading(true);
+      const rutinaToDelete = rutinas.find((r) => r._id === rutinaId) || rutina;
       await rutinasService.deleteRutina(rutinaId);
       setRutinas(prevRutinas => {
         const newRutinas = prevRutinas.filter(r => r._id !== rutinaId);
@@ -664,6 +712,9 @@ export const RutinasProvider = ({ children }) => {
         setTotalPages(rutinasWithHist.length);
         return rutinasWithHist;
       });
+      if (undoScope === 'rutinas' && rutinaToDelete) {
+        recordRutinaCrudAction(undoRecorder, ACTION_TYPES.DELETE, null, rutinaToDelete);
+      }
       enqueueSnackbar('Rutina eliminada correctamente', { variant: 'success' });
       return true;
     } catch (error) {
@@ -673,7 +724,7 @@ export const RutinasProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [rutina, enqueueSnackbar]);
+  }, [rutina, rutinas, enqueueSnackbar, undoScope, undoRecorder]);
 
   // Sincronizar rutina con configuración global
   const syncRutinaWithGlobal = useCallback(async (rutinaId) => {

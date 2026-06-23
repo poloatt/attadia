@@ -7,14 +7,38 @@ import {
   getTaskHorizonCopy,
   TASK_HORIZON_GROUP_ARIA,
 } from '@shared/copy/agendaTerminology';
+import { TAREAS_TOOLBAR_OPTION_MIN_WIDTH } from './tareasToolbarLayout';
 
 const OPTIONS = ['ahora', 'luego'].map((value) => ({
   value,
   ...getTaskHorizonCopy(value),
 }));
 
+/** Ancho fijo por opción para que el peso activo no mueva la barra. */
+const OPTION_MIN_WIDTH = TAREAS_TOOLBAR_OPTION_MIN_WIDTH;
+
+const toggleGroupSx = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 0.75,
+  flexShrink: 0,
+  minHeight: 26,
+  height: 26,
+  userSelect: 'none',
+};
+
+const separatorSx = (theme) => ({
+  fontSize: '0.75rem',
+  lineHeight: 1,
+  width: '0.35rem',
+  textAlign: 'center',
+  flexShrink: 0,
+  color: alpha(theme.palette.text.secondary, 0.35),
+  fontWeight: 300,
+});
+
 /**
- * Selector "Ahora | Luego" para Hub y Tareas.
+ * Selector "Ahora | Luego" para Tareas.
  * Emite eventos: agendaViewChanged { view }
  */
 export default function AgendaToolbarCenter() {
@@ -22,7 +46,7 @@ export default function AgendaToolbarCenter() {
   const [agendaView, setAgendaView] = useState('ahora');
   const theme = useTheme();
 
-  if (!['tareas', 'hub'].includes(matchTiempoSection(pathname))) {
+  if (matchTiempoSection(pathname) !== 'tareas') {
     return null;
   }
 
@@ -36,60 +60,50 @@ export default function AgendaToolbarCenter() {
 
   return (
     <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 0.75,
-        flexShrink: 0,
-        userSelect: 'none',
-      }}
+      sx={toggleGroupSx}
       role="group"
       aria-label={TASK_HORIZON_GROUP_ARIA}
     >
-      {OPTIONS.map((option, index) => (
-        <React.Fragment key={option.value}>
-          {index > 0 && (
-            <Typography
-              component="span"
+      {OPTIONS.map((option, index) => {
+        const isActive = agendaView === option.value;
+        return (
+          <React.Fragment key={option.value}>
+            {index > 0 && (
+              <Typography component="span" sx={separatorSx(theme)} aria-hidden>
+                |
+              </Typography>
+            )}
+            <Box
+              component="button"
+              type="button"
+              onClick={() => handleSelect(option.value)}
+              aria-pressed={isActive}
               sx={{
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                p: 0,
+                m: 0,
+                font: 'inherit',
                 fontSize: '0.75rem',
-                lineHeight: 1,
-                color: alpha(theme.palette.text.secondary, 0.35),
-                fontWeight: 300,
+                lineHeight: 1.2,
+                minWidth: OPTION_MIN_WIDTH,
+                textAlign: 'center',
+                fontWeight: 700,
+                color: isActive ? 'text.primary' : inactiveColor,
+                opacity: isActive ? 1 : 0.55,
+                transition: 'color 0.15s ease, opacity 0.15s ease',
+                '&:hover': {
+                  color: isActive ? 'text.primary' : 'text.secondary',
+                  opacity: 1,
+                },
               }}
-              aria-hidden
             >
-              |
-            </Typography>
-          )}
-          <Box
-            component="button"
-            type="button"
-            onClick={() => handleSelect(option.value)}
-            aria-pressed={agendaView === option.value}
-            sx={{
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              p: 0,
-              m: 0,
-              font: 'inherit',
-              fontSize: '0.75rem',
-              lineHeight: 1.2,
-              fontWeight: agendaView === option.value ? 700 : 400,
-              color: agendaView === option.value ? 'text.primary' : inactiveColor,
-              opacity: agendaView === option.value ? 1 : 0.85,
-              transition: 'color 0.15s ease, opacity 0.15s ease',
-              '&:hover': {
-                color: agendaView === option.value ? 'text.primary' : 'text.secondary',
-                opacity: 1,
-              },
-            }}
-          >
-            {option.label}
-          </Box>
-        </React.Fragment>
-      ))}
+              {option.label}
+            </Box>
+          </React.Fragment>
+        );
+      })}
     </Box>
   );
 }

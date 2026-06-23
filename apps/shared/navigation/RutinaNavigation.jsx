@@ -9,7 +9,6 @@ import {
   Tooltip,
   LinearProgress,
   useMediaQuery,
-  Popover,
   Menu,
   MenuItem,
   ListItemIcon,
@@ -22,8 +21,7 @@ import {
   CalendarMonthOutlined as CalendarMonthIcon,
   DeleteOutline as DeleteIcon,
   AddOutlined as AddIcon,
-  Undo as UndoIcon,
-  SettingsOutlined as SettingsIcon,
+  TuneOutlined as TuneIcon,
   CheckCircleOutline as RutinaIcon,
   FitnessCenter as HabitIcon
 } from '@mui/icons-material';
@@ -38,13 +36,13 @@ import {
   shiftCalendarDate,
 } from '../utils/focoNavigationUtils.js';
 import CalendarDatePickerPopover from '@foco/features/agenda/CalendarDatePickerPopover';
+import AgendaCalendarDateHeader from '@foco/features/agenda/AgendaCalendarDateHeader';
 import { useRutinas } from '../context/RutinasContext.jsx';
+import { useHabits } from '../context/HabitsContext.jsx';
 import { calculateCompletionPercentage, calculateVisibleItems } from '../utils/rutinaCalculations';
+import { getRutinaDayMode } from '../utils/rutinasPageUtils.js';
 import { NAV_TYPO } from '../config/uiConstants';
-import { useActionHistory } from '../context/ActionHistoryContext';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { StaticDatePicker } from '@mui/x-date-pickers/StaticDatePicker';
+import { DATE_HEADER_MIN_HEIGHT } from '../utils/calendar/calendarLayout';
 import HabitFormDialog from '../components/HabitFormDialog';
 import TiempoToolbarActions from '@foco/features/toolbar/TiempoToolbarActions';
 import useResponsive from '../hooks/useResponsive';
@@ -65,16 +63,14 @@ const RutinaNavigation = ({
   navigationMode = 'rutina',
   /** Barra superior unificada (/foco): una fila sin progress ni chips. */
   compactBar = false,
+  /** Barra de página bajo AgendaUnifiedBar (solo /rutinas). */
+  pageBar = false,
 }) => {
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.down('sm'));
   const { isMobile } = useResponsive();
   const { handlePrevious, handleNext, deleteRutina, rutinas, getRutinaById } = useRutinas();
-  const { 
-    canUndo, 
-    undoLastAction, 
-    getUndoCount
-  } = useActionHistory();
+  const { habits } = useHabits();
   
   // Estado para el picker de fecha
   const [datePickerAnchor, setDatePickerAnchor] = useState(null);
@@ -209,17 +205,6 @@ const RutinaNavigation = ({
     }
   };
 
-  const handleUndo = () => {
-    if (canUndo()) {
-      const lastAction = undoLastAction();
-      if (lastAction) {
-        window.dispatchEvent(new CustomEvent('undoAction', {
-          detail: lastAction
-        }));
-      }
-    }
-  };
-
   // Handler para abrir el picker de fecha
   const handleDateClick = (event) => {
     setDatePickerAnchor(event.currentTarget);
@@ -295,6 +280,7 @@ const RutinaNavigation = ({
     }
   }, [calendarDate, isCalendarNav, effectiveCalendarMode, rutina?.fecha]);
 
+
   // Estilo común para botones (igual que AgendaToolbarRight)
   const commonButtonSx = useMemo(() => ({
     width: { xs: 32, sm: 26 },
@@ -312,14 +298,14 @@ const RutinaNavigation = ({
 
   const { completionPercentage, totalVisible, totalCompleted } = useMemo(() => {
     if (!rutina) return { completionPercentage: 0, totalVisible: 0, totalCompleted: 0 };
-    const completionPercentage = calculateCompletionPercentage(rutina);
-    const { visibleItems, completedItems } = calculateVisibleItems(rutina);
+    const completionPercentage = calculateCompletionPercentage(rutina, habits);
+    const { visibleItems, completedItems } = calculateVisibleItems(rutina, {}, habits);
     return {
       completionPercentage,
       totalVisible: visibleItems.length,
       totalCompleted: completedItems.length
     };
-  }, [rutina]);
+  }, [rutina, habits]);
 
   const progressColor = completionPercentage > 75
     ? 'success'
@@ -336,16 +322,30 @@ const RutinaNavigation = ({
     : 'Sin ítems activos';
 
   const dayHeader = formatCalendarDayHeader(isCalendarNav ? calendarDate : null);
-  const viewingToday = isCalendarNav && isViewingTodayInCalendar(currentDate, effectiveCalendarMode);
+  const viewingToday = isCalendarNav
+    ? isViewingTodayInCalendar(currentDate, effectiveCalendarMode)
+    : (() => {
+      if (!rutina?.fecha) return false;
+      try {
+        const todayStr = formatDateForAPI(getTodayCalendarDate());
+        return formatDateForAPI(parseAPIDate(rutina.fecha)) === todayStr;
+      } catch {
+        return false;
+      }
+    })();
   const compactCalendar = compactBar && isCalendarNav;
   const hideCompactDateInBar = compactCalendar && isMobile;
 
+  const rutinaPositionLabel = !isCalendarNav && totalPages > 0
+    ? `${currentPage} / ${totalPages}`
+    : '';
+
   const prevTooltip = isCalendarNav
     ? (effectiveCalendarMode === 'week' ? 'Semana anterior' : 'Día anterior')
-    : 'Rutina más reciente';
+    : 'Día anterior';
   const nextTooltip = isCalendarNav
     ? (effectiveCalendarMode === 'week' ? 'Semana siguiente' : 'Día siguiente')
-    : 'Rutina siguiente';
+    : 'Día más reciente';
 
   const navChevrons = (
     <Box sx={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
@@ -573,6 +573,58 @@ const RutinaNavigation = ({
     </Box>
   ) : null;
 
+  const rutinaNavHandlers = useMemo(() => ({
+    // Lista ordenada: índice 0 = más reciente. ‹ = más antiguo, › = más reciente.
+    onPrevious: onNext,
+    onNext: onPrevious,
+    prevTooltip: 'Día anterior',
+    nextTooltip: 'Día más reciente',
+    prevDisabled: nextDisabled,
+    nextDisabled: prevDisabled,
+  }), [onPrevious, onNext, prevDisabled, nextDisabled]);
+
+  const rutinaDayMode = useMemo(
+    () => (rutina?.fecha ? getRutinaDayMode(rutina.fecha) : null),
+    [rutina?.fecha],
+  );
+
+  const rutinaPositionSubtitle = rutinaPositionLabel
+    ? `registro ${rutinaPositionLabel.replace(' / ', ' de ')}`
+    : '';
+
+  if (pageBar && !isCalendarNav) {
+    return (
+      <>
+        <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ width: '100%', minHeight: DATE_HEADER_MIN_HEIGHT }}>
+            <AgendaCalendarDateHeader
+              mode="rutina"
+              date={currentDate}
+              onDateClick={handleDateClick}
+              loading={loading}
+              viewingToday={viewingToday}
+              positionLabel={rutinaPositionSubtitle}
+              navHandlers={rutinaNavHandlers}
+              pickerOpen={datePickerOpen}
+              pickerAnchor={datePickerAnchor}
+              onPickerClose={handleDatePickerClose}
+              onDateChange={handleDateChange}
+              completionPercentage={completionPercentage}
+              completionColor={progressColor}
+              completionTooltip={completionTooltip}
+              dayMode={rutinaDayMode}
+              hideOuterBorder
+            />
+          </Box>
+        </Box>
+        <HabitFormDialog
+          open={habitDialogOpen}
+          onClose={() => setHabitDialogOpen(false)}
+        />
+      </>
+    );
+  }
+
   if (compactCalendar) {
     return (
       <Box
@@ -595,13 +647,20 @@ const RutinaNavigation = ({
   }
 
   return (
-    <Box sx={{ mb: 1 }}>
+    <Box sx={{
+      mb: pageBar ? 0 : 1,
+      width: '100%',
+      height: pageBar ? '100%' : 'auto',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+    }}>
       <LinearProgress
         variant="determinate"
         value={completionPercentage}
         color={progressColor}
         aria-label="Progreso de completitud de la rutina"
-        sx={{ height: 2, borderRadius: 0, mb: 1 }}
+        sx={{ height: 2, borderRadius: 0, mb: pageBar ? 0 : 1, flexShrink: 0 }}
       />
 
       <Box
@@ -610,15 +669,17 @@ const RutinaNavigation = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: { xs: 0.02, sm: 0.1 },
-          px: { xs: 0.25, sm: 0.5 },
-          py: 0.5,
+          px: pageBar ? 0 : { xs: 0.25, sm: 0.5 },
+          py: pageBar ? 0 : 0.5,
           width: '100%',
           flexWrap: 'nowrap',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          flex: 1,
+          minHeight: 0,
         }}
       >
         {/* Izquierda: atrás + fecha */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 0.75 }, minWidth: 0, flex: isCalendarNav ? 1 : undefined }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 0.75 }, minWidth: 0, flex: (isCalendarNav || pageBar) ? 1 : undefined }}>
           {!isCalendarNav && (
             <Tooltip title={prevTooltip}>
               <span>
@@ -651,7 +712,7 @@ const RutinaNavigation = ({
               {datePickerPopover}
             </>
           ) : (
-            <Tooltip title="Ir a hoy">
+            <Tooltip title={viewingToday ? 'Ya estás en hoy' : 'Ir a hoy'}>
               <Typography
                 variant={isXs ? NAV_TYPO.captionVariant : NAV_TYPO.itemVariant}
                 component="div"
@@ -660,123 +721,72 @@ const RutinaNavigation = ({
                   fontWeight: 700,
                   ...(isXs ? {} : NAV_TYPO.compactBodySx),
                   lineHeight: 1.2,
-                  color: 'text.secondary',
+                  color: viewingToday ? 'primary.main' : 'text.secondary',
                   minWidth: 0,
                   maxWidth: { xs: 96, sm: 160, md: 240 },
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                  cursor: 'pointer',
-                  '&:hover': { color: 'text.primary', textDecoration: 'underline' },
+                  cursor: viewingToday ? 'default' : 'pointer',
+                  '&:hover': viewingToday
+                    ? {}
+                    : { color: 'text.primary', textDecoration: 'underline' },
                 }}
               >
                 {navDateLabel}
+                {rutinaPositionLabel ? (
+                  <Box
+                    component="span"
+                    sx={{ ml: 0.5, color: 'text.disabled', fontWeight: 500, fontSize: '0.7rem' }}
+                  >
+                    ({rutinaPositionLabel})
+                  </Box>
+                ) : null}
               </Typography>
             </Tooltip>
           )}
         </Box>
 
-        {/* Centro: acciones (foco) o legacy rutinas */}
+        {/* Centro: acciones agenda o rutinas legacy (no pageBar) */}
+        {(!pageBar || isCalendarNav) && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.02, sm: 0.1 }, flex: 1, justifyContent: 'center', minWidth: 0 }}>
           {isCalendarNav && (
             <TiempoToolbarActions section="foco" dense />
           )}
-          {!isCalendarNav && (
+          {!isCalendarNav && !pageBar && (
             <>
-          <Tooltip title="Seleccionar fecha">
+          <Tooltip title="Elegir fecha">
             <span>
               <IconButton
                 size="small"
                 onClick={handleDateClick}
                 disabled={loading}
                 sx={commonButtonSx}
-                aria-label="Seleccionar fecha"
+                aria-label="Elegir fecha"
               >
-                <SettingsIcon fontSize="small" />
+                <CalendarMonthIcon fontSize="small" />
               </IconButton>
             </span>
           </Tooltip>
-          <Popover
+          <CalendarDatePickerPopover
             open={datePickerOpen}
             anchorEl={datePickerAnchor}
             onClose={handleDatePickerClose}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'center' }}
-          >
-            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-              <StaticDatePicker
-                displayStaticWrapperAs="mobile"
-                value={currentDate}
-                onChange={handleDateChange}
-                views={['year', 'month', 'day']}
-                openTo="day"
-                showToolbar={false}
-                componentsProps={{ actionBar: { actions: [] } }}
-                renderInput={() => null}
-              />
-            </LocalizationProvider>
-          </Popover>
+            value={currentDate}
+            onChange={handleDateChange}
+          />
           {onSettingsClick && (
-            <Tooltip title="Personalizar mi rutina">
+            <Tooltip title="Personalizar hábitos">
               <span>
-                <IconButton size="small" onClick={onSettingsClick} disabled={loading} sx={commonButtonSx} aria-label="Personalizar mi rutina">
-                  <SettingsIcon />
+                <IconButton size="small" onClick={onSettingsClick} disabled={loading} sx={commonButtonSx} aria-label="Personalizar hábitos">
+                  <TuneIcon fontSize="small" />
                 </IconButton>
               </span>
             </Tooltip>
           )}
             </>
           )}
-          {/* Botón Undo - solo mostrar si hay acciones para deshacer */}
-          {canUndo() && getUndoCount() > 0 && (
-            <Tooltip title={canUndo() ? `Deshacer última acción (${getUndoCount()} disponible${getUndoCount() > 1 ? 's' : ''})` : 'No hay acciones para deshacer'}>
-              <span>
-                <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <IconButton
-                    size="small"
-                    onClick={handleUndo}
-                    disabled={!canUndo() || loading}
-                    sx={{ 
-                      ...commonButtonSx,
-                      position: 'relative',
-                      color: (!canUndo() || loading) ? 'text.disabled' : 'text.secondary',
-                      '&:hover': {
-                        backgroundColor: (!canUndo() || loading) ? 'transparent' : 'action.hover',
-                        color: (!canUndo() || loading) ? 'text.disabled' : 'text.primary'
-                      }
-                    }}
-                    aria-label="Deshacer última acción"
-                  >
-                    <UndoIcon />
-                    {canUndo() && getUndoCount() > 0 && (
-                      <span
-                        style={{
-                          position: 'absolute',
-                          top: '-2px',
-                          right: '-2px',
-                          fontSize: '9px',
-                          fontWeight: 'bold',
-                          color: '#fff',
-                          lineHeight: 1,
-                          backgroundColor: '#888',
-                          borderRadius: '50%',
-                          width: '16px',
-                          height: '16px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          border: '1px solid rgba(0,0,0,0.2)'
-                        }}
-                      >
-                        {getUndoCount() > 99 ? '99+' : getUndoCount()}
-                      </span>
-                    )}
-                  </IconButton>
-                </Box>
-              </span>
-            </Tooltip>
-          )}
-          {!isCalendarNav && (
+          {!isCalendarNav && !pageBar && (
             <>
           <Tooltip title="Agregar">
             <span>
@@ -865,9 +875,28 @@ const RutinaNavigation = ({
             </>
           )}
         </Box>
+        )}
 
-        {/* Derecha: porcentaje + siguiente */}
+        {/* Derecha: acciones + porcentaje + siguiente */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 0.75 }, minWidth: 0 }}>
+          {pageBar && !isCalendarNav && (
+            <Tooltip title="Eliminar rutina">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={handleDelete}
+                  disabled={loading || !rutina}
+                  sx={{
+                    ...commonButtonSx,
+                    color: (loading || !rutina) ? 'text.disabled' : 'text.secondary',
+                  }}
+                  aria-label="Eliminar rutina"
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </span>
+            </Tooltip>
+          )}
           <Tooltip title={completionTooltip}>
             <Chip
               size="small"

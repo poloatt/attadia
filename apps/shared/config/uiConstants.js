@@ -2,6 +2,7 @@
  * Constantes centralizadas de UI para eliminar duplicación
  * Usado en: SidebarContext.jsx, Sidebar.jsx, SidebarResizer.jsx, Layout.jsx
  */
+import { DATE_HEADER_MIN_HEIGHT } from '../utils/calendar/calendarLayout.js';
 
 // ===== SIDEBAR CONFIGURATION =====
 export const SIDEBAR_CONFIG = {
@@ -56,6 +57,19 @@ export const AGENDA_UNIFIED_BAR_CONFIG = {
   height: 48,
   zIndex: 1400,
 };
+
+/** Altura de la barra de progreso bajo el date hero de rutinas. */
+export const RUTINA_PROGRESS_BAR_HEIGHT = 4;
+
+/** Barra de navegación diaria de Rutinas (bajo AgendaUnifiedBar). */
+export const RUTINA_NAVIGATION_BAR_CONFIG = {
+  height: DATE_HEADER_MIN_HEIGHT + RUTINA_PROGRESS_BAR_HEIGHT + 4,
+  zIndex: 1398,
+};
+
+export function isRutinasPath(path = '') {
+  return path.startsWith('/rutinas') || path.startsWith('/tiempo/rutinas');
+}
 
 // ===== FORM AND COMPONENT HEIGHTS =====
 export const FORM_HEIGHTS = {
@@ -190,11 +204,13 @@ export function calculateMainMargin(isOpen, sidebarWidth, isMobileOrTablet, show
  * Calcula el padding total superior (header + toolbar, o barra Agenda unificada)
  * @param {boolean} showToolbar - Si mostrar toolbar (rutas no-Agenda)
  * @param {boolean} [agendaUnified] - Si la ruta usa barra Agenda unificada
+ * @param {boolean} [rutinasSubNav] - Si la ruta muestra barra de navegación de rutinas bajo el header
  * @returns {number} - Padding total superior
  */
-export function calculateTopPadding(showToolbar, agendaUnified = false) {
+export function calculateTopPadding(showToolbar, agendaUnified = false, rutinasSubNav = false) {
   if (agendaUnified) {
-    return AGENDA_UNIFIED_BAR_CONFIG.height;
+    return AGENDA_UNIFIED_BAR_CONFIG.height
+      + (rutinasSubNav ? RUTINA_NAVIGATION_BAR_CONFIG.height : 0);
   }
   return HEADER_CONFIG.height + (showToolbar ? TOOLBAR_CONFIG.height : 0);
 }

@@ -17,7 +17,6 @@ import { useAnchorWidths } from '../hooks/useAnchorWidths';
 import { getMainModules, reorderModulesWithActiveFirst, findActiveModule, navigateToAppPath, prefetchAppForPath } from '../utils/navigationUtils';
 import { DynamicIcon, ClickableIcon, IconWithText } from '../components/common/DynamicIcon';
 import { getRutinaNavigation } from './toolbarRegistry';
-import { isAgendaCalendarPath } from './tiempoToolbarPaths';
 import { useRutinas } from '../context/RutinasContext';
 import { calculateCompletionPercentage } from '../utils/rutinaCalculations';
 import { ToggleButton, ToggleButtonGroup, Menu, MenuItem } from '@mui/material';
@@ -26,6 +25,7 @@ import {
   resolveToolbarCenterDesktop,
   resolveToolbarRightByPath,
 } from './toolbarModules';
+import { isUnifiedToolbarPath } from './unifiedBarPaths';
 
 export default function Toolbar({
   moduloActivo,
@@ -67,7 +67,6 @@ export default function Toolbar({
     const specificNavigationRoutes = [
       '/tiempo/rutinas',
       '/rutinas',
-      '/agenda',
     ];
     return specificNavigationRoutes.some(route => currentPath.startsWith(route));
   };
@@ -83,7 +82,7 @@ export default function Toolbar({
     const RutinaNavigation = getRutinaNavigation();
     if (
       !RutinaNavigation
-      || !(currentPath.startsWith('/rutinas') || currentPath.startsWith('/tiempo/rutinas') || isAgendaCalendarPath(currentPath))
+      || !(currentPath.startsWith('/rutinas') || currentPath.startsWith('/tiempo/rutinas'))
     ) {
       return null;
     }
@@ -125,8 +124,8 @@ export default function Toolbar({
         currentPage={currentPage}
         totalPages={totalPages}
         onAdd={handleAdd}
-        onSettingsClick={isAgendaCalendarPath(currentPath) ? undefined : handleSettings}
-        navigationMode={isAgendaCalendarPath(currentPath) ? 'week' : 'rutina'}
+        onSettingsClick={handleSettings}
+        navigationMode="rutina"
       />
     );
   };
@@ -396,8 +395,8 @@ export default function Toolbar({
             gap: 0.25
           }}
         >
-          {/* Botón Undo - ocultar en rutas de rutinas ya que está en RutinaNavigation */}
-          {!shouldShowSpecificNavigation() && <SystemButtons.UndoMenu />}
+          {/* Botón Undo — solo en toolbar legacy (no barra unificada) */}
+          {!isUnifiedToolbarPath(currentPath) && !shouldShowSpecificNavigation() && <SystemButtons.UndoMenu />}
           
           {/* Acciones adicionales */}
           {!isMobile && additionalActions && additionalActions.map((action, idx) => (
@@ -452,8 +451,7 @@ export default function Toolbar({
                currentPath.startsWith('/tiempo/tareas') || 
                currentPath.startsWith('/objetivos') || 
                currentPath.startsWith('/tareas') ||
-               currentPath.startsWith('/foco') ||
-               isAgendaCalendarPath(currentPath))
+               currentPath.startsWith('/foco'))
             ) {
               
               const getSmartAddButton = () => {
@@ -464,10 +462,9 @@ export default function Toolbar({
                     currentPath === '/tiempo/tareas'
                     || currentPath === '/tareas'
                     || currentPath.startsWith('/foco')
-                    || isAgendaCalendarPath(currentPath)
                   ) {
                     window.dispatchEvent(new CustomEvent('addTask', {
-                      detail: (currentPath.startsWith('/foco') || isAgendaCalendarPath(currentPath))
+                      detail: currentPath.startsWith('/foco')
                         ? { anchorEl: e?.currentTarget }
                         : {},
                     }));
@@ -480,9 +477,8 @@ export default function Toolbar({
                     currentPath === '/tiempo/tareas'
                     || currentPath === '/tareas'
                     || currentPath.startsWith('/foco')
-                    || isAgendaCalendarPath(currentPath)
                   ) {
-                    return currentPath.startsWith('/foco') || isAgendaCalendarPath(currentPath)
+                    return currentPath.startsWith('/foco')
                       ? 'Crear evento, tarea o hábito'
                       : 'Nueva Tarea';
                   }

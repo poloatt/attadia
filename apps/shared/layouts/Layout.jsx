@@ -5,7 +5,9 @@ import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import { useAuth } from '../context/AuthContext';
 import { Header, Toolbar, AgendaUnifiedBar } from '../navigation';
+import RutinaPageNavigationBar from '../navigation/RutinaPageNavigationBar.jsx';
 import { isUnifiedToolbarPath } from '../navigation/unifiedBarPaths';
+import { calculateTopPadding, getMainBottomPadding, HEADER_CONFIG, FOOTER_CONFIG, SPACING, isRutinasPath } from '../config/uiConstants.js';
 import { Footer } from '../navigation';
 import { Sidebar, BottomNavigation } from '../navigation';
 import { CustomSnackbarProvider } from '../components/common';
@@ -14,7 +16,6 @@ import { FormManagerProvider } from '../context/FormContext';
 import { GlobalFormEventListener } from '../context/GlobalFormEventListener';
 import useResponsive from '../hooks/useResponsive';
 import { useNavigationState } from '../utils/navigationUtils';
-import { calculateTopPadding, getMainBottomPadding, HEADER_CONFIG, FOOTER_CONFIG, SPACING } from '../config/uiConstants.js';
 import RutinasContext, { RutinasProvider } from '../context/RutinasContext';
 
 // Evita doble provider (p.ej. cuando el host app ya envuelve con RutinasProvider, como `apps/foco/src/App.jsx`)
@@ -61,7 +62,8 @@ export function Layout() {
   // En tablet/desktop la Toolbar siempre debe mostrarse (evita que quede "oculta" en pantallas medianas).
   const showToolbar = isMobile ? showEntityToolbarNavigation : true;
   const unifiedBar = isUnifiedToolbarPath(currentPath);
-  const totalTopPadding = calculateTopPadding(showToolbar, unifiedBar);
+  const rutinasSubNav = unifiedBar && isRutinasPath(currentPath);
+  const totalTopPadding = calculateTopPadding(showToolbar, unifiedBar, rutinasSubNav);
   const showHeader = !unifiedBar;
   const showLegacyToolbar = showToolbar && !unifiedBar;
   const showAgendaBar = unifiedBar;
@@ -101,6 +103,7 @@ export function Layout() {
         {/* Toolbar + Sidebar + Main: envueltos por RutinasProvider cuando corresponde */}
         {(currentPath.startsWith('/tiempo/rutinas') || currentPath.startsWith('/rutinas')) ? (
           <MaybeRutinasProvider>
+            {showAgendaBar && <RutinaPageNavigationBar />}
             {/* Toolbar siempre se renderiza */}
             {showLegacyToolbar && (
               <Box sx={{ position: 'fixed', top: `${HEADER_CONFIG.height}px`, left: 0, width: '100vw', zIndex: 1399 }}>

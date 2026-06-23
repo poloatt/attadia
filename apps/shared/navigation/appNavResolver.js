@@ -10,9 +10,11 @@
  */
 
 import { modulos, bottomNavigationItems } from './menuStructure';
+import { getTiempoBottomNavItems } from './tiempoNavConfig';
 import {
   findActiveModule,
   findActiveLevel1,
+  getCurrentAppKey,
   getLevel2Children,
 } from '../utils/navigationUtils';
 
@@ -153,10 +155,15 @@ export function getAttaBranchById(branchId) {
 }
 
 /**
- * Ítems para bottom nav móvil: switcher de las 3 apps → hub de cada una.
- * Atta → /finanzas, Pulso → /datacorporal, Foco → /foco.
+ * Ítems para bottom nav móvil.
+ * - Foco: páginas hijas (Rutinas, Objetivos, Tareas).
+ * - Atta/Pulso: switcher de las 3 apps → hub de cada una.
  */
-export function resolveBottomNavItems() {
+export function resolveBottomNavItems(appKey = getCurrentAppKey()) {
+  if (appKey === 'foco') {
+    return getTiempoBottomNavItems();
+  }
+
   return bottomNavigationItems.map((app) => ({
     id: app.id,
     path: app.path,
@@ -338,7 +345,7 @@ export function resolveAttaBranchHubLabel(pathname) {
 const FOCO_HUB_PATH = '/foco';
 
 /**
- * Hub Foco para botón «atrás» en subpáginas (Agenda, Tareas, Hábitos, etc.).
+ * Hub Foco para botón «atrás» en subpáginas (Tareas, Hábitos, etc.).
  * En /foco no hay destino de vuelta.
  */
 export function resolveFocoBranchHubPath(pathname) {
@@ -347,7 +354,6 @@ export function resolveFocoBranchHubPath(pathname) {
   }
 
   const focoSubPrefixes = [
-    '/agenda',
     '/tareas',
     '/objetivos',
     '/rutinas',

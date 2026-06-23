@@ -17,17 +17,21 @@ export default function HubSectionShell({
   headerSx,
   bodySx,
   titleOnly = false,
+  headerContent = null,
+  hideBody = false,
 }) {
   return (
     <Box sx={{ ...hubSectionShellSx, ...shellSx }}>
-      <HubSectionHeader
-        title={title}
-        onTitleClick={onTitleClick}
-        iconKey={iconKey}
-        isActive={isActive}
-        headerSx={headerSx}
-      />
-      {!titleOnly && (
+      {headerContent ?? (
+        <HubSectionHeader
+          title={title}
+          onTitleClick={onTitleClick}
+          iconKey={iconKey}
+          isActive={isActive}
+          headerSx={headerSx}
+        />
+      )}
+      {!titleOnly && !hideBody && (
         <Box sx={{ ...hubSectionShellBodySx, ...bodySx }}>{children}</Box>
       )}
     </Box>

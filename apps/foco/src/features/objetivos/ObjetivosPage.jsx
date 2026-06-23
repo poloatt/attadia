@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { 
   Container,
   Box,
@@ -27,7 +27,7 @@ import { TareaForm } from '../tasks/form';
 import GoogleTasksConfig from '../tasks/google/GoogleTasksConfig';
 import { HabitsManagerHost } from '../habits';
 import { useValuesVisibility } from '@shared/context';
-import { usePageWithHistory, useGlobalActionHistory } from '@shared/hooks';
+import { useScopedPageHistory, useScopedCRUD } from '@shared/hooks';
 import { useNavigate } from 'react-router-dom';
 
 export function Objetivos() {
@@ -93,26 +93,31 @@ export function Objetivos() {
   }, [enqueueSnackbar]);
 
   // 2. Historial de objetivos (ruta actual)
+  const tareaApiService = useMemo(() => ({
+    create: (data) => clienteAxios.post('/api/tareas', data).then(res => res.data),
+    update: (id, data) => clienteAxios.put(`/api/tareas/${id}`, data).then(res => res.data),
+    delete: (id) => clienteAxios.delete(`/api/tareas/${id}`).then(res => res.data),
+    getById: (id) => clienteAxios.get(`/api/tareas/${id}`).then(res => res.data),
+  }), []);
+
   const { 
     isSupported,
     createWithHistory, 
     updateWithHistory, 
     deleteWithHistory 
-  } = usePageWithHistory(
+  } = useScopedPageHistory(
     fetchObjetivosStable,
     (error) => {
       console.error('Error al revertir acción:', error);
       enqueueSnackbar('Error al revertir la acción', { variant: 'error' });
-    }
+    },
+    { scope: 'objetivos' },
   );
 
-  // 3. Historial de tareas (ruta '/tareas')
-  const { updateWithHistory: updateTareaWithHistory } = useGlobalActionHistory(
-    undefined, // No hace falta fetch para tareas aquí
-    (error) => {
-      enqueueSnackbar('Error al revertir acción de tarea', { variant: 'error' });
-    },
-    '/tareas' // Forzar el entityType a 'tarea'
+  const { updateWithHistory: updateTareaWithHistory } = useScopedCRUD(
+    'objetivos',
+    'tarea',
+    tareaApiService,
   );
 
   const handleBack = () => {
@@ -232,20 +237,12 @@ export function Objetivos() {
       setIsTareaFormOpen(true);
     };
 
-    // Escuchar eventos de deshacer específicos para Objetivos
     const handleUndoAction = (event) => {
-      // Refrescar objetivos después del undo
+      const { scope } = event.detail || {};
+      if (scope !== 'objetivos') return;
       setTimeout(() => {
         fetchObjetivos();
-      }, 500);
-    };
-
-    // Escuchar eventos de deshacer específicos para tareas
-    const handleUndoTareaAction = (event) => {
-      // Refrescar objetivos después del undo de tarea
-      setTimeout(() => {
-        fetchObjetivos();
-      }, 500);
+      }, 300);
     };
 
     // Manejar eliminación de objetivos seleccionados desde el Toolbar
@@ -262,8 +259,7 @@ export function Objetivos() {
     window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
     window.addEventListener('addObjetivo', handleaddObjetivo);
     window.addEventListener('addTask', handleAddTask);
-    window.addEventListener('undoAction_objetivo', handleUndoAction);
-    window.addEventListener('undoAction_tarea', handleUndoTareaAction);
+    window.addEventListener('undoAction', handleUndoAction);
     window.addEventListener('deleteSelectedObjetivos', handleDeleteSelectedObjetivos);
     window.addEventListener('selectAllObjetivos', handleSelectAllObjetivosFromToolbar);
     const handleOpenGoogleTasksConfig = () => setIsGoogleTasksConfigOpen(true);
@@ -275,8 +271,7 @@ export function Objetivos() {
       window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
       window.removeEventListener('addObjetivo', handleaddObjetivo);
       window.removeEventListener('addTask', handleAddTask);
-      window.removeEventListener('undoAction_objetivo', handleUndoAction);
-      window.removeEventListener('undoAction_tarea', handleUndoTareaAction);
+      window.removeEventListener('undoAction', handleUndoAction);
       window.removeEventListener('deleteSelectedObjetivos', handleDeleteSelectedObjetivos);
       window.removeEventListener('selectAllObjetivos', handleSelectAllObjetivosFromToolbar);
       window.removeEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);

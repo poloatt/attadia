@@ -5,3 +5,5 @@ export { default as TiempoToolbarRight } from './TiempoToolbarRight';
 export { default as ObjetivosToolbarCenter } from './ObjetivosToolbarCenter';
 export { default as TareasToolbarCenter } from './TareasToolbarCenter';
 export { default as FocoToolbarLeft } from './FocoToolbarLeft';
+export { default as FocoUndoButton } from './FocoUndoButton';
+export { default as ArchivoToolbarCenter } from './ArchivoToolbarCenter';

@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import { useValuesVisibility } from '@shared/context';
-import { usePageWithHistory, useResponsive } from '@shared/hooks';
+import { useScopedPageHistory, useResponsive } from '@shared/hooks';
+import { resolveUndoScope } from '@shared/config/undoScopeConfig';
 import { useAgendaFilter } from '../../agenda/hooks/useAgendaFilter';
 import { useObjetivosLight } from '../hooks/useObjetivosLight';
 import { useTasksForList } from '../hooks/useTasksForList';
@@ -15,7 +17,9 @@ import { buildTareaPayload, syncTareaToGoogleInBackground } from '../form';
  * Estado, handlers y toolbar compartidos entre Hub Foco y la página Tareas.
  */
 export function useTareasPageController() {
-  const { fetchRutinas, getRutinaById } = useRutinas();
+  const location = useLocation();
+  const undoScope = resolveUndoScope(location.pathname) || 'tareas';
+  const { fetchRutinas, getRutinaById, markItemComplete, patchRutinaSection } = useRutinas();
   const { fetchHabits } = useHabits();
   const { tasks: tareas, setTasks: setTareas, loading, refetch: refetchTareas } = useTasksForList();
   const { objetivos, refetch: refetchObjetivos } = useObjetivosLight();
@@ -80,13 +84,22 @@ export function useTareasPageController() {
     }
   }, [refetchObjetivos, refetchTareas, enqueueSnackbar]);
 
+  const undoDeps = useMemo(() => ({
+    markItemComplete,
+    patchRutinaSection,
+  }), [markItemComplete, patchRutinaSection]);
+
   const {
     createWithHistory,
     updateWithHistory,
     deleteWithHistory,
-  } = usePageWithHistory(fetchDataStable, (error) => {
+    addScopedAction,
+  } = useScopedPageHistory(fetchDataStable, (error) => {
     console.error('Error al revertir acción:', error);
     enqueueSnackbar('Error al revertir la acción', { variant: 'error' });
+  }, {
+    scope: undoScope,
+    deps: undoDeps,
   });
 
   const openNewTareaForm = useCallback(() => {
@@ -249,20 +262,14 @@ export function useTareasPageController() {
       openNewTareaForm();
     };
 
-    const handleUndoTareaAction = async () => {
-      try {
-        await fetchDataStable();
-      } catch (error) {
-        console.error('Error al recargar datos después del undo:', error);
-      }
-    };
-
     const handleUndoAction = async (event) => {
-      if (event.detail?.entity === 'tarea') {
+      const { entity, scope } = event.detail || {};
+      if (scope !== undoScope) return;
+      if (entity === 'tarea' || entity === 'rutina_section') {
         try {
           await fetchDataStable();
         } catch (error) {
-          console.error('Error al recargar datos después del undo (fallback):', error);
+          console.error('Error al recargar datos después del undo:', error);
         }
       }
     };
@@ -285,7 +292,6 @@ export function useTareasPageController() {
     window.addEventListener('headerAddButtonClicked', handleHeaderAddButton);
     window.addEventListener('addTask', handleAddTask);
     window.addEventListener('undoAction', handleUndoAction);
-    window.addEventListener('undoAction_tarea', handleUndoTareaAction);
     window.addEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
     window.addEventListener('googleTasksSyncCompleted', handleGoogleTasksSyncCompleted);
     window.addEventListener('deleteSelectedTasks', handleDeleteSelected);
@@ -295,13 +301,12 @@ export function useTareasPageController() {
       window.removeEventListener('headerAddButtonClicked', handleHeaderAddButton);
       window.removeEventListener('addTask', handleAddTask);
       window.removeEventListener('undoAction', handleUndoAction);
-      window.removeEventListener('undoAction_tarea', handleUndoTareaAction);
       window.removeEventListener('openGoogleTasksConfig', handleOpenGoogleTasksConfig);
       window.removeEventListener('googleTasksSyncCompleted', handleGoogleTasksSyncCompleted);
       window.removeEventListener('deleteSelectedTasks', handleDeleteSelected);
       window.removeEventListener('selectAllTasks', handleSelectAll);
     };
-  }, [fetchDataStable, handleDeleteSelected, handleSelectAll, openNewTareaForm, enqueueSnackbar]);
+  }, [fetchDataStable, handleDeleteSelected, handleSelectAll, openNewTareaForm, enqueueSnackbar, undoScope]);
 
   const tareasTableCommonProps = {
     showHabitCarousel: true,
@@ -319,6 +324,8 @@ export function useTareasPageController() {
     onActivateMultiSelect: () => {},
     onRefreshData: fetchDataStable,
     objetivos,
+    addScopedAction,
+    undoScope,
   };
 
   return {
@@ -344,5 +351,7 @@ export function useTareasPageController() {
     createWithHistory,
     updateWithHistory,
     deleteWithHistory,
+    addScopedAction,
+    undoScope,
   };
 }

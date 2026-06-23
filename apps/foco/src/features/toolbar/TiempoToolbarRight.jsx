@@ -2,19 +2,11 @@ import React, { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { SystemButtons } from '@shared/components/common/SystemButtons';
 import { getIconByKey } from '@shared/navigation/menuIcons';
-import { getTiempoNavTargets } from '@shared/navigation/tiempoNavConfig';
+import { getTiempoNavTargets, TIEMPO_NAV_ORDER } from '@shared/navigation/tiempoNavConfig';
 import useResponsive from '@shared/hooks/useResponsive';
 import { matchTiempoSection } from '@shared/navigation/tiempoToolbarPaths';
 
-const TIEMPO_NAV_ORDER = ['foco', 'agenda', 'objetivos', 'tareas'];
-
-/** Mapa sección toolbar → id de destino en menú (hub usa id foco). */
-function sectionToNavTargetKey(section) {
-  if (section === 'hub') return 'foco';
-  return section;
-}
-
-/** Toolbar derecha: navegación Inicio / Agenda / Objetivos / Tareas (desktop). */
+/** Toolbar derecha: navegación Rutinas / Objetivos / Tareas (desktop). */
 export default function TiempoToolbarRight() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -37,7 +29,7 @@ export default function TiempoToolbarRight() {
     if (isMobile || !section) return [];
 
     const targets = getTiempoNavTargets();
-    const activeTargetKey = sectionToNavTargetKey(section);
+    const activeTargetKey = section === 'hub' ? null : section;
 
     const navButton = (key, targetKey) => {
       const target = targets[targetKey];

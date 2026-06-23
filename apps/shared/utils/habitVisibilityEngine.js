@@ -18,6 +18,7 @@ import {
   hasConfiguredHorarioPassed,
   shouldShowHabitForCurrentTime,
 } from './habitTimeLogic';
+import { getRutinaDayMode } from './rutinasPageUtils.js';
 
 /**
  * Motor de visibilidad de hábitos en carrusel y tracker.
@@ -227,6 +228,21 @@ export function resolveCarouselItemConfig(section, itemId, rutinaHoy, habitsPref
   merged.activo = rutinaCfg?.activo ?? prefCfg?.activo ?? true;
 
   return merged;
+}
+
+/**
+ * Config efectiva para la UI de rutinas: en días históricos usa snapshot del día;
+ * en hoy/futuro fusiona plantilla del usuario sobre rutina.config.
+ */
+export function resolveRutinaItemConfig(section, itemId, rutina, habitsPreferences = {}) {
+  if (!section || !itemId) return { ...DEFAULT_HABIT_ITEM_CONFIG };
+  if (rutina?.fecha && getRutinaDayMode(rutina.fecha) === 'historical') {
+    return {
+      ...DEFAULT_HABIT_ITEM_CONFIG,
+      ...(rutina?.config?.[section]?.[itemId] || {}),
+    };
+  }
+  return resolveCarouselItemConfig(section, itemId, rutina, habitsPreferences);
 }
 
 function buildCarouselEntry(section, itemId, horario = null) {

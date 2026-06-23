@@ -1,10 +1,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
+import {
+  TAREAS_TOOLBAR_CENTER_ROW_HEIGHT,
+  TAREAS_TOOLBAR_OPTION_MIN_WIDTH,
+} from './tareasToolbarLayout';
 
 const OPTIONS = [
-  { value: 'week', label: 'Semana' },
-  { value: 'day', label: 'Día' },
+  { value: 'week', label: 'Semana', minWidth: '3.1rem' },
+  { value: 'day', label: 'Día', minWidth: TAREAS_TOOLBAR_OPTION_MIN_WIDTH },
 ];
 
 /**
@@ -39,6 +43,8 @@ export default function AgendaViewModeToggle() {
         alignItems: 'center',
         gap: 0.75,
         flexShrink: 0,
+        minHeight: TAREAS_TOOLBAR_CENTER_ROW_HEIGHT,
+        height: TAREAS_TOOLBAR_CENTER_ROW_HEIGHT,
         userSelect: 'none',
       }}
       role="group"
@@ -52,6 +58,9 @@ export default function AgendaViewModeToggle() {
               sx={{
                 fontSize: '0.75rem',
                 lineHeight: 1,
+                width: '0.35rem',
+                textAlign: 'center',
+                flexShrink: 0,
                 color: alpha(theme.palette.text.secondary, 0.35),
                 fontWeight: 300,
               }}
@@ -74,6 +83,8 @@ export default function AgendaViewModeToggle() {
               font: 'inherit',
               fontSize: '0.75rem',
               lineHeight: 1.2,
+              minWidth: option.minWidth,
+              textAlign: 'center',
               fontWeight: calendarViewMode === option.value ? 700 : 400,
               color: calendarViewMode === option.value ? 'text.primary' : inactiveColor,
               opacity: calendarViewMode === option.value ? 1 : 0.85,

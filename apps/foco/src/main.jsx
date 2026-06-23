@@ -31,7 +31,7 @@ window.APP_CONFIG = AppConfig
 // Definir mapa de rutas para Foco
 const focoRoutesMap = {
   '/objetivos': {
-    entity: 'OBJETIVO',
+    entity: 'objetivo',
     apiService: {
       create: (data) => clienteAxios.post('/api/objetivos', data).then(res => res.data),
       update: (id, data) => clienteAxios.put(`/api/objetivos/${id}`, data).then(res => res.data),

@@ -35,6 +35,9 @@ import {
 } from '@shared/utils/cadenciaUtils';
 import { esRutinaHistorica, obtenerHistorialCompletaciones } from '@shared/utils/rutinaHistorialUtils';
 import { getVisibleItemIds } from '@shared/utils/visibilityUtils';
+import { getHabitDisplayLabel } from '@shared/utils/habitSectionIcons';
+import { resolveRutinaItemConfig } from '@shared/utils/habitVisibilityEngine';
+import useHabitsPreferences from '@foco/features/habits/carousel/hooks/useHabitsPreferences';
 import { getFrecuenciaLabel } from '../templates/InlineItemConfigImproved';
 // La visibilidad en esta vista extendida no oculta ítems; solo se ocultan completos en vista colapsada
 import { startOfWeek, isSameWeek, isToday } from 'date-fns';
@@ -44,10 +47,16 @@ import ChecklistItem, { HabitIconButton } from './ChecklistItem';
 import { HabitCounterBadge } from '@shared/components/common/HabitCounterBadge';
 import { getCurrentTimeOfDay } from '@shared/utils/timeOfDayUtils';
 import { shouldShowHabitForCurrentTime } from '@shared/utils/habitTimeLogic';
+import HubSectionShell from '@shared/components/hub/HubSectionShell';
+import { DynamicIcon } from '@shared/components/common/DynamicIcon';
+import { getRutinaSectionIconKey } from '@shared/navigation/rutinaSectionIcons';
 import {
   rutinaSectionShellSx,
   rutinaSectionHeaderSx,
+  rutinaSectionHeaderTopRowSx,
+  rutinaSectionTitleRowSx,
   rutinaSectionTitleSx,
+  rutinaSectionHeaderIconSx,
   rutinaSectionBodySx,
   rutinaSectionSubdividerSx,
   rutinaSectionEmptySx,
@@ -77,9 +86,25 @@ const RutinaCard = ({
   // Contexto de rutinas y hábitos
   const { rutina, markItemComplete, updateItemConfiguration, updateUserHabitPreference } = useRutinas();
   const { habits, updateHabit, deleteHabit, fetchHabits } = useHabits();
+  const { habitsPreferences, prefsReady } = useHabitsPreferences();
+  const habitPrefs = prefsReady ? (habitsPreferences || {}) : {};
   
   // Obtener iconos de hábitos personalizados o usar defaults
   const sectionHabits = habits[section] || [];
+
+  const resolvedSectionConfig = useMemo(() => {
+    const itemIds = new Set([
+      ...Object.keys(config || {}),
+      ...sectionHabits.map((h) => h.id || h._id).filter(Boolean),
+      ...Object.keys(habitPrefs?.[section] || {}),
+    ]);
+    const resolved = {};
+    itemIds.forEach((itemId) => {
+      resolved[itemId] = resolveRutinaItemConfig(section, itemId, rutina, habitPrefs);
+    });
+    return resolved;
+  }, [section, rutina, habitPrefs, config, sectionHabits]);
+  
   const sectionIcons = useMemo(() => {
     const iconsMap = {};
     sectionHabits
@@ -326,7 +351,7 @@ const RutinaCard = ({
     return Object.keys(sectionIcons)
       .filter((itemId) => {
         // Filtrar por horario actual: mostrar hábitos del horario actual o último no completado
-        const cadenciaConfig = config && config[itemId] ? config[itemId] : null;
+        const cadenciaConfig = resolvedSectionConfig[itemId] || null;
         if (!cadenciaConfig) return false;
         
         const horarios = Array.isArray(cadenciaConfig.horarios) ? cadenciaConfig.horarios : [];
@@ -371,7 +396,7 @@ const RutinaCard = ({
       // Si está completado hoy, siempre mostrar
       if (isCompletedIcon) {
         return (
-          <Tooltip key={renderKey} title={itemId} arrow placement="top">
+          <Tooltip key={renderKey} title={getHabitDisplayLabel(section, itemId, habits)} arrow placement="top">
               <HabitCounterBadge
                 config={cadenciaConfig}
                 currentTimeOfDay={currentTimeOfDay}
@@ -402,7 +427,7 @@ const RutinaCard = ({
       // Los elementos diarios siempre se muestran si no están completados
       if (tipo === 'DIARIO') {
         return (
-          <Tooltip key={renderKey} title={itemId} arrow placement="top">
+          <Tooltip key={renderKey} title={getHabitDisplayLabel(section, itemId, habits)} arrow placement="top">
               <HabitCounterBadge
                 config={cadenciaConfig}
                 currentTimeOfDay={currentTimeOfDay}
@@ -429,7 +454,7 @@ const RutinaCard = ({
       // Para elementos semanales/mensuales, usar lógica simplificada
       // TODO: Implementar lógica completa de cadencia de forma asíncrona
       return (
-        <Tooltip key={renderKey} title={itemId} arrow placement="top">
+        <Tooltip key={renderKey} title={getHabitDisplayLabel(section, itemId, habits)} arrow placement="top">
             <HabitCounterBadge
               config={cadenciaConfig}
               currentTimeOfDay={currentTimeOfDay}
@@ -765,7 +790,7 @@ const RutinaCard = ({
   const getEstadoCadenciaActual = (itemId, section, rutina) => {
     try {
       // Verificar si el ítem tiene configuración
-      if (!rutina?.config?.[section]?.[itemId]) {
+      if (!rutina) {
         return {
           texto: '',
           completados: 0,
@@ -776,8 +801,18 @@ const RutinaCard = ({
         };
       }
 
-      // Obtener la configuración de cadencia
-      const itemConfig = rutina.config[section][itemId];
+      const itemConfig = resolveRutinaItemConfig(section, itemId, rutina, habitPrefs);
+      if (!itemConfig || itemConfig.activo === false) {
+        return {
+          texto: '',
+          completados: 0,
+          requeridos: 1,
+          completa: false,
+          tipo: 'DIARIO',
+          porcentaje: 0
+        };
+      }
+
       const tipo = itemConfig?.tipo?.toUpperCase() || 'DIARIO';
       const frecuencia = Number(itemConfig?.frecuencia || 1);
       
@@ -879,7 +914,7 @@ const RutinaCard = ({
     }
 
     // Forzar actualización de la UI cuando cambia la configuración
-    const configKeys = config ? Object.keys(config).join(',') : '';
+    const configKeys = Object.keys(resolvedSectionConfig).join(',');
     
     // Incluir forceUpdate para garantizar que se recalcule cuando cambia la configuración
     const refreshTrigger = forceUpdate;
@@ -887,7 +922,7 @@ const RutinaCard = ({
     return Object.keys(sectionIcons)
       .filter(itemId => {
         // Lógica sincrónica simplificada para el filtrado inicial
-        const cadenciaConfig = config && config[itemId] ? config[itemId] : null;
+        const cadenciaConfig = resolvedSectionConfig[itemId] || null;
         
         // Si no hay configuración, mostrar por defecto
         if (!cadenciaConfig) {
@@ -908,7 +943,7 @@ const RutinaCard = ({
         // La lógica completa de cadencia se aplica en `renderItems`
         return true;
       });
-  }, [section, config, rutina, forceUpdate, sectionIcons]);
+  }, [section, resolvedSectionConfig, rutina, forceUpdate, sectionIcons]);
 
   // Verificar que tenemos iconos para mostrar
   if (Object.keys(sectionIcons).length === 0) {
@@ -968,10 +1003,8 @@ const RutinaCard = ({
     }
     
     return orderedKeys.map((itemId, index) => {
-      const cadenciaConfig = config && config[itemId] ? config[itemId] : null;
-      if (!cadenciaConfig) {
-        // Ítem sin configuración, mostrar por defecto
-      } else if (!cadenciaConfig.activo) {
+      const itemConfig = resolvedSectionConfig[itemId] || resolveRutinaItemConfig(section, itemId, rutina, habitPrefs);
+      if (itemConfig?.activo === false) {
         return null;
       }
       const Icon = sectionIcons[itemId];
@@ -986,10 +1019,12 @@ const RutinaCard = ({
           isCompleted={isCompleted}
           readOnly={readOnly}
           onItemClick={handleItemClick}
-          config={config[itemId] || {}}
+          config={itemConfig}
           onConfigChange={(newConfig, meta) => onConfigChange(itemId, newConfig, meta)}
           isSetupOpen={openSetupItemId === itemId}
           onSetupToggle={() => setOpenSetupItemId(openSetupItemId === itemId ? null : itemId)}
+          habitLabel={getHabitDisplayLabel(section, itemId, habits)}
+          isCustomHabit={customHabitIds.has(itemId)}
         />
       );
     }).filter(Boolean);
@@ -1003,7 +1038,7 @@ const RutinaCard = ({
       // const rutina = contextData?.rutina || {};
       
       // Obtener la configuración original para este ítem
-      const originalConfig = (config && config[itemId]) || {
+      const originalConfig = resolvedSectionConfig[itemId] || {
         tipo: 'DIARIO',
         diasSemana: [],
         diasMes: [],
@@ -1164,52 +1199,67 @@ const RutinaCard = ({
   };
 
   return (
-    <Box sx={rutinaSectionShellSx}>
-      <Box
-        sx={rutinaSectionHeaderSx(isExpanded)}
-        onClick={handleToggle}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'center' }}>
-          {focusedItemId && isExpanded && (
+    <>
+    <HubSectionShell
+      shellSx={rutinaSectionShellSx}
+      hideBody={!isExpanded}
+      headerContent={(
+        <Box
+          sx={rutinaSectionHeaderSx(isExpanded)}
+          onClick={handleToggle}
+        >
+          <Box sx={rutinaSectionHeaderTopRowSx}>
+            {focusedItemId && isExpanded && (
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFocusedItemId(null);
+                }}
+                sx={rutinaBackToListIconSx}
+                title="Ver todos los hábitos"
+              >
+                <ViewListIcon fontSize="small" />
+              </IconButton>
+            )}
+            <Box sx={rutinaSectionTitleRowSx}>
+              <DynamicIcon
+                iconKey={getRutinaSectionIconKey(section)}
+                size="small"
+                sx={rutinaSectionHeaderIconSx}
+              />
+              <Typography variant="body2" sx={rutinaSectionTitleSx}>
+                {capitalizeFirstLetter(title) || section}
+              </Typography>
+            </Box>
             <IconButton
               size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                setFocusedItemId(null);
-              }}
-              sx={rutinaBackToListIconSx}
-              title="Ver todos los hábitos"
+              sx={{ ...rutinaExpandIconSx, ml: 'auto', flexShrink: 0 }}
             >
-              <ViewListIcon fontSize="small" />
+              {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
             </IconButton>
-          )}
-          <Typography variant="caption" sx={rutinaSectionTitleSx}>
-            {capitalizeFirstLetter(title) || section}
-          </Typography>
-          <Box sx={{ flexGrow: 1 }} />
+          </Box>
           {!isExpanded && (
             <Box sx={rutinaCollapsedIconsRowSx}>
               {renderHabitIcons({
                 sectionIcons: sectionIcons,
-                config,
+                config: resolvedSectionConfig,
                 localData,
                 onItemClick: handleItemClick,
                 readOnly,
                 size: 20,
                 iconSize: 'inherit',
-                mr: 0.2,
-                gap: 0.3
+                mr: 0,
+                gap: 0.25,
               })}
             </Box>
           )}
-          <IconButton size="small" sx={rutinaExpandIconSx}>
-            {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-          </IconButton>
         </Box>
-      </Box>
-
+      )}
+      bodySx={rutinaSectionBodySx}
+    >
       <Collapse in={isExpanded} unmountOnExit>
-        <Box sx={rutinaSectionBodySx}>
+        <Box>
           {sectionHabits && sectionHabits.length > 0 && (
             <Box sx={rutinaSectionSubdividerSx}>
               <List dense disablePadding sx={{ py: 0, my: 0 }}>
@@ -1226,7 +1276,7 @@ const RutinaCard = ({
                   .sort((a, b) => (a.orden || 0) - (b.orden || 0))
                   .map((habit) => {
                     const habitId = habit.id || habit._id;
-                    const habitConfig = config[habitId] || {
+                    const habitConfig = resolvedSectionConfig[habitId] || {
                       tipo: 'DIARIO',
                       frecuencia: 1,
                       activo: true,
@@ -1277,15 +1327,15 @@ const RutinaCard = ({
           </List>
         </Box>
       </Collapse>
-      
-      {/* Diálogo de edición de hábito */}
-      <HabitFormDialog
-        open={editingHabitDialog.open}
-        onClose={() => setEditingHabitDialog({ open: false, habit: null, section: null })}
-        editingHabit={editingHabitDialog.habit}
-        editingSection={editingHabitDialog.section}
-      />
-    </Box>
+    </HubSectionShell>
+
+    <HabitFormDialog
+      open={editingHabitDialog.open}
+      onClose={() => setEditingHabitDialog({ open: false, habit: null, section: null })}
+      editingHabit={editingHabitDialog.habit}
+      editingSection={editingHabitDialog.section}
+    />
+  </>
   );
 };
 

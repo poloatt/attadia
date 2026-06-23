@@ -5,6 +5,7 @@ import {
   isFlexiblePeriodic,
   getPeriodicCarouselMode,
   resolveCarouselItemConfig,
+  resolveRutinaItemConfig,
 } from '@shared/utils/habitVisibilityEngine.js';
 import { startOfWeek, addDays } from 'date-fns';
 
@@ -655,6 +656,78 @@ describe('habitVisibilityEngine', () => {
       )).toBe('luego');
       expect(getCarouselAhoraItems(params)).toEqual([]);
       expect(getCarouselLuegoItems(params)).toEqual([{ section: 'ejercicio', itemId: 'gym' }]);
+    });
+  });
+
+  describe('resolveRutinaItemConfig', () => {
+    it('merges user preferences over rutina snapshot for today', () => {
+      const rutinaHoy = buildRutina({
+        config: {
+          ejercicio: {
+            gym: {
+              tipo: 'DIARIO',
+              frecuencia: 1,
+              activo: true,
+              periodo: 'CADA_DIA',
+              horarios: ['MAÑANA'],
+            },
+          },
+        },
+      });
+      const habitsPreferences = {
+        ejercicio: {
+          gym: {
+            tipo: 'SEMANAL',
+            frecuencia: 3,
+            periodo: 'CADA_SEMANA',
+            horarios: ['NOCHE'],
+            activo: true,
+          },
+        },
+      };
+
+      const resolved = resolveRutinaItemConfig('ejercicio', 'gym', rutinaHoy, habitsPreferences);
+      expect(resolved.tipo).toBe('SEMANAL');
+      expect(resolved.frecuencia).toBe(3);
+      expect(resolved.horarios).toEqual(['NOCHE']);
+    });
+
+    it('uses rutina snapshot only for historical days', () => {
+      const historicalDate = new Date('2020-01-15T12:00:00.000Z');
+      const rutinaHistorica = buildRutina({
+        fecha: historicalDate.toISOString(),
+        config: {
+          ejercicio: {
+            gym: {
+              tipo: 'DIARIO',
+              frecuencia: 1,
+              activo: true,
+              periodo: 'CADA_DIA',
+              horarios: ['MAÑANA'],
+            },
+          },
+        },
+      });
+      const habitsPreferences = {
+        ejercicio: {
+          gym: {
+            tipo: 'SEMANAL',
+            frecuencia: 5,
+            periodo: 'CADA_SEMANA',
+            horarios: ['NOCHE'],
+            activo: true,
+          },
+        },
+      };
+
+      const resolved = resolveRutinaItemConfig(
+        'ejercicio',
+        'gym',
+        rutinaHistorica,
+        habitsPreferences,
+      );
+      expect(resolved.tipo).toBe('DIARIO');
+      expect(resolved.horarios).toEqual(['MAÑANA']);
     });
   });
 

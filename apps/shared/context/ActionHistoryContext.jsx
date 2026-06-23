@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { migrateLegacyActions, normalizeUndoEntity } from '../config/undoScopeConfig';
 
 const ActionHistoryContext = createContext();
 
@@ -21,6 +22,9 @@ export const ENTITY_TYPES = {
   CUENTA: 'cuenta',
   MONEDA: 'moneda',
   RUTINA: 'rutina',
+  RUTINA_SECTION: 'rutina_section',
+  RUTINA_CONFIG: 'rutina_config',
+  HABIT: 'habit',
   INQUILINO: 'inquilino',
   CONTRATO: 'contrato',
   HABITACION: 'habitacion',
@@ -28,9 +32,13 @@ export const ENTITY_TYPES = {
   TRANSACCION_RECURRENTE: 'transaccion_recurrente'
 };
 
+function normalizeStoredAction(action) {
+  return migrateLegacyActions([action])[0];
+}
+
 export function ActionHistoryProvider({ children }) {
   const [actionHistory, setActionHistory] = useState([]);
-  const [maxHistorySize] = useState(50); // Máximo 50 acciones en el historial
+  const [maxHistorySize] = useState(50);
   const storageKey = (() => {
     try {
       const appName = typeof window !== 'undefined' && window && window.APP_CONFIG && window.APP_CONFIG.name
@@ -42,22 +50,20 @@ export function ActionHistoryProvider({ children }) {
     }
   })();
 
-  // Cargar historial desde localStorage al inicializar
   useEffect(() => {
     try {
       const savedHistory = localStorage.getItem(storageKey);
-      // console.log('ActionHistoryContext - Loading from localStorage:', savedHistory);
       if (savedHistory) {
         const parsed = JSON.parse(savedHistory);
-        // console.log('ActionHistoryContext - Parsed history:', parsed);
-        setActionHistory(parsed);
+        if (Array.isArray(parsed)) {
+          setActionHistory(parsed.map(normalizeStoredAction));
+        }
       }
     } catch (error) {
       console.warn('Error loading action history from localStorage:', error);
     }
   }, [storageKey]);
 
-  // Guardar historial en localStorage cuando cambie
   useEffect(() => {
     try {
       localStorage.setItem(storageKey, JSON.stringify(actionHistory));
@@ -66,75 +72,90 @@ export function ActionHistoryProvider({ children }) {
     }
   }, [actionHistory, storageKey]);
 
-  // Agregar una acción al historial
   const addAction = useCallback((action) => {
     const actionWithTimestamp = {
       ...action,
-      id: Date.now() + Math.random(), // ID único
+      entity: normalizeUndoEntity(action.entity),
+      id: Date.now() + Math.random(),
       timestamp: new Date().toISOString(),
-      createdAt: Date.now()
+      createdAt: Date.now(),
     };
-
-    // console.log('ActionHistoryContext - Adding action:', actionWithTimestamp);
 
     setActionHistory(prev => {
       const newHistory = [actionWithTimestamp, ...prev];
-      // Mantener solo las últimas maxHistorySize acciones
-      const result = newHistory.slice(0, maxHistorySize);
-      // console.log('ActionHistoryContext - New history:', result);
-      return result;
+      return newHistory.slice(0, maxHistorySize);
     });
 
     return actionWithTimestamp.id;
   }, [maxHistorySize]);
 
-  // Revertir la última acción
   const undoLastAction = useCallback(() => {
     if (actionHistory.length === 0) return null;
-    
+
     const lastAction = actionHistory[0];
     setActionHistory(prev => prev.slice(1));
     return lastAction;
   }, [actionHistory]);
 
-  // Revertir una acción específica por ID
+  const undoLastForScope = useCallback((scope) => {
+    if (!scope) return null;
+
+    const index = actionHistory.findIndex(action => action.scope === scope);
+    if (index === -1) return null;
+
+    const actionToUndo = actionHistory[index];
+    setActionHistory(prev => prev.filter((_, i) => i !== index));
+    return actionToUndo;
+  }, [actionHistory]);
+
   const undoActionById = useCallback((actionId) => {
+    let removed = null;
     setActionHistory(prev => {
       const actionIndex = prev.findIndex(action => action.id === actionId);
       if (actionIndex === -1) return prev;
-      
-      const actionToUndo = prev[actionIndex];
-      const newHistory = prev.filter((_, index) => index !== actionIndex);
-      return newHistory;
+
+      removed = prev[actionIndex];
+      return prev.filter((_, index) => index !== actionIndex);
     });
+    return removed;
   }, []);
 
-  // Limpiar el historial
   const clearHistory = useCallback(() => {
     setActionHistory([]);
   }, []);
 
-  // Obtener el número de acciones disponibles para revertir
   const getUndoCount = useCallback(() => {
     return actionHistory.length;
   }, [actionHistory]);
 
-  // Verificar si hay acciones para revertir
+  const getUndoCountForScope = useCallback((scope) => {
+    if (!scope) return 0;
+    return actionHistory.filter(action => action.scope === scope).length;
+  }, [actionHistory]);
+
   const canUndo = useCallback(() => {
     return actionHistory.length > 0;
   }, [actionHistory]);
 
-  // Obtener acciones por tipo de entidad
-  const getActionsByEntity = useCallback((entityType) => {
-    return actionHistory.filter(action => action.entity === entityType);
+  const canUndoForScope = useCallback((scope) => {
+    if (!scope) return false;
+    return actionHistory.some(action => action.scope === scope);
   }, [actionHistory]);
 
-  // Obtener acciones por tipo de acción
+  const getActionsByEntity = useCallback((entityType) => {
+    const normalized = normalizeUndoEntity(entityType);
+    return actionHistory.filter(action => action.entity === normalized);
+  }, [actionHistory]);
+
   const getActionsByType = useCallback((actionType) => {
     return actionHistory.filter(action => action.type === actionType);
   }, [actionHistory]);
 
-  // Obtener las últimas N acciones
+  const getActionsForScope = useCallback((scope, count = 5) => {
+    if (!scope) return [];
+    return actionHistory.filter(action => action.scope === scope).slice(0, count);
+  }, [actionHistory]);
+
   const getLastActions = useCallback((count = 5) => {
     return actionHistory.slice(0, count);
   }, [actionHistory]);
@@ -145,12 +166,16 @@ export function ActionHistoryProvider({ children }) {
         actionHistory,
         addAction,
         undoLastAction,
+        undoLastForScope,
         undoActionById,
         clearHistory,
         getUndoCount,
+        getUndoCountForScope,
         canUndo,
+        canUndoForScope,
         getActionsByEntity,
         getActionsByType,
+        getActionsForScope,
         getLastActions,
         ACTION_TYPES,
         ENTITY_TYPES
@@ -167,4 +192,4 @@ export function useActionHistory() {
     throw new Error('useActionHistory must be used within an ActionHistoryProvider');
   }
   return context;
-} 
+}

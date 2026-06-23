@@ -1,7 +1,11 @@
-/** Rutas del módulo Tiempo (Hub Foco / Agenda / objetivos / Tareas). */
+/** Rutas del módulo Tiempo (Hub Foco / objetivos / Tareas). */
 export function matchTiempoSection(path = '') {
   if (path === '/foco' || path.startsWith('/foco/')) return 'hub';
-  if (path === '/agenda' || path.startsWith('/agenda/')) return 'agenda';
+  if (
+    path === '/rutinas'
+    || path.startsWith('/rutinas/')
+    || path.startsWith('/tiempo/rutinas')
+  ) return 'rutinas';
   if (
     path === '/objetivos'
     || path.startsWith('/objetivos/')
@@ -29,11 +33,6 @@ export function isFocoToolbarPath(path = '') {
     || path.startsWith('/rutinas/')
     || path === '/archivo'
     || path.startsWith('/archivo/');
-}
-
-/** Calendario día/semana (antes en /foco). */
-export function isAgendaCalendarPath(path = '') {
-  return path === '/agenda' || path.startsWith('/agenda/');
 }
 
 /** Hub central Foco (Hábitos + previews). */

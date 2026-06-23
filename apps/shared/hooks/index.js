@@ -8,6 +8,7 @@ export * from './useCuotaGuardado.js';
 export { default as useDebounce } from './useDebounce.js';
 export * from './useDocumentosPropiedad.js';
 export * from './useGlobalActionHistory.js';
+export * from './useScopedUndo.js';
 export * from './useLocalPreservationState.js';
 export * from './useMercadoPago.js';
 export * from './useOptimisticUpdate.js';

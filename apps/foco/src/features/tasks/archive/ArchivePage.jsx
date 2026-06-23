@@ -9,7 +9,7 @@ import { TareasTable } from '../list';
 import { TareaForm, buildTareaPayload } from '../form';
 import { useSnackbar } from 'notistack';
 import { useNavigate } from 'react-router-dom';
-import { usePageWithHistory } from '@shared/hooks';
+import { useScopedPageHistory } from '@shared/hooks';
 import { useValuesVisibility } from '@shared/context';
 import { useObjetivosLight } from '../hooks/useObjetivosLight';
 import {
@@ -41,7 +41,7 @@ export default function ArchivePage() {
     }
   }, [enqueueSnackbar]);
 
-  const { updateWithHistory } = usePageWithHistory(
+  const { updateWithHistory } = useScopedPageHistory(
     async () => {
       await refetchObjetivos();
       await fetchTareas();
@@ -50,6 +50,7 @@ export default function ArchivePage() {
       console.error('Error al revertir acción:', error);
       enqueueSnackbar('Error al revertir la acción', { variant: 'error' });
     },
+    { scope: 'archivo' },
   );
 
   const handleDeactivateMultiSelect = useCallback(() => {

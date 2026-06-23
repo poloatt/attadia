@@ -26,10 +26,21 @@ const chevronButtonCompactSx = {
   '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
 };
 
-/** ‹ › para calendario Foco (móvil en encabezado día/semana). */
-export default function AgendaCalendarNavChevrons({ viewMode, compact = false }) {
-  const { onPrevious, onNext, prevTooltip, nextTooltip } = useAgendaCalendarNavChevrons(viewMode);
-  const buttonSx = compact ? chevronButtonCompactSx : chevronButtonSx;
+/** ‹ › para calendario Foco o navegación entre registros de rutinas. */
+export default function AgendaCalendarNavChevrons({
+  viewMode,
+  compact = false,
+  buttonSx,
+  navHandlers = null,
+}) {
+  const calendarNav = useAgendaCalendarNavChevrons(navHandlers ? 'day' : viewMode);
+  const onPrevious = navHandlers?.onPrevious ?? calendarNav.onPrevious;
+  const onNext = navHandlers?.onNext ?? calendarNav.onNext;
+  const prevTooltip = navHandlers?.prevTooltip ?? calendarNav.prevTooltip;
+  const nextTooltip = navHandlers?.nextTooltip ?? calendarNav.nextTooltip;
+  const prevDisabled = navHandlers?.prevDisabled ?? false;
+  const nextDisabled = navHandlers?.nextDisabled ?? false;
+  const resolvedButtonSx = buttonSx ?? (compact ? chevronButtonCompactSx : chevronButtonSx);
 
   return (
     <Box sx={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
@@ -37,9 +48,10 @@ export default function AgendaCalendarNavChevrons({ viewMode, compact = false })
         <IconButton
           size="small"
           onClick={onPrevious}
-          sx={buttonSx}
+          disabled={prevDisabled}
+          sx={resolvedButtonSx}
           aria-label="Anterior"
-          data-testid="foco-calendar-prev"
+          data-testid={navHandlers ? 'prev-button' : 'foco-calendar-prev'}
         >
           <NavigateBefore fontSize="small" />
         </IconButton>
@@ -48,9 +60,10 @@ export default function AgendaCalendarNavChevrons({ viewMode, compact = false })
         <IconButton
           size="small"
           onClick={onNext}
-          sx={buttonSx}
+          disabled={nextDisabled}
+          sx={resolvedButtonSx}
           aria-label="Siguiente"
-          data-testid="foco-calendar-next"
+          data-testid={navHandlers ? 'next-button' : 'foco-calendar-next'}
         >
           <NavigateNext fontSize="small" />
         </IconButton>

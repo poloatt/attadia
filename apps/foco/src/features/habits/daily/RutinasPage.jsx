@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React from 'react';
 import { Box, Typography, CircularProgress, Paper, Button } from '@mui/material';
-import { useResponsive } from '@shared/hooks';
 import RutinaTable from './RutinaTable';
 import { RutinaForm } from './RutinaForm';
 import { HabitsManager } from '../templates/HabitsManager';
+import HubSectionShell from '@shared/components/hub/HubSectionShell';
+import { useRutinasPageController } from './useRutinasPageController';
 import {
   rutinaPageMainSx,
   rutinaPageContainerSx,
@@ -12,242 +13,114 @@ import {
   rutinaEmptyStatePaperSx,
   rutinaErrorStatePaperSx,
 } from '@shared/styles/rutinaPageStyles';
-import { getMainBottomPadding } from '@shared/config/uiConstants';
-
-import { useRutinas, useHabits } from '@shared/context';
-import { useParams, useNavigate } from 'react-router-dom';
-import { formatDateForAPI, getNormalizedToday, parseAPIDate } from '@shared/utils/dateUtils';
-import { 
+import { RUTINA_NAVIGATION_BAR_CONFIG } from '@shared/config/uiConstants';
+import {
   CalendarMonthOutlined as DateIcon,
   Info as InfoIcon,
-  Add as AddIcon
+  Add as AddIcon,
 } from '@mui/icons-material';
 
-/**
- * Componente envoltorio que expone el contexto de rutinas
- */
+const rutinaHubShellBodySx = {
+  pt: 0,
+  py: 0.75,
+  gap: 0.75,
+  minHeight: 0,
+  px: 0,
+};
+
+function EmptyStateMessage({ error, onAdd }) {
+  if (error) {
+    return (
+      <Paper elevation={0} sx={rutinaErrorStatePaperSx}>
+        <InfoIcon color="error" />
+        <Typography variant="body2">{error}</Typography>
+      </Paper>
+    );
+  }
+
+  return (
+    <Paper elevation={0} sx={rutinaEmptyStatePaperSx}>
+      <DateIcon sx={{ fontSize: 40, color: 'primary.main', opacity: 0.7 }} />
+      <Typography variant="h6">No hay registro para este día</Typography>
+      <Typography variant="body2" color="text.secondary">
+        Crea un registro con el botón + de la barra superior o el botón de abajo.
+      </Typography>
+      <Box mt={2}>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          onClick={onAdd}
+        >
+          Crear registro
+        </Button>
+      </Box>
+    </Paper>
+  );
+}
+
 const RutinasWithContext = () => {
-  const params = useParams();
-  const rutinaId = params.id;
-  const navigate = useNavigate();
-  const { isMobile } = useResponsive();
-  const rutinasContext = useRutinas();
-  const { 
-    rutina, 
-    rutinas, 
-    loading, 
-    error, 
-    fetchRutinas, 
-    getRutinaById
-  } = rutinasContext;
-  
-  // Cargar hábitos personalizados
-  const { fetchHabits } = useHabits();
-
-  const [editMode, setEditMode] = useState(false);
-  const [rutinaToEdit, setRutinaToEdit] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [habitsManagerOpen, setHabitsManagerOpen] = useState(false);
-  const initialFetchDone = useRef(false);
-  
-  // Actualizar la página actual cuando cambia la rutina - memoizado para evitar re-renders
-  useEffect(() => {
-    if (rutina?._id && rutinas.length > 0) {
-      const index = rutinas.findIndex(r => r._id === rutina._id);
-      if (index !== -1) {
-        const newPage = index + 1;
-        const newTotal = rutinas.length;
-        // Solo actualizar si realmente cambió para evitar re-renders
-        if (currentPage !== newPage) setCurrentPage(newPage);
-        if (totalPages !== newTotal) setTotalPages(newTotal);
-      }
-    }
-  }, [rutina?._id, rutinas.length]);
-  
-  // Cargar todas las rutinas y hábitos solo cuando se accede a la página
-  useEffect(() => {
-    if (!initialFetchDone.current) {
-      // Log eliminado para mejor rendimiento
-      initialFetchDone.current = true;
-      fetchRutinas().catch(() => {});
-      fetchHabits().catch(() => {});
-    }
-  }, [fetchRutinas, fetchHabits]); // Dependencias necesarias
-  
-  // Cargar rutina específica si hay un ID en los parámetros
-  useEffect(() => {
-    if (rutinaId && rutinas.length > 0) {
-      // Cargando rutina específica
-      const rutina = rutinas.find(r => r._id === rutinaId);
-      
-      if (rutina) {
-        // Rutina encontrada
-        getRutinaById(rutinaId);
-      } else {
-        // Rutina no encontrada, redirigiendo
-        navigate('/tiempo/rutinas');
-      }
-    }
-  }, [rutinaId, rutinas, getRutinaById, navigate]);
-  
-  // Handler para crear nueva rutina
-  const handleAddRutina = () => {
-    setRutinaToEdit(null);
-    setEditMode(true);
-  };
-
-  // Handler para editar rutina existente
-  // Nota UX: ya no se edita la rutina desde un formulario (la configuración se ajusta en la página principal)
-
-  // Exponer el contexto de rutinas a nivel global para compatibilidad
-  useEffect(() => {
-    window.rutinasContext = rutinasContext;
-    
-    return () => {
-      delete window.rutinasContext;
-    };
-  }, []); // Solo una vez al montar
-
-  // Event listeners para manejar acciones desde la navegación específica
-  useEffect(() => {
-    const handleAddRutinaEvent = () => {
-      handleAddRutina();
-    };
-
-    const handleOpenHabitsManager = () => {
-      setHabitsManagerOpen(true);
-    };
-
-    window.addEventListener('addRutina', handleAddRutinaEvent);
-    window.addEventListener('openHabitTemplates', handleOpenHabitsManager);
-
-    return () => {
-      window.removeEventListener('addRutina', handleAddRutinaEvent);
-      window.removeEventListener('openHabitTemplates', handleOpenHabitsManager);
-    };
-  }, []); // Handlers son estables, no necesitan dependencias
-
-  // Handler para cerrar el formulario
-  const handleCloseForm = () => {
-    setEditMode(false);
-    setRutinaToEdit(null);
-  };
-
-  // Navegación desde toolbar (prev/next/today)
-  useEffect(() => {
-    const handleNavigateEvent = async (event) => {
-      const { direction, date } = event.detail || {};
-      if (!rutinas || rutinas.length === 0) return;
-      try {
-        if (direction === 'today') {
-          const todayStr = date || formatDateForAPI(getNormalizedToday());
-          const target = rutinas.find(r => {
-            try {
-              return formatDateForAPI(parseAPIDate(r.fecha)) === todayStr;
-            } catch {
-              return false;
-            }
-          });
-          if (target?._id) {
-            await getRutinaById(target._id);
-          } else {
-            // Si no existe rutina de hoy, abrir formulario de creación
-            setRutinaToEdit(null);
-            setEditMode(true);
-          }
-          // Asegurar ruta correcta
-          navigate('/rutinas', { replace: false });
-        } else if (direction === 'prev' || direction === 'next') {
-          const idx = rutina?._id ? rutinas.findIndex(r => r._id === rutina._id) : -1;
-          if (idx >= 0) {
-            const newIndex = direction === 'prev' ? Math.max(0, idx - 1) : Math.min(rutinas.length - 1, idx + 1);
-            const target = rutinas[newIndex];
-            if (target?._id) {
-              await getRutinaById(target._id);
-            }
-          }
-        }
-      } catch (e) {
-        // noop: navegación silenciosa
-      }
-    };
-    window.addEventListener('navigate', handleNavigateEvent);
-    return () => {
-      window.removeEventListener('navigate', handleNavigateEvent);
-    };
-  }, [rutinas, rutina?._id, getRutinaById, navigate]);
-
-  // Esta parte del código es nueva o modificada
-  const EmptyStateMessage = () => {
-    if (loading) return null;
-    
-    if (error) {
-      return (
-        <Paper elevation={0} sx={rutinaErrorStatePaperSx}>
-          <InfoIcon color="error" />
-          <Typography variant="body2">{error}</Typography>
-        </Paper>
-      );
-    }
-    
-    if (!rutina) {
-      return (
-        <Paper elevation={0} sx={rutinaEmptyStatePaperSx}>
-          <DateIcon sx={{ fontSize: 40, color: 'primary.main', opacity: 0.7 }} />
-          <Typography variant="h6">No hay rutinas disponibles</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Puedes crear una nueva rutina usando el botón de agregar.
-          </Typography>
-          <Box mt={2}>
-            <Button 
-              variant="contained" 
-              color="primary" 
-              startIcon={<AddIcon />}
-              onClick={handleAddRutina}
-            >
-              Crear Rutina
-            </Button>
-          </Box>
-        </Paper>
-      );
-    }
-    
-    return null;
-  };
+  const {
+    rutina,
+    rutinas,
+    loading,
+    error,
+    editMode,
+    rutinaToEdit,
+    currentPage,
+    totalPages,
+    habitsManagerOpen,
+    setHabitsManagerOpen,
+    handleAddRutina,
+    handleCloseForm,
+    isMobile,
+    scrollBottomPadding,
+  } = useRutinasPageController();
 
   return (
     <Box component="main" className="page-main-content" sx={rutinaPageMainSx}>
-      <Box sx={{
-        ...rutinaPageContainerSx,
-        pb: { xs: 10, sm: 4 },
-      }}>
-        <Box sx={rutinaPageScrollSx(isMobile, getMainBottomPadding(isMobile))}>
+      <Box sx={{ ...rutinaPageContainerSx, pb: { xs: 10, sm: 4 } }}>
+        <Box sx={rutinaPageScrollSx(isMobile, scrollBottomPadding, RUTINA_NAVIGATION_BAR_CONFIG.height)}>
           {loading && (
             <Box sx={rutinaPageLoaderSx}>
               <CircularProgress />
             </Box>
           )}
-          {/* Mensaje de estado vacío */}
-          {!loading && !rutina && <EmptyStateMessage />}
-          {/* Vista principal de rutinas */}
-          {!loading && !editMode && rutina && (
-            <RutinaTable 
-              rutina={{
-                ...rutina,
-                _page: currentPage,
-                _totalPages: totalPages
-              }}
-              rutinas={rutinas}
-              loading={loading}
-              currentPage={currentPage}
-              totalPages={totalPages}
-            />
+
+          {!loading && !rutina && !editMode && (
+            <HubSectionShell
+              title="Rutinas"
+              iconKey="fitnessCenter"
+              shellSx={{ width: '100%' }}
+              bodySx={{ ...rutinaHubShellBodySx, pt: 0 }}
+            >
+              <EmptyStateMessage error={error} onAdd={handleAddRutina} />
+            </HubSectionShell>
           )}
-          {/* Formulario de edición */}
+
+          {!loading && !editMode && rutina && (
+            <HubSectionShell
+              headerContent={<></>}
+              shellSx={{ width: '100%' }}
+              bodySx={rutinaHubShellBodySx}
+            >
+              <RutinaTable
+                rutina={{
+                  ...rutina,
+                  _page: currentPage,
+                  _totalPages: totalPages,
+                }}
+                rutinas={rutinas}
+                loading={loading}
+                currentPage={currentPage}
+                totalPages={totalPages}
+              />
+            </HubSectionShell>
+          )}
+
           {editMode && (
-            <RutinaForm 
-              open={true}
+            <RutinaForm
+              open
               onClose={handleCloseForm}
               initialData={rutinaToEdit}
               isEditing={!!rutinaToEdit}
@@ -255,8 +128,8 @@ const RutinasWithContext = () => {
           )}
         </Box>
       </Box>
-      {/* Gestor de hábitos */}
-      <HabitsManager 
+
+      <HabitsManager
         open={habitsManagerOpen}
         onClose={() => setHabitsManagerOpen(false)}
       />
@@ -264,10 +137,6 @@ const RutinasWithContext = () => {
   );
 };
 
-/**
- * Componente principal de página.
- * Nota: El Provider de Rutinas se monta a nivel de Layout para esta ruta.
- */
 const Rutinas = () => <RutinasWithContext />;
 
 export default Rutinas;

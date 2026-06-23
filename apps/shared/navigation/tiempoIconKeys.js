@@ -6,6 +6,7 @@
 export const TIEMPO_ICON_KEYS = {
   foco: 'eventNote',
   agenda: 'calendarToday',
+  rutinas: 'fitnessCenter',
   objetivos: 'objetivo',
   tareas: 'task',
 };

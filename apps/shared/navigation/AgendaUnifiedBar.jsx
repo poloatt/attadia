@@ -1,81 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { Box } from '../utils/materialImports';
 import { useLocation } from 'react-router-dom';
-import { AGENDA_UNIFIED_BAR_CONFIG } from '../config/uiConstants';
+import { AGENDA_UNIFIED_BAR_CONFIG, isRutinasPath } from '../config/uiConstants';
 import { SystemButtons, MenuButton } from '../components/common/SystemButtons';
 import { useUISettings } from '../context/UISettingsContext';
 import { useSidebar } from '../context/SidebarContext';
 import useResponsive from '../hooks/useResponsive';
-import { useRutinas } from '../context/RutinasContext';
 import {
   resolveToolbarLeftByPath,
   resolveToolbarCenterByPath,
   resolveToolbarCenterDesktop,
   resolveToolbarRightByPath,
 } from './toolbarModules';
-import { getAgendaBarSlot, getRutinaNavigation } from './toolbarRegistry';
+import { getAgendaBarSlot } from './toolbarRegistry';
 import { resolveAttaBranchHubPath, resolveFocoBranchHubPath } from './appNavResolver';
 import { isAttaToolbarPath, isPulsoToolbarPath } from './unifiedBarPaths';
-import { matchTiempoSection, isAgendaCalendarPath, isFocoHubPath } from './tiempoToolbarPaths';
-
-const AGENDA_VIEW_TOGGLE_RESERVE = 96;
-
-function RutinaNavigationSlot({ currentPath }) {
-  const RutinaNavigation = getRutinaNavigation();
-  if (
-    !RutinaNavigation
-    || !(currentPath.startsWith('/rutinas')
-      || currentPath.startsWith('/tiempo/rutinas')
-      || isAgendaCalendarPath(currentPath))
-  ) {
-    return null;
-  }
-
-  let rutina = null;
-  let rutinas = [];
-  let loading = false;
-
-  try {
-    const rutinasData = useRutinas();
-    rutina = rutinasData.rutina;
-    rutinas = rutinasData.rutinas;
-    loading = rutinasData.loading;
-  } catch {
-    return null;
-  }
-
-  const currentPage = rutina ? rutinas.findIndex((r) => r._id === rutina._id) + 1 : 1;
-  const totalPages = rutinas.length;
-
-  const handleAdd = () => {
-    window.dispatchEvent(new CustomEvent('addRutina'));
-  };
-
-  const handleSettings = () => {
-    window.dispatchEvent(new CustomEvent('openHabitTemplates'));
-  };
-
-  return (
-    <RutinaNavigation
-      rutina={rutina}
-      loading={loading}
-      currentPage={currentPage}
-      totalPages={totalPages}
-      onAdd={handleAdd}
-      onSettingsClick={isAgendaCalendarPath(currentPath) ? undefined : handleSettings}
-      navigationMode={isAgendaCalendarPath(currentPath) ? 'week' : 'rutina'}
-      compactBar={isAgendaCalendarPath(currentPath)}
-    />
-  );
-}
-
-function shouldShowRutinaNavigation(currentPath) {
-  return (
-    currentPath.startsWith('/tiempo/rutinas')
-    || currentPath.startsWith('/rutinas')
-    || isAgendaCalendarPath(currentPath)
-  );
-}
+import { isFocoHubPath } from './tiempoToolbarPaths';
 
 /**
  * Barra superior unificada (Foco / Atta / Pulso):
@@ -95,12 +35,8 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
   const showCenterOnDesktop = resolveToolbarCenterDesktop(path);
   const mainMargin = getMainMargin(isMobileOrTablet, showSidebarCollapsed);
   const FocoCenterActions = getAgendaBarSlot('focoCenterActions');
-  const FocoViewModeToggle = getAgendaBarSlot('focoViewModeToggle');
-  const AgendaViewToggle = getAgendaBarSlot('agendaViewToggle');
 
-  const showCenter =
-  shouldShowRutinaNavigation(path)
-    || (CenterComp && (isMobileOrTablet || showCenterOnDesktop));
+  const showCenter = CenterComp && (isMobileOrTablet || showCenterOnDesktop);
 
   useEffect(() => {
     const handleSelectionChange = (event) => {
@@ -111,22 +47,14 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
   }, []);
 
   const showRightNav = !isMobile || showEntityToolbarNavigation;
-  const tiempoSection = matchTiempoSection(path);
-  const isAgendaPath = isAgendaCalendarPath(path);
   const isHubPath = isFocoHubPath(path);
   const isAttaPath = isAttaToolbarPath(path);
   const isPulsoPath = isPulsoToolbarPath(path);
-  const mobileAgendaBar = isAgendaPath && isMobile;
-  const showRutinaNavInBar = showCenter
-    && shouldShowRutinaNavigation(path)
-    && !mobileAgendaBar;
-  const useCenterActionsOverlay = isHubPath || isAgendaPath || isAttaPath || isPulsoPath;
-  // Foco: acciones en overlay + navegación de fecha/semana en el grid (no ocultar RutinaNavigation).
-  const hideGridCenter = useCenterActionsOverlay && !showRutinaNavInBar;
+  const showRutinasActions = isRutinasPath(path);
+  const useCenterActionsOverlay = isHubPath || isAttaPath || isPulsoPath || showRutinasActions;
+  const hideGridCenter = useCenterActionsOverlay;
 
-  const gridColumns = mobileAgendaBar
-    ? '1fr'
-    : (showCenter || RightComp ? '1fr auto' : '1fr');
+  const gridColumns = showCenter || RightComp ? '1fr auto' : '1fr';
 
   const showAttaBranchBack = isAttaPath && !!resolveAttaBranchHubPath(path);
   const showFocoBranchBack = !!resolveFocoBranchHubPath(path);
@@ -140,14 +68,9 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
     ? baseCenterInsetLeft + TOOLBAR_BACK_SLOT_WIDTH
     : baseCenterInsetLeft;
   const showAttaBranchSwitcher = isAttaPath && !isMobile && RightComp;
-  const showAhoraLuegoToggle = isMobile && (tiempoSection === 'tareas' || tiempoSection === 'hub') && AgendaViewToggle;
-  const showSemanaDiaToggle = isAgendaPath && FocoViewModeToggle;
-  const agendaViewToggleReserve = (showAhoraLuegoToggle || showSemanaDiaToggle)
-    ? AGENDA_VIEW_TOGGLE_RESERVE
-    : 0;
-  const gridMarginRight = collapsedWidth + agendaViewToggleReserve;
+  const gridMarginRight = collapsedWidth;
   const centerOverlayRight = showAttaBranchSwitcher
-    ? collapsedWidth + 96 + agendaViewToggleReserve
+    ? collapsedWidth + 96
     : gridMarginRight;
 
   return (
@@ -178,7 +101,7 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
           }}
         >
           {isHubPath && FocoCenterActions && <FocoCenterActions section="hub" dense />}
-          {isAgendaPath && FocoCenterActions && <FocoCenterActions section="agenda" dense />}
+          {showRutinasActions && FocoCenterActions && <FocoCenterActions section="rutinas" dense />}
           {isAttaPath && CenterComp && <CenterComp hasSelectedItems={hasSelectedItems} />}
           {isPulsoPath && CenterComp && <CenterComp hasSelectedItems={hasSelectedItems} />}
         </Box>
@@ -213,25 +136,6 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
         )}
         {LeftComp && <LeftComp hasSelectedItems={hasSelectedItems} />}
       </Box>
-
-      {(showAhoraLuegoToggle || showSemanaDiaToggle) && (
-        <Box
-          sx={{
-            position: 'absolute',
-            right: `${collapsedWidth}px`,
-            top: 0,
-            height: AGENDA_UNIFIED_BAR_CONFIG.height,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            px: 1,
-            zIndex: 4,
-          }}
-        >
-          {showAhoraLuegoToggle && <AgendaViewToggle />}
-          {showSemanaDiaToggle && <FocoViewModeToggle />}
-        </Box>
-      )}
 
       <Box
         sx={{
@@ -282,30 +186,28 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
           position: 'relative',
         }}
       >
-        {showCenter && !mobileAgendaBar && !hideGridCenter && (
+        {showCenter && !hideGridCenter && (
           <Box
             sx={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: isAgendaPath && !isMobile ? 'flex-start' : 'center',
+              justifyContent: 'center',
               minWidth: 0,
+              minHeight: 26,
               overflow: 'hidden',
               width: '100%',
               height: '100%',
               position: 'relative',
               zIndex: 2,
-              gridColumn: isAgendaPath && !isMobile ? '1 / 2' : undefined,
             }}
           >
-            {showRutinaNavInBar ? (
-              <RutinaNavigationSlot currentPath={path} />
-            ) : CenterComp ? (
+            {CenterComp ? (
               <CenterComp hasSelectedItems={hasSelectedItems} />
             ) : null}
           </Box>
         )}
 
-        {showRightNav && (RightComp || (isAgendaPath && !isMobile)) && (
+        {showRightNav && RightComp && (
           <Box
             sx={{
               display: 'flex',

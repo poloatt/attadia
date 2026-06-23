@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '../config/axios';
+import { resolveUndoScope } from '../config/undoScopeConfig';
+import { useScopedActionHistory } from '../hooks/useScopedUndo';
+import { ACTION_TYPES } from './ActionHistoryContext';
+import { recordHabitCrudAction } from '../undo/undoRecordingUtils';
 
 // Crear el contexto
 const HabitsContext = createContext();
@@ -18,6 +23,10 @@ export const useHabits = () => {
 
 // Provider del contexto
 export const HabitsProvider = ({ children }) => {
+  const location = useLocation();
+  const undoScope = resolveUndoScope(location.pathname);
+  const undoRecorder = useScopedActionHistory(undoScope);
+
   const [habits, setHabits] = useState({
     bodyCare: [],
     nutricion: [],
@@ -97,6 +106,9 @@ export const HabitsProvider = ({ children }) => {
       }));
       
       enqueueSnackbar('Hábito agregado correctamente', { variant: 'success' });
+      if (undoScope === 'rutinas') {
+        recordHabitCrudAction(undoRecorder, ACTION_TYPES.CREATE, response.data.habit, null, section);
+      }
       return response.data.habit;
     } catch (error) {
       console.error('[HabitsContext] Error al agregar hábito:', error);
@@ -107,7 +119,7 @@ export const HabitsProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [enqueueSnackbar]);
+  }, [enqueueSnackbar, undoScope, undoRecorder]);
 
   /**
    * Actualizar hábito existente
@@ -116,6 +128,8 @@ export const HabitsProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
+
+      const originalHabit = (habits[section] || []).find((h) => h.id === habitId);
       
       const response = await clienteAxios.put(`/api/users/habits/${habitId}`, {
         section,
@@ -131,6 +145,15 @@ export const HabitsProvider = ({ children }) => {
       }));
       
       enqueueSnackbar('Hábito actualizado correctamente', { variant: 'success' });
+      if (undoScope === 'rutinas' && originalHabit) {
+        recordHabitCrudAction(
+          undoRecorder,
+          ACTION_TYPES.UPDATE,
+          response.data.habit,
+          originalHabit,
+          section,
+        );
+      }
       return response.data.habit;
     } catch (error) {
       console.error('[HabitsContext] Error al actualizar hábito:', error);
@@ -141,7 +164,7 @@ export const HabitsProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [enqueueSnackbar]);
+  }, [enqueueSnackbar, undoScope, undoRecorder, habits]);
 
   /**
    * Eliminar hábito
@@ -150,6 +173,8 @@ export const HabitsProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
+
+      const originalHabit = (habits[section] || []).find((h) => h.id === habitId);
       
       await clienteAxios.delete(`/api/users/habits/${habitId}`, {
         data: { section }
@@ -162,6 +187,9 @@ export const HabitsProvider = ({ children }) => {
       }));
       
       enqueueSnackbar('Hábito eliminado correctamente', { variant: 'success' });
+      if (undoScope === 'rutinas' && originalHabit) {
+        recordHabitCrudAction(undoRecorder, ACTION_TYPES.DELETE, null, originalHabit, section);
+      }
     } catch (error) {
       console.error('[HabitsContext] Error al eliminar hábito:', error);
       const errorMsg = error.response?.data?.error || 'Error al eliminar hábito';
@@ -171,7 +199,7 @@ export const HabitsProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [enqueueSnackbar]);
+  }, [enqueueSnackbar, undoScope, undoRecorder, habits]);
 
   /**
    * Reordenar hábitos en una sección

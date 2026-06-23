@@ -37,6 +37,9 @@ import {
   rutinaPageLoaderSx,
 } from '@shared/styles/rutinaPageStyles';
 import { useRutinas } from '@shared/context';
+import useResponsive from '@shared/hooks/useResponsive';
+import RutinaDesktopLayout from './RutinaDesktopLayout';
+import { invalidateHabitsPreferencesCache } from '@foco/features/habits/carousel/hooks/useHabitsPreferences';
 
 // Visibilidad centralizada gestionada en subcomponentes mediante visibilityUtils
 import { getNormalizedToday, toISODateString, parseAPIDate } from '@shared/utils/dateUtils';
@@ -75,6 +78,7 @@ export const RutinaTable = ({
 
   // Funciones del contexto para guardar y enviar configuración
   const { updateItemConfiguration, patchRutinaItemConfig, patchRutinaSection } = useRutinas();
+  const { isDesktop } = useResponsive();
 
   // Sincronizar estados con props cuando cambian
   // Consolidar múltiples useEffect para evitar cascadas de re-renders
@@ -228,6 +232,7 @@ export const RutinaTable = ({
             }
           }
           enqueueSnackbar('Configuración aplicada desde hoy (el pasado no se modifica)', { variant: 'success' });
+          invalidateHabitsPreferencesCache();
         })
         .catch((error) => {
           console.error('[RutinaTable] ❌ Error al aplicar preferencia desde hoy:', error);
@@ -285,6 +290,7 @@ export const RutinaTable = ({
             }
           }
           enqueueSnackbar('Configuración aplicada desde hoy', { variant: 'success' });
+          invalidateHabitsPreferencesCache();
         })
         .catch((error) => {
           console.error('[RutinaTable] ❌ Error al aplicar preferencia desde hoy:', error);
@@ -626,7 +632,14 @@ export const RutinaTable = ({
   }
 
   return (
-    <Box key={rutinaDateKey} sx={rutinaTableContainerSx}>
+    <Box key={rutinaDateKey}>
+      {isDesktop ? (
+        <RutinaDesktopLayout
+          rutina={rutina}
+          onMarkComplete={handleMarkComplete}
+          onConfigChange={handleConfigChange}
+        />
+      ) : (
       <Grid container spacing={1} sx={rutinaGridContainerSx}>
         <Grid item xs={12} md={6} sx={rutinaGridItemSx}>
           <RutinaCard
@@ -688,6 +701,7 @@ export const RutinaTable = ({
           />
         </Grid>
       </Grid>
+      )}
     </Box>
   );
 };

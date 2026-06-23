@@ -20,11 +20,11 @@ import {
 
   TiempoToolbarRight,
 
-  AgendaViewModeToggle,
-
   TiempoToolbarActions,
 
   FocoToolbarLeft,
+
+  ArchivoToolbarCenter,
 
 } from './features/toolbar';
 
@@ -49,22 +49,6 @@ registerToolbarModules([
     center: TareasToolbarCenter,
 
     centerDesktop: true,
-
-    right: TiempoToolbarRight,
-
-  },
-
-  {
-
-    id: 'agenda',
-
-    match: (path) => matchTiempoSection(path) === 'agenda',
-
-    ...focoLeft,
-
-    center: null,
-
-    centerDesktop: false,
 
     right: TiempoToolbarRight,
 
@@ -110,6 +94,7 @@ registerToolbarModules([
 
     ...focoLeft,
 
+    // La navegación diaria (prev/next, Hoy, date picker, %) vive en RutinaNavigation vía registerRutinaNavigation.
     center: null,
 
     centerDesktop: false,
@@ -126,9 +111,9 @@ registerToolbarModules([
 
     ...focoLeft,
 
-    center: null,
+    center: ArchivoToolbarCenter,
 
-    centerDesktop: false,
+    centerDesktop: true,
 
     right: TiempoToolbarRight,
 
@@ -140,7 +125,6 @@ registerToolbarModules([
 
 registerAgendaBarSlots({
   focoCenterActions: TiempoToolbarActions,
-  focoViewModeToggle: AgendaViewModeToggle,
   agendaViewToggle: AgendaToolbarCenter,
 });
 

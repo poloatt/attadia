@@ -1,5 +1,34 @@
 import { alpha } from '@mui/material/styles';
 
+/** Scroll de página hub (Foco hub, Rutinas) — scrollbar, altura viewport y padding inferior. */
+export function hubPageScrollSx({ isMobile = false, bottomPadding, extraTopOffset = 0 } = {}) {
+  const viewportOffset = (isMobile ? 180 : 190) + extraTopOffset;
+  return {
+    py: isMobile ? 1 : 2,
+    px: { xs: 1, sm: 2, md: 3 },
+    height: isMobile ? `calc(100vh - ${viewportOffset}px)` : `calc(100vh - ${viewportOffset}px)`,
+    overflowY: 'auto',
+    overflowX: 'hidden',
+    pb: bottomPadding ?? (isMobile ? 4 : 6),
+    '&::-webkit-scrollbar': {
+      width: isMobile ? '4px' : '8px',
+    },
+    '&::-webkit-scrollbar-track': {
+      backgroundColor: (theme) =>
+        alpha(theme.palette.text.primary, theme.palette.mode === 'dark' ? 0.06 : 0.04),
+    },
+    '&::-webkit-scrollbar-thumb': {
+      backgroundColor: (theme) =>
+        alpha(theme.palette.text.primary, theme.palette.mode === 'dark' ? 0.18 : 0.12),
+      borderRadius: '4px',
+    },
+    '&::-webkit-scrollbar-thumb:hover': {
+      backgroundColor: (theme) =>
+        alpha(theme.palette.text.primary, theme.palette.mode === 'dark' ? 0.28 : 0.2),
+    },
+  };
+}
+
 /**
  * Design system de secciones hub (cabecera tintada, shell redondeado, preview).
  * Usado por ATTA (Finanzas, Propiedades, Inventario) y Foco (Tareas: Hábitos, Objetivos).

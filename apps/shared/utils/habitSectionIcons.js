@@ -16,6 +16,27 @@ function hasCustomHabitsStructure(habits) {
 }
 
 /**
+ * Label visible de un hábito: customHabits del usuario > iconTooltips legacy > itemId.
+ */
+export function getHabitDisplayLabel(section, itemId, habits = null) {
+  if (!section || !itemId) return '';
+
+  const sectionHabits = Array.isArray(habits?.[section]) ? habits[section] : [];
+  const custom = sectionHabits.find((h) => (h.id || h._id) === itemId);
+  if (custom?.label) return custom.label;
+  if (custom?.name) return custom.name;
+
+  return iconTooltips?.[section]?.[itemId] || itemId;
+}
+
+/** Hábito personalizado del usuario (para acciones de edición). */
+export function findUserHabit(section, itemId, habits = null) {
+  if (!section || !itemId || !habits) return null;
+  const sectionHabits = Array.isArray(habits[section]) ? habits[section] : [];
+  return sectionHabits.find((h) => (h.id || h._id) === itemId) || null;
+}
+
+/**
  * IDs de hábitos a mostrar en una sección (customHabits del usuario o legacy iconConfig).
  */
 export function getHabitSectionItemIds(section, habits = null) {
@@ -35,16 +56,19 @@ export function getHabitSectionItemIds(section, habits = null) {
 export function buildHabitSectionIconsMap(habits = {}) {
   const iconsMap = {};
   const labelsMap = {};
+  const useCustomOnly = hasCustomHabitsStructure(habits);
 
   HABIT_SECTIONS.forEach((section) => {
     iconsMap[section] = {};
     labelsMap[section] = {};
 
-    const legacy = iconConfig?.[section] || {};
-    Object.entries(legacy).forEach(([itemId, Icon]) => {
-      iconsMap[section][itemId] = Icon;
-      labelsMap[section][itemId] = iconTooltips?.[section]?.[itemId] || itemId;
-    });
+    if (!useCustomOnly) {
+      const legacy = iconConfig?.[section] || {};
+      Object.entries(legacy).forEach(([itemId, Icon]) => {
+        iconsMap[section][itemId] = Icon;
+        labelsMap[section][itemId] = iconTooltips?.[section]?.[itemId] || itemId;
+      });
+    }
 
     const sectionHabits = Array.isArray(habits?.[section]) ? habits[section] : [];
     sectionHabits
@@ -56,7 +80,7 @@ export function buildHabitSectionIconsMap(habits = {}) {
         const Icon = getIconByName(habit.icon);
         if (!Icon) return;
         iconsMap[section][itemId] = Icon;
-        labelsMap[section][itemId] = habit.label || habit.name || itemId;
+        labelsMap[section][itemId] = getHabitDisplayLabel(section, itemId, habits);
       });
   });
 

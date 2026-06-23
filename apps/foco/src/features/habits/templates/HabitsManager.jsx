@@ -8,6 +8,7 @@ import {
   TareaFormHeader,
 } from '@shared/components/forms/tareaFormUi';
 import { generateHabitId } from './saveHabitFromForm';
+import { invalidateHabitsPreferencesCache } from '@foco/features/habits/carousel/hooks/useHabitsPreferences';
 import { DEFAULT_HABIT_CONFIG } from './habitFormDefaults';
 import { DEFAULT_HABIT_ICON } from '@shared/utils/habitIcons';
 import {
@@ -164,7 +165,9 @@ export const HabitsManager = ({ open, onClose }) => {
       } else {
         await clienteAxios.put('/api/users/preferences/habits', {
           habits: { [sectionOverride]: { [habitId]: normalizedConfig } },
-        });
+          applyFrom: 'today',
+        }, { params: { applyFrom: 'today' } });
+        invalidateHabitsPreferencesCache();
       }
 
       setHabitsConfig((prev) => ({
@@ -346,7 +349,9 @@ export const HabitsManager = ({ open, onClose }) => {
       } else {
         await clienteAxios.put('/api/users/preferences/habits', {
           habits: { [targetSection]: { [habitId]: defaultConfig } },
-        });
+          applyFrom: 'today',
+        }, { params: { applyFrom: 'today' } });
+        invalidateHabitsPreferencesCache();
       }
 
       setShowAddForm(false);

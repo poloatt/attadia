@@ -3,6 +3,23 @@ import clienteAxios from '@shared/config/axios';
 
 let cachedHabitsPreferences;
 
+export function invalidateHabitsPreferencesCache() {
+  cachedHabitsPreferences = undefined;
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('habitsPreferencesInvalidated'));
+  }
+}
+
+export function setHabitsPreferencesCache(prefs) {
+  cachedHabitsPreferences = prefs ?? {};
+}
+
+function fetchHabitsPreferencesFromApi() {
+  return clienteAxios.get('/api/users/preferences/habits')
+    .then((response) => response.data?.habits || {})
+    .catch(() => ({}));
+}
+
 /**
  * Preferencias de hábitos del usuario (plantilla).
  * Cache en memoria para evitar parpadeos al cambiar Ahora/Luego.
@@ -13,25 +30,28 @@ export default function useHabitsPreferences() {
   );
 
   useEffect(() => {
-    if (cachedHabitsPreferences !== undefined) {
-      setHabitsPreferences(cachedHabitsPreferences);
-      return undefined;
-    }
-
     let cancelled = false;
 
-    clienteAxios.get('/api/users/preferences/habits')
-      .then((response) => {
-        const prefs = response.data?.habits || {};
+    const load = () => {
+      fetchHabitsPreferencesFromApi().then((prefs) => {
         cachedHabitsPreferences = prefs;
         if (!cancelled) setHabitsPreferences(prefs);
-      })
-      .catch(() => {
-        cachedHabitsPreferences = {};
-        if (!cancelled) setHabitsPreferences({});
       });
+    };
 
-    return () => { cancelled = true; };
+    if (cachedHabitsPreferences !== undefined) {
+      setHabitsPreferences(cachedHabitsPreferences);
+    } else {
+      load();
+    }
+
+    const onInvalidate = () => load();
+    window.addEventListener('habitsPreferencesInvalidated', onInvalidate);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('habitsPreferencesInvalidated', onInvalidate);
+    };
   }, []);
 
   return {
