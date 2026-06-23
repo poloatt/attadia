@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect } from 'react';
-import { Box, Button, ButtonBase, IconButton, LinearProgress, Tooltip } from '@mui/material';
+import { Box, Button, ButtonBase, IconButton, LinearProgress, Tooltip, Typography } from '@mui/material';
 import { CalendarMonthOutlined } from '@mui/icons-material';
 import { isToday, startOfDay } from 'date-fns';
 import { useResponsive } from '@shared/hooks';
-import CalendarDateHeroContent from '@shared/components/calendar/CalendarDateHeroContent';
+import CalendarDateHeroContent, {
+  RutinaCompletionPctChip,
+} from '@shared/components/calendar/CalendarDateHeroContent';
 import {
   getTodayCalendarDate,
   isViewingTodayInCalendar,
@@ -111,6 +113,8 @@ export default function AgendaCalendarDateHeader({
 
   const showProgress = isRutina && typeof completionPercentage === 'number';
   const progressValue = showProgress ? Math.min(100, Math.max(0, completionPercentage)) : 0;
+  const isRutinaNarrow = isRutina && isMobile;
+  const rutinaPctLabel = showProgress ? `${completionPercentage}%` : '—';
 
   return (
     <Box
@@ -122,7 +126,7 @@ export default function AgendaCalendarDateHeader({
         flexDirection: 'column',
         justifyContent: 'center',
         px: 0,
-        py: isRutina ? 0.75 : 1,
+        py: isRutina ? (isRutinaNarrow ? 0.5 : 0.75) : 1,
         width: '100%',
         bgcolor: 'background.default',
         borderBottom: hideOuterBorder ? 0 : (today || viewingToday ? 2 : 1),
@@ -132,15 +136,23 @@ export default function AgendaCalendarDateHeader({
       <Box
         sx={{
           display: 'flex',
-          alignItems: isRutina ? 'center' : 'flex-start',
+          flexDirection: isRutinaNarrow ? 'column' : 'row',
+          alignItems: isRutinaNarrow ? 'stretch' : (isRutina ? 'center' : 'flex-start'),
           gap: isRutina ? { xs: 0.25, sm: 0.5 } : 0.5,
           width: '100%',
           minWidth: 0,
-          overflow: isRutina ? 'hidden' : 'visible',
+          overflow: isRutinaNarrow ? 'visible' : (isRutina ? 'hidden' : 'visible'),
         }}
       >
         <Tooltip title={heroTooltip}>
-          <span style={{ display: 'inline-flex', flex: 1, minWidth: 0 }}>
+          <span
+            style={{
+              display: 'inline-flex',
+              flex: isRutinaNarrow ? undefined : 1,
+              minWidth: 0,
+              width: isRutinaNarrow ? '100%' : undefined,
+            }}
+          >
             <ButtonBase
               onClick={heroOnClick}
               disabled={isRutina && loading}
@@ -151,13 +163,14 @@ export default function AgendaCalendarDateHeader({
                 py: 0.5,
                 textAlign: 'left',
                 flex: 1,
+                width: isRutinaNarrow ? '100%' : undefined,
                 justifyContent: 'flex-start',
                 '&:hover': { bgcolor: loading && isRutina ? 'transparent' : 'action.hover' },
               }}
             >
               <CalendarDateHeroContent
                 date={normalized}
-                subtitle={isRutina ? positionLabel : ''}
+                subtitle={isRutinaNarrow ? '' : positionLabel}
                 variant={isRutina ? 'rutina' : 'default'}
                 completionPercentage={completionPercentage}
                 completionColor={completionColor}
@@ -173,14 +186,55 @@ export default function AgendaCalendarDateHeader({
             sx={{
               display: 'flex',
               alignItems: 'center',
-              gap: { xs: 0, sm: 0.25 },
+              justifyContent: isRutinaNarrow
+                ? (positionLabel ? 'space-between' : 'flex-end')
+                : undefined,
+              gap: { xs: 0.25, sm: 0.25 },
               flexShrink: 0,
               height: 26,
+              width: isRutinaNarrow ? '100%' : undefined,
+              minWidth: 0,
               pr: isRutina ? 0 : undefined,
             }}
           >
             {isRutina ? (
               <>
+                {isRutinaNarrow && positionLabel ? (
+                  <Typography
+                    variant="caption"
+                    color="text.disabled"
+                    noWrap
+                    sx={{
+                      lineHeight: 1.2,
+                      minWidth: 0,
+                      flex: '1 1 auto',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      mr: 0.5,
+                    }}
+                  >
+                    {positionLabel}
+                  </Typography>
+                ) : null}
+                <Box
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: { xs: 0.25, sm: 0.25 },
+                    flexShrink: 0,
+                    ml: isRutinaNarrow && positionLabel ? 'auto' : undefined,
+                  }}
+                >
+                {isRutinaNarrow && showProgress && (
+                  <Tooltip title={completionTooltip}>
+                    <span style={{ display: 'inline-flex', flexShrink: 0, marginRight: 2 }}>
+                      <RutinaCompletionPctChip
+                        label={rutinaPctLabel}
+                        color={completionColor}
+                      />
+                    </span>
+                  </Tooltip>
+                )}
                 <Tooltip title={viewingToday ? 'Ya estás en hoy' : 'Ir a hoy'}>
                   <span style={{ display: 'inline-flex' }}>
                     <Button
@@ -204,6 +258,7 @@ export default function AgendaCalendarDateHeader({
                   compact={false}
                   navHandlers={navHandlers}
                 />
+                </Box>
               </>
             ) : (
               <>

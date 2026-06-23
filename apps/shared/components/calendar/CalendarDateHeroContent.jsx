@@ -1,7 +1,36 @@
 import React from 'react';
-import { Box, Chip, Typography } from '@mui/material';
+import { Box, Chip, Typography, useMediaQuery } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 import { startOfDay } from 'date-fns';
 import { formatCalendarDayHeader } from '../../utils/focoNavigationUtils';
+
+/** Pill de % de rutina alineado a tipografía Google Calendar (pequeño, regular). */
+export function RutinaCompletionPctChip({ label, color = 'primary', tooltip = '' }) {
+  const theme = useTheme();
+  const paletteColor = theme.palette[color]?.main ?? theme.palette.primary.main;
+
+  return (
+    <Chip
+      size="small"
+      label={label}
+      title={tooltip || undefined}
+      sx={{
+        height: 22,
+        borderRadius: '9999px',
+        flexShrink: 0,
+        bgcolor: alpha(paletteColor, 0.12),
+        color: paletteColor,
+        '& .MuiChip-label': {
+          px: 0.75,
+          py: 0,
+          fontSize: '0.8125rem',
+          fontWeight: 400,
+          lineHeight: 1.2,
+        },
+      }}
+    />
+  );
+}
 
 const DAY_MODE_CHIP = {
   today: { label: 'Hoy', color: 'primary' },
@@ -26,9 +55,12 @@ export default function CalendarDateHeroContent({
   onGoToToday,
   loading = false,
 }) {
+  const theme = useTheme();
+  const isNarrow = useMediaQuery(theme.breakpoints.down('sm'), { noSsr: true });
   const normalized = startOfDay(date || new Date());
   const { weekday, dayNumber, monthYear } = formatCalendarDayHeader(normalized);
   const isRutina = variant === 'rutina';
+  const showInlineCompletion = isRutina && typeof completionPercentage === 'number' && !isNarrow;
 
   const pctLabel = typeof completionPercentage === 'number'
     ? `${completionPercentage}%`
@@ -63,6 +95,7 @@ export default function CalendarDateHeroContent({
             width: '100%',
             minWidth: 0,
             overflow: 'hidden',
+            flexWrap: isNarrow ? 'wrap' : 'nowrap',
           }}
         >
           <Box
@@ -71,6 +104,7 @@ export default function CalendarDateHeroContent({
               alignItems: 'baseline',
               gap: { xs: 0.5, sm: 1 },
               minWidth: 0,
+              flex: isNarrow ? '1 1 auto' : undefined,
               flexShrink: 1,
               overflow: 'hidden',
             }}
@@ -102,29 +136,23 @@ export default function CalendarDateHeroContent({
               {monthYear}
             </Typography>
           </Box>
-          <Box
-            sx={{
-              flex: 1,
-              display: 'flex',
-              justifyContent: 'center',
-              minWidth: 0,
-              flexShrink: 1,
-            }}
-            title={completionTooltip}
-          >
-            <Typography
-              component="span"
+          {showInlineCompletion && (
+            <Box
               sx={{
-                fontWeight: 700,
-                fontSize: { xs: '1rem', sm: '1.25rem' },
-                lineHeight: 1,
-                color: `${completionColor}.main`,
-                whiteSpace: 'nowrap',
+                flex: 1,
+                display: 'flex',
+                justifyContent: 'center',
+                minWidth: 0,
+                flexShrink: 1,
               }}
             >
-              {pctLabel}
-            </Typography>
-          </Box>
+              <RutinaCompletionPctChip
+                label={pctLabel}
+                color={completionColor}
+                tooltip={completionTooltip}
+              />
+            </Box>
+          )}
           {modeChip && dayMode !== 'today' && (
             <Chip
               size="small"
