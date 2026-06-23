@@ -4,6 +4,15 @@ import { useResponsive } from '@shared/hooks';
 import RutinaTable from './RutinaTable';
 import { RutinaForm } from './RutinaForm';
 import { HabitsManager } from '../templates/HabitsManager';
+import {
+  rutinaPageMainSx,
+  rutinaPageContainerSx,
+  rutinaPageScrollSx,
+  rutinaPageLoaderSx,
+  rutinaEmptyStatePaperSx,
+  rutinaErrorStatePaperSx,
+} from '@shared/styles/rutinaPageStyles';
+import { getMainBottomPadding } from '@shared/config/uiConstants';
 
 import { useRutinas, useHabits } from '@shared/context';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -175,19 +184,7 @@ const RutinasWithContext = () => {
     
     if (error) {
       return (
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2,
-            mb: 2,
-            backgroundColor: 'error.light',
-            color: 'error.contrastText',
-            borderRadius: 1,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1
-          }}
-        >
+        <Paper elevation={0} sx={rutinaErrorStatePaperSx}>
           <InfoIcon color="error" />
           <Typography variant="body2">{error}</Typography>
         </Paper>
@@ -196,20 +193,7 @@ const RutinasWithContext = () => {
     
     if (!rutina) {
       return (
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2,
-            mb: 2,
-            bgcolor: 'background.paper',
-            borderRadius: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 1,
-            textAlign: 'center'
-          }}
-        >
+        <Paper elevation={0} sx={rutinaEmptyStatePaperSx}>
           <DateIcon sx={{ fontSize: 40, color: 'primary.main', opacity: 0.7 }} />
           <Typography variant="h6">No hay rutinas disponibles</Typography>
           <Typography variant="body2" color="text.secondary">
@@ -233,44 +217,14 @@ const RutinasWithContext = () => {
   };
 
   return (
-    <Box component="main" className="page-main-content" sx={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ 
-        width: '100%', 
-        maxWidth: 900,
-        mx: 'auto',
-        px: { xs: 1, sm: 2, md: 3 },
-        py: 0,
+    <Box component="main" className="page-main-content" sx={rutinaPageMainSx}>
+      <Box sx={{
+        ...rutinaPageContainerSx,
         pb: { xs: 10, sm: 4 },
-        boxSizing: 'border-box',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 0
       }}>
-        <Box 
-          sx={{ 
-            py: isMobile ? 1 : 2,
-            px: { xs: 1, sm: 2, md: 3 },
-            height: isMobile ? 'calc(100vh - 180px)' : 'calc(100vh - 190px)',
-            overflowY: 'auto',
-            pb: isMobile ? 4 : 6, // Agregar padding bottom más extenso
-            '&::-webkit-scrollbar': {
-              width: isMobile ? '4px' : '8px',
-            },
-            '&::-webkit-scrollbar-track': {
-              backgroundColor: 'rgba(0,0,0,0.1)',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              backgroundColor: 'rgba(0,0,0,0.2)',
-              borderRadius: '4px',
-            },
-            '&::-webkit-scrollbar-thumb:hover': {
-              backgroundColor: 'rgba(0,0,0,0.3)',
-            },
-          }}
-        >
-          {/* Loader cuando se están cargando datos */}
+        <Box sx={rutinaPageScrollSx(isMobile, getMainBottomPadding(isMobile))}>
           {loading && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+            <Box sx={rutinaPageLoaderSx}>
               <CircularProgress />
             </Box>
           )}

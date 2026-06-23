@@ -22,6 +22,8 @@ export { isDateOnlyDueRaw, isDateOnlyDueInstant, parseTaskDate, normalizeDateOnl
  * - `due` representa el compromiso (lo que vence).
  * - `start` representa disponibilidad (fallback cuando no hay due).
  *
+ * Glosario: @see agendaTerminology — taskHorizon.ahora / taskHorizon.luego
+ *
  * Nota: las tareas pueden traer hora (ISO con `T`), por lo que NO usamos `parseAPIDate`.
  */
 

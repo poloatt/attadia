@@ -1,6 +1,4 @@
-/**
- * Utilidades para el manejo de horarios del día (mañana, tarde, noche)
- */
+import { getUserTimezone } from './dateUtils';
 
 // Rangos de horarios fijos
 export const TIME_RANGES = {
@@ -13,12 +11,28 @@ export const TIME_RANGES = {
 export const VALID_TIME_OF_DAY = ['MAÑANA', 'TARDE', 'NOCHE'];
 
 /**
- * Determina el horario del día actual según la hora
+ * Hora actual (0-23) en el timezone del usuario.
+ */
+function getCurrentHourInUserTimezone(date = new Date()) {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: getUserTimezone(),
+      hour: 'numeric',
+      hour12: false,
+    });
+    return parseInt(formatter.format(date), 10);
+  } catch {
+    return date.getHours();
+  }
+}
+
+/**
+ * Determina el horario del día actual según la hora (timezone del usuario)
  * @param {Date} date - Fecha a evaluar (opcional, por defecto es ahora)
  * @returns {string} - 'MAÑANA', 'TARDE' o 'NOCHE'
  */
 export const getCurrentTimeOfDay = (date = new Date()) => {
-  const hour = date.getHours();
+  const hour = getCurrentHourInUserTimezone(date);
   
   // Rango nocturno cruza medianoche (18:00 - 6:00)
   if (hour >= TIME_RANGES.NOCHE.start || hour < TIME_RANGES.NOCHE.end) {

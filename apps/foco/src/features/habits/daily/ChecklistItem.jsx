@@ -1,9 +1,9 @@
 import React, { memo, useMemo } from 'react';
-import { ListItem, Box, IconButton, Typography, Button, Chip } from '@mui/material';
+import { ListItem, Box, IconButton, Typography } from '@mui/material';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import InlineItemConfigImproved, { getFrecuenciaLabel } from '../templates/InlineItemConfigImproved';
-import { getTimeOfDayLabels, getCurrentTimeOfDay } from '@shared/utils/timeOfDayUtils';
+import InlineItemConfigImproved from '../templates/InlineItemConfigImproved';
+import { getCurrentTimeOfDay } from '@shared/utils/timeOfDayUtils';
 import { HabitCounterBadge } from '@shared/components/common/HabitCounterBadge';
 import WbSunnyIcon from '@mui/icons-material/WbSunny';
 import WbTwilightIcon from '@mui/icons-material/WbTwilight';
@@ -12,6 +12,22 @@ import { SystemButtons } from '@shared/components/common/SystemButtons';
 import { ACTIONS } from '@shared/components/common/CommonActions';
 import { useRutinas } from '@shared/context';
 import { contarCompletadosEnPeriodo, obtenerHistorialCompletados } from '@shared/utils/cadenciaUtils';
+import {
+  getRutinaHabitIconButtonSx,
+  rutinaChecklistItemSx,
+  rutinaChecklistRowSx,
+  rutinaChecklistContentSx,
+  rutinaChecklistTextColumnSx,
+  rutinaChecklistLabelSx,
+  rutinaChecklistMetaSx,
+  rutinaHorariosRowSx,
+  rutinaHorarioIconButtonSx,
+  rutinaHorarioIconSx,
+  rutinaRowActionsSx,
+  rutinaRowActionIconSx,
+  rutinaSystemButtonsSx,
+  rutinaInlineConfigSx,
+} from '@shared/styles/rutinaPageStyles';
 
 // Botón de hábito modularizado para uso en RutinaCard y otros
 export const HabitIconButton = ({ 
@@ -46,23 +62,7 @@ export const HabitIconButton = ({
     size="small"
     onClick={onClick}
     disabled={readOnly}
-    sx={{
-      width: size,
-      height: size,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      mr: mr,
-      cursor: 'pointer',
-      color: isCompleted ? 'primary.main' : 'rgba(255,255,255,0.5)',
-      bgcolor: isCompleted ? 'action.selected' : 'transparent',
-      borderRadius: '50%',
-      transition: 'all 0.2s ease',
-      '&:hover': {
-        color: isCompleted ? 'primary.main' : 'white',
-        bgcolor: isCompleted ? 'action.selected' : 'rgba(255,255,255,0.1)'
-      }
-    }}
+    sx={getRutinaHabitIconButtonSx({ isCompleted, size, mr })}
     {...props}
   >
     {Icon && <Icon fontSize={iconSize} />}
@@ -195,23 +195,8 @@ const ChecklistItem = ({
 
   return (
     <>
-      <ListItem 
-        disablePadding
-        sx={{ 
-          mb: 0.5,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-start',
-          bgcolor: 'transparent',
-        }}
-      >
-        <Box sx={{ 
-          width: '100%', 
-          display: 'flex',
-          alignItems: 'center',
-          py: 0.5,
-          position: 'relative'
-        }}>
+      <ListItem disablePadding sx={rutinaChecklistItemSx}>
+        <Box sx={rutinaChecklistRowSx}>
           {/* Icono de hábito */}
           {!readOnly && (
             <HabitIconButton
@@ -230,55 +215,21 @@ const ChecklistItem = ({
             />
           )}
           {/* Contenido principal */}
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            flexGrow: 1,
-            minWidth: 0,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            color: isCompleted ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.9)',
-            pr: 0 // sin padding derecho, para que el engranaje quede pegado
-          }}>
-            <Box sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              minWidth: 0,
-              flexGrow: 1,
-              overflow: 'hidden',
-            }}>
+          <Box sx={rutinaChecklistContentSx}>
+            <Box sx={rutinaChecklistTextColumnSx}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flex: 1, minWidth: 0 }}>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    fontWeight: 400,
-                    color: isCompleted ? 'rgba(255,255,255,0.5)' : 'inherit',
-                    textDecoration: isCompleted ? 'line-through' : 'none',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    flex: 1,
-                    minWidth: 0
-                  }}
-                >
+                <Typography variant="body2" sx={rutinaChecklistLabelSx(isCompleted)}>
                   {isCustomHabit ? habitLabel : itemId}
                 </Typography>
               </Box>
               {/* Resumen de configuración centralizado */}
               {config && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.2, flexWrap: 'wrap' }}>
-                  <Typography 
-                    variant="caption" 
-                    color="text.secondary"
-                    sx={{ fontSize: '0.7rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                  >
+                  <Typography variant="caption" sx={rutinaChecklistMetaSx}>
                     {secondaryText}
                   </Typography>
-                  {/* Iconos de horarios clickeables a la derecha del texto secundario */}
                   {config?.horarios && Array.isArray(config.horarios) && config.horarios.length > 0 && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, ml: 0.5 }}>
+                    <Box sx={rutinaHorariosRowSx}>
                       {config.horarios.map((horario, index) => {
                         const normalizedHorario = String(horario).toUpperCase();
                         let IconComponent = null;
@@ -312,31 +263,9 @@ const ChecklistItem = ({
                                 onItemClick(itemId, e, normalizedHorario);
                               }
                             }}
-                            sx={{
-                              padding: 0.25,
-                              minWidth: 'auto',
-                              width: 'auto',
-                              height: 'auto',
-                              cursor: readOnly ? 'default' : 'pointer',
-                              color: horarioCompleted ? 'primary.main' : 'rgba(255,255,255,0.3)',
-                              opacity: horarioCompleted ? 1 : 0.3,
-                              transition: 'all 0.2s ease',
-                              '&:hover': {
-                                color: horarioCompleted ? 'primary.main' : 'rgba(255,255,255,0.6)',
-                                opacity: horarioCompleted ? 1 : 0.6,
-                                bgcolor: 'rgba(255,255,255,0.05)'
-                              },
-                              '&:disabled': {
-                                opacity: 0.3,
-                                cursor: 'default'
-                              }
-                            }}
+                            sx={rutinaHorarioIconButtonSx(horarioCompleted)}
                           >
-                            <IconComponent
-                              sx={{
-                                fontSize: '0.75rem'
-                              }}
-                            />
+                            <IconComponent sx={rutinaHorarioIconSx} />
                           </IconButton>
                         );
                       })}
@@ -348,16 +277,7 @@ const ChecklistItem = ({
           </Box>
           {/* Botones de acción alineados a la derecha */}
           {!readOnly && (
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 0.5,
-              ml: 'auto',
-              position: 'absolute',
-              right: 0,
-              top: '50%',
-              transform: 'translateY(-50%)'
-            }}>
+            <Box sx={rutinaRowActionsSx}>
               {isCustomHabit && onEditHabit && (
                 <IconButton
                   edge="end"
@@ -367,34 +287,13 @@ const ChecklistItem = ({
                     e.stopPropagation();
                     if (onEditHabit) onEditHabit();
                   }}
-                  sx={{
-                    color: 'rgba(255,255,255,0.3)',
-                    borderRadius: 0,
-                    width: 24,
-                    height: 24,
-                    '&:hover': {
-                      color: 'primary.main',
-                      bgcolor: 'rgba(255,255,255,0.08)'
-                    }
-                  }}
+                  sx={rutinaRowActionIconSx(false)}
                 >
                   <EditOutlinedIcon sx={{ fontSize: '1rem' }} />
                 </IconButton>
               )}
               {isCustomHabit && onDeleteHabit && (
-                <Box sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center',
-                  '& .MuiIconButton-root': {
-                    width: 24,
-                    height: 24,
-                    borderRadius: 0,
-                    padding: 0.25,
-                    '& .MuiSvgIcon-root': {
-                      fontSize: '1rem'
-                    }
-                  }
-                }}>
+                <Box sx={rutinaSystemButtonsSx}>
                   <SystemButtons
                     actions={[
                       ACTIONS.delete({
@@ -415,16 +314,7 @@ const ChecklistItem = ({
                   e.stopPropagation();
                   if (onSetupToggle) onSetupToggle();
                 }}
-                sx={{
-                  color: isSetupOpen ? 'primary.main' : 'rgba(255,255,255,0.3)',
-                  borderRadius: 0,
-                  width: 24,
-                  height: 24,
-                  '&:hover': {
-                    color: 'primary.main',
-                    bgcolor: 'rgba(255,255,255,0.08)'
-                  }
-                }}
+                sx={rutinaRowActionIconSx(isSetupOpen)}
               >
                 <SettingsOutlinedIcon sx={{ fontSize: '1.2rem' }} />
               </IconButton>
@@ -434,7 +324,7 @@ const ChecklistItem = ({
       </ListItem>
       {/* Setup debajo del ítem - solo para ítems que no son hábitos personalizados */}
       {isSetupOpen && !isCustomHabit && (
-        <Box sx={{ width: '100%', mt: 1 }}>
+        <Box sx={rutinaInlineConfigSx}>
           <InlineItemConfigImproved
             config={config}
             onConfigChange={onConfigChange}

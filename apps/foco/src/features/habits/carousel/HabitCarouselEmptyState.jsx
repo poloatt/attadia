@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Typography, Button } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import { getHabitCarouselEmptyCopy } from '@shared/copy/agendaTerminology';
 
 /**
  * @param {'allDone'|'noHabits'|'error'} variant
@@ -61,9 +62,7 @@ export default function HabitCarouselEmptyState({
     );
   }
 
-  const message = mode === 'luego'
-    ? 'No hay hábitos pendientes para más tarde'
-    : '¡Todo al día!';
+  const message = getHabitCarouselEmptyCopy(mode);
 
   return (
     <Box

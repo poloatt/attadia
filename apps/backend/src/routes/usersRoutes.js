@@ -18,12 +18,11 @@ router.get('/preferences/habits', checkAuth, usersController.getHabitPreferences
 router.put('/preferences/habits', checkAuth, usersController.updateHabitPreferences);
 
 // Rutas para gestión de hábitos personalizados
-// IMPORTANTE: Las rutas específicas (reorder, reset) deben ir ANTES de las rutas con parámetros (:habitId)
+// IMPORTANTE: Las rutas específicas (reorder) deben ir ANTES de las rutas con parámetros (:habitId)
 // para que Express las evalúe correctamente
 router.get('/habits', checkAuth, usersController.getHabits);
 router.post('/habits', checkAuth, usersController.addHabit);
 router.put('/habits/reorder', checkAuth, usersController.reorderHabits);
-router.post('/habits/reset', checkAuth, usersController.resetHabits);
 router.put('/habits/:habitId', checkAuth, usersController.updateHabit);
 router.delete('/habits/:habitId', checkAuth, usersController.deleteHabit);
 

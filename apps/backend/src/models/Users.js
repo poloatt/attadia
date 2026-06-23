@@ -1,5 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
+import { cloneDefaultCustomHabits } from '../constants/defaultCustomHabits.js';
 
 // Definir el esquema de configuración de cadencia global por usuario
 const cadenciaConfigSchema = {
@@ -222,35 +223,7 @@ const userSchema = new mongoose.Schema({
         orden: { type: Number, default: 0 }
       }]
     },
-    default: () => {
-      // Hábitos por defecto que se pre-cargan para nuevos usuarios
-      return {
-        bodyCare: [
-          { id: 'bath', label: 'Ducha', icon: 'Bathtub', activo: true, orden: 0 },
-          { id: 'skinCareDay', label: 'Cuidado facial día', icon: 'PersonOutline', activo: true, orden: 1 },
-          { id: 'skinCareNight', label: 'Cuidado facial noche', icon: 'Nightlight', activo: true, orden: 2 },
-          { id: 'bodyCream', label: 'Crema corporal', icon: 'Spa', activo: true, orden: 3 }
-        ],
-        nutricion: [
-          { id: 'cocinar', label: 'Cocinar', icon: 'Restaurant', activo: true, orden: 0 },
-          { id: 'agua', label: 'Beber agua', icon: 'WaterDrop', activo: true, orden: 1 },
-          { id: 'protein', label: 'Proteína', icon: 'SetMeal', activo: true, orden: 2 },
-          { id: 'meds', label: 'Medicamentos', icon: 'Medication', activo: true, orden: 3 }
-        ],
-        ejercicio: [
-          { id: 'meditate', label: 'Meditar', icon: 'SelfImprovement', activo: true, orden: 0 },
-          { id: 'stretching', label: 'Correr', icon: 'DirectionsRun', activo: true, orden: 1 },
-          { id: 'gym', label: 'Gimnasio', icon: 'FitnessCenter', activo: true, orden: 2 },
-          { id: 'cardio', label: 'Bicicleta', icon: 'DirectionsBike', activo: true, orden: 3 }
-        ],
-        cleaning: [
-          { id: 'bed', label: 'Hacer la cama', icon: 'Hotel', activo: true, orden: 0 },
-          { id: 'platos', label: 'Lavar platos', icon: 'Dining', activo: true, orden: 1 },
-          { id: 'piso', label: 'Limpiar piso', icon: 'CleaningServices', activo: true, orden: 2 },
-          { id: 'ropa', label: 'Lavar ropa', icon: 'LocalLaundryService', activo: true, orden: 3 }
-        ]
-      };
-    }
+    default: () => cloneDefaultCustomHabits()
   },
   role: {
     type: String,
@@ -324,40 +297,6 @@ userSchema.pre('save', function(next) {
         });
       }
     });
-  }
-  next();
-});
-
-// Middleware para inicializar customHabits si no existe
-userSchema.pre('save', function(next) {
-  if (!this.customHabits || !this.customHabits.bodyCare || this.customHabits.bodyCare.length === 0) {
-    // Inicializar con hábitos por defecto
-    this.customHabits = {
-      bodyCare: [
-        { id: 'bath', label: 'Ducha', icon: 'Bathtub', activo: true, orden: 0 },
-        { id: 'skinCareDay', label: 'Cuidado facial día', icon: 'PersonOutline', activo: true, orden: 1 },
-        { id: 'skinCareNight', label: 'Cuidado facial noche', icon: 'Nightlight', activo: true, orden: 2 },
-        { id: 'bodyCream', label: 'Crema corporal', icon: 'Spa', activo: true, orden: 3 }
-      ],
-      nutricion: [
-        { id: 'cocinar', label: 'Cocinar', icon: 'Restaurant', activo: true, orden: 0 },
-        { id: 'agua', label: 'Beber agua', icon: 'WaterDrop', activo: true, orden: 1 },
-        { id: 'protein', label: 'Proteína', icon: 'SetMeal', activo: true, orden: 2 },
-        { id: 'meds', label: 'Medicamentos', icon: 'Medication', activo: true, orden: 3 }
-      ],
-      ejercicio: [
-        { id: 'meditate', label: 'Meditar', icon: 'SelfImprovement', activo: true, orden: 0 },
-        { id: 'stretching', label: 'Correr', icon: 'DirectionsRun', activo: true, orden: 1 },
-        { id: 'gym', label: 'Gimnasio', icon: 'FitnessCenter', activo: true, orden: 2 },
-        { id: 'cardio', label: 'Bicicleta', icon: 'DirectionsBike', activo: true, orden: 3 }
-      ],
-      cleaning: [
-        { id: 'bed', label: 'Hacer la cama', icon: 'Hotel', activo: true, orden: 0 },
-        { id: 'platos', label: 'Lavar platos', icon: 'Dining', activo: true, orden: 1 },
-        { id: 'piso', label: 'Limpiar piso', icon: 'CleaningServices', activo: true, orden: 2 },
-        { id: 'ropa', label: 'Lavar ropa', icon: 'LocalLaundryService', activo: true, orden: 3 }
-      ]
-    };
   }
   next();
 });

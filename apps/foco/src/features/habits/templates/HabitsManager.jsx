@@ -37,7 +37,6 @@ export const HabitsManager = ({ open, onClose }) => {
     updateHabit,
     deleteHabit,
     reorderHabits,
-    resetHabits,
   } = useHabits();
   const { updateUserHabitPreference } = useRutinas();
 
@@ -374,17 +373,6 @@ export const HabitsManager = ({ open, onClose }) => {
     }
   };
 
-  const handleReset = async () => {
-    if (!window.confirm('?Est?s seguro de que deseas restablecer todos los h?bitos a los valores por defecto? Esta acci?n no se puede deshacer.')) return;
-    try {
-      await resetHabits();
-      setSelectedHabitId(null);
-      await fetchHabitsConfig();
-    } catch {
-      // manejado en contexto
-    }
-  };
-
   const handleReorder = async (habitIds) => {
     try {
       await reorderHabits(currentSection, habitIds);
@@ -420,7 +408,6 @@ export const HabitsManager = ({ open, onClose }) => {
       <HabitsManagerSectionTabs
         currentSection={currentSection}
         onSectionChange={handleSectionChange}
-        onReset={handleReset}
         showAddForm={showAddForm}
         onAddClick={handleAddClick}
       />

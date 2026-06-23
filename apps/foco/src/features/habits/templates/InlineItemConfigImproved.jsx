@@ -18,6 +18,7 @@ import './InlineItemConfigImproved.css';
 import { CancelarTabButton, GuardarTabButton } from '@shared/components/common/SystemButtons';
 import { getTimeOfDayLabels, normalizeTimeOfDay, VALID_TIME_OF_DAY } from '@shared/utils/timeOfDayUtils';
 import { DIAS_SEMANA } from '@shared/utils/cadenciaUtils';
+import { HABIT_PERIODIC_COPY } from '@shared/copy/agendaTerminology';
 
 // Función para normalizar la frecuencia
 const normalizeFrecuencia = (value) => {
@@ -609,6 +610,20 @@ const InlineItemConfigImproved = ({
                   );
                 })}
               </Box>
+              {configState.frecuencia > 1
+                && (!configState.diasSemana || configState.diasSemana.length === 0) && (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'rgba(255,255,255,0.55)',
+                    fontSize: '0.68rem',
+                    textAlign: 'center',
+                    px: 1,
+                  }}
+                >
+                  {HABIT_PERIODIC_COPY.flexibleHint(configState.frecuencia)}
+                </Typography>
+              )}
             </Box>
           )}
 

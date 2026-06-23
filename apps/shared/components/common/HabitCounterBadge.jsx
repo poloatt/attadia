@@ -5,6 +5,8 @@ import WbTwilightIcon from '@mui/icons-material/WbTwilight';
 import NightlightIcon from '@mui/icons-material/Nightlight';
 import { contarCompletadosEnPeriodo } from '@shared/utils/cadenciaUtils';
 import { isHabitCompletedForHistorial, isHabitHorarioCompleted } from '@shared/utils/habitCompletionUtils';
+import { isFlexiblePeriodic } from '@shared/utils/habitVisibilityEngine';
+import { VALID_TIME_OF_DAY } from '@shared/utils/timeOfDayUtils';
 
 /**
  * Componente Badge que muestra la frecuencia o el icono de horario de un hábito
@@ -22,6 +24,7 @@ import { isHabitCompletedForHistorial, isHabitHorarioCompleted } from '@shared/u
 export const HabitCounterBadge = ({ 
   config = {}, 
   currentTimeOfDay = 'MAÑANA',
+  displayHorario = null,
   size = 'small',
   overlap = 'rectangular',
   rutina = null,
@@ -94,13 +97,22 @@ export const HabitCounterBadge = ({
     }
   }, [rutina, section, itemId, tipo, periodo]);
 
+  const flexiblePeriodic = isFlexiblePeriodic(config);
+
   // Determinar qué mostrar en el badge
   let badgeContent = null;
   let showBadge = false;
   let isNumber = false; // Flag para saber si es número o icono
 
-  // Para hábitos periódicos (SEMANAL, MENSUAL): mostrar completados del período actual
-  if (tipo === 'SEMANAL' || tipo === 'MENSUAL' || (tipo === 'PERSONALIZADO' && periodo !== 'CADA_DIA')) {
+  // Periódicos flexibles: siempre badge de cadencia (0, 1, 2…), nunca sol/luna
+  if (flexiblePeriodic) {
+    const valorAMostrar = completadosEnPeriodo !== null ? completadosEnPeriodo : 0;
+    badgeContent = valorAMostrar;
+    showBadge = true;
+    isNumber = true;
+  }
+  // Para hábitos periódicos con días fijos: mostrar completados del período actual
+  else if (tipo === 'SEMANAL' || tipo === 'MENSUAL' || (tipo === 'PERSONALIZADO' && periodo !== 'CADA_DIA')) {
     if (frecuencia > 1) {
       // Mostrar completados del período actual si está disponible, sino mostrar frecuencia como fallback
       const valorAMostrar = completadosEnPeriodo !== null ? completadosEnPeriodo : frecuencia;
@@ -121,36 +133,24 @@ export const HabitCounterBadge = ({
       const isHorarioCompleted = (horario) => isHabitHorarioCompleted(itemValue, horario);
       
       // Orden de horarios del día (de más temprano a más tarde)
-      const HORARIOS_ORDER = ['MAÑANA', 'TARDE', 'NOCHE'];
+      const HORARIOS_ORDER = VALID_TIME_OF_DAY;
       
-      let horarioAMostrar = null;
+      let horarioAMostrar = displayHorario ? String(displayHorario).toUpperCase() : null;
       
-      // Si el horario actual está en la lista, verificar si está completado
-      if (normalizedHorarios.includes(normalizedTimeOfDay)) {
-        // Si no está completado, mostrar el horario actual
-        if (!isHorarioCompleted(normalizedTimeOfDay)) {
-          horarioAMostrar = normalizedTimeOfDay;
-        } else {
-          // Si está completado, buscar el último horario no completado antes del actual
+      if (!horarioAMostrar) {
+        // Si el horario actual está en la lista, verificar si está completado
+        if (normalizedHorarios.includes(normalizedTimeOfDay)) {
+          if (!isHorarioCompleted(normalizedTimeOfDay)) {
+            horarioAMostrar = normalizedTimeOfDay;
+          }
+        } else if (frecuencia > 1 || normalizedHorarios.length > 1) {
           const currentIndex = HORARIOS_ORDER.indexOf(normalizedTimeOfDay);
-          for (let i = currentIndex - 1; i >= 0; i--) {
+          for (let i = currentIndex - 1; i >= 0; i -= 1) {
             const horarioAnterior = HORARIOS_ORDER[i];
             if (normalizedHorarios.includes(horarioAnterior) && !isHorarioCompleted(horarioAnterior)) {
               horarioAMostrar = horarioAnterior;
               break;
             }
-          }
-        }
-      } 
-      // Si no, para hábitos diarios con múltiples repeticiones, mostrar el último horario no completado
-      else if (frecuencia > 1 || normalizedHorarios.length > 1) {
-        // Buscar el último horario configurado antes del horario actual que no esté completado
-        const currentIndex = HORARIOS_ORDER.indexOf(normalizedTimeOfDay);
-        for (let i = currentIndex - 1; i >= 0; i--) {
-          const horarioAnterior = HORARIOS_ORDER[i];
-          if (normalizedHorarios.includes(horarioAnterior) && !isHorarioCompleted(horarioAnterior)) {
-            horarioAMostrar = horarioAnterior;
-            break;
           }
         }
       }

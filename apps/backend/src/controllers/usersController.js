@@ -1,6 +1,7 @@
 import { Users, Rutinas } from '../models/index.js';
 import bcrypt from 'bcryptjs';
 import { timezoneUtils } from '../models/BaseSchema.js';
+import { ensureCustomHabits } from '../constants/defaultCustomHabits.js';
 
 export const usersController = {
   getProfile: async (req, res) => {
@@ -525,27 +526,35 @@ export const usersController = {
         });
       }
       
-      // Log para debug: ver qué se está devolviendo
-      const configKeys = Object.keys(user.preferences.rutinasConfig).filter(k => k !== '_metadata');
+      const PREF_SECTION_SKIP = new Set(['_metadata', '_id', 'buffer']);
+
+      const rawConfig = user.preferences.rutinasConfig;
+      const habits = {};
+      Object.keys(rawConfig).forEach((section) => {
+        if (PREF_SECTION_SKIP.has(section)) return;
+        if (rawConfig[section] && typeof rawConfig[section] === 'object') {
+          habits[section] = rawConfig[section];
+        }
+      });
+
+      const configKeys = Object.keys(habits);
       const totalHabits = configKeys.reduce((acc, section) => {
-        const sectionConfig = user.preferences.rutinasConfig[section];
+        const sectionConfig = habits[section];
         return acc + (sectionConfig ? Object.keys(sectionConfig).length : 0);
       }, 0);
       console.log(`[usersController] getHabitPreferences: returning ${totalHabits} habit configs across ${configKeys.length} sections`);
-      // Log detallado de cada sección
-      configKeys.forEach(section => {
-        const sectionConfig = user.preferences.rutinasConfig[section];
+      configKeys.forEach((section) => {
+        const sectionConfig = habits[section];
         const habitIds = sectionConfig ? Object.keys(sectionConfig) : [];
         console.log(`[usersController] getHabitPreferences - ${section}: ${habitIds.length} habits`, habitIds);
       });
-      
-      // Devolver las preferencias de rutinas
+
       res.json({
-        habits: user.preferences.rutinasConfig,
-        _metadata: user.preferences.rutinasConfig._metadata || {
+        habits,
+        _metadata: rawConfig._metadata || {
           version: 1,
-          createdAt: new Date()
-        }
+          createdAt: new Date(),
+        },
       });
     } catch (error) {
       console.error('[usersController] Error al obtener preferencias de hábitos:', error);
@@ -785,35 +794,8 @@ export const usersController = {
         return res.status(404).json({ error: 'Usuario no encontrado' });
       }
 
-      // Asegurar que customHabits existe
       if (!user.customHabits) {
-        // Inicializar con defaults si no existe
-        user.customHabits = {
-          bodyCare: [
-            { id: 'bath', label: 'Ducha', icon: 'Bathtub', activo: true, orden: 0 },
-            { id: 'skinCareDay', label: 'Cuidado facial día', icon: 'PersonOutline', activo: true, orden: 1 },
-            { id: 'skinCareNight', label: 'Cuidado facial noche', icon: 'Nightlight', activo: true, orden: 2 },
-            { id: 'bodyCream', label: 'Crema corporal', icon: 'Spa', activo: true, orden: 3 }
-          ],
-          nutricion: [
-            { id: 'cocinar', label: 'Cocinar', icon: 'Restaurant', activo: true, orden: 0 },
-            { id: 'agua', label: 'Beber agua', icon: 'WaterDrop', activo: true, orden: 1 },
-            { id: 'protein', label: 'Proteína', icon: 'SetMeal', activo: true, orden: 2 },
-            { id: 'meds', label: 'Medicamentos', icon: 'Medication', activo: true, orden: 3 }
-          ],
-          ejercicio: [
-            { id: 'meditate', label: 'Meditar', icon: 'SelfImprovement', activo: true, orden: 0 },
-            { id: 'stretching', label: 'Correr', icon: 'DirectionsRun', activo: true, orden: 1 },
-            { id: 'gym', label: 'Gimnasio', icon: 'FitnessCenter', activo: true, orden: 2 },
-            { id: 'cardio', label: 'Bicicleta', icon: 'DirectionsBike', activo: true, orden: 3 }
-          ],
-          cleaning: [
-            { id: 'bed', label: 'Hacer la cama', icon: 'Hotel', activo: true, orden: 0 },
-            { id: 'platos', label: 'Lavar platos', icon: 'Dining', activo: true, orden: 1 },
-            { id: 'piso', label: 'Limpiar piso', icon: 'CleaningServices', activo: true, orden: 2 },
-            { id: 'ropa', label: 'Lavar ropa', icon: 'LocalLaundryService', activo: true, orden: 3 }
-          ]
-        };
+        ensureCustomHabits(user, { seedDefaults: true });
         await user.save();
       }
 
@@ -849,15 +831,7 @@ export const usersController = {
         return res.status(404).json({ error: 'Usuario no encontrado' });
       }
 
-      // Inicializar customHabits si no existe
-      if (!user.customHabits) {
-        user.customHabits = {
-          bodyCare: [],
-          nutricion: [],
-          ejercicio: [],
-          cleaning: []
-        };
-      }
+      ensureCustomHabits(user, { seedDefaults: false });
 
       // Verificar que el ID no exista ya en la sección
       if (user.customHabits[section].some(h => h.id === habit.id)) {
@@ -1028,15 +1002,7 @@ export const usersController = {
         return res.status(404).json({ error: 'Usuario no encontrado' });
       }
 
-      // Asegurar que customHabits existe y está inicializado
-      if (!user.customHabits) {
-        user.customHabits = {
-          bodyCare: [],
-          nutricion: [],
-          ejercicio: [],
-          cleaning: []
-        };
-      }
+      ensureCustomHabits(user, { seedDefaults: false });
 
       // Asegurar que la sección existe y es un array
       if (!user.customHabits[section]) {
@@ -1159,60 +1125,6 @@ export const usersController = {
         error: 'Error al reordenar hábitos',
         message: error.message,
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      });
-    }
-  },
-
-  /**
-   * Restablecer hábitos a defaults
-   * POST /api/users/habits/reset
-   */
-  resetHabits: async (req, res) => {
-    try {
-      const user = await Users.findById(req.user.id);
-      if (!user) {
-        return res.status(404).json({ error: 'Usuario no encontrado' });
-      }
-
-      // Restablecer a defaults
-      user.customHabits = {
-        bodyCare: [
-          { id: 'bath', label: 'Ducha', icon: 'Bathtub', activo: true, orden: 0 },
-          { id: 'skinCareDay', label: 'Cuidado facial día', icon: 'PersonOutline', activo: true, orden: 1 },
-          { id: 'skinCareNight', label: 'Cuidado facial noche', icon: 'Nightlight', activo: true, orden: 2 },
-          { id: 'bodyCream', label: 'Crema corporal', icon: 'Spa', activo: true, orden: 3 }
-        ],
-        nutricion: [
-          { id: 'cocinar', label: 'Cocinar', icon: 'Restaurant', activo: true, orden: 0 },
-          { id: 'agua', label: 'Beber agua', icon: 'WaterDrop', activo: true, orden: 1 },
-          { id: 'protein', label: 'Proteína', icon: 'SetMeal', activo: true, orden: 2 },
-          { id: 'meds', label: 'Medicamentos', icon: 'Medication', activo: true, orden: 3 }
-        ],
-        ejercicio: [
-          { id: 'meditate', label: 'Meditar', icon: 'SelfImprovement', activo: true, orden: 0 },
-          { id: 'stretching', label: 'Correr', icon: 'DirectionsRun', activo: true, orden: 1 },
-          { id: 'gym', label: 'Gimnasio', icon: 'FitnessCenter', activo: true, orden: 2 },
-          { id: 'cardio', label: 'Bicicleta', icon: 'DirectionsBike', activo: true, orden: 3 }
-        ],
-        cleaning: [
-          { id: 'bed', label: 'Hacer la cama', icon: 'Hotel', activo: true, orden: 0 },
-          { id: 'platos', label: 'Lavar platos', icon: 'Dining', activo: true, orden: 1 },
-          { id: 'piso', label: 'Limpiar piso', icon: 'CleaningServices', activo: true, orden: 2 },
-          { id: 'ropa', label: 'Lavar ropa', icon: 'LocalLaundryService', activo: true, orden: 3 }
-        ]
-      };
-
-      await user.save();
-
-      res.json({ 
-        message: 'Hábitos restablecidos a valores por defecto', 
-        habits: user.customHabits 
-      });
-    } catch (error) {
-      console.error('[usersController] Error al restablecer hábitos:', error);
-      res.status(500).json({ 
-        error: 'Error al restablecer hábitos',
-        message: error.message
       });
     }
   },

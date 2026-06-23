@@ -208,32 +208,6 @@ export const HabitsProvider = ({ children }) => {
     }
   }, [enqueueSnackbar]);
 
-  /**
-   * Restablecer hábitos a defaults
-   */
-  const resetHabits = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await clienteAxios.post('/api/users/habits/reset');
-      
-      // Actualizar estado local
-      setHabits(response.data.habits);
-      
-      enqueueSnackbar('Hábitos restablecidos a valores por defecto', { variant: 'success' });
-      return response.data.habits;
-    } catch (error) {
-      console.error('[HabitsContext] Error al restablecer hábitos:', error);
-      const errorMsg = error.response?.data?.error || 'Error al restablecer hábitos';
-      setError(errorMsg);
-      enqueueSnackbar(errorMsg, { variant: 'error' });
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  }, [enqueueSnackbar]);
-
   const value = useMemo(() => ({
     habits,
     loading,
@@ -243,8 +217,7 @@ export const HabitsProvider = ({ children }) => {
     updateHabit,
     deleteHabit,
     reorderHabits,
-    resetHabits,
-  }), [habits, loading, error, fetchHabits, addHabit, updateHabit, deleteHabit, reorderHabits, resetHabits]);
+  }), [habits, loading, error, fetchHabits, addHabit, updateHabit, deleteHabit, reorderHabits]);
 
   return (
     <HabitsContext.Provider value={value}>

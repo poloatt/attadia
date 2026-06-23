@@ -1,10 +1,11 @@
 import { useCallback } from 'react';
-import { getHorarioToShow } from '@shared/utils/habitTimeLogic';
+import { getHorarioForCarousel } from '@shared/utils/habitTimeLogic';
 import { computeCarouselToggleValue } from '@shared/utils/habitToggleUtils';
+import { resolveCarouselItemConfig } from '@shared/utils/habitVisibilityEngine';
 
 /**
  * Toggle de completado con soporte multi-horario y UI optimista.
- * @param {'ahora'|'luego'} mode - Ahora usa getHorarioToShow; Luego usa currentTimeOfDay.
+ * @param {'ahora'|'luego'} mode - Ahora marca la ventana actual; Luego marca la próxima pendiente.
  */
 export default function useHabitCarouselToggle({
   mode,
@@ -14,6 +15,7 @@ export default function useHabitCarouselToggle({
   markItemComplete,
   patchRutinaSection,
   currentTimeOfDay,
+  habitsPreferences = {},
 }) {
   const logPrefix = mode === 'luego' ? '[HabitCarouselLuego]' : '[HabitCarouselAhora]';
 
@@ -28,26 +30,22 @@ export default function useHabitCarouselToggle({
 
     const prevSection = rutinaHoy?.[section] || {};
     const itemValue = prevSection[itemId];
-    const itemConfig = rutinaHoy?.config?.[section]?.[itemId] || {};
+    const itemConfig = resolveCarouselItemConfig(section, itemId, rutinaHoy, habitsPreferences);
     const horariosConfig = Array.isArray(itemConfig.horarios) ? itemConfig.horarios : [];
 
     let normalizedHorario;
     if (horariosConfig.length > 1) {
-      if (mode === 'ahora') {
-        const completadoHoy = itemValue !== undefined ? itemValue : false;
-        const tipo = (itemConfig.tipo || 'DIARIO').toUpperCase();
-        const frecuencia = Number(itemConfig.frecuencia || 1);
-        const horarioToMark = getHorarioToShow(
-          horariosConfig,
-          currentTimeOfDay,
-          completadoHoy,
-          tipo,
-          frecuencia,
-        ) || currentTimeOfDay;
-        normalizedHorario = String(horarioToMark).toUpperCase();
-      } else {
-        normalizedHorario = String(currentTimeOfDay).toUpperCase();
-      }
+      const completadoHoy = itemValue !== undefined ? itemValue : false;
+      const horarioToMark = getHorarioForCarousel(
+        mode,
+        horariosConfig,
+        currentTimeOfDay,
+        completadoHoy,
+      );
+      if (!horarioToMark) return;
+      normalizedHorario = String(horarioToMark).toUpperCase();
+    } else if (horariosConfig.length === 1) {
+      normalizedHorario = String(horariosConfig[0]).toUpperCase();
     }
 
     const newValue = computeCarouselToggleValue({
@@ -82,6 +80,7 @@ export default function useHabitCarouselToggle({
     markItemComplete,
     patchRutinaSection,
     currentTimeOfDay,
+    habitsPreferences,
     logPrefix,
   ]);
 }

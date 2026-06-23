@@ -1,6 +1,7 @@
 import { BaseController } from './BaseController.js';
 import { Rutinas } from '../models/Rutinas.js';
 import { Users } from '../models/index.js';
+import { applyCustomHabitsToRutinaConfig } from '../constants/defaultCustomHabits.js';
 import { timezoneUtils } from '../models/BaseSchema.js';
 import logger from '../utils/logger.js';
 import mongoose from 'mongoose';
@@ -169,67 +170,26 @@ class RutinasController extends BaseController {
 
       const buildDefaultFullConfig = async () => {
         const full = {};
-        seccionesValidas.forEach(section => {
+        seccionesValidas.forEach((section) => {
           full[section] = {};
         });
-        
-        // IMPORTANTE: Incluir hábitos personalizados del usuario en la configuración inicial
-        // Ya que las secciones ahora son Schema.Types.Mixed, necesitamos obtener los hábitos del usuario
+
         try {
           const usuario = await Users.findById(req.user.id)
             .select('customHabits preferences.rutinasConfig')
             .lean();
-          
-          // Primero incluir hábitos precargados por defecto (para compatibilidad)
-          const defaultHabits = {
-            bodyCare: ['bath', 'skinCareDay', 'skinCareNight', 'bodyCream'],
-            nutricion: ['cocinar', 'agua', 'protein', 'meds'],
-            ejercicio: ['meditate', 'stretching', 'gym', 'cardio'],
-            cleaning: ['bed', 'platos', 'piso', 'ropa']
-          };
-          
-          seccionesValidas.forEach(section => {
-            (defaultHabits[section] || []).forEach(itemId => {
-              const globalConfig = usuario?.preferences?.rutinasConfig?.[section]?.[itemId];
-              full[section][itemId] = normalizeItemConfig(globalConfig || {});
-            });
-          });
-          
-          // Luego incluir hábitos personalizados del usuario
-          if (usuario && usuario.customHabits) {
-            seccionesValidas.forEach(section => {
-              const sectionHabits = usuario.customHabits[section] || [];
-              sectionHabits
-                .filter(h => h.activo !== false)
-                .forEach(habit => {
-                  const habitId = habit.id || habit._id;
-                  if (habitId) {
-                    // Usar configuración global si existe, sino valores por defecto
-                    const globalConfig = usuario.preferences?.rutinasConfig?.[section]?.[habitId];
-                    full[section][habitId] = normalizeItemConfig(globalConfig || {});
-                  }
-                });
-            });
-          }
+
+          applyCustomHabitsToRutinaConfig(
+            usuario?.customHabits,
+            usuario?.preferences?.rutinasConfig,
+            seccionesValidas,
+            normalizeItemConfig,
+            full,
+          );
         } catch (error) {
           logger.warn('[rutinasController] Error al obtener hábitos personalizados al crear rutina', error);
-          // Continuar con valores por defecto en caso de error
-          // Incluir al menos los hábitos precargados básicos
-          const defaultHabits = {
-            bodyCare: ['bath', 'skinCareDay', 'skinCareNight', 'bodyCream'],
-            nutricion: ['cocinar', 'agua', 'protein', 'meds'],
-            ejercicio: ['meditate', 'stretching', 'gym', 'cardio'],
-            cleaning: ['bed', 'platos', 'piso', 'ropa']
-          };
-          seccionesValidas.forEach(section => {
-            (defaultHabits[section] || []).forEach(itemId => {
-              if (!full[section][itemId]) {
-                full[section][itemId] = normalizeItemConfig({});
-              }
-            });
-          });
         }
-        
+
         return full;
       };
 

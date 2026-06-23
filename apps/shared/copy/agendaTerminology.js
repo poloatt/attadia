@@ -1,0 +1,78 @@
+/**
+ * Terminología unificada para Ahora/Luego en tareas y hábitos.
+ * Glosario analítico: ver AGENDA_GLOSSARY.
+ */
+
+export const AGENDA_GLOSSARY = `
+TAREAS (horizonte de fechas) — agendaRules.js
+  taskHorizon.ahora / luego: filtro por fecha de vencimiento/inicio.
+  isInAhora, getBucketAhora, getBucketLuego.
+
+HÁBITOS DIARIOS — habitTimeLogic / habitVisibilityEngine
+  Ahora: sin franja o franja actual; franjas retrasadas del mismo día.
+  Luego: franjas futuras de hoy. Multi-franja (2+): puede haber 2 iconos en Ahora.
+  Una sola franja: máximo 1 icono en Ahora (sin acumular por frecuencia).
+
+HÁBITOS PERIÓDICOS — habitVisibilityEngine.js
+  frecuencia === 1: Luego (no urgente); Ahora solo si isUrgentToday + ventana activa.
+  frecuencia > 1: Ahora si ventana activa (adelanto); Luego si pasó ventana sin marcar hoy.
+
+TRACKER / RUTINA — cadenciaUtils.debesMostrarHabitoEnFecha
+`;
+
+export const TASK_HORIZON_COPY = {
+  ahora: {
+    label: 'Ahora',
+    ariaLabel: 'Horizonte de tareas: ahora',
+  },
+  luego: {
+    label: 'Luego',
+    ariaLabel: 'Horizonte de tareas: luego',
+  },
+};
+
+export const HABIT_SLOT_COPY = {
+  ahora: {
+    label: 'Ahora',
+    ariaLabel: 'Hábitos para ahora',
+    regionAriaLabel: 'Hábitos para ahora',
+  },
+  luego: {
+    label: 'Luego',
+    ariaLabel: 'Hábitos para más tarde',
+    regionAriaLabel: 'Hábitos para más tarde',
+  },
+};
+
+export const HABIT_CAROUSEL_EMPTY_COPY = {
+  ahora: 'Todo al día',
+  luego: 'Nada pendiente para más tarde hoy',
+};
+
+export const HABIT_PERIODIC_COPY = {
+  flexible: (n) => `Sin días fijos: completá ${n} veces cuando quieras esta semana`,
+  flexibleHint: (n) => `Sin días elegidos: completá ${n} veces cuando quieras esta semana (una por día).`,
+  fixed: 'Días fijos: solo los días elegidos',
+  ahoraFlexible: 'Pendiente hoy en esta franja',
+  luegoFlexible: 'Pendiente hoy, franja ya pasó',
+};
+
+export function getTaskHorizonCopy(view) {
+  return TASK_HORIZON_COPY[view] || TASK_HORIZON_COPY.ahora;
+}
+
+export function getHabitSlotCopy(mode) {
+  return HABIT_SLOT_COPY[mode] || HABIT_SLOT_COPY.ahora;
+}
+
+export function getHabitCarouselEmptyCopy(mode) {
+  return HABIT_CAROUSEL_EMPTY_COPY[mode] || HABIT_CAROUSEL_EMPTY_COPY.ahora;
+}
+
+export function getPeriodicCarouselCopy(mode) {
+  if (mode === 'ahora') return HABIT_PERIODIC_COPY.ahoraFlexible;
+  if (mode === 'luego') return HABIT_PERIODIC_COPY.luegoFlexible;
+  return '';
+}
+
+export const TASK_HORIZON_GROUP_ARIA = 'Horizonte de tareas';

@@ -1,4 +1,5 @@
 import React, { useMemo, useRef } from 'react';
+import { Box, CircularProgress } from '@mui/material';
 import { useRutinas, useHabits } from '@shared/context';
 import {
   buildHabitSectionIconsMap,
@@ -9,6 +10,7 @@ import { getCurrentTimeOfDay } from '@shared/utils/timeOfDayUtils';
 import { isSameDay } from 'date-fns';
 import useHorizontalDragScroll from './hooks/useHorizontalDragScroll';
 import useCarouselRutinaBoot from './hooks/useCarouselRutinaBoot';
+import useHabitsPreferences from './hooks/useHabitsPreferences';
 import useHabitCarouselItems from './useHabitCarouselItems';
 import useHabitCarouselToggle from './useHabitCarouselToggle';
 import HabitCarouselIconRow from './HabitCarouselIconRow';
@@ -35,6 +37,7 @@ export default function HabitCarouselRow({
     patchRutinaSection,
   } = useRutinas();
   const { habits, loading: habitsLoading } = useHabits();
+  const { habitsPreferences, prefsReady } = useHabitsPreferences();
   const carouselRef = useRef(null);
 
   const { scrollRef, dragRef, isDragging, bind } = useHorizontalDragScroll({
@@ -77,6 +80,7 @@ export default function HabitCarouselRow({
     sectionIconsMap,
     habits,
     currentTimeOfDay,
+    habitsPreferences: prefsReady ? habitsPreferences : null,
   });
 
   const handleToggle = useHabitCarouselToggle({
@@ -87,7 +91,16 @@ export default function HabitCarouselRow({
     markItemComplete,
     patchRutinaSection,
     currentTimeOfDay,
+    habitsPreferences: habitsPreferences || {},
   });
+
+  if (!prefsReady) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 36 }}>
+        <CircularProgress size={18} aria-label="Cargando hábitos" />
+      </Box>
+    );
+  }
 
   return (
     <HabitCarouselIconRow
@@ -102,6 +115,7 @@ export default function HabitCarouselRow({
       shouldUseInfiniteCarousel={shouldUseInfiniteCarousel}
       rutinaHoy={rutinaHoy}
       sectionIconsMap={sectionIconsMap}
+      habitsPreferences={habitsPreferences || {}}
       currentTimeOfDay={currentTimeOfDay}
       rutinasLoading={rutinasLoading}
       habitsLoading={habitsLoading}

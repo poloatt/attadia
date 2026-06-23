@@ -31,17 +31,19 @@ export const calculateVisibleItems = (rutina, localDataBySection = {}, customHab
     cleaning: { visible: 0, completed: 0 }
   };
 
+  const hasCustomHabits = customHabits
+    && ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'].some((section) => Array.isArray(customHabits[section]));
+
   // Función helper para obtener los IDs de hábitos de una sección
   const getSectionItemIds = (section) => {
-    // Si hay hábitos personalizados, usarlos
-    if (customHabits && customHabits[section] && Array.isArray(customHabits[section]) && customHabits[section].length > 0) {
-      return customHabits[section]
+    if (hasCustomHabits) {
+      return (customHabits[section] || [])
         .filter(h => h.activo !== false)
         .map(h => h.id || h._id)
         .filter(Boolean);
     }
-    
-    // Fallback a iconConfig
+
+    // Fallback legacy solo si el usuario no tiene customHabits
     return Object.keys(iconConfig?.[section] || {});
   };
 

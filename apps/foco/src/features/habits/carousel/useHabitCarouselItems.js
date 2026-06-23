@@ -10,18 +10,18 @@ export default function useHabitCarouselItems(mode, {
   sectionIconsMap,
   habits,
   currentTimeOfDay,
+  habitsPreferences = null,
 }) {
-  const pendingItems = useMemo(
-    () => getCarouselItemsForMode(mode, {
+  const pendingItems = useMemo(() => {
+    if (habitsPreferences === null) return [];
+    return getCarouselItemsForMode(mode, {
       rutinaHoy,
       sectionIconsMap,
       habits,
       currentTimeOfDay,
-    }),
-    mode === 'ahora'
-      ? [mode, rutinaHoy, sectionIconsMap, habits, currentTimeOfDay]
-      : [mode, rutinaHoy, sectionIconsMap, habits],
-  );
+      habitsPreferences,
+    });
+  }, [mode, rutinaHoy, sectionIconsMap, habits, currentTimeOfDay, habitsPreferences]);
 
   const shouldUseInfiniteCarousel = mode === 'luego' && pendingItems.length > 8;
   const carouselItems = shouldUseInfiniteCarousel

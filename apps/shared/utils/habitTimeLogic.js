@@ -1,20 +1,174 @@
 /**
  * Utilidades para la lógica de horarios de hábitos
- * 
- * Lógica mejorada: 
- * - Para hábitos diarios con múltiples repeticiones: mostrar el último horario no completado del día de hoy
- * - Si hay un horario específico para el horario actual, mostrarlo
- * - Solo considerar el día de hoy, no días anteriores
+ *
+ * Un hábito solo es visible en las ventanas configuradas (MAÑANA, TARDE, NOCHE).
+ * Dentro de cada ventana, se oculta si ese horario ya fue completado hoy.
  */
 
-/**
- * Orden de horarios del día (de más temprano a más tarde)
- */
-const HORARIOS_ORDER = ['MAÑANA', 'TARDE', 'NOCHE'];
+import { isHabitHorarioCompleted } from './habitCompletionUtils';
+import { VALID_TIME_OF_DAY } from './timeOfDayUtils';
+
+const HORARIOS_ORDER = VALID_TIME_OF_DAY;
+
+function normalizeHorarios(horarios) {
+  if (!horarios || !Array.isArray(horarios)) return [];
+  return horarios.map((h) => String(h).toUpperCase());
+}
+
+function getCurrentHorarioIndex(currentTimeOfDay) {
+  return HORARIOS_ORDER.indexOf(String(currentTimeOfDay).toUpperCase());
+}
+
+/** Alguna franja configurada ya pasó hoy (sin incluir la ventana actual). */
+export function hasConfiguredHorarioPassed(horarios, currentTimeOfDay) {
+  const normalizedHorarios = normalizeHorarios(horarios);
+  if (normalizedHorarios.length === 0) return false;
+
+  const currentIndex = getCurrentHorarioIndex(currentTimeOfDay);
+  if (currentIndex < 0) return false;
+  if (normalizedHorarios.includes(HORARIOS_ORDER[currentIndex])) return false;
+
+  for (let i = 0; i < currentIndex; i += 1) {
+    if (normalizedHorarios.includes(HORARIOS_ORDER[i])) return true;
+  }
+  return false;
+}
 
 /**
- * Determina si un hábito debe mostrarse según el horario actual
- * Para hábitos diarios con múltiples repeticiones, muestra el último horario no completado del día de hoy
+ * Próximo horario configurado pendiente después del horario actual (para carrusel "Luego").
+ */
+export const getNextPendingHorario = (horarios, currentTimeOfDay, isCompletedToday = false) => {
+  if (!horarios || !Array.isArray(horarios) || horarios.length === 0) {
+    return null;
+  }
+
+  const normalizedHorarios = normalizeHorarios(horarios);
+  const currentIndex = getCurrentHorarioIndex(currentTimeOfDay);
+  if (currentIndex < 0) return null;
+
+  for (let i = currentIndex + 1; i < HORARIOS_ORDER.length; i += 1) {
+    const horario = HORARIOS_ORDER[i];
+    if (normalizedHorarios.includes(horario) && !isHabitHorarioCompleted(isCompletedToday, horario)) {
+      return horario;
+    }
+  }
+
+  return null;
+};
+
+/**
+ * Horario a mostrar/marcar en el carrusel según modo Ahora/Luego.
+ * - ahora: ventana actual configurada y pendiente
+ * - luego: próxima ventana futura pendiente
+ */
+export const getHorarioForCarousel = (
+  mode,
+  horarios,
+  currentTimeOfDay,
+  isCompletedToday = false,
+) => {
+  if (!horarios || !Array.isArray(horarios) || horarios.length === 0) {
+    return null;
+  }
+
+  const normalizedHorarios = normalizeHorarios(horarios);
+  const normalizedTimeOfDay = String(currentTimeOfDay).toUpperCase();
+
+  if (mode === 'ahora') {
+    if (!normalizedHorarios.includes(normalizedTimeOfDay)) return null;
+    if (isHabitHorarioCompleted(isCompletedToday, normalizedTimeOfDay)) return null;
+    return normalizedTimeOfDay;
+  }
+
+  if (mode === 'luego') {
+    return getNextPendingHorario(horarios, currentTimeOfDay, isCompletedToday);
+  }
+
+  return null;
+};
+
+/**
+ * Franjas pendientes para carrusel "Ahora" (retrasadas + ventana actual).
+ * Sin horarios: un solo icono si sigue pendiente hoy.
+ * Con 2+ franjas: puede devolver retrasada + actual el mismo día.
+ * frecuencia > 1 con una sola franja: máximo un icono en Ahora.
+ */
+export const getDailyCarouselAhoraHorarios = (
+  horarios,
+  currentTimeOfDay,
+  itemValue,
+) => {
+  if (!horarios || !Array.isArray(horarios) || horarios.length === 0) {
+    if (typeof itemValue === 'boolean' && itemValue === true) return [];
+    return [null];
+  }
+
+  const normalizedHorarios = normalizeHorarios(horarios);
+  const currentIndex = getCurrentHorarioIndex(currentTimeOfDay);
+  if (currentIndex < 0) return [];
+
+  const slots = [];
+
+  for (let i = 0; i < currentIndex; i += 1) {
+    const horario = HORARIOS_ORDER[i];
+    if (normalizedHorarios.includes(horario) && !isHabitHorarioCompleted(itemValue, horario)) {
+      slots.push(horario);
+    }
+  }
+
+  const currentHorario = HORARIOS_ORDER[currentIndex];
+  if (
+    normalizedHorarios.includes(currentHorario)
+    && !isHabitHorarioCompleted(itemValue, currentHorario)
+  ) {
+    slots.push(currentHorario);
+  }
+
+  if (slots.length === 0) return [];
+
+  const multiFranja = normalizedHorarios.length >= 2;
+  if (multiFranja) return slots;
+
+  return slots.slice(0, 1);
+};
+
+/**
+ * Próximas franjas futuras pendientes para carrusel "Luego" (solo hoy, no retrasadas).
+ */
+export const getDailyCarouselLuegoHorarios = (
+  horarios,
+  currentTimeOfDay,
+  itemValue,
+) => {
+  if (!horarios || !Array.isArray(horarios) || horarios.length === 0) {
+    return [];
+  }
+
+  const normalizedHorarios = normalizeHorarios(horarios);
+  const currentIndex = getCurrentHorarioIndex(currentTimeOfDay);
+  if (currentIndex < 0) return [];
+
+  const slots = [];
+  for (let i = currentIndex + 1; i < HORARIOS_ORDER.length; i += 1) {
+    const horario = HORARIOS_ORDER[i];
+    if (normalizedHorarios.includes(horario) && !isHabitHorarioCompleted(itemValue, horario)) {
+      slots.push(horario);
+    }
+  }
+  return slots;
+};
+
+/**
+ * ¿Un hábito diario multi-horario debe aparecer en el carrusel "Luego"?
+ * @deprecated Usar getDailyCarouselLuegoHorarios
+ */
+export const shouldShowDailyInCarouselLuego = (horarios, currentTimeOfDay, isCompletedToday = false) => (
+  getDailyCarouselLuegoHorarios(horarios, currentTimeOfDay, isCompletedToday).length > 0
+);
+
+/**
+ * Determina si un hábito debe mostrarse según el horario actual.
+ * Solo devuelve true si el horario actual está configurado y pendiente.
  * 
  * @param {Array<string>|undefined} horarios - Array de horarios configurados (ej: ['MAÑANA', 'TARDE'])
  * @param {string} currentTimeOfDay - Horario actual ('MAÑANA', 'TARDE' o 'NOCHE')
@@ -37,67 +191,18 @@ export const shouldShowHabitForCurrentTime = (horarios, currentTimeOfDay, isComp
   const isObjectFormat = typeof isCompletedToday === 'object' && isCompletedToday !== null && !Array.isArray(isCompletedToday);
   const isBooleanFormat = typeof isCompletedToday === 'boolean';
   
-  // Si el horario actual está en la lista de horarios configurados, verificar si debe mostrarse
-  if (normalizedHorarios.includes(normalizedTimeOfDay)) {
-    if (isObjectFormat) {
-      // Nuevo formato: verificar si el horario actual está completado
-      const horarioActualCompletado = isCompletedToday[normalizedTimeOfDay] === true;
-      // Mostrar si no está completado
-      return !horarioActualCompletado;
-    } else if (isBooleanFormat) {
-      // Formato legacy: si está completado, no mostrar
-      return !isCompletedToday;
-    }
-    // Si no hay información de completitud, mostrar
-    return true;
+  // Solo mostrar en las ventanas configuradas (p. ej. MAÑANA + NOCHE, no en TARDE)
+  if (!normalizedHorarios.includes(normalizedTimeOfDay)) {
+    return false;
   }
-  
-  // Para hábitos diarios con frecuencia > 1 o múltiples horarios configurados
-  // Mostrar el último horario no completado del día de hoy (solo si NO está completado hoy)
-  const isDiarioMultiRepeticion = (tipo === 'DIARIO' || tipo === 'PERSONALIZADO') && 
-                                   (frecuencia > 1 || normalizedHorarios.length > 1);
-  
-  if (isDiarioMultiRepeticion) {
-    // Verificar si el horario actual está completado
-    let currentHorarioCompleted = false;
-    if (isObjectFormat) {
-      currentHorarioCompleted = isCompletedToday[normalizedTimeOfDay] === true;
-    } else if (isBooleanFormat) {
-      // En formato legacy, si está completado, todos los horarios están completados
-      currentHorarioCompleted = isCompletedToday;
-    }
-    
-    // Si el horario actual no está completado, mostrarlo
-    if (!currentHorarioCompleted) {
-      return true;
-    }
-    
-    // Si el horario actual está completado, buscar el último horario no completado antes del actual
-    const currentIndex = HORARIOS_ORDER.indexOf(normalizedTimeOfDay);
-    
-    if (currentIndex > 0) {
-      for (let i = currentIndex - 1; i >= 0; i--) {
-        const horarioAnterior = HORARIOS_ORDER[i];
-        if (normalizedHorarios.includes(horarioAnterior)) {
-          // Verificar si este horario anterior está completado
-          let horarioAnteriorCompleted = false;
-          if (isObjectFormat) {
-            horarioAnteriorCompleted = isCompletedToday[horarioAnterior] === true;
-          } else if (isBooleanFormat) {
-            horarioAnteriorCompleted = isCompletedToday;
-          }
-          
-          // Si el horario anterior no está completado, mostrarlo
-          if (!horarioAnteriorCompleted) {
-            return true;
-          }
-        }
-      }
-    }
+
+  if (isObjectFormat) {
+    return isCompletedToday[normalizedTimeOfDay] !== true;
   }
-  
-  // Si no hay horario específico para el actual y no es un hábito diario con múltiples repeticiones
-  return false;
+  if (isBooleanFormat) {
+    return !isCompletedToday;
+  }
+  return true;
 };
 
 /**
@@ -134,68 +239,7 @@ export const getCurrentTimeOfDayHabit = (horarios, currentTimeOfDay) => {
  * @returns {string|null} - El horario específico que debe mostrarse, o null si no debe mostrarse
  */
 export const getHorarioToShow = (horarios, currentTimeOfDay, isCompletedToday = false, tipo = 'DIARIO', frecuencia = 1) => {
-  // Si no hay horarios configurados, retornar null (no hay horario específico)
-  if (!horarios || !Array.isArray(horarios) || horarios.length === 0) {
-    return null;
-  }
-  
-  // Normalizar horarios a mayúsculas
-  const normalizedHorarios = horarios.map(h => String(h).toUpperCase());
-  const normalizedTimeOfDay = String(currentTimeOfDay).toUpperCase();
-  
-  // Detectar si isCompletedToday es un objeto (nuevo formato) o boolean (legacy)
-  const isObjectFormat = typeof isCompletedToday === 'object' && isCompletedToday !== null && !Array.isArray(isCompletedToday);
-  const isBooleanFormat = typeof isCompletedToday === 'boolean';
-  
-  // Función helper para verificar si un horario está completado
-  const isHorarioCompleted = (horario) => {
-    if (isObjectFormat) {
-      return isCompletedToday[horario] === true;
-    } else if (isBooleanFormat) {
-      // En formato legacy, si está completado, todos los horarios están completados
-      return isCompletedToday;
-    }
-    return false;
-  };
-  
-  // Si el horario actual está en la lista de horarios configurados
-  if (normalizedHorarios.includes(normalizedTimeOfDay)) {
-    // Si no está completado, mostrar el horario actual
-    if (!isHorarioCompleted(normalizedTimeOfDay)) {
-      return normalizedTimeOfDay;
-    }
-    
-    // Si está completado, buscar el último horario no completado antes del actual
-    const currentIndex = HORARIOS_ORDER.indexOf(normalizedTimeOfDay);
-    if (currentIndex > 0) {
-      for (let i = currentIndex - 1; i >= 0; i--) {
-        const horarioAnterior = HORARIOS_ORDER[i];
-        if (normalizedHorarios.includes(horarioAnterior) && !isHorarioCompleted(horarioAnterior)) {
-          return horarioAnterior;
-        }
-      }
-    }
-  }
-  
-  // Para hábitos diarios con frecuencia > 1 o múltiples horarios configurados
-  // Buscar el último horario no completado antes del horario actual
-  const isDiarioMultiRepeticion = (tipo === 'DIARIO' || tipo === 'PERSONALIZADO') && 
-                                   (frecuencia > 1 || normalizedHorarios.length > 1);
-  
-  if (isDiarioMultiRepeticion) {
-    const currentIndex = HORARIOS_ORDER.indexOf(normalizedTimeOfDay);
-    if (currentIndex > 0) {
-      for (let i = currentIndex - 1; i >= 0; i--) {
-        const horarioAnterior = HORARIOS_ORDER[i];
-        if (normalizedHorarios.includes(horarioAnterior) && !isHorarioCompleted(horarioAnterior)) {
-          return horarioAnterior;
-        }
-      }
-    }
-  }
-  
-  // Si no hay horario específico para mostrar
-  return null;
+  return getHorarioForCarousel('ahora', horarios, currentTimeOfDay, isCompletedToday);
 };
 
 /**
@@ -221,6 +265,11 @@ export default {
   shouldShowHabitForCurrentTime,
   getCurrentTimeOfDayHabit,
   getActiveHabitForTimeOfDay,
-  getHorarioToShow
+  getHorarioToShow,
+  getHorarioForCarousel,
+  getNextPendingHorario,
+  getDailyCarouselAhoraHorarios,
+  getDailyCarouselLuegoHorarios,
+  hasConfiguredHorarioPassed,
 };
 

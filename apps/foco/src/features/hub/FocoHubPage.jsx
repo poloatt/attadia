@@ -1,13 +1,9 @@
 import React from 'react';
 import { Box, CircularProgress } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import { HubSectionShell } from '@shared/components/hub';
-import { HabitCarouselAhora, HabitCarouselLuego } from '../habits';
 import ObjetivosPreviewSection from '../objetivos/ObjetivosPreviewSection';
 import TareasHubSection from '../tasks/list/TareasHubSection';
 import { useTareasPageController } from '../tasks/list/useTareasPageController';
 import TareasPageOverlays from '../tasks/list/TareasPageOverlays';
-import focoConfig from '../../config/app';
 
 const scrollContainerSx = {
   py: { xs: 1, sm: 2 },
@@ -23,8 +19,6 @@ const scrollContainerSx = {
 };
 
 export default function FocoHubPage() {
-  const navigate = useNavigate();
-
   const controller = useTareasPageController();
 
   const {
@@ -50,8 +44,6 @@ export default function FocoHubPage() {
     deleteWithHistory,
   } = controller;
 
-  const HabitCarousel = agendaView === 'luego' ? HabitCarouselLuego : HabitCarouselAhora;
-
   return (
     <Box sx={{ px: { xs: 1, sm: 2, md: 3 }, width: '100%' }}>
       <Box sx={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -62,12 +54,6 @@ export default function FocoHubPage() {
             </Box>
           ) : (
             <>
-              <HubSectionShell
-                title="Hábitos"
-                onTitleClick={() => navigate(focoConfig.routes.rutinas)}
-              >
-                <HabitCarousel variant="iconsRow" showDividers={false} />
-              </HubSectionShell>
               <ObjetivosPreviewSection titleOnly />
               <TareasHubSection
                 isMobile={isMobile}

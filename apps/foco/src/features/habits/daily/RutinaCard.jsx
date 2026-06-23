@@ -5,13 +5,10 @@ import {
   IconButton,
   Tooltip,
   Collapse,
-  Card,
-  CardContent,
   List,
   ListItem,
   ListItemText,
   ListItemIcon,
-  alpha,
   Chip,
   Menu,
   MenuItem
@@ -47,6 +44,18 @@ import ChecklistItem, { HabitIconButton } from './ChecklistItem';
 import { HabitCounterBadge } from '@shared/components/common/HabitCounterBadge';
 import { getCurrentTimeOfDay } from '@shared/utils/timeOfDayUtils';
 import { shouldShowHabitForCurrentTime } from '@shared/utils/habitTimeLogic';
+import {
+  rutinaSectionShellSx,
+  rutinaSectionHeaderSx,
+  rutinaSectionTitleSx,
+  rutinaSectionBodySx,
+  rutinaSectionSubdividerSx,
+  rutinaSectionEmptySx,
+  rutinaExpandIconSx,
+  rutinaBackToListIconSx,
+  rutinaCollapsedIconsRowSx,
+  getRutinaHabitIconButtonSx,
+} from '@shared/styles/rutinaPageStyles';
 
 // Función para capitalizar solo la primera letra
 const capitalizeFirstLetter = (string) => {
@@ -95,8 +104,8 @@ const RutinaCard = ({
   if (!section || Object.keys(sectionIcons).length === 0) {
     console.warn(`[RutinaCard] Sección no válida o sin hábitos: ${section}`);
     return (
-      <Box sx={{ mb: 1, bgcolor: '#212121', p: 2 }}>
-        <Typography variant="subtitle1" sx={{ color: 'white' }}>
+      <Box sx={rutinaSectionEmptySx}>
+        <Typography variant="subtitle1" color="text.primary">
           {capitalizeFirstLetter(title) || 'Sección sin título'} - No hay hábitos configurados
         </Typography>
       </Box>
@@ -377,19 +386,7 @@ const RutinaCard = ({
                 e.stopPropagation();
                 !readOnly && handleItemClick(itemId, e);
               }}
-              sx={{
-                color: 'primary.main',
-                bgcolor: 'action.selected',
-                borderRadius: '50%',
-                width: 38,
-                height: 38,
-                p: 0.3,
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  color: 'primary.main',
-                  bgcolor: 'action.selected'
-                }
-              }}
+              sx={getRutinaHabitIconButtonSx({ isCompleted: true, size: 38 })}
             >
               {Icon && <Icon fontSize="small" />}
             </IconButton>
@@ -420,19 +417,7 @@ const RutinaCard = ({
                 e.stopPropagation();
                 !readOnly && handleItemClick(itemId, e);
               }}
-              sx={{
-                color: 'rgba(255,255,255,0.5)',
-                bgcolor: 'transparent',
-                borderRadius: '50%',
-                width: 38,
-                height: 38,
-                p: 0.3,
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  color: 'white',
-                  bgcolor: 'rgba(255,255,255,0.1)'
-                }
-              }}
+              sx={getRutinaHabitIconButtonSx({ isCompleted: false, size: 38 })}
             >
               {Icon && <Icon fontSize="small" />}
             </IconButton>
@@ -459,19 +444,7 @@ const RutinaCard = ({
               e.stopPropagation();
               !readOnly && handleItemClick(itemId, e);
             }}
-            sx={{
-              color: 'rgba(255,255,255,0.5)',
-              bgcolor: 'transparent',
-              borderRadius: '50%',
-              width: 38,
-              height: 38,
-              p: 0.3,
-              transition: 'all 0.2s ease',
-              '&:hover': {
-                color: 'white',
-                bgcolor: 'rgba(255,255,255,0.1)'
-              }
-            }}
+            sx={getRutinaHabitIconButtonSx({ isCompleted: false, size: 38 })}
           >
             {Icon && <Icon fontSize="small" />}
           </IconButton>
@@ -941,8 +914,8 @@ const RutinaCard = ({
   if (Object.keys(sectionIcons).length === 0) {
     console.warn(`[RutinaCard] No hay iconos configurados para la sección: ${section}`);
     return (
-      <Box sx={{ mb: 1, bgcolor: '#212121', p: 2 }}>
-        <Typography variant="subtitle1" sx={{ color: 'white' }}>
+      <Box sx={rutinaSectionEmptySx}>
+        <Typography variant="subtitle1" color="text.primary">
           {capitalizeFirstLetter(title)} - No hay elementos configurados
         </Typography>
       </Box>
@@ -1191,22 +1164,12 @@ const RutinaCard = ({
   };
 
   return (
-    <Card sx={{ mb: 1, bgcolor: 'background.paper', borderRadius: 1.5, boxShadow: 'none', border: 'none', overflow: 'visible', position: 'relative' }}>
-      {/* Encabezado de la sección */}
-      <Box 
-        sx={{ 
-          p: 0.5,
-          minHeight: 32,
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          borderBottom: isExpanded ? theme => `1px solid ${theme.palette.divider}` : 'none',
-          cursor: 'pointer'
-        }}
+    <Box sx={rutinaSectionShellSx}>
+      <Box
+        sx={rutinaSectionHeaderSx(isExpanded)}
         onClick={handleToggle}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'center' }}>
-          {/* Botón para volver a vista completa cuando hay un item enfocado */}
           {focusedItemId && isExpanded && (
             <IconButton
               size="small"
@@ -1214,38 +1177,18 @@ const RutinaCard = ({
                 e.stopPropagation();
                 setFocusedItemId(null);
               }}
-              sx={{ 
-                color: 'text.secondary', 
-                opacity: 0.7, 
-                width: 24, 
-                height: 24, 
-                mr: 0.5,
-                '&:hover': {
-                  opacity: 1
-                }
-              }}
+              sx={rutinaBackToListIconSx}
               title="Ver todos los hábitos"
             >
               <ViewListIcon fontSize="small" />
             </IconButton>
           )}
-          {/* Label centrado de sección */}
-          <Typography
-            variant="caption"
-            sx={{
-              color: 'text.secondary',
-              fontWeight: 700,
-              fontSize: '0.72rem',
-              letterSpacing: 0.2,
-              textTransform: 'uppercase',
-              pointerEvents: 'none'
-            }}
-          >
+          <Typography variant="caption" sx={rutinaSectionTitleSx}>
             {capitalizeFirstLetter(title) || section}
           </Typography>
           <Box sx={{ flexGrow: 1 }} />
           {!isExpanded && (
-            <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 0.3, alignItems: 'center' }}>
+            <Box sx={rutinaCollapsedIconsRowSx}>
               {renderHabitIcons({
                 sectionIcons: sectionIcons,
                 config,
@@ -1259,21 +1202,16 @@ const RutinaCard = ({
               })}
             </Box>
           )}
-          <IconButton 
-            size="small" 
-            sx={{ color: 'white', opacity: 0.7, width: 24, height: 24, ml: 0.5 }}
-          >
+          <IconButton size="small" sx={rutinaExpandIconSx}>
             {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
           </IconButton>
         </Box>
       </Box>
-      
-      {/* Contenido de la sección (colapsable) */}
+
       <Collapse in={isExpanded} unmountOnExit>
-        <CardContent sx={{ p: 0.5, pt: 0, bgcolor: 'background.paper' }}>
-          {/* Sección de configuración de hábitos personalizados */}
+        <Box sx={rutinaSectionBodySx}>
           {sectionHabits && sectionHabits.length > 0 && (
-            <Box sx={{ mb: 1, pb: 1, borderBottom: `1px solid ${alpha('#fff', 0.1)}` }}>
+            <Box sx={rutinaSectionSubdividerSx}>
               <List dense disablePadding sx={{ py: 0, my: 0 }}>
                 {sectionHabits
                   .filter(h => {
@@ -1337,7 +1275,7 @@ const RutinaCard = ({
           <List dense disablePadding sx={{ py: 0, my: 0 }}>
             {renderItems()}
           </List>
-        </CardContent>
+        </Box>
       </Collapse>
       
       {/* Diálogo de edición de hábito */}
@@ -1347,7 +1285,7 @@ const RutinaCard = ({
         editingHabit={editingHabitDialog.habit}
         editingSection={editingHabitDialog.section}
       />
-    </Card>
+    </Box>
   );
 };
 
@@ -1402,20 +1340,17 @@ const CollapsedIcons = memo(({
   }, [sectionIcons, section, config, rutina, localData]);
   
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1, width: '100%', alignItems: 'center', justifyContent: 'flex-start', px: 1 }}>
+    <Box sx={{ ...rutinaCollapsedIconsRowSx, gap: 1, width: '100%', justifyContent: 'flex-start', px: 1 }}>
       {itemsParaMostrar.length === 0 ? (
-        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', ml: 1 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
           No hay elementos para mostrar
         </Typography>
       ) : (
         itemsParaMostrar.map(itemId => {
           const Icon = sectionIcons[itemId];
-          // Usar checkItemCompleted para verificar correctamente el estado, especialmente para objetos con horarios
           const isCompleted = checkItemCompleted(itemId);
-          
-          // Usar una key compuesta para asegurar unicidad y forzar actualización cuando es necesario
           const keyId = `${section}-${itemId}-${isCompleted ? 'completed' : 'pending'}`;
-          
+
           return (
             <HabitIconButton
               key={keyId}
@@ -1426,23 +1361,8 @@ const CollapsedIcons = memo(({
                 !readOnly && onItemClick(itemId, e);
               }}
               readOnly={readOnly}
-              sx={{
-                m: 0,
-                width: 32,
-                height: 32,
-                color: isCompleted ? 'primary.main' : 'rgba(255,255,255,0.5)',
-                bgcolor: isCompleted ? 'action.selected' : 'transparent',
-                borderRadius: '50%',
-                transition: 'all 0.2s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                '&:hover': {
-                  color: isCompleted ? 'primary.main' : 'white',
-                  bgcolor: isCompleted ? 'action.selected' : 'rgba(255,255,255,0.1)'
-                }
-              }}
+              size={32}
+              mr={0}
             />
           );
         })

@@ -3,7 +3,9 @@ import { Box, IconButton, Tooltip, CircularProgress } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { AnimatePresence, motion } from 'framer-motion';
 import { HabitCounterBadge } from '@shared/components/common/HabitCounterBadge';
-import { getHorarioToShow } from '@shared/utils/habitTimeLogic';
+import { getHorarioForCarousel } from '@shared/utils/habitTimeLogic';
+import { resolveCarouselItemConfig } from '@shared/utils/habitVisibilityEngine';
+import { getHabitSlotCopy } from '@shared/copy/agendaTerminology';
 import HabitCarouselEmptyState from './HabitCarouselEmptyState';
 
 const MotionBox = motion(Box);
@@ -17,6 +19,8 @@ function HabitCarouselIconButton({
   itemValue,
   currentTimeOfDay,
   rutinaHoy,
+  mode = 'ahora',
+  displayHorario = null,
   dense,
   interactive,
   showCompletionState,
@@ -28,15 +32,12 @@ function HabitCarouselIconButton({
 }) {
   const horariosConfig = Array.isArray(itemConfig.horarios) ? itemConfig.horarios : [];
   const completadoHoy = itemValue !== undefined ? itemValue : false;
-  const tipo = (itemConfig.tipo || 'DIARIO').toUpperCase();
-  const frecuencia = Number(itemConfig.frecuencia || 1);
 
-  const horarioToShow = getHorarioToShow(
+  const horarioToShow = displayHorario || getHorarioForCarousel(
+    mode,
     horariosConfig,
     currentTimeOfDay,
     completadoHoy,
-    tipo,
-    frecuencia,
   );
 
   const isObjectFormat = typeof itemValue === 'object' && itemValue !== null && !Array.isArray(itemValue);
@@ -64,6 +65,7 @@ function HabitCarouselIconButton({
         <HabitCounterBadge
           config={itemConfig}
           currentTimeOfDay={currentTimeOfDay}
+          displayHorario={horarioToShow}
           size={dense ? 'small' : 'medium'}
           rutina={rutinaHoy}
           section={section}
@@ -122,6 +124,7 @@ function HabitCarouselIconRow({
   shouldUseInfiniteCarousel,
   rutinaHoy,
   sectionIconsMap,
+  habitsPreferences = {},
   currentTimeOfDay,
   rutinasLoading,
   habitsLoading,
@@ -230,10 +233,12 @@ function HabitCarouselIconRow({
   const showCompletionState = mode === 'ahora';
   const uniqueItems = shouldUseInfiniteCarousel ? carouselItems : pendingItems;
 
+  const slotCopy = getHabitSlotCopy(mode);
+
   return (
     <Box
       role="region"
-      aria-label={mode === 'luego' ? 'Hábitos para más tarde' : 'Hábitos para ahora'}
+      aria-label={slotCopy.regionAriaLabel}
       sx={{
         display: 'flex',
         flexWrap: 'nowrap',
@@ -262,12 +267,17 @@ function HabitCarouselIconRow({
       {...bind}
     >
       <AnimatePresence mode="popLayout">
-        {(shouldUseInfiniteCarousel ? carouselItems : uniqueItems).map(({ section, itemId }, index) => {
+        {(shouldUseInfiniteCarousel ? carouselItems : uniqueItems).map(({ section, itemId, horario }, index) => {
           const Icon = sectionIconsMap.iconsMap[section]?.[itemId];
           const label = sectionIconsMap.labelsMap[section]?.[itemId] || itemId;
           if (!Icon) return null;
 
-          const itemConfig = rutinaHoy?.config?.[section]?.[itemId] || {};
+          const itemConfig = resolveCarouselItemConfig(
+            section,
+            itemId,
+            rutinaHoy,
+            habitsPreferences,
+          );
           const itemValue = rutinaHoy?.[section]?.[itemId];
           const uniqueKey = shouldUseInfiniteCarousel
             ? `${section}.${itemId}.${index}`
@@ -292,6 +302,8 @@ function HabitCarouselIconRow({
                 itemValue={itemValue}
                 currentTimeOfDay={currentTimeOfDay}
                 rutinaHoy={rutinaHoy}
+                mode={mode}
+                displayHorario={horario || null}
                 dense={dense}
                 interactive={interactive}
                 showCompletionState={showCompletionState}

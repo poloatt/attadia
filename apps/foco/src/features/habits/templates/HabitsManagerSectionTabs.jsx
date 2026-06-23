@@ -1,13 +1,11 @@
 import React from 'react';
 import { Box, Tabs, Tab, Tooltip, IconButton } from '@mui/material';
-import SettingsBackupRestoreIcon from '@mui/icons-material/SettingsBackupRestore';
 import AddIcon from '@mui/icons-material/Add';
 import { SECTIONS } from './habitsManagerUtils';
 
 export default function HabitsManagerSectionTabs({
   currentSection,
   onSectionChange,
-  onReset,
   showAddForm,
   onAddClick,
 }) {
@@ -47,16 +45,6 @@ export default function HabitsManagerSectionTabs({
       </Tabs>
       {!showAddForm && (
         <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', pr: 1, flexShrink: 0 }}>
-          <Tooltip title="Restablecer valores por defecto">
-            <IconButton
-              size="small"
-              onClick={onReset}
-              aria-label="Restablecer hábitos"
-              sx={{ width: 32, height: 32, color: 'text.secondary' }}
-            >
-              <SettingsBackupRestoreIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
           <Tooltip title="Agregar hábito">
             <IconButton
               size="small"

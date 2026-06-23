@@ -1,8 +1,20 @@
 import React from 'react';
-import { Box, CircularProgress } from '@mui/material';
+import { Box, CircularProgress, Typography } from '@mui/material';
+import { getTaskHorizonCopy } from '@shared/copy/agendaTerminology';
 import TareasTable from './TareasTable';
 import { useTareasPageController } from './useTareasPageController';
 import TareasPageOverlays from './TareasPageOverlays';
+
+function TaskHorizonColumnHeader({ view }) {
+  const copy = getTaskHorizonCopy(view);
+  return (
+    <Box sx={{ mb: 1, px: { xs: 0.5, sm: 0 } }}>
+      <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+        {copy.label}
+      </Typography>
+    </Box>
+  );
+}
 
 const scrollContainerSx = {
   py: { xs: 1, sm: 2 },
@@ -68,6 +80,7 @@ export function TareasListPage() {
           ) : (
             <Box sx={{ display: 'flex', gap: 2, flex: 1, minHeight: 0, overflow: 'hidden', height: '100%' }}>
               <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+                <TaskHorizonColumnHeader view="ahora" />
                 <Box sx={scrollableColumnSx}>
                   <TareasTable
                     {...tareasTableCommonProps}
@@ -80,6 +93,7 @@ export function TareasListPage() {
               <Box sx={{ width: '1px', bgcolor: 'divider', flexShrink: 0 }} />
 
               <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+                <TaskHorizonColumnHeader view="luego" />
                 <Box sx={scrollableColumnSx}>
                   <TareasTable
                     {...tareasTableCommonProps}

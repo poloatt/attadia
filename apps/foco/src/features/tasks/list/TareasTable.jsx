@@ -866,6 +866,35 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
   const groupDividerColor = sectionDividerColor;
   const shouldShowRutinas = showHabitCarousel && !isArchive && (agendaView === 'ahora' || agendaView === 'luego');
 
+  const renderHabitCarousel = () => (
+    <Paper
+      elevation={0}
+      sx={{
+        bgcolor: layoutBg,
+        borderRadius: 1,
+        overflow: 'hidden',
+        mx: isMobile ? 0 : 'auto',
+        width: '100%',
+        border: 'none',
+      }}
+    >
+      <Box
+        sx={{
+          px: isMobile ? 1 : 2,
+          py: 0.25,
+          bgcolor: groupSubBg,
+          borderLeft: groupingEnabled ? undefined : `3px solid ${alpha(theme.palette.text.primary, 0.10)}`,
+        }}
+      >
+        {agendaView === 'ahora' ? (
+          <HabitCarouselAhora variant="iconsRow" showDividers={false} />
+        ) : (
+          <HabitCarouselLuego variant="iconsRow" showDividers={false} />
+        )}
+      </Box>
+    </Paper>
+  );
+
   // Función para manejar el toggle de apertura de tareas (comportamiento de acordeón)
   const handleToggleTarea = (tareaId) => {
     setOpenTareaId(prevId => prevId === tareaId ? null : tareaId);
@@ -887,34 +916,7 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
       // Usar la misma "surface" que HabitCarouselAhora para que no choque con el theme paper
       // El contenedor usa el background del layout; las filas tienen su surfaceBg.
       <Stack spacing={isMobile ? 1 : 2} sx={{ pb: isMobile ? 4 : 6 }}>
-        {shouldShowRutinas && (
-          <Paper
-            elevation={0}
-            sx={{
-              bgcolor: layoutBg,
-              borderRadius: 1,
-              overflow: 'hidden',
-              mx: isMobile ? 0 : 'auto',
-              width: '100%',
-              border: 'none'
-            }}
-          >
-            <Box
-              sx={{
-                px: isMobile ? 1 : 2,
-                py: 0.25,
-                bgcolor: groupSubBg,
-                borderLeft: `3px solid ${alpha(theme.palette.text.primary, 0.10)}`
-              }}
-            >
-              {agendaView === 'ahora' ? (
-                <HabitCarouselAhora variant="iconsRow" showDividers={false} />
-              ) : (
-                <HabitCarouselLuego variant="iconsRow" showDividers={false} />
-              )}
-            </Box>
-          </Paper>
-        )}
+        {shouldShowRutinas && renderHabitCarousel()}
 
         <TableContainer sx={{ bgcolor: layoutBg }}>
           <Table
@@ -980,32 +982,7 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
   return (
     <Stack spacing={isMobile ? 1 : 2} sx={{ pb: isMobile ? 4 : 6 }}>
       {/* Rutinas: antes de la división en grupos, debajo de "Ahora" */}
-      {shouldShowRutinas && (
-        <Paper
-          elevation={0}
-          sx={{
-            bgcolor: layoutBg,
-            borderRadius: 1,
-            overflow: 'hidden',
-            mx: isMobile ? 0 : 'auto',
-            width: '100%',
-            border: 'none'
-          }}
-        >
-          <Box
-            sx={{
-              py: 0.25,
-              bgcolor: groupSubBg
-            }}
-          >
-            {agendaView === 'ahora' ? (
-              <HabitCarouselAhora variant="iconsRow" showDividers={false} />
-            ) : (
-              <HabitCarouselLuego variant="iconsRow" showDividers={false} />
-            )}
-          </Box>
-        </Paper>
-      )}
+      {shouldShowRutinas && renderHabitCarousel()}
 
       {periodosOrdenados.map((periodo) => (
         <Paper 

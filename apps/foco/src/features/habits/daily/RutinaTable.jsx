@@ -17,8 +17,6 @@ import {
   Container,
   CircularProgress,
   Grid,
-  Card,
-  CardContent,
   Divider,
   Alert,
   Snackbar
@@ -32,6 +30,12 @@ import { es } from 'date-fns/locale';
 import clienteAxios from '@shared/config/axios';
 import { useSnackbar } from 'notistack';
 import { NavigateBefore, NavigateNext, Today as TodayIcon } from '@mui/icons-material';
+import {
+  rutinaTableContainerSx,
+  rutinaGridContainerSx,
+  rutinaGridItemSx,
+  rutinaPageLoaderSx,
+} from '@shared/styles/rutinaPageStyles';
 import { useRutinas } from '@shared/context';
 
 // Visibilidad centralizada gestionada en subcomponentes mediante visibilityUtils
@@ -514,7 +518,7 @@ export const RutinaTable = ({
 
   if (loadingProp) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '70vh' }}>
+      <Box sx={{ ...rutinaPageLoaderSx, height: '70vh', alignItems: 'center' }}>
         <CircularProgress />
       </Box>
     );
@@ -622,99 +626,66 @@ export const RutinaTable = ({
   }
 
   return (
-    <Box key={rutinaDateKey} sx={{ 
-      width: '100%',
-      maxWidth: 900,
-      mx: 'auto',
-      px: { xs: 1, sm: 2, md: 3 },
-      py: 3,
-      boxSizing: 'border-box'
-    }}>
-      {/* Navegación y acciones */}
+    <Box key={rutinaDateKey} sx={rutinaTableContainerSx}>
+      <Grid container spacing={1} sx={rutinaGridContainerSx}>
+        <Grid item xs={12} md={6} sx={rutinaGridItemSx}>
+          <RutinaCard
+            key={`card-bodyCare-${rutinaDateKey}`}
+            title="Cuidado Personal"
+            section="bodyCare"
+            data={rutina.bodyCare || {}}
+            config={rutina.config?.bodyCare || {}}
+            onChange={(newData) => handleMarkComplete(rutina._id, 'bodyCare', newData)}
+            onConfigChange={(itemId, newConfig, meta) =>
+              handleConfigChange('bodyCare', itemId, newConfig, meta)
+            }
+            readOnly={false}
+          />
+        </Grid>
 
+        <Grid item xs={12} md={6} sx={rutinaGridItemSx}>
+          <RutinaCard
+            key={`card-nutricion-${rutinaDateKey}`}
+            title="Nutrición"
+            section="nutricion"
+            data={rutina.nutricion || {}}
+            config={rutina.config?.nutricion || {}}
+            onChange={(newData) => handleMarkComplete(rutina._id, 'nutricion', newData)}
+            onConfigChange={(itemId, newConfig, meta) =>
+              handleConfigChange('nutricion', itemId, newConfig, meta)
+            }
+            readOnly={false}
+          />
+        </Grid>
 
+        <Grid item xs={12} md={6} sx={rutinaGridItemSx}>
+          <RutinaCard
+            key={`card-ejercicio-${rutinaDateKey}`}
+            title="Ejercicio"
+            section="ejercicio"
+            data={rutina.ejercicio || {}}
+            config={rutina.config?.ejercicio || {}}
+            onChange={(newData) => handleMarkComplete(rutina._id, 'ejercicio', newData)}
+            onConfigChange={(itemId, newConfig, meta) =>
+              handleConfigChange('ejercicio', itemId, newConfig, meta)
+            }
+            readOnly={false}
+          />
+        </Grid>
 
-
-      {/* Contenido principal */}
-      <Grid container spacing={0} sx={{ mt: 0 }}>
-        <Grid item xs={12}>
-          <Card variant="outlined" sx={{ boxShadow: 'none', border: 'none', borderRadius: 0 }}>
-            <CardContent sx={{ p: 0.5 }}>
-              <Grid container spacing={1}>
-                {/* Body Care */}
-                <Grid item xs={12} md={6}>
-                  <RutinaCard
-                    key={`card-bodyCare-${rutinaDateKey}`}
-                    title="Cuidado Personal"
-                    section="bodyCare"
-                    data={rutina.bodyCare || {}}
-                    config={rutina.config?.bodyCare || {}}
-                    onChange={(newData) => 
-                      handleMarkComplete(rutina._id, 'bodyCare', newData)
-                    }
-                    onConfigChange={(itemId, newConfig, meta) => 
-                      handleConfigChange('bodyCare', itemId, newConfig, meta)
-                    }
-                    readOnly={false}
-                  />
-                </Grid>
-                
-                {/* Nutrición */}
-                <Grid item xs={12} md={6}>
-                  <RutinaCard
-                    key={`card-nutricion-${rutinaDateKey}`}
-                    title="Nutrición"
-                    section="nutricion"
-                    data={rutina.nutricion || {}}
-                    config={rutina.config?.nutricion || {}}
-                    onChange={(newData) => 
-                      handleMarkComplete(rutina._id, 'nutricion', newData)
-                    }
-                    onConfigChange={(itemId, newConfig, meta) => 
-                      handleConfigChange('nutricion', itemId, newConfig, meta)
-                    }
-                    readOnly={false}
-                  />
-                </Grid>
-                
-                {/* Ejercicio */}
-                <Grid item xs={12} md={6}>
-                  <RutinaCard
-                    key={`card-ejercicio-${rutinaDateKey}`}
-                    title="Ejercicio"
-                    section="ejercicio"
-                    data={rutina.ejercicio || {}}
-                    config={rutina.config?.ejercicio || {}}
-                    onChange={(newData) => 
-                      handleMarkComplete(rutina._id, 'ejercicio', newData)
-                    }
-                    onConfigChange={(itemId, newConfig, meta) => 
-                      handleConfigChange('ejercicio', itemId, newConfig, meta)
-                    }
-                    readOnly={false}
-                  />
-                </Grid>
-                
-                {/* Limpieza */}
-                <Grid item xs={12} md={6}>
-                  <RutinaCard
-                    key={`card-cleaning-${rutinaDateKey}`}
-                    title="Limpieza"
-                    section="cleaning"
-                    data={rutina.cleaning || {}}
-                    config={rutina.config?.cleaning || {}}
-                    onChange={(newData) => 
-                      handleMarkComplete(rutina._id, 'cleaning', newData)
-                    }
-                    onConfigChange={(itemId, newConfig, meta) => 
-                      handleConfigChange('cleaning', itemId, newConfig, meta)
-                    }
-                    readOnly={false}
-                  />
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
+        <Grid item xs={12} md={6} sx={rutinaGridItemSx}>
+          <RutinaCard
+            key={`card-cleaning-${rutinaDateKey}`}
+            title="Limpieza"
+            section="cleaning"
+            data={rutina.cleaning || {}}
+            config={rutina.config?.cleaning || {}}
+            onChange={(newData) => handleMarkComplete(rutina._id, 'cleaning', newData)}
+            onConfigChange={(itemId, newConfig, meta) =>
+              handleConfigChange('cleaning', itemId, newConfig, meta)
+            }
+            readOnly={false}
+          />
         </Grid>
       </Grid>
     </Box>

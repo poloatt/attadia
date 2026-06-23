@@ -11,13 +11,16 @@ export const DEFAULT_HABIT_ITEM_CONFIG = {
   periodo: 'CADA_DIA',
 };
 
+function hasCustomHabitsStructure(habits) {
+  return habits && HABIT_SECTIONS.some((section) => Array.isArray(habits[section]));
+}
+
 /**
  * IDs de hábitos a mostrar en una sección (customHabits del usuario o legacy iconConfig).
  */
-export function getHabitSectionItemIds(section, habits = {}) {
-  const sectionHabits = Array.isArray(habits?.[section]) ? habits[section] : [];
-  if (sectionHabits.length > 0) {
-    return sectionHabits
+export function getHabitSectionItemIds(section, habits = null) {
+  if (hasCustomHabitsStructure(habits)) {
+    return (habits[section] || [])
       .filter((h) => h?.activo !== false)
       .sort((a, b) => (a?.orden || 0) - (b?.orden || 0))
       .map((h) => h.id || h._id)
@@ -63,15 +66,13 @@ export function buildHabitSectionIconsMap(habits = {}) {
 /**
  * IDs con icono resoluble para el carrusel (alineado con RutinaCard colapsado).
  */
-export function getCarouselSectionItemIds(section, iconsMap = {}, habits = {}) {
+export function getCarouselSectionItemIds(section, iconsMap = {}, habits = null) {
   const sectionIcons = iconsMap?.[section] || {};
-  const sectionHabits = Array.isArray(habits?.[section]) ? habits[section] : [];
-  const activeCustom = sectionHabits
-    .filter((h) => h?.activo !== false)
-    .sort((a, b) => (a?.orden || 0) - (b?.orden || 0));
 
-  if (activeCustom.length > 0) {
-    return activeCustom
+  if (hasCustomHabitsStructure(habits)) {
+    return (habits[section] || [])
+      .filter((h) => h?.activo !== false)
+      .sort((a, b) => (a?.orden || 0) - (b?.orden || 0))
       .map((h) => h.id || h._id)
       .filter((itemId) => itemId && sectionIcons[itemId]);
   }

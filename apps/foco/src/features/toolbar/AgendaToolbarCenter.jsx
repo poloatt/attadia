@@ -3,11 +3,15 @@ import { Box, Typography } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useLocation } from 'react-router-dom';
 import { matchTiempoSection } from '@shared/navigation/tiempoToolbarPaths';
+import {
+  getTaskHorizonCopy,
+  TASK_HORIZON_GROUP_ARIA,
+} from '@shared/copy/agendaTerminology';
 
-const OPTIONS = [
-  { value: 'ahora', label: 'Ahora' },
-  { value: 'luego', label: 'Luego' },
-];
+const OPTIONS = ['ahora', 'luego'].map((value) => ({
+  value,
+  ...getTaskHorizonCopy(value),
+}));
 
 /**
  * Selector "Ahora | Luego" para Hub y Tareas.
@@ -40,7 +44,7 @@ export default function AgendaToolbarCenter() {
         userSelect: 'none',
       }}
       role="group"
-      aria-label="Vista de agenda"
+      aria-label={TASK_HORIZON_GROUP_ARIA}
     >
       {OPTIONS.map((option, index) => (
         <React.Fragment key={option.value}>
