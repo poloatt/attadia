@@ -10,6 +10,12 @@ import { isHabitCompletedForHistorial } from './habitCompletionUtils.js';
 import { getIconByName } from './iconConfig.js';
 import { resolveRutinaItemConfig } from './habitVisibilityEngine.js';
 import { getRutinaDayMode } from './rutinasPageUtils.js';
+import {
+  hasCadenciaDebt,
+  isScheduledCadenciaDay,
+  obtenerHistorialCompletados,
+} from './cadenciaUtils.js';
+import { parseAPIDate } from './dateUtils.js';
 
 /** Títulos legibles por sección de rutina. */
 export const RUTINA_SECTION_LABELS = {
@@ -74,6 +80,15 @@ export function categorizeSectionHabits({
       skipHorarioFilter: true,
     });
 
+    const fechaRutina = parseAPIDate(rutina.fecha) || new Date();
+    const historialDates = [...obtenerHistorialCompletados(itemId, section, rutinaForVisibility)];
+    if (isCompleted) {
+      historialDates.push(fechaRutina);
+    }
+    const isCadenciaDebt = !isCompleted
+      && hasCadenciaDebt(fechaRutina, config, historialDates)
+      && !isScheduledCadenciaDay(fechaRutina, config);
+
     const entry = {
       section,
       itemId,
@@ -83,6 +98,7 @@ export function categorizeSectionHabits({
       itemValue,
       isCompleted,
       isScheduled,
+      isCadenciaDebt,
       userHabit: findUserHabit(section, itemId, habits),
     };
 

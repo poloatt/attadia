@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useLocation } from 'react-router-dom';
+import useResponsive from '@shared/hooks/useResponsive';
 import { matchTiempoSection } from '@shared/navigation/tiempoToolbarPaths';
 import {
   getTaskHorizonCopy,
   TASK_HORIZON_GROUP_ARIA,
 } from '@shared/copy/agendaTerminology';
+import { TAREAS_TOOLBAR_CENTER_ROW_HEIGHT } from './tareasToolbarLayout';
 
 const OPTIONS = ['ahora', 'luego'].map((value) => ({
   value,
@@ -21,6 +23,7 @@ export default function AgendaToolbarCenter() {
   const { pathname } = useLocation();
   const [agendaView, setAgendaView] = useState('ahora');
   const theme = useTheme();
+  const { isMobile } = useResponsive();
 
   if (!['tareas', 'hub'].includes(matchTiempoSection(pathname))) {
     return null;
@@ -39,9 +42,12 @@ export default function AgendaToolbarCenter() {
       sx={{
         display: 'flex',
         alignItems: 'center',
-        gap: 0.75,
+        gap: isMobile ? 0.5 : 0.75,
         flexShrink: 0,
+        minHeight: TAREAS_TOOLBAR_CENTER_ROW_HEIGHT,
+        height: TAREAS_TOOLBAR_CENTER_ROW_HEIGHT,
         userSelect: 'none',
+        whiteSpace: 'nowrap',
       }}
       role="group"
       aria-label={TASK_HORIZON_GROUP_ARIA}
@@ -52,7 +58,7 @@ export default function AgendaToolbarCenter() {
             <Typography
               component="span"
               sx={{
-                fontSize: '0.75rem',
+                fontSize: isMobile ? '0.7rem' : '0.75rem',
                 lineHeight: 1,
                 color: alpha(theme.palette.text.secondary, 0.35),
                 fontWeight: 300,
@@ -74,7 +80,7 @@ export default function AgendaToolbarCenter() {
               p: 0,
               m: 0,
               font: 'inherit',
-              fontSize: '0.75rem',
+              fontSize: isMobile ? '0.7rem' : '0.75rem',
               lineHeight: 1.2,
               fontWeight: agendaView === option.value ? 700 : 400,
               color: agendaView === option.value ? 'text.primary' : inactiveColor,

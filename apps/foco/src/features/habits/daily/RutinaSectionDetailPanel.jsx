@@ -69,13 +69,23 @@ export default function RutinaSectionDetailPanel({
     [section, rutina, habits, habitsPreferences],
   );
 
+  const overdue = useMemo(
+    () => incomplete.filter((entry) => entry.isCadenciaDebt),
+    [incomplete],
+  );
+  const pendingToday = useMemo(
+    () => incomplete.filter((entry) => !entry.isCadenciaDebt),
+    [incomplete],
+  );
+
   const handleSetupToggle = (itemId) => {
     setOpenSetupItemId((prev) => (prev === itemId ? null : itemId));
   };
 
   const blocks = [
     { key: 'completed', title: 'Completados', items: completed },
-    { key: 'incomplete', title: 'Pendientes', items: incomplete },
+    { key: 'overdue', title: 'Atrasados', items: overdue },
+    { key: 'incomplete', title: 'Pendientes', items: pendingToday },
     { key: 'notScheduled', title: 'No programados hoy', items: notScheduled },
   ];
 

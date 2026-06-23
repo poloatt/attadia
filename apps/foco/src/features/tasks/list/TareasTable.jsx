@@ -1008,14 +1008,22 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
                 bgcolor: groupTitleBg
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-                <Typography variant={isMobile ? "body2" : "subtitle2"} sx={{ fontWeight: 600 }}>
-                  {periodo}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>
+              <Typography
+                variant={isMobile ? 'body2' : 'subtitle2'}
+                sx={{ fontWeight: 600, lineHeight: 1.2 }}
+              >
+                {periodo}
+                <Box
+                  component="span"
+                  sx={{
+                    ml: 0.75,
+                    color: 'text.secondary',
+                    fontWeight: 700,
+                  }}
+                >
                   {tareasAgrupadas[periodo].length}
-                </Typography>
-              </Box>
+                </Box>
+              </Typography>
             </Box>
 
           </Box>

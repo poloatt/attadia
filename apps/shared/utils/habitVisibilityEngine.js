@@ -8,6 +8,8 @@ import { es } from 'date-fns/locale';
 import {
   contarCompletadosEnPeriodo,
   obtenerHistorialCompletados,
+  hasCadenciaDebt,
+  isScheduledCadenciaDay,
 } from './cadenciaUtils';
 import { isHabitCompletedForHistorial, isHabitFullyCompletedToday } from './habitCompletionUtils';
 import { getNormalizedToday, toISODateString } from './dateUtils';
@@ -65,7 +67,6 @@ function countCompletionsInPeriod(itemId, section, rutinaHoy, itemConfig) {
   if (tipo === 'SEMANAL' || (tipo === 'PERSONALIZADO' && periodo === 'CADA_SEMANA')) {
     const diasSemana = Array.isArray(itemConfig.diasSemana) ? itemConfig.diasSemana : [];
     if (diasSemana.length > 0) {
-      historialParaContar = historial.filter((fecha) => diasSemana.includes(getDay(fecha)));
       const diaHoy = getDay(hoy);
       hoyEsValido = diasSemana.includes(diaHoy);
       diasRestantes = diasSemana.filter((dia) => dia >= diaHoy).length;
@@ -76,7 +77,6 @@ function countCompletionsInPeriod(itemId, section, rutinaHoy, itemConfig) {
   } else if (tipo === 'MENSUAL' || (tipo === 'PERSONALIZADO' && periodo === 'CADA_MES')) {
     const diasMes = Array.isArray(itemConfig.diasMes) ? itemConfig.diasMes : [];
     if (diasMes.length > 0) {
-      historialParaContar = historial.filter((fecha) => diasMes.includes(getDate(fecha)));
       const diaHoy = getDate(hoy);
       hoyEsValido = diasMes.includes(diaHoy);
       diasRestantes = diasMes.filter((dia) => dia >= diaHoy).length;
@@ -88,8 +88,8 @@ function countCompletionsInPeriod(itemId, section, rutinaHoy, itemConfig) {
 
   let completadosEnPeriodo = contarCompletadosEnPeriodo(hoy, tipo, periodo, historialParaContar);
 
-  if (completadoHoy && hoyEsValido) {
-    const yaEstaEnHistorial = historialParaContar.some(
+  if (completadoHoy) {
+    const yaEstaEnHistorial = historial.some(
       (fecha) => toISODateString(fecha) === hoyStr,
     );
     if (!yaEstaEnHistorial) {
@@ -134,6 +134,16 @@ export function getPeriodicCarouselMode(
   itemId,
   currentTimeOfDay,
 ) {
+  const historial = obtenerHistorialCompletados(itemId, section, rutinaHoy);
+  const hoy = getNormalizedToday();
+
+  if (
+    hasCadenciaDebt(hoy, itemConfig, historial)
+    && !isScheduledCadenciaDay(hoy, itemConfig)
+  ) {
+    return 'luego';
+  }
+
   const { completadosEnPeriodo, frecuencia } = countCompletionsInPeriod(
     itemId,
     section,

@@ -7,15 +7,13 @@ import AgendaViewModeToggle from './AgendaViewModeToggle';
 import TiempoToolbarActions from './TiempoToolbarActions';
 import {
   TAREAS_TOOLBAR_CENTER_ROW_HEIGHT,
-  TAREAS_TOOLBAR_RIGHT_SLOT_WIDTH,
+  TAREAS_TOOLBAR_MOBILE_TOGGLES_WIDTH,
 } from './tareasToolbarLayout';
 
 const rightSlotSx = {
   position: 'relative',
-  width: TAREAS_TOOLBAR_RIGHT_SLOT_WIDTH,
-  minWidth: TAREAS_TOOLBAR_RIGHT_SLOT_WIDTH,
-  height: TAREAS_TOOLBAR_CENTER_ROW_HEIGHT,
   flexShrink: 0,
+  height: TAREAS_TOOLBAR_CENTER_ROW_HEIGHT,
 };
 
 const rightSlotLayerSx = {
@@ -54,23 +52,25 @@ export default function TareasToolbarCenter() {
   return (
     <Box
       sx={{
-        display: 'grid',
-        gridTemplateColumns: '1fr auto 1fr',
+        display: 'flex',
         alignItems: 'center',
         width: '100%',
+        minWidth: 0,
         minHeight: TAREAS_TOOLBAR_CENTER_ROW_HEIGHT,
         height: TAREAS_TOOLBAR_CENTER_ROW_HEIGHT,
         overflow: 'hidden',
+        gap: 0.5,
       }}
     >
-      <Box aria-hidden sx={{ minWidth: 0 }} />
-
       <Box
         sx={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
+          justifyContent: 'flex-start',
+          flex: '1 1 auto',
+          minWidth: 0,
+          maxWidth: `calc(100% - ${TAREAS_TOOLBAR_MOBILE_TOGGLES_WIDTH})`,
+          overflow: 'hidden',
         }}
       >
         <TiempoToolbarActions section="tareas" dense />
@@ -81,7 +81,9 @@ export default function TareasToolbarCenter() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'flex-end',
-          minWidth: 0,
+          flex: `0 0 ${TAREAS_TOOLBAR_MOBILE_TOGGLES_WIDTH}`,
+          width: TAREAS_TOOLBAR_MOBILE_TOGGLES_WIDTH,
+          flexShrink: 0,
         }}
       >
         <Box sx={rightSlotSx}>

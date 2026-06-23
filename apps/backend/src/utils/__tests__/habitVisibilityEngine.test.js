@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import {
   getCarouselAhoraItems,
   getCarouselLuegoItems,
@@ -728,6 +729,81 @@ describe('habitVisibilityEngine', () => {
       );
       expect(resolved.tipo).toBe('DIARIO');
       expect(resolved.horarios).toEqual(['MAÑANA']);
+    });
+  });
+
+  describe('cadencia carry-over carousel', () => {
+    const tuesday = new Date(2026, 5, 23, 12, 0, 0, 0);
+
+    it('shows fixed weekly carry-over in Luego on non-scheduled day', () => {
+      const rutinaHoy = buildRutina({
+        fecha: tuesday.toISOString(),
+        config: {
+          ejercicio: {
+            gym: buildGymConfig({ diasSemana: [1], frecuencia: 1, horarios: [] }),
+          },
+        },
+      });
+
+      const luego = getCarouselLuegoItems({
+        rutinaHoy,
+        sectionIconsMap,
+        habits,
+        currentTimeOfDay: 'MAÑANA',
+      });
+      const ahora = getCarouselAhoraItems({
+        rutinaHoy,
+        sectionIconsMap,
+        habits,
+        currentTimeOfDay: 'MAÑANA',
+      });
+
+      expect(luego).toEqual([{ section: 'ejercicio', itemId: 'gym' }]);
+      expect(ahora).toEqual([]);
+    });
+
+    it('shows f>1 fixed weekly carry-over in Luego on non-scheduled day', () => {
+      const rutinaHoy = buildRutina({
+        fecha: tuesday.toISOString(),
+        config: {
+          ejercicio: {
+            gym: buildGymConfig({ diasSemana: [1, 3], frecuencia: 2, horarios: [] }),
+          },
+        },
+      });
+
+      expect(getPeriodicCarouselMode(
+        buildGymConfig({ diasSemana: [1, 3], frecuencia: 2, horarios: [] }),
+        rutinaHoy,
+        'ejercicio',
+        'gym',
+        'MAÑANA',
+      )).toBe('luego');
+    });
+
+    it('counts catch-up completion on non-scheduled day toward weekly quota', () => {
+      const rutinaHoy = buildRutina({
+        fecha: tuesday.toISOString(),
+        ejercicio: { gym: true },
+        historial: {
+          ejercicio: {
+            gym: { '2026-06-23': true },
+          },
+        },
+        config: {
+          ejercicio: {
+            gym: buildGymConfig({ diasSemana: [1], frecuencia: 1, horarios: [] }),
+          },
+        },
+      });
+
+      expect(getPeriodicCarouselMode(
+        buildGymConfig({ diasSemana: [1], frecuencia: 1, horarios: [] }),
+        rutinaHoy,
+        'ejercicio',
+        'gym',
+        'MAÑANA',
+      )).toBeNull();
     });
   });
 

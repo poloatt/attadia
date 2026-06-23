@@ -53,13 +53,17 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
   const showRutinasActions = isRutinasPath(path);
   const useCenterActionsOverlay = isHubPath || isAttaPath || isPulsoPath || showRutinasActions;
   const hideGridCenter = useCenterActionsOverlay;
+  const showAttaBranchSwitcher = isAttaPath && !isMobile && RightComp;
 
-  const gridColumns = showCenter || RightComp ? '1fr auto' : '1fr';
+  const showRightGridColumn = Boolean(
+    showRightNav && RightComp && !showAttaBranchSwitcher && (!isMobile || isAttaPath),
+  );
+  const gridColumns = showCenter && showRightGridColumn ? '1fr auto' : '1fr';
 
   const showAttaBranchBack = isAttaPath && !!resolveAttaBranchHubPath(path);
   const showFocoBranchBack = !!resolveFocoBranchHubPath(path);
   const TOOLBAR_BACK_SLOT_WIDTH = 34;
-  const showBranchBack = showAttaBranchBack || showFocoBranchBack;
+  const showBranchBack = (showAttaBranchBack || showFocoBranchBack) && !isMobile;
   const MOBILE_LEFT_INSET = 8;
   const baseCenterInsetLeft = isMobileOrTablet
     ? MOBILE_LEFT_INSET
@@ -67,7 +71,6 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
   const centerActionsInsetLeft = showBranchBack
     ? baseCenterInsetLeft + TOOLBAR_BACK_SLOT_WIDTH
     : baseCenterInsetLeft;
-  const showAttaBranchSwitcher = isAttaPath && !isMobile && RightComp;
   const gridMarginRight = collapsedWidth;
   const centerOverlayRight = showAttaBranchSwitcher
     ? collapsedWidth + 96
@@ -94,7 +97,7 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
             bottom: 0,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
+            justifyContent: isMobileOrTablet ? 'flex-start' : 'center',
             pointerEvents: 'none',
             zIndex: 3,
             '& > *': { pointerEvents: 'auto' },
@@ -191,7 +194,7 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
             sx={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
+              justifyContent: isMobileOrTablet ? 'flex-start' : 'center',
               minWidth: 0,
               minHeight: 26,
               overflow: 'hidden',
@@ -207,7 +210,7 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
           </Box>
         )}
 
-        {showRightNav && RightComp && (
+        {showRightGridColumn && (
           <Box
             sx={{
               display: 'flex',
@@ -219,9 +222,7 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
               zIndex: 2,
             }}
           >
-            {RightComp && !showAttaBranchSwitcher && (
-              <RightComp hasSelectedItems={hasSelectedItems} />
-            )}
+            <RightComp hasSelectedItems={hasSelectedItems} />
           </Box>
         )}
       </Box>

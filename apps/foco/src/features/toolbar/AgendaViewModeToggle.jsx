@@ -1,14 +1,15 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
+import useResponsive from '@shared/hooks/useResponsive';
 import {
   TAREAS_TOOLBAR_CENTER_ROW_HEIGHT,
   TAREAS_TOOLBAR_OPTION_MIN_WIDTH,
 } from './tareasToolbarLayout';
 
 const OPTIONS = [
-  { value: 'week', label: 'Semana', minWidth: '3.1rem' },
-  { value: 'day', label: 'Día', minWidth: TAREAS_TOOLBAR_OPTION_MIN_WIDTH },
+  { value: 'week', label: 'Semana', minWidth: { xs: '2.65rem', sm: '3.1rem' } },
+  { value: 'day', label: 'Día', minWidth: { xs: '2.35rem', sm: TAREAS_TOOLBAR_OPTION_MIN_WIDTH } },
 ];
 
 /**
@@ -17,6 +18,7 @@ const OPTIONS = [
  */
 export default function AgendaViewModeToggle() {
   const theme = useTheme();
+  const { isMobile } = useResponsive();
   const [calendarViewMode, setCalendarViewMode] = useState('week');
 
   useEffect(() => {
@@ -41,11 +43,12 @@ export default function AgendaViewModeToggle() {
       sx={{
         display: 'flex',
         alignItems: 'center',
-        gap: 0.75,
+        gap: isMobile ? 0.5 : 0.75,
         flexShrink: 0,
         minHeight: TAREAS_TOOLBAR_CENTER_ROW_HEIGHT,
         height: TAREAS_TOOLBAR_CENTER_ROW_HEIGHT,
         userSelect: 'none',
+        whiteSpace: 'nowrap',
       }}
       role="group"
       aria-label="Vista de calendario"
@@ -56,7 +59,7 @@ export default function AgendaViewModeToggle() {
             <Typography
               component="span"
               sx={{
-                fontSize: '0.75rem',
+                fontSize: isMobile ? '0.7rem' : '0.75rem',
                 lineHeight: 1,
                 width: '0.35rem',
                 textAlign: 'center',
@@ -81,7 +84,7 @@ export default function AgendaViewModeToggle() {
               p: 0,
               m: 0,
               font: 'inherit',
-              fontSize: '0.75rem',
+              fontSize: isMobile ? '0.7rem' : '0.75rem',
               lineHeight: 1.2,
               minWidth: option.minWidth,
               textAlign: 'center',

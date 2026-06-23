@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { ArrowBack } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { SystemButtons } from '@shared/components/common/SystemButtons';
+import useResponsive from '@shared/hooks/useResponsive';
 import { matchAttaSection } from './attaToolbarPaths';
 import {
   resolveAttaBranchHubPath,
@@ -25,6 +26,7 @@ const commonButtonSx = {
 export default function AttaToolbarLeft() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { isMobile } = useResponsive();
   const section = matchAttaSection(pathname);
 
   const branchHubPath = useMemo(
@@ -50,7 +52,7 @@ export default function AttaToolbarLeft() {
     };
   }, [branchHubPath, branchHubLabel, navigate]);
 
-  if (!section || !backAction) return null;
+  if (isMobile || !section || !backAction) return null;
 
   return <SystemButtons actions={[backAction]} gap={0.25} />;
 }

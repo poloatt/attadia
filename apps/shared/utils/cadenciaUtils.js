@@ -44,6 +44,136 @@ export const obtenerHistorialCompletados = (itemId, section, rutina) => {
   return [];
 };
 
+function normalizeCadenciaDate(targetDate) {
+  const fecha = new Date(targetDate);
+  fecha.setHours(12, 0, 0, 0);
+  return fecha;
+}
+
+/**
+ * Intervalo de calendario del período activo para una fecha de referencia.
+ */
+export function getPeriodInterval(fechaObjetivo, tipo, periodo = 'CADA_DIA') {
+  const fecha = normalizeCadenciaDate(fechaObjetivo);
+  let start;
+  let end;
+
+  switch (tipo) {
+    case 'SEMANAL':
+      start = startOfWeek(fecha, { weekStartsOn: 0 });
+      end = addDays(start, 6);
+      end.setHours(23, 59, 59, 999);
+      break;
+    case 'MENSUAL':
+      start = startOfMonth(fecha);
+      end = endOfMonth(fecha);
+      end.setHours(23, 59, 59, 999);
+      break;
+    case 'PERSONALIZADO':
+      start = startOfWeek(fecha, { weekStartsOn: 0 });
+      end = addDays(start, 6);
+      end.setHours(23, 59, 59, 999);
+      break;
+    default:
+      start = new Date(fecha);
+      start.setHours(0, 0, 0, 0);
+      end = new Date(fecha);
+      end.setHours(23, 59, 59, 999);
+  }
+
+  return { start, end };
+}
+
+/**
+ * ¿La fecha es un día programado según diasSemana/diasMes?
+ */
+export function isScheduledCadenciaDay(fechaObjetivo, cadenciaConfig) {
+  if (!cadenciaConfig) return true;
+
+  const tipo = (cadenciaConfig.tipo || 'DIARIO').toUpperCase();
+  const periodo = (cadenciaConfig.periodo || 'CADA_DIA').toUpperCase();
+  const diasSemana = Array.isArray(cadenciaConfig.diasSemana) ? cadenciaConfig.diasSemana : [];
+  const diasMes = Array.isArray(cadenciaConfig.diasMes) ? cadenciaConfig.diasMes : [];
+  const fecha = normalizeCadenciaDate(fechaObjetivo);
+
+  if (tipo === 'SEMANAL' || (tipo === 'PERSONALIZADO' && periodo === 'CADA_SEMANA')) {
+    if (diasSemana.length === 0) return true;
+    return diasSemana.includes(getDay(fecha));
+  }
+
+  if (tipo === 'MENSUAL' || (tipo === 'PERSONALIZADO' && periodo === 'CADA_MES')) {
+    if (diasMes.length === 0) return true;
+    return diasMes.includes(getDate(fecha));
+  }
+
+  return false;
+}
+
+function resolveFixedPeriodicCadence(cadenciaConfig) {
+  if (!cadenciaConfig) return null;
+
+  const tipo = (cadenciaConfig.tipo || 'DIARIO').toUpperCase();
+  const periodo = (cadenciaConfig.periodo || 'CADA_DIA').toUpperCase();
+  const diasSemana = Array.isArray(cadenciaConfig.diasSemana) ? cadenciaConfig.diasSemana : [];
+  const diasMes = Array.isArray(cadenciaConfig.diasMes) ? cadenciaConfig.diasMes : [];
+
+  if (tipo === 'SEMANAL' && diasSemana.length > 0) {
+    return { countTipo: 'SEMANAL', scheduledDays: diasSemana, dayMatcher: getDay };
+  }
+  if (tipo === 'MENSUAL' && diasMes.length > 0) {
+    return { countTipo: 'MENSUAL', scheduledDays: diasMes, dayMatcher: getDate };
+  }
+  if (tipo === 'PERSONALIZADO' && periodo === 'CADA_SEMANA' && diasSemana.length > 0) {
+    return { countTipo: 'SEMANAL', scheduledDays: diasSemana, dayMatcher: getDay };
+  }
+  if (tipo === 'PERSONALIZADO' && periodo === 'CADA_MES' && diasMes.length > 0) {
+    return { countTipo: 'MENSUAL', scheduledDays: diasMes, dayMatcher: getDate };
+  }
+
+  return null;
+}
+
+/**
+ * Fechas concretas programadas dentro del período activo.
+ */
+export function getScheduledDatesInPeriod(fechaObjetivo, cadenciaConfig) {
+  const fixed = resolveFixedPeriodicCadence(cadenciaConfig);
+  if (!fixed) return [];
+
+  const { start, end } = getPeriodInterval(fechaObjetivo, fixed.countTipo);
+  const days = eachDayOfInterval({ start, end });
+  return days.filter((day) => fixed.scheduledDays.includes(fixed.dayMatcher(day)));
+}
+
+/**
+ * Deuda de cadencia: cuota pendiente y al menos un día programado del período ya pasó.
+ * Solo aplica a periódicos con días fijos (diasSemana/diasMes).
+ */
+export function hasCadenciaDebt(fechaObjetivo, cadenciaConfig, historialCompletado = []) {
+  if (!cadenciaConfig || cadenciaConfig.activo === false) return false;
+
+  const fixed = resolveFixedPeriodicCadence(cadenciaConfig);
+  if (!fixed) return false;
+
+  const fecha = normalizeCadenciaDate(fechaObjetivo);
+  const frecuencia = Number(cadenciaConfig.frecuencia || 1);
+  const periodo = cadenciaConfig.periodo || 'CADA_DIA';
+  const completadosEnPeriodo = contarCompletadosEnPeriodo(
+    fecha,
+    fixed.countTipo,
+    periodo,
+    historialCompletado,
+  );
+
+  if (completadosEnPeriodo >= frecuencia) return false;
+
+  const scheduledDates = getScheduledDatesInPeriod(fecha, cadenciaConfig);
+  return scheduledDates.some((scheduledDate) => {
+    const normalized = normalizeCadenciaDate(scheduledDate);
+    return isBefore(normalized, fecha) && !isSameDay(normalized, fecha);
+  });
+}
+
 /**
  * Determina si un día específico debe mostrar un hábito según su configuración de cadencia
  * @param {Date} targetDate - Fecha objetivo a evaluar
@@ -87,21 +217,19 @@ export const debesMostrarHabitoEnFecha = (targetDate, cadenciaConfig, historialC
       return true;
 
     case 'SEMANAL':
-      // Para hábitos semanales con días específicos
       if (diasSemana.length > 0) {
-        const diaSemana = getDay(fechaObjetivo); // 0 = domingo, 1 = lunes, etc.
-        return diasSemana.includes(diaSemana);
+        const diaSemana = getDay(fechaObjetivo);
+        if (diasSemana.includes(diaSemana)) return true;
+        return hasCadenciaDebt(fechaObjetivo, cadenciaConfig, historialCompletado);
       }
-      // Si no hay días específicos, mostrar siempre hasta alcanzar la frecuencia
       return true;
 
     case 'MENSUAL':
-      // Para hábitos mensuales con días específicos
       if (diasMes.length > 0) {
         const diaMes = getDate(fechaObjetivo);
-        return diasMes.includes(diaMes);
+        if (diasMes.includes(diaMes)) return true;
+        return hasCadenciaDebt(fechaObjetivo, cadenciaConfig, historialCompletado);
       }
-      // Si no hay días específicos, mostrar siempre hasta alcanzar la frecuencia
       return true;
 
     case 'PERSONALIZADO':
@@ -170,30 +298,30 @@ export const contarCompletadosEnPeriodo = (fechaObjetivo, tipo, periodo, histori
     return fechaNormalizada;
   });
 
-  let inicioIntervalo, finIntervalo;
+  let inicioIntervalo;
+  let finIntervalo;
 
   switch (tipo) {
-    case 'DIARIO':
-      // Para hábitos diarios, contar solo el día actual
-      inicioIntervalo = new Date(fechaObjetivo);
-      inicioIntervalo.setHours(0, 0, 0, 0);
-      finIntervalo = new Date(fechaObjetivo);
-      finIntervalo.setHours(23, 59, 59, 999);
+    case 'DIARIO': {
+      const interval = getPeriodInterval(fechaObjetivo, 'DIARIO');
+      inicioIntervalo = interval.start;
+      finIntervalo = interval.end;
       break;
+    }
 
-    case 'SEMANAL':
-      // Para hábitos semanales, considerar la semana actual
-      inicioIntervalo = startOfWeek(fechaObjetivo, { weekStartsOn: 0 });
-      finIntervalo = addDays(inicioIntervalo, 6);
-      finIntervalo.setHours(23, 59, 59, 999);
+    case 'SEMANAL': {
+      const interval = getPeriodInterval(fechaObjetivo, 'SEMANAL');
+      inicioIntervalo = interval.start;
+      finIntervalo = interval.end;
       break;
+    }
 
-    case 'MENSUAL':
-      // Para hábitos mensuales, considerar el mes actual
-      inicioIntervalo = startOfMonth(fechaObjetivo);
-      finIntervalo = endOfMonth(fechaObjetivo);
-      finIntervalo.setHours(23, 59, 59, 999);
+    case 'MENSUAL': {
+      const interval = getPeriodInterval(fechaObjetivo, 'MENSUAL');
+      inicioIntervalo = interval.start;
+      finIntervalo = interval.end;
       break;
+    }
 
     case 'PERSONALIZADO':
       // Para hábitos personalizados, el intervalo depende del periodo
@@ -418,5 +546,9 @@ export default {
   obtenerUltimaCompletacion,
   generarMensajeCadencia,
   getFrecuenciaLabel,
-  formatearSemana
+  formatearSemana,
+  getPeriodInterval,
+  isScheduledCadenciaDay,
+  getScheduledDatesInPeriod,
+  hasCadenciaDebt,
 }; 

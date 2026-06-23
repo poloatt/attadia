@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { ArrowBack } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { SystemButtons } from '@shared/components/common/SystemButtons';
+import useResponsive from '@shared/hooks/useResponsive';
 import {
   resolveFocoBranchHubPath,
   resolveFocoBranchHubLabel,
@@ -23,6 +24,7 @@ const commonButtonSx = {
 export default function FocoToolbarLeft() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { isMobile } = useResponsive();
 
   const branchHubPath = useMemo(
     () => resolveFocoBranchHubPath(pathname),
@@ -47,7 +49,7 @@ export default function FocoToolbarLeft() {
     };
   }, [branchHubPath, branchHubLabel, navigate]);
 
-  if (!backAction) return null;
+  if (isMobile || !backAction) return null;
 
   return <SystemButtons actions={[backAction]} gap={0.25} />;
 

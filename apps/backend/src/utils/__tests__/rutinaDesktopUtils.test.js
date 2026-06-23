@@ -148,6 +148,23 @@ describe('rutinaDesktopUtils', () => {
       expect(incomplete.map((h) => h.itemId)).toContain('shower');
       expect(notScheduled.map((h) => h.itemId)).not.toContain('shower');
     });
+
+    it('marks weekly Monday carry-over as isCadenciaDebt on Tuesday', () => {
+      const tuesday = new Date(2026, 5, 23, 12, 0, 0, 0);
+      const rutina = makeRutina({
+        fecha: tuesday.toISOString(),
+        historial: { bodyCare: { weekly: {} } },
+      });
+      const { incomplete, notScheduled } = categorizeSectionHabits({
+        section: 'bodyCare',
+        rutina,
+        habits: mockHabits,
+      });
+      const weekly = incomplete.find((h) => h.itemId === 'weekly');
+      expect(weekly).toBeTruthy();
+      expect(weekly.isCadenciaDebt).toBe(true);
+      expect(notScheduled.map((h) => h.itemId)).not.toContain('weekly');
+    });
   });
 
   describe('getDefaultSelectedSection', () => {
