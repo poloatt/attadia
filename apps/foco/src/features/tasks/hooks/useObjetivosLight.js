@@ -16,7 +16,7 @@ export function useObjetivosLight({ autoFetch = true } = {}) {
       console.error('Error al cargar objetivos:', error);
       enqueueSnackbar('Error al cargar Objetivos', { variant: 'error' });
       setObjetivos([]);
-      throw error;
+      return null;
     } finally {
       setLoading(false);
     }
@@ -24,7 +24,7 @@ export function useObjetivosLight({ autoFetch = true } = {}) {
 
   useEffect(() => {
     if (autoFetch) {
-      refetch();
+      refetch().catch(() => {});
     }
   }, [autoFetch, refetch]);
 

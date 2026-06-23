@@ -13,6 +13,7 @@ export * from './progressUtils.js';
 export * from './propiedadUtils.js';
 export * from './rutinaCalculations.js';
 export * from './rutinaHistorialUtils.js';
+export * from './rutinaItemVisibility.js';
 export * from './shouldShowItem.js';
 export * from './statusOptimizer.js';
 export * from './timezoneConfig.js';

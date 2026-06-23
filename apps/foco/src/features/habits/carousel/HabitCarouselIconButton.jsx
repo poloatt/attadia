@@ -2,6 +2,7 @@ import React from 'react';
 import { IconButton, Tooltip } from '@mui/material';
 import { HabitCounterBadge } from '@shared/components/common/HabitCounterBadge';
 import { getHorarioForCarousel } from '@shared/utils/habitTimeLogic';
+import { getPeriodicCarouselCopy } from '@shared/copy/agendaTerminology';
 
 /**
  * Botón circular de hábito reutilizado en carrusel y panel desktop de rutinas.
@@ -17,6 +18,7 @@ export default function HabitCarouselIconButton({
   rutinaHoy,
   mode = 'ahora',
   displayHorario = null,
+  isCadenciaDebt = false,
   dense,
   interactive,
   showCompletionState,
@@ -54,9 +56,11 @@ export default function HabitCarouselIconButton({
   }
 
   const statusLabel = isCompleted ? 'completado' : 'pendiente';
+  const periodicHint = isCadenciaDebt ? getPeriodicCarouselCopy(mode, { isCadenciaDebt: true }) : '';
+  const tooltipTitle = periodicHint ? `${label} — ${periodicHint}` : label;
 
   return (
-    <Tooltip title={label} arrow placement="top">
+    <Tooltip title={tooltipTitle} arrow placement="top">
       <span style={{ display: 'inline-flex' }}>
         <HabitCounterBadge
           config={itemConfig}

@@ -1,4 +1,4 @@
-import { getUserTimezone } from './dateUtils';
+import { getUserTimezone } from './dateUtils.js';
 
 // Rangos de horarios fijos
 export const TIME_RANGES = {

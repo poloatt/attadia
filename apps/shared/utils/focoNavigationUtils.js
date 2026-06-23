@@ -7,7 +7,8 @@ import {
   startOfDay,
   startOfWeek,
 } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { es } from './localeEs.js';
+import { CADENCIA_WEEK_STARTS_ON } from './cadenciaUtils.js';
 
 export function shiftCalendarDate(date, navigationMode, direction) {
   const base = startOfDay(date || new Date());
@@ -28,8 +29,8 @@ export function isViewingTodayInCalendar(date, viewMode = 'day') {
   if (viewMode === 'day') {
     return startOfDay(date).getTime() === today.getTime();
   }
-  const start = startOfWeek(date, { weekStartsOn: 1, locale: es });
-  const end = endOfWeek(date, { weekStartsOn: 1, locale: es });
+  const start = startOfWeek(date, { weekStartsOn: CADENCIA_WEEK_STARTS_ON, locale: es });
+  const end = endOfWeek(date, { weekStartsOn: CADENCIA_WEEK_STARTS_ON, locale: es });
   return isWithinInterval(today, { start: startOfDay(start), end: endOfDay(end) });
 }
 
@@ -38,8 +39,8 @@ export function formatCalendarNavLabel(date, navigationMode) {
   if (navigationMode === 'day') {
     return format(date, 'dd MMM yy', { locale: es });
   }
-  const start = startOfWeek(date, { weekStartsOn: 1, locale: es });
-  const end = endOfWeek(date, { weekStartsOn: 1, locale: es });
+  const start = startOfWeek(date, { weekStartsOn: CADENCIA_WEEK_STARTS_ON, locale: es });
+  const end = endOfWeek(date, { weekStartsOn: CADENCIA_WEEK_STARTS_ON, locale: es });
   if (start.getMonth() === end.getMonth()) {
     return `${format(start, 'd', { locale: es })} – ${format(end, 'd MMM yy', { locale: es })}`;
   }

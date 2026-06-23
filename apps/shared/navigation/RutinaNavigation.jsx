@@ -68,7 +68,7 @@ const RutinaNavigation = ({
 }) => {
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.down('sm'));
-  const { isMobile } = useResponsive();
+  const { isMobile, isMobileOrTablet } = useResponsive();
   const { handlePrevious, handleNext, deleteRutina, rutinas, getRutinaById } = useRutinas();
   const { habits } = useHabits();
   
@@ -614,6 +614,7 @@ const RutinaNavigation = ({
               completionTooltip={completionTooltip}
               dayMode={rutinaDayMode}
               hideOuterBorder
+              bleedProgressBar={!isMobileOrTablet}
             />
           </Box>
         </Box>

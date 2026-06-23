@@ -1,8 +1,8 @@
-import { debesMostrarHabitoEnFecha } from './cadenciaUtils';
-import { parseAPIDate, toISODateString, getNormalizedToday } from './dateUtils';
-import { getCurrentTimeOfDay } from './timeOfDayUtils';
-import { shouldShowHabitForCurrentTime } from './habitTimeLogic';
-import { isHabitCompletedForHistorial, isHabitFullyCompletedToday } from './habitCompletionUtils';
+import { debesMostrarHabitoEnFecha } from './cadenciaUtils.js';
+import { parseAPIDate, toISODateString, getNormalizedToday } from './dateUtils.js';
+import { getCurrentTimeOfDay } from './timeOfDayUtils.js';
+import { shouldShowHabitForCurrentTime } from './habitTimeLogic.js';
+import { isHabitCompletedForHistorial, isHabitFullyCompletedToday } from './habitCompletionUtils.js';
 
 /**
  * Determina sincrónicamente si un ítem debe mostrarse para una rutina dada.

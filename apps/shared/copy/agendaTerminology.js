@@ -73,7 +73,8 @@ export function getHabitCarouselEmptyCopy(mode) {
   return HABIT_CAROUSEL_EMPTY_COPY[mode] || HABIT_CAROUSEL_EMPTY_COPY.ahora;
 }
 
-export function getPeriodicCarouselCopy(mode) {
+export function getPeriodicCarouselCopy(mode, { isCadenciaDebt } = {}) {
+  if (isCadenciaDebt) return HABIT_PERIODIC_COPY.cadenciaDebt;
   if (mode === 'ahora') return HABIT_PERIODIC_COPY.ahoraFlexible;
   if (mode === 'luego') return HABIT_PERIODIC_COPY.luegoFlexible;
   return '';

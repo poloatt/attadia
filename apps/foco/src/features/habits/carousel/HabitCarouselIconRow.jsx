@@ -8,7 +8,7 @@ import HabitCarouselEmptyState from './HabitCarouselEmptyState';
 import HabitCarouselIconButton from './HabitCarouselIconButton';
 import { getHabitCarouselSurface } from './habitCarouselSurface';
 
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 export { HabitCarouselIconButton };
 

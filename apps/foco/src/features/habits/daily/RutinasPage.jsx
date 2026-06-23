@@ -5,9 +5,10 @@ import { RutinaForm } from './RutinaForm';
 import { HabitsManager } from '../templates/HabitsManager';
 import HubSectionShell from '@shared/components/hub/HubSectionShell';
 import { useRutinasPageController } from './useRutinasPageController';
+import useResponsive from '@shared/hooks/useResponsive';
 import {
   rutinaPageMainSx,
-  rutinaPageContainerSx,
+  getRutinaPageContentShellSx,
   rutinaPageScrollSx,
   rutinaPageLoaderSx,
   rutinaEmptyStatePaperSx,
@@ -76,10 +77,11 @@ const RutinasWithContext = () => {
     isMobile,
     scrollBottomPadding,
   } = useRutinasPageController();
+  const { isMobileOrTablet } = useResponsive();
 
   return (
     <Box component="main" className="page-main-content" sx={rutinaPageMainSx}>
-      <Box sx={{ ...rutinaPageContainerSx, pb: { xs: 10, sm: 4 } }}>
+      <Box sx={{ ...getRutinaPageContentShellSx(isMobileOrTablet), pb: { xs: 10, sm: 4 }, py: 0, display: 'flex', flexDirection: 'column', gap: 0 }}>
         <Box sx={rutinaPageScrollSx(isMobile, scrollBottomPadding, RUTINA_NAVIGATION_BAR_CONFIG.height)}>
           {loading && (
             <Box sx={rutinaPageLoaderSx}>

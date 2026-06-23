@@ -5,8 +5,8 @@
  * Dentro de cada ventana, se oculta si ese horario ya fue completado hoy.
  */
 
-import { isHabitHorarioCompleted } from './habitCompletionUtils';
-import { VALID_TIME_OF_DAY } from './timeOfDayUtils';
+import { isHabitHorarioCompleted } from './habitCompletionUtils.js';
+import { VALID_TIME_OF_DAY } from './timeOfDayUtils.js';
 
 const HORARIOS_ORDER = VALID_TIME_OF_DAY;
 

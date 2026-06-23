@@ -1,5 +1,5 @@
 import { format, isSameDay, startOfDay } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { es } from './localeEs.js';
 import { formatDateForAPI, getNormalizedToday, parseAPIDate } from './dateUtils.js';
 import { calculateCompletionPercentage, calculateVisibleItems } from './rutinaCalculations.js';
 

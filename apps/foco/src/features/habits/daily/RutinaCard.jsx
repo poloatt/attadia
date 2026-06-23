@@ -27,18 +27,16 @@ import HabitFormDialog from '@shared/components/HabitFormDialog';
 import { useSnackbar } from 'notistack';
 // Importamos las utilidades de cadencia
 import {
-  debesMostrarHabitoEnFecha,
-  generarMensajeCadencia,
-  obtenerUltimaCompletacion,
   obtenerHistorialCompletados,
   contarCompletadosEnPeriodo,
 } from '@shared/utils/cadenciaUtils';
 import { esRutinaHistorica, obtenerHistorialCompletaciones } from '@shared/utils/rutinaHistorialUtils';
-import { getVisibleItemIds } from '@shared/utils/visibilityUtils';
 import { getHabitDisplayLabel } from '@shared/utils/habitSectionIcons';
 import { resolveRutinaItemConfig } from '@shared/utils/habitVisibilityEngine';
 import useHabitsPreferences from '@foco/features/habits/carousel/hooks/useHabitsPreferences';
 import { getFrecuenciaLabel } from '../templates/InlineItemConfigImproved';
+import shouldShowItem from '@shared/utils/shouldShowItem';
+import { isHabitCompletedForHistorial } from '@shared/utils/habitCompletionUtils';
 // La visibilidad en esta vista extendida no oculta ítems; solo se ocultan completos en vista colapsada
 import { startOfWeek, isSameWeek, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -46,7 +44,6 @@ import { es } from 'date-fns/locale';
 import ChecklistItem, { HabitIconButton } from './ChecklistItem';
 import { HabitCounterBadge } from '@shared/components/common/HabitCounterBadge';
 import { getCurrentTimeOfDay } from '@shared/utils/timeOfDayUtils';
-import { shouldShowHabitForCurrentTime } from '@shared/utils/habitTimeLogic';
 import HubSectionShell from '@shared/components/hub/HubSectionShell';
 import { DynamicIcon } from '@shared/components/common/DynamicIcon';
 import { getRutinaSectionIconKey } from '@shared/navigation/rutinaSectionIcons';
@@ -350,24 +347,15 @@ const RutinaCard = ({
     // Renderizar los iconos y aplicar filtros de visibilidad
     return Object.keys(sectionIcons)
       .filter((itemId) => {
-        // Filtrar por horario actual: mostrar hábitos del horario actual o último no completado
         const cadenciaConfig = resolvedSectionConfig[itemId] || null;
-        if (!cadenciaConfig) return false;
-        
-        const horarios = Array.isArray(cadenciaConfig.horarios) ? cadenciaConfig.horarios : [];
-        // Si no tiene horarios configurados, mostrar siempre
-        if (horarios.length === 0) return true;
-        
-        // Verificar si el hábito está completado hoy (solo considerar el día de hoy)
-        // Puede ser boolean (legacy) u objeto con horarios (nuevo formato)
+        if (!cadenciaConfig || cadenciaConfig.activo === false) return false;
+
         const itemValueLocal = localData[itemId];
         const itemValueRutina = rutina?.[section]?.[itemId];
-        const completadoHoy = itemValueLocal !== undefined ? itemValueLocal : itemValueRutina;
-        const tipo = (cadenciaConfig.tipo || 'DIARIO').toUpperCase();
-        const frecuencia = Number(cadenciaConfig.frecuencia || 1);
-        
-        // Usar lógica mejorada que considera el último horario no completado
-        return shouldShowHabitForCurrentTime(horarios, currentTimeOfDay, completadoHoy, tipo, frecuencia);
+        const itemValue = itemValueLocal !== undefined ? itemValueLocal : itemValueRutina;
+        if (isHabitCompletedForHistorial(itemValue)) return true;
+
+        return shouldShowItem(section, itemId, rutina, { skipHorarioFilter: true });
       })
       .map((itemId) => {
       const Icon = sectionIcons[itemId];

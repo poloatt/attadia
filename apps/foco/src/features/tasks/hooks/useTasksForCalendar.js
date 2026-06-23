@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { addDays, addWeeks, endOfDay, endOfWeek, startOfDay, startOfWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { CADENCIA_WEEK_STARTS_ON } from '@shared/utils/cadenciaUtils';
 import { useSnackbar } from 'notistack';
 import { normalizeTaskList } from '@shared/utils/taskListUtils';
 import { fetchTasksForAgendaRange } from '../api/tasksApi';
@@ -30,8 +31,8 @@ function loadAgendaRange(rangeKey, { from, to, includeCompleted, force = false }
 
 function computeRange(base, viewMode) {
   if (viewMode === 'week') {
-    const start = startOfWeek(base, { weekStartsOn: 1, locale: es });
-    const end = endOfWeek(base, { weekStartsOn: 1, locale: es });
+    const start = startOfWeek(base, { weekStartsOn: CADENCIA_WEEK_STARTS_ON, locale: es });
+    const end = endOfWeek(base, { weekStartsOn: CADENCIA_WEEK_STARTS_ON, locale: es });
     return { start: startOfDay(start), end: endOfDay(end) };
   }
   return { start: startOfDay(base), end: endOfDay(base) };

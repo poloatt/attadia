@@ -33,7 +33,7 @@ const dateHeaderHoyButtonSx = {
   minWidth: 0,
   minHeight: 26,
   height: 26,
-  px: 0.75,
+  px: { xs: 0.5, sm: 0.75 },
   py: 0,
   lineHeight: 1,
   display: 'inline-flex',
@@ -63,6 +63,7 @@ export default function AgendaCalendarDateHeader({
   completionTooltip = '',
   dayMode = null,
   hideOuterBorder = false,
+  bleedProgressBar = false,
 }) {
   const isRutina = mode === 'rutina';
   const { isMobile } = useResponsive();
@@ -128,7 +129,16 @@ export default function AgendaCalendarDateHeader({
         borderColor: today || viewingToday ? 'primary.main' : 'divider',
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: isRutina ? 'center' : 'flex-start', gap: 0.5 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: isRutina ? 'center' : 'flex-start',
+          gap: isRutina ? { xs: 0.25, sm: 0.5 } : 0.5,
+          width: '100%',
+          minWidth: 0,
+          overflow: isRutina ? 'hidden' : 'visible',
+        }}
+      >
         <Tooltip title={heroTooltip}>
           <span style={{ display: 'inline-flex', flex: 1, minWidth: 0 }}>
             <ButtonBase
@@ -163,7 +173,7 @@ export default function AgendaCalendarDateHeader({
             sx={{
               display: 'flex',
               alignItems: 'center',
-              gap: 0.25,
+              gap: { xs: 0, sm: 0.25 },
               flexShrink: 0,
               height: 26,
               pr: isRutina ? 0 : undefined,
@@ -251,6 +261,14 @@ export default function AgendaCalendarDateHeader({
             mt: 0.5,
             bgcolor: 'action.hover',
             '& .MuiLinearProgress-bar': { borderRadius: 0 },
+            ...(bleedProgressBar && {
+              width: {
+                md: (theme) => `calc(100% + ${theme.spacing(6)})`,
+              },
+              ml: {
+                md: (theme) => theme.spacing(-3),
+              },
+            }),
           }}
         />
       )}

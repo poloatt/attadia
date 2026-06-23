@@ -1,7 +1,8 @@
 import { format, parseISO, startOfDay, endOfDay, isToday, 
-  startOfWeek, endOfWeek, startOfMonth, endOfMonth,
+  startOfMonth, endOfMonth,
   isSameDay, isSameWeek, isSameMonth, addDays, subDays } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { es } from './localeEs.js';
+import { getCadenciaWeekRange } from './cadenciaUtils.js';
 
 // Obtener el timezone del usuario desde el contexto de autenticación
 // Este valor se actualizará dinámicamente cuando el usuario configure su timezone
@@ -218,9 +219,7 @@ export const formatDateDisplay = (date) => {
  */
 export const getWeekRange = (date) => {
   const d = parseAPIDate(typeof date === 'string' ? date : formatDateForAPI(date));
-  const start = startOfWeek(d, { locale: es });
-  const end = endOfWeek(d, { locale: es });
-  return { start, end };
+  return getCadenciaWeekRange(d);
 };
 
 /**

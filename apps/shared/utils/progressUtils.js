@@ -1,14 +1,15 @@
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
-import { parseAPIDate } from './dateUtils';
+import { parseAPIDate } from './dateUtils.js';
 import { isHabitCompletedForHistorial, isHabitFullyCompletedToday } from './habitCompletionUtils.js';
+import { CADENCIA_WEEK_STARTS_ON } from './cadenciaUtils.js';
 
 export const getPeriodBounds = (tipo, refDate) => {
   const date = refDate instanceof Date ? refDate : (parseAPIDate(refDate) || new Date());
   const upperTipo = (tipo || 'DIARIO').toUpperCase();
   if (upperTipo === 'SEMANAL') {
     return {
-      inicio: startOfWeek(date, { weekStartsOn: 1 }),
-      fin: endOfWeek(date, { weekStartsOn: 1 })
+      inicio: startOfWeek(date, { weekStartsOn: CADENCIA_WEEK_STARTS_ON }),
+      fin: endOfWeek(date, { weekStartsOn: CADENCIA_WEEK_STARTS_ON }),
     };
   }
   if (upperTipo === 'MENSUAL') {

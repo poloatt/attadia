@@ -5,7 +5,10 @@
 import { addDays, isSameDay, isWithinInterval, getDay, getDate, setDate, 
          startOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, 
          differenceInDays, isBefore, parseISO, endOfWeek } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { es } from './localeEs.js';
+
+/** Semana lun–dom, alineado con progressUtils y agenda (no proviene de Google sync). */
+export const CADENCIA_WEEK_STARTS_ON = 1;
 
 /**
  * Obtiene el historial de completados de un ítem desde una rutina
@@ -60,8 +63,8 @@ export function getPeriodInterval(fechaObjetivo, tipo, periodo = 'CADA_DIA') {
 
   switch (tipo) {
     case 'SEMANAL':
-      start = startOfWeek(fecha, { weekStartsOn: 0 });
-      end = addDays(start, 6);
+      start = startOfWeek(fecha, { weekStartsOn: CADENCIA_WEEK_STARTS_ON });
+      end = endOfWeek(fecha, { weekStartsOn: CADENCIA_WEEK_STARTS_ON });
       end.setHours(23, 59, 59, 999);
       break;
     case 'MENSUAL':
@@ -70,8 +73,8 @@ export function getPeriodInterval(fechaObjetivo, tipo, periodo = 'CADA_DIA') {
       end.setHours(23, 59, 59, 999);
       break;
     case 'PERSONALIZADO':
-      start = startOfWeek(fecha, { weekStartsOn: 0 });
-      end = addDays(start, 6);
+      start = startOfWeek(fecha, { weekStartsOn: CADENCIA_WEEK_STARTS_ON });
+      end = endOfWeek(fecha, { weekStartsOn: CADENCIA_WEEK_STARTS_ON });
       end.setHours(23, 59, 59, 999);
       break;
     default:
@@ -82,6 +85,11 @@ export function getPeriodInterval(fechaObjetivo, tipo, periodo = 'CADA_DIA') {
   }
 
   return { start, end };
+}
+
+/** Rango lun–dom alineado con cadencia y agenda. */
+export function getCadenciaWeekRange(fecha) {
+  return getPeriodInterval(fecha, 'SEMANAL');
 }
 
 /**
@@ -522,10 +530,7 @@ export const formatearSemana = (fecha) => {
   if (!fecha) return 'Semana desconocida';
   
   try {
-    // Obtener inicio y fin de semana
-    const inicio = startOfWeek(fecha, { locale: es });
-    const fin = endOfWeek(fecha, { locale: es });
-    
+    const { start: inicio, end: fin } = getCadenciaWeekRange(fecha);
     // Formatear como "Semana 23-29 Mar 2025"
     const diaInicio = inicio.getDate();
     const diaFin = fin.getDate();
@@ -548,6 +553,7 @@ export default {
   getFrecuenciaLabel,
   formatearSemana,
   getPeriodInterval,
+  getCadenciaWeekRange,
   isScheduledCadenciaDay,
   getScheduledDatesInPeriod,
   hasCadenciaDebt,

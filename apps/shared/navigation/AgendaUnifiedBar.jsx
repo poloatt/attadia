@@ -16,6 +16,7 @@ import { getAgendaBarSlot } from './toolbarRegistry';
 import { resolveAttaBranchHubPath, resolveFocoBranchHubPath } from './appNavResolver';
 import { isAttaToolbarPath, isPulsoToolbarPath } from './unifiedBarPaths';
 import { isFocoHubPath } from './tiempoToolbarPaths';
+import { getRutinaPageContentShellSx } from '../styles/rutinaPageStyles';
 
 /**
  * Barra superior unificada (Foco / Atta / Pulso):
@@ -58,15 +59,17 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
   const showRightGridColumn = Boolean(
     showRightNav && RightComp && !showAttaBranchSwitcher && (!isMobile || isAttaPath),
   );
-  const gridColumns = showCenter && showRightGridColumn ? '1fr auto' : '1fr';
+  const showGridCenter = showCenter && !hideGridCenter;
+  const gridColumns = showRightGridColumn ? '1fr auto' : '1fr';
 
   const showAttaBranchBack = isAttaPath && !!resolveAttaBranchHubPath(path);
   const showFocoBranchBack = !!resolveFocoBranchHubPath(path);
   const TOOLBAR_BACK_SLOT_WIDTH = 34;
   const showBranchBack = (showAttaBranchBack || showFocoBranchBack) && !isMobile;
   const MOBILE_LEFT_INSET = 8;
+  const rutinasMobileShellInset = showRutinasActions && isMobileOrTablet;
   const baseCenterInsetLeft = isMobileOrTablet
-    ? MOBILE_LEFT_INSET
+    ? (rutinasMobileShellInset ? 0 : MOBILE_LEFT_INSET)
     : (mainMargin < collapsedWidth ? collapsedWidth : mainMargin);
   const centerActionsInsetLeft = showBranchBack
     ? baseCenterInsetLeft + TOOLBAR_BACK_SLOT_WIDTH
@@ -104,7 +107,20 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
           }}
         >
           {isHubPath && FocoCenterActions && <FocoCenterActions section="hub" dense />}
-          {showRutinasActions && FocoCenterActions && <FocoCenterActions section="rutinas" dense />}
+          {showRutinasActions && FocoCenterActions && (
+            <Box
+              sx={{
+                ...(isMobileOrTablet ? getRutinaPageContentShellSx(true) : {}),
+                display: 'flex',
+                justifyContent: isMobileOrTablet ? 'flex-end' : 'center',
+                width: isMobileOrTablet ? '100%' : 'auto',
+                pointerEvents: 'none',
+                '& > *': { pointerEvents: 'auto' },
+              }}
+            >
+              <FocoCenterActions section="rutinas" dense />
+            </Box>
+          )}
           {isAttaPath && CenterComp && <CenterComp hasSelectedItems={hasSelectedItems} />}
           {isPulsoPath && CenterComp && <CenterComp hasSelectedItems={hasSelectedItems} />}
         </Box>
@@ -189,7 +205,7 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
           position: 'relative',
         }}
       >
-        {showCenter && !hideGridCenter && (
+        {showGridCenter && (
           <Box
             sx={{
               display: 'flex',
@@ -219,7 +235,8 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
               flexShrink: 0,
               gap: 0.25,
               position: 'relative',
-              zIndex: 2,
+              zIndex: 4,
+              ...(!showGridCenter ? { gridColumn: 2 } : {}),
             }}
           >
             <RightComp hasSelectedItems={hasSelectedItems} />

@@ -371,7 +371,7 @@ describe('habitVisibilityEngine', () => {
     });
 
     it('hides gym when weekly quota is met', () => {
-      const weekStart = startOfWeek(new Date(), { weekStartsOn: 0 });
+      const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
       const historialGym = [0, 1, 2].reduce((acc, offset) => {
         const fecha = addDays(weekStart, offset).toISOString().split('T')[0];
         acc[fecha] = true;

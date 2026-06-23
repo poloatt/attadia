@@ -1,6 +1,6 @@
-import shouldShowItemUtil from './shouldShowItem';
-import { parseAPIDate } from './dateUtils';
-import { getCurrentTimeOfDay } from './timeOfDayUtils';
+import shouldShowItemUtil from './shouldShowItem.js';
+import { parseAPIDate } from './dateUtils.js';
+import { getCurrentTimeOfDay } from './timeOfDayUtils.js';
 
 // Construye una rutina simulada coherente para evaluar visibilidad
 const buildRutinaForCheck = (rutina, section, itemId, config, localData = {}) => {

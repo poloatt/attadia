@@ -3,6 +3,7 @@ import {
   hasCadenciaDebt,
   isScheduledCadenciaDay,
   contarCompletadosEnPeriodo,
+  getCadenciaWeekRange,
 } from '@shared/utils/cadenciaUtils.js';
 
 const mondayConfig = {
@@ -33,8 +34,12 @@ describe('cadenciaUtils carry-over', () => {
     expect(hasCadenciaDebt(tuesday, mondayConfig, [])).toBe(true);
   });
 
-  it('hasCadenciaDebt is false on Sunday before scheduled Monday', () => {
-    expect(hasCadenciaDebt(sunday, mondayConfig, [])).toBe(false);
+  it('hasCadenciaDebt is false on scheduled day before any prior slot passed', () => {
+    expect(hasCadenciaDebt(monday, mondayConfig, [])).toBe(false);
+  });
+
+  it('hasCadenciaDebt is true on Sunday at week end when Monday was missed (lun-dom week)', () => {
+    expect(hasCadenciaDebt(sunday, mondayConfig, [])).toBe(true);
   });
 
   it('hasCadenciaDebt is false once weekly quota is met via catch-up day', () => {
@@ -47,7 +52,7 @@ describe('cadenciaUtils carry-over', () => {
 
   it('debesMostrarHabitoEnFecha shows carry-over on non-scheduled day with debt', () => {
     expect(debesMostrarHabitoEnFecha(tuesday, mondayConfig, [])).toBe(true);
-    expect(debesMostrarHabitoEnFecha(sunday, mondayConfig, [])).toBe(false);
+    expect(debesMostrarHabitoEnFecha(sunday, mondayConfig, [])).toBe(true);
   });
 
   it('debesMostrarHabitoEnFecha hides after catch-up completion in period', () => {
@@ -58,5 +63,13 @@ describe('cadenciaUtils carry-over', () => {
     expect(hasCadenciaDebt(tuesday, monWedConfig, [])).toBe(true);
     expect(debesMostrarHabitoEnFecha(tuesday, monWedConfig, [monday])).toBe(true);
     expect(debesMostrarHabitoEnFecha(tuesday, monWedConfig, [monday, tuesday])).toBe(false);
+  });
+
+  it('getCadenciaWeekRange uses Monday as week start', () => {
+    const { start, end } = getCadenciaWeekRange(tuesday);
+    expect(start.getDay()).toBe(1);
+    expect(end.getDay()).toBe(0);
+    expect(start.getDate()).toBe(22);
+    expect(end.getDate()).toBe(28);
   });
 });

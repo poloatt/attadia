@@ -66,7 +66,7 @@ export function useTasksForList({ includeCompleted: includeCompletedInitial = fa
 
       setTasks([]);
 
-      throw error;
+      return null;
 
     } finally {
 
@@ -79,9 +79,7 @@ export function useTasksForList({ includeCompleted: includeCompletedInitial = fa
 
 
   useEffect(() => {
-
-    refetch();
-
+    refetch().catch(() => {});
   }, [refetch]);
 
 

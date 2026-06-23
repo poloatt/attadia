@@ -38,7 +38,7 @@ export default function CalendarDateHeroContent({
 
   if (isRutina) {
     return (
-      <Box sx={{ width: '100%', minWidth: 0 }}>
+      <Box sx={{ width: '100%', minWidth: 0, overflow: 'hidden' }}>
         <Typography
           variant="caption"
           color="text.secondary"
@@ -48,6 +48,9 @@ export default function CalendarDateHeroContent({
             letterSpacing: '0.04em',
             display: 'block',
             lineHeight: 1.2,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
           }}
         >
           {weekday}
@@ -56,19 +59,30 @@ export default function CalendarDateHeroContent({
           sx={{
             display: 'flex',
             alignItems: 'center',
-            gap: 1,
+            gap: { xs: 0.5, sm: 1 },
             width: '100%',
             minWidth: 0,
+            overflow: 'hidden',
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, flexShrink: 0 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: { xs: 0.5, sm: 1 },
+              minWidth: 0,
+              flexShrink: 1,
+              overflow: 'hidden',
+            }}
+          >
             <Typography
               component="span"
               sx={{
-                fontSize: { xs: '1.75rem', sm: '2rem' },
+                fontSize: { xs: '1.5rem', sm: '2rem' },
                 fontWeight: 400,
                 lineHeight: 1,
                 color: 'text.primary',
+                flexShrink: 0,
               }}
             >
               {dayNumber}
@@ -76,7 +90,14 @@ export default function CalendarDateHeroContent({
             <Typography
               variant="body1"
               color="text.secondary"
-              sx={{ textTransform: 'capitalize', fontWeight: 500 }}
+              sx={{
+                textTransform: 'capitalize',
+                fontWeight: 500,
+                minWidth: 0,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
             >
               {monthYear}
             </Typography>
@@ -87,6 +108,7 @@ export default function CalendarDateHeroContent({
               display: 'flex',
               justifyContent: 'center',
               minWidth: 0,
+              flexShrink: 1,
             }}
             title={completionTooltip}
           >
@@ -94,9 +116,10 @@ export default function CalendarDateHeroContent({
               component="span"
               sx={{
                 fontWeight: 700,
-                fontSize: { xs: '1.1rem', sm: '1.25rem' },
+                fontSize: { xs: '1rem', sm: '1.25rem' },
                 lineHeight: 1,
                 color: `${completionColor}.main`,
+                whiteSpace: 'nowrap',
               }}
             >
               {pctLabel}
@@ -111,7 +134,12 @@ export default function CalendarDateHeroContent({
               sx={{
                 height: 24,
                 flexShrink: 0,
-                '& .MuiChip-label': { px: 1 },
+                maxWidth: { xs: 72, sm: 'none' },
+                '& .MuiChip-label': {
+                  px: { xs: 0.5, sm: 1 },
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                },
               }}
             />
           )}

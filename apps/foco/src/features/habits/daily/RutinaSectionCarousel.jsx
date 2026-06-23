@@ -54,7 +54,7 @@ export default function RutinaSectionCarousel({
         '&::-webkit-scrollbar': { display: 'none' },
       }}
     >
-      {carouselItems.map(({ itemId, label, Icon }) => {
+      {carouselItems.map(({ itemId, label, Icon, isCadenciaDebt }) => {
         if (!Icon) return null;
         const displayLabel = label || getHabitDisplayLabel(section, itemId, habits);
         const itemConfig = resolveRutinaItemConfig(section, itemId, rutina, habitsPreferences);
@@ -72,6 +72,7 @@ export default function RutinaSectionCarousel({
               currentTimeOfDay={currentTimeOfDay}
               rutinaHoy={rutina}
               mode="ahora"
+              isCadenciaDebt={Boolean(isCadenciaDebt)}
               dense={dense}
               interactive={interactive}
               showCompletionState

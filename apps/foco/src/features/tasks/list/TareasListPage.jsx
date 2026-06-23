@@ -1,8 +1,10 @@
 import React from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { getTaskHorizonCopy } from '@shared/copy/agendaTerminology';
+import AgendaCalendarPage from '../../agenda/AgendaCalendarPage';
 import TareasTable from './TareasTable';
 import { useTareasPageController } from './useTareasPageController';
+import { useTareasPageView } from './useTareasPageView';
 import TareasPageOverlays from './TareasPageOverlays';
 
 function TaskHorizonColumnHeader({ view }) {
@@ -42,7 +44,12 @@ const scrollableColumnSx = {
 };
 
 export function TareasListPage() {
+  const pageView = useTareasPageView();
   const controller = useTareasPageController();
+
+  if (pageView === 'agenda') {
+    return <AgendaCalendarPage />;
+  }
 
   const {
     loading,

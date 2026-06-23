@@ -12,7 +12,7 @@ import {
   isRutinasPath,
 } from '../config/uiConstants';
 import {
-  rutinaPageContentShellSx,
+  getRutinaPageContentShellSx,
 } from '../styles/rutinaPageStyles';
 
 export function RutinaNavigationContent({
@@ -88,18 +88,17 @@ export default function RutinaPageNavigationBar() {
         flexDirection: 'column',
         alignItems: 'stretch',
         bgcolor: 'background.default',
-        borderBottom: 1,
-        borderColor: 'divider',
         transition: 'left 0.3s',
       }}
     >
       <Box
         sx={{
-          ...rutinaPageContentShellSx,
+          ...getRutinaPageContentShellSx(isMobileOrTablet),
           flex: 1,
           minWidth: 0,
           display: 'flex',
           flexDirection: 'column',
+          overflow: 'hidden',
         }}
       >
         <RutinaNavigationContent currentPath={pathname} pageBar />

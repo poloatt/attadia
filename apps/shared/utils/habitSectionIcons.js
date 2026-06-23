@@ -1,6 +1,6 @@
 import { isSameDay } from 'date-fns';
-import { iconConfig, iconTooltips, getIconByName } from './iconConfig';
-import { formatDateForAPI, getNormalizedToday, parseAPIDate } from './dateUtils';
+import { iconConfig, iconTooltips, getIconByName } from './iconConfig.js';
+import { formatDateForAPI, getNormalizedToday, parseAPIDate } from './dateUtils.js';
 
 export const HABIT_SECTIONS = ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'];
 

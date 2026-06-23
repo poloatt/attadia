@@ -24,13 +24,27 @@ import {
 export const RUTINA_PAGE_MAX_WIDTH = 900;
 
 /** Contenedor único: hero de fecha + cuerpo de página comparten max-width y padding horizontal. */
-export const rutinaPageContentShellSx = {
-  width: '100%',
-  maxWidth: RUTINA_PAGE_MAX_WIDTH,
-  mx: 'auto',
-  px: { xs: 1, sm: 2, md: 3 },
-  boxSizing: 'border-box',
-};
+export function getRutinaPageContentShellSx(isMobileOrTablet = false) {
+  if (isMobileOrTablet) {
+    return {
+      width: '100%',
+      maxWidth: 'none',
+      mx: 0,
+      px: { xs: 1, sm: 2, md: 3 },
+      boxSizing: 'border-box',
+    };
+  }
+  return {
+    width: '100%',
+    maxWidth: RUTINA_PAGE_MAX_WIDTH,
+    mx: 0,
+    px: { xs: 1, sm: 2, md: 3 },
+    boxSizing: 'border-box',
+  };
+}
+
+/** @deprecated Prefer getRutinaPageContentShellSx(isMobileOrTablet) for desktop left alignment. */
+export const rutinaPageContentShellSx = getRutinaPageContentShellSx(true);
 
 export const rutinaPageMainSx = {
   width: '100%',
@@ -39,13 +53,13 @@ export const rutinaPageMainSx = {
   flexDirection: 'column',
 };
 
-export const rutinaPageContainerSx = {
-  ...rutinaPageContentShellSx,
+export const rutinaPageContainerSx = (isMobileOrTablet = false) => ({
+  ...getRutinaPageContentShellSx(isMobileOrTablet),
   py: 0,
   display: 'flex',
   flexDirection: 'column',
   gap: 0,
-};
+});
 
 export function rutinaPageScrollSx(isMobile, bottomPadding, extraTopOffset = 0) {
   return {

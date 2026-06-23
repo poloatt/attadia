@@ -1,7 +1,7 @@
 // Configuración de iconos para las diferentes secciones
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { iconMap } from './habitIcons';
+import { es } from './localeEs.js';
+import { iconMap } from './habitIcons.js';
 
 export {
   iconMap,
@@ -11,7 +11,7 @@ export {
   getHabitIconLabel,
   DEFAULT_HABIT_ICON,
   HABIT_ICON_LABELS,
-} from './habitIcons';
+} from './habitIcons.js';
 
 export const iconConfig = {
   bodyCare: {
