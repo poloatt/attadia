@@ -12,9 +12,6 @@ import { snackbar } from '@shared/components/common';
 import { CommonDate } from '@shared/components/common';
 import { formatDateForAPI, getNormalizedToday, parseAPIDate } from '@shared/utils/dateUtils';
 import { useRutinas } from '@shared/context';
-import { useScopedActionHistory } from '@shared/hooks/useScopedUndo';
-import { ACTION_TYPES } from '@shared/context/ActionHistoryContext';
-import { recordRutinaCrudAction } from '@shared/undo/undoRecordingUtils';
 import {
   tareaFormDialogPaperSx,
   TareaFormHeader,
@@ -28,7 +25,6 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const { getRutinaById } = useRutinas();
-  const undoRecorder = useScopedActionHistory('rutinas');
 
   const [formData, setFormData] = useState(() => {
     let initialDate;
@@ -79,12 +75,6 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
     try {
       if (isEditing && initialData?._id) {
         await clienteAxios.put(`/api/rutinas/${initialData._id}`, { fecha: formData.fecha });
-        recordRutinaCrudAction(
-          undoRecorder,
-          ACTION_TYPES.UPDATE,
-          { ...initialData, fecha: formData.fecha },
-          initialData,
-        );
         snackbar.success('Rutina actualizada con éxito');
         onClose();
       } else {
@@ -95,7 +85,6 @@ export const RutinaForm = ({ open = true, onClose, initialData, isEditing }) => 
         const createdRutina = response.data;
 
         if (createdRutina?._id) {
-          recordRutinaCrudAction(undoRecorder, ACTION_TYPES.CREATE, createdRutina);
           snackbar.success('Rutina creada con éxito');
           onClose();
           navigate('/rutinas');

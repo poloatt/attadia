@@ -1,36 +1,11 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { migrateLegacyActions, normalizeUndoEntity } from '../config/undoScopeConfig';
+import { isUndoRecordingSuppressed } from '../undo/undoSuppress';
+import { ACTION_TYPES, ENTITY_TYPES } from '../constants/actionHistoryTypes';
+
+export { ACTION_TYPES, ENTITY_TYPES };
 
 const ActionHistoryContext = createContext();
-
-// Tipos de acciones soportadas
-export const ACTION_TYPES = {
-  CREATE: 'CREATE',
-  UPDATE: 'UPDATE',
-  DELETE: 'DELETE',
-  MOVE: 'MOVE',
-  BULK_DELETE: 'BULK_DELETE',
-  BULK_UPDATE: 'BULK_UPDATE'
-};
-
-// Entidades soportadas
-export const ENTITY_TYPES = {
-  OBJETIVO: 'objetivo',
-  TAREA: 'tarea',
-  PROPIEDAD: 'propiedad',
-  TRANSACCION: 'transaccion',
-  CUENTA: 'cuenta',
-  MONEDA: 'moneda',
-  RUTINA: 'rutina',
-  RUTINA_SECTION: 'rutina_section',
-  RUTINA_CONFIG: 'rutina_config',
-  HABIT: 'habit',
-  INQUILINO: 'inquilino',
-  CONTRATO: 'contrato',
-  HABITACION: 'habitacion',
-  INVENTARIO: 'inventario',
-  TRANSACCION_RECURRENTE: 'transaccion_recurrente'
-};
 
 function normalizeStoredAction(action) {
   return migrateLegacyActions([action])[0];
@@ -73,6 +48,8 @@ export function ActionHistoryProvider({ children }) {
   }, [actionHistory, storageKey]);
 
   const addAction = useCallback((action) => {
+    if (isUndoRecordingSuppressed()) return null;
+
     const actionWithTimestamp = {
       ...action,
       entity: normalizeUndoEntity(action.entity),

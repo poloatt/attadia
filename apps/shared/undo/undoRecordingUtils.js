@@ -1,4 +1,35 @@
-import { ACTION_TYPES } from '../context/ActionHistoryContext';
+import { ACTION_TYPES } from '../constants/actionHistoryTypes';
+import { isUndoRecordingSuppressed } from './undoSuppress';
+
+function canRecord(recorder) {
+  return recorder?.addScopedAction && !isUndoRecordingSuppressed();
+}
+
+/**
+ * Registra cambios diff entre dos estados de sección.
+ */
+export function recordRutinaSectionDiff(recorder, rutinaId, section, beforeSection = {}, afterSection = {}) {
+  if (!canRecord(recorder) || !rutinaId || !section) return;
+
+  const keys = new Set([
+    ...Object.keys(beforeSection || {}),
+    ...Object.keys(afterSection || {}),
+  ]);
+
+  keys.forEach((itemId) => {
+    const previousValue = beforeSection?.[itemId];
+    const newValue = afterSection?.[itemId];
+    if (previousValue === newValue) return;
+
+    recordRutinaSectionAction(recorder, {
+      rutinaId,
+      section,
+      itemId,
+      newValue,
+      previousValue,
+    });
+  });
+}
 
 /**
  * Registra un toggle de sección de rutina en el historial scoped.
@@ -10,7 +41,7 @@ export function recordRutinaSectionAction(recorder, {
   newValue,
   previousValue,
 }) {
-  if (!recorder?.addScopedAction || !rutinaId || !section || !itemId) return;
+  if (!canRecord(recorder) || !rutinaId || !section || !itemId) return;
 
   recorder.addScopedAction({
     type: ACTION_TYPES.UPDATE,
@@ -33,7 +64,7 @@ export function recordRutinaConfigAction(recorder, {
   originalConfig,
   isGlobal = false,
 }) {
-  if (!recorder?.addScopedAction || !section || !itemId) return;
+  if (!canRecord(recorder) || !section || !itemId) return;
 
   recorder.addScopedAction({
     type: ACTION_TYPES.UPDATE,
@@ -49,7 +80,7 @@ export function recordRutinaConfigAction(recorder, {
  * Registra CRUD de rutina.
  */
 export function recordRutinaCrudAction(recorder, type, rutinaData, originalData = null) {
-  if (!recorder?.addScopedAction) return;
+  if (!canRecord(recorder)) return;
 
   const source = type === ACTION_TYPES.DELETE ? originalData : rutinaData;
   if (!source) return;
@@ -71,7 +102,7 @@ export function recordRutinaCrudAction(recorder, type, rutinaData, originalData 
  * Registra CRUD de hábito/plantilla.
  */
 export function recordHabitCrudAction(recorder, type, habitData, originalData = null, section = null) {
-  if (!recorder?.addScopedAction) return;
+  if (!canRecord(recorder)) return;
 
   const source = type === ACTION_TYPES.DELETE ? originalData : habitData;
   if (!source) return;

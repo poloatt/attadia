@@ -141,21 +141,33 @@ function buildApiServicesForScope(scope, routesMap, currentPath) {
   const entities = getEntitiesForScope(scope);
   const apiServices = {};
 
-  const routeEntries = Object.entries(routesMap)
-    .filter(([, config]) => entities.includes(config.entity))
-    .sort(([a], [b]) => b.length - a.length);
-
   for (const entity of entities) {
-    const match = routeEntries.find(([, config]) => config.entity === entity);
+    const match = Object.entries(routesMap)
+      .filter(([, config]) => config.entity === entity)
+      .sort(([a], [b]) => b.length - a.length)[0];
     if (match) {
       apiServices[entity] = match[1].apiService;
     }
   }
 
-  // Fallback: ruta actual
+  if (!apiServices.tarea && entities.includes('tarea')) {
+    const tareaRoute = routesMap['/tareas'] || routesMap['/archivo'] || routesMap['/foco'];
+    if (tareaRoute?.apiService) {
+      apiServices.tarea = tareaRoute.apiService;
+    }
+  }
+
+  if (!apiServices.objetivo && entities.includes('objetivo') && routesMap['/objetivos']) {
+    apiServices.objetivo = routesMap['/objetivos'].apiService;
+  }
+
+  if (!apiServices.rutina && entities.includes('rutina') && routesMap['/rutinas']) {
+    apiServices.rutina = routesMap['/rutinas'].apiService;
+  }
+
   if (Object.keys(apiServices).length === 0) {
     const candidates = Object.keys(routesMap)
-      .filter(base => currentPath.startsWith(base))
+      .filter((base) => currentPath.startsWith(base))
       .sort((a, b) => b.length - a.length);
     if (candidates.length > 0) {
       const config = routesMap[candidates[0]];

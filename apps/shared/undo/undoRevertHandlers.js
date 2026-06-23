@@ -1,5 +1,6 @@
-import { ACTION_TYPES } from '../context/ActionHistoryContext';
+import { ACTION_TYPES } from '../constants/actionHistoryTypes';
 import clienteAxios from '../config/axios';
+import { runWithoutUndoRecording } from './undoSuppress';
 
 /**
  * Limpia datos de propiedad para revertir DELETE → CREATE.
@@ -161,34 +162,36 @@ export async function revertHabitAction(action) {
  * Dispatcher central de reversión por entidad.
  */
 export async function revertAction(action, { apiServices = {}, deps = {} } = {}) {
-  const entity = action.entity;
+  return runWithoutUndoRecording(async () => {
+    const entity = action.entity;
 
-  if (entity === 'habit') {
-    return revertHabitAction(action);
-  }
+    if (entity === 'habit') {
+      return revertHabitAction(action);
+    }
 
-  const apiService = apiServices[entity];
+    const apiService = apiServices[entity];
 
-  switch (action.type) {
-    case ACTION_TYPES.CREATE:
-      if (!apiService) throw new Error(`No apiService for entity: ${entity}`);
-      return revertCreate(action, apiService);
+    switch (action.type) {
+      case ACTION_TYPES.CREATE:
+        if (!apiService) throw new Error(`No apiService for entity: ${entity}`);
+        return revertCreate(action, apiService);
 
-    case ACTION_TYPES.UPDATE:
-      if (entity === 'rutina_section') {
-        return revertRutinaSectionUpdate(action, deps);
-      }
-      if (entity === 'rutina_config') {
-        return revertRutinaConfigUpdate(action, deps);
-      }
-      if (!apiService) throw new Error(`No apiService for entity: ${entity}`);
-      return revertUpdate(action, apiService, entity);
+      case ACTION_TYPES.UPDATE:
+        if (entity === 'rutina_section') {
+          return revertRutinaSectionUpdate(action, deps);
+        }
+        if (entity === 'rutina_config') {
+          return revertRutinaConfigUpdate(action, deps);
+        }
+        if (!apiService) throw new Error(`No apiService for entity: ${entity}`);
+        return revertUpdate(action, apiService, entity);
 
-    case ACTION_TYPES.DELETE:
-      if (!apiService) throw new Error(`No apiService for entity: ${entity}`);
-      return revertDelete(action, apiService, entity);
+      case ACTION_TYPES.DELETE:
+        if (!apiService) throw new Error(`No apiService for entity: ${entity}`);
+        return revertDelete(action, apiService, entity);
 
-    default:
-      console.warn('Tipo de acción no soportado para revertir:', action.type);
-  }
+      default:
+        console.warn('Tipo de acción no soportado para revertir:', action.type);
+    }
+  });
 }

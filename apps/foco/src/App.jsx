@@ -29,6 +29,7 @@ const Objetivos = React.lazy(() =>
 );
 const Archivo = React.lazy(() => import('./pages/Archivo'));
 const Foco = React.lazy(() => import('./pages/Foco'));
+const Agenda = React.lazy(() => import('./pages/Agenda'));
 const Perfil = React.lazy(() => import('@shared/pages/Perfil'));
 const Configuracion = React.lazy(() => import('@shared/pages/Configuracion'));
 const Preferencias = React.lazy(() => import('@shared/pages/Preferencias'));
@@ -58,7 +59,7 @@ function AppContent() {
       <Route element={<PrivateRoute />}>
         <Route element={<Layout />}>
           <Route path="/foco" element={<Foco />} />
-          <Route path="/agenda" element={<Navigate to="/tareas" replace />} />
+          <Route path="/agenda" element={<Agenda />} />
           <Route path="/rutinas" element={<Rutinas />} />
           <Route path="/objetivos" element={<Objetivos />} />
           <Route path="/proyectos" element={<Navigate to="/objetivos" replace />} />

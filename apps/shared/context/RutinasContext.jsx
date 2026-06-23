@@ -16,6 +16,7 @@ import {
   recordRutinaSectionAction,
   recordRutinaConfigAction,
   recordRutinaCrudAction,
+  recordRutinaSectionDiff,
 } from '../undo/undoRecordingUtils';
 
 const SCOPES_WITH_SECTION_UNDO = new Set(['tareas', 'hub', 'rutinas']);
@@ -340,8 +341,20 @@ export const RutinasProvider = ({ children }) => {
   }, [currentPage, totalPages, loading, rutinas, enqueueSnackbar]);
 
   // Parche local de sección (checkmarks) para que la navegación (% y contadores) se actualice sin refresh global
-  const patchRutinaSection = useCallback((rutinaId, section, nextSectionData) => {
+  const patchRutinaSection = useCallback((rutinaId, section, nextSectionData, options = {}) => {
     if (!rutinaId || !section || !nextSectionData) return;
+
+    const { recordUndo = false } = options;
+
+    if (recordUndo && undoScope && SCOPES_WITH_SECTION_UNDO.has(undoScope)) {
+      const rutinaBefore = rutinas.find((r) => r._id === rutinaId)
+        || (rutina?._id === rutinaId ? rutina : null);
+      const beforeSection = (rutinaBefore?.[section] && typeof rutinaBefore[section] === 'object')
+        ? rutinaBefore[section]
+        : {};
+      const afterSection = { ...beforeSection, ...(nextSectionData || {}) };
+      recordRutinaSectionDiff(undoRecorder, rutinaId, section, beforeSection, afterSection);
+    }
 
     setRutinas(prevList => {
       if (!Array.isArray(prevList)) return prevList;
@@ -362,7 +375,7 @@ export const RutinasProvider = ({ children }) => {
       const prevSection = (prev && prev[section] && typeof prev[section] === 'object') ? prev[section] : {};
       return { ...prev, [section]: { ...prevSection, ...(nextSectionData || {}) } };
     });
-  }, []);
+  }, [rutinas, rutina, undoScope, undoRecorder]);
 
   // Marcar un ítem como completado
   const markItemComplete = useCallback(async (rutinaId, section, data) => {

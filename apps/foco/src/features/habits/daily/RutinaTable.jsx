@@ -410,7 +410,7 @@ export const RutinaTable = ({
         onRutinaChange(updatedRutina);
       }
       // Siempre parchear en el contexto para que la navegación (% completion) se actualice sin refresh
-      patchRutinaSection(rutinaId, seccionId, newData);
+      patchRutinaSection(rutinaId, seccionId, newData, { recordUndo: true });
       
       // Log para depuración
       // Log eliminado - rutinasService ya muestra tick/cross

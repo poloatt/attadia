@@ -1,10 +1,8 @@
 import React from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { getTaskHorizonCopy } from '@shared/copy/agendaTerminology';
-import AgendaCalendarPage from '../../agenda/AgendaCalendarPage';
 import TareasTable from './TareasTable';
 import { useTareasPageController } from './useTareasPageController';
-import { useTareasPageView } from './useTareasPageView';
 import TareasPageOverlays from './TareasPageOverlays';
 
 function TaskHorizonColumnHeader({ view }) {
@@ -45,7 +43,6 @@ const scrollableColumnSx = {
 
 export function TareasListPage() {
   const controller = useTareasPageController();
-  const pageView = useTareasPageView();
 
   const {
     loading,
@@ -69,10 +66,6 @@ export function TareasListPage() {
     updateWithHistory,
     deleteWithHistory,
   } = controller;
-
-  if (pageView === 'agenda') {
-    return <AgendaCalendarPage />;
-  }
 
   return (
     <Box sx={{ px: { xs: 1, sm: 2, md: 3 }, width: '100%' }}>

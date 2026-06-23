@@ -5,6 +5,7 @@ import {
   HABIT_SECTIONS,
 } from '@shared/utils/rutinaDesktopUtils.js';
 import { getHabitDisplayLabel } from '@shared/utils/habitSectionIcons.js';
+import { getNormalizedToday } from '@shared/utils/dateUtils.js';
 
 function makeRutina(overrides = {}) {
   return {
@@ -91,6 +92,61 @@ describe('rutinaDesktopUtils', () => {
       });
       expect(completed.map((h) => h.itemId)).toContain('weekly');
       expect(notScheduled.map((h) => h.itemId)).not.toContain('weekly');
+    });
+
+    it('places overdue morning habit in pendientes, not no programados hoy', () => {
+      const rutina = makeRutina({
+        fecha: getNormalizedToday().toISOString(),
+        config: {
+          bodyCare: {
+            shower: {
+              tipo: 'DIARIO',
+              frecuencia: 1,
+              activo: true,
+              horarios: ['MAÑANA'],
+            },
+            weekly: { tipo: 'SEMANAL', frecuencia: 1, activo: true, diasSemana: [1] },
+          },
+          nutricion: {
+            water: { tipo: 'DIARIO', frecuencia: 1, activo: true },
+          },
+        },
+      });
+      const { incomplete, notScheduled } = categorizeSectionHabits({
+        section: 'bodyCare',
+        rutina,
+        habits: mockHabits,
+      });
+      expect(incomplete.map((h) => h.itemId)).toContain('shower');
+      expect(notScheduled.map((h) => h.itemId)).not.toContain('shower');
+    });
+
+    it('places habit with passed slot pending in pendientes when between configured franjas', () => {
+      const rutina = makeRutina({
+        fecha: getNormalizedToday().toISOString(),
+        bodyCare: { shower: { MAÑANA: false } },
+        config: {
+          bodyCare: {
+            shower: {
+              tipo: 'DIARIO',
+              frecuencia: 1,
+              activo: true,
+              horarios: ['MAÑANA', 'NOCHE'],
+            },
+            weekly: { tipo: 'SEMANAL', frecuencia: 1, activo: true, diasSemana: [1] },
+          },
+          nutricion: {
+            water: { tipo: 'DIARIO', frecuencia: 1, activo: true },
+          },
+        },
+      });
+      const { incomplete, notScheduled } = categorizeSectionHabits({
+        section: 'bodyCare',
+        rutina,
+        habits: mockHabits,
+      });
+      expect(incomplete.map((h) => h.itemId)).toContain('shower');
+      expect(notScheduled.map((h) => h.itemId)).not.toContain('shower');
     });
   });
 

@@ -114,7 +114,7 @@ export function Objetivos() {
     { scope: 'objetivos' },
   );
 
-  const { updateWithHistory: updateTareaWithHistory } = useScopedCRUD(
+  const { updateWithHistory: updateTareaWithHistory, createWithHistory: createTareaWithHistory } = useScopedCRUD(
     'objetivos',
     'tarea',
     tareaApiService,
@@ -375,7 +375,7 @@ export function Objetivos() {
         objetivo: selectedObjetivo._id
       };
 
-      await clienteAxios.post('/api/tareas', datosAEnviar);
+      await createTareaWithHistory(datosAEnviar);
       enqueueSnackbar('Tarea creada exitosamente', { variant: 'success' });
       const objetivoId = selectedObjetivo?._id || selectedObjetivo?.id;
       setIsTareaFormOpen(false);

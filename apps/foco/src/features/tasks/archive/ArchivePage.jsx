@@ -13,9 +13,6 @@ import { useScopedPageHistory } from '@shared/hooks';
 import { useValuesVisibility } from '@shared/context';
 import { useObjetivosLight } from '../hooks/useObjetivosLight';
 import {
-  createTask,
-  updateTask,
-  deleteTask,
   fetchCompletedTasks,
 } from '../api/tasksApi';
 
@@ -41,7 +38,11 @@ export default function ArchivePage() {
     }
   }, [enqueueSnackbar]);
 
-  const { updateWithHistory } = useScopedPageHistory(
+  const {
+    createWithHistory,
+    updateWithHistory,
+    deleteWithHistory,
+  } = useScopedPageHistory(
     async () => {
       await refetchObjetivos();
       await fetchTareas();
@@ -64,7 +65,7 @@ export default function ArchivePage() {
     if (selectedTareas.length === 0) return;
 
     try {
-      await Promise.all(selectedTareas.map((id) => deleteTask(id)));
+      await Promise.all(selectedTareas.map((id) => deleteWithHistory(id)));
       enqueueSnackbar(`${selectedTareas.length} tarea(s) eliminada(s) exitosamente`, { variant: 'success' });
       setSelectedTareas([]);
       window.dispatchEvent(new CustomEvent('selectionChanged', {
@@ -75,7 +76,7 @@ export default function ArchivePage() {
       console.error('Error al eliminar tareas:', error);
       enqueueSnackbar('Error al eliminar las tareas', { variant: 'error' });
     }
-  }, [selectedTareas, enqueueSnackbar, fetchTareas]);
+  }, [selectedTareas, enqueueSnackbar, fetchTareas, deleteWithHistory]);
 
   useEffect(() => {
     fetchTareas();
@@ -102,10 +103,10 @@ export default function ArchivePage() {
       const datosAEnviar = buildTareaPayload(formData, { editingTarea, objetivos });
 
       if (editingTarea) {
-        await updateTask(editingTarea._id, datosAEnviar);
+        await updateWithHistory(editingTarea._id, datosAEnviar, editingTarea);
         enqueueSnackbar('Tarea actualizada exitosamente', { variant: 'success' });
       } else {
-        await createTask(datosAEnviar);
+        await createWithHistory(datosAEnviar);
         enqueueSnackbar('Tarea creada exitosamente', { variant: 'success' });
       }
 
@@ -129,14 +130,14 @@ export default function ArchivePage() {
 
   const handleDelete = useCallback(async (id) => {
     try {
-      await deleteTask(id);
+      await deleteWithHistory(id);
       enqueueSnackbar('Tarea eliminada exitosamente', { variant: 'success' });
       await fetchTareas();
     } catch (error) {
       console.error('Error al eliminar tarea:', error);
       enqueueSnackbar('Error al eliminar la tarea', { variant: 'error' });
     }
-  }, [enqueueSnackbar, fetchTareas]);
+  }, [deleteWithHistory, enqueueSnackbar, fetchTareas]);
 
   const handleUpdateEstado = (tareaActualizada) => {
     setTareas((prevTareas) =>

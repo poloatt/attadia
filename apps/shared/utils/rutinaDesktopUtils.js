@@ -68,7 +68,11 @@ export function categorizeSectionHabits({
     const fromRutina = rutina?.[section]?.[itemId];
     const itemValue = fromLocal !== undefined ? fromLocal : fromRutina;
     const isCompleted = isHabitCompletedForHistorial(itemValue);
-    const isScheduled = shouldShowItem(section, itemId, rutinaForVisibility, {});
+    // Cadencia del día (no ventana horaria): un hábito de MAÑANA no completado
+    // sigue siendo "pendiente" en TARDE, no "no programado hoy".
+    const isScheduled = shouldShowItem(section, itemId, rutinaForVisibility, {
+      skipHorarioFilter: true,
+    });
 
     const entry = {
       section,

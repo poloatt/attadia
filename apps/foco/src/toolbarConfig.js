@@ -24,8 +24,6 @@ import {
 
   FocoToolbarLeft,
 
-  ArchivoToolbarCenter,
-
 } from './features/toolbar';
 
 import RutinaNavigation from '@shared/navigation/RutinaNavigation.jsx';
@@ -111,9 +109,9 @@ registerToolbarModules([
 
     ...focoLeft,
 
-    center: ArchivoToolbarCenter,
+    center: null,
 
-    centerDesktop: true,
+    centerDesktop: false,
 
     right: TiempoToolbarRight,
 

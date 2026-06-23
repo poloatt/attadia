@@ -25,7 +25,13 @@ export default function shouldShowItem(section, itemId, rutina, additionalData =
 
     // Filtrar por horario si está configurado (antes de evaluar cadencia) usando lógica mejorada
     // Para hábitos diarios con múltiples repeticiones: mostrar último horario no completado del día de hoy
-    if (config.horarios && Array.isArray(config.horarios) && config.horarios.length > 0) {
+    // skipHorarioFilter: usar solo cadencia (p. ej. panel Rutinas: pendientes vs no programados hoy)
+    if (
+      !additionalData.skipHorarioFilter
+      && config.horarios
+      && Array.isArray(config.horarios)
+      && config.horarios.length > 0
+    ) {
       const currentTimeOfDay = additionalData.currentTimeOfDay || getCurrentTimeOfDay();
       
       // Verificar si la rutina es de hoy (solo aplicar lógica mejorada para el día de hoy)
