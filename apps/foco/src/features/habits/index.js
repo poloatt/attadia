@@ -10,3 +10,5 @@ export { default as RutinasPage } from './daily/RutinasPage';
 export { ensureRutinaForDate } from './daily/ensureRutinaForDate';
 export { default as useEnsureRutinaForDate } from './daily/useEnsureRutinaForDate';
 export { useHabitsAgendaView } from './hooks/useHabitsAgendaView';
+export { default as useHabitCompletion } from './hooks/useHabitCompletion';
+export { default as HabitCarouselEmptyState } from './carousel/HabitCarouselEmptyState';

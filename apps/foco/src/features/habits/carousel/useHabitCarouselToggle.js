@@ -1,8 +1,9 @@
 import { useCallback } from 'react';
 import { getHorarioToShow } from '@shared/utils/habitTimeLogic';
+import { computeCarouselToggleValue } from '@shared/utils/habitToggleUtils';
 
 /**
- * Toggle de completado con soporte multi-horario.
+ * Toggle de completado con soporte multi-horario y UI optimista.
  * @param {'ahora'|'luego'} mode - Ahora usa getHorarioToShow; Luego usa currentTimeOfDay.
  */
 export default function useHabitCarouselToggle({
@@ -11,6 +12,7 @@ export default function useHabitCarouselToggle({
   dragRef,
   rutinaHoy,
   markItemComplete,
+  patchRutinaSection,
   currentTimeOfDay,
 }) {
   const logPrefix = mode === 'luego' ? '[HabitCarouselLuego]' : '[HabitCarouselAhora]';
@@ -23,66 +25,63 @@ export default function useHabitCarouselToggle({
       console.warn(`${logPrefix} markItemComplete no disponible en contexto`);
       return;
     }
-    try {
-      const prevSection = rutinaHoy?.[section] || {};
-      const itemValue = prevSection[itemId];
-      const itemConfig = rutinaHoy?.config?.[section]?.[itemId] || {};
-      const horariosConfig = Array.isArray(itemConfig.horarios) ? itemConfig.horarios : [];
 
-      const isObjectFormat = typeof itemValue === 'object' && itemValue !== null && !Array.isArray(itemValue);
-      const isBooleanFormat = typeof itemValue === 'boolean';
+    const prevSection = rutinaHoy?.[section] || {};
+    const itemValue = prevSection[itemId];
+    const itemConfig = rutinaHoy?.config?.[section]?.[itemId] || {};
+    const horariosConfig = Array.isArray(itemConfig.horarios) ? itemConfig.horarios : [];
 
-      let normalizedHorario;
-      if (horariosConfig.length > 1) {
-        if (mode === 'ahora') {
-          const completadoHoy = itemValue !== undefined ? itemValue : false;
-          const tipo = (itemConfig.tipo || 'DIARIO').toUpperCase();
-          const frecuencia = Number(itemConfig.frecuencia || 1);
-          const horarioToMark = getHorarioToShow(
-            horariosConfig,
-            currentTimeOfDay,
-            completadoHoy,
-            tipo,
-            frecuencia,
-          ) || currentTimeOfDay;
-          normalizedHorario = String(horarioToMark).toUpperCase();
-        } else {
-          normalizedHorario = String(currentTimeOfDay).toUpperCase();
-        }
-      }
-
-      let newValue;
-
-      if (horariosConfig.length > 1) {
-        if (isObjectFormat) {
-          const horarioEspecificoCompletado = itemValue[normalizedHorario] === true;
-          newValue = {
-            ...itemValue,
-            [normalizedHorario]: !horarioEspecificoCompletado,
-          };
-        } else {
-          const newObject = {};
-          horariosConfig.forEach((h) => {
-            const normalizedH = String(h).toUpperCase();
-            if (normalizedH === normalizedHorario) {
-              newObject[normalizedH] = !(isBooleanFormat && itemValue === true);
-            } else {
-              newObject[normalizedH] = false;
-            }
-          });
-          newValue = newObject;
-        }
+    let normalizedHorario;
+    if (horariosConfig.length > 1) {
+      if (mode === 'ahora') {
+        const completadoHoy = itemValue !== undefined ? itemValue : false;
+        const tipo = (itemConfig.tipo || 'DIARIO').toUpperCase();
+        const frecuencia = Number(itemConfig.frecuencia || 1);
+        const horarioToMark = getHorarioToShow(
+          horariosConfig,
+          currentTimeOfDay,
+          completadoHoy,
+          tipo,
+          frecuencia,
+        ) || currentTimeOfDay;
+        normalizedHorario = String(horarioToMark).toUpperCase();
       } else {
-        const prev = isBooleanFormat
-          ? itemValue
-          : (isObjectFormat ? Object.values(itemValue).some(Boolean) : false);
-        newValue = !prev;
+        normalizedHorario = String(currentTimeOfDay).toUpperCase();
       }
+    }
 
-      const itemData = { [itemId]: newValue };
+    const newValue = computeCarouselToggleValue({
+      itemValue,
+      horariosConfig,
+      normalizedHorario,
+    });
+
+    const itemData = { [itemId]: newValue };
+    const previousValue = itemValue;
+
+    if (patchRutinaSection) {
+      patchRutinaSection(rutinaHoy._id, section, itemData);
+    }
+
+    try {
       await markItemComplete(rutinaHoy._id, section, itemData);
     } catch {
+      if (patchRutinaSection) {
+        const rollbackData = previousValue === undefined
+          ? { [itemId]: undefined }
+          : { [itemId]: previousValue };
+        patchRutinaSection(rutinaHoy._id, section, rollbackData);
+      }
       console.warn(`${logPrefix} No se pudo togglear`, { section, itemId });
     }
-  }, [mode, interactive, dragRef, rutinaHoy, markItemComplete, currentTimeOfDay, logPrefix]);
+  }, [
+    mode,
+    interactive,
+    dragRef,
+    rutinaHoy,
+    markItemComplete,
+    patchRutinaSection,
+    currentTimeOfDay,
+    logPrefix,
+  ]);
 }

@@ -1,23 +1,14 @@
 import React, { useCallback } from 'react';
-import {
-  Box,
-  Chip,
-  Typography,
-} from '@mui/material';
-import { availableIcons, getIconByName } from '@shared/utils/iconConfig';
+import { Box } from '@mui/material';
 import InlineItemConfigImproved from './InlineItemConfigImproved';
 import {
   TareaFormRow,
   TareaFormSectionLabel,
   TareaFormPillSelect,
+  HabitIconPicker,
 } from '@shared/components/forms/tareaFormUi';
 import { TareaFormIcons } from '@shared/components/forms/tareaFormIcons';
-import { HABIT_SECTIONS } from './habitFormDefaults';
-
-const SECTION_OPTIONS = HABIT_SECTIONS.map((sec) => ({
-  value: sec.value,
-  label: sec.label,
-}));
+import { HABIT_SECTION_OPTIONS } from './habitFormDefaults';
 
 /**
  * Campos de hábito con look & feel alineado a Google Calendar / taskFormUi.
@@ -33,6 +24,8 @@ export default function HabitFormFields({
   showSection = true,
   showIconPicker = true,
   showCadence = true,
+  cadenceMinimal = false,
+  sectionMinimal = false,
 }) {
   const handleConfigChange = useCallback((newConfig) => {
     onConfigChange?.(newConfig);
@@ -40,12 +33,12 @@ export default function HabitFormFields({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-      {showSection && (
+      {showSection && !sectionMinimal && (
         <TareaFormRow icon={TareaFormIcons.habit} showDivider={false} align="center">
           <TareaFormPillSelect
             value={section}
             onChange={(e) => onSectionChange(e.target.value)}
-            options={SECTION_OPTIONS}
+            options={HABIT_SECTION_OPTIONS}
             emptyLabel="Seleccionar grupo"
             error={errors.section}
           />
@@ -53,55 +46,35 @@ export default function HabitFormFields({
       )}
 
       {showIconPicker && (
-        <TareaFormRow icon={TareaFormIcons.habit} showDivider={false}>
-          <Box sx={{ width: '100%' }}>
-            <TareaFormSectionLabel>Icono</TareaFormSectionLabel>
-            <Box
-              sx={{
-                display: 'flex',
-                gap: 0.75,
-                overflowX: 'auto',
-                pb: 0.5,
-                mx: -0.5,
-                px: 0.5,
-                '&::-webkit-scrollbar': { height: 4 },
-              }}
-            >
-              {availableIcons.map((item) => {
-                const IconComp = getIconByName(item.name);
-                const selected = icon === item.name;
-                return (
-                  <Chip
-                    key={item.name}
-                    icon={IconComp ? <IconComp sx={{ fontSize: '1.1rem !important' }} /> : undefined}
-                    label={item.label}
-                    size="small"
-                    onClick={() => onIconChange(item.name)}
-                    variant={selected ? 'filled' : 'outlined'}
-                    sx={{
-                      flexShrink: 0,
-                      height: 36,
-                      borderRadius: '18px',
-                      fontSize: '0.75rem',
-                      borderColor: selected ? 'transparent' : 'divider',
-                      bgcolor: selected ? 'action.selected' : 'transparent',
-                      color: selected ? 'text.primary' : 'text.secondary',
-                      '& .MuiChip-icon': { color: 'inherit' },
-                    }}
-                  />
-                );
-              })}
-            </Box>
-            {errors.icon && (
-              <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
-                {errors.icon}
-              </Typography>
-            )}
-          </Box>
+        <TareaFormRow icon={TareaFormIcons.habitIcon} showDivider={false} align="center">
+          <HabitIconPicker
+            value={icon}
+            onChange={onIconChange}
+            error={errors.icon}
+          />
         </TareaFormRow>
       )}
 
       {showCadence && (
+        cadenceMinimal ? (
+          <Box
+            sx={{
+              borderRadius: 2,
+              bgcolor: 'action.hover',
+              px: { xs: 0.5, sm: 1 },
+              py: 1,
+              mx: { xs: 0.5, sm: 1 },
+            }}
+          >
+            <InlineItemConfigImproved
+              config={config}
+              onConfigChange={handleConfigChange}
+              itemId="new-habit-inline"
+              sectionId={section}
+              hideActions
+            />
+          </Box>
+        ) : (
         <TareaFormRow icon={TareaFormIcons.recurrence} showDivider={false} align="flex-start">
           <Box sx={{ width: '100%' }}>
             <TareaFormSectionLabel>Cadencia</TareaFormSectionLabel>
@@ -124,6 +97,7 @@ export default function HabitFormFields({
             </Box>
           </Box>
         </TareaFormRow>
+        )
       )}
     </Box>
   );

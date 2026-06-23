@@ -18,6 +18,7 @@ import { SidebarProvider } from '@shared/context/SidebarContext';
 import { UISettingsProvider } from '@shared/context/UISettingsContext';
 import { RutinasProvider } from '@shared/context/RutinasContext';
 import { HabitsProvider } from '@shared/context/HabitsContext';
+import TimezoneInitializer from '@shared/components/TimezoneInitializer';
 import { useAuth } from '@shared/context/AuthContext';
 
 // Páginas Foco (lazy)
@@ -91,6 +92,7 @@ function App() {
               <UISettingsProvider>
                 <RutinasProvider>
                   <HabitsProvider>
+                    <TimezoneInitializer />
                     <ErrorBoundary>
                       <AppContent />
                     </ErrorBoundary>

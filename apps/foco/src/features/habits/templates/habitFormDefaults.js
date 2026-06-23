@@ -7,6 +7,11 @@ export const HABIT_SECTIONS = [
   { value: 'cleaning', label: 'Limpieza' },
 ];
 
+export const HABIT_SECTION_OPTIONS = HABIT_SECTIONS.map((sec) => ({
+  value: sec.value,
+  label: sec.label,
+}));
+
 export const DEFAULT_HABIT_CONFIG = {
   tipo: 'DIARIO',
   frecuencia: 1,

@@ -6,6 +6,7 @@ import rutinasService from '../services/rutinasService';
 import { UISettingsContext } from './UISettingsContext';
 import { calculateCompletionPercentage } from '../utils/rutinaCalculations';
 import { isHabitCompletedForHistorial } from '../utils/habitCompletionUtils';
+import { normalizeTimeOfDay } from '../utils/timeOfDayUtils';
 
 // Construye historial de completaciones por sección/ítem a partir del logger por día
 // Forma: historial[section][itemId][YYYY-MM-DD] = true
@@ -102,7 +103,7 @@ export const RutinasProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      const data = await rutinasService.getRutinas();
+      const data = await rutinasService.getRutinas({ limit: 90 });
       const rutinaList = Array.isArray(data) ? data : (data.docs || []);
       
       if (!Array.isArray(rutinaList)) {
@@ -493,6 +494,7 @@ export const RutinasProvider = ({ children }) => {
         periodo: config.periodo || 'CADA_DIA',
         diasSemana: Array.isArray(config.diasSemana) ? [...config.diasSemana] : [],
         diasMes: Array.isArray(config.diasMes) ? [...config.diasMes] : [],
+        horarios: normalizeTimeOfDay(config.horarios),
         esPreferenciaUsuario: true,
         ultimaActualizacion: new Date().toISOString()
       };
@@ -564,6 +566,7 @@ export const RutinasProvider = ({ children }) => {
         periodo: config.periodo || 'CADA_DIA',
         diasSemana: Array.isArray(config.diasSemana) ? [...config.diasSemana] : [],
         diasMes: Array.isArray(config.diasMes) ? [...config.diasMes] : [],
+        horarios: normalizeTimeOfDay(config.horarios),
         esPreferenciaUsuario: config.esPreferenciaUsuario !== undefined ? Boolean(config.esPreferenciaUsuario) : true,
         ultimaActualizacion: new Date().toISOString()
       };

@@ -304,7 +304,7 @@ export function useTareasPageController() {
   }, [fetchDataStable, handleDeleteSelected, handleSelectAll, openNewTareaForm, enqueueSnackbar]);
 
   const tareasTableCommonProps = {
-    showHabitCarousel: false,
+    showHabitCarousel: true,
     showCompleted,
     groupingEnabled: true,
     onEdit: handleEdit,

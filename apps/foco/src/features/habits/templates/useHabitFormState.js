@@ -1,9 +1,7 @@
 import { useState, useCallback } from 'react';
-import { availableIcons } from '@shared/utils/iconConfig';
+import { DEFAULT_HABIT_ICON } from '@shared/utils/habitIcons';
 import { normalizeTimeOfDay } from '@shared/utils/timeOfDayUtils';
 import { DEFAULT_HABIT_CONFIG } from './habitFormDefaults';
-
-const DEFAULT_HABIT_ICON = availableIcons[0]?.name || 'Add';
 
 export function useHabitFormState() {
   const [habitSection, setHabitSection] = useState('bodyCare');

@@ -1,5 +1,6 @@
 import clienteAxios from '@shared/config/axios';
-import { formatDateForAPI, parseAPIDate } from '@shared/utils/dateUtils';
+import { formatDateForAPI, parseAPIDate, getNormalizedToday } from '@shared/utils/dateUtils';
+import { isAfter, startOfDay } from 'date-fns';
 
 /**
  * Carga o crea el registro de rutina para una fecha (log diario).
@@ -34,6 +35,12 @@ export async function ensureRutinaForDate(date, {
     }
   } catch {
     // continuar con creación
+  }
+
+  const targetDay = startOfDay(parseAPIDate(date) || date);
+  const today = startOfDay(getNormalizedToday());
+  if (isAfter(targetDay, today)) {
+    return null;
   }
 
   try {

@@ -17,6 +17,7 @@ import {
   tareaFormPillTextSx,
   TAREA_FORM_CHEVRON_ICON_SIZE,
   TareaFormHeaderTitleRow,
+  HabitFormTitleField,
   TAREA_FORM_HEADER_ACTION_GUTTER,
 } from '@shared/components/forms/tareaFormUi';
 import TareaFormAdvancedFields from './TareaFormAdvancedFields';
@@ -405,8 +406,22 @@ const TareaForm = ({
             sx={{ mb: 1.5, pr: TAREA_FORM_HEADER_ACTION_GUTTER }}
           />
 
+          {isHabitMode ? (
+            <HabitFormTitleField
+              value={formData.titulo}
+              onChange={handleChange('titulo')}
+              icon={habitIcon}
+              onIconChange={(name) => handleIconChange(name, (field) => setErrors((e) => ({ ...e, [field]: undefined })))}
+              placeholder="Nombre del hábito"
+              error={!!errors.titulo}
+              iconError={!!errors.icon}
+              helperText={errors.titulo}
+              required
+              autoFocus
+            />
+          ) : (
           <TareaFormHeaderTitleRow
-            action={!isHabitMode && formData.tipo !== 'EVENTO' ? (
+            action={formData.tipo !== 'EVENTO' ? (
               <TareaFormPriorityToggle
                 prioridad={formData.prioridad}
                 onChange={(value) => setFormData((prev) => ({ ...prev, prioridad: value }))}
@@ -416,7 +431,7 @@ const TareaForm = ({
             <TextField
               variant="standard"
               fullWidth
-              placeholder={isHabitMode ? 'Nombre del hábito' : 'Agregar título'}
+              placeholder="Agregar título"
               value={formData.titulo}
               onChange={handleChange('titulo')}
               error={!!errors.titulo}
@@ -426,6 +441,7 @@ const TareaForm = ({
               sx={{ flex: 1, minWidth: 0, ...tareaFormTitleFieldSx }}
             />
           </TareaFormHeaderTitleRow>
+          )}
 
           <Stack direction="row" spacing={0.5} sx={{ mt: 1, flexWrap: 'wrap' }}>
             {isEditing && formData._id && !isHabitMode && (
@@ -487,7 +503,7 @@ const TareaForm = ({
             onConfigChange={handleConfigChange}
             errors={errors}
             showSection
-            showIconPicker
+            showIconPicker={false}
             showCadence
           />
         ) : (

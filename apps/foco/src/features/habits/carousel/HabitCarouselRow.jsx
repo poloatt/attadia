@@ -26,7 +26,14 @@ export default function HabitCarouselRow({
   interactive = true,
   targetDate,
 }) {
-  const { rutina, rutinas, loading: rutinasLoading, markItemComplete } = useRutinas();
+  const {
+    rutina,
+    rutinas,
+    loading: rutinasLoading,
+    error: rutinasError,
+    markItemComplete,
+    patchRutinaSection,
+  } = useRutinas();
   const { habits, loading: habitsLoading } = useHabits();
   const carouselRef = useRef(null);
 
@@ -44,6 +51,7 @@ export default function HabitCarouselRow({
     [resolvedTargetDate],
   );
   const currentTimeOfDay = isTargetToday ? getCurrentTimeOfDay() : 'MAÑANA';
+  const isInteractive = interactive && isTargetToday;
 
   const rutinaHoy = useMemo(
     () => resolveRutinaForDate({ rutina, rutinas, targetDate: resolvedTargetDate }),
@@ -57,6 +65,13 @@ export default function HabitCarouselRow({
     [habits],
   );
 
+  const hasConfiguredHabits = useMemo(
+    () => Object.values(habits || {}).some(
+      (section) => Array.isArray(section) && section.some((h) => h?.activo !== false),
+    ),
+    [habits],
+  );
+
   const { pendingItems, carouselItems, shouldUseInfiniteCarousel } = useHabitCarouselItems(mode, {
     rutinaHoy,
     sectionIconsMap,
@@ -66,10 +81,11 @@ export default function HabitCarouselRow({
 
   const handleToggle = useHabitCarouselToggle({
     mode,
-    interactive,
+    interactive: isInteractive,
     dragRef,
     rutinaHoy,
     markItemComplete,
+    patchRutinaSection,
     currentTimeOfDay,
   });
 
@@ -80,7 +96,7 @@ export default function HabitCarouselRow({
       dense={dense}
       showDividers={showDividers}
       enableDragScroll={enableDragScroll}
-      interactive={interactive}
+      interactive={isInteractive}
       carouselItems={carouselItems}
       pendingItems={pendingItems}
       shouldUseInfiniteCarousel={shouldUseInfiniteCarousel}
@@ -89,6 +105,8 @@ export default function HabitCarouselRow({
       currentTimeOfDay={currentTimeOfDay}
       rutinasLoading={rutinasLoading}
       habitsLoading={habitsLoading}
+      rutinasError={rutinasError}
+      hasConfiguredHabits={hasConfiguredHabits}
       scrollRef={scrollRef}
       carouselRef={carouselRef}
       isDragging={isDragging}

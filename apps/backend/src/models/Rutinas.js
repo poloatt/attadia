@@ -161,57 +161,38 @@ rutinaSchema.index({
 // Función auxiliar para verificar si un ítem debe mostrarse según su cadencia
 rutinaSchema.methods.shouldShowItem = function(section, item) {
   const config = this.config?.[section]?.[item];
-  // Si falta configuración para el ítem, por seguridad mostrarlo (evita romper el save/render)
   if (!config) return true;
-  const now = new Date();
-  const lastCompletion = config.ultimaCompletacion;
+  if (config.activo === false) return false;
 
-  switch (config.tipo) {
-    case 'DIARIO':
-      if (!lastCompletion) return true;
-      const lastCompletionDate = new Date(lastCompletion);
-      return lastCompletionDate.getDate() !== now.getDate() ||
-             lastCompletionDate.getMonth() !== now.getMonth() ||
-             lastCompletionDate.getFullYear() !== now.getFullYear();
+  const tipo = (config.tipo || 'DIARIO').toUpperCase();
+  const frecuencia = Number(config.frecuencia || 1);
+  const progresoActual = Number(config.progresoActual || 0);
 
-    case 'SEMANAL':
-      if (!lastCompletion) return true;
-      const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - now.getDay());
-      return lastCompletion < weekStart;
-
-    case 'MENSUAL':
-      if (!lastCompletion) return true;
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      return lastCompletion < monthStart;
-
-    case 'PERSONALIZADO':
-      if (!lastCompletion) return true;
-      
-      // Determinar el intervalo basado en el periodo
-      const periodo = config.periodo || 'CADA_DIA';
-      
-      switch (periodo) {
-        case 'CADA_DIA':
-          const daysDiff = Math.floor((now - new Date(lastCompletion)) / (1000 * 60 * 60 * 24));
-          return daysDiff >= config.frecuencia;
-          
-        case 'CADA_SEMANA':
-          const weeksDiff = Math.floor((now - new Date(lastCompletion)) / (1000 * 60 * 60 * 24 * 7));
-          return weeksDiff >= config.frecuencia;
-          
-        case 'CADA_MES':
-          const lastDate = new Date(lastCompletion);
-          let monthDiff = (now.getFullYear() - lastDate.getFullYear()) * 12 + (now.getMonth() - lastDate.getMonth());
-          return monthDiff >= config.frecuencia;
-          
-        default:
-          return true;
-      }
-
-    default:
-      return true;
+  if (progresoActual >= frecuencia) {
+    return false;
   }
+
+  const fieldValue = this[section]?.[item];
+  const isObjectFormat = typeof fieldValue === 'object' && fieldValue !== null && !Array.isArray(fieldValue);
+
+  if (tipo === 'DIARIO' || (tipo === 'PERSONALIZADO' && (config.periodo || 'CADA_DIA') === 'CADA_DIA')) {
+    if (isObjectFormat) {
+      const horarios = Array.isArray(config.horarios) && config.horarios.length > 0
+        ? config.horarios
+        : Object.keys(fieldValue);
+      if (horarios.length > 0) {
+        const allDone = horarios.every((h) => fieldValue[h] === true);
+        return !allDone;
+      }
+      return !Object.values(fieldValue).some(Boolean);
+    }
+    if (fieldValue === true) {
+      return false;
+    }
+    return true;
+  }
+
+  return true;
 };
 
 // Middleware para normalizar la fecha antes de guardar

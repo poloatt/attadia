@@ -23,6 +23,7 @@ import {
   tareaFormTitleFieldSx,
   tareaFormPillTextSx,
   TareaFormHeaderTitleRow,
+  HabitFormTitleField,
   tareaFormRowContentGutterSx,
   TAREA_FORM_HEADER_ACTION_GUTTER,
 } from '@shared/components/forms/tareaFormUi';
@@ -350,6 +351,20 @@ export default function AgendaQuickCreate({
           />
         </Box>
 
+        {tipo === 'HABITO' ? (
+          <HabitFormTitleField
+            inputRef={titleRef}
+            value={titulo}
+            onChange={(e) => setTitulo(e.target.value)}
+            onKeyDown={handleKeyDown}
+            icon={habitIcon}
+            onIconChange={(name) => handleHabitIconChange(name, (field) => {
+              if (errors[field]) setErrors((e) => ({ ...e, [field]: undefined }));
+            })}
+            placeholder={titlePlaceholder}
+            iconError={!!errors.icon}
+          />
+        ) : (
         <TareaFormHeaderTitleRow
           action={tipo === 'TAREA' ? (
             <TareaFormPriorityToggle
@@ -369,6 +384,7 @@ export default function AgendaQuickCreate({
             sx={{ flex: 1, minWidth: 0, ...tareaFormTitleFieldSx }}
           />
         </TareaFormHeaderTitleRow>
+        )}
       </TareaFormHeader>
 
       <Box sx={{ px: 2 }}>
@@ -407,7 +423,7 @@ export default function AgendaQuickCreate({
                 onConfigChange={handleHabitConfigChange}
                 errors={errors}
                 showSection
-                showIconPicker
+                showIconPicker={false}
                 showCadence
               />
             </Box>

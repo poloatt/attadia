@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useMemo } from 'react';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '../config/axios';
 
@@ -180,19 +180,12 @@ export const HabitsProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
-      
-      // #region agent log
-      // #endregion
-      
+
       const response = await clienteAxios.put('/api/users/habits/reorder', {
         section,
         habitIds
       });
-      
-      // #region agent log
-      // #endregion
-      
-      // Actualizar estado local
+
       setHabits(prev => ({
         ...prev,
         [section]: response.data.habits
@@ -241,7 +234,7 @@ export const HabitsProvider = ({ children }) => {
     }
   }, [enqueueSnackbar]);
 
-  const value = {
+  const value = useMemo(() => ({
     habits,
     loading,
     error,
@@ -250,8 +243,8 @@ export const HabitsProvider = ({ children }) => {
     updateHabit,
     deleteHabit,
     reorderHabits,
-    resetHabits
-  };
+    resetHabits,
+  }), [habits, loading, error, fetchHabits, addHabit, updateHabit, deleteHabit, reorderHabits, resetHabits]);
 
   return (
     <HabitsContext.Provider value={value}>

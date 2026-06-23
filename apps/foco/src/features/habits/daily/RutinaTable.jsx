@@ -488,14 +488,6 @@ export const RutinaTable = ({
     }
   };
 
-  // Función para obtener los datos del historial del día actual
-  const getTodayHistorial = (section) => {
-    if (!rutina || !rutina.historial) return {};
-    
-    const formattedToday = today.toISOString().split('T')[0];
-    return rutina.historial[formattedToday]?.[section] || {};
-  };
-
   // Limpiar cambios locales cuando se elimina una rutina
   const handleRutinaDelete = (rutinaId) => {
     // Llamar al handler original si existe

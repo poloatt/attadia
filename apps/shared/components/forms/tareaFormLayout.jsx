@@ -86,7 +86,7 @@ export function TareaFormRow({ icon: Icon, children, showDivider = false, align 
   );
 }
 
-export function TareaFormHeaderTitleRow({ children, action, sx }) {
+export function TareaFormHeaderTitleRow({ children, action, leading, sx }) {
   return (
     <Box
       sx={{
@@ -97,7 +97,22 @@ export function TareaFormHeaderTitleRow({ children, action, sx }) {
         ...sx,
       }}
     >
-      <Box sx={taskFormHeaderIconSpacerSx} aria-hidden />
+      {leading ? (
+        <Box
+          sx={{
+            width: 40,
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            mt: 0.75,
+          }}
+        >
+          {leading}
+        </Box>
+      ) : (
+        <Box sx={taskFormHeaderIconSpacerSx} aria-hidden />
+      )}
       <Box sx={{ ...taskFormHeaderContentRowSx, flex: 1, minWidth: 0 }}>
         {children}
         {action ?? <Box sx={taskFormHeaderActionSpacerSx} aria-hidden />}

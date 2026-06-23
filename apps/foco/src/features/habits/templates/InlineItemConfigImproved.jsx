@@ -261,6 +261,10 @@ const InlineItemConfigImproved = ({
     
     // Detectar todos los cambios acumulativos comparando con la configuración original
     detectChanges(updatedConfig);
+
+    if (hideActions && typeof onConfigChange === 'function') {
+      onConfigChange(updatedConfig);
+    }
   };
 
   const handleSave = async (scope = 'today') => {

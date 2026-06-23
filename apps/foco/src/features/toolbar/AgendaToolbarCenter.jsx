@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useLocation } from 'react-router-dom';
-import useResponsive from '@shared/hooks/useResponsive';
 import { matchTiempoSection } from '@shared/navigation/tiempoToolbarPaths';
 
 const OPTIONS = [
@@ -11,16 +10,15 @@ const OPTIONS = [
 ];
 
 /**
- * Selector "Ahora | Luego" para Hub y Tareas en móvil.
+ * Selector "Ahora | Luego" para Hub y Tareas.
  * Emite eventos: agendaViewChanged { view }
  */
 export default function AgendaToolbarCenter() {
-  const { isMobile } = useResponsive();
   const { pathname } = useLocation();
   const [agendaView, setAgendaView] = useState('ahora');
   const theme = useTheme();
 
-  if (!isMobile || !['tareas', 'hub'].includes(matchTiempoSection(pathname))) {
+  if (!['tareas', 'hub'].includes(matchTiempoSection(pathname))) {
     return null;
   }
 

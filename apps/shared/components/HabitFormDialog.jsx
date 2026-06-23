@@ -6,8 +6,6 @@ import {
 
   DialogContent,
 
-  TextField,
-
   Box,
 
   Typography,
@@ -18,7 +16,7 @@ import { useHabits, useRutinas } from '@shared/context';
 
 import clienteAxios from '@shared/config/axios';
 
-import { availableIcons } from '@shared/utils/iconConfig';
+import { DEFAULT_HABIT_ICON } from '@shared/utils/habitIcons';
 
 import { useResponsive } from '@shared/hooks';
 
@@ -26,11 +24,11 @@ import {
 
   tareaFormDialogPaperSx,
 
-  tareaFormTitleFieldSx,
-
   TareaFormHeader,
 
   TareaFormFooter,
+
+  HabitFormTitleField,
 
 } from '@shared/components/forms/tareaFormUi';
 
@@ -44,7 +42,7 @@ import { saveHabitFromForm } from '@foco/features/habits/templates/saveHabitFrom
 
 
 
-const DEFAULT_ICON = availableIcons[0]?.name || 'Add';
+const DEFAULT_ICON = DEFAULT_HABIT_ICON;
 
 
 
@@ -364,25 +362,25 @@ const HabitFormDialog = ({ open, onClose, editingHabit = null, editingSection = 
 
         <TareaFormHeader onClose={onClose}>
 
-          <TextField
-
-            variant="standard"
-
-            fullWidth
-
-            placeholder="Nombre del hábito"
+          <HabitFormTitleField
 
             value={formData.label}
 
             onChange={(e) => setFormData((prev) => ({ ...prev, label: e.target.value }))}
 
+            icon={formData.icon}
+
+            onIconChange={(icon) => setFormData((prev) => ({ ...prev, icon }))}
+
+            placeholder="Nombre del hábito"
+
             error={!!errors.label}
+
+            iconError={!!errors.icon}
 
             helperText={errors.label}
 
             autoFocus
-
-            sx={{ ...tareaFormTitleFieldSx, pr: 3 }}
 
           />
 
@@ -410,7 +408,7 @@ const HabitFormDialog = ({ open, onClose, editingHabit = null, editingSection = 
 
             showSection
 
-            showIconPicker
+            showIconPicker={false}
 
             showCadence
 
