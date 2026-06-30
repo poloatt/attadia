@@ -1,56 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Box, Typography } from '@mui/material';
-import ChecklistItem from './ChecklistItem';
 import RutinaSectionCarousel from './RutinaSectionCarousel';
-import { categorizeSectionHabits } from '@shared/utils/rutinaDesktopUtils';
-import { isHabitCompletedForHistorial } from '@shared/utils/habitCompletionUtils';
-
-const SECTION_HEADING_SX = {
-  px: 0.5,
-  py: 0.75,
-  fontWeight: 600,
-  color: 'text.secondary',
-  textTransform: 'uppercase',
-  letterSpacing: '0.06em',
-  fontSize: '0.7rem',
-};
-
-function HabitRows({
-  items,
-  section,
-  rutina,
-  readOnly,
-  onItemClick,
-  onConfigChange,
-  openSetupItemId,
-  onSetupToggle,
-}) {
-  if (!items.length) return null;
-
-  return items.map((entry) => {
-    const { itemId, Icon, label, config, userHabit } = entry;
-    const itemValue = rutina?.[section]?.[itemId];
-    const isCompleted = isHabitCompletedForHistorial(itemValue);
-
-    return (
-      <ChecklistItem
-        key={itemId}
-        itemId={itemId}
-        section={section}
-        Icon={Icon}
-        isCompleted={isCompleted}
-        readOnly={readOnly}
-        onItemClick={onItemClick}
-        config={config}
-        onConfigChange={(newConfig, meta) => onConfigChange(itemId, newConfig, meta)}
-        isSetupOpen={openSetupItemId === itemId}
-        onSetupToggle={() => onSetupToggle(itemId)}
-        habitLabel={label}
-        isCustomHabit={Boolean(userHabit)}
-      />
-    );
-  });
-}
+import RutinaDayGroupList from './RutinaDayGroupList';
+import HabitFormDialog from '@shared/components/HabitFormDialog';
+import { useHabits } from '@shared/context';
+import { groupSectionHabitsByDaySchedule } from '@shared/utils/rutinaDesktopUtils';
 
 export default function RutinaSectionDetailPanel({
   section,
@@ -59,37 +13,39 @@ export default function RutinaSectionDetailPanel({
   habitsPreferences = {},
   readOnly = false,
   onItemClick,
-  onConfigChange,
   onToggle,
 }) {
-  const [openSetupItemId, setOpenSetupItemId] = useState(null);
+  const { deleteHabit, fetchHabits } = useHabits();
+  const [editingHabitDialog, setEditingHabitDialog] = useState({
+    open: false,
+    habit: null,
+    section: null,
+  });
 
-  const { completed, incomplete, notScheduled } = useMemo(
-    () => categorizeSectionHabits({ section, rutina, habits, habitsPreferences }),
+  const { today, notToday } = useMemo(
+    () => groupSectionHabitsByDaySchedule({
+      section,
+      rutina,
+      habits,
+      habitsPreferences,
+    }),
     [section, rutina, habits, habitsPreferences],
   );
 
-  const overdue = useMemo(
-    () => incomplete.filter((entry) => entry.isCadenciaDebt),
-    [incomplete],
-  );
-  const pendingToday = useMemo(
-    () => incomplete.filter((entry) => !entry.isCadenciaDebt),
-    [incomplete],
-  );
+  const handleEditHabit = useCallback((habit, habitSection) => {
+    setEditingHabitDialog({ open: true, habit, section: habitSection });
+  }, []);
 
-  const handleSetupToggle = (itemId) => {
-    setOpenSetupItemId((prev) => (prev === itemId ? null : itemId));
-  };
+  const handleDeleteHabit = useCallback(async (habitId, habitSection) => {
+    try {
+      await deleteHabit(habitId, habitSection);
+      await fetchHabits();
+    } catch (error) {
+      console.error('[RutinaSectionDetailPanel] Error al eliminar hábito:', error);
+    }
+  }, [deleteHabit, fetchHabits]);
 
-  const blocks = [
-    { key: 'completed', title: 'Completados', items: completed },
-    { key: 'overdue', title: 'Atrasados', items: overdue },
-    { key: 'incomplete', title: 'Pendientes', items: pendingToday },
-    { key: 'notScheduled', title: 'No programados hoy', items: notScheduled },
-  ];
-
-  const hasAny = blocks.some((b) => b.items.length > 0);
+  const hasAny = today.length > 0 || notToday.length > 0;
 
   if (!hasAny) {
     return (
@@ -112,45 +68,44 @@ export default function RutinaSectionDetailPanel({
   }
 
   return (
-    <Box
-      role="region"
-      aria-label="Detalle de hábitos"
-      sx={{
-        flex: 1,
-        minWidth: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 1,
-      }}
-    >
-      <RutinaSectionCarousel
-        section={section}
-        rutina={rutina}
-        habits={habits}
-        habitsPreferences={habitsPreferences}
-        onToggle={onToggle}
-        interactive={!readOnly}
+    <>
+      <Box
+        role="region"
+        aria-label="Detalle de hábitos"
+        sx={{
+          flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1,
+        }}
+      >
+        <RutinaSectionCarousel
+          section={section}
+          rutina={rutina}
+          habits={habits}
+          habitsPreferences={habitsPreferences}
+          onToggle={onToggle}
+          interactive={!readOnly}
+        />
+        <RutinaDayGroupList
+          today={today}
+          notToday={notToday}
+          section={section}
+          rutina={rutina}
+          readOnly={readOnly}
+          onItemClick={onItemClick}
+          onEditHabit={handleEditHabit}
+          onDeleteHabit={handleDeleteHabit}
+        />
+      </Box>
+
+      <HabitFormDialog
+        open={editingHabitDialog.open}
+        onClose={() => setEditingHabitDialog({ open: false, habit: null, section: null })}
+        editingHabit={editingHabitDialog.habit}
+        editingSection={editingHabitDialog.section}
       />
-      {blocks.map(({ key, title, items }) => {
-        if (!items.length) return null;
-        return (
-          <Box key={key}>
-            <Typography variant="caption" sx={SECTION_HEADING_SX}>
-              {title}
-            </Typography>
-            <HabitRows
-              items={items}
-              section={section}
-              rutina={rutina}
-              readOnly={readOnly}
-              onItemClick={onItemClick}
-              onConfigChange={onConfigChange}
-              openSetupItemId={openSetupItemId}
-              onSetupToggle={handleSetupToggle}
-            />
-          </Box>
-        );
-      })}
-    </Box>
+    </>
   );
 }

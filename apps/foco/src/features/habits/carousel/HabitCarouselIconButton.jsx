@@ -78,7 +78,7 @@ export default function HabitCarouselIconButton({
             aria-pressed={isCompleted}
             onClick={(e) => {
               e.stopPropagation();
-              onToggle(section, itemId);
+              onToggle(section, itemId, displayHorario || horarioToShow);
             }}
             sx={{
               width: size,

@@ -1,5 +1,8 @@
 import { useMemo } from 'react';
-import { getCarouselItemsForMode } from '@shared/utils/habitVisibilityEngine';
+import {
+  getCarouselCompletedTodayItems,
+  getCarouselItemsForMode,
+} from '@shared/utils/habitVisibilityEngine';
 
 /**
  * Filtra items del carrusel según modo Ahora/Luego.
@@ -11,22 +14,30 @@ export default function useHabitCarouselItems(mode, {
   habits,
   currentTimeOfDay,
   habitsPreferences = null,
+  includeCompletedToday = false,
 }) {
+  const params = {
+    rutinaHoy,
+    sectionIconsMap,
+    habits,
+    currentTimeOfDay,
+    habitsPreferences: habitsPreferences || {},
+  };
+
   const pendingItems = useMemo(() => {
     if (habitsPreferences === null) return [];
-    return getCarouselItemsForMode(mode, {
-      rutinaHoy,
-      sectionIconsMap,
-      habits,
-      currentTimeOfDay,
-      habitsPreferences,
-    });
+    return getCarouselItemsForMode(mode, params);
   }, [mode, rutinaHoy, sectionIconsMap, habits, currentTimeOfDay, habitsPreferences]);
 
-  const shouldUseInfiniteCarousel = mode === 'luego' && pendingItems.length > 8;
-  const carouselItems = shouldUseInfiniteCarousel
-    ? [...pendingItems, ...pendingItems, ...pendingItems]
-    : pendingItems;
+  const completedTodayItems = useMemo(() => {
+    if (!includeCompletedToday || habitsPreferences === null) return [];
+    return getCarouselCompletedTodayItems(params);
+  }, [includeCompletedToday, rutinaHoy, sectionIconsMap, habits, habitsPreferences]);
 
-  return { pendingItems, carouselItems, shouldUseInfiniteCarousel };
+  return {
+    pendingItems,
+    carouselItems: pendingItems,
+    shouldUseInfiniteCarousel: false,
+    completedTodayItems,
+  };
 }

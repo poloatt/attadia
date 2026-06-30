@@ -1,4 +1,4 @@
-import { format, isSameDay, startOfDay } from 'date-fns';
+import { addDays, format, isAfter, isSameDay, startOfDay, subDays } from 'date-fns';
 import { es } from './localeEs.js';
 import { formatDateForAPI, getNormalizedToday, parseAPIDate } from './dateUtils.js';
 import { calculateCompletionPercentage, calculateVisibleItems } from './rutinaCalculations.js';
@@ -13,14 +13,11 @@ export function formatRutinaDayLabel(fecha) {
   }
 }
 
-/** Subtítulo informativo: fecha · % · posición en registros cargados. */
-export function formatRutinaDaySubtitle({ fecha, percentage, currentPage, totalPages }) {
+/** Subtítulo informativo: fecha · % (sin posición en lista). */
+export function formatRutinaDaySubtitle({ fecha, percentage }) {
   const dateLabel = formatRutinaDayLabel(fecha);
   const pctLabel = typeof percentage === 'number' ? `${percentage}%` : '—';
-  const positionLabel = currentPage > 0 && totalPages > 0
-    ? `registro ${currentPage} de ${totalPages}`
-    : '';
-  return [dateLabel, pctLabel, positionLabel].filter(Boolean).join(' · ');
+  return [dateLabel, pctLabel].filter(Boolean).join(' · ');
 }
 
 /** Modo del día activo respecto a hoy. */
@@ -59,49 +56,98 @@ export function getRutinaCompletionStats(rutina, customHabits = null) {
   };
 }
 
+export function findRutinaByDateStr(rutinas = [], dateStr) {
+  if (!dateStr || !Array.isArray(rutinas)) return null;
+  return rutinas.find((r) => {
+    try {
+      return formatDateForAPI(parseAPIDate(r.fecha)) === dateStr;
+    } catch {
+      return false;
+    }
+  }) ?? null;
+}
+
+export function normalizeRutinaNavigateDate(date) {
+  if (!date) return formatDateForAPI(getNormalizedToday());
+  try {
+    return formatDateForAPI(parseAPIDate(date));
+  } catch {
+    return formatDateForAPI(getNormalizedToday());
+  }
+}
+
+function getActiveDateStr({ activeDate, activeRutinaId, rutinas = [] }) {
+  if (activeDate) return normalizeRutinaNavigateDate(activeDate);
+  if (activeRutinaId) {
+    const active = rutinas.find((r) => r._id === activeRutinaId);
+    if (active?.fecha) {
+      try {
+        return formatDateForAPI(parseAPIDate(active.fecha));
+      } catch {
+        // fall through
+      }
+    }
+  }
+  return formatDateForAPI(getNormalizedToday());
+}
+
 /**
- * Resuelve el destino de navegación toolbar (prev/next/today).
- * Lista ordenada: índice 0 = registro más reciente (convención temporal).
- * En UI: ‹ = día anterior (más antiguo), › = día siguiente (más reciente).
+ * Resuelve destino de navegación diaria por fecha calendario.
+ * ‹ prev = día anterior; › next = día siguiente.
  */
+/** Fecha YYYY-MM-DD desde la cual propagar cambios de config hacia el futuro. */
+export function resolveHabitConfigApplyFrom(rutinaOrDate, today = getNormalizedToday()) {
+  const fallback = formatDateForAPI(today);
+  if (!rutinaOrDate) return fallback;
+  const raw = rutinaOrDate?.fecha ?? rutinaOrDate;
+  try {
+    return formatDateForAPI(parseAPIDate(raw));
+  } catch {
+    return fallback;
+  }
+}
+
+export function isForwardConfigScope(scope) {
+  const normalized = (scope || 'forward').toString().toLowerCase();
+  return normalized === 'forward' || normalized === 'today';
+}
+
 export function resolveRutinaNavigateTarget({
   direction,
   date,
   rutinas = [],
   activeRutinaId,
+  activeDate,
+  today = getNormalizedToday(),
 }) {
-  if (!Array.isArray(rutinas) || rutinas.length === 0) {
-    return { type: 'noop' };
-  }
+  const todayStart = startOfDay(today);
 
-  if (direction === 'today') {
-    const todayStr = date || formatDateForAPI(getNormalizedToday());
-    const target = rutinas.find((r) => {
-      try {
-        return formatDateForAPI(parseAPIDate(r.fecha)) === todayStr;
-      } catch {
-        return false;
-      }
-    });
-    if (target?._id) {
-      return { type: 'select', rutinaId: target._id };
+  if (direction === 'today' || direction === 'pick') {
+    const targetStr = normalizeRutinaNavigateDate(date);
+    const cached = findRutinaByDateStr(rutinas, targetStr);
+    if (cached?._id) {
+      return { type: 'select', rutinaId: cached._id, date: targetStr };
     }
-    return { type: 'create', date: todayStr };
+    const targetDay = startOfDay(parseAPIDate(targetStr));
+    if (isAfter(targetDay, todayStart)) {
+      return { type: 'preview', date: targetStr };
+    }
+    return { type: 'ensure', date: targetStr };
   }
 
   if (direction === 'prev' || direction === 'next') {
-    const idx = activeRutinaId
-      ? rutinas.findIndex((r) => r._id === activeRutinaId)
-      : -1;
-    if (idx < 0) return { type: 'noop' };
-    const newIndex = direction === 'prev'
-      ? Math.max(0, idx - 1)
-      : Math.min(rutinas.length - 1, idx + 1);
-    const target = rutinas[newIndex];
-    if (target?._id) {
-      return { type: 'select', rutinaId: target._id };
+    const activeStr = getActiveDateStr({ activeDate, activeRutinaId, rutinas });
+    const activeDay = startOfDay(parseAPIDate(activeStr));
+    const shifted = direction === 'prev' ? subDays(activeDay, 1) : addDays(activeDay, 1);
+    const targetStr = formatDateForAPI(shifted);
+    const cached = findRutinaByDateStr(rutinas, targetStr);
+    if (cached?._id) {
+      return { type: 'select', rutinaId: cached._id, date: targetStr };
     }
-    return { type: 'noop' };
+    if (isAfter(shifted, todayStart)) {
+      return { type: 'preview', date: targetStr };
+    }
+    return { type: 'ensure', date: targetStr };
   }
 
   return { type: 'noop' };

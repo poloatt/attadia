@@ -4,10 +4,20 @@ import { alpha, useTheme } from '@mui/material/styles';
 import { startOfDay } from 'date-fns';
 import { formatCalendarDayHeader } from '../../utils/focoNavigationUtils';
 
-/** Pill de % de rutina alineado a tipografía Google Calendar (pequeño, regular). */
-export function RutinaCompletionPctChip({ label, color = 'primary', tooltip = '' }) {
+/** Pill de % de rutina — tipografía Google Calendar; `subtle` = blanco brilloso suave. */
+export function RutinaCompletionPctChip({ label, color = 'primary', tooltip = '', subtle = false }) {
   const theme = useTheme();
   const paletteColor = theme.palette[color]?.main ?? theme.palette.primary.main;
+  const subtleStyles = subtle
+    ? {
+      bgcolor: alpha(theme.palette.common.white, 0.1),
+      color: alpha(theme.palette.common.white, 0.9),
+      boxShadow: `inset 0 1px 0 ${alpha(theme.palette.common.white, 0.16)}`,
+    }
+    : {
+      bgcolor: alpha(paletteColor, 0.12),
+      color: paletteColor,
+    };
 
   return (
     <Chip
@@ -18,8 +28,7 @@ export function RutinaCompletionPctChip({ label, color = 'primary', tooltip = ''
         height: 22,
         borderRadius: '9999px',
         flexShrink: 0,
-        bgcolor: alpha(paletteColor, 0.12),
-        color: paletteColor,
+        ...subtleStyles,
         '& .MuiChip-label': {
           px: 0.75,
           py: 0,
@@ -32,11 +41,32 @@ export function RutinaCompletionPctChip({ label, color = 'primary', tooltip = ''
   );
 }
 
-const DAY_MODE_CHIP = {
-  today: { label: 'Hoy', color: 'primary' },
-  historical: { label: 'Histórico', color: 'default' },
-  future: { label: 'Futuro', color: 'warning' },
+/** Estilos de barra de progreso rutina — blanco sutil con ligero brillo. */
+export function getRutinaProgressBarSx(theme, { bleedProgressBar = false } = {}) {
+  return {
+    width: '100%',
+    height: 4,
+    borderRadius: 0,
+    mt: 0.5,
+    bgcolor: alpha(theme.palette.common.white, 0.08),
+    '& .MuiLinearProgress-bar': {
+      borderRadius: 0,
+      bgcolor: alpha(theme.palette.common.white, 0.72),
+      boxShadow: `0 0 10px ${alpha(theme.palette.common.white, 0.22)}`,
+    },
+    ...(bleedProgressBar && {
+      width: { md: `calc(100% + ${theme.spacing(6)})` },
+      ml: { md: theme.spacing(-3) },
+    }),
+  };
+}
+
+const DAY_MODE_LABEL = {
+  historical: 'Histórico',
+  future: 'Futuro',
 };
+
+export { DAY_MODE_LABEL };
 
 /**
  * Contenido tipográfico del hero de fecha estilo Google Calendar.
@@ -66,8 +96,6 @@ export default function CalendarDateHeroContent({
     ? `${completionPercentage}%`
     : '—';
 
-  const modeChip = dayMode ? DAY_MODE_CHIP[dayMode] : null;
-
   if (isRutina) {
     return (
       <Box sx={{ width: '100%', minWidth: 0, overflow: 'hidden' }}>
@@ -91,20 +119,19 @@ export default function CalendarDateHeroContent({
           sx={{
             display: 'flex',
             alignItems: 'center',
-            gap: { xs: 0.5, sm: 1 },
+            gap: { xs: 0.375, sm: 0.5 },
             width: '100%',
             minWidth: 0,
             overflow: 'hidden',
-            flexWrap: isNarrow ? 'wrap' : 'nowrap',
+            flexWrap: 'nowrap',
           }}
         >
           <Box
             sx={{
               display: 'flex',
               alignItems: 'baseline',
-              gap: { xs: 0.5, sm: 1 },
+              gap: { xs: 0.375, sm: 0.5 },
               minWidth: 0,
-              flex: isNarrow ? '1 1 auto' : undefined,
               flexShrink: 1,
               overflow: 'hidden',
             }}
@@ -137,38 +164,11 @@ export default function CalendarDateHeroContent({
             </Typography>
           </Box>
           {showInlineCompletion && (
-            <Box
-              sx={{
-                flex: 1,
-                display: 'flex',
-                justifyContent: 'center',
-                minWidth: 0,
-                flexShrink: 1,
-              }}
-            >
-              <RutinaCompletionPctChip
-                label={pctLabel}
-                color={completionColor}
-                tooltip={completionTooltip}
-              />
-            </Box>
-          )}
-          {modeChip && dayMode !== 'today' && (
-            <Chip
-              size="small"
-              label={modeChip.label}
-              color={modeChip.color}
-              variant="outlined"
-              sx={{
-                height: 24,
-                flexShrink: 0,
-                maxWidth: { xs: 72, sm: 'none' },
-                '& .MuiChip-label': {
-                  px: { xs: 0.5, sm: 1 },
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                },
-              }}
+            <RutinaCompletionPctChip
+              label={pctLabel}
+              color={completionColor}
+              tooltip={completionTooltip}
+              subtle={variant === 'rutina'}
             />
           )}
         </Box>

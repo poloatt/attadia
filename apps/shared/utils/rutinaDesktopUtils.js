@@ -16,6 +16,26 @@ import {
   obtenerHistorialCompletados,
 } from './cadenciaUtils.js';
 import { parseAPIDate } from './dateUtils.js';
+import { RUTINA_DAY_GROUP_COPY } from '../copy/agendaTerminology.js';
+
+/**
+ * Orden fijo de hábitos en una sección: `orden` del usuario (vía getHabitSectionItemIds),
+ * desempate alfabético por label y luego por itemId. No depende del estado completado.
+ */
+export function sortSectionHabitsByFixedOrder(entries, { section, habits = null } = {}) {
+  const orderIndex = new Map(
+    getHabitSectionItemIds(section, habits).map((id, index) => [id, index]),
+  );
+
+  return [...entries].sort((a, b) => {
+    const indexA = orderIndex.get(a.itemId) ?? Number.MAX_SAFE_INTEGER;
+    const indexB = orderIndex.get(b.itemId) ?? Number.MAX_SAFE_INTEGER;
+    if (indexA !== indexB) return indexA - indexB;
+    const labelCmp = (a.label || '').localeCompare(b.label || '', 'es');
+    if (labelCmp !== 0) return labelCmp;
+    return String(a.itemId || '').localeCompare(String(b.itemId || ''));
+  });
+}
 
 /** Títulos legibles por sección de rutina. */
 export const RUTINA_SECTION_LABELS = {
@@ -114,7 +134,30 @@ export function categorizeSectionHabits({
   return { completed, incomplete, notScheduled };
 }
 
-/** Todos los hábitos activos de una sección para el carrusel (pendientes → completados → no programados). */
+/** Etiquetas de agrupación del tracker diario (registro del día). */
+export const RUTINA_DAY_GROUP_LABELS = RUTINA_DAY_GROUP_COPY;
+
+/**
+ * Agrupa hábitos de una sección según si tocan hoy en el registro diario.
+ * Dentro de cada grupo (Hoy / No toca hoy) el orden es fijo (no depende de completado).
+ */
+export function groupSectionHabitsByDaySchedule(params) {
+  const { section, habits = null } = params;
+  const { completed, incomplete, notScheduled } = categorizeSectionHabits(params);
+  const sortOpts = { section, habits };
+
+  const today = sortSectionHabitsByFixedOrder([...incomplete, ...completed], sortOpts);
+  const notToday = sortSectionHabitsByFixedOrder(notScheduled, sortOpts);
+
+  return {
+    today,
+    todayPending: today.filter((entry) => !entry.isCompleted),
+    todayCompleted: today.filter((entry) => entry.isCompleted),
+    notToday,
+  };
+}
+
+/** Todos los hábitos activos de una sección para el carrusel (orden fijo por sección). */
 export function getSectionCarouselItems({ section, rutina, habits = null, habitsPreferences = null }) {
   const { completed, incomplete, notScheduled } = categorizeSectionHabits({
     section,
@@ -122,7 +165,10 @@ export function getSectionCarouselItems({ section, rutina, habits = null, habits
     habits,
     habitsPreferences,
   });
-  return [...incomplete, ...completed, ...notScheduled];
+  return sortSectionHabitsByFixedOrder(
+    [...incomplete, ...completed, ...notScheduled],
+    { section, habits },
+  );
 }
 
 /**

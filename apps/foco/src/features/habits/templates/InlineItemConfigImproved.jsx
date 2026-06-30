@@ -268,7 +268,7 @@ const InlineItemConfigImproved = ({
     }
   };
 
-  const handleSave = async (scope = 'today') => {
+  const handleSave = async (scope = 'forward') => {
     if (typeof onConfigChange === 'function') {
       setIsSaving(true);
       try {
@@ -568,6 +568,22 @@ const InlineItemConfigImproved = ({
                 }}
               >
                 Máximo alcanzado ({maxHorarios} horarios)
+              </Typography>
+            )}
+            {(configState.tipo === 'DIARIO' || configState.periodo === 'CADA_DIA')
+              && configState.frecuencia > 1
+              && (configState.horarios?.length || 0) < configState.frecuencia && (
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'warning.main',
+                  fontSize: '0.65rem',
+                  mt: 0.25,
+                  textAlign: 'center',
+                  px: 0.5,
+                }}
+              >
+                Elige {configState.frecuencia} franja{configState.frecuencia > 1 ? 's' : ''} (MAÑANA/TARDE/NOCHE) — cada una es una repetición diaria.
               </Typography>
             )}
           </Box>

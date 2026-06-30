@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
  * Hook simple para "drag to scroll" horizontal usando Pointer Events.
@@ -10,20 +10,11 @@ export default function useHorizontalDragScroll({
   thresholdPx = 6,
 } = {}) {
   const scrollRef = useRef(null);
-  const dragRef = useRef({ isDown: false, startX: 0, startScrollLeft: 0, moved: false });
+  const dragRef = useRef({ isDown: false, startX: 0, startScrollLeft: 0, moved: false, captured: false });
   const [isDragging, setIsDragging] = useState(false);
 
   const onPointerDownCapture = useCallback((e) => {
     if (!enabled) return;
-    // Si el pointerdown ocurre sobre un elemento interactivo, evitamos `setPointerCapture`
-    // (puede impedir que se dispare el onClick del botón), pero igual permitimos iniciar el drag
-    // para poder arrastrar horizontalmente "sobre" los íconos.
-    const target = e?.target;
-    const isInteractiveTarget = Boolean(
-      target &&
-      typeof target.closest === 'function' &&
-      target.closest('button,[role="button"],a,input,textarea,select,label,[data-drag-scroll-ignore="true"]')
-    );
     const el = scrollRef.current;
     if (!el) return;
 
@@ -31,13 +22,7 @@ export default function useHorizontalDragScroll({
     dragRef.current.startX = e.clientX;
     dragRef.current.startScrollLeft = el.scrollLeft;
     dragRef.current.moved = false;
-
-    try {
-      // Solo capturar puntero si NO arrancamos sobre un control interactivo.
-      if (!isInteractiveTarget) el.setPointerCapture?.(e.pointerId);
-    } catch {
-      // noop
-    }
+    dragRef.current.captured = false;
 
     setIsDragging(true);
   }, [enabled]);
@@ -49,17 +34,37 @@ export default function useHorizontalDragScroll({
     if (!dragRef.current.isDown) return;
 
     const dx = e.clientX - dragRef.current.startX;
-    if (Math.abs(dx) > thresholdPx) dragRef.current.moved = true;
-    if (dragRef.current.moved) e.preventDefault?.();
-    el.scrollLeft = dragRef.current.startScrollLeft - dx;
+    if (Math.abs(dx) > thresholdPx) {
+      dragRef.current.moved = true;
+      if (!dragRef.current.captured) {
+        try {
+          el.setPointerCapture?.(e.pointerId);
+          dragRef.current.captured = true;
+        } catch {
+          // noop
+        }
+      }
+    }
+    if (dragRef.current.moved) {
+      e.preventDefault?.();
+      el.scrollLeft = dragRef.current.startScrollLeft - dx;
+    }
   }, [enabled, thresholdPx]);
 
-  const endDrag = useCallback(() => {
+  const endDrag = useCallback((e) => {
     if (!enabled) return;
+    const el = scrollRef.current;
+    if (dragRef.current.captured && el) {
+      try {
+        el.releasePointerCapture?.(e?.pointerId);
+      } catch {
+        // noop
+      }
+    }
     dragRef.current.isDown = false;
+    dragRef.current.captured = false;
     setIsDragging(false);
 
-    // Importante: mantener moved=true hasta el próximo tick para bloquear clicks post-drag.
     if (dragRef.current.moved) {
       setTimeout(() => {
         dragRef.current.moved = false;
@@ -68,6 +73,20 @@ export default function useHorizontalDragScroll({
       dragRef.current.moved = false;
     }
   }, [enabled]);
+
+  useEffect(() => {
+    if (!enabled || !isDragging) return undefined;
+    const handleMove = (e) => onPointerMove(e);
+    const handleEnd = (e) => endDrag(e);
+    window.addEventListener('pointermove', handleMove);
+    window.addEventListener('pointerup', handleEnd);
+    window.addEventListener('pointercancel', handleEnd);
+    return () => {
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleEnd);
+      window.removeEventListener('pointercancel', handleEnd);
+    };
+  }, [enabled, isDragging, onPointerMove, endDrag]);
 
   return {
     scrollRef,

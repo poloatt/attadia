@@ -16,7 +16,6 @@ import { getAgendaBarSlot } from './toolbarRegistry';
 import { resolveAttaBranchHubPath, resolveFocoBranchHubPath } from './appNavResolver';
 import { isAttaToolbarPath, isPulsoToolbarPath } from './unifiedBarPaths';
 import { isFocoHubPath } from './tiempoToolbarPaths';
-import { getRutinaPageContentShellSx } from '../styles/rutinaPageStyles';
 
 /**
  * Barra superior unificada (Foco / Atta / Pulso):
@@ -66,12 +65,14 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
   const showFocoBranchBack = !!resolveFocoBranchHubPath(path);
   const TOOLBAR_BACK_SLOT_WIDTH = 34;
   const showBranchBack = (showAttaBranchBack || showFocoBranchBack) && !isMobile;
-  const MOBILE_LEFT_INSET = 8;
-  const rutinasMobileShellInset = showRutinasActions && isMobileOrTablet;
-  const baseCenterInsetLeft = isMobileOrTablet
-    ? (rutinasMobileShellInset ? 0 : MOBILE_LEFT_INSET)
-    : (mainMargin < collapsedWidth ? collapsedWidth : mainMargin);
-  const centerActionsInsetLeft = showBranchBack
+  const MOBILE_LEFT_INSET = 0;
+  const rutinasFullBleedLeft = showRutinasActions && isMobileOrTablet;
+  const baseCenterInsetLeft = rutinasFullBleedLeft
+    ? 0
+    : isMobileOrTablet
+      ? MOBILE_LEFT_INSET
+      : (mainMargin < collapsedWidth ? collapsedWidth : mainMargin);
+  const centerActionsInsetLeft = showBranchBack && !showRutinasActions
     ? baseCenterInsetLeft + TOOLBAR_BACK_SLOT_WIDTH
     : baseCenterInsetLeft;
   const gridMarginRight = collapsedWidth;
@@ -88,6 +89,7 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
         position: 'relative',
         display: 'flex',
         alignItems: 'center',
+        overflow: 'visible',
       }}
     >
       {useCenterActionsOverlay && (
@@ -110,9 +112,8 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
           {showRutinasActions && FocoCenterActions && (
             <Box
               sx={{
-                ...(isMobileOrTablet ? getRutinaPageContentShellSx(true) : {}),
                 display: 'flex',
-                justifyContent: isMobileOrTablet ? 'flex-end' : 'center',
+                justifyContent: isMobileOrTablet ? 'flex-start' : 'center',
                 width: isMobileOrTablet ? '100%' : 'auto',
                 pointerEvents: 'none',
                 '& > *': { pointerEvents: 'auto' },
@@ -203,6 +204,7 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
           gap: { xs: 0.5, sm: 1 },
           px: { xs: 0.5, sm: 1, md: 1.5 },
           position: 'relative',
+          overflow: 'visible',
         }}
       >
         {showGridCenter && (
@@ -213,7 +215,7 @@ export default function AgendaUnifiedBar({ currentPath = '' }) {
               justifyContent: isMobileOrTablet ? 'flex-start' : 'center',
               minWidth: 0,
               minHeight: 26,
-              overflow: 'hidden',
+              overflow: 'visible',
               width: '100%',
               height: '100%',
               position: 'relative',

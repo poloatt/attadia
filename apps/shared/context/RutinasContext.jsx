@@ -2,7 +2,9 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useLocation } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '../config/axios';
-import { getNormalizedToday, toISODateString, parseAPIDate } from '../utils/dateUtils';
+import { startOfDay } from 'date-fns';
+import { getNormalizedToday, toISODateString, parseAPIDate, formatDateForAPI } from '../utils/dateUtils';
+import { resolveHabitConfigApplyFrom } from '../utils/rutinasPageUtils';
 import rutinasService from '../services/rutinasService';
 import { UISettingsContext } from './UISettingsContext';
 import { calculateCompletionPercentage } from '../utils/rutinaCalculations';
@@ -88,6 +90,7 @@ export const RutinasProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [viewDate, setViewDate] = useState(() => startOfDay(getNormalizedToday()));
   
   const { enqueueSnackbar } = useSnackbar();
   const uiContext = React.useContext(UISettingsContext);
@@ -152,7 +155,6 @@ export const RutinasProvider = ({ children }) => {
       });
 
       if (!hasToday && !ensureTodayAttemptedRef.current) {
-        ensureTodayAttemptedRef.current = true;
         try {
           // Verificar primero si la rutina de hoy ya existe en el servidor. Evita
           // un POST que devolvería 409 cuando `hasToday` falla por desfase de
@@ -163,6 +165,7 @@ export const RutinasProvider = ({ children }) => {
             );
             if (verify.data?.exists && verify.data?.rutinaId) {
               await getRutinaById(verify.data.rutinaId);
+              ensureTodayAttemptedRef.current = true;
               return;
             }
           } catch {
@@ -182,6 +185,7 @@ export const RutinasProvider = ({ children }) => {
             _totalPages: mergedWithHist.length
           });
           setCurrentPage(1);
+          ensureTodayAttemptedRef.current = true;
           return; // ya seleccionamos hoy
         } catch (e) {
           const status = e?.response?.status;
@@ -189,9 +193,10 @@ export const RutinasProvider = ({ children }) => {
           if (status === 409 && rutinaId) {
             // Ya existe: cargarla y seleccionarla
             await getRutinaById(rutinaId);
+            ensureTodayAttemptedRef.current = true;
             return;
           }
-          // Si falla, no bloquear UX: se seguirá comportando como antes (sin rutina de hoy)
+          // Si falla, no bloquear reintento en la próxima fetchRutinas
         }
       }
 
@@ -213,6 +218,13 @@ export const RutinasProvider = ({ children }) => {
           _totalPages: totalRutinas
         });
         setCurrentPage(selectedIndex + 1);
+        if (selected?.fecha) {
+          try {
+            setViewDate(startOfDay(parseAPIDate(selected.fecha)));
+          } catch {
+            // mantener viewDate
+          }
+        }
       } else {
         setRutina(null);
         setCurrentPage(1);
@@ -290,7 +302,14 @@ export const RutinasProvider = ({ children }) => {
       
       setRutina(rutinaActualizada);
       setCurrentPage(page);
-      
+      if (rutinaData?.fecha) {
+        try {
+          setViewDate(startOfDay(parseAPIDate(rutinaData.fecha)));
+        } catch {
+          // mantener viewDate actual
+        }
+      }
+
       return rutinaActualizada;
     } catch (error) {
       console.error(`[RutinasContext] Error al cargar rutina con ID ${rutinaId}:`, error);
@@ -301,7 +320,13 @@ export const RutinasProvider = ({ children }) => {
     }
   }, [enqueueSnackbar]);
 
-  // Navegación entre rutinas
+  const previewRutinaDate = useCallback((date) => {
+    if (!date) return;
+    setViewDate(startOfDay(date));
+    setRutina(null);
+  }, []);
+
+  // Navegación entre rutinas (legacy por índice — preferir useRutinaDateNav)
   const handlePrevious = useCallback(() => {
     if (currentPage > 1 && !loading) {
       const newPage = currentPage - 1;
@@ -527,11 +552,15 @@ export const RutinasProvider = ({ children }) => {
 
   // Actualizar preferencia de hábito del usuario (preferencias globales + rutina actual)
   // IMPORTANTE: Esta función debe definirse ANTES de updateItemConfiguration porque updateItemConfiguration la usa
-  const updateUserHabitPreference = useCallback(async (section, itemId, config, applyToCurrentRutina = true) => {
-    // #region agent log
-    // #endregion
+  const updateUserHabitPreference = useCallback(async (
+    section,
+    itemId,
+    config,
+    applyToCurrentRutina = true,
+    applyFromDate = null,
+  ) => {
+    const applyFrom = applyFromDate || formatDateForAPI(getNormalizedToday());
     try {
-      // Normalizar configuración
       const normalizedConfig = {
         tipo: (config.tipo || 'DIARIO').toUpperCase(),
         frecuencia: Number(config.frecuencia || 1),
@@ -544,18 +573,14 @@ export const RutinasProvider = ({ children }) => {
         ultimaActualizacion: new Date().toISOString()
       };
 
-      // #region agent log
-      // #endregion
-
-      // Actualizar preferencias globales y propagar a rutinas desde hoy
       await clienteAxios.put('/api/users/preferences/habits', {
         habits: {
           [section]: {
             [itemId]: normalizedConfig
           }
         },
-        applyFrom: 'today',
-      }, { params: { applyFrom: 'today' } });
+        applyFrom,
+      }, { params: { applyFrom } });
 
       invalidateHabitsPreferencesCache();
 
@@ -588,7 +613,7 @@ export const RutinasProvider = ({ children }) => {
   const updateItemConfiguration = useCallback(async (section, itemId, config, options = {}) => {
     // #region agent log
     // #endregion
-    const { isGlobal = autoUpdateHabitPreferences, rutinaId = null } = options;
+    const { isGlobal = autoUpdateHabitPreferences, rutinaId = null, applyFromDate = null } = options;
     
     if (!section || !itemId || !config) {
       // #region agent log
@@ -604,6 +629,10 @@ export const RutinasProvider = ({ children }) => {
       handleError(new Error('No hay rutina para actualizar'), 'updateItemConfiguration', 'No hay rutina actual');
       return { updated: false, error: "No hay rutina actual" };
     }
+
+    const targetRutinaRecord = rutinas.find((r) => r._id === targetRutinaId)
+      || (rutina?._id === targetRutinaId ? rutina : null);
+    const effectiveApplyFrom = applyFromDate || resolveHabitConfigApplyFrom(targetRutinaRecord?.fecha || rutina?.fecha);
 
     try {
       const originalConfig = rutina?.config?.[section]?.[itemId]
@@ -634,7 +663,13 @@ export const RutinasProvider = ({ children }) => {
           // #region agent log
           // #endregion
           // Usar la función del contexto que actualiza preferencias y rutina actual
-          const prefResult = await updateUserHabitPreference(section, itemId, normalizedConfig, true);
+          const prefResult = await updateUserHabitPreference(
+            section,
+            itemId,
+            normalizedConfig,
+            true,
+            effectiveApplyFrom,
+          );
           // #region agent log
           // #endregion
           if (!prefResult || !prefResult.updated) {
@@ -687,14 +722,19 @@ export const RutinasProvider = ({ children }) => {
         });
       }
       
-      enqueueSnackbar("Configuración guardada", { variant: "success" });
-      return { updated: true, config: normalizedConfig };
+      enqueueSnackbar(
+        effectiveApplyFrom === formatDateForAPI(getNormalizedToday())
+          ? 'Configuración guardada'
+          : `Configuración aplicada desde ${effectiveApplyFrom}`,
+        { variant: 'success' },
+      );
+      return { updated: true, config: normalizedConfig, applyFrom: effectiveApplyFrom };
         
     } catch (error) {
       handleError(error, 'updateItemConfiguration', 'Error inesperado al actualizar configuración');
       return { updated: false, error: error.message };
     }
-  }, [rutina, enqueueSnackbar, handleError, autoUpdateHabitPreferences, patchRutinaItemConfig, updateUserHabitPreference, undoScope, undoRecorder]);
+  }, [rutina, rutinas, enqueueSnackbar, handleError, autoUpdateHabitPreferences, patchRutinaItemConfig, updateUserHabitPreference, undoScope, undoRecorder]);
 
   // Eliminar una rutina
   const deleteRutina = useCallback(async (rutinaId) => {
@@ -780,6 +820,9 @@ export const RutinasProvider = ({ children }) => {
     error,
     currentPage,
     totalPages,
+    viewDate,
+    setViewDate,
+    previewRutinaDate,
     setRutina,
     fetchRutinas,
     getRutinaById,
@@ -799,6 +842,8 @@ export const RutinasProvider = ({ children }) => {
     error,
     currentPage,
     totalPages,
+    viewDate,
+    previewRutinaDate,
     setRutina,
     fetchRutinas,
     getRutinaById,

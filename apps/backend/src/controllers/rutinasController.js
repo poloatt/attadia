@@ -692,44 +692,37 @@ class RutinasController extends BaseController {
       const user = await Users.findById(req.user.id).select('preferences.timezone');
       const timezone = timezoneUtils.getUserTimezone(user);
       
-      // Normalizar la fecha usando el timezone del usuario
-      const fechaInput = new Date(fecha);
-      
-      // Comprobar si la fecha es válida
-      if (isNaN(fechaInput.getTime())) {
+      // Normalizar la fecha usando el timezone del usuario (mismo parsing que create)
+      const isYMD = typeof fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fecha);
+      const fechaRutina = isYMD ? fecha : new Date(fecha);
+
+      if (!isYMD && isNaN(fechaRutina.getTime())) {
         logger.dev('[rutinasController] Fecha inválida recibida', { fecha });
-        return res.status(400).json({ 
-          error: 'Formato de fecha inválido', 
+        return res.status(400).json({
+          error: 'Formato de fecha inválido',
           fecha,
-          detalles: 'La fecha proporcionada no es válida'
+          detalles: 'La fecha proporcionada no es válida',
         });
       }
-      
-      // Normalizar usando el timezone del usuario
-      const fechaInicio = timezoneUtils.normalizeToStartOfDay(fechaInput, timezone);
-      const fechaFin = timezoneUtils.normalizeToEndOfDay(fechaInput, timezone);
-      
-      if (!fechaInicio || !fechaFin) {
-        return res.status(400).json({ 
+
+      const fechaNormalizada = timezoneUtils.normalizeToStartOfDay(fechaRutina, timezone);
+
+      if (!fechaNormalizada) {
+        return res.status(400).json({
           error: 'Error al normalizar fecha',
-          detalles: 'No se pudo normalizar la fecha proporcionada'
+          detalles: 'No se pudo normalizar la fecha proporcionada',
         });
       }
-      
+
       logger.dev('[rutinasController] Verificando rutina existente', {
-        fechaInicio: fechaInicio.toISOString(),
-        fechaFin: fechaFin.toISOString(),
-        timezone: timezone,
-        usuario: req.user.id
+        fechaNormalizada: fechaNormalizada.toISOString(),
+        timezone,
+        usuario: req.user.id,
       });
-      
-      // Verificar si ya existe una rutina para este día usando un rango más preciso
+
       const existingRutina = await this.Model.findOne({
-        fecha: {
-          $gte: fechaInicio,
-          $lte: fechaFin
-        },
-        usuario: req.user.id
+        fecha: fechaNormalizada,
+        usuario: req.user.id,
       }).lean();
       
       if (existingRutina) {
@@ -748,9 +741,9 @@ class RutinasController extends BaseController {
       
       return res.json({
         exists: false,
-        fechaNormalizada: fechaInicio.toISOString(),
-        timezone: timezone,
-        mensaje: 'Fecha disponible para crear rutina'
+        fechaNormalizada: fechaNormalizada.toISOString(),
+        timezone,
+        mensaje: 'Fecha disponible para crear rutina',
       });
     } catch (error) {
       console.error('[rutinasController] Error al verificar fecha:', error);

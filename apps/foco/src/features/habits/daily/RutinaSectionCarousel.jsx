@@ -1,15 +1,17 @@
 import React, { useMemo } from 'react';
 import { Box } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { isSameDay, startOfDay } from 'date-fns';
 import { buildHabitSectionIconsMap, getHabitDisplayLabel } from '@shared/utils/habitSectionIcons';
 import { getCurrentTimeOfDay } from '@shared/utils/timeOfDayUtils';
+import { getNormalizedToday, parseAPIDate } from '@shared/utils/dateUtils';
 import { resolveRutinaItemConfig } from '@shared/utils/habitVisibilityEngine';
 import { getSectionCarouselItems } from '@shared/utils/rutinaDesktopUtils';
 import HabitCarouselIconButton from '@foco/features/habits/carousel/HabitCarouselIconButton';
 import { getHabitCarouselSurface } from '@foco/features/habits/carousel/habitCarouselSurface';
 
 /**
- * Fila de carrusel horizontal con todos los hábitos de una sección (estilo hub Foco).
+ * Fila de carrusel horizontal con todos los hábitos de una sección (colapsado, sin franjas).
  */
 export default function RutinaSectionCarousel({
   section,
@@ -22,7 +24,16 @@ export default function RutinaSectionCarousel({
 }) {
   const theme = useTheme();
   const { size, bg, hoverBg, rail, dividerColor } = getHabitCarouselSurface(theme, { dense });
-  const currentTimeOfDay = getCurrentTimeOfDay();
+  const rutinaDate = useMemo(() => {
+    if (!rutina?.fecha) return getNormalizedToday();
+    try {
+      return startOfDay(parseAPIDate(rutina.fecha));
+    } catch {
+      return getNormalizedToday();
+    }
+  }, [rutina?.fecha]);
+  const isViewingToday = isSameDay(rutinaDate, getNormalizedToday());
+  const currentTimeOfDay = isViewingToday ? getCurrentTimeOfDay() : 'MAÑANA';
   const sectionIconsMap = useMemo(() => buildHabitSectionIconsMap(habits), [habits]);
 
   const carouselItems = useMemo(

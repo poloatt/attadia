@@ -7,7 +7,16 @@ import { useAuth } from '../context/AuthContext';
 import { Header, Toolbar, AgendaUnifiedBar } from '../navigation';
 import RutinaPageNavigationBar from '../navigation/RutinaPageNavigationBar.jsx';
 import { isUnifiedToolbarPath } from '../navigation/unifiedBarPaths';
-import { calculateTopPadding, getMainBottomPadding, HEADER_CONFIG, FOOTER_CONFIG, SPACING, isRutinasPath } from '../config/uiConstants.js';
+import {
+  calculateTopPadding,
+  getMainBottomPadding,
+  getRutinaPageMainMargin,
+  shouldRenderAppSidebar,
+  HEADER_CONFIG,
+  FOOTER_CONFIG,
+  SPACING,
+  isRutinasPath,
+} from '../config/uiConstants.js';
 import { Footer } from '../navigation';
 import { Sidebar, BottomNavigation } from '../navigation';
 import { CustomSnackbarProvider } from '../components/common';
@@ -62,8 +71,10 @@ export function Layout() {
   // En tablet/desktop la Toolbar siempre debe mostrarse (evita que quede "oculta" en pantallas medianas).
   const showToolbar = isMobile ? showEntityToolbarNavigation : true;
   const unifiedBar = isUnifiedToolbarPath(currentPath);
-  const rutinasSubNav = unifiedBar && isRutinasPath(currentPath);
+  const isRutinasPage = isRutinasPath(currentPath);
+  const rutinasSubNav = unifiedBar && isRutinasPage;
   const totalTopPadding = calculateTopPadding(showToolbar, unifiedBar, rutinasSubNav);
+  const sidebarTopPadding = calculateTopPadding(showToolbar, unifiedBar, false);
   const showHeader = !unifiedBar;
   const showLegacyToolbar = showToolbar && !unifiedBar;
   const showAgendaBar = unifiedBar;
@@ -71,15 +82,16 @@ export function Layout() {
   // Padding superior para el main
   const mainTopPadding = totalTopPadding;
 
-  // Sidebar solo en desktop; en móvil/tablet se usa BottomNavigation
-  const shouldRenderSidebar = !isMobileOrTablet;
+  // Sidebar en desktop salvo rutinas (full-bleed); móvil/tablet usa BottomNavigation
+  const shouldRenderSidebar = shouldRenderAppSidebar(isMobileOrTablet, currentPath);
 
-  // Calcular el margen para el contenido principal en desktop
   const getMainContentMargin = () => {
-    if (isMobileOrTablet) {
-      return 0; // En móvil/tablet, el contenido ocupa todo el ancho
+    if (isRutinasPage) {
+      return getRutinaPageMainMargin(isMobileOrTablet, isOpen, sidebarWidth);
     }
-    // En desktop, siempre dejar espacio para la sidebar (colapsada o expandida)
+    if (isMobileOrTablet) {
+      return 0;
+    }
     return isOpen ? sidebarWidth : collapsedWidth;
   };
 
@@ -96,12 +108,12 @@ export function Layout() {
           </Box>
         )}
         {showAgendaBar && (
-          <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', zIndex: 1400 }}>
+          <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', zIndex: 1400, overflow: 'visible' }}>
             <AgendaUnifiedBar currentPath={currentPath} />
           </Box>
         )}
         {/* Toolbar + Sidebar + Main: envueltos por RutinasProvider cuando corresponde */}
-        {(currentPath.startsWith('/tiempo/rutinas') || currentPath.startsWith('/rutinas')) ? (
+        {isRutinasPage ? (
           <MaybeRutinasProvider>
             {showAgendaBar && <RutinaPageNavigationBar />}
             {/* Toolbar siempre se renderiza */}
@@ -119,11 +131,11 @@ export function Layout() {
               <Box
                 sx={{
                   position: 'fixed',
-                  top: `${totalTopPadding}px`,
+                  top: `${sidebarTopPadding}px`,
                   left: 0,
                   height: isMobile
-                    ? `calc(100vh - ${totalTopPadding}px - ${SPACING.bottomNavigationHeight}px)`
-                    : `calc(100vh - ${totalTopPadding}px - ${FOOTER_CONFIG.height}px)`,
+                    ? `calc(100vh - ${sidebarTopPadding}px - ${SPACING.bottomNavigationHeight}px)`
+                    : `calc(100vh - ${sidebarTopPadding}px - ${FOOTER_CONFIG.height}px)`,
                   zIndex: 1100,
                   width: isOpen ? sidebarWidth : collapsedWidth,
                   transition: 'width 0.3s',
@@ -200,11 +212,11 @@ export function Layout() {
               <Box
                 sx={{
                   position: 'fixed',
-                  top: `${totalTopPadding}px`,
+                  top: `${sidebarTopPadding}px`,
                   left: 0,
                   height: isMobile
-                    ? `calc(100vh - ${totalTopPadding}px - ${SPACING.bottomNavigationHeight}px)`
-                    : `calc(100vh - ${totalTopPadding}px - ${FOOTER_CONFIG.height}px)`,
+                    ? `calc(100vh - ${sidebarTopPadding}px - ${SPACING.bottomNavigationHeight}px)`
+                    : `calc(100vh - ${sidebarTopPadding}px - ${FOOTER_CONFIG.height}px)`,
                   zIndex: 1100,
                   width: isOpen ? sidebarWidth : collapsedWidth,
                   transition: 'width 0.3s',

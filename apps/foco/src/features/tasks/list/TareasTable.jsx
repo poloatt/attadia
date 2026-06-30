@@ -887,9 +887,9 @@ const TareasTable = ({ tareas, onEdit, onDelete, onUpdateEstado, isArchive = fal
         }}
       >
         {agendaView === 'ahora' ? (
-          <HabitCarouselAhora variant="iconsRow" showDividers={false} />
+          <HabitCarouselAhora variant="iconsRow" showDividers={false} showCompletedToggle />
         ) : (
-          <HabitCarouselLuego variant="iconsRow" showDividers={false} />
+          <HabitCarouselLuego variant="iconsRow" showDividers={false} showCompletedToggle />
         )}
       </Box>
     </Paper>

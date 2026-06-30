@@ -5,7 +5,7 @@ import { SIDEBAR_CONFIG, STORAGE_KEYS, calculateMainMargin, getChildPadding } fr
 const SidebarContext = createContext();
 
 export function SidebarProvider({ children }) {
-  const { isDesktop } = useResponsive();
+  const { isDesktop, isMobileOrTablet } = useResponsive();
 
   // Estado inicial de apertura/cierre
   const getInitialSidebarState = () => {
@@ -31,22 +31,25 @@ export function SidebarProvider({ children }) {
 
   // Cambiar estado y persistir
   const toggleSidebar = useCallback(() => {
+    if (isMobileOrTablet) return;
     setIsOpen(prev => {
       const newState = !prev;
       localStorage.setItem(STORAGE_KEYS.sidebarOpen, newState.toString());
       return newState;
     });
-  }, []);
+  }, [isMobileOrTablet]);
 
   const closeSidebar = useCallback(() => {
+    if (isMobileOrTablet) return;
     setIsOpen(false);
     localStorage.setItem(STORAGE_KEYS.sidebarOpen, 'false');
-  }, []);
+  }, [isMobileOrTablet]);
 
   const openSidebar = useCallback(() => {
+    if (isMobileOrTablet) return;
     setIsOpen(true);
     localStorage.setItem(STORAGE_KEYS.sidebarOpen, 'true');
-  }, []);
+  }, [isMobileOrTablet]);
 
   // Función para manejar el resize de la sidebar
   const handleSidebarResize = useCallback((newWidth) => {

@@ -2,7 +2,7 @@
 
 let toolbarModules = [];
 const agendaBarSlots = {};
-let RutinaNavigationComponent = null;
+let RutinaDateHeroBarComponent = null;
 
 export function registerToolbarModules(modules) {
   toolbarModules = modules;
@@ -20,10 +20,20 @@ export function getAgendaBarSlot(name) {
   return agendaBarSlots[name] || null;
 }
 
-export function registerRutinaNavigation(Component) {
-  RutinaNavigationComponent = Component;
+export function registerRutinaDateHeroBar(Component) {
+  RutinaDateHeroBarComponent = Component;
 }
 
+export function getRutinaDateHeroBar() {
+  return RutinaDateHeroBarComponent;
+}
+
+/** @deprecated Usar registerRutinaDateHeroBar */
+export function registerRutinaNavigation(Component) {
+  registerRutinaDateHeroBar(Component);
+}
+
+/** @deprecated Usar getRutinaDateHeroBar */
 export function getRutinaNavigation() {
-  return RutinaNavigationComponent;
+  return getRutinaDateHeroBar();
 }

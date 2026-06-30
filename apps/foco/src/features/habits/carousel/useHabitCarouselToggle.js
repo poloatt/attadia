@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { getHorarioForCarousel } from '@shared/utils/habitTimeLogic';
 import { computeCarouselToggleValue } from '@shared/utils/habitToggleUtils';
+import { computeRutinaToggleValue } from '@shared/domain/habits';
 import { resolveCarouselItemConfig } from '@shared/utils/habitVisibilityEngine';
 
 /**
@@ -19,7 +20,7 @@ export default function useHabitCarouselToggle({
 }) {
   const logPrefix = mode === 'luego' ? '[HabitCarouselLuego]' : '[HabitCarouselAhora]';
 
-  return useCallback(async (section, itemId) => {
+  return useCallback(async (section, itemId, horarioProp = null) => {
     if (!interactive) return;
     if (dragRef.current.moved) return;
     if (!rutinaHoy?._id) return;
@@ -34,7 +35,9 @@ export default function useHabitCarouselToggle({
     const horariosConfig = Array.isArray(itemConfig.horarios) ? itemConfig.horarios : [];
 
     let normalizedHorario;
-    if (horariosConfig.length > 1) {
+    if (horarioProp) {
+      normalizedHorario = String(horarioProp).toUpperCase();
+    } else if (horariosConfig.length > 1) {
       const completadoHoy = itemValue !== undefined ? itemValue : false;
       const horarioToMark = getHorarioForCarousel(
         mode,
@@ -48,11 +51,19 @@ export default function useHabitCarouselToggle({
       normalizedHorario = String(horariosConfig[0]).toUpperCase();
     }
 
-    const newValue = computeCarouselToggleValue({
-      itemValue,
-      horariosConfig,
-      normalizedHorario,
-    });
+    const newValue = horarioProp
+      ? computeRutinaToggleValue({
+        section,
+        itemId,
+        rutina: rutinaHoy,
+        habitsPreferences,
+        horario: horarioProp,
+      })
+      : computeCarouselToggleValue({
+        itemValue,
+        horariosConfig,
+        normalizedHorario,
+      });
 
     const itemData = { [itemId]: newValue };
     const previousValue = itemValue;

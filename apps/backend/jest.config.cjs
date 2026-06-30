@@ -6,5 +6,6 @@ module.exports = {
   moduleFileExtensions: ['js'],
   moduleNameMapper: {
     '^@shared/(.*)$': '<rootDir>/../shared/$1',
+    '^@foco/(.*)$': '<rootDir>/../foco/src/$1',
   },
 };

@@ -284,6 +284,8 @@ export const GuardarTabButton = ({ onClick, disabled = false, loading = false, s
 // HeaderMenuButton
 function HeaderMenuButton({ sx, disabled = false }) {
   const { toggleSidebar } = useSidebar();
+  const { isMobileOrTablet } = useResponsive();
+  if (isMobileOrTablet) return null;
   const btn = (
     <IconButton
       onClick={toggleSidebar}
@@ -615,7 +617,7 @@ function ScopedUndoButton({ iconSx, buttonSx, scope: scopeProp, disabled = false
   };
 
   return (
-    <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+    <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', overflow: 'visible' }}>
       <Tooltip title={`Deshacer última acción (${count} disponible${count > 1 ? 's' : ''})`}>
         <span>
           <IconButton
@@ -628,6 +630,7 @@ function ScopedUndoButton({ iconSx, buttonSx, scope: scopeProp, disabled = false
               padding: finalPadding,
               color: 'text.secondary',
               position: 'relative',
+              overflow: 'visible',
               ...restButtonSx,
               '&:hover': hoverStyles || {
                 backgroundColor: 'action.hover',
@@ -641,9 +644,9 @@ function ScopedUndoButton({ iconSx, buttonSx, scope: scopeProp, disabled = false
               <span
                 style={{
                   position: 'absolute',
-                  top: '-2px',
-                  right: '-2px',
-                  fontSize: '10px',
+                  top: '2px',
+                  right: '2px',
+                  fontSize: '9px',
                   fontWeight: 'bold',
                   color: 'inherit',
                   lineHeight: 1,
@@ -1021,6 +1024,8 @@ SystemButtons.AppsButton = HeaderAppsButton;
 // Exportar MenuButton explícitamente para uso directo
 export function MenuButton(props) {
   const { toggleSidebar } = useSidebar();
+  const { isMobileOrTablet } = useResponsive();
+  if (isMobileOrTablet) return null;
   return (
     <IconButton
       onClick={toggleSidebar}

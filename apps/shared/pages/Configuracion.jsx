@@ -28,8 +28,6 @@ export function Configuracion() {
   const { 
     showEntityToolbarNavigation, 
     toggleEntityToolbarNavigation,
-    showSidebarCollapsed,
-    toggleSidebarCollapsed
   } = useUISettings();
   const { isOpen, toggleSidebar } = useSidebar();
   const { logout, user, loading } = useAuth();
@@ -78,32 +76,6 @@ export function Configuracion() {
           </Typography>
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <FormControl component="fieldset">
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={showSidebarCollapsed}
-                    onChange={toggleSidebarCollapsed}
-                    color="primary"
-                    disabled={!isMobile} // Solo habilitado en móvil
-                  />
-                }
-                label={
-                  <Box>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      Habilitar Sidebar
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Muestra u oculta la barra lateral de navegación (solo en móvil)
-                    </Typography>
-                  </Box>
-                }
-                sx={{ alignItems: 'flex-start', m: 0 }}
-              />
-            </FormControl>
-
-            <Divider />
-
             <FormControl component="fieldset">
               <FormControlLabel
                 control={

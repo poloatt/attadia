@@ -5,11 +5,14 @@ import { isToday, startOfDay } from 'date-fns';
 import { useResponsive } from '@shared/hooks';
 import CalendarDateHeroContent, {
   RutinaCompletionPctChip,
+  DAY_MODE_LABEL,
+  getRutinaProgressBarSx,
 } from '@shared/components/calendar/CalendarDateHeroContent';
+import { useTheme } from '@mui/material/styles';
 import {
-  getTodayCalendarDate,
   isViewingTodayInCalendar,
 } from '@shared/utils/focoNavigationUtils';
+import { formatDateForAPI, getNormalizedToday } from '@shared/utils/dateUtils';
 import CalendarDatePickerPopover from './CalendarDatePickerPopover';
 import AgendaCalendarNavChevrons from './AgendaCalendarNavChevrons';
 import { useAgendaCalendarDatePicker } from './useAgendaCalendarDatePicker';
@@ -52,7 +55,6 @@ export default function AgendaCalendarDateHeader({
   mode = 'agenda',
   onDateClick,
   loading = false,
-  positionLabel = '',
   viewingToday: viewingTodayProp,
   pickerOpen: pickerOpenProp,
   pickerAnchor: pickerAnchorProp,
@@ -66,8 +68,10 @@ export default function AgendaCalendarDateHeader({
   dayMode = null,
   hideOuterBorder = false,
   bleedProgressBar = false,
+  onGoToToday = null,
 }) {
   const isRutina = mode === 'rutina';
+  const theme = useTheme();
   const { isMobile } = useResponsive();
   const showPickerActions = isRutina || isMobile;
   const {
@@ -88,10 +92,17 @@ export default function AgendaCalendarDateHeader({
   const viewingToday = viewingTodayProp ?? isViewingTodayInCalendar(normalized, viewMode);
 
   const goToToday = useCallback(() => {
+    if (onGoToToday) {
+      onGoToToday();
+      return;
+    }
     window.dispatchEvent(new CustomEvent('navigate', {
-      detail: { direction: 'today', date: getTodayCalendarDate().toISOString() },
+      detail: {
+        direction: 'today',
+        date: formatDateForAPI(getNormalizedToday()),
+      },
     }));
-  }, []);
+  }, [onGoToToday]);
 
   const handleToggleView = useCallback(() => {
     window.dispatchEvent(new CustomEvent('agendaToggleViewMode'));
@@ -116,6 +127,10 @@ export default function AgendaCalendarDateHeader({
   const isRutinaNarrow = isRutina && isMobile;
   const rutinaPctLabel = showProgress ? `${completionPercentage}%` : '—';
 
+  const rutinaModeLabel = isRutina && dayMode && dayMode !== 'today'
+    ? DAY_MODE_LABEL[dayMode]
+    : null;
+
   return (
     <Box
       sx={{
@@ -135,22 +150,41 @@ export default function AgendaCalendarDateHeader({
     >
       <Box
         sx={{
+          position: 'relative',
           display: 'flex',
           flexDirection: isRutinaNarrow ? 'column' : 'row',
-          alignItems: isRutinaNarrow ? 'stretch' : (isRutina ? 'center' : 'flex-start'),
-          gap: isRutina ? { xs: 0.25, sm: 0.5 } : 0.5,
+          alignItems: isRutinaNarrow ? 'stretch' : 'center',
+          gap: isRutina ? { xs: 0.25, sm: 0.375 } : 0.5,
           width: '100%',
           minWidth: 0,
           overflow: isRutinaNarrow ? 'visible' : (isRutina ? 'hidden' : 'visible'),
         }}
       >
+        {rutinaModeLabel ? (
+          <Typography
+            variant="caption"
+            color="text.disabled"
+            sx={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              fontWeight: 400,
+              lineHeight: 1.2,
+              zIndex: 1,
+              pointerEvents: 'none',
+            }}
+          >
+            {rutinaModeLabel}
+          </Typography>
+        ) : null}
         <Tooltip title={heroTooltip}>
           <span
             style={{
               display: 'inline-flex',
-              flex: isRutinaNarrow ? undefined : 1,
+              flex: isRutinaNarrow ? undefined : '0 1 auto',
               minWidth: 0,
               width: isRutinaNarrow ? '100%' : undefined,
+              paddingRight: rutinaModeLabel ? 52 : undefined,
             }}
           >
             <ButtonBase
@@ -160,9 +194,9 @@ export default function AgendaCalendarDateHeader({
               sx={{
                 borderRadius: 2,
                 px: isRutina ? 0 : 1,
-                py: 0.5,
+                py: isRutina ? 0 : 0.5,
                 textAlign: 'left',
-                flex: 1,
+                flex: isRutinaNarrow ? 1 : undefined,
                 width: isRutinaNarrow ? '100%' : undefined,
                 justifyContent: 'flex-start',
                 '&:hover': { bgcolor: loading && isRutina ? 'transparent' : 'action.hover' },
@@ -170,7 +204,7 @@ export default function AgendaCalendarDateHeader({
             >
               <CalendarDateHeroContent
                 date={normalized}
-                subtitle={isRutinaNarrow ? '' : positionLabel}
+                subtitle=""
                 variant={isRutina ? 'rutina' : 'default'}
                 completionPercentage={completionPercentage}
                 completionColor={completionColor}
@@ -186,43 +220,24 @@ export default function AgendaCalendarDateHeader({
             sx={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: isRutinaNarrow
-                ? (positionLabel ? 'space-between' : 'flex-end')
-                : undefined,
-              gap: { xs: 0.25, sm: 0.25 },
+              justifyContent: isRutinaNarrow ? 'flex-end' : 'flex-end',
+              gap: { xs: 0.125, sm: 0.25 },
               flexShrink: 0,
               height: 26,
               width: isRutinaNarrow ? '100%' : undefined,
               minWidth: 0,
+              ml: isRutina && !isRutinaNarrow ? 'auto' : undefined,
               pr: isRutina ? 0 : undefined,
             }}
           >
             {isRutina ? (
               <>
-                {isRutinaNarrow && positionLabel ? (
-                  <Typography
-                    variant="caption"
-                    color="text.disabled"
-                    noWrap
-                    sx={{
-                      lineHeight: 1.2,
-                      minWidth: 0,
-                      flex: '1 1 auto',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      mr: 0.5,
-                    }}
-                  >
-                    {positionLabel}
-                  </Typography>
-                ) : null}
                 <Box
                   sx={{
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: { xs: 0.25, sm: 0.25 },
                     flexShrink: 0,
-                    ml: isRutinaNarrow && positionLabel ? 'auto' : undefined,
                   }}
                 >
                 {isRutinaNarrow && showProgress && (
@@ -230,7 +245,7 @@ export default function AgendaCalendarDateHeader({
                     <span style={{ display: 'inline-flex', flexShrink: 0, marginRight: 2 }}>
                       <RutinaCompletionPctChip
                         label={rutinaPctLabel}
-                        color={completionColor}
+                        subtle
                       />
                     </span>
                   </Tooltip>
@@ -307,24 +322,18 @@ export default function AgendaCalendarDateHeader({
         <LinearProgress
           variant="determinate"
           value={progressValue}
-          color={completionColor}
           aria-label="Progreso de completitud de la rutina"
-          sx={{
-            width: '100%',
-            height: 4,
-            borderRadius: 0,
-            mt: 0.5,
-            bgcolor: 'action.hover',
-            '& .MuiLinearProgress-bar': { borderRadius: 0 },
-            ...(bleedProgressBar && {
-              width: {
-                md: (theme) => `calc(100% + ${theme.spacing(6)})`,
-              },
-              ml: {
-                md: (theme) => theme.spacing(-3),
-              },
-            }),
-          }}
+          sx={isRutina
+            ? getRutinaProgressBarSx(theme, { bleedProgressBar })
+            : {
+              width: '100%',
+              height: 4,
+              borderRadius: 0,
+              mt: 0.5,
+              bgcolor: 'action.hover',
+              '& .MuiLinearProgress-bar': { borderRadius: 0 },
+            }}
+          {...(!isRutina ? { color: completionColor } : {})}
         />
       )}
       {showPickerActions && (

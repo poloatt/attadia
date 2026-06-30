@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import { useResponsive, useScopedPageHistory } from '@shared/hooks';
 import { useRutinas, useHabits } from '@shared/context';
 import { getMainBottomPadding } from '@shared/config/uiConstants';
+import { formatDateForAPI, getNormalizedToday, parseAPIDate } from '@shared/utils/dateUtils';
 import {
   getRutinaCompletionStats,
   getRutinaDayMode,
@@ -11,26 +11,31 @@ import {
   isRutinaToday,
   resolveRutinaNavigateTarget,
 } from '@shared/utils/rutinasPageUtils';
+import { ensureRutinaForDate } from './ensureRutinaForDate';
+import useEnsureRutinaForDate from './useEnsureRutinaForDate';
 
 /**
  * Estado, eventos toolbar y helpers compartidos para la página Rutinas.
  */
 export function useRutinasPageController() {
-  const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
-  const { isMobile } = useResponsive();
+  const { isMobile, isMobileOrTablet } = useResponsive();
   const {
     rutina,
     rutinas,
     loading,
     error,
+    viewDate,
     fetchRutinas,
     getRutinaById,
+    previewRutinaDate,
     markItemComplete,
     patchRutinaSection,
     updateItemConfiguration,
   } = useRutinas();
   const { habits, fetchHabits } = useHabits();
+
+  useEnsureRutinaForDate(getNormalizedToday());
 
   const fetchRutinasStable = useCallback(async () => {
     await Promise.all([
@@ -95,6 +100,28 @@ export function useRutinasPageController() {
     setEditMode(true);
   }, [rutina]);
 
+  const applyNavigateTarget = useCallback(async (target) => {
+    if (!target || target.type === 'noop') return;
+
+    if (target.type === 'select') {
+      await getRutinaById(target.rutinaId);
+      return;
+    }
+
+    if (target.type === 'preview') {
+      previewRutinaDate(parseAPIDate(target.date));
+      return;
+    }
+
+    if (target.type === 'ensure') {
+      await ensureRutinaForDate(parseAPIDate(target.date), {
+        rutinas,
+        getRutinaById,
+        fetchRutinas,
+      });
+    }
+  }, [fetchRutinas, getRutinaById, previewRutinaDate, rutinas]);
+
   const handleNavigateEvent = useCallback(async (event) => {
     const { direction, date } = event.detail || {};
     const target = resolveRutinaNavigateTarget({
@@ -102,24 +129,15 @@ export function useRutinasPageController() {
       date,
       rutinas,
       activeRutinaId: rutina?._id,
+      activeDate: viewDate,
     });
 
-    if (target.type === 'noop') return;
-
     try {
-      if (target.type === 'select') {
-        await getRutinaById(target.rutinaId);
-      } else if (target.type === 'create') {
-        setRutinaToEdit(null);
-        setEditMode(true);
-      }
-      if (direction === 'today') {
-        navigate('/rutinas', { replace: false });
-      }
+      await applyNavigateTarget(target);
     } catch {
       // navegación silenciosa
     }
-  }, [getRutinaById, navigate, rutina?._id, rutinas]);
+  }, [applyNavigateTarget, rutina?._id, rutinas, viewDate]);
 
   useEffect(() => {
     const onAddRutina = () => handleAddRutina();
@@ -139,23 +157,28 @@ export function useRutinasPageController() {
     };
   }, [handleAddRutina, handleEditRutina, handleNavigateEvent]);
 
+  const activeFecha = rutina?.fecha ?? viewDate;
+
   const completionStats = useMemo(
     () => getRutinaCompletionStats(rutina, habits),
     [rutina, habits],
   );
 
   const dayMode = useMemo(
-    () => getRutinaDayMode(rutina?.fecha),
-    [rutina?.fecha],
+    () => getRutinaDayMode(activeFecha),
+    [activeFecha],
   );
 
-  const scrollBottomPadding = getMainBottomPadding(isMobile);
+  const isViewingFutureWithoutRecord = !rutina && getRutinaDayMode(viewDate) === 'future';
+
+  const scrollBottomPadding = getMainBottomPadding(isMobileOrTablet);
 
   return {
     rutina,
     rutinas,
     loading,
     error,
+    viewDate,
     editMode,
     rutinaToEdit,
     currentPage,
@@ -167,9 +190,11 @@ export function useRutinasPageController() {
     handleEditRutina,
     completionStats,
     dayMode,
-    isToday: isRutinaToday(rutina?.fecha),
-    isHistorical: isRutinaHistorical(rutina?.fecha),
+    isViewingFutureWithoutRecord,
+    isToday: isRutinaToday(activeFecha),
+    isHistorical: isRutinaHistorical(activeFecha),
     isMobile,
+    isMobileOrTablet,
     scrollBottomPadding,
   };
 }

@@ -2,6 +2,7 @@ import { Users, Rutinas } from '../models/index.js';
 import bcrypt from 'bcryptjs';
 import { timezoneUtils } from '../models/BaseSchema.js';
 import { ensureCustomHabits } from '../constants/defaultCustomHabits.js';
+import { findHabitIndexInSection, getHabitId } from '../../../shared/utils/habitSectionIds.js';
 
 export const usersController = {
   getProfile: async (req, res) => {
@@ -707,17 +708,20 @@ export const usersController = {
         });
       });
 
-      // --- Aplicar cambios a rutinas existentes desde HOY (sin tocar el pasado) ---
-      // Se activa vía query (?applyFrom=today) o body (applyFrom: 'today')
-      const applyFrom = (req.query?.applyFrom || req.body?.applyFrom || '').toString().toLowerCase();
+      // --- Aplicar cambios a rutinas existentes desde una fecha (sin tocar el pasado anterior) ---
+      // Se activa vía query/body: applyFrom=today | applyFrom=YYYY-MM-DD
+      const applyFromRaw = (req.query?.applyFrom || req.body?.applyFrom || '').toString().trim();
       let appliedToRutinas = null;
 
-      if (applyFrom === 'today') {
+      if (applyFromRaw) {
         try {
           const timezone = timezoneUtils.getUserTimezone(user);
-          const todayStart = timezoneUtils.normalizeToStartOfDay(new Date(), timezone);
+          const isYMD = /^\d{4}-\d{2}-\d{2}$/.test(applyFromRaw);
+          const applyFromStart = applyFromRaw.toLowerCase() === 'today'
+            ? timezoneUtils.normalizeToStartOfDay(new Date(), timezone)
+            : (isYMD ? timezoneUtils.normalizeToStartOfDay(applyFromRaw, timezone) : null);
 
-          if (todayStart) {
+          if (applyFromStart) {
             const setOps = {};
             // Setear solo campos de cadencia (preserva contadores/historial del item en Rutinas.config)
             Object.entries(habits).forEach(([section, items]) => {
@@ -738,21 +742,22 @@ export const usersController = {
 
             if (Object.keys(setOps).length > 0) {
               const result = await Rutinas.updateMany(
-                { usuario: req.user.id, fecha: { $gte: todayStart } },
+                { usuario: req.user.id, fecha: { $gte: applyFromStart } },
                 { $set: setOps }
               );
               appliedToRutinas = {
-                from: todayStart.toISOString(),
+                from: applyFromStart.toISOString(),
+                applyFrom: applyFromRaw,
                 matched: result.matchedCount ?? result.n ?? 0,
                 modified: result.modifiedCount ?? result.nModified ?? 0
               };
             } else {
-              appliedToRutinas = { from: todayStart.toISOString(), matched: 0, modified: 0 };
+              appliedToRutinas = { from: applyFromStart.toISOString(), applyFrom: applyFromRaw, matched: 0, modified: 0 };
             }
           }
         } catch (e) {
           // No romper la respuesta principal si falla la propagación; devolvemos indicador
-          appliedToRutinas = { error: e?.message || 'Error aplicando cambios a rutinas desde hoy' };
+          appliedToRutinas = { error: e?.message || 'Error aplicando cambios a rutinas desde la fecha indicada' };
         }
       }
       
@@ -887,7 +892,7 @@ export const usersController = {
         return res.status(404).json({ error: 'Sección no encontrada' });
       }
 
-      const habitIndex = user.customHabits[section].findIndex(h => h.id === habitId);
+      const habitIndex = findHabitIndexInSection(user.customHabits[section], habitId);
       if (habitIndex === -1) {
         return res.status(404).json({ error: 'Hábito no encontrado' });
       }
@@ -936,17 +941,31 @@ export const usersController = {
         return res.status(404).json({ error: 'Sección no encontrada' });
       }
 
+      const habitIndex = findHabitIndexInSection(user.customHabits[section], habitId);
+      if (habitIndex === -1) {
+        return res.status(404).json({ error: 'Hábito no encontrado' });
+      }
+
+      const habitToDelete = user.customHabits[section][habitIndex];
+      const canonicalId = getHabitId(habitToDelete) || String(habitId);
+
       // Validar que no se eliminen todos los hábitos de una sección
       if (user.customHabits[section].length <= 1) {
         return res.status(400).json({ error: 'No se puede eliminar el último hábito de la sección' });
       }
 
-      const habitIndex = user.customHabits[section].findIndex(h => h.id === habitId);
-      if (habitIndex === -1) {
-        return res.status(404).json({ error: 'Hábito no encontrado' });
+      user.customHabits[section].splice(habitIndex, 1);
+
+      if (user.preferences?.rutinasConfig?.[section]?.[canonicalId]) {
+        delete user.preferences.rutinasConfig[section][canonicalId];
+        user.markModified('preferences.rutinasConfig');
+      }
+      if (user.preferences?.rutinasConfig?.[section]?.[habitId]
+        && String(habitId) !== canonicalId) {
+        delete user.preferences.rutinasConfig[section][habitId];
+        user.markModified('preferences.rutinasConfig');
       }
 
-      user.customHabits[section].splice(habitIndex, 1);
       await user.save();
 
       res.json({ message: 'Hábito eliminado correctamente' });

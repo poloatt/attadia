@@ -5,7 +5,6 @@ import { RutinaForm } from './RutinaForm';
 import { HabitsManager } from '../templates/HabitsManager';
 import HubSectionShell from '@shared/components/hub/HubSectionShell';
 import { useRutinasPageController } from './useRutinasPageController';
-import useResponsive from '@shared/hooks/useResponsive';
 import {
   rutinaPageMainSx,
   getRutinaPageContentShellSx,
@@ -29,7 +28,7 @@ const rutinaHubShellBodySx = {
   px: 0,
 };
 
-function EmptyStateMessage({ error, onAdd }) {
+function EmptyStateMessage({ error, onAdd, isFuture = false }) {
   if (error) {
     return (
       <Paper elevation={0} sx={rutinaErrorStatePaperSx}>
@@ -39,12 +38,25 @@ function EmptyStateMessage({ error, onAdd }) {
     );
   }
 
+  if (!isFuture) {
+    return (
+      <Box sx={rutinaPageLoaderSx}>
+        <CircularProgress size={32} />
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
+          Preparando el registro del día…
+        </Typography>
+      </Box>
+    );
+  }
+
   return (
     <Paper elevation={0} sx={rutinaEmptyStatePaperSx}>
       <DateIcon sx={{ fontSize: 40, color: 'primary.main', opacity: 0.7 }} />
-      <Typography variant="h6">No hay registro para este día</Typography>
+      <Typography variant="h6">
+        Aún no hay registro para este día
+      </Typography>
       <Typography variant="body2" color="text.secondary">
-        Crea un registro con el botón + de la barra superior o el botón de abajo.
+        Puedes crear el registro cuando quieras con el botón + de la barra superior.
       </Typography>
       <Box mt={2}>
         <Button
@@ -74,15 +86,15 @@ const RutinasWithContext = () => {
     setHabitsManagerOpen,
     handleAddRutina,
     handleCloseForm,
-    isMobile,
+    isViewingFutureWithoutRecord,
+    isMobileOrTablet,
     scrollBottomPadding,
   } = useRutinasPageController();
-  const { isMobileOrTablet } = useResponsive();
 
   return (
     <Box component="main" className="page-main-content" sx={rutinaPageMainSx}>
       <Box sx={{ ...getRutinaPageContentShellSx(isMobileOrTablet), pb: { xs: 10, sm: 4 }, py: 0, display: 'flex', flexDirection: 'column', gap: 0 }}>
-        <Box sx={rutinaPageScrollSx(isMobile, scrollBottomPadding, RUTINA_NAVIGATION_BAR_CONFIG.height)}>
+        <Box sx={rutinaPageScrollSx(isMobileOrTablet, scrollBottomPadding, RUTINA_NAVIGATION_BAR_CONFIG.height)}>
           {loading && (
             <Box sx={rutinaPageLoaderSx}>
               <CircularProgress />
@@ -96,7 +108,11 @@ const RutinasWithContext = () => {
               shellSx={{ width: '100%' }}
               bodySx={{ ...rutinaHubShellBodySx, pt: 0 }}
             >
-              <EmptyStateMessage error={error} onAdd={handleAddRutina} />
+              <EmptyStateMessage
+                error={error}
+                onAdd={handleAddRutina}
+                isFuture={isViewingFutureWithoutRecord}
+              />
             </HubSectionShell>
           )}
 

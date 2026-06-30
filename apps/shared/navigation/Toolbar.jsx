@@ -16,9 +16,6 @@ import useResponsive from '../hooks/useResponsive';
 import { useAnchorWidths } from '../hooks/useAnchorWidths';
 import { getMainModules, reorderModulesWithActiveFirst, findActiveModule, navigateToAppPath, prefetchAppForPath } from '../utils/navigationUtils';
 import { DynamicIcon, ClickableIcon, IconWithText } from '../components/common/DynamicIcon';
-import { getRutinaNavigation } from './toolbarRegistry';
-import { useRutinas } from '../context/RutinasContext';
-import { calculateCompletionPercentage } from '../utils/rutinaCalculations';
 import { ToggleButton, ToggleButtonGroup, Menu, MenuItem } from '@mui/material';
 import {
   resolveToolbarCenterByPath,
@@ -61,75 +58,7 @@ export default function Toolbar({
   const siblings = nivel1;
   // Determinar si mostrar botón de atrás
   const shouldShowBack = !!onBack && !!parentInfo;
-  
-  // Determinar si debe mostrar navegación específica
-  const shouldShowSpecificNavigation = () => {
-    const specificNavigationRoutes = [
-      '/tiempo/rutinas',
-      '/rutinas',
-    ];
-    return specificNavigationRoutes.some(route => currentPath.startsWith(route));
-  };
-  
-  // Componente de navegación específica (rutinas)
-  const SpecificNavigationComponent = () => {
-    if (!shouldShowSpecificNavigation()) return null;
-    return <RutinaNavigationWrapper />;
-  };
-  
-  // Wrapper para RutinaNavigation que proporciona los datos necesarios desde el contexto
-  const RutinaNavigationWrapper = () => {
-    const RutinaNavigation = getRutinaNavigation();
-    if (
-      !RutinaNavigation
-      || !(currentPath.startsWith('/rutinas') || currentPath.startsWith('/tiempo/rutinas'))
-    ) {
-      return null;
-    }
-    
-    let rutina = null;
-    let rutinas = [];
-    let loading = false;
-    let calculateCompletionPercentage = () => 0;
-    
-    try {
-      const rutinasData = useRutinas();
-      rutina = rutinasData.rutina;
-      rutinas = rutinasData.rutinas;
-      loading = rutinasData.loading;
-    } catch (error) {
-      // Si no hay RutinasProvider, usar valores por defecto
-      console.warn('RutinasProvider no disponible, usando valores por defecto');
-      return null;
-    }
-    
-    // Calcular página actual y total de páginas
-    const currentPage = rutina ? rutinas.findIndex(r => r._id === rutina._id) + 1 : 1;
-    const totalPages = rutinas.length;
-    
-    const handleAdd = () => {
-      // Disparar evento para que la página maneje la adición
-      window.dispatchEvent(new CustomEvent('addRutina'));
-    };
-    
-    const handleSettings = () => {
-      // Disparar evento para que la página maneje la configuración de hábitos
-      window.dispatchEvent(new CustomEvent('openHabitTemplates'));
-    };
-    
-    return (
-      <RutinaNavigation
-        rutina={rutina}
-        loading={loading}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onAdd={handleAdd}
-        onSettingsClick={handleSettings}
-        navigationMode="rutina"
-      />
-    );
-  };
-  
+
   // Lógica para mostrar íconos de módulos principales (solo cuando sidebar está extendida)
   const shouldShowModuleIcons = sidebarIsOpen && !isMobile;
   const moduleData = shouldShowModuleIcons ? (() => {
@@ -299,10 +228,7 @@ export default function Toolbar({
           rightWidth={rightWidth}
           height={TOOLBAR_CONFIG.height}
         >
-          {shouldShowSpecificNavigation() ? (
-            // Usar navegación específica si está disponible
-            <SpecificNavigationComponent />
-          ) : customMainSection ? (
+          {customMainSection ? (
             // Usar navegación específica pasada como prop si está disponible
             customMainSection
           ) : (
@@ -396,7 +322,7 @@ export default function Toolbar({
           }}
         >
           {/* Botón Undo — solo en toolbar legacy (no barra unificada) */}
-          {!isUnifiedToolbarPath(currentPath) && !shouldShowSpecificNavigation() && <SystemButtons.UndoMenu />}
+          {!isUnifiedToolbarPath(currentPath) && <SystemButtons.UndoMenu />}
           
           {/* Acciones adicionales */}
           {!isMobile && additionalActions && additionalActions.map((action, idx) => (
@@ -545,41 +471,39 @@ export default function Toolbar({
             }
             
             // Para otras páginas, usar la lógica original
-            if (!shouldShowSpecificNavigation() && showAddButton && entityConfig) {
+            if (showAddButton && entityConfig) {
               return <SystemButtons.AddButton entityConfig={entityConfig} buttonSx={{ ml: 1 }} />;
             }
             
-            if (!shouldShowSpecificNavigation()) {
-              return (
-                <Box sx={{
+            return (
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 32,
+                height: 32,
+                ml: 1,
+                opacity: 0.1,
+                color: 'background.default',
+                pointerEvents: 'none',
+                borderRadius: 1,
+                padding: 0.5
+              }}>
+                <Box component="span" sx={{
+                  fontSize: 18,
+                  color: 'background.default',
+                  fontWeight: 300,
+                  lineHeight: 1,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  width: 32,
-                  height: 32,
-                  ml: 1,
-                  opacity: 0.1,
-                  color: 'background.default',
-                  pointerEvents: 'none',
-                  borderRadius: 1,
-                  padding: 0.5
+                  width: 18,
+                  height: 18
                 }}>
-                  <Box component="span" sx={{
-                    fontSize: 18,
-                    color: 'background.default',
-                    fontWeight: 300,
-                    lineHeight: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 18,
-                    height: 18
-                  }}>
-                    +
-                  </Box>
+                  +
                 </Box>
-              );
-            }
+              </Box>
+            );
             
             return null;
           })()}

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useMemo } from 'react';
 import { useSnackbar } from 'notistack';
 import clienteAxios from '../config/axios';
+import { getHabitId, findHabitIndexInSection, habitIdsMatch } from '../utils/habitSectionIcons';
 
 // Crear el contexto
 const HabitsContext = createContext();
@@ -126,7 +127,7 @@ export const HabitsProvider = ({ children }) => {
       setHabits(prev => ({
         ...prev,
         [section]: (prev[section] || []).map(h => 
-          h.id === habitId ? response.data.habit : h
+          (h.id || h._id) === habitId ? response.data.habit : h
         )
       }));
       
@@ -150,28 +151,32 @@ export const HabitsProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
-      
-      await clienteAxios.delete(`/api/users/habits/${habitId}`, {
-        data: { section }
+
+      const sectionHabits = habits[section] || [];
+      const habitIndex = findHabitIndexInSection(sectionHabits, habitId);
+      const habit = habitIndex >= 0 ? sectionHabits[habitIndex] : null;
+      const canonicalId = getHabitId(habit) || String(habitId);
+
+      await clienteAxios.delete(`/api/users/habits/${encodeURIComponent(canonicalId)}`, {
+        data: { section },
       });
-      
-      // Actualizar estado local
-      setHabits(prev => ({
+
+      setHabits((prev) => ({
         ...prev,
-        [section]: (prev[section] || []).filter(h => h.id !== habitId)
+        [section]: (prev[section] || []).filter((h) => !habitIdsMatch(h, habitId)),
       }));
       
       enqueueSnackbar('Hábito eliminado correctamente', { variant: 'success' });
     } catch (error) {
       console.error('[HabitsContext] Error al eliminar hábito:', error);
-      const errorMsg = error.response?.data?.error || 'Error al eliminar hábito';
+      const errorMsg = error.response?.data?.error || error.response?.data?.message || 'Error al eliminar hábito';
       setError(errorMsg);
       enqueueSnackbar(errorMsg, { variant: 'error' });
       throw error;
     } finally {
       setLoading(false);
     }
-  }, [enqueueSnackbar]);
+  }, [enqueueSnackbar, habits]);
 
   /**
    * Reordenar hábitos en una sección

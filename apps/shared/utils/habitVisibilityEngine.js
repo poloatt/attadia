@@ -9,7 +9,7 @@ import {
   contarCompletadosEnPeriodo,
   obtenerHistorialCompletados,
 } from './cadenciaUtils.js';
-import { isHabitCompletedForHistorial, isHabitFullyCompletedToday } from './habitCompletionUtils.js';
+import { isHabitCompletedForHistorial, isHabitFullyCompletedToday, isHabitHorarioCompleted } from './habitCompletionUtils.js';
 import { getNormalizedToday, toISODateString } from './dateUtils.js';
 import { shouldShowItemSync } from './visibilityUtils.js';
 import {
@@ -408,4 +408,87 @@ export function getCarouselItemsForMode(mode, params) {
     return getCarouselLuegoItems(params);
   }
   return getCarouselAhoraItems(params);
+}
+
+function appendCompletedDailyEntries({
+  section,
+  itemId,
+  horarios,
+  itemValue,
+  items,
+  itemsSet,
+}) {
+  const normalizedHorarios = Array.isArray(horarios)
+    ? horarios.map((h) => String(h).toUpperCase()).filter(Boolean)
+    : [];
+
+  if (normalizedHorarios.length > 0) {
+    normalizedHorarios.forEach((horario) => {
+      if (!isHabitHorarioCompleted(itemValue, horario)) return;
+      const slotKey = `${section}.${itemId}.${horario}`;
+      if (itemsSet.has(slotKey)) return;
+      items.push(buildCarouselEntry(section, itemId, horario));
+      itemsSet.add(slotKey);
+    });
+    return;
+  }
+
+  if (!isHabitCompletedForHistorial(itemValue)) return;
+  const itemKey = `${section}.${itemId}`;
+  if (itemsSet.has(itemKey)) return;
+  items.push(buildCarouselEntry(section, itemId));
+  itemsSet.add(itemKey);
+}
+
+/**
+ * Hábitos marcados como completados hoy (para panel colapsable en Tareas).
+ */
+export function getCarouselCompletedTodayItems({
+  rutinaHoy,
+  sectionIconsMap,
+  habits,
+  habitsPreferences = {},
+}) {
+  const items = [];
+  const itemsSet = new Set();
+  if (!rutinaHoy) return items;
+
+  HABIT_SECTIONS.forEach((section) => {
+    const sectionIcons = sectionIconsMap.iconsMap[section] || {};
+    const itemIds = getCarouselSectionItemIds(section, sectionIconsMap.iconsMap, habits);
+
+    itemIds.forEach((itemId) => {
+      if (!sectionIcons[itemId]) return;
+
+      const itemConfig = resolveCarouselItemConfig(section, itemId, rutinaHoy, habitsPreferences);
+      if (itemConfig.activo === false) return;
+
+      const itemValue = rutinaHoy?.[section]?.[itemId];
+      if (!isHabitCompletedForHistorial(itemValue)) return;
+
+      const { tipo, periodo } = normalizeTipoPeriodo(itemConfig);
+      const horarios = Array.isArray(itemConfig.horarios) ? itemConfig.horarios : [];
+
+      if (isDailyTipo(tipo, periodo)) {
+        appendCompletedDailyEntries({
+          section,
+          itemId,
+          horarios,
+          itemValue,
+          items,
+          itemsSet,
+        });
+        return;
+      }
+
+      if (!isPeriodicTipo(tipo, periodo)) return;
+
+      const itemKey = `${section}.${itemId}`;
+      if (itemsSet.has(itemKey)) return;
+      items.push(buildCarouselEntry(section, itemId));
+      itemsSet.add(itemKey);
+    });
+  });
+
+  return items;
 }

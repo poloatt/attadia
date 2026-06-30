@@ -17,7 +17,7 @@ function getInitialSettings(isMobile) {
   return {
     // En móvil debe estar habilitada por defecto (y en general también)
     showEntityToolbarNavigation: true,
-    showSidebarCollapsed: true, // Por defecto visible en móvil
+    showSidebarCollapsed: false,
     autoUpdateHabitPreferences: true // Nuevo: actualizar preferencias al editar inline
   };
 }
@@ -50,9 +50,7 @@ export function UISettingsProvider({ children }) {
   };
 
   const toggleSidebarCollapsed = () => {
-    if (isMobile) {
-      setShowSidebarCollapsed(prev => !prev);
-    }
+    // Sidebar deshabilitada en móvil; navegación solo vía bottom nav.
   };
 
   return (

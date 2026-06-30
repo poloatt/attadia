@@ -1,6 +1,9 @@
 import { isSameDay } from 'date-fns';
 import { iconConfig, iconTooltips, getIconByName } from './iconConfig.js';
 import { formatDateForAPI, getNormalizedToday, parseAPIDate } from './dateUtils.js';
+import { findHabitIndexInSection, getHabitId, habitIdsMatch } from './habitSectionIds.js';
+
+export { findHabitIndexInSection, getHabitId, habitIdsMatch } from './habitSectionIds.js';
 
 export const HABIT_SECTIONS = ['bodyCare', 'nutricion', 'ejercicio', 'cleaning'];
 
@@ -22,7 +25,7 @@ export function getHabitDisplayLabel(section, itemId, habits = null) {
   if (!section || !itemId) return '';
 
   const sectionHabits = Array.isArray(habits?.[section]) ? habits[section] : [];
-  const custom = sectionHabits.find((h) => (h.id || h._id) === itemId);
+  const custom = sectionHabits.find((h) => habitIdsMatch(h, itemId));
   if (custom?.label) return custom.label;
   if (custom?.name) return custom.name;
 
@@ -33,7 +36,7 @@ export function getHabitDisplayLabel(section, itemId, habits = null) {
 export function findUserHabit(section, itemId, habits = null) {
   if (!section || !itemId || !habits) return null;
   const sectionHabits = Array.isArray(habits[section]) ? habits[section] : [];
-  return sectionHabits.find((h) => (h.id || h._id) === itemId) || null;
+  return sectionHabits.find((h) => habitIdsMatch(h, itemId)) || null;
 }
 
 /**
@@ -44,7 +47,7 @@ export function getHabitSectionItemIds(section, habits = null) {
     return (habits[section] || [])
       .filter((h) => h?.activo !== false)
       .sort((a, b) => (a?.orden || 0) - (b?.orden || 0))
-      .map((h) => h.id || h._id)
+      .map((h) => getHabitId(h))
       .filter(Boolean);
   }
   return Object.keys(iconConfig?.[section] || {});
@@ -75,7 +78,7 @@ export function buildHabitSectionIconsMap(habits = {}) {
       .filter((h) => h?.activo !== false)
       .sort((a, b) => (a?.orden || 0) - (b?.orden || 0))
       .forEach((habit) => {
-        const itemId = habit.id || habit._id;
+        const itemId = getHabitId(habit);
         if (!itemId) return;
         const Icon = getIconByName(habit.icon);
         if (!Icon) return;
@@ -97,7 +100,7 @@ export function getCarouselSectionItemIds(section, iconsMap = {}, habits = null)
     return (habits[section] || [])
       .filter((h) => h?.activo !== false)
       .sort((a, b) => (a?.orden || 0) - (b?.orden || 0))
-      .map((h) => h.id || h._id)
+      .map((h) => getHabitId(h))
       .filter((itemId) => itemId && sectionIcons[itemId]);
   }
 

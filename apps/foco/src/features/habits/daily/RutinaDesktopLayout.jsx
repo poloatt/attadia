@@ -3,7 +3,7 @@ import { Box } from '@mui/material';
 import { useHabits, useRutinas } from '@shared/context';
 import { getCurrentTimeOfDay } from '@shared/utils/timeOfDayUtils';
 import { getDefaultSelectedSection } from '@shared/utils/rutinaDesktopUtils';
-import { resolveRutinaItemConfig } from '@shared/utils/habitVisibilityEngine';
+import { computeRutinaToggleValue } from '@shared/domain/habits';
 import useHabitCarouselToggle from '@foco/features/habits/carousel/useHabitCarouselToggle';
 import useHabitsPreferences from '@foco/features/habits/carousel/hooks/useHabitsPreferences';
 import RutinaSectionNav from './RutinaSectionNav';
@@ -16,7 +16,6 @@ export default function RutinaDesktopLayout({
   rutina,
   readOnly = false,
   onMarkComplete,
-  onConfigChange,
 }) {
   const { habits } = useHabits();
   const { habitsPreferences, prefsReady } = useHabitsPreferences();
@@ -48,32 +47,30 @@ export default function RutinaDesktopLayout({
 
     const section = selectedSection;
     const prevSection = rutina[section] || {};
-    const currentValue = prevSection[itemId];
-    const itemConfig = resolveRutinaItemConfig(section, itemId, rutina, prefs);
-    const horariosConfig = Array.isArray(itemConfig.horarios) ? itemConfig.horarios : [];
+    const previousValue = prevSection[itemId];
+    const newValue = computeRutinaToggleValue({
+      section,
+      itemId,
+      rutina,
+      habitsPreferences: prefs,
+      horario,
+      currentTimeOfDay: getCurrentTimeOfDay(),
+    });
 
-    let newValue;
-    if (horario && horariosConfig.length > 1) {
-      const normalized = String(horario).toUpperCase();
-      const base = typeof currentValue === 'object' && currentValue !== null
-        ? { ...currentValue }
-        : {};
-      base[normalized] = !base[normalized];
-      newValue = base;
-    } else if (typeof currentValue === 'object' && currentValue !== null) {
-      const allDone = Object.values(currentValue).every(Boolean);
-      newValue = !allDone;
-    } else {
-      newValue = !(currentValue === true);
+    const itemData = { [itemId]: newValue };
+    if (patchRutinaSection) {
+      patchRutinaSection(rutina._id, section, itemData);
     }
 
-    const newData = { ...prevSection, [itemId]: newValue };
-    onMarkComplete(rutina._id, section, newData);
-  }, [readOnly, rutina, selectedSection, onMarkComplete, prefs]);
-
-  const handleSectionConfigChange = useCallback((itemId, newConfig, meta) => {
-    onConfigChange(selectedSection, itemId, newConfig, meta);
-  }, [onConfigChange, selectedSection]);
+    const persist = onMarkComplete(rutina._id, section, itemData);
+    if (persist?.catch) {
+      persist.catch(() => {
+        if (patchRutinaSection) {
+          patchRutinaSection(rutina._id, section, { [itemId]: previousValue });
+        }
+      });
+    }
+  }, [readOnly, rutina, selectedSection, onMarkComplete, patchRutinaSection, prefs]);
 
   return (
     <Box
@@ -99,7 +96,6 @@ export default function RutinaDesktopLayout({
         habitsPreferences={prefs}
         readOnly={readOnly}
         onItemClick={handleItemClick}
-        onConfigChange={handleSectionConfigChange}
         onToggle={handleToggle}
       />
     </Box>

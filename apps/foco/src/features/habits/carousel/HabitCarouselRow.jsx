@@ -27,6 +27,7 @@ export default function HabitCarouselRow({
   enableDragScroll = true,
   interactive = true,
   targetDate,
+  showCompletedToggle = false,
 }) {
   const {
     rutina,
@@ -75,12 +76,13 @@ export default function HabitCarouselRow({
     [habits],
   );
 
-  const { pendingItems, carouselItems, shouldUseInfiniteCarousel } = useHabitCarouselItems(mode, {
+  const { pendingItems, carouselItems, completedTodayItems } = useHabitCarouselItems(mode, {
     rutinaHoy,
     sectionIconsMap,
     habits,
     currentTimeOfDay,
     habitsPreferences: prefsReady ? habitsPreferences : null,
+    includeCompletedToday: showCompletedToggle,
   });
 
   const handleToggle = useHabitCarouselToggle({
@@ -112,7 +114,8 @@ export default function HabitCarouselRow({
       interactive={isInteractive}
       carouselItems={carouselItems}
       pendingItems={pendingItems}
-      shouldUseInfiniteCarousel={shouldUseInfiniteCarousel}
+      completedTodayItems={completedTodayItems}
+      showCompletedToggle={showCompletedToggle}
       rutinaHoy={rutinaHoy}
       sectionIconsMap={sectionIconsMap}
       habitsPreferences={habitsPreferences || {}}

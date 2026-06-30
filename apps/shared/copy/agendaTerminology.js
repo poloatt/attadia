@@ -12,6 +12,9 @@ HÁBITOS DIARIOS — habitTimeLogic / habitVisibilityEngine
   Ahora: sin franja o franja actual; franjas retrasadas del mismo día.
   Luego: franjas futuras de hoy. Multi-franja (2+): puede haber 2 iconos en Ahora.
   Una sola franja: máximo 1 icono en Ahora (sin acumular por frecuencia).
+  Repetición diaria = franja horaria (MAÑANA/TARDE/NOCHE). frecuencia define cuántas
+  franjas puede tener el hábito; cada franja es un completado independiente en rutina.
+  Carrusel y página Rutinas muestran badge de franja por repetición pendiente.
 
 HÁBITOS PERIÓDICOS — habitVisibilityEngine.js / cadenciaUtils.js
   Deuda de cadencia: cuota del período pendiente tras día programado pasado (carry-over).
@@ -21,7 +24,15 @@ HÁBITOS PERIÓDICOS — habitVisibilityEngine.js / cadenciaUtils.js
   frecuencia > 1: Ahora si ventana activa (adelanto); Luego si pasó ventana sin marcar hoy.
 
 TRACKER / RUTINA — cadenciaUtils.debesMostrarHabitoEnFecha
+  Grupos del desplegable por sección: "Hoy" (programados para el registro del día:
+  pendientes/atrasados primero, completados después) y "No toca hoy" (sin cadencia hoy).
 `;
+
+/** Grupos del listado expandido en /rutinas (registro diario). */
+export const RUTINA_DAY_GROUP_COPY = {
+  today: 'Hoy',
+  notToday: 'No toca hoy',
+};
 
 export const TASK_HORIZON_COPY = {
   ahora: {

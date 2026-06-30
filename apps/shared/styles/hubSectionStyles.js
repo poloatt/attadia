@@ -1,17 +1,23 @@
 import { alpha } from '@mui/material/styles';
 
 /** Scroll de página hub (Foco hub, Rutinas) — scrollbar, altura viewport y padding inferior. */
-export function hubPageScrollSx({ isMobile = false, bottomPadding, extraTopOffset = 0 } = {}) {
-  const viewportOffset = (isMobile ? 180 : 190) + extraTopOffset;
+export function hubPageScrollSx({
+  isMobile = false,
+  isMobileOrTablet,
+  bottomPadding,
+  extraTopOffset = 0,
+} = {}) {
+  const compactViewport = isMobileOrTablet ?? isMobile;
+  const viewportOffset = (compactViewport ? 180 : 190) + extraTopOffset;
   return {
-    py: isMobile ? 1 : 2,
+    py: compactViewport ? 1 : 2,
     px: { xs: 1, sm: 2, md: 3 },
-    height: isMobile ? `calc(100vh - ${viewportOffset}px)` : `calc(100vh - ${viewportOffset}px)`,
+    height: `calc(100vh - ${viewportOffset}px)`,
     overflowY: 'auto',
     overflowX: 'hidden',
-    pb: bottomPadding ?? (isMobile ? 4 : 6),
+    pb: bottomPadding ?? (compactViewport ? 4 : 6),
     '&::-webkit-scrollbar': {
-      width: isMobile ? '4px' : '8px',
+      width: compactViewport ? '4px' : '8px',
     },
     '&::-webkit-scrollbar-track': {
       backgroundColor: (theme) =>

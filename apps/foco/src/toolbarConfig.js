@@ -4,7 +4,7 @@ import {
 
   registerAgendaBarSlots,
 
-  registerRutinaNavigation,
+  registerRutinaDateHeroBar,
 
 } from '@shared/navigation/toolbarRegistry';
 
@@ -26,7 +26,7 @@ import {
 
 } from './features/toolbar';
 
-import RutinaNavigation from '@shared/navigation/RutinaNavigation.jsx';
+import RutinaDateHeroBar from './features/habits/daily/RutinaDateHeroBar.jsx';
 
 
 
@@ -92,7 +92,7 @@ registerToolbarModules([
 
     ...focoLeft,
 
-    // La navegación diaria (prev/next, Hoy, date picker, %) vive en RutinaNavigation vía registerRutinaNavigation.
+    // Navegación diaria (date hero) vive en RutinaPageNavigationBar vía registerRutinaDateHeroBar.
     center: null,
 
     centerDesktop: false,
@@ -128,5 +128,5 @@ registerAgendaBarSlots({
 
 
 
-registerRutinaNavigation(RutinaNavigation);
+registerRutinaDateHeroBar(RutinaDateHeroBar);
 

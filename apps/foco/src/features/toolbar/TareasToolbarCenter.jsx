@@ -41,7 +41,7 @@ export default function TareasToolbarCenter() {
           width: '100%',
           minHeight: TAREAS_TOOLBAR_CENTER_ROW_HEIGHT,
           height: TAREAS_TOOLBAR_CENTER_ROW_HEIGHT,
-          overflow: 'hidden',
+          overflow: 'visible',
         }}
       >
         <TiempoToolbarActions section="tareas" dense />
@@ -58,7 +58,7 @@ export default function TareasToolbarCenter() {
         minWidth: 0,
         minHeight: TAREAS_TOOLBAR_CENTER_ROW_HEIGHT,
         height: TAREAS_TOOLBAR_CENTER_ROW_HEIGHT,
-        overflow: 'hidden',
+        overflow: 'visible',
         gap: 0.5,
       }}
     >
@@ -70,7 +70,7 @@ export default function TareasToolbarCenter() {
           flex: '1 1 auto',
           minWidth: 0,
           maxWidth: `calc(100% - ${TAREAS_TOOLBAR_MOBILE_TOGGLES_WIDTH})`,
-          overflow: 'hidden',
+          overflow: 'visible',
         }}
       >
         <TiempoToolbarActions section="tareas" dense />

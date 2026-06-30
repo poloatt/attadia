@@ -61,9 +61,9 @@ export const rutinaPageContainerSx = (isMobileOrTablet = false) => ({
   gap: 0,
 });
 
-export function rutinaPageScrollSx(isMobile, bottomPadding, extraTopOffset = 0) {
+export function rutinaPageScrollSx(isMobileOrTablet, bottomPadding, extraTopOffset = 0) {
   return {
-    ...hubPageScrollSx({ isMobile, bottomPadding, extraTopOffset }),
+    ...hubPageScrollSx({ isMobileOrTablet, bottomPadding, extraTopOffset }),
     px: 0,
   };
 }

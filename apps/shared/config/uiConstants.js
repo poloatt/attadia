@@ -190,14 +190,31 @@ export const BORDER_RADIUS = {
  * @param {boolean} isOpen - Estado de apertura de la sidebar
  * @param {number} sidebarWidth - Ancho de la sidebar expandida
  * @param {boolean} isMobileOrTablet - Si es mobile o tablet
- * @param {boolean} showSidebarCollapsed - Si mostrar sidebar colapsada en mobile
+ * @param {boolean} [_showSidebarCollapsed] - Obsoleto en móvil/tablet (sidebar deshabilitada)
  * @returns {number} - Margen calculado
  */
-export function calculateMainMargin(isOpen, sidebarWidth, isMobileOrTablet, showSidebarCollapsed = false) {
+export function calculateMainMargin(isOpen, sidebarWidth, isMobileOrTablet, _showSidebarCollapsed = false) {
   if (isMobileOrTablet) {
-    return (showSidebarCollapsed && isOpen) ? sidebarWidth : 0;
+    return 0;
   }
   return isOpen ? sidebarWidth : SIDEBAR_CONFIG.collapsedWidth;
+}
+
+/**
+ * Margen horizontal del layout en /rutinas.
+ * Rutinas es full-bleed: sin sidebar ni reserva de ancho colapsado (56px).
+ * @param {boolean} _isMobileOrTablet
+ * @param {boolean} [_isOpen]
+ * @param {number} [_sidebarWidth]
+ * @returns {number}
+ */
+export function getRutinaPageMainMargin(_isMobileOrTablet, _isOpen, _sidebarWidth) {
+  return 0;
+}
+
+/** Sidebar visible solo en desktop y fuera de rutinas (navegación vía barra unificada + date hero). */
+export function shouldRenderAppSidebar(isMobileOrTablet, path = '') {
+  return !isMobileOrTablet && !isRutinasPath(path);
 }
 
 /**

@@ -18,7 +18,6 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import TuneIcon from '@mui/icons-material/Tune';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import { iconConfig, getIconByName } from '@shared/utils/iconConfig';
-import InlineItemConfigImproved from '../templates/InlineItemConfigImproved';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useRutinas, useHabits } from '@shared/context';
@@ -31,8 +30,9 @@ import {
   contarCompletadosEnPeriodo,
 } from '@shared/utils/cadenciaUtils';
 import { esRutinaHistorica, obtenerHistorialCompletaciones } from '@shared/utils/rutinaHistorialUtils';
-import { getHabitDisplayLabel } from '@shared/utils/habitSectionIcons';
+import { getHabitDisplayLabel, getHabitId } from '@shared/utils/habitSectionIcons';
 import { resolveRutinaItemConfig } from '@shared/utils/habitVisibilityEngine';
+import { resolveHabitConfigApplyFrom } from '@shared/utils/rutinasPageUtils';
 import useHabitsPreferences from '@foco/features/habits/carousel/hooks/useHabitsPreferences';
 import { getFrecuenciaLabel } from '../templates/InlineItemConfigImproved';
 import shouldShowItem from '@shared/utils/shouldShowItem';
@@ -42,6 +42,10 @@ import { startOfWeek, isSameWeek, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 // historial removido del flujo simplificado
 import ChecklistItem, { HabitIconButton } from './ChecklistItem';
+import RutinaDayGroupList from './RutinaDayGroupList';
+import { groupSectionHabitsByDaySchedule } from '@shared/utils/rutinaDesktopUtils';
+import { computeRutinaToggleValue } from '@shared/domain/habits';
+import { getHabitItemValue } from '@shared/utils/habitCompletionUtils';
 import { HabitCounterBadge } from '@shared/components/common/HabitCounterBadge';
 import { getCurrentTimeOfDay } from '@shared/utils/timeOfDayUtils';
 import HubSectionShell from '@shared/components/hub/HubSectionShell';
@@ -148,20 +152,27 @@ const RutinaCard = ({
     return false; // Por defecto colapsado
   });
 
-  // Estado para mostrar/ocultar todos los setups
-  const [showAllConfig, setShowAllConfig] = useState(false);
-  
   const [localData, setLocalData] = useState(data);
-  const [configOpen, setConfigOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuItemId, setMenuItemId] = useState(null);
   const [forceUpdate, setForceUpdate] = useState(Date.now()); // Estado para forzar actualización
   
-  // Agrega estado para el ítem con setup abierto
-  const [openSetupItemId, setOpenSetupItemId] = useState(null);
-  
   // Estado para el diálogo de edición de hábito
   const [editingHabitDialog, setEditingHabitDialog] = useState({ open: false, habit: null, section: null });
+
+  const handleEditHabit = useCallback((habit, habitSection) => {
+    setEditingHabitDialog({ open: true, habit, section: habitSection });
+  }, []);
+
+  const handleDeleteHabit = useCallback(async (habitId, habitSection) => {
+    try {
+      await deleteHabit(habitId, habitSection);
+      setFocusedItemId((prev) => (prev === habitId ? null : prev));
+      await fetchHabits();
+    } catch (error) {
+      console.error('[RutinaCard] Error al eliminar hábito:', error);
+    }
+  }, [deleteHabit, fetchHabits]);
   
   // Estado para vista individual de un hábito (cuando se hace clic desde la vista colapsada)
   const [focusedItemId, setFocusedItemId] = useState(null);
@@ -243,60 +254,38 @@ const RutinaCard = ({
     }
   }, [config, section]);
   
-  // Guardar el estado de expansión cuando cambia
-  useEffect(() => {
-    if (rutina && rutina._id) {
-      // Actualizar el estado de expansión en la rutina sin recargar la página
-      const updateExpandedState = async () => {
-        // Actualizar el estado local de la rutina sin tocar el resto de la UI
-        if (typeof window !== 'undefined') {
-          // Usar un evento personalizado para comunicar el cambio de estado
-          // sin causar un re-renderizado completo
-          const event = new CustomEvent('sectionExpanded', {
-            detail: { section, isExpanded, rutinaId: rutina._id }
-          });
-          window.dispatchEvent(event);
-        }
-      };
-      
-      updateExpandedState();
-    }
-  }, [isExpanded, section, rutina]);
-  
-  // Escuchar cambios en el estado de expansión global
+  // Escuchar cambios en el estado de expansión global (acordeón entre secciones)
   useEffect(() => {
     const handleSectionExpanded = (event) => {
       const { section: expandedSection, isExpanded: expandedState, rutinaId } = event.detail;
-      
-      // Solo actualizar si la rutina coincide y no es esta sección
+
       if (rutinaId === rutina?._id && expandedSection !== section && expandedState === true) {
-        // Cuando otra sección se expande, colapsar esta sección
         setIsExpanded(false);
       }
     };
-    
+
     window.addEventListener('sectionExpanded', handleSectionExpanded);
-    
+
     return () => {
       window.removeEventListener('sectionExpanded', handleSectionExpanded);
     };
-  }, [rutina, section]);
-  
+  }, [rutina?._id, section]);
+
+  const notifySectionExpanded = useCallback(() => {
+    if (typeof window === 'undefined' || !rutina?._id) return;
+    window.dispatchEvent(new CustomEvent('sectionExpanded', {
+      detail: { section, isExpanded: true, rutinaId: rutina._id },
+    }));
+  }, [section, rutina?._id]);
+
   // Función para cambiar el estado de expansión
   const handleToggle = () => {
-    setIsExpanded(prev => {
+    setIsExpanded((prev) => {
       const next = !prev;
       if (next) {
-        // Emitir evento global para colapsar otras secciones
-        if (typeof window !== 'undefined') {
-          const event = new CustomEvent('sectionExpanded', {
-            detail: { section, isExpanded: true, rutinaId: rutina?._id }
-          });
-          window.dispatchEvent(event);
-        }
+        queueMicrotask(notifySectionExpanded);
       } else {
-        // Si se colapsa, también limpiar el item enfocado
-        setFocusedItemId(null);
+        queueMicrotask(() => setFocusedItemId(null));
       }
       return next;
     });
@@ -483,92 +472,28 @@ const RutinaCard = ({
       return;
     }
     
-    // Obtener el valor actual del item
-    const currentValue = localData[itemId];
-    const isObjectFormat = typeof currentValue === 'object' && currentValue !== null && !Array.isArray(currentValue);
-    const isBooleanFormat = typeof currentValue === 'boolean';
     const itemConfig = config?.[itemId] || {};
     const horariosConfig = Array.isArray(itemConfig.horarios) ? itemConfig.horarios : [];
-    
-    // Si se hace clic desde la vista colapsada y el item tiene múltiples horarios,
-    // expandir automáticamente y enfocar en ese item
     const hasMultipleHorarios = horariosConfig.length > 1;
+
     if (!isExpanded && hasMultipleHorarios && horario) {
       setIsExpanded(true);
       setFocusedItemId(itemId);
     }
-    
-    let newValue;
-    const previousValue = localData[itemId];
-    
-    if (horario && horariosConfig.length > 0) {
-      // Si se especifica un horario y el hábito tiene horarios configurados, usar formato objeto
-      const normalizedHorario = String(horario).toUpperCase();
-      
-      if (isObjectFormat) {
-        // Ya está en formato objeto, actualizar solo el horario específico
-        newValue = {
-          ...currentValue,
-          [normalizedHorario]: !isItemCompleted(itemId, normalizedHorario)
-        };
-      } else {
-        // Convertir de formato legacy (boolean) a formato objeto
-        // IMPORTANTE: Al convertir de legacy, todos los horarios empiezan en false
-        // y solo se marca el horario específico (no se propaga el estado legacy a otros horarios)
-        const newObject = {};
-        horariosConfig.forEach(h => {
-          const normalizedH = String(h).toUpperCase();
-          if (normalizedH === normalizedHorario) {
-            // Toggle del horario específico: si estaba completado en legacy, desmarcar; si no, marcar
-            newObject[normalizedH] = !isItemCompleted(itemId, normalizedHorario);
-          } else {
-            // Los otros horarios siempre empiezan en false al convertir de legacy
-            // No se propaga el estado legacy para evitar marcar horarios que no se han hecho
-            newObject[normalizedH] = false;
-          }
-        });
-        newValue = newObject;
-      }
-    } else {
-      // Sin horario específico: comportamiento según si tiene múltiples horarios
-      if (hasMultipleHorarios) {
-        // Si tiene múltiples horarios pero no se especificó horario, marcar/desmarcar el horario actual
-        const currentTimeOfDay = getCurrentTimeOfDay();
-        const normalizedHorario = String(currentTimeOfDay).toUpperCase();
-        
-        if (isObjectFormat) {
-          // Ya está en formato objeto, actualizar solo el horario actual
-          newValue = {
-            ...currentValue,
-            [normalizedHorario]: !isItemCompleted(itemId, normalizedHorario)
-          };
-        } else {
-          // Convertir de formato legacy (boolean) a formato objeto
-          const newObject = {};
-          horariosConfig.forEach(h => {
-            const normalizedH = String(h).toUpperCase();
-            if (normalizedH === normalizedHorario) {
-              // Toggle del horario actual: verificar el estado actual del horario específico
-              newObject[normalizedH] = !isItemCompleted(itemId, normalizedHorario);
-            } else {
-              // Los otros horarios empiezan en false
-              newObject[normalizedH] = false;
-            }
-          });
-          newValue = newObject;
-        }
-      } else {
-        // Sin múltiples horarios: mantener comportamiento legacy (toggle del hábito completo)
-        if (isObjectFormat) {
-          // Si ya está en formato objeto, convertir a boolean basado en si todos están completados
-          const allCompleted = Object.values(currentValue).every(Boolean);
-          newValue = !allCompleted;
-        } else {
-          // Formato legacy: toggle simple
-          newValue = !isItemCompleted(itemId);
-        }
-      }
-    }
+
+    const previousValue = getHabitItemValue(rutina, section, itemId, localData);
+    const rutinaForToggle = rutina
+      ? { ...rutina, [section]: { ...(rutina[section] || {}), ...localData } }
+      : rutina;
+
+    const newValue = computeRutinaToggleValue({
+      section,
+      itemId,
+      rutina: rutinaForToggle,
+      habitsPreferences: habitPrefs,
+      horario,
+      currentTimeOfDay: getCurrentTimeOfDay(),
+    });
     
     // Datos para actualización local de la UI
     const newData = {
@@ -665,7 +590,7 @@ const RutinaCard = ({
     } else if (typeof onChange === 'function') {
       onChange(newData);
     }
-  }, [section, onChange, localData, readOnly, rutina, markItemComplete, isItemCompleted, config, isExpanded, setFocusedItemId]);
+  }, [section, onChange, localData, readOnly, rutina, markItemComplete, config, isExpanded, setFocusedItemId, habitPrefs]);
 
   // Función para obtener el estado de cadencia de un ítem
   const getItemCadenciaStatus = async (itemId, section, rutina, config) => {
@@ -967,56 +892,35 @@ const RutinaCard = ({
     return new Set(
       sectionHabits
         .filter(h => h.activo !== false)
-        .map(h => h.id || h._id)
+        .map(h => getHabitId(h))
         .filter(Boolean)
     );
   }, [sectionHabits]);
 
-  // Renderizar cada ítem con su propio setup (engranaje) que muestra/oculte su InlineItemConfigImproved
-  const renderItems = () => {
-    const icons = sectionIcons || {};
-    // Vista extendida: NO ocultar ítems por visibilidad; mostrar todos los activos
-    // Excluir hábitos personalizados que ya se muestran en la sección de configuración
-    let orderedKeys = Object.keys(icons)
-      .filter(itemId => !customHabitIds.has(itemId)) // Excluir hábitos personalizados
-      .sort((a, b) => {
-        const labelA = icons[a]?.label?.toLowerCase() || a;
-        const labelB = icons[b]?.label?.toLowerCase() || b;
-        return labelA.localeCompare(labelB);
-      });
-    
-    // Si hay un item enfocado, mostrar solo ese item
-    if (focusedItemId) {
-      orderedKeys = orderedKeys.filter(itemId => itemId === focusedItemId);
+  const habitGroups = useMemo(() => {
+    const grouped = groupSectionHabitsByDaySchedule({
+      section,
+      rutina,
+      habits,
+      habitsPreferences: habitPrefs,
+      localData,
+    });
+
+    const withoutCustom = (items) => items.filter((entry) => !customHabitIds.has(entry.itemId));
+
+    if (!focusedItemId) {
+      return {
+        today: withoutCustom(grouped.today),
+        notToday: withoutCustom(grouped.notToday),
+      };
     }
-    
-    return orderedKeys.map((itemId, index) => {
-      const itemConfig = resolvedSectionConfig[itemId] || resolveRutinaItemConfig(section, itemId, rutina, habitPrefs);
-      if (itemConfig?.activo === false) {
-        return null;
-      }
-      const Icon = sectionIcons[itemId];
-      // isCompleted puede ser boolean (legacy) o true si algún horario está completado (nuevo formato)
-      const isCompleted = isItemCompleted(itemId);
-      return (
-        <ChecklistItem
-          key={`${section}-${itemId}-${index}`}
-          itemId={itemId}
-          section={section}
-          Icon={Icon}
-          isCompleted={isCompleted}
-          readOnly={readOnly}
-          onItemClick={handleItemClick}
-          config={itemConfig}
-          onConfigChange={(newConfig, meta) => onConfigChange(itemId, newConfig, meta)}
-          isSetupOpen={openSetupItemId === itemId}
-          onSetupToggle={() => setOpenSetupItemId(openSetupItemId === itemId ? null : itemId)}
-          habitLabel={getHabitDisplayLabel(section, itemId, habits)}
-          isCustomHabit={customHabitIds.has(itemId)}
-        />
-      );
-    }).filter(Boolean);
-  };
+
+    const matchFocused = (items) => items.filter((entry) => entry.itemId === focusedItemId);
+    return {
+      today: matchFocused(grouped.today),
+      notToday: matchFocused(grouped.notToday),
+    };
+  }, [section, rutina, habits, habitPrefs, localData, focusedItemId, customHabitIds]);
 
   // Manejar cambios en la configuración de un ítem
   const handleConfigChange = (itemId, newConfig) => {
@@ -1064,15 +968,21 @@ const RutinaCard = ({
       // IMPORTANTE: Pasar isGlobal: true para guardar en preferencias globales del usuario
       try {
         if (updateItemConfiguration && typeof updateItemConfiguration === 'function') {
-          updateItemConfiguration(section, itemId, cleanConfig, { isGlobal: true })
+          updateItemConfiguration(section, itemId, cleanConfig, {
+            isGlobal: true,
+            rutinaId: rutina?._id,
+            applyFromDate: resolveHabitConfigApplyFrom(rutina?.fecha),
+          })
             .then((result) => {
               if (result && result.updated) {
                 
                 // IMPORTANTE: Actualizar también el prop config localmente para reflejar cambios inmediatamente
                 // Esto asegura que los hábitos personalizados muestren los cambios sin necesidad de recargar
                 if (onConfigChange && typeof onConfigChange === 'function') {
-                  // Llamar al callback del padre para actualizar el config en RutinaTable
-                  onConfigChange(itemId, cleanConfig, { scope: 'today' });
+                  onConfigChange(itemId, cleanConfig, {
+                    scope: 'forward',
+                    applyFrom: resolveHabitConfigApplyFrom(rutina?.fecha),
+                  });
                 }
                 
                 // Forzar actualización de UI si es necesario
@@ -1263,7 +1173,7 @@ const RutinaCard = ({
                   })
                   .sort((a, b) => (a.orden || 0) - (b.orden || 0))
                   .map((habit) => {
-                    const habitId = habit.id || habit._id;
+                    const habitId = getHabitId(habit);
                     const habitConfig = resolvedSectionConfig[habitId] || {
                       tipo: 'DIARIO',
                       frecuencia: 1,
@@ -1274,7 +1184,7 @@ const RutinaCard = ({
                     const isCompleted = isItemCompleted(habitId);
                     
                     return (
-                      <HabitItemWithConfig
+                      <HabitChecklistRow
                         key={habitId}
                         habitId={habitId}
                         section={section}
@@ -1283,26 +1193,11 @@ const RutinaCard = ({
                         readOnly={readOnly}
                         onItemClick={handleItemClick}
                         config={habitConfig}
-                        onConfigChange={(newConfig, meta) => onConfigChange(habitId, newConfig, meta)}
-                        isSetupOpen={openSetupItemId === habitId}
-                        onSetupToggle={() => setOpenSetupItemId(openSetupItemId === habitId ? null : habitId)}
-                        isCustomHabit={true}
+                        isCustomHabit
                         habitLabel={habit.label}
-                        habit={habit}
                         localData={localData}
-                        onEditHabit={() => {
-                          setEditingHabitDialog({ open: true, habit: habit, section: section });
-                        }}
-                        onDeleteHabit={async () => {
-                          if (window.confirm('¿Estás seguro de que deseas eliminar este hábito?')) {
-                            try {
-                              await deleteHabit(habitId, section);
-                              await fetchHabits();
-                            } catch (error) {
-                              console.error('[RutinaCard] Error al eliminar hábito:', error);
-                            }
-                          }
-                        }}
+                        onEditHabit={() => handleEditHabit(habit, section)}
+                        onDeleteHabit={() => handleDeleteHabit(habitId, section)}
                       />
                     );
                   })}
@@ -1311,7 +1206,17 @@ const RutinaCard = ({
           )}
           {/* Lista de ítems principales */}
           <List dense disablePadding sx={{ py: 0, my: 0 }}>
-            {renderItems()}
+            <RutinaDayGroupList
+              today={habitGroups.today}
+              notToday={habitGroups.notToday}
+              section={section}
+              rutina={rutina}
+              readOnly={readOnly}
+              onItemClick={handleItemClick}
+              onEditHabit={handleEditHabit}
+              onDeleteHabit={handleDeleteHabit}
+              localData={localData}
+            />
           </List>
         </Box>
       </Collapse>
@@ -1409,8 +1314,8 @@ const CollapsedIcons = memo(({
   );
 });
 
-// Componente wrapper para hábitos con configuración
-const HabitItemWithConfig = ({
+// Wrapper mínimo para filas de hábito con id de scroll
+const HabitChecklistRow = ({
   habitId,
   section,
   Icon,
@@ -1418,66 +1323,29 @@ const HabitItemWithConfig = ({
   readOnly,
   onItemClick,
   config,
-  onConfigChange,
-  isSetupOpen,
-  onSetupToggle,
   isCustomHabit,
   habitLabel,
-  habit,
   onEditHabit,
   onDeleteHabit,
-  localData = null
-}) => {
-  const [configState, setConfigState] = useState(config);
-  
-  // Sincronizar configState cuando cambia config desde props
-  useEffect(() => {
-    if (JSON.stringify(config) !== JSON.stringify(configState)) {
-      setConfigState(config);
-    }
-  }, [config]);
-  
-  return (
-    <Box sx={{ mb: 0.5 }}>
-      <ChecklistItem
-        itemId={habitId}
-        section={section}
-        Icon={Icon}
-        isCompleted={isCompleted}
-        readOnly={readOnly}
-        onItemClick={onItemClick}
-        config={configState}
-        onConfigChange={(newConfig) => {
-          setConfigState(newConfig);
-        }}
-        isSetupOpen={isSetupOpen}
-        onSetupToggle={onSetupToggle}
-        isCustomHabit={isCustomHabit}
-        habitLabel={habitLabel}
-        localData={localData}
-        onEditHabit={onEditHabit}
-        onDeleteHabit={onDeleteHabit}
-      />
-      {isSetupOpen && (
-        <Box sx={{ width: '100%', mt: 1 }}>
-          <InlineItemConfigImproved
-            config={configState}
-            onConfigChange={async (newConfig, meta) => {
-              // Actualizar estado local
-              setConfigState(newConfig);
-              // Guardar cuando se llama desde handleSave
-              if (meta?.scope === 'today') {
-                await onConfigChange(newConfig, meta);
-              }
-            }}
-            itemId={habitId}
-            sectionId={section}
-          />
-        </Box>
-      )}
-    </Box>
-  );
-};
+  localData = null,
+}) => (
+  <Box sx={{ mb: 0.5 }} id={`habit-row-${habitId}`}>
+    <ChecklistItem
+      itemId={habitId}
+      section={section}
+      Icon={Icon}
+      isCompleted={isCompleted}
+      readOnly={readOnly}
+      onItemClick={onItemClick}
+      config={config}
+      isCustomHabit={isCustomHabit}
+      habitLabel={habitLabel}
+      localData={localData}
+      onEditHabit={onEditHabit}
+      onDeleteHabit={onDeleteHabit}
+    />
+  </Box>
+);
 
 // Memoizar RutinaCard con comparación optimizada
 const MemoizedRutinaCard = memo(RutinaCard, (prevProps, nextProps) => {

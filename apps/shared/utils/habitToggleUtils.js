@@ -1,4 +1,56 @@
 /**
+ * ¿Una franja concreta está completada? (boolean legacy = todas las franjas).
+ */
+export function isFranjaCompleted(itemValue, normalizedHorario) {
+  if (itemValue === undefined || itemValue === null || itemValue === false) return false;
+  if (typeof itemValue === 'boolean') return itemValue === true;
+  if (typeof itemValue === 'object' && !Array.isArray(itemValue)) {
+    return itemValue[String(normalizedHorario).toUpperCase()] === true;
+  }
+  return false;
+}
+
+/**
+ * Toggle de una franja sin afectar las demás (objeto por horario).
+ */
+export function computeFranjaToggleValue({
+  itemValue,
+  horariosConfig = [],
+  normalizedHorario,
+}) {
+  const horarios = horariosConfig.map((h) => String(h).toUpperCase());
+  const horario = String(normalizedHorario).toUpperCase();
+  const isObjectFormat = typeof itemValue === 'object' && itemValue !== null && !Array.isArray(itemValue);
+  const isBooleanFormat = typeof itemValue === 'boolean';
+
+  if (isObjectFormat) {
+    return {
+      ...itemValue,
+      [horario]: !isFranjaCompleted(itemValue, horario),
+    };
+  }
+
+  const nextCompleted = !isFranjaCompleted(itemValue, horario);
+  const newObject = {};
+
+  if (isBooleanFormat && itemValue === true) {
+    horarios.forEach((h) => {
+      newObject[h] = h === horario ? nextCompleted : true;
+    });
+    return newObject;
+  }
+
+  horarios.forEach((h) => {
+    if (h === horario) {
+      newObject[h] = nextCompleted;
+    } else {
+      newObject[h] = isFranjaCompleted(itemValue, h);
+    }
+  });
+  return newObject;
+}
+
+/**
  * Calcula el nuevo valor de completado al togglear un hábito.
  * Soporta formato boolean legacy y objeto multi-horario.
  */
@@ -15,43 +67,19 @@ export function computeNextHabitValue({
   const hasMultipleHorarios = horariosConfig.length > 1;
 
   if (horario && horariosConfig.length > 0) {
-    const normalizedHorario = String(horario).toUpperCase();
-
-    if (isObjectFormat) {
-      return {
-        ...itemValue,
-        [normalizedHorario]: !isCompletedForHorario(normalizedHorario),
-      };
-    }
-
-    const newObject = {};
-    horariosConfig.forEach((h) => {
-      const normalizedH = String(h).toUpperCase();
-      newObject[normalizedH] = normalizedH === normalizedHorario
-        ? !isCompletedForHorario(normalizedHorario)
-        : false;
+    return computeFranjaToggleValue({
+      itemValue,
+      horariosConfig,
+      normalizedHorario: String(horario).toUpperCase(),
     });
-    return newObject;
   }
 
   if (hasMultipleHorarios) {
-    const normalizedHorario = String(currentTimeOfDay || horario).toUpperCase();
-
-    if (isObjectFormat) {
-      return {
-        ...itemValue,
-        [normalizedHorario]: !isCompletedForHorario(normalizedHorario),
-      };
-    }
-
-    const newObject = {};
-    horariosConfig.forEach((h) => {
-      const normalizedH = String(h).toUpperCase();
-      newObject[normalizedH] = normalizedH === normalizedHorario
-        ? !isCompletedForHorario(normalizedHorario)
-        : false;
+    return computeFranjaToggleValue({
+      itemValue,
+      horariosConfig,
+      normalizedHorario: String(currentTimeOfDay || horario).toUpperCase(),
     });
-    return newObject;
   }
 
   if (isObjectFormat) {
@@ -73,22 +101,12 @@ export function computeCarouselToggleValue({
   const isObjectFormat = typeof itemValue === 'object' && itemValue !== null && !Array.isArray(itemValue);
   const isBooleanFormat = typeof itemValue === 'boolean';
 
-  if (horariosConfig.length > 1) {
-    if (isObjectFormat) {
-      return {
-        ...itemValue,
-        [normalizedHorario]: itemValue[normalizedHorario] !== true,
-      };
-    }
-
-    const newObject = {};
-    horariosConfig.forEach((h) => {
-      const normalizedH = String(h).toUpperCase();
-      newObject[normalizedH] = normalizedH === normalizedHorario
-        ? !(isBooleanFormat && itemValue === true)
-        : false;
+  if (horariosConfig.length > 1 && normalizedHorario) {
+    return computeFranjaToggleValue({
+      itemValue,
+      horariosConfig,
+      normalizedHorario,
     });
-    return newObject;
   }
 
   const prev = isBooleanFormat

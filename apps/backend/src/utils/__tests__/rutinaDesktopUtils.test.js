@@ -1,5 +1,8 @@
 import {
   categorizeSectionHabits,
+  groupSectionHabitsByDaySchedule,
+  getSectionCarouselItems,
+  sortSectionHabitsByFixedOrder,
   getDefaultSelectedSection,
   RUTINA_SECTION_LABELS,
   HABIT_SECTIONS,
@@ -164,6 +167,101 @@ describe('rutinaDesktopUtils', () => {
       expect(weekly).toBeTruthy();
       expect(weekly.isCadenciaDebt).toBe(true);
       expect(notScheduled.map((h) => h.itemId)).not.toContain('weekly');
+    });
+  });
+
+  describe('groupSectionHabitsByDaySchedule', () => {
+    it('groups scheduled habits under Hoy and off-schedule under notToday', () => {
+      const rutina = makeRutina({
+        bodyCare: { shower: true },
+      });
+      const { today, todayCompleted, todayPending, notToday } = groupSectionHabitsByDaySchedule({
+        section: 'bodyCare',
+        rutina,
+        habits: mockHabits,
+      });
+      expect(today.map((h) => h.itemId)).toEqual(['shower', 'weekly']);
+      expect(todayCompleted.map((h) => h.itemId)).toContain('shower');
+      expect(todayPending.map((h) => h.itemId)).toContain('weekly');
+      expect(notToday.map((h) => h.itemId)).not.toContain('shower');
+      expect(notToday.map((h) => h.itemId)).not.toContain('weekly');
+    });
+
+    it('keeps fixed orden within Hoy when toggling completion', () => {
+      const rutinaPending = makeRutina();
+      const rutinaDone = makeRutina({ bodyCare: { shower: true } });
+      const pending = groupSectionHabitsByDaySchedule({
+        section: 'bodyCare',
+        rutina: rutinaPending,
+        habits: mockHabits,
+      });
+      const done = groupSectionHabitsByDaySchedule({
+        section: 'bodyCare',
+        rutina: rutinaDone,
+        habits: mockHabits,
+      });
+      expect(pending.today.map((h) => h.itemId)).toEqual(done.today.map((h) => h.itemId));
+    });
+
+    it('places off-schedule habits in notToday', () => {
+      const sunday = new Date(2026, 5, 21, 12, 0, 0, 0);
+      const rutina = makeRutina({ fecha: sunday.toISOString() });
+      const { notToday, today } = groupSectionHabitsByDaySchedule({
+        section: 'bodyCare',
+        rutina,
+        habits: mockHabits,
+      });
+      expect(notToday.map((h) => h.itemId)).toContain('weekly');
+      expect(today.map((h) => h.itemId)).toContain('shower');
+    });
+
+    it('keeps cadencia debt in today with fixed orden (not debt-first)', () => {
+      const tuesday = new Date(2026, 5, 23, 12, 0, 0, 0);
+      const rutina = makeRutina({
+        fecha: tuesday.toISOString(),
+        historial: { bodyCare: { weekly: {} } },
+      });
+      const { today, todayPending } = groupSectionHabitsByDaySchedule({
+        section: 'bodyCare',
+        rutina,
+        habits: mockHabits,
+      });
+      const ids = today.map((h) => h.itemId);
+      expect(ids).toEqual(['shower', 'weekly']);
+      expect(todayPending.find((h) => h.itemId === 'weekly')?.isCadenciaDebt).toBe(true);
+    });
+  });
+
+  describe('getSectionCarouselItems', () => {
+    it('returns habits in fixed orden regardless of completion', () => {
+      const rutinaPending = makeRutina();
+      const rutinaDone = makeRutina({ bodyCare: { shower: true } });
+      const pendingIds = getSectionCarouselItems({
+        section: 'bodyCare',
+        rutina: rutinaPending,
+        habits: mockHabits,
+      }).map((h) => h.itemId);
+      const doneIds = getSectionCarouselItems({
+        section: 'bodyCare',
+        rutina: rutinaDone,
+        habits: mockHabits,
+      }).map((h) => h.itemId);
+      expect(pendingIds).toEqual(['shower', 'weekly']);
+      expect(doneIds).toEqual(pendingIds);
+    });
+  });
+
+  describe('sortSectionHabitsByFixedOrder', () => {
+    it('sorts by orden then label', () => {
+      const entries = [
+        { itemId: 'weekly', label: 'Semanal' },
+        { itemId: 'shower', label: 'Ducha' },
+      ];
+      const sorted = sortSectionHabitsByFixedOrder(entries, {
+        section: 'bodyCare',
+        habits: mockHabits,
+      });
+      expect(sorted.map((e) => e.itemId)).toEqual(['shower', 'weekly']);
     });
   });
 
